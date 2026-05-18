@@ -1,5 +1,4 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 
 export type CreateCampaignPayload = {
   restaurantId: number;
@@ -61,7 +60,7 @@ export async function createCampaign(
   form.append("offer", payload.offer.trim());
   form.append("price", String(payload.price));
 
-  const res = await fetch(`${API_URL}/campaign/create`, {
+  const res = await fetch(`${getApiBaseUrl()}/campaign/create`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -70,16 +69,7 @@ export async function createCampaign(
   });
 
   if (!res.ok) {
-    let message = "Request failed";
-    try {
-      const errBody = (await res.json()) as { message?: unknown };
-      const m = errBody?.message;
-      if (Array.isArray(m)) message = m.join(" ");
-      else if (typeof m === "string") message = m;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(message);
+    throw new Error(await parseApiErrorMessage(res, "Could not create campaign."));
   }
 
   return res.json() as Promise<unknown>;

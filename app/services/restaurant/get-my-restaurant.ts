@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type AdminRestaurant = {
   id?: number;
@@ -50,12 +48,6 @@ export type RestaurantDetail = AdminRestaurant & {
   owner?: RestaurantOwner | null;
   menu?: RestaurantMenuItem[];
 };
-
-function normalizeMessage(message: unknown): string {
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string") return message;
-  return "Request failed";
-}
 
 function pickString(
   o: Record<string, unknown>,
@@ -203,7 +195,7 @@ export async function fetchMyRestaurants(
   }
 
   try {
-    const response = await axios.get<unknown>(`${API_URL}/restaurant/all`, {
+    const response = await axios.get<unknown>(`${getApiBaseUrl()}/restaurant/all`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -223,7 +215,12 @@ export async function fetchMyRestaurants(
         return [];
       }
       if (error.response?.data?.message != null) {
-        throw new Error(normalizeMessage(error.response.data.message));
+        throw new Error(
+          parseApiMessage(
+            error.response.data.message,
+            "Could not load restaurants.",
+          ),
+        );
       }
     }
     throw error;
@@ -243,7 +240,7 @@ export async function fetchRestaurantById(
 
   try {
     const response = await axios.get<unknown>(
-      `${API_URL}/restaurant/${restaurantId}`,
+      `${getApiBaseUrl()}/restaurant/${restaurantId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -262,7 +259,12 @@ export async function fetchRestaurantById(
         throw new Error("Restaurant not found.");
       }
       if (error.response?.data?.message != null) {
-        throw new Error(normalizeMessage(error.response.data.message));
+        throw new Error(
+          parseApiMessage(
+            error.response.data.message,
+            "Could not load restaurants.",
+          ),
+        );
       }
     }
     throw error instanceof Error ? error : new Error("Request failed");

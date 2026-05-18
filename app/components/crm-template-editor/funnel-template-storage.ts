@@ -133,6 +133,17 @@ export async function saveFunnelTemplatePagesAsync(
   if (ok) dispatchSaved(campaignId);
 }
 
+/** Keep draft pages reachable at public URLs keyed by funnel id. */
+export async function mirrorFunnelTemplatePagesToFunnelId(
+  campaignId: string,
+  funnelId: number | null | undefined,
+  pages: TemplatePagesState,
+): Promise<void> {
+  const funnelKey = funnelId != null && funnelId >= 1 ? String(funnelId) : null;
+  if (!funnelKey || funnelKey === campaignId) return;
+  await saveFunnelTemplatePagesAsync(funnelKey, pages);
+}
+
 export function useFunnelTemplatePagesFromStorage(campaignId: string) {
   const [pages, setPages] = useState<TemplatePagesState>(
     INITIAL_TEMPLATE_PAGES,

@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type LoginResponse = string;
 
@@ -11,7 +9,7 @@ export async function login(
 ): Promise<LoginResponse> {
   try {
     const response = await axios.post<LoginResponse>(
-      `${API_URL}/auth/login`,
+      `${getApiBaseUrl()}/auth/login`,
       {
         email,
         password,
@@ -27,8 +25,10 @@ export async function login(
   } catch (error) {
     console.error("Login Error:", error);
 
-    if (axios.isAxiosError(error) && error.response?.data?.message) {
-      throw new Error(String(error.response.data.message));
+    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not sign in."),
+      );
     }
 
     throw error;

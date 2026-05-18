@@ -1,10 +1,8 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
-
-const PAYMENT_INTENT_FUNNEL_ID = 11;
+import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
+import { isPositiveInt } from "@/app/lib/numbers";
 
 export type CreatePaymentIntentPayload = {
-  funnelId?: number;
+  funnelId: number;
   restaurantId: number;
   applicationFeeAmount: number;
   currency: string;
@@ -20,7 +18,15 @@ export type CreatePaymentIntentResponse = {
   stripeAccountId?: string;
 };
 
-function normalizePaymentIntentId(
+type CreatePaymentIntentRequestBody = {
+  funnelId: number;
+  restaurantId: number;
+  applicationFeeAmount: number;
+  currency: string;
+  customerEmail: string;
+};
+
+function readPaymentIntentId(
   res: CreatePaymentIntentResponse,
 ): string | undefined {
   return (
@@ -30,11 +36,11 @@ function normalizePaymentIntentId(
   );
 }
 
-export async function createPaymentIntent(
-  payload: CreatePaymentIntentPayload,
-  accessToken?: string,
-): Promise<CreatePaymentIntentResponse> {
-  if (!Number.isFinite(payload.restaurantId) || payload.restaurantId < 1) {
+function assertPayload(payload: CreatePaymentIntentPayload): CreatePaymentIntentRequestBody {
+  if (!isPositiveInt(payload.funnelId)) {
+    throw new Error("Funnel id is required.");
+  }
+  if (!isPositiveInt(payload.restaurantId)) {
     throw new Error("Restaurant is required.");
   }
   if (
@@ -43,12 +49,29 @@ export async function createPaymentIntent(
   ) {
     throw new Error("Application fee amount is required.");
   }
-  if (!payload.currency?.trim()) {
+  const currency = payload.currency?.trim().toLowerCase();
+  if (!currency) {
     throw new Error("Currency is required.");
   }
-  if (!payload.customerEmail?.trim()) {
+  const customerEmail = payload.customerEmail?.trim();
+  if (!customerEmail) {
     throw new Error("Customer email is required.");
   }
+
+  return {
+    funnelId: payload.funnelId,
+    restaurantId: payload.restaurantId,
+    applicationFeeAmount: payload.applicationFeeAmount,
+    currency,
+    customerEmail,
+  };
+}
+
+export async function createPaymentIntent(
+  payload: CreatePaymentIntentPayload,
+  accessToken?: string,
+): Promise<CreatePaymentIntentResponse> {
+  const body = assertPayload(payload);
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -57,34 +80,21 @@ export async function createPaymentIntent(
     headers.Authorization = `Bearer ${accessToken.trim()}`;
   }
 
-  const body: Record<string, unknown> = {
-    funnelId: PAYMENT_INTENT_FUNNEL_ID,
-    restaurantId: payload.restaurantId,
-    applicationFeeAmount: payload.applicationFeeAmount,
-    currency: payload.currency.trim().toLowerCase(),
-    customerEmail: payload.customerEmail.trim(),
-  };
-
-  const res = await fetch(`${API_URL}/payment/intent`, {
+  const res = await fetch(`${getApiBaseUrl()}/payment/intent`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    let message = "Could not create payment intent.";
-    try {
-      const errBody = (await res.json()) as { message?: unknown };
-      const m = errBody?.message;
-      if (Array.isArray(m)) message = m.join(" ");
-      else if (typeof m === "string") message = m;
-    } catch {
-      void 0;
-    }
-    throw new Error(message);
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not create payment intent."),
+    );
   }
 
   const json = (await res.json()) as CreatePaymentIntentResponse;
-  const paymentIntentId = normalizePaymentIntentId(json);
-  return { ...json, paymentIntentId };
+  return {
+    ...json,
+    paymentIntentId: readPaymentIntentId(json),
+  };
 }

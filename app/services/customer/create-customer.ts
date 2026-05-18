@@ -1,5 +1,4 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 
 export type CreateCustomerPayload = {
   name: string;
@@ -16,7 +15,7 @@ export async function createCustomer(
     throw new Error("Email is required.");
   }
 
-  const res = await fetch(`${API_URL}/customer/create`, {
+  const res = await fetch(`${getApiBaseUrl()}/customer/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -28,14 +27,7 @@ export async function createCustomer(
   });
 
   if (!res.ok) {
-    let message = "Request failed";
-    try {
-      const errBody = (await res.json()) as { message?: unknown };
-      const m = errBody?.message;
-      if (Array.isArray(m)) message = m.join(" ");
-      else if (typeof m === "string") message = m;
-    } catch {}
-    throw new Error(message);
+    throw new Error(await parseApiErrorMessage(res, "Could not create customer."));
   }
 
   return res.json() as Promise<unknown>;

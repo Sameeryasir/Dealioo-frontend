@@ -4,17 +4,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Loader2, Save as SaveIcon } from "lucide-react";
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
 import {
-  loadFunnelTemplatePagesAsync,
-  saveFunnelTemplatePagesAsync,
-} from "@/app/components/crm-template-editor/funnel-template-storage";
-import { INITIAL_TEMPLATE_PAGES } from "@/app/components/crm-template-editor/template-data";
+  buildFunnelPublicPath,
+  resolveFunnelRouteId,
+} from "@/app/lib/funnel-public-path";
 import { getFunnelCheckoutEmail } from "@/app/lib/funnel-checkout-storage";
+import { parseNonNegativeInt, parsePositiveInt } from "@/app/lib/numbers";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import {
   buildCreateFunnelRequestBody,
   createFunnel,
 } from "@/app/services/funnel/create-funnel";
+import {
+  useCampaignFunnelLoader,
+  usePersistCampaignFunnelDraft,
+} from "@/app/hooks/use-campaign-funnel-loader";
 import { TemplateEditorSidebar } from "@/app/components/crm-template-editor/TemplateEditorSidebar";
 import { TemplatePageList } from "@/app/components/crm-template-editor/TemplatePageList";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
@@ -25,22 +29,6 @@ import type {
   TemplatePagesState,
 } from "@/app/components/crm-template-editor/template-types";
 
-function clonePages(): TemplatePagesState {
-  return JSON.parse(JSON.stringify(INITIAL_TEMPLATE_PAGES)) as TemplatePagesState;
-}
-
-function parseFeeEnv(raw: string | undefined, fallback: number): number {
-  if (raw == null || raw === "") return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
-function parseEnvPositiveInt(raw: string | undefined): number | null {
-  if (raw == null || raw.trim() === "") return null;
-  const n = Number.parseInt(raw.trim(), 10);
-  return Number.isFinite(n) && n >= 1 ? n : null;
-}
-
 export type CrmTemplateEditorProps = {
   restaurantId?: number;
   campaignId?: number;
@@ -49,17 +37,16 @@ export type CrmTemplateEditorProps = {
 };
 
 export function CrmTemplateEditor({
-  restaurantId: _restaurantId,
-  campaignId: _campaignId,
+  restaurantId,
+  campaignId,
   initialPageId = "landing",
   interactivePreview = false,
 }: CrmTemplateEditorProps) {
-  const [pages, setPages] = useState<TemplatePagesState>(clonePages);
+  const funnelLoader = useCampaignFunnelLoader(campaignId);
+
+  const [pages, setPages] = useState<TemplatePagesState>(funnelLoader.pages);
   const [activeId, setActiveId] = useState<TemplatePageId>(initialPageId);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [didHydrateStorage, setDidHydrateStorage] = useState(
-    _campaignId == null,
-  );
   type SaveStatus = "idle" | "saving" | "saved" | "error";
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -67,37 +54,20 @@ export function CrmTemplateEditor({
   const [pendingNavId, setPendingNavId] = useState<TemplatePageId | null>(null);
   const editSnapshotRef = useRef<TemplatePagesState | null>(null);
 
+  const { funnelId, isLoading: isLoadingFunnel, loadError, isHydrated } =
+    funnelLoader;
+
   const activePage = pages[activeId];
 
   useEffect(() => {
-    if (_campaignId == null) {
-      setPages(clonePages());
-      setDidHydrateStorage(true);
-      return;
-    }
-    setDidHydrateStorage(false);
-    let cancelled = false;
-    void (async () => {
-      const loaded = await loadFunnelTemplatePagesAsync(String(_campaignId));
-      if (cancelled) return;
-      setPages(loaded ?? clonePages());
-      setDidHydrateStorage(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [_campaignId]);
+    if (!isHydrated) return;
+    setPages(funnelLoader.pages);
+  }, [funnelLoader.pages, isHydrated]);
 
-  useEffect(() => {
-    if (!didHydrateStorage || _campaignId == null) return;
-    const t = window.setTimeout(() => {
-      void saveFunnelTemplatePagesAsync(String(_campaignId), pages);
-    }, 320);
-    return () => window.clearTimeout(t);
-  }, [pages, _campaignId, didHydrateStorage]);
+  usePersistCampaignFunnelDraft(campaignId, funnelId, pages, isHydrated);
 
   const handleSave = useCallback(async () => {
-    if (_campaignId == null) {
+    if (campaignId == null) {
       setSaveStatus("error");
       setSaveError("Missing campaign id.");
       return;
@@ -113,7 +83,7 @@ export function CrmTemplateEditor({
     try {
       await createFunnel(
         token,
-        buildCreateFunnelRequestBody(_campaignId, pages, [activeId]),
+        buildCreateFunnelRequestBody(campaignId, pages, [activeId]),
       );
       setSaveStatus("saved");
       setIsDirty(false);
@@ -122,30 +92,45 @@ export function CrmTemplateEditor({
       setSaveStatus("error");
       setSaveError(e instanceof Error ? e.message : "Could not save changes.");
     }
-  }, [_campaignId, pages, activeId]);
+  }, [campaignId, pages, activeId]);
 
   const previewRestaurantId = useMemo(
     () =>
-      _restaurantId ??
-      parseEnvPositiveInt(process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID),
-    [_restaurantId],
+      restaurantId ??
+      parsePositiveInt(process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID),
+    [restaurantId],
   );
   const previewCampaignId = useMemo(
-    () => (_campaignId != null && _campaignId >= 1 ? _campaignId : null),
-    [_campaignId],
+    () => (campaignId != null && campaignId >= 1 ? campaignId : null),
+    [campaignId],
+  );
+
+  const previewRouteId = useMemo(
+    () => resolveFunnelRouteId(funnelId, previewCampaignId),
+    [funnelId, previewCampaignId],
   );
 
   const previewSignupNextHref =
-    interactivePreview && previewCampaignId != null
-      ? (() => {
-          const path = `/funnel/${encodeURIComponent(String(previewCampaignId))}/payment`;
-          if (previewRestaurantId == null) return path;
-          return `${path}?restaurantId=${encodeURIComponent(String(previewRestaurantId))}`;
-        })()
+    interactivePreview && previewRouteId != null
+      ? buildFunnelPublicPath({
+          funnelId: previewRouteId,
+          step: "payment",
+          query: {
+            restaurantId: previewRestaurantId,
+            campaignId: previewCampaignId,
+          },
+        })
       : undefined;
   const previewSignupBackHref =
-    interactivePreview && previewCampaignId != null
-      ? `/funnel/${encodeURIComponent(String(previewCampaignId))}/landing`
+    interactivePreview && previewRouteId != null
+      ? buildFunnelPublicPath({
+          funnelId: previewRouteId,
+          step: "landing",
+          query: {
+            restaurantId: previewRestaurantId,
+            campaignId: previewCampaignId,
+          },
+        })
       : undefined;
 
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
@@ -161,7 +146,7 @@ export function CrmTemplateEditor({
       null;
     if (!email) return null;
 
-    const applicationFeeAmount = parseFeeEnv(
+    const applicationFeeAmount = parseNonNegativeInt(
       process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_APPLICATION_FEE,
       200,
     );
@@ -169,10 +154,7 @@ export function CrmTemplateEditor({
       process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_CURRENCY?.trim().toLowerCase() ||
       "usd";
 
-    const funnelId =
-      _campaignId != null && Number.isFinite(_campaignId) && _campaignId >= 1
-        ? _campaignId
-        : 11;
+    if (funnelId == null || funnelId < 1) return null;
 
     return {
       funnelId,
@@ -181,12 +163,7 @@ export function CrmTemplateEditor({
       currency,
       customerEmail: email,
     };
-  }, [
-    interactivePreview,
-    previewRestaurantId,
-    _campaignId,
-    activeId,
-  ]);
+  }, [interactivePreview, previewRestaurantId, funnelId, activeId]);
 
   const pageList = useMemo(
     () =>
@@ -375,17 +352,32 @@ export function CrmTemplateEditor({
               : ""
           }`}
         >
-          <div className="mx-auto w-full max-w-[390px] shrink-0">
-            <TemplatePreview
-              page={activePage}
-              landingPage={pages.landing}
-              interactiveForms={interactivePreview}
-              signupNextHref={previewSignupNextHref}
-              signupBackHref={previewSignupBackHref}
-              editorStepPreviewChrome
-              paymentStripeCheckout={paymentStripeCheckout}
-            />
-          </div>
+          {loadError ? (
+            <p
+              className="mx-auto mb-3 max-w-[390px] rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+              role="status"
+            >
+              {loadError}
+            </p>
+          ) : null}
+          {isLoadingFunnel ? (
+            <div className="mx-auto flex max-w-[390px] items-center justify-center gap-2 py-16 text-sm text-zinc-500">
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              Loading funnel…
+            </div>
+          ) : (
+            <div className="mx-auto w-full max-w-[390px] shrink-0">
+              <TemplatePreview
+                page={activePage}
+                landingPage={pages.landing}
+                interactiveForms={interactivePreview}
+                signupNextHref={previewSignupNextHref}
+                signupBackHref={previewSignupBackHref}
+                editorStepPreviewChrome
+                paymentStripeCheckout={paymentStripeCheckout}
+              />
+            </div>
+          )}
         </main>
       </div>
 

@@ -8,7 +8,7 @@ import type {
   TemplatePagesState,
 } from "@/app/components/crm-template-editor/template-types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 
 export type CreateFunnelFormFieldId =
   | "first_name"
@@ -242,7 +242,7 @@ export async function createFunnel(
     throw new Error("Valid campaignId is required.");
   }
 
-  const res = await fetch(`${API_URL}/funnel/create`, {
+  const res = await fetch(`${getApiBaseUrl()}/funnel/create`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -252,14 +252,7 @@ export async function createFunnel(
   });
 
   if (!res.ok) {
-    let message = "Request failed";
-    try {
-      const errBody = (await res.json()) as { message?: unknown };
-      const m = errBody?.message;
-      if (Array.isArray(m)) message = m.join(" ");
-      else if (typeof m === "string") message = m;
-    } catch {}
-    throw new Error(message);
+    throw new Error(await parseApiErrorMessage(res, "Could not save funnel."));
   }
 
   const ct = res.headers.get("content-type");

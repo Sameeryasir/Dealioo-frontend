@@ -1,12 +1,5 @@
 import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
-
-function normalizeMessage(message: unknown): string {
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string") return message;
-  return "Request failed";
-}
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type Verify2faSetupResponse = {
   message: string;
@@ -34,7 +27,7 @@ export async function verify2faSetup(
 
   try {
     const response = await axios.post<Verify2faSetupResponse>(
-      `${API_URL}/auth/2fa/verify-setup`,
+      `${getApiBaseUrl()}/auth/2fa/verify-setup`,
       { code },
       {
         headers: {
@@ -47,7 +40,9 @@ export async function verify2faSetup(
   } catch (error) {
     console.error("Verify 2FA setup error:", error);
     if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(normalizeMessage(error.response.data.message));
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not verify 2FA setup."),
+      );
     }
     throw error;
   }

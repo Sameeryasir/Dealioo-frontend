@@ -7,6 +7,7 @@ import {
   fetchCampaignsByRestaurant,
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -32,6 +33,7 @@ export default function CampaignWelcomePage() {
     undefined,
   );
   const [activeTabId, setActiveTabId] = useState("overview");
+  const funnelId = useCampaignFunnelId(campaignId);
 
   useEffect(() => {
     if (restaurantId == null || campaignId == null) return;
@@ -73,6 +75,7 @@ export default function CampaignWelcomePage() {
         <CampaignHeader
           restaurantId={restaurantId}
           campaignId={campaignId}
+          funnelId={funnelId}
           offer={campaign?.offer}
           price={campaign?.price}
           activeTabId={activeTabId}

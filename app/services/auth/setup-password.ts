@@ -1,17 +1,9 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type SetupPasswordResponse = {
   message: string;
 };
-
-function normalizeMessage(message: unknown): string {
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string") return message;
-  return "Request failed";
-}
 
 export async function setupPassword(
   accessToken: string,
@@ -24,7 +16,7 @@ export async function setupPassword(
 
   try {
     const response = await axios.put<SetupPasswordResponse>(
-      `${API_URL}/auth/setup-password`,
+      `${getApiBaseUrl()}/auth/setup-password`,
       { currentPassword, newPassword },
       {
         headers: {
@@ -37,7 +29,9 @@ export async function setupPassword(
   } catch (error) {
     console.error("Setup password error:", error);
     if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(normalizeMessage(error.response.data.message));
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not update password."),
+      );
     }
     throw error;
   }

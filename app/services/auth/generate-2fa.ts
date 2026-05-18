@@ -1,12 +1,5 @@
 import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
-
-function normalizeMessage(message: unknown): string {
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string") return message;
-  return "Request failed";
-}
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type Generate2faResponse = {
   qrCode: string;
@@ -20,7 +13,7 @@ export async function generate2fa(accessToken: string): Promise<Generate2faRespo
 
   try {
     const response = await axios.post<Generate2faResponse>(
-      `${API_URL}/auth/2fa/generate`,
+      `${getApiBaseUrl()}/auth/2fa/generate`,
       undefined,
       {
         headers: {
@@ -33,7 +26,9 @@ export async function generate2fa(accessToken: string): Promise<Generate2faRespo
   } catch (error) {
     console.error("Generate 2FA error:", error);
     if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(normalizeMessage(error.response.data.message));
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not generate 2FA."),
+      );
     }
     throw error;
   }

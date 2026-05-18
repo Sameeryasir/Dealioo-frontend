@@ -3,6 +3,10 @@
 import { ArrowLeft, Check, Circle, Copy, Link2, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  buildFunnelPublicPath,
+  resolveFunnelRouteId,
+} from "@/app/lib/funnel-public-path";
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;
@@ -19,6 +23,8 @@ function formatPrice(amount: number): string {
 export type CampaignHeaderProps = {
   restaurantId: number;
   campaignId?: number;
+  /** Funnel record id from GET /funnel/campaign/:campaignId — used in public guest URLs. */
+  funnelId?: number | null;
   offer?: string;
   price?: number | string;
   defaultTabId?: string;
@@ -43,6 +49,7 @@ const TABS: { id: string; label: string; icon?: typeof Circle }[] = [
 export default function CampaignHeader({
   restaurantId,
   campaignId,
+  funnelId,
   offer,
   price,
   defaultTabId = "overview",
@@ -82,11 +89,14 @@ export default function CampaignHeader({
   const [copyDone, setCopyDone] = useState(false);
 
   const landingTrackingPath = useMemo(() => {
-    if (campaignId == null) return "";
-    const base = `/funnel/${campaignId}/landing`;
-    if (!Number.isFinite(restaurantId) || restaurantId < 1) return base;
-    return `${base}?restaurantId=${encodeURIComponent(String(restaurantId))}`;
-  }, [campaignId, restaurantId]);
+    const routeId = resolveFunnelRouteId(funnelId, campaignId);
+    if (routeId == null) return "";
+    return buildFunnelPublicPath({
+      funnelId: routeId,
+      step: "landing",
+      query: { restaurantId, campaignId },
+    });
+  }, [campaignId, funnelId, restaurantId]);
 
   const landingTrackingUrl = useMemo(() => {
     if (!landingTrackingPath || !trackingOrigin) return "";
@@ -252,6 +262,22 @@ export default function CampaignHeader({
           </div>
           {campaignId != null && landingTrackingUrl ? (
             <div className="mt-4 space-y-2">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
+                <span>
+                  Campaign ID:{" "}
+                  <span className="font-mono font-semibold text-zinc-900">
+                    {campaignId}
+                  </span>
+                </span>
+                {funnelId != null && funnelId >= 1 ? (
+                  <span>
+                    Funnel ID:{" "}
+                    <span className="font-mono font-semibold text-zinc-900">
+                      {funnelId}
+                    </span>
+                  </span>
+                ) : null}
+              </div>
               <label
                 htmlFor="tracking-landing-url"
                 className="block text-xs font-medium text-zinc-500"

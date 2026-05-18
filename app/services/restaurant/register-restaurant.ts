@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type RegisterRestaurantPayload = {
   name: string;
@@ -23,12 +21,6 @@ export type RegisterRestaurantResponse = {
   restaurantId?: number;
   id?: number;
 };
-
-function normalizeMessage(message: unknown): string {
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string") return message;
-  return "Request failed";
-}
 
 function optionalString(value: string | undefined): string | undefined {
   if (value == null) return undefined;
@@ -93,7 +85,7 @@ export async function registerRestaurant(
 
   try {
     const response = await axios.post<RegisterRestaurantResponse>(
-      `${API_URL}/restaurant/create`,
+      `${getApiBaseUrl()}/restaurant/create`,
       body,
       {
         headers: {
@@ -106,7 +98,12 @@ export async function registerRestaurant(
   } catch (error) {
     console.error("Register restaurant error:", error);
     if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(normalizeMessage(error.response.data.message));
+      throw new Error(
+        parseApiMessage(
+          error.response.data.message,
+          "Could not register restaurant.",
+        ),
+      );
     }
     throw error;
   }

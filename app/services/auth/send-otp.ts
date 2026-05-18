@@ -1,14 +1,12 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type SendOtpResponse = string;
 
 export async function sendOtp(email: string): Promise<SendOtpResponse> {
   try {
     const response = await axios.post<SendOtpResponse>(
-      `${API_URL}/auth/send-otp`,
+      `${getApiBaseUrl()}/auth/send-otp`,
       {
         email,
       },
@@ -23,8 +21,10 @@ export async function sendOtp(email: string): Promise<SendOtpResponse> {
   } catch (error) {
     console.error("Send OTP Error:", error);
 
-    if (axios.isAxiosError(error) && error.response?.data?.message) {
-      throw new Error(String(error.response.data.message));
+    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not send OTP."),
+      );
     }
 
     throw error;

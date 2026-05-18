@@ -1,5 +1,4 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 
 export type StripeConnectResponse = {
   url: string;
@@ -33,7 +32,7 @@ export async function connectStripe(
   }
 
   const res = await fetch(
-    `${API_URL}/stripe/connect/${encodeURIComponent(String(restaurantId))}`,
+    `${getApiBaseUrl()}/stripe/connect/${encodeURIComponent(String(restaurantId))}`,
     {
       method: "POST",
       headers: {
@@ -43,16 +42,9 @@ export async function connectStripe(
   );
 
   if (!res.ok) {
-    let message = "Could not start Stripe connection.";
-    try {
-      const errBody = (await res.json()) as { message?: unknown };
-      const m = errBody?.message;
-      if (Array.isArray(m)) message = m.join(" ");
-      else if (typeof m === "string") message = m;
-    } catch {
-      void 0;
-    }
-    throw new Error(message);
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not start Stripe connection."),
+    );
   }
 
   const body = (await res.json().catch(() => null)) as unknown;

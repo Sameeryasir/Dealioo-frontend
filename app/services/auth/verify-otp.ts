@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
 export type VerifyOtpUserRole = {
   id: number;
@@ -43,7 +41,7 @@ export async function verifyOtp(
 
   try {
     const response = await axios.post<VerifyOtpResponse>(
-      `${API_URL}/auth/verify-otp`,
+      `${getApiBaseUrl()}/auth/verify-otp`,
       {
         email,
         otp,
@@ -59,8 +57,10 @@ export async function verifyOtp(
   } catch (error) {
     console.error("Verify OTP Error:", error);
 
-    if (axios.isAxiosError(error) && error.response?.data?.message) {
-      throw new Error(String(error.response.data.message));
+    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
+      throw new Error(
+        parseApiMessage(error.response.data.message, "Could not verify OTP."),
+      );
     }
 
     throw error;

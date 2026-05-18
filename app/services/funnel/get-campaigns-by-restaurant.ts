@@ -4,8 +4,7 @@
  * Related: `app/(routes)/restaurant/[restaurantId]/dashboard/campaigns/page.tsx`
  */
 import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl } from "@/app/lib/api";
 
 export type Funnel = {
   id: number;
@@ -44,7 +43,7 @@ export async function fetchCampaignsByRestaurant(
   }
 
   const response = await axios.get<unknown>(
-    `${API_URL}/campaign/restaurant/${restaurantId}`,
+    `${getApiBaseUrl()}/campaign/restaurant/${restaurantId}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
