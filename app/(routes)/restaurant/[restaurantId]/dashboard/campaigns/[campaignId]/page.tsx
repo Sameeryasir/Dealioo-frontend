@@ -10,9 +10,10 @@ import {
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-restaurant";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
+import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 function parseId(raw: unknown): number | undefined {
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
@@ -21,6 +22,7 @@ function parseId(raw: unknown): number | undefined {
 }
 
 export default function CampaignWelcomePage() {
+  const router = useRouter();
   const params = useParams();
   const restaurantId = useMemo(
     () => parseId(params.restaurantId),
@@ -37,6 +39,16 @@ export default function CampaignWelcomePage() {
   const [activeTabId, setActiveTabId] = useState("overview");
   const { funnelId, isLoading: isFunnelIdLoading } =
     useCampaignFunnelId(campaignId);
+
+  const openAutomationBuilder = useCallback(
+    (automationId: string) => {
+      if (restaurantId == null) return;
+      router.push(
+        `/restaurant/${restaurantId}/dashboard/automations/${automationId}`,
+      );
+    },
+    [router, restaurantId],
+  );
 
   useEffect(() => {
     if (restaurantId == null || campaignId == null) return;
@@ -106,6 +118,11 @@ export default function CampaignWelcomePage() {
         <FunnelOrdersPanel
           funnelId={funnelId}
           isFunnelIdLoading={isFunnelIdLoading}
+        />
+      ) : activeTabId === "automations" ? (
+        <AutomationListPage
+          restaurantId={restaurantId}
+          onOpenBuilder={openAutomationBuilder}
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">

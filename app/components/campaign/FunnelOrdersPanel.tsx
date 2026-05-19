@@ -35,7 +35,7 @@ const ordersItem = {
 };
 
 const thClass =
-  "whitespace-nowrap px-5 py-3.5 text-left align-middle sm:px-6";
+  "whitespace-nowrap px-5 py-4 text-left align-middle sm:px-6";
 const tdClass = "px-5 py-4 text-left align-middle text-sm sm:px-6";
 
 function ColumnLabel({
@@ -46,9 +46,15 @@ function ColumnLabel({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 text-xs font-bold text-zinc-900">
-      <Icon className="size-4 shrink-0 text-black" strokeWidth={2.25} aria-hidden />
-      {label}
+    <span className="inline-flex items-center gap-2.5">
+      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
+        <Icon className="size-3.5 text-black" strokeWidth={2.25} aria-hidden />
+      </span>
+      {label ? (
+        <span className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-zinc-900">
+          {label}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -56,27 +62,27 @@ function ColumnLabel({
 function TableSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:px-5">
+      <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
         <div className="flex w-full gap-6">
-          <Skeleton className="h-3 w-[10%]" />
-          <Skeleton className="h-3 w-[28%]" />
-          <Skeleton className="h-3 w-[12%]" />
-          <Skeleton className="h-3 w-[12%]" />
-          <Skeleton className="h-3 w-[20%]" />
-          <Skeleton className="h-3 w-[12%]" />
+          <Skeleton funnel className="h-3 w-[10%]" />
+          <Skeleton funnel className="h-3 w-[28%]" />
+          <Skeleton funnel className="h-3 w-[12%]" />
+          <Skeleton funnel className="h-3 w-[12%]" />
+          <Skeleton funnel className="h-3 w-[20%]" />
+          <Skeleton funnel className="h-3 w-[12%]" />
         </div>
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="flex w-full gap-6 border-b border-zinc-100 px-4 py-4 last:border-0 sm:px-5"
+          className="flex w-full gap-6 border-b border-zinc-100 bg-white px-4 py-4 last:border-0 sm:px-5"
         >
-          <Skeleton className="size-8 shrink-0 rounded-lg" />
-          <Skeleton className="h-4 w-[28%]" />
-          <Skeleton className="h-4 w-[12%]" />
-          <Skeleton className="h-4 w-[12%]" />
-          <Skeleton className="h-4 w-[20%]" />
-          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton funnel className="size-8 shrink-0 rounded-lg" />
+          <Skeleton funnel className="h-4 w-[28%]" />
+          <Skeleton funnel className="h-4 w-[12%]" />
+          <Skeleton funnel className="h-4 w-[12%]" />
+          <Skeleton funnel className="h-4 w-[20%]" />
+          <Skeleton funnel className="h-4 w-[12%]" />
         </div>
       ))}
     </div>
@@ -91,14 +97,22 @@ function formatMoney(amount: number, currency: string): string {
   }).format(amount / 100);
 }
 
-function formatPaidAt(iso: string | null): string {
-  if (!iso) return "—";
+function formatPaidAtParts(iso: string | null): { date: string; time: string } | null {
+  if (!iso) return null;
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  if (Number.isNaN(d.getTime())) return null;
+  return {
+    date: d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    time: d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }),
+  };
 }
 
 function statusTone(status: string): string {
@@ -167,7 +181,7 @@ export function FunnelOrdersPanel({
         {!showSkeleton && !error && payments.length > 0 ? (
           <motion.div
             key="orders-table"
-            className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm ring-1 ring-zinc-950/5"
+            className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md ring-1 ring-zinc-950/[0.06]"
             variants={ordersStagger}
             initial="hidden"
             animate="show"
@@ -175,7 +189,7 @@ export function FunnelOrdersPanel({
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-200 bg-zinc-50">
+                  <tr className="border-b border-zinc-200 bg-zinc-50/90">
                     <th className={`${thClass} w-12`}>
                       <ColumnLabel icon={Hash} label="" />
                     </th>
@@ -204,17 +218,19 @@ export function FunnelOrdersPanel({
                     <motion.tr
                       key={payment.id}
                       variants={ordersItem}
-                      className={`border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/70 ${
+                      className={`group border-b border-zinc-100 transition-[background-color,box-shadow] duration-200 last:border-0 hover:bg-zinc-50/80 ${
                         index % 2 === 1 ? "bg-zinc-50/40" : "bg-white"
                       }`}
                     >
-                      <td
-                        className={`${tdClass} w-12 text-xs font-medium tabular-nums text-zinc-400`}
-                      >
-                        {index + 1}
+                      <td className={`${tdClass} w-12`}>
+                        <span className="inline-flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold tabular-nums text-zinc-500 ring-1 ring-zinc-200/70">
+                          {index + 1}
+                        </span>
                       </td>
                       <td className={`${tdClass} w-16`}>
-                        <StripeIcon className="!size-8 !rounded-lg shadow-none ring-0" />
+                        <span className="inline-flex rounded-lg border border-zinc-200/80 bg-white p-1 shadow-sm ring-1 ring-zinc-950/[0.04] transition-transform duration-200 group-hover:scale-[1.02]">
+                          <StripeIcon className="!size-8 !rounded-md shadow-none ring-0" />
+                        </span>
                       </td>
                       <td
                         className={`${tdClass} max-w-[300px] truncate font-medium text-zinc-900`}
@@ -228,15 +244,30 @@ export function FunnelOrdersPanel({
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusTone(payment.status)}`}
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize shadow-sm ring-1 ring-black/5 ${statusTone(payment.status)}`}
                         >
                           {payment.status}
                         </span>
                       </td>
-                      <td
-                        className={`${tdClass} whitespace-nowrap text-zinc-500`}
-                      >
-                        {formatPaidAt(payment.paidAt ?? payment.createdAt)}
+                      <td className={`${tdClass} whitespace-nowrap`}>
+                        {(() => {
+                          const paid = formatPaidAtParts(
+                            payment.paidAt ?? payment.createdAt,
+                          );
+                          if (!paid) {
+                            return <span className="text-zinc-300">—</span>;
+                          }
+                          return (
+                            <span className="inline-flex flex-col gap-0.5">
+                              <span className="font-medium text-zinc-700">
+                                {paid.date}
+                              </span>
+                              <span className="text-xs tabular-nums text-zinc-500">
+                                {paid.time}
+                              </span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
                         {payment.receiptUrl ? (
@@ -244,7 +275,7 @@ export function FunnelOrdersPanel({
                             href={payment.receiptUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-900 underline-offset-2 hover:underline"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/90 bg-zinc-50 px-2.5 py-1.5 text-xs font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-100"
                           >
                             View receipt
                             <ExternalLink

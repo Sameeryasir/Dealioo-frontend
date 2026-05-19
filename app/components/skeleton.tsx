@@ -2,10 +2,16 @@
 
 import type { ComponentType } from "react";
 
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({
+  className,
+  funnel = false,
+}: {
+  className?: string;
+  funnel?: boolean;
+}) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-zinc-200/80 ${className ?? ""}`}
+      className={`animate-pulse rounded-md ${funnel ? "bg-zinc-100" : "bg-zinc-200/80"} ${className ?? ""}`}
       aria-hidden
     />
   );

@@ -35,11 +35,11 @@ function OverviewSkeleton() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-8 w-20" />
-                <Skeleton className="h-3 w-28" />
+                <Skeleton funnel className="h-3 w-16" />
+                <Skeleton funnel className="h-8 w-20" />
+                <Skeleton funnel className="h-3 w-28" />
               </div>
-              <Skeleton className="size-10 shrink-0 rounded-xl" />
+              <Skeleton funnel className="size-10 shrink-0 rounded-xl" />
             </div>
           </div>
         ))}
@@ -47,35 +47,35 @@ function OverviewSkeleton() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm sm:p-5">
-          <Skeleton className="h-4 w-36" />
-          <Skeleton className="mt-2 h-3 w-28" />
+          <Skeleton funnel className="h-4 w-36" />
+          <Skeleton funnel className="mt-2 h-3 w-28" />
           <div className="mt-6 space-y-5">
-            <Skeleton className="h-3 w-full rounded-full" />
-            <Skeleton className="h-3 w-4/5 rounded-full" />
+            <Skeleton funnel className="h-3 w-full rounded-full" />
+            <Skeleton funnel className="h-3 w-4/5 rounded-full" />
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm sm:p-5">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="mt-2 h-3 w-32" />
+          <Skeleton funnel className="h-4 w-24" />
+          <Skeleton funnel className="mt-2 h-3 w-32" />
           <div className="mt-4 space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton funnel className="h-10 w-full" />
+            <Skeleton funnel className="h-10 w-full" />
+            <Skeleton funnel className="h-10 w-full" />
           </div>
         </div>
       </div>
 
       <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm sm:p-5">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="mt-2 mb-4 h-3 w-40" />
+        <Skeleton funnel className="h-4 w-28" />
+        <Skeleton funnel className="mt-2 mb-4 h-3 w-40" />
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <div className="flex justify-between gap-4">
-                <Skeleton className="h-3 w-32" />
-                <Skeleton className="h-3 w-20" />
+                <Skeleton funnel className="h-3 w-32" />
+                <Skeleton funnel className="h-3 w-20" />
               </div>
-              <Skeleton className="h-2 w-full rounded-full" />
+              <Skeleton funnel className="h-2 w-full rounded-full" />
             </div>
           ))}
         </div>

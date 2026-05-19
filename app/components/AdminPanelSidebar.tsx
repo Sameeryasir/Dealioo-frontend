@@ -13,6 +13,7 @@ import {
   ScanLine,
   ShoppingBag,
   Users,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { isRestaurantSidebarChromeMinimal } from "@/app/lib/restaurant-dashboard-pathname";
@@ -84,6 +85,12 @@ export default function AdminPanelSidebar() {
         href: `${restaurantHomeHref}/campaigns`,
         label: "Campaigns",
         icon: Megaphone,
+        activeMatch: "prefix",
+      },
+      {
+        href: `${restaurantHomeHref}/automations`,
+        label: "Automations",
+        icon: Workflow,
         activeMatch: "prefix",
       },
       {
