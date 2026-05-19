@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
+import {
+  CampaignFunnelCardSkeleton,
+  SkeletonGrid,
+} from "@/app/components/skeleton";
 import CreateCampaigns from "@/app/components/CreateCampaigns";
 import SearchBar from "@/app/components/SearchBar";
 import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
@@ -173,7 +177,12 @@ export default function RestaurantCampaignsPage() {
         </header>
       ) : null}
 
-      {funnelsLoading ? null : funnelsError ? (
+      {funnelsLoading ? (
+        <SkeletonGrid
+          className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-6 md:grid-cols-3"
+          Card={CampaignFunnelCardSkeleton}
+        />
+      ) : funnelsError ? (
         <div
           className="mx-auto w-full max-w-[min(100%,77.62rem)] rounded-2xl border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-900 shadow-sm"
           role="alert"

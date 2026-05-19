@@ -8,7 +8,11 @@ import {
   fetchMyRestaurants,
   type AdminRestaurant,
 } from "@/app/services/restaurant/get-my-restaurant";
-import { AlertCircle, Loader2, Plus, Store } from "lucide-react";
+import {
+  RestaurantCardSkeleton,
+  SkeletonGrid,
+} from "@/app/components/skeleton";
+import { AlertCircle, Plus, Store } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -86,19 +90,13 @@ export default function DashboardPage() {
     return restaurants.filter((r) => restaurantMatchesQuery(r, searchQuery));
   }, [restaurants, searchQuery]);
 
-  if (!tokenReady || !accessToken) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-500">Loading…</p>
-      </div>
-    );
-  }
+  const showSkeleton = !tokenReady || loading;
 
   const showCreateInHeader =
-    !loading && !errorMessage && restaurants !== undefined;
+    !showSkeleton && !errorMessage && restaurants !== undefined;
 
   const showDashboardSearch =
-    !loading &&
+    !showSkeleton &&
     !errorMessage &&
     restaurants !== undefined &&
     restaurants.length > 0;
@@ -135,15 +133,11 @@ export default function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-[min(100%,77.62rem)]">
-        {loading ? (
-          <div
-            className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-zinc-200 bg-white/80 py-20 text-zinc-500"
-            role="status"
-            aria-live="polite"
-          >
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" aria-hidden />
-            <p className="text-sm font-medium">Loading restaurants…</p>
-          </div>
+        {showSkeleton ? (
+          <SkeletonGrid
+            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            Card={RestaurantCardSkeleton}
+          />
         ) : errorMessage ? (
           <div
             className="rounded-2xl border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-900 shadow-sm"

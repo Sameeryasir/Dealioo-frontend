@@ -13,6 +13,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { StripeIcon } from "@/app/components/StripeLogo";
+import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelPayments } from "@/app/hooks/use-funnel-payments";
 
 const ordersEase = [0.22, 1, 0.36, 1] as const;
@@ -32,15 +33,6 @@ const ordersItem = {
     transition: { duration: 0.4, ease: ordersEase },
   },
 };
-
-function Bone({ className }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded bg-zinc-200/80 ${className ?? ""}`}
-      aria-hidden
-    />
-  );
-}
 
 const thClass =
   "whitespace-nowrap px-5 py-3.5 text-left align-middle sm:px-6";
@@ -66,12 +58,12 @@ function TableSkeleton() {
     <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
       <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:px-5">
         <div className="flex w-full gap-6">
-          <Bone className="h-3 w-[10%]" />
-          <Bone className="h-3 w-[28%]" />
-          <Bone className="h-3 w-[12%]" />
-          <Bone className="h-3 w-[12%]" />
-          <Bone className="h-3 w-[20%]" />
-          <Bone className="h-3 w-[12%]" />
+          <Skeleton className="h-3 w-[10%]" />
+          <Skeleton className="h-3 w-[28%]" />
+          <Skeleton className="h-3 w-[12%]" />
+          <Skeleton className="h-3 w-[12%]" />
+          <Skeleton className="h-3 w-[20%]" />
+          <Skeleton className="h-3 w-[12%]" />
         </div>
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
@@ -79,12 +71,12 @@ function TableSkeleton() {
           key={i}
           className="flex w-full gap-6 border-b border-zinc-100 px-4 py-4 last:border-0 sm:px-5"
         >
-          <Bone className="size-8 shrink-0 rounded-lg" />
-          <Bone className="h-4 w-[28%]" />
-          <Bone className="h-4 w-[12%]" />
-          <Bone className="h-4 w-[12%]" />
-          <Bone className="h-4 w-[20%]" />
-          <Bone className="h-4 w-[12%]" />
+          <Skeleton className="size-8 shrink-0 rounded-lg" />
+          <Skeleton className="h-4 w-[28%]" />
+          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton className="h-4 w-[20%]" />
+          <Skeleton className="h-4 w-[12%]" />
         </div>
       ))}
     </div>
