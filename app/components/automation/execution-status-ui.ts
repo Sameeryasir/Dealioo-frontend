@@ -1,7 +1,6 @@
 import type {
   AutomationExecutionRecipient,
   AutomationExecutionStatus,
-  AutomationLog,
 } from "@/app/services/automation/types";
 
 export function isExecutionInProgress(
@@ -50,6 +49,7 @@ export function formatExecutionDateTime(iso: string | null | undefined): string 
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
   } catch {
     return "—";
@@ -85,23 +85,6 @@ export function recipientLabel(recipient: AutomationExecutionRecipient): string 
   return `Customer #${recipient.customerId}`;
 }
 
-export function executionRecipientsFromLogs(
-  logs: AutomationLog[],
-): AutomationExecutionRecipient[] {
-  const recipients: AutomationExecutionRecipient[] = [];
-  const seen = new Set<number>();
-
-  for (const log of logs) {
-    const match = log.message.match(/email sent to (.+)$/i);
-    const email = match?.[1]?.trim();
-    if (!email || seen.has(log.customerId)) continue;
-    seen.add(log.customerId);
-    recipients.push({ customerId: log.customerId, email });
-  }
-
-  return recipients;
-}
-
 export function executionRunTitle(
   executedRecipients: AutomationExecutionRecipient[] | undefined,
   customerId: number,
@@ -111,7 +94,7 @@ export function executionRunTitle(
   if (count > 1) {
     return `Completed for ${count} customers`;
   }
-  if (count === 1) {
+  if (count === 1 && executedRecipients?.[0]) {
     return recipientLabel(executedRecipients[0]);
   }
   return customerLabel(customerId, customer);

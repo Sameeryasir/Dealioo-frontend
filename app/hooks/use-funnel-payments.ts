@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { API_MIN_LOADING_MS, delay } from "@/app/lib/api";
+import { useCallback } from "react";
+import { useAsyncResource } from "@/app/hooks/use-async-resource";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { isPositiveInt } from "@/app/lib/numbers";
 import {
@@ -9,59 +9,52 @@ import {
   type FunnelPayment,
 } from "@/app/services/payment/get-funnel-payments";
 
+function sortPayments(list: FunnelPayment[]): FunnelPayment[] {
+  return [...list].sort((a, b) => {
+    const ta = a.paidAt ?? a.createdAt;
+    const tb = b.paidAt ?? b.createdAt;
+    return new Date(tb).getTime() - new Date(ta).getTime();
+  });
+}
+
 export function useFunnelPayments(funnelId: number | null | undefined) {
-  const [payments, setPayments] = useState<FunnelPayment[]>([]);
-  const [isLoading, setIsLoading] = useState(() => isPositiveInt(funnelId));
-  const [error, setError] = useState<string | null>(null);
+  const enabled = isPositiveInt(funnelId);
+  const token = getSetupAccessToken().trim();
 
-  useEffect(() => {
+  const fetcher = useCallback(async () => {
     if (!isPositiveInt(funnelId)) {
-      setPayments([]);
-      setError(null);
-      setIsLoading(false);
-      return;
+      throw new Error("Invalid funnel.");
     }
-
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    const token = getSetupAccessToken().trim();
     if (!token) {
-      setPayments([]);
-      setError("Sign in to view orders.");
-      setIsLoading(false);
-      return;
+      throw new Error("Sign in to view orders.");
     }
+    const list = await getFunnelPayments(token, funnelId);
+    return sortPayments(list);
+  }, [funnelId, token]);
 
-    void Promise.all([getFunnelPayments(token, funnelId), delay(API_MIN_LOADING_MS)])
-      .then(([list]) => {
-        if (!cancelled) {
-          setPayments(
-            [...list].sort((a, b) => {
-              const ta = a.paidAt ?? a.createdAt;
-              const tb = b.paidAt ?? b.createdAt;
-              return new Date(tb).getTime() - new Date(ta).getTime();
-            }),
-          );
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setPayments([]);
-          setError(
-            e instanceof Error ? e.message : "Could not load payments.",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+  const { data, isLoading, error } = useAsyncResource<FunnelPayment[]>(
+    enabled && Boolean(token),
+    fetcher,
+    [funnelId, token],
+    {
+      minLoadingMs: true,
+      fallbackError: "Could not load payments.",
+      initialLoading: enabled,
+      resetWhenDisabled: [],
+    },
+  );
 
-    return () => {
-      cancelled = true;
+  if (enabled && !token) {
+    return {
+      payments: [] as FunnelPayment[],
+      isLoading: false,
+      error: "Sign in to view orders.",
     };
-  }, [funnelId]);
+  }
 
-  return { payments, isLoading, error };
+  return {
+    payments: data ?? [],
+    isLoading,
+    error,
+  };
 }

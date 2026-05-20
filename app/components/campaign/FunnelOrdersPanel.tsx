@@ -10,13 +10,15 @@ import {
   Mail,
   Receipt,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { StripeIcon } from "@/app/components/StripeLogo";
 import { Skeleton } from "@/app/components/skeleton";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { useFunnelPayments } from "@/app/hooks/use-funnel-payments";
+import { formatCents } from "@/app/lib/money";
+import { standardEase } from "@/app/lib/motion";
 
-const ordersEase = [0.22, 1, 0.36, 1] as const;
+const ordersEase = standardEase;
 
 const ordersStagger = {
   hidden: {},
@@ -37,27 +39,6 @@ const ordersItem = {
 const thClass =
   "whitespace-nowrap px-5 py-4 text-left align-middle sm:px-6";
 const tdClass = "px-5 py-4 text-left align-middle text-sm sm:px-6";
-
-function ColumnLabel({
-  icon: Icon,
-  label,
-}: {
-  icon: LucideIcon;
-  label: string;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
-        <Icon className="size-3.5 text-black" strokeWidth={2.25} aria-hidden />
-      </span>
-      {label ? (
-        <span className="text-[0.65rem] font-bold uppercase tracking-[0.08em] text-zinc-900">
-          {label}
-        </span>
-      ) : null}
-    </span>
-  );
-}
 
 function TableSkeleton() {
   return (
@@ -87,14 +68,6 @@ function TableSkeleton() {
       ))}
     </div>
   );
-}
-
-function formatMoney(amount: number, currency: string): string {
-  const code = (currency || "usd").toUpperCase();
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: code === "USD" ? "USD" : "USD",
-  }).format(amount / 100);
 }
 
 function formatPaidAtParts(iso: string | null): { date: string; time: string } | null {
@@ -191,25 +164,25 @@ export function FunnelOrdersPanel({
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50/90">
                     <th className={`${thClass} w-12`}>
-                      <ColumnLabel icon={Hash} label="" />
+                      <TableColumnHeader variant="boxed" icon={Hash} label="" />
                     </th>
                     <th className={`${thClass} w-16`}>
-                      <ColumnLabel icon={Layers} label="Platform" />
+                      <TableColumnHeader variant="boxed" icon={Layers} label="Platform" />
                     </th>
                     <th className={thClass}>
-                      <ColumnLabel icon={Mail} label="Customer email" />
+                      <TableColumnHeader variant="boxed" icon={Mail} label="Customer email" />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
-                      <ColumnLabel icon={CircleDollarSign} label="Amount" />
+                      <TableColumnHeader variant="boxed" icon={CircleDollarSign} label="Amount" />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
-                      <ColumnLabel icon={CircleCheck} label="Status" />
+                      <TableColumnHeader variant="boxed" icon={CircleCheck} label="Status" />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
-                      <ColumnLabel icon={Calendar} label="Paid at" />
+                      <TableColumnHeader variant="boxed" icon={Calendar} label="Paid at" />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
-                      <ColumnLabel icon={Receipt} label="Receipt" />
+                      <TableColumnHeader variant="boxed" icon={Receipt} label="Receipt" />
                     </th>
                   </tr>
                 </thead>
@@ -240,7 +213,7 @@ export function FunnelOrdersPanel({
                       <td
                         className={`${tdClass} whitespace-nowrap font-semibold tabular-nums tracking-tight text-zinc-900`}
                       >
-                        {formatMoney(payment.amount, payment.currency)}
+                        {formatCents(payment.amount, payment.currency)}
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
                         <span

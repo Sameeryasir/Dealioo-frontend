@@ -25,16 +25,12 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
+import { toastApiError } from "@/app/lib/toast-api-error";
+import { StatusPill } from "@/app/components/StatusPill";
 import { useAutomationRouteContext } from "@/app/hooks/use-automation-route-context";
 import SearchBar from "@/app/components/SearchBar";
 import { Skeleton } from "@/app/components/skeleton";
@@ -47,7 +43,6 @@ import type {
   AutomationListItem,
   AutomationStatus,
 } from "@/app/components/automation/types";
-import { AutomationApiError } from "@/app/services/automation/automation-fetch";
 import {
   createAutomation,
   deleteAutomation,
@@ -210,11 +205,7 @@ export function AutomationListPage({
     } catch (err) {
       setItems([]);
       setLoadError(
-        err instanceof AutomationApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Could not load automations.",
+        err instanceof Error ? err.message : "Could not load automations.",
       );
     } finally {
       setLoading(false);
@@ -433,13 +424,7 @@ export function AutomationListPage({
             const builderId = String(created.id);
             onOpenBuilder?.(builderId);
           } catch (err) {
-            toast.error(
-              err instanceof AutomationApiError
-                ? err.message
-                : err instanceof Error
-                  ? err.message
-                  : "Could not create automation.",
-            );
+            toastApiError(err, "Could not create automation.");
           } finally {
             setCreating(false);
           }
@@ -466,13 +451,7 @@ export function AutomationListPage({
             setDeleteTarget(null);
             toast.success("Automation deleted.");
           } catch (err) {
-            toast.error(
-              err instanceof AutomationApiError
-                ? err.message
-                : err instanceof Error
-                  ? err.message
-                  : "Could not delete automation.",
-            );
+            toastApiError(err, "Could not delete automation.");
           } finally {
             setDeleting(false);
           }
@@ -554,66 +533,22 @@ function AutomationRowMenu({
   onOpenBuilder?: () => void;
   onDelete?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
   const menuHeight = onDelete ? ROW_MENU_ITEM_HEIGHT * 2 : ROW_MENU_ITEM_HEIGHT;
-
-  const updateMenuPosition = useCallback(() => {
-    const el = anchorRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    let top = rect.bottom + 4;
-    if (top + menuHeight > window.innerHeight - 8) {
-      top = Math.max(8, rect.top - menuHeight - 4);
-    }
-    setMenuPosition({
-      top,
-      left: Math.max(8, rect.right - ROW_MENU_WIDTH),
-    });
-  }, [menuHeight]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setMenuPosition(null);
-      return;
-    }
-    updateMenuPosition();
-  }, [open, updateMenuPosition]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (anchorRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    const onScrollOrResize = () => updateMenuPosition();
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onScrollOrResize);
-    window.addEventListener("scroll", onScrollOrResize, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onScrollOrResize);
-      window.removeEventListener("scroll", onScrollOrResize, true);
-    };
-  }, [open, updateMenuPosition]);
+  const {
+    open,
+    setOpen,
+    toggle,
+    mounted,
+    anchorRef,
+    menuRef,
+    menuPosition,
+    menuStyle,
+  } = useAnchoredMenu({
+    placement: "flip",
+    align: "right",
+    width: ROW_MENU_WIDTH,
+    estimatedHeight: menuHeight,
+  });
 
   const menu =
     mounted && open && menuPosition ? (
@@ -621,13 +556,7 @@ function AutomationRowMenu({
         ref={menuRef}
         role="menu"
         aria-label="Automation actions"
-        style={{
-          position: "fixed",
-          top: menuPosition.top,
-          left: menuPosition.left,
-          width: ROW_MENU_WIDTH,
-          zIndex: 100,
-        }}
+        style={menuStyle}
         className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
       >
         <Link
@@ -674,7 +603,7 @@ function AutomationRowMenu({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setOpen((o) => !o);
+          toggle();
         }}
         className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-600 outline-none transition hover:bg-violet-50 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500/20"
         aria-expanded={open}
@@ -712,11 +641,9 @@ function AutomationTableRow({
         </div>
         <span className="text-zinc-700">{row.trigger}</span>
         <span>
-          <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(row.status)}`}
-          >
+          <StatusPill className={statusBadgeClass(row.status)}>
             {row.status}
-          </span>
+          </StatusPill>
         </span>
         <span className="truncate text-zinc-600">{row.restaurant}</span>
         <span className="text-zinc-500">{row.lastUpdated}</span>
@@ -780,8 +707,8 @@ function AutomationCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(row.status)}`}
+          <StatusPill
+            className={`inline-flex items-center gap-1 ${statusBadgeClass(row.status)}`}
           >
             <StatusIcon
               className="size-3 shrink-0"
@@ -789,7 +716,7 @@ function AutomationCard({
               strokeWidth={ICON_STROKE}
             />
             {row.status}
-          </span>
+          </StatusPill>
           <AutomationRowMenu
             href={href}
             onOpenBuilder={() => onOpenBuilder?.(row.id)}

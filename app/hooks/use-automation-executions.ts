@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getExecutions } from "@/app/services/automation/execution-api";
-import type {
-  AutomationExecution,
-  AutomationExecutionStatus,
+import {
+  EXECUTIONS_PAGE_SIZE,
+  type AutomationExecution,
+  type AutomationExecutionStatus,
+  type ExecutionListSummary,
+  type PaginationMeta,
 } from "@/app/services/automation/types";
 
 export function useAutomationExecutions(
@@ -14,78 +17,81 @@ export function useAutomationExecutions(
 ) {
   const enabled = options?.enabled ?? true;
   const [executions, setExecutions] = useState<AutomationExecution[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
+  const [summary, setSummary] = useState<ExecutionListSummary | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
-  const refetch = useCallback(async () => {
-    if (!enabled || automationId == null) {
-      setExecutions([]);
-      setLoading(false);
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await getExecutions({
-        automationId,
-        status,
-      });
-      if (mountedRef.current) {
-        setExecutions(data);
-      }
-    } catch (e) {
-      if (mountedRef.current) {
-        setError(e instanceof Error ? e.message : "Could not load runs.");
+  const fetchPage = useCallback(
+    async (targetPage: number) => {
+      if (!enabled || automationId == null) {
         setExecutions([]);
-      }
-    } finally {
-      if (mountedRef.current) {
+        setMeta(null);
+        setSummary(null);
         setLoading(false);
+        return;
       }
-    }
-  }, [automationId, status, enabled]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    if (!enabled || automationId == null) {
-      setExecutions([]);
-      setLoading(false);
-      return () => {
-        mountedRef.current = false;
-      };
-    }
+      setError(null);
+      setLoading(true);
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    (async () => {
       try {
-        const data = await getExecutions({
+        const response = await getExecutions({
           automationId,
           status,
+          page: targetPage,
+          limit: EXECUTIONS_PAGE_SIZE,
         });
-        if (!cancelled && mountedRef.current) {
-          setExecutions(data);
-        }
+        if (!mountedRef.current) return;
+
+        setExecutions(response.data);
+        setMeta(response.meta);
+        setSummary(response.meta.summary ?? null);
+        setPage(response.meta.page);
       } catch (e) {
-        if (!cancelled && mountedRef.current) {
-          setError(e instanceof Error ? e.message : "Could not load runs.");
-          setExecutions([]);
-        }
+        if (!mountedRef.current) return;
+        setError(e instanceof Error ? e.message : "Could not load runs.");
+        setExecutions([]);
+        setMeta(null);
+        setSummary(null);
       } finally {
-        if (!cancelled && mountedRef.current) {
+        if (mountedRef.current) {
           setLoading(false);
         }
       }
-    })();
+    },
+    [automationId, status, enabled],
+  );
 
+  const refetch = useCallback(async () => {
+    await fetchPage(page);
+  }, [fetchPage, page]);
+
+  const goToPage = useCallback(
+    (nextPage: number) => {
+      void fetchPage(nextPage);
+    },
+    [fetchPage],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void fetchPage(1);
     return () => {
-      cancelled = true;
       mountedRef.current = false;
     };
-  }, [automationId, status, enabled]);
+  }, [automationId, status, enabled, fetchPage]);
 
-  return { executions, loading, error, refetch };
+  return {
+    executions,
+    meta,
+    summary,
+    page,
+    setPage: goToPage,
+    loading,
+    error,
+    refetch,
+  };
 }

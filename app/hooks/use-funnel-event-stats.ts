@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { API_MIN_LOADING_MS, delay } from "@/app/lib/api";
+import { useCallback } from "react";
+import { useAsyncResource } from "@/app/hooks/use-async-resource";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { isPositiveInt } from "@/app/lib/numbers";
 import {
@@ -10,53 +10,36 @@ import {
 } from "@/app/services/funnel/get-funnel-event-stats";
 
 export function useFunnelEventStats(funnelId: number | null | undefined) {
-  const [stats, setStats] = useState<FunnelEventStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const enabled = isPositiveInt(funnelId);
+  const token = getSetupAccessToken().trim();
 
-  useEffect(() => {
+  const fetcher = useCallback(async () => {
     if (!isPositiveInt(funnelId)) {
-      setStats(null);
-      setError(null);
-      setIsLoading(false);
-      return;
+      throw new Error("Invalid funnel.");
     }
-
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    const token = getSetupAccessToken().trim();
     if (!token) {
-      setStats(null);
-      setError("Sign in to view funnel stats.");
-      setIsLoading(false);
-      return;
+      throw new Error("Sign in to view funnel stats.");
     }
+    return getFunnelEventStats(token, funnelId);
+  }, [funnelId, token]);
 
-    void Promise.all([
-      getFunnelEventStats(token, funnelId),
-      delay(API_MIN_LOADING_MS),
-    ])
-      .then(([data]) => {
-        if (!cancelled) setStats(data);
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setStats(null);
-          setError(
-            e instanceof Error ? e.message : "Could not load funnel stats.",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+  const { data, isLoading, error } = useAsyncResource<FunnelEventStats>(
+    enabled && Boolean(token),
+    fetcher,
+    [funnelId, token],
+    {
+      minLoadingMs: true,
+      fallbackError: "Could not load funnel stats.",
+    },
+  );
 
-    return () => {
-      cancelled = true;
+  if (enabled && !token) {
+    return {
+      stats: null,
+      isLoading: false,
+      error: "Sign in to view funnel stats.",
     };
-  }, [funnelId]);
+  }
 
-  return { stats, isLoading, error };
+  return { stats: data, isLoading, error };
 }

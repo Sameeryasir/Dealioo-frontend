@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelEventStats } from "@/app/hooks/use-funnel-event-stats";
+import { formatCents } from "@/app/lib/money";
+import { standardEase } from "@/app/lib/motion";
 
-const overviewEase = [0.22, 1, 0.36, 1] as const;
+const overviewEase = standardEase;
 
 const overviewStagger = {
   hidden: {},
@@ -82,16 +84,6 @@ function OverviewSkeleton() {
       </div>
     </div>
   );
-}
-
-function formatRevenue(amount: number, currency: string): string {
-  const code = (currency || "usd").toUpperCase();
-  const dollars = amount / 100;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: code === "USD" ? "USD" : "USD",
-    maximumFractionDigits: 2,
-  }).format(dollars);
 }
 
 function StatCard({
@@ -300,7 +292,7 @@ export function FunnelOverviewPanel({
               <motion.div variants={overviewItem}>
                 <StatCard
                 label="Revenue"
-                value={formatRevenue(stats.revenue, stats.currency)}
+                value={formatCents(stats.revenue, stats.currency)}
                 hint={`Currency: ${stats.currency.toUpperCase()}`}
                 icon={DollarSign}
                 accent="bg-zinc-900"

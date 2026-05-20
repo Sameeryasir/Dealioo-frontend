@@ -2,20 +2,28 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
+  CalendarClock,
   CheckCircle2,
-  ChevronRight,
   CircleDot,
   Clock,
+  GitBranch,
+  Hash,
+  ListChecks,
   Loader2,
+  Mail,
   PauseCircle,
   Play,
   RefreshCw,
+  Trash2,
   Users,
   Workflow,
   XCircle,
+  Zap,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { DeleteExecutionDialog } from "@/app/components/automation/DeleteExecutionDialog";
+import { ExecutionsPagination } from "@/app/components/automation/ExecutionsPagination";
 import { RunProgressBanner } from "@/app/components/automation/RunProgressBanner";
 import {
   customerLabel,
@@ -30,6 +38,10 @@ import {
 import { Skeleton } from "@/app/components/skeleton";
 import { useAutomationExecutions } from "@/app/hooks/use-automation-executions";
 import { useStartAutomationRun } from "@/app/hooks/use-start-automation-run";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import { StatusPill } from "@/app/components/StatusPill";
+import { toastApiError } from "@/app/lib/toast-api-error";
+import { deleteExecution } from "@/app/services/automation/execution-api";
 import type {
   AutomationExecution,
   AutomationExecutionStatus,
@@ -39,7 +51,7 @@ const ICON_STROKE = 2.25;
 
 /** Column layout for runs report table (icon · run · customers · step · started · id · status · chevron). */
 const RUNS_TABLE_GRID =
-  "grid grid-cols-[2rem_minmax(0,0.95fr)_minmax(0,1.1fr)_0.5fr_0.68fr_0.42fr_0.58fr_1rem] items-center gap-x-3";
+  "grid grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1.15fr)_0.55fr_0.72fr_0.48fr_0.7fr_2.5rem] items-center gap-x-4";
 
 const STATUS_FILTERS: { id: "all" | AutomationExecutionStatus; label: string }[] =
   [
@@ -68,52 +80,79 @@ function statusIcon(status: AutomationExecutionStatus): LucideIcon {
   }
 }
 
+function stepTypeIcon(type?: string): LucideIcon {
+  const t = (type ?? "").toLowerCase();
+  if (t.includes("email")) return Mail;
+  if (t.includes("condition")) return GitBranch;
+  if (t.includes("trigger")) return Zap;
+  return CircleDot;
+}
+
+function rowAccentClass(status: AutomationExecutionStatus): string {
+  switch (status) {
+    case "completed":
+      return "border-l-emerald-500";
+    case "failed":
+      return "border-l-red-500";
+    case "waiting":
+      return "border-l-amber-500";
+    case "running":
+    case "queued":
+      return "border-l-blue-500";
+    default:
+      return "border-l-transparent";
+  }
+}
+
 function AutomationRunsSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading runs">
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
-            className="rounded-xl border border-zinc-200/90 bg-white p-3 shadow-sm ring-1 ring-zinc-950/[0.03]"
+            className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm ring-1 ring-zinc-950/[0.03]"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-3">
+              <Skeleton funnel className="size-11 shrink-0 rounded-xl" />
+              <div className="flex-1 space-y-2">
                 <Skeleton funnel className="h-2.5 w-20" />
-                <Skeleton funnel className="h-6 w-10" />
+                <Skeleton funnel className="h-7 w-10" />
               </div>
-              <Skeleton funnel className="size-7 rounded-md" />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
-        <div className="min-w-[44rem]">
+      <section className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
+        <div className="border-b border-zinc-200/90 bg-zinc-50/80 px-5 py-3.5">
+          <Skeleton funnel className="h-4 w-28" />
+          <Skeleton funnel className="mt-2 h-3 w-48" />
+        </div>
+        <div className="min-w-[48rem] overflow-x-auto">
           <div
-            className={`${RUNS_TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-4 py-2`}
+            className={`${RUNS_TABLE_GRID} border-b border-zinc-200 px-5 py-3`}
           >
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} funnel className="h-2.5 w-12" />
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} funnel className="h-3 w-14" />
             ))}
           </div>
           {Array.from({ length: 4 }, (_, i) => (
             <div
               key={i}
-              className={`${RUNS_TABLE_GRID} border-b border-zinc-100 px-4 py-2.5 last:border-0`}
+              className={`${RUNS_TABLE_GRID} px-5 py-3.5 ${i % 2 === 1 ? "bg-zinc-50/35" : ""}`}
             >
-              <Skeleton funnel className="size-7 rounded-md" />
-              <Skeleton funnel className="h-3.5 w-full" />
-              <Skeleton funnel className="h-3.5 w-full" />
+              <Skeleton funnel className="size-9 rounded-xl" />
+              <Skeleton funnel className="h-4 w-full" />
+              <Skeleton funnel className="h-4 w-full" />
+              <Skeleton funnel className="h-6 w-16 rounded-lg" />
+              <Skeleton funnel className="h-4 w-20" />
               <Skeleton funnel className="h-3.5 w-10" />
-              <Skeleton funnel className="h-3.5 w-16" />
-              <Skeleton funnel className="h-3.5 w-8" />
-              <Skeleton funnel className="h-5 w-14 rounded-full" />
-              <Skeleton funnel className="size-3.5 rounded-full" />
+              <Skeleton funnel className="h-6 w-16 rounded-full" />
             </div>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -123,71 +162,76 @@ function RunStatCard({
   value,
   icon: Icon,
   tone,
+  highlight,
 }: {
   label: string;
   value: number | string;
   icon: LucideIcon;
   tone: "zinc" | "emerald" | "blue" | "violet";
+  highlight?: boolean;
 }) {
-  const tones = {
-    zinc: "border-zinc-200/90 bg-gradient-to-br from-zinc-50 to-white",
-    emerald: "border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 to-white",
-    blue: "border-blue-200/80 bg-gradient-to-br from-blue-50/90 to-white",
-    violet: "border-violet-200/80 bg-gradient-to-br from-violet-50/90 to-white",
+  const styles = {
+    zinc: {
+      card: "border-zinc-200/90 bg-white",
+      accent: "bg-zinc-800",
+      ring: "ring-zinc-200/60",
+    },
+    emerald: {
+      card: "border-emerald-200/70 bg-white",
+      accent: "bg-emerald-600",
+      ring: "ring-emerald-200/50",
+    },
+    blue: {
+      card: "border-blue-200/70 bg-white",
+      accent: "bg-blue-600",
+      ring: "ring-blue-200/50",
+    },
+    violet: {
+      card: "border-violet-200/70 bg-white",
+      accent: "bg-violet-600",
+      ring: "ring-violet-200/50",
+    },
   };
-  const iconTones = {
-    zinc: "bg-zinc-800 text-white",
-    emerald: "bg-emerald-600 text-white",
-    blue: "bg-blue-600 text-white",
-    violet: "bg-violet-600 text-white",
-  };
+  const s = styles[tone];
 
   return (
     <div
-      className={`rounded-xl border p-3 shadow-sm ring-1 ring-zinc-950/[0.03] ${tones[tone]}`}
+      className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${s.card} ${
+        highlight ? "ring-2 ring-blue-400/30" : "ring-1 ring-zinc-950/[0.03]"
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+      <div
+        className={`absolute inset-x-0 top-0 h-1 ${s.accent} opacity-80`}
+        aria-hidden
+      />
+      <div className="flex items-center gap-3 pt-0.5">
+        <span
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ring-4 ${s.accent} ${s.ring}`}
+        >
+          <Icon className="size-5" aria-hidden strokeWidth={ICON_STROKE} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             {label}
           </p>
-          <p className="mt-0.5 text-xl font-bold tabular-nums text-zinc-900">{value}</p>
+          <p className="mt-0.5 text-2xl font-bold tracking-tight tabular-nums text-zinc-900">
+            {value}
+          </p>
         </div>
-        <span
-          className={`flex size-7 shrink-0 items-center justify-center rounded-md ${iconTones[tone]}`}
-        >
-          <Icon className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
-        </span>
       </div>
     </div>
   );
 }
 
-function runDetailHref(
-  restaurantId: number,
-  automationSlug: string,
-  executionId: number,
-  funnelId?: number | null,
-): string {
-  const base = `/restaurant/${restaurantId}/dashboard/automations/${automationSlug}/runs/${executionId}?tab=runs`;
-  if (funnelId != null && funnelId >= 1) {
-    return `${base}&funnelId=${encodeURIComponent(String(funnelId))}`;
-  }
-  return base;
-}
-
 function RunRow({
   row,
-  restaurantId,
-  automationSlug,
-  funnelId,
+  onDelete,
+  deleting,
 }: {
   row: AutomationExecution;
-  restaurantId: number;
-  automationSlug: string;
-  funnelId?: number | null;
+  onDelete: (id: number) => void;
+  deleting: boolean;
 }) {
-  const router = useRouter();
   const StatusIcon = statusIcon(row.status);
   const countdown =
     row.status === "waiting" ? formatScheduledCountdown(row.scheduledAt) : null;
@@ -206,86 +250,115 @@ function RunRow({
     row.customer,
   );
 
-  const canOpenDetail = row.status === "completed";
+  const inProgress = isExecutionInProgress(row.status);
+  const StepIcon = stepTypeIcon(row.currentNode?.type);
+  const recipientCount = row.executedRecipients?.length ?? 0;
+  const stepLabel = row.currentNode?.type ?? "—";
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!canOpenDetail) return;
-        router.push(
-          runDetailHref(restaurantId, automationSlug, row.id, funnelId),
-        );
-      }}
-      disabled={!canOpenDetail}
-      className={`group ${RUNS_TABLE_GRID} w-full border-b border-zinc-100 px-4 py-2 text-left text-xs transition last:border-0 ${
-        canOpenDetail
-          ? "cursor-pointer hover:bg-zinc-50/90"
-          : "cursor-default opacity-90"
+    <div
+      className={`group ${RUNS_TABLE_GRID} w-full border-l-2 px-5 py-3.5 text-sm transition hover:bg-violet-50/30 ${rowAccentClass(row.status)} pl-[calc(1.25rem-2px)] ${
+        inProgress ? "bg-sky-50/40" : ""
       }`}
     >
       <span
-        className={`flex size-7 items-center justify-center rounded-md ${executionStatusBadgeClass(row.status)}`}
+        className={`flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ring-inset ring-black/[0.04] ${executionStatusBadgeClass(row.status)}`}
       >
         <StatusIcon
-          className={`size-3.5 ${row.status === "queued" || row.status === "running" ? "animate-spin" : ""}`}
+          className={`size-4 ${row.status === "queued" || row.status === "running" ? "animate-spin" : ""}`}
           aria-hidden
           strokeWidth={ICON_STROKE}
         />
       </span>
 
-      <p className="min-w-0 truncate font-medium text-zinc-900" title={runSummary}>
-        {runSummary}
-      </p>
+      <div className="flex min-w-0 items-center gap-2">
+        <ListChecks
+          className="size-4 shrink-0 text-zinc-400 opacity-0 transition group-hover:opacity-100"
+          aria-hidden
+          strokeWidth={ICON_STROKE}
+        />
+        <p
+          className="min-w-0 truncate font-semibold text-zinc-900"
+          title={runSummary}
+        >
+          {runSummary}
+        </p>
+        {recipientCount > 0 ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-emerald-800 ring-1 ring-emerald-200/80">
+            <Users className="size-3" aria-hidden strokeWidth={ICON_STROKE} />
+            {recipientCount}
+          </span>
+        ) : null}
+      </div>
 
-      <p className="min-w-0 truncate text-zinc-600" title={customersText}>
-        {customersText}
-      </p>
-
-      <p className="truncate capitalize text-zinc-700">
-        {row.currentNode?.type ?? "—"}
-      </p>
-
-      <p className="truncate text-zinc-700">
-        {formatExecutionDateTime(row.createdAt)}
-      </p>
-
-      <p className="truncate font-medium tabular-nums text-zinc-700">
-        {row.status === "waiting"
-          ? countdown ?? formatExecutionDateTime(row.scheduledAt)
-          : `#${row.id}`}
-      </p>
-
-      <span
-        className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${executionStatusBadgeClass(row.status)}`}
+      <div
+        className="flex min-w-0 items-center gap-2 text-zinc-600"
+        title={customersText}
       >
-        {row.status}
+        <Users
+          className="size-4 shrink-0 text-violet-500/90"
+          aria-hidden
+          strokeWidth={ICON_STROKE}
+        />
+        <p className="min-w-0 truncate">{customersText}</p>
+      </div>
+
+      <span className="inline-flex w-fit max-w-full items-center gap-1.5 truncate rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold capitalize text-zinc-700 ring-1 ring-zinc-200/80">
+        <StepIcon className="size-3.5 shrink-0 text-zinc-500" aria-hidden />
+        {stepLabel}
       </span>
 
-      <ChevronRight
-        className={`size-3.5 transition ${
-          canOpenDetail
-            ? "text-zinc-300 group-hover:text-zinc-500"
-            : "text-zinc-200"
-        }`}
-        aria-hidden
-      />
-    </button>
+      <div className="flex min-w-0 items-center gap-1.5 tabular-nums text-zinc-600">
+        <CalendarClock
+          className="size-4 shrink-0 text-zinc-400"
+          aria-hidden
+          strokeWidth={ICON_STROKE}
+        />
+        <span className="truncate">{formatExecutionDateTime(row.createdAt)}</span>
+      </div>
+
+      <span className="inline-flex w-fit items-center gap-1 rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs font-semibold tabular-nums text-zinc-700 ring-1 ring-zinc-200/80">
+        <Hash className="size-3 shrink-0 text-zinc-400" aria-hidden />
+        {row.status === "waiting"
+          ? countdown ?? formatExecutionDateTime(row.scheduledAt)
+          : row.id}
+      </span>
+
+      <StatusPill
+        size="xs"
+        className={`inline-flex w-fit items-center gap-1.5 ${executionStatusBadgeClass(row.status)}`}
+      >
+        <StatusIcon className="size-3 shrink-0" aria-hidden strokeWidth={ICON_STROKE} />
+        {row.status}
+      </StatusPill>
+
+      <button
+        type="button"
+        title={
+          inProgress
+            ? "Cannot delete while run is in progress"
+            : "Delete run"
+        }
+        disabled={inProgress || deleting}
+        onClick={() => onDelete(row.id)}
+        className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {deleting ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+        ) : (
+          <Trash2 className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
+        )}
+      </button>
+    </div>
   );
 }
 
 export function AutomationExecutionsPanel({
   automationId,
-  automationSlug,
-  restaurantId,
-  funnelId,
   automationActive,
   onExecutionStarted,
 }: {
   automationId: number;
-  automationSlug: string;
-  restaurantId: number;
-  funnelId?: number | null;
   automationActive?: boolean;
   onExecutionStarted?: (id: number) => void;
 }) {
@@ -299,44 +372,59 @@ export function AutomationExecutionsPanel({
 
   const apiStatus = statusFilter === "all" ? undefined : statusFilter;
 
-  const { executions, loading, error, refetch } = useAutomationExecutions(
-    automationId,
-    apiStatus,
-  );
+  const { executions, meta, summary, page, setPage, loading, error, refetch } =
+    useAutomationExecutions(automationId, apiStatus);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const confirmDeleteRun = useCallback(async () => {
+    const executionId = deleteTargetId;
+    if (executionId == null) return;
+
+    setDeletingId(executionId);
+    try {
+      await deleteExecution(executionId);
+      toast.success("Run deleted.");
+      setDeleteTargetId(null);
+      if (executions.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        await refetch();
+      }
+    } catch (err) {
+      toastApiError(err, "Could not delete run.");
+    } finally {
+      setDeletingId(null);
+    }
+  }, [deleteTargetId, executions.length, page, refetch, setPage]);
 
   const stats = useMemo(() => {
-    let completed = 0;
-    let inProgress = 0;
-    let customersReached = 0;
-    for (const row of executions) {
-      if (row.status === "completed") completed += 1;
-      if (isExecutionInProgress(row.status)) inProgress += 1;
-      customersReached += row.executedRecipients?.length ?? 0;
-    }
     return {
-      total: executions.length,
-      completed,
-      inProgress,
-      customersReached,
+      total: meta?.total ?? 0,
+      completed: summary?.completed ?? 0,
+      inProgress: summary?.inProgress ?? 0,
+      customersReached: summary?.customersReached ?? 0,
     };
-  }, [executions]);
+  }, [meta?.total, summary]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50">
-      <div className="shrink-0 border-b border-zinc-200/90 bg-white px-4 py-4 sm:px-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
+    <>
+    <div className="min-w-0 bg-zinc-50">
+      <div className="border-b border-zinc-200/90 bg-white px-4 py-4 sm:px-6">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20">
               <Workflow className="size-5" aria-hidden strokeWidth={ICON_STROKE} />
             </span>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-zinc-900">Runs</h2>
               <p className="text-sm text-zinc-500">
                 Each run shows which customers received this workflow.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:-mx-6 sm:px-6 xl:mx-0 xl:overflow-visible xl:px-0 xl:pb-0">
+            <div className="flex w-max flex-nowrap items-center gap-2 xl:w-auto xl:flex-wrap">
             <select
               value={statusFilter}
               onChange={(e) =>
@@ -367,7 +455,7 @@ export function AutomationExecutionsPanel({
               disabled={busy || automationActive === false}
               onClick={() =>
                 void run((result) => {
-                  void refetch();
+                  setPage(1);
                   onExecutionStarted?.(result.executionId);
                 })
               }
@@ -380,17 +468,19 @@ export function AutomationExecutionsPanel({
               )}
               {busy ? "Running…" : "Run automation"}
             </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+      <div className="px-4 py-4 sm:px-6">
         {activeRun && !activeRun.isTerminal ? (
           <RunProgressBanner status={activeRun} />
         ) : null}
 
         {!loading && !error && executions.length > 0 ? (
-          <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-5 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-1 sm:-mx-6 sm:px-6 xl:mx-0 xl:overflow-visible xl:px-0 xl:pb-0">
+            <div className="grid min-w-[36rem] gap-3 sm:min-w-0 sm:grid-cols-2 xl:grid-cols-4">
             <RunStatCard label="Total runs" value={stats.total} icon={Workflow} tone="zinc" />
             <RunStatCard
               label="Completed"
@@ -403,6 +493,7 @@ export function AutomationExecutionsPanel({
               value={stats.inProgress}
               icon={CircleDot}
               tone="blue"
+              highlight={stats.inProgress > 0}
             />
             <RunStatCard
               label="Customers reached"
@@ -410,6 +501,7 @@ export function AutomationExecutionsPanel({
               icon={Users}
               tone="violet"
             />
+            </div>
           </div>
         ) : null}
 
@@ -426,7 +518,7 @@ export function AutomationExecutionsPanel({
               Try again
             </button>
           </div>
-        ) : executions.length === 0 ? (
+        ) : (meta?.total ?? 0) === 0 ? (
           <div className="flex flex-col items-center rounded-2xl border border-zinc-200/90 bg-white px-6 py-16 text-center shadow-sm">
             <span className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
               <Workflow className="size-7" aria-hidden strokeWidth={ICON_STROKE} />
@@ -438,33 +530,81 @@ export function AutomationExecutionsPanel({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
-            <div className="min-w-[44rem]">
-              <div
-                className={`${RUNS_TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500`}
-              >
-                <span aria-hidden />
-                <span>Run</span>
-                <span>Customers</span>
-                <span>Step</span>
-                <span>Started</span>
-                <span>Run ID</span>
-                <span>Status</span>
-                <span aria-hidden />
+          <section className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04]">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/90 bg-gradient-to-r from-zinc-50 to-white px-5 py-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm">
+                  <ListChecks
+                    className="size-4"
+                    aria-hidden
+                    strokeWidth={ICON_STROKE}
+                  />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900">Recent runs</h3>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    All runs for this automation in one place.
+                  </p>
+                </div>
               </div>
-              {executions.map((row) => (
-                <RunRow
-                  key={row.id}
-                  row={row}
-                  restaurantId={restaurantId}
-                  automationSlug={automationSlug}
-                  funnelId={funnelId}
-                />
-              ))}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold tabular-nums text-zinc-700 ring-1 ring-zinc-200/90">
+                <Workflow className="size-3.5 text-violet-600" aria-hidden />
+                {meta?.total ?? executions.length} total
+              </span>
             </div>
-          </div>
+            <div className="overflow-x-auto">
+              <div className="min-w-[48rem]">
+                <div
+                  className={`${RUNS_TABLE_GRID} border-b border-zinc-200 bg-zinc-50/95 px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500`}
+                >
+                  <TableColumnHeader label="" />
+                  <TableColumnHeader icon={ListChecks} label="Run" />
+                  <TableColumnHeader icon={Users} label="Customers" />
+                  <TableColumnHeader icon={Mail} label="Step" />
+                  <TableColumnHeader icon={CalendarClock} label="Started" />
+                  <TableColumnHeader icon={Hash} label="Run ID" />
+                  <TableColumnHeader icon={CheckCircle2} label="Status" />
+                  <span aria-hidden />
+                </div>
+                <div className="divide-y divide-zinc-100/90">
+                  {executions.map((row, index) => (
+                    <div
+                      key={row.id}
+                      className={index % 2 === 1 ? "bg-zinc-50/35" : "bg-white"}
+                    >
+                      <RunRow
+                        row={row}
+                        onDelete={setDeleteTargetId}
+                        deleting={deletingId === row.id}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {meta && meta.totalPages > 0 ? (
+              <ExecutionsPagination
+                page={page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                limit={meta.limit}
+                loading={loading}
+                onPageChange={setPage}
+              />
+            ) : null}
+          </section>
         )}
       </div>
     </div>
+
+    <DeleteExecutionDialog
+      open={deleteTargetId != null}
+      isDeleting={deletingId != null}
+      onCancel={() => {
+        if (deletingId == null) setDeleteTargetId(null);
+      }}
+      onConfirm={() => void confirmDeleteRun()}
+    />
+    </>
   );
 }

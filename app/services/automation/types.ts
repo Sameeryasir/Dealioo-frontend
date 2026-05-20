@@ -182,3 +182,25 @@ export interface StartAutomationExecutionBody {
   automationId: number;
   currentNodeId?: number;
 }
+
+export type PaginationMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type ExecutionListSummary = {
+  completed: number;
+  inProgress: number;
+  customersReached: number;
+};
+
+export interface PaginatedExecutionsResponse {
+  data: AutomationExecution[];
+  meta: PaginationMeta & {
+    summary?: ExecutionListSummary;
+  };
+}
+
+export const EXECUTIONS_PAGE_SIZE = 10;

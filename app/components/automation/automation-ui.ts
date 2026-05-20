@@ -1,6 +1,7 @@
 import type { AutomationStatus } from "@/app/components/automation/types";
+import { automationEase } from "@/app/lib/motion";
 
-export const automationEase = [0.22, 1, 0.36, 1] as const;
+export { automationEase };
 
 export const automationStagger = {
   hidden: {},

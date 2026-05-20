@@ -26,7 +26,8 @@ import {
   getAutomationById,
   mapAutomationToListItem,
 } from "@/app/services/automation/automation-api";
-import { AutomationApiError } from "@/app/services/automation/automation-fetch";
+import { BuilderShell } from "@/app/components/builder/BuilderShell";
+import { toastApiError } from "@/app/lib/toast-api-error";
 import { createAutomationConnection } from "@/app/services/automation/connection-api";
 import {
   blockKindToNodeType,
@@ -34,6 +35,7 @@ import {
   deleteAutomationNode,
   mapApiNodeToWorkflowNode,
   mapAutomationGraphToWorkflowNodes,
+  SIGNUP_TRIGGER_DEFAULT_CONFIG,
   updateAutomationNode,
 } from "@/app/services/automation/node-api";
 import { isPositiveInt } from "@/app/lib/numbers";
@@ -171,6 +173,52 @@ export function AutomationBuilderPage({
     [nodes, selectedId],
   );
 
+  useEffect(() => {
+    if (selectedNode?.kind !== "signup_trigger" || selectedNode.numericId == null) {
+      return;
+    }
+    if (selectedNode.config?.trigger === "signup") {
+      return;
+    }
+
+    let cancelled = false;
+    const nodeId = selectedNode.numericId;
+
+    (async () => {
+      setSavingNode(true);
+      try {
+        const updated = await updateAutomationNode(nodeId, {
+          config: SIGNUP_TRIGGER_DEFAULT_CONFIG,
+        });
+        if (cancelled) return;
+        const mapped = {
+          ...mapApiNodeToWorkflowNode(updated),
+          config:
+            updated.config && Object.keys(updated.config).length > 0
+              ? updated.config
+              : SIGNUP_TRIGGER_DEFAULT_CONFIG,
+        };
+        setNodes((prev) =>
+          prev.map((n) => (n.numericId === updated.id ? mapped : n)),
+        );
+      } catch (err) {
+        if (cancelled) return;
+        toastApiError(err, "Could not save signup trigger settings.");
+      } finally {
+        if (!cancelled) setSavingNode(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedNode?.id,
+    selectedNode?.kind,
+    selectedNode?.numericId,
+    selectedNode?.config?.trigger,
+  ]);
+
   const stats = useMemo(
     () => ({
       nodeCount: nodes.length,
@@ -216,23 +264,16 @@ export function AutomationBuilderPage({
               targetNodeId: created.id,
             });
           } catch (connErr) {
-            toast.error(
-              connErr instanceof AutomationApiError
-                ? connErr.message
-                : "Node saved, but could not link to the previous step.",
+            toastApiError(
+              connErr,
+              "Node saved, but could not link to the previous step.",
             );
           }
         }
 
         void loadAutomation({ silent: true });
       } catch (err) {
-        toast.error(
-          err instanceof AutomationApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Could not create node.",
-        );
+        toastApiError(err, "Could not create node.");
       }
     },
     [automationNumericId, nodes, loadAutomation],
@@ -263,13 +304,7 @@ export function AutomationBuilderPage({
         );
         toast.success("Step updated.");
       } catch (err) {
-        toast.error(
-          err instanceof AutomationApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Could not update step.",
-        );
+        toastApiError(err, "Could not update step.");
       } finally {
         setSavingNode(false);
       }
@@ -295,86 +330,73 @@ export function AutomationBuilderPage({
       toast.success("Step removed.");
       void loadAutomation({ silent: true });
     } catch (err) {
-      toast.error(
-        err instanceof AutomationApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Could not delete step.",
-      );
+      toastApiError(err, "Could not delete step.");
     } finally {
       setDeletingNode(false);
     }
   }, [selectedNode, loadAutomation]);
 
-  return (
-    <motion.div
-      className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden bg-zinc-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: automationEase }}
-    >
-      <header className="shrink-0 border-b border-zinc-200/90 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <nav
-              className="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-500"
-              aria-label="Breadcrumb"
+  const pageHeader = (
+    <>
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 shrink">
+          <nav
+            className="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-500"
+            aria-label="Breadcrumb"
+          >
+            <Link
+              href={automationsListHref}
+              className="transition hover:text-zinc-900"
             >
-              <Link
-                href={automationsListHref}
-                className="transition hover:text-zinc-900"
-              >
-                Automations
-              </Link>
-              <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate font-semibold text-zinc-900">
-                {title}
-              </span>
-            </nav>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(status)}`}
-              >
-                {status}
-              </span>
-            </div>
+              Automations
+            </Link>
+            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate font-semibold text-zinc-900">{title}</span>
+          </nav>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(status)}`}
+            >
+              {status}
+            </span>
           </div>
-
-          {tab === "builder" ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setStatus("draft")}
-                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-              >
-                Save draft
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus("published")}
-                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-              >
-                Publish
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus("active")}
-                className="cursor-pointer rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-              >
-                Activate
-              </button>
-            </div>
-          ) : null}
         </div>
 
-        <div className="mt-4 flex gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/80 p-1">
+        {tab === "builder" ? (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setStatus("draft")}
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+            >
+              Save draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("published")}
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("active")}
+              className="cursor-pointer rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+            >
+              Activate
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-4 min-w-0 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:-mx-6 sm:px-6">
+        <div className="flex w-max min-w-full gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/80 p-1 sm:w-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setBuilderTab(t.id)}
-              className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition ${
                 tab === t.id
                   ? "bg-white text-zinc-900 shadow-sm"
                   : "text-zinc-600 hover:text-zinc-900"
@@ -384,61 +406,80 @@ export function AutomationBuilderPage({
             </button>
           ))}
         </div>
-      </header>
+      </div>
+    </>
+  );
 
+  return (
+    <motion.div
+      className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden bg-zinc-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, ease: automationEase }}
+    >
       {tab === "builder" ? (
-        <div className="relative flex min-h-0 flex-1">
-          <BlockSidebar onAddBlock={onAddBlock} />
-          <BuilderCanvas
-            nodes={nodes}
-            loading={nodesLoading}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+        <>
+          <header className="shrink-0 border-b border-zinc-200/90 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
+            {pageHeader}
+          </header>
+          <BuilderShell
+            sidebar={<BlockSidebar onAddBlock={onAddBlock} />}
+            canvas={
+              <BuilderCanvas
+                nodes={nodes}
+                loading={nodesLoading}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            }
+            settingsPanel={
+              <NodeSettingsPanel
+                node={selectedNode}
+                onSave={onUpdateNode}
+                onDelete={onDeleteNode}
+                saving={savingNode}
+                deleting={deletingNode}
+              />
+            }
+            overlay={
+              <motion.aside
+                className="pointer-events-none absolute bottom-6 right-[calc(300px+1.5rem)] z-30 max-lg:right-6 lg:right-[calc(320px+1.5rem)]"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, ease: automationEase }}
+              >
+                <div className="pointer-events-auto rounded-2xl border border-zinc-200/90 bg-white/90 p-4 shadow-xl backdrop-blur-md">
+                  <dl className="grid gap-3 text-xs sm:grid-cols-3 sm:gap-6">
+                    <div>
+                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
+                        Total nodes
+                      </dt>
+                      <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
+                        {stats.nodeCount}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
+                        Est. time
+                      </dt>
+                      <dd className="mt-1 text-lg font-bold text-zinc-900">
+                        {stats.estimated}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
+                        In workflow
+                      </dt>
+                      <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
+                        {stats.customers}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </motion.aside>
+            }
           />
-          <NodeSettingsPanel
-            node={selectedNode}
-            onSave={onUpdateNode}
-            onDelete={onDeleteNode}
-            saving={savingNode}
-            deleting={deletingNode}
-          />
-
-          <motion.aside
-            className="pointer-events-none absolute bottom-6 right-[calc(300px+1.5rem)] z-30 max-lg:right-6 lg:right-[calc(320px+1.5rem)]"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, ease: automationEase }}
-          >
-            <div className="pointer-events-auto rounded-2xl border border-zinc-200/90 bg-white/90 p-4 shadow-xl backdrop-blur-md">
-              <dl className="grid gap-3 text-xs sm:grid-cols-3 sm:gap-6">
-                <div>
-                  <dt className="font-semibold uppercase tracking-wide text-zinc-500">
-                    Total nodes
-                  </dt>
-                  <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
-                    {stats.nodeCount}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-semibold uppercase tracking-wide text-zinc-500">
-                    Est. time
-                  </dt>
-                  <dd className="mt-1 text-lg font-bold text-zinc-900">
-                    {stats.estimated}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-semibold uppercase tracking-wide text-zinc-500">
-                    In workflow
-                  </dt>
-                  <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
-                    {stats.customers}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </motion.aside>
-        </div>
+        </>
       ) : automationNumericId == null ? (
         <div className="flex flex-1 items-center justify-center px-4 py-12 text-center text-sm text-zinc-600">
           <p>
@@ -451,20 +492,24 @@ export function AutomationBuilderPage({
             </Link>
           </p>
         </div>
-      ) : tab === "runs" ? (
-        <AutomationExecutionsPanel
-          automationId={automationNumericId}
-          automationSlug={automationId}
-          restaurantId={restaurantId}
-          funnelId={funnelId}
-          automationActive={automationActive}
-        />
       ) : (
-        <AutomationActivityPanel
-          automationId={automationNumericId}
-          automationActive={automationActive}
-          onRunStarted={() => setBuilderTab("runs")}
-        />
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+          <header className="border-b border-zinc-200/90 bg-white px-4 py-3 sm:px-6">
+            {pageHeader}
+          </header>
+          {tab === "runs" ? (
+            <AutomationExecutionsPanel
+              automationId={automationNumericId}
+              automationActive={automationActive}
+            />
+          ) : (
+            <AutomationActivityPanel
+              automationId={automationNumericId}
+              automationActive={automationActive}
+              onRunStarted={() => setBuilderTab("runs")}
+            />
+          )}
+        </div>
       )}
     </motion.div>
   );

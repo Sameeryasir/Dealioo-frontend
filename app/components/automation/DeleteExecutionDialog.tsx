@@ -1,16 +1,15 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
-export function DeleteAutomationDialog({
+export function DeleteExecutionDialog({
   open,
-  automationName,
   isDeleting,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
-  automationName: string;
   isDeleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -18,16 +17,15 @@ export function DeleteAutomationDialog({
   return (
     <ConfirmDialog
       open={open}
-      titleId="delete-automation-title"
-      title="Delete automation?"
-      description={
-        <>
-          <span className="font-medium text-zinc-800">{automationName}</span>{" "}
-          will be removed permanently. This cannot be undone.
-        </>
-      }
+      icon={Trash2}
+      titleId="delete-execution-title"
+      title="Delete this run?"
+      description="This removes the run and all of its activity logs. You can’t undo this action."
       isLoading={isDeleting}
       loadingLabel="Deleting…"
+      confirmCheckbox={{
+        label: "Yes, permanently delete this run",
+      }}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

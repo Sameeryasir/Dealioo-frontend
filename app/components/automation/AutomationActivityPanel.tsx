@@ -19,8 +19,8 @@ export function AutomationActivityPanel({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50">
-      <div className="shrink-0 border-b border-zinc-200/90 bg-white px-4 py-4 sm:px-6">
+    <div className="min-w-0 bg-zinc-50">
+      <div className="border-b border-zinc-200/90 bg-white px-4 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-zinc-900">Activity</h2>
@@ -47,12 +47,12 @@ export function AutomationActivityPanel({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-6">
+      <div className="px-4 py-4 sm:px-6">
         {activeRun && !activeRun.isTerminal ? (
           <RunProgressBanner status={activeRun} />
         ) : null}
 
-        <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="flex items-center justify-center py-12">
           <div className="max-w-sm rounded-2xl border border-zinc-200/90 bg-white px-6 py-10 text-center shadow-sm">
             <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
               <Workflow className="size-6" aria-hidden />

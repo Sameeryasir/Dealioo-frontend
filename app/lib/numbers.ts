@@ -11,6 +11,11 @@ export function parsePositiveInt(raw: unknown): number | null {
   return isPositiveInt(n) ? n : null;
 }
 
+export function parseRoutePositiveInt(raw: unknown): number | undefined {
+  const n = parsePositiveInt(raw);
+  return n ?? undefined;
+}
+
 export function parseNonNegativeInt(raw: unknown, fallback: number): number {
   if (raw == null || raw === "") return fallback;
   const n = Number.parseInt(String(raw).trim(), 10);

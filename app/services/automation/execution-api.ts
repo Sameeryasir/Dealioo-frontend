@@ -1,22 +1,25 @@
 import { automationFetch } from "@/app/services/automation/automation-fetch";
-import type {
-  AutomationExecution,
-  AutomationExecutionStatus,
-  AutomationExecutionStatusDto,
-  AutomationLog,
-  StartAutomationExecutionBody,
-  StartAutomationExecutionResponse,
+import {
+  EXECUTIONS_PAGE_SIZE,
+  type AutomationExecution,
+  type AutomationExecutionStatus,
+  type AutomationExecutionStatusDto,
+  type PaginatedExecutionsResponse,
+  type StartAutomationExecutionBody,
+  type StartAutomationExecutionResponse,
 } from "@/app/services/automation/types";
 
 export type GetExecutionsParams = {
   automationId?: number;
   customerId?: number;
   status?: AutomationExecutionStatus;
+  page?: number;
+  limit?: number;
 };
 
 export async function getExecutions(
   params?: GetExecutionsParams,
-): Promise<AutomationExecution[]> {
+): Promise<PaginatedExecutionsResponse> {
   const q = new URLSearchParams();
   if (params?.automationId != null) {
     q.set("automationId", String(params.automationId));
@@ -27,9 +30,11 @@ export async function getExecutions(
   if (params?.status) {
     q.set("status", params.status);
   }
+  q.set("page", String(params?.page ?? 1));
+  q.set("limit", String(params?.limit ?? EXECUTIONS_PAGE_SIZE));
   const query = q.toString();
-  return automationFetch<AutomationExecution[]>(
-    `/execution${query ? `?${query}` : ""}`,
+  return automationFetch<PaginatedExecutionsResponse>(
+    `/execution?${query}`,
   );
 }
 
@@ -37,12 +42,6 @@ export async function getExecutionById(
   id: number,
 ): Promise<AutomationExecution> {
   return automationFetch<AutomationExecution>(`/execution/${id}`);
-}
-
-export async function getExecutionLogs(
-  executionId: number,
-): Promise<AutomationLog[]> {
-  return automationFetch<AutomationLog[]>(`/execution/${executionId}/logs`);
 }
 
 /** GET /automation/execution/:id/status — poll until isTerminal is true. */
@@ -76,4 +75,9 @@ export async function processExecution(id: number): Promise<void> {
 
 export async function resumeExecution(id: number): Promise<void> {
   await automationFetch<void>(`/execution/${id}/resume`, { method: "POST" });
+}
+
+/** DELETE /automation/execution/:id */
+export async function deleteExecution(id: number): Promise<void> {
+  await automationFetch<void>(`/execution/${id}`, { method: "DELETE" });
 }

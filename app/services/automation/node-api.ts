@@ -25,6 +25,10 @@ export const API_NODE_TYPES = [
 
 export type ApiNodeType = (typeof API_NODE_TYPES)[number];
 
+export const SIGNUP_TRIGGER_DEFAULT_CONFIG: Record<string, unknown> = {
+  trigger: "signup",
+};
+
 const BLOCK_TO_NODE_TYPE: Record<WorkflowNodeKind, ApiNodeType> = {
   signup_trigger: "trigger",
   payment_trigger: "trigger",
@@ -55,7 +59,16 @@ export function blockKindToNodeType(kind: WorkflowNodeKind): ApiNodeType {
   return BLOCK_TO_NODE_TYPE[kind];
 }
 
-export function nodeTypeToBlockKind(type: string): WorkflowNodeKind {
+export function nodeTypeToBlockKind(
+  type: string,
+  config?: Record<string, unknown>,
+): WorkflowNodeKind {
+  if (type === "trigger") {
+    const trigger = config?.trigger;
+    if (trigger === "payment") return "payment_trigger";
+    if (trigger === "funnel_complete") return "funnel_complete";
+    return "signup_trigger";
+  }
   if (API_NODE_TYPES.includes(type as ApiNodeType)) {
     return NODE_TYPE_TO_BLOCK_KIND[type as ApiNodeType];
   }
@@ -63,7 +76,7 @@ export function nodeTypeToBlockKind(type: string): WorkflowNodeKind {
 }
 
 export function mapApiNodeToWorkflowNode(node: AutomationNode): WorkflowNode {
-  const kind = nodeTypeToBlockKind(node.type);
+  const kind = nodeTypeToBlockKind(node.type, node.config);
   const block = getBlockByKind(kind);
   return {
     id: String(node.id),

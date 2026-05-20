@@ -2,14 +2,12 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Filter } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { automationEase } from "@/app/components/automation/automation-ui";
 import type { AutomationFilter } from "@/app/components/automation/types";
+import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
 type FilterOption = { id: AutomationFilter; label: string };
-
-type MenuPosition = { top: number; left: number; width: number };
 
 export function AutomationFilterDropdown({
   value,
@@ -22,78 +20,29 @@ export function AutomationFilterDropdown({
   onChange: (value: AutomationFilter) => void;
   className?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
+  const {
+    open,
+    setOpen,
+    mounted,
+    anchorRef,
+    menuRef,
+    menuPosition,
+    menuStyle,
+  } = useAnchoredMenu({ width: "anchor", align: "left" });
+
   const selected = options.find((o) => o.id === value) ?? options[0];
 
-  const updateMenuPosition = useCallback(() => {
-    const el = anchorRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setMenuPosition({
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setMenuPosition(null);
-      return;
-    }
-    updateMenuPosition();
-  }, [open, updateMenuPosition]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const el = anchorRef.current;
-      if (el && !el.contains(e.target as Node)) {
-        const menu = document.getElementById("automation-filter-menu");
-        if (menu?.contains(e.target as Node)) return;
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    const onScrollOrResize = () => updateMenuPosition();
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onScrollOrResize);
-    window.addEventListener("scroll", onScrollOrResize, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onScrollOrResize);
-      window.removeEventListener("scroll", onScrollOrResize, true);
-    };
-  }, [open, updateMenuPosition]);
-
   const menu =
-    mounted && open && menuPosition ? (
+    open && menuPosition ? (
+      <div ref={menuRef}>
       <motion.ul
-        id="automation-filter-menu"
         role="listbox"
         aria-label="Status filter"
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -6 }}
         transition={{ duration: 0.32, ease: automationEase }}
-        style={{
-          position: "fixed",
-          top: menuPosition.top,
-          left: menuPosition.left,
-          width: menuPosition.width,
-          zIndex: 100,
-        }}
+        style={menuStyle}
         className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
       >
         {options.map((option, index) => {
@@ -134,6 +83,7 @@ export function AutomationFilterDropdown({
           );
         })}
       </motion.ul>
+      </div>
     ) : null;
 
   return (
@@ -159,7 +109,7 @@ export function AutomationFilterDropdown({
 
       {mounted
         ? createPortal(
-            <AnimatePresence>{open && menuPosition ? menu : null}</AnimatePresence>,
+            <AnimatePresence>{menu}</AnimatePresence>,
             document.body,
           )
         : null}
