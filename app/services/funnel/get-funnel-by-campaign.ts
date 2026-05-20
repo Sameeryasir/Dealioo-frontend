@@ -280,6 +280,22 @@ export function mergeApiPagesIntoTemplateState(
 
 const funnelIdByCampaignCache = new Map<number, number>();
 
+type CampaignFunnelIdListener = (
+  campaignId: number,
+  funnelId: number | null,
+) => void;
+
+const campaignFunnelIdListeners = new Set<CampaignFunnelIdListener>();
+
+function notifyCampaignFunnelId(
+  campaignId: number,
+  funnelId: number | null,
+): void {
+  for (const listener of campaignFunnelIdListeners) {
+    listener(campaignId, funnelId);
+  }
+}
+
 function readFunnelId(
   campaignId: number,
   remote: FunnelByCampaignResponse | null,
@@ -287,6 +303,7 @@ function readFunnelId(
   const id = isPositiveInt(remote?.id) ? remote.id : null;
   if (id != null) {
     funnelIdByCampaignCache.set(campaignId, id);
+    notifyCampaignFunnelId(campaignId, id);
   }
   return id;
 }
@@ -294,6 +311,21 @@ function readFunnelId(
 export function peekCachedFunnelId(campaignId: number): number | null {
   const cached = funnelIdByCampaignCache.get(campaignId);
   return isPositiveInt(cached) ? cached : null;
+}
+
+/** Sync funnel id when the funnel editor (or any fetch) caches it for a campaign. */
+export function subscribeCampaignFunnelId(
+  campaignId: number,
+  listener: (funnelId: number | null) => void,
+): () => void {
+  const wrapped: CampaignFunnelIdListener = (id, funnelId) => {
+    if (id === campaignId) listener(funnelId);
+  };
+  campaignFunnelIdListeners.add(wrapped);
+  listener(peekCachedFunnelId(campaignId));
+  return () => {
+    campaignFunnelIdListeners.delete(wrapped);
+  };
 }
 
 export async function fetchFunnelByCampaignId(

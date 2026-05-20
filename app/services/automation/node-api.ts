@@ -4,6 +4,7 @@ import type {
   AutomationNode,
   CreateAutomationNodeBody,
   FunnelAutomationGraph,
+  UpdateAutomationNodeBody,
 } from "@/app/services/automation/types";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
 import type {
@@ -70,6 +71,7 @@ export function mapApiNodeToWorkflowNode(node: AutomationNode): WorkflowNode {
     automationId: node.automationId,
     kind,
     label: block.label,
+    config: node.config ?? {},
   };
 }
 
@@ -142,5 +144,25 @@ export async function createAutomationNode(
   return automationFetch<AutomationNode>("/node", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+function automationNodePath(nodeId: number): string {
+  return `/node/${encodeURIComponent(String(nodeId))}`;
+}
+
+export async function updateAutomationNode(
+  nodeId: number,
+  body: UpdateAutomationNodeBody,
+): Promise<AutomationNode> {
+  return automationFetch<AutomationNode>(automationNodePath(nodeId), {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteAutomationNode(nodeId: number): Promise<void> {
+  await automationFetch<void>(automationNodePath(nodeId), {
+    method: "DELETE",
   });
 }

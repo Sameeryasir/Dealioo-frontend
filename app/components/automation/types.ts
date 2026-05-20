@@ -46,6 +46,7 @@ export type WorkflowNode = {
   automationId?: number;
   kind: WorkflowNodeKind;
   label: string;
+  config: Record<string, unknown>;
 };
 
 export type BuilderNodeSettings =

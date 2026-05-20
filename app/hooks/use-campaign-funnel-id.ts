@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { isPositiveInt } from "@/app/lib/numbers";
 import {
   fetchFunnelByCampaignId,
   peekCachedFunnelId,
+  subscribeCampaignFunnelId,
 } from "@/app/services/funnel/get-funnel-by-campaign";
-import { isPositiveInt } from "@/app/lib/numbers";
 
 function initialFunnelIdLoading(campaignId: number | undefined): boolean {
   if (!isPositiveInt(campaignId)) return false;
@@ -16,12 +17,43 @@ function initialFunnelIdLoading(campaignId: number | undefined): boolean {
 export function useCampaignFunnelId(campaignId: number | undefined): {
   funnelId: number | null;
   isLoading: boolean;
+  /** Re-read cache or call GET /funnel/campaign/:id (e.g. before creating automations). */
+  ensureFunnelIdLoaded: () => void;
 } {
   const [funnelId, setFunnelId] = useState<number | null>(() =>
     campaignId != null ? peekCachedFunnelId(campaignId) : null,
   );
   const [isLoading, setIsLoading] = useState(() =>
     initialFunnelIdLoading(campaignId),
+  );
+
+  const fetchRemoteFunnelId = useCallback(
+    async (id: number, cancelled: () => boolean) => {
+      const cached = peekCachedFunnelId(id);
+      if (cached != null) {
+        setFunnelId(cached);
+        setIsLoading(false);
+        return;
+      }
+
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        setFunnelId(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const remote = await fetchFunnelByCampaignId(token, id);
+        if (cancelled()) return;
+        const resolved = isPositiveInt(remote?.id) ? remote.id : null;
+        setFunnelId(resolved);
+      } finally {
+        if (!cancelled()) setIsLoading(false);
+      }
+    },
+    [],
   );
 
   useEffect(() => {
@@ -31,6 +63,31 @@ export function useCampaignFunnelId(campaignId: number | undefined): {
       return;
     }
 
+    return subscribeCampaignFunnelId(campaignId, (cachedId) => {
+      if (cachedId != null) {
+        setFunnelId(cachedId);
+        setIsLoading(false);
+      }
+    });
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (!isPositiveInt(campaignId)) {
+      setFunnelId(null);
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    void fetchRemoteFunnelId(campaignId, () => cancelled);
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId, fetchRemoteFunnelId]);
+
+  const ensureFunnelIdLoaded = useCallback(() => {
+    if (!isPositiveInt(campaignId)) return;
+
     const cached = peekCachedFunnelId(campaignId);
     if (cached != null) {
       setFunnelId(cached);
@@ -38,29 +95,8 @@ export function useCampaignFunnelId(campaignId: number | undefined): {
       return;
     }
 
-    const token = getSetupAccessToken().trim();
-    if (!token) {
-      setFunnelId(null);
-      setIsLoading(false);
-      return;
-    }
+    void fetchRemoteFunnelId(campaignId, () => false);
+  }, [campaignId, fetchRemoteFunnelId]);
 
-    let cancelled = false;
-    setIsLoading(true);
-
-    void fetchFunnelByCampaignId(token, campaignId)
-      .then((remote) => {
-        if (cancelled) return;
-        setFunnelId(isPositiveInt(remote?.id) ? remote.id : null);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignId]);
-
-  return { funnelId, isLoading };
+  return { funnelId, isLoading, ensureFunnelIdLoaded };
 }

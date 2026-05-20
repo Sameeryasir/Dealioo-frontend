@@ -90,3 +90,9 @@ export async function createAutomation(
     body: JSON.stringify(body),
   });
 }
+
+export async function deleteAutomation(id: number): Promise<void> {
+  await automationFetch<void>(`/${encodeURIComponent(String(id))}`, {
+    method: "DELETE",
+  });
+}

@@ -1,10 +1,9 @@
 "use client";
 
 import { Loader2, Play } from "lucide-react";
-import { useState } from "react";
 import { formatExecutionDateTime } from "@/app/components/automation/execution-status-ui";
-import { StartExecutionModal } from "@/app/components/automation/StartExecutionModal";
 import { useAutomationLogs } from "@/app/hooks/use-automation-logs";
+import { useStartAutomationRun } from "@/app/hooks/use-start-automation-run";
 
 export function AutomationActivityPanel({
   automationId,
@@ -15,8 +14,11 @@ export function AutomationActivityPanel({
   automationActive?: boolean;
   onRunStarted?: (executionId: number) => void;
 }) {
-  const [startOpen, setStartOpen] = useState(false);
   const { logs, loading, error, refetch } = useAutomationLogs(automationId);
+  const { starting, run } = useStartAutomationRun(
+    automationId,
+    automationActive,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50">
@@ -30,11 +32,21 @@ export function AutomationActivityPanel({
           </div>
           <button
             type="button"
-            onClick={() => setStartOpen(true)}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800"
+            disabled={starting || automationActive === false}
+            onClick={() =>
+              void run((id) => {
+                void refetch();
+                onRunStarted?.(id);
+              })
+            }
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Play className="size-4" aria-hidden />
-            Run for customer
+            {starting ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Play className="size-4" aria-hidden />
+            )}
+            {starting ? "Starting…" : "Run automation"}
           </button>
         </div>
       </div>
@@ -94,17 +106,6 @@ export function AutomationActivityPanel({
           </ul>
         )}
       </div>
-
-      <StartExecutionModal
-        open={startOpen}
-        onClose={() => setStartOpen(false)}
-        automationId={automationId}
-        automationActive={automationActive}
-        onStarted={(id) => {
-          void refetch();
-          onRunStarted?.(id);
-        }}
-      />
     </div>
   );
 }

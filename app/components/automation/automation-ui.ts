@@ -10,11 +10,36 @@ export const automationStagger = {
 };
 
 export const automationItem = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: -28 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: automationEase },
+    transition: { duration: 0.4, ease: automationEase },
+  },
+};
+
+export const flowListStagger = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.14, delayChildren: 0.06 },
+  },
+};
+
+export const flowStepReveal = {
+  hidden: { opacity: 0, y: -28 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: automationEase },
+  },
+};
+
+export const flowConnectorReveal = {
+  hidden: { opacity: 0, scaleY: 0, originY: 0 },
+  show: {
+    opacity: 1,
+    scaleY: 1,
+    transition: { duration: 0.28, ease: automationEase },
   },
 };
 

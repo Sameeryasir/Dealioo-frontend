@@ -1,8 +1,33 @@
+export type AutomationPurpose =
+  | "manual"
+  | "funnel_signup_payment_reminder"
+  | "funnel_signup"
+  | "funnel_payment"
+  | "funnel_abandoned_checkout_reminder";
+
+export const AUTOMATION_PURPOSE_OPTIONS: {
+  value: AutomationPurpose;
+  label: string;
+}[] = [
+  { value: "manual", label: "Manual" },
+  {
+    value: "funnel_signup_payment_reminder",
+    label: "Funnel signup payment reminder",
+  },
+  { value: "funnel_signup", label: "Funnel signup" },
+  { value: "funnel_payment", label: "Funnel payment" },
+  {
+    value: "funnel_abandoned_checkout_reminder",
+    label: "Funnel abandoned checkout reminder",
+  },
+];
+
 export interface Automation {
   id: number;
   name: string;
   description?: string | null;
   trigger: string;
+  purpose?: AutomationPurpose | string;
   isActive: boolean;
   published: boolean;
   restaurantId?: number;
@@ -18,9 +43,9 @@ export interface CreateAutomationBody {
   name: string;
   description?: string;
   trigger: string;
+  purpose: AutomationPurpose;
   restaurantId: number;
   campaignId: number;
-  funnelId: number;
 }
 
 export interface AutomationNode {
@@ -39,6 +64,14 @@ export interface CreateAutomationNodeBody {
   automationId: number;
   type: string;
   order: number;
+  config?: Record<string, unknown>;
+  positionX?: number;
+  positionY?: number;
+}
+
+export interface UpdateAutomationNodeBody {
+  type?: string;
+  order?: number;
   config?: Record<string, unknown>;
   positionX?: number;
   positionY?: number;
@@ -70,6 +103,11 @@ export type AutomationExecutionStatus =
   | "completed"
   | "failed";
 
+export type AutomationExecutionRecipient = {
+  customerId: number;
+  email: string;
+};
+
 export interface AutomationExecution {
   id: number;
   automationId: number;
@@ -97,6 +135,8 @@ export interface AutomationExecution {
     email?: string;
     name?: string;
   };
+  /** Customers who received emails during this batch run (from API logs). */
+  executedRecipients?: AutomationExecutionRecipient[];
 }
 
 export interface AutomationLog {

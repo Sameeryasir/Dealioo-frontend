@@ -2,15 +2,39 @@
 
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { WorkflowConnector } from "@/app/components/automation/builder/WorkflowConnector";
 import { WorkflowNodeCard } from "@/app/components/automation/builder/WorkflowNodeCard";
-import { automationEase } from "@/app/components/automation/automation-ui";
+import {
+  automationEase,
+  flowConnectorReveal,
+  flowListStagger,
+  flowStepReveal,
+} from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
 
 const ZOOM_MIN = 0.72;
 const ZOOM_MAX = 1.2;
 const ZOOM_STEP = 0.08;
+
+function FlowLoadingPlaceholder() {
+  return (
+    <motion.div
+      className="flex w-full max-w-lg flex-col items-center gap-3 py-8"
+      variants={flowListStagger}
+      initial="hidden"
+      animate="show"
+    >
+      {[0, 1].map((i) => (
+        <motion.div
+          key={i}
+          variants={flowStepReveal}
+          className="h-[4.25rem] w-full animate-pulse rounded-2xl bg-zinc-200/80"
+        />
+      ))}
+    </motion.div>
+  );
+}
 
 export function BuilderCanvas({
   nodes,
@@ -24,11 +48,20 @@ export function BuilderCanvas({
   onSelect: (id: string) => void;
 }) {
   const [zoom, setZoom] = useState(1);
+  const [revealKey, setRevealKey] = useState(0);
+  const wasLoadingRef = useRef(loading);
 
   const fitScreen = useCallback(() => setZoom(1), []);
 
+  useEffect(() => {
+    if (wasLoadingRef.current && !loading && nodes.length > 0) {
+      setRevealKey((k) => k + 1);
+    }
+    wasLoadingRef.current = loading;
+  }, [loading, nodes.length]);
+
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-100/80">
+    <motion.div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-100/80">
       <motion.div
         className="pointer-events-none absolute inset-0 opacity-[0.55]"
         style={{
@@ -90,25 +123,50 @@ export function BuilderCanvas({
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
         >
           {loading ? (
-            <p className="py-16 text-sm text-zinc-500">Loading workflow…</p>
+            <FlowLoadingPlaceholder />
           ) : nodes.length === 0 ? (
-            <p className="max-w-sm py-16 text-center text-sm text-zinc-500">
+            <motion.p
+              className="max-w-sm py-16 text-center text-sm text-zinc-500"
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: automationEase }}
+            >
               No steps yet. Pick a block from the left sidebar to build your
               automation.
-            </p>
-          ) : null}
-          {nodes.map((node, index) => (
-            <div key={node.id} className="flex w-full flex-col items-center">
-              <WorkflowNodeCard
-                node={node}
-                selected={selectedId === node.id}
-                onSelect={() => onSelect(node.id)}
-              />
-              {index < nodes.length - 1 ? <WorkflowConnector /> : null}
-            </div>
-          ))}
+            </motion.p>
+          ) : (
+            <motion.div
+              key={revealKey}
+              className="flex w-full flex-col items-center"
+              variants={flowListStagger}
+              initial="hidden"
+              animate="show"
+            >
+              {nodes.map((node, index) => (
+                <motion.div
+                  key={node.id}
+                  className="flex w-full flex-col items-center"
+                  variants={flowStepReveal}
+                >
+                  <WorkflowNodeCard
+                    node={node}
+                    selected={selectedId === node.id}
+                    onSelect={() => onSelect(node.id)}
+                  />
+                  {index < nodes.length - 1 ? (
+                    <motion.div
+                      className="flex w-full justify-center"
+                      variants={flowConnectorReveal}
+                    >
+                      <WorkflowConnector />
+                    </motion.div>
+                  ) : null}
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

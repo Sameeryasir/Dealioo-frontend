@@ -122,13 +122,7 @@ export default function CampaignWelcomePage() {
           isFunnelIdLoading={isFunnelIdLoading}
         />
       ) : activeTabId === "automations" ? (
-        <AutomationListPage
-          restaurantId={restaurantId}
-          campaignId={campaignId}
-          funnelId={funnelId}
-          isFunnelIdLoading={isFunnelIdLoading}
-          onOpenBuilder={openAutomationBuilder}
-        />
+        <AutomationListPage onOpenBuilder={openAutomationBuilder} />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
           <p className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">

@@ -51,12 +51,19 @@ export async function getAutomationLogs(
   );
 }
 
+/** POST /automation/execution — only automationId (no customerId in body). */
 export async function startExecution(
-  body: StartAutomationExecutionBody,
+  automationId: number,
+  options?: Pick<StartAutomationExecutionBody, "currentNodeId">,
 ): Promise<AutomationExecution> {
+  const payload: StartAutomationExecutionBody = { automationId };
+  const nodeId = options?.currentNodeId;
+  if (nodeId != null && Number.isInteger(nodeId) && nodeId >= 1) {
+    payload.currentNodeId = nodeId;
+  }
   return automationFetch<AutomationExecution>("/execution", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 }
 

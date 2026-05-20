@@ -31,8 +31,10 @@ import { createAutomationConnection } from "@/app/services/automation/connection
 import {
   blockKindToNodeType,
   createAutomationNode,
+  deleteAutomationNode,
   mapApiNodeToWorkflowNode,
   mapAutomationGraphToWorkflowNodes,
+  updateAutomationNode,
 } from "@/app/services/automation/node-api";
 import { isPositiveInt } from "@/app/lib/numbers";
 
@@ -78,25 +80,13 @@ export function AutomationBuilderPage({
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nodesLoading, setNodesLoading] = useState(false);
+  const [deletingNode, setDeletingNode] = useState(false);
+  const [savingNode, setSavingNode] = useState(false);
 
-  const loadAutomationSummary = useCallback(async () => {
-    if (!isPositiveInt(automationNumericId)) {
-      setAutomation(null);
-      return;
-    }
-    try {
-      const remote = await getAutomationById(automationNumericId);
-      const mapped = mapAutomationToListItem(remote);
-      setAutomation(mapped);
-      setStatus(mapped.status);
-    } catch {
-      setAutomation(null);
-    }
-  }, [automationNumericId]);
-
-  const loadAutomationFlow = useCallback(
+  const loadAutomation = useCallback(
     async (options?: { silent?: boolean }) => {
       if (!isPositiveInt(automationNumericId)) {
+        setAutomation(null);
         setNodes([]);
         setSelectedId(null);
         return;
@@ -106,6 +96,9 @@ export function AutomationBuilderPage({
       }
       try {
         const remote = await getAutomationById(automationNumericId);
+        const mapped = mapAutomationToListItem(remote);
+        setAutomation(mapped);
+        setStatus(mapped.status);
         const list = mapAutomationGraphToWorkflowNodes(
           remote.nodes ?? [],
           remote.connections ?? [],
@@ -119,6 +112,7 @@ export function AutomationBuilderPage({
         });
       } catch {
         if (!options?.silent) {
+          setAutomation(null);
           setNodes([]);
           setSelectedId(null);
         }
@@ -132,13 +126,8 @@ export function AutomationBuilderPage({
   );
 
   useEffect(() => {
-    void loadAutomationSummary();
-  }, [loadAutomationSummary]);
-
-  useEffect(() => {
-    if (tab !== "builder") return;
-    void loadAutomationFlow();
-  }, [tab, loadAutomationFlow]);
+    void loadAutomation();
+  }, [loadAutomation]);
 
   const [selectedExecutionId, setSelectedExecutionId] = useState<number | null>(
     null,
@@ -214,7 +203,7 @@ export function AutomationBuilderPage({
           }
         }
 
-        void loadAutomationFlow({ silent: true });
+        void loadAutomation({ silent: true });
       } catch (err) {
         toast.error(
           err instanceof AutomationApiError
@@ -225,8 +214,77 @@ export function AutomationBuilderPage({
         );
       }
     },
-    [automationNumericId, nodes, loadAutomationFlow],
+    [automationNumericId, nodes, loadAutomation],
   );
+
+  const onUpdateNode = useCallback(
+    async (config: Record<string, unknown>) => {
+      if (!selectedNode?.numericId) {
+        toast.error("This step is not saved yet.");
+        return;
+      }
+
+      setSavingNode(true);
+      try {
+        const updated = await updateAutomationNode(selectedNode.numericId, {
+          config,
+        });
+        const savedConfig =
+          updated.config && Object.keys(updated.config).length > 0
+            ? updated.config
+            : config;
+        const mapped = {
+          ...mapApiNodeToWorkflowNode(updated),
+          config: savedConfig,
+        };
+        setNodes((prev) =>
+          prev.map((n) => (n.numericId === updated.id ? mapped : n)),
+        );
+        toast.success("Step updated.");
+      } catch (err) {
+        toast.error(
+          err instanceof AutomationApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Could not update step.",
+        );
+      } finally {
+        setSavingNode(false);
+      }
+    },
+    [selectedNode],
+  );
+
+  const onDeleteNode = useCallback(async () => {
+    if (!selectedNode) return;
+
+    const nodeId = selectedNode.numericId;
+    if (nodeId == null) {
+      setNodes((prev) => prev.filter((n) => n.id !== selectedNode.id));
+      setSelectedId(null);
+      return;
+    }
+
+    setDeletingNode(true);
+    try {
+      await deleteAutomationNode(nodeId);
+      setNodes((prev) => prev.filter((n) => n.numericId !== nodeId));
+      setSelectedId(null);
+      toast.success("Step removed.");
+      void loadAutomation({ silent: true });
+    } catch (err) {
+      toast.error(
+        err instanceof AutomationApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not delete step.",
+      );
+    } finally {
+      setDeletingNode(false);
+    }
+  }, [selectedNode, loadAutomation]);
 
   return (
     <motion.div
@@ -316,7 +374,13 @@ export function AutomationBuilderPage({
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
-          <NodeSettingsPanel node={selectedNode} />
+          <NodeSettingsPanel
+            node={selectedNode}
+            onSave={onUpdateNode}
+            onDelete={onDeleteNode}
+            saving={savingNode}
+            deleting={deletingNode}
+          />
 
           <motion.aside
             className="pointer-events-none absolute bottom-6 right-[calc(300px+1.5rem)] z-30 max-lg:right-6 lg:right-[calc(320px+1.5rem)]"

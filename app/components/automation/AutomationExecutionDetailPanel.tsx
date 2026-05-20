@@ -4,10 +4,13 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  customerLabel,
+  executionRecipientsFromLogs,
+  executionRunSubtitle,
+  executionRunTitle,
   executionStatusBadgeClass,
   formatExecutionDateTime,
   formatScheduledCountdown,
+  recipientLabel,
 } from "@/app/components/automation/execution-status-ui";
 import { useExecutionDetail } from "@/app/hooks/use-execution-detail";
 import { isAdminUser } from "@/app/lib/is-admin-user";
@@ -28,6 +31,12 @@ export function AutomationExecutionDetailPanel({
     useExecutionDetail(executionId);
   const [actionLoading, setActionLoading] = useState(false);
   const isAdmin = isAdminUser();
+
+  const executedRecipients =
+    execution?.executedRecipients?.length
+      ? execution.executedRecipients
+      : executionRecipientsFromLogs(logs);
+  const recipientSubtitle = executionRunSubtitle(executedRecipients);
 
   async function runAdminAction(
     fn: () => Promise<void>,
@@ -73,11 +82,18 @@ export function AutomationExecutionDetailPanel({
         ) : execution ? (
           <>
             <h2 className="text-base font-bold text-zinc-900">
-              {customerLabel(execution.customerId, execution.customer)}
+              {executionRunTitle(
+                executedRecipients,
+                execution.customerId,
+                execution.customer,
+              )}
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500">
               {execution.automation?.name ?? `Automation #${execution.automationId}`}
             </p>
+            {recipientSubtitle ? (
+              <p className="mt-1 text-xs text-zinc-600">{recipientSubtitle}</p>
+            ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${executionStatusBadgeClass(execution.status)}`}
@@ -163,6 +179,26 @@ export function AutomationExecutionDetailPanel({
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {execution?.status === "completed" && executedRecipients.length > 0 ? (
+          <div className="mb-5 rounded-xl border border-emerald-200/90 bg-emerald-50/80 px-3 py-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-900">
+              Executed for ({executedRecipients.length})
+            </h3>
+            <ul className="mt-2 space-y-1.5">
+              {executedRecipients.map((recipient) => (
+                <li
+                  key={recipient.customerId}
+                  className="text-sm font-medium text-emerald-950"
+                >
+                  {recipientLabel(recipient)}
+                  <span className="ml-1 text-xs font-normal text-emerald-800">
+                    #{recipient.customerId}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">
           Timeline
         </h3>

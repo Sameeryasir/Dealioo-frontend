@@ -1,30 +1,152 @@
 "use client";
 
-import { ChevronRight, MoreHorizontal, Plus } from "lucide-react";
-import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  Building2,
+  ChevronRight,
+  CircleDot,
+  Clock,
+  CreditCard,
+  ExternalLink,
+  GitBranch,
+  MoreHorizontal,
+  PauseCircle,
+  Trash2,
+  Pencil,
+  Plus,
+  SearchX,
+  Send,
+  Tag,
+  UserPlus,
+  Users,
+  Workflow,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useAutomationRouteContext } from "@/app/hooks/use-automation-route-context";
 import SearchBar from "@/app/components/SearchBar";
 import { Skeleton } from "@/app/components/skeleton";
+import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { CreateAutomationModal } from "@/app/components/automation/CreateAutomationModal";
-import {
-  automationItem,
-  automationStagger,
-  statusBadgeClass,
-} from "@/app/components/automation/automation-ui";
+import { DeleteAutomationDialog } from "@/app/components/automation/DeleteAutomationDialog";
+import { statusBadgeClass } from "@/app/components/automation/automation-ui";
 import type {
   AutomationFilter,
   AutomationListItem,
+  AutomationStatus,
 } from "@/app/components/automation/types";
-import { isPositiveInt } from "@/app/lib/numbers";
 import { AutomationApiError } from "@/app/services/automation/automation-fetch";
 import {
   createAutomation,
+  deleteAutomation,
   getAutomations,
   mapAutomationToListItem,
-  triggerToApi,
 } from "@/app/services/automation/automation-api";
+import {
+  buildCreateAutomationBody,
+  validateAutomationCreateContext,
+} from "@/app/services/automation/automation-create-context";
+
+function truncateDescription(description: string, maxLength = 40): string {
+  const text = description.trim();
+  if (!text) return "—";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}…`;
+}
+
+function triggerIcon(trigger: string): LucideIcon {
+  const t = trigger.toLowerCase();
+  if (t.includes("signup")) return UserPlus;
+  if (t.includes("payment")) return CreditCard;
+  if (t.includes("funnel")) return GitBranch;
+  if (t.includes("tag")) return Tag;
+  return Zap;
+}
+
+function statusIcon(status: AutomationStatus): LucideIcon {
+  switch (status) {
+    case "active":
+      return CircleDot;
+    case "published":
+      return Send;
+    case "paused":
+      return PauseCircle;
+    case "draft":
+    default:
+      return Pencil;
+  }
+}
+
+function triggerBadgeClass(trigger: string): string {
+  const t = trigger.toLowerCase();
+  if (t.includes("signup")) return "ring-1 bg-emerald-100 text-emerald-700 ring-emerald-200";
+  if (t.includes("payment")) return "ring-1 bg-blue-100 text-blue-700 ring-blue-200";
+  if (t.includes("funnel")) return "ring-1 bg-violet-100 text-violet-700 ring-violet-200";
+  if (t.includes("tag")) return "ring-1 bg-amber-100 text-amber-700 ring-amber-200";
+  return "ring-1 bg-amber-100 text-amber-700 ring-amber-200";
+}
+
+function triggerIconClass(trigger: string): string {
+  const t = trigger.toLowerCase();
+  if (t.includes("signup")) return "text-emerald-700";
+  if (t.includes("payment")) return "text-blue-700";
+  if (t.includes("funnel")) return "text-violet-700";
+  if (t.includes("tag")) return "text-amber-700";
+  return "text-amber-700";
+}
+
+const ICON_STROKE = 2.5;
+
+function IconBadge({
+  icon: Icon,
+  className,
+  iconClassName = "size-3.5",
+}: {
+  icon: LucideIcon;
+  className: string;
+  iconClassName?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex size-8 shrink-0 items-center justify-center rounded-lg ${className}`}
+    >
+      <Icon className={iconClassName} aria-hidden strokeWidth={ICON_STROKE} />
+    </span>
+  );
+}
+
+function TableHeaderCell({
+  icon: Icon,
+  label,
+  iconClassName,
+}: {
+  icon: LucideIcon;
+  label: string;
+  iconClassName: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon
+        className={`size-3.5 shrink-0 ${iconClassName}`}
+        aria-hidden
+        strokeWidth={ICON_STROKE}
+      />
+      <span>{label}</span>
+    </span>
+  );
+}
 
 const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -35,27 +157,51 @@ const FILTERS: { id: AutomationFilter; label: string }[] = [
 ];
 
 export function AutomationListPage({
-  restaurantId,
-  campaignId,
-  funnelId,
-  isFunnelIdLoading = false,
+  restaurantId: restaurantIdProp,
+  campaignId: campaignIdProp,
+  funnelId: funnelIdProp,
   onOpenBuilder,
 }: {
-  restaurantId: number;
+  /** Optional override; otherwise read from pathname (/restaurant/:id/...). */
+  restaurantId?: number;
   campaignId?: number;
   funnelId?: number | null;
-  isFunnelIdLoading?: boolean;
   onOpenBuilder?: (automationId: string) => void;
-}) {
+} = {}) {
+  const route = useAutomationRouteContext();
+  const restaurantId = route.restaurantId ?? restaurantIdProp;
+  const campaignId = route.campaignId ?? campaignIdProp;
+  const funnelId = funnelIdProp ?? route.funnelId;
+
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<AutomationFilter>("all");
   const [items, setItems] = useState<AutomationListItem[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AutomationListItem | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const createContextInput = useMemo(
+    () => ({ restaurantId, campaignId }),
+    [restaurantId, campaignId],
+  );
+
+  const createBlockedMessage = useMemo(() => {
+    const result = validateAutomationCreateContext(createContextInput);
+    return result.ok ? null : result.message;
+  }, [createContextInput]);
+
   const loadAutomations = useCallback(async () => {
+    if (restaurantId == null) {
+      setItems([]);
+      setLoading(false);
+      setLoadError("Restaurant id is missing from the URL.");
+      return;
+    }
     setLoading(true);
     setLoadError(null);
     try {
@@ -102,61 +248,75 @@ export function AutomationListPage({
     return base;
   };
 
+  if (restaurantId == null) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-zinc-700">
+        <p>Invalid link — restaurant id not found in the URL.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50 [scrollbar-gutter:stable]">
       <div className="mx-auto w-full max-w-[min(100%,77.62rem)] px-4 py-8 sm:px-8 lg:px-10">
-        <motion.div
-          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-        >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+            <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
+                aria-hidden
+              >
+                <Workflow className="size-4 sm:size-5" strokeWidth={ICON_STROKE} />
+              </span>
               Automation
             </h1>
             <p className="mt-1 max-w-xl text-sm text-zinc-600">
               Create workflows that automatically engage customers.
             </p>
+            {createBlockedMessage ? (
+              <p className="mt-2 max-w-xl text-sm text-amber-800">{createBlockedMessage}</p>
+            ) : null}
           </div>
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
-            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98]"
+            onClick={() => {
+              const context = validateAutomationCreateContext(createContextInput);
+              if (!context.ok) {
+                toast.error(context.message);
+                return;
+              }
+              setModalOpen(true);
+            }}
+            className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98]"
           >
             <Plus className="size-4" aria-hidden />
             Create Automation
           </button>
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.05 }}
-        >
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
           <SearchBar
             value={query}
             onChange={setQuery}
             placeholder="Search automations…"
             className="w-full sm:max-w-md"
           />
-          <select
+          <AutomationFilterDropdown
             value={filter}
-            onChange={(e) => setFilter(e.target.value as AutomationFilter)}
-            className="h-11 w-full cursor-pointer rounded-xl border border-zinc-200/90 bg-white px-3 text-sm font-medium text-zinc-800 shadow-sm outline-none sm:w-44 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
-          >
-            {FILTERS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </motion.div>
+            options={FILTERS}
+            onChange={setFilter}
+            className="w-full sm:w-44"
+          />
+        </div>
 
         {loadError ? (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-800">
-            <p>{loadError}</p>
+            <AlertCircle
+              className="mx-auto size-8 text-red-600"
+              aria-hidden
+              strokeWidth={ICON_STROKE}
+            />
+            <p className="mt-3">{loadError}</p>
             <button
               type="button"
               onClick={() => void loadAutomations()}
@@ -170,19 +330,36 @@ export function AutomationListPage({
         ) : null}
 
         {!loading && !loadError ? (
-        <motion.div
-          className="mt-6 hidden overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04] lg:block"
-          variants={automationStagger}
-          initial="hidden"
-          animate="show"
-        >
-          <div className="grid grid-cols-[minmax(0,1.4fr)_0.7fr_0.6fr_0.9fr_0.8fr_0.7fr_2.5rem] gap-4 border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5 text-xs font-bold uppercase tracking-wide text-zinc-500">
-            <span>Automation name</span>
-            <span>Trigger</span>
-            <span>Status</span>
-            <span>Restaurant</span>
-            <span>Last updated</span>
-            <span>Customers</span>
+        <div className="mt-6 hidden overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04] lg:block">
+          <div
+            className={`${TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5 text-xs font-bold uppercase tracking-wide text-zinc-500`}
+          >
+            <TableHeaderCell
+              icon={Workflow}
+              label="Automation name"
+              iconClassName="text-violet-600"
+            />
+            <TableHeaderCell icon={Zap} label="Trigger" iconClassName="text-amber-600" />
+            <TableHeaderCell
+              icon={Activity}
+              label="Status"
+              iconClassName="text-emerald-600"
+            />
+            <TableHeaderCell
+              icon={Building2}
+              label="Restaurant"
+              iconClassName="text-blue-600"
+            />
+            <TableHeaderCell
+              icon={Clock}
+              label="Last updated"
+              iconClassName="text-orange-600"
+            />
+            <TableHeaderCell
+              icon={Users}
+              label="Customers"
+              iconClassName="text-indigo-600"
+            />
             <span aria-hidden />
           </div>
           {filtered.map((row) => (
@@ -191,33 +368,38 @@ export function AutomationListPage({
               row={row}
               href={builderHref(row)}
               onOpenBuilder={onOpenBuilder}
+              onDelete={() => setDeleteTarget(row)}
             />
           ))}
-        </motion.div>
+        </div>
         ) : null}
 
         {!loading && !loadError ? (
-        <motion.div
-          className="mt-6 grid gap-4 lg:hidden"
-          variants={automationStagger}
-          initial="hidden"
-          animate="show"
-        >
+        <div className="mt-6 grid gap-4 lg:hidden">
           {filtered.map((row) => (
             <AutomationCard
               key={row.id}
               row={row}
               href={builderHref(row)}
               onOpenBuilder={onOpenBuilder}
+              onDelete={() => setDeleteTarget(row)}
             />
           ))}
-        </motion.div>
+        </div>
         ) : null}
 
         {!loading && !loadError && filtered.length === 0 ? (
-          <p className="mt-8 rounded-2xl border border-zinc-200/90 bg-white px-4 py-12 text-center text-sm text-zinc-500 shadow-sm">
-            No automations match your search.
-          </p>
+          <div className="mt-8 flex flex-col items-center rounded-2xl border border-zinc-200/90 bg-white px-4 py-14 text-center shadow-sm">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+              <SearchX className="size-7" aria-hidden strokeWidth={ICON_STROKE} />
+            </span>
+            <p className="mt-4 text-sm font-semibold text-zinc-900">
+              No automations match your search
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-zinc-500">
+              Try a different keyword or filter to find your workflows.
+            </p>
+          </div>
         ) : null}
       </div>
 
@@ -227,29 +409,23 @@ export function AutomationListPage({
         onClose={() => {
           if (!creating) setModalOpen(false);
         }}
-        onCreate={async ({ name, description, trigger }) => {
-          if (isFunnelIdLoading) {
-            toast.error("Still loading funnel. Try again in a moment.");
-            return;
-          }
-          if (
-            !isPositiveInt(restaurantId) ||
-            !isPositiveInt(campaignId) ||
-            !isPositiveInt(funnelId)
-          ) {
-            toast.error("Restaurant, campaign, and funnel are required.");
+        onCreate={async ({ name, description, trigger, purpose }) => {
+          const context = validateAutomationCreateContext(createContextInput);
+          if (!context.ok) {
+            toast.error(context.message);
             return;
           }
           setCreating(true);
           try {
-            const created = await createAutomation({
-              name,
-              description: description || undefined,
-              trigger: triggerToApi(trigger),
-              restaurantId,
-              campaignId,
-              funnelId,
-            });
+            const created = await createAutomation(
+              buildCreateAutomationBody({
+                name,
+                description,
+                trigger,
+                purpose,
+                ids: context.ids,
+              }),
+            );
             const next = mapAutomationToListItem(created);
             setItems((prev) => [next, ...prev]);
             setModalOpen(false);
@@ -269,6 +445,39 @@ export function AutomationListPage({
           }
         }}
       />
+
+      <DeleteAutomationDialog
+        open={deleteTarget != null}
+        automationName={deleteTarget?.name ?? ""}
+        isDeleting={deleting}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onConfirm={async () => {
+          const id = deleteTarget?.numericId;
+          if (id == null || id < 1) {
+            toast.error("Could not delete this automation.");
+            return;
+          }
+          setDeleting(true);
+          try {
+            await deleteAutomation(id);
+            setItems((prev) => prev.filter((row) => row.numericId !== id));
+            setDeleteTarget(null);
+            toast.success("Automation deleted.");
+          } catch (err) {
+            toast.error(
+              err instanceof AutomationApiError
+                ? err.message
+                : err instanceof Error
+                  ? err.message
+                  : "Could not delete automation.",
+            );
+          } finally {
+            setDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -278,14 +487,7 @@ const TABLE_GRID =
 
 function AutomationListSkeleton() {
   return (
-    <motion.div
-      className="mt-6"
-      aria-busy="true"
-      aria-label="Loading automations"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
-    >
+    <div className="mt-6" aria-busy="true" aria-label="Loading automations">
       <div className="hidden overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-950/[0.04] lg:block">
         <div
           className={`${TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5`}
@@ -336,7 +538,153 @@ function AutomationListSkeleton() {
           </article>
         ))}
       </div>
-    </motion.div>
+    </div>
+  );
+}
+
+const ROW_MENU_WIDTH = 176;
+const ROW_MENU_ITEM_HEIGHT = 44;
+
+function AutomationRowMenu({
+  href,
+  onOpenBuilder,
+  onDelete,
+}: {
+  href: string;
+  onOpenBuilder?: () => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const menuHeight = onDelete ? ROW_MENU_ITEM_HEIGHT * 2 : ROW_MENU_ITEM_HEIGHT;
+
+  const updateMenuPosition = useCallback(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    let top = rect.bottom + 4;
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - 4);
+    }
+    setMenuPosition({
+      top,
+      left: Math.max(8, rect.right - ROW_MENU_WIDTH),
+    });
+  }, [menuHeight]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuPosition(null);
+      return;
+    }
+    updateMenuPosition();
+  }, [open, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (anchorRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onScrollOrResize = () => updateMenuPosition();
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+    };
+  }, [open, updateMenuPosition]);
+
+  const menu =
+    mounted && open && menuPosition ? (
+      <div
+        ref={menuRef}
+        role="menu"
+        aria-label="Automation actions"
+        style={{
+          position: "fixed",
+          top: menuPosition.top,
+          left: menuPosition.left,
+          width: ROW_MENU_WIDTH,
+          zIndex: 100,
+        }}
+        className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
+      >
+        <Link
+          href={href}
+          role="menuitem"
+          onClick={() => {
+            setOpen(false);
+            onOpenBuilder?.();
+          }}
+          className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-900"
+        >
+          <ExternalLink
+            className="size-4 shrink-0 text-violet-600"
+            aria-hidden
+            strokeWidth={ICON_STROKE}
+          />
+          Open builder
+        </Link>
+        {onDelete ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2
+              className="size-4 shrink-0"
+              aria-hidden
+              strokeWidth={ICON_STROKE}
+            />
+            Delete
+          </button>
+        ) : null}
+      </div>
+    ) : null;
+
+  return (
+    <div ref={anchorRef} className="relative flex justify-end">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-600 outline-none transition hover:bg-violet-50 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500/20"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Automation actions"
+      >
+        <MoreHorizontal className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
+      </button>
+      {mounted ? createPortal(menu, document.body) : null}
+    </div>
   );
 }
 
@@ -344,21 +692,23 @@ function AutomationTableRow({
   row,
   href,
   onOpenBuilder,
+  onDelete,
 }: {
   row: AutomationListItem;
   href: string;
   onOpenBuilder?: (id: string) => void;
+  onDelete?: () => void;
 }) {
   return (
-    <motion.div variants={automationItem}>
-      <Link
-        href={href}
-        onClick={() => onOpenBuilder?.(row.id)}
-        className="grid grid-cols-[minmax(0,1.4fr)_0.7fr_0.6fr_0.9fr_0.8fr_0.7fr_2.5rem] items-center gap-4 border-b border-zinc-100 px-5 py-4 text-sm transition last:border-0 hover:bg-zinc-50/80"
-      >
+    <div
+      className={`${TABLE_GRID} items-center border-b border-zinc-100 px-5 py-4 text-sm transition last:border-0 hover:bg-zinc-50/80`}
+    >
+      <Link href={href} onClick={() => onOpenBuilder?.(row.id)} className="contents">
         <div className="min-w-0">
           <p className="truncate font-semibold text-zinc-900">{row.name}</p>
-          <p className="mt-0.5 truncate text-xs text-zinc-500">{row.description}</p>
+          <p className="mt-0.5 text-xs text-zinc-500" title={row.description}>
+            {truncateDescription(row.description)}
+          </p>
         </div>
         <span className="text-zinc-700">{row.trigger}</span>
         <span>
@@ -373,9 +723,13 @@ function AutomationTableRow({
         <span className="font-semibold tabular-nums text-zinc-900">
           {row.customersEntered}
         </span>
-        <MoreHorizontal className="size-4 text-zinc-400" aria-hidden />
       </Link>
-    </motion.div>
+      <AutomationRowMenu
+        href={href}
+        onOpenBuilder={() => onOpenBuilder?.(row.id)}
+        onDelete={onDelete}
+      />
+    </div>
   );
 }
 
@@ -383,46 +737,92 @@ function AutomationCard({
   row,
   href,
   onOpenBuilder,
+  onDelete,
 }: {
   row: AutomationListItem;
   href: string;
   onOpenBuilder?: (id: string) => void;
+  onDelete?: () => void;
 }) {
+  const TriggerIcon = triggerIcon(row.trigger);
+  const StatusIcon = statusIcon(row.status);
+
   return (
-    <motion.div variants={automationItem} whileHover={{ scale: 1.01 }}>
+    <article className="relative rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge
+            icon={Workflow}
+            className="border-0 bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-sm ring-0"
+          />
+          <div className="min-w-0">
+            <Link
+              href={href}
+              onClick={() => onOpenBuilder?.(row.id)}
+              className="font-semibold text-zinc-900 hover:underline"
+            >
+              {row.name}
+            </Link>
+            <p
+              className="mt-1 line-clamp-2 text-xs text-zinc-500"
+              title={row.description}
+            >
+              {truncateDescription(row.description)}
+            </p>
+            <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-800">
+              <TriggerIcon
+                className={`size-3.5 ${triggerIconClass(row.trigger)}`}
+                aria-hidden
+                strokeWidth={ICON_STROKE}
+              />
+              {row.trigger}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(row.status)}`}
+          >
+            <StatusIcon
+              className="size-3 shrink-0"
+              aria-hidden
+              strokeWidth={ICON_STROKE}
+            />
+            {row.status}
+          </span>
+          <AutomationRowMenu
+            href={href}
+            onOpenBuilder={() => onOpenBuilder?.(row.id)}
+            onDelete={onDelete}
+          />
+        </div>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <dt className="inline-flex items-center gap-1.5 font-medium text-indigo-700">
+            <Users className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
+            Customers
+          </dt>
+          <dd className="mt-0.5 font-semibold text-zinc-900">
+            {row.customersEntered}
+          </dd>
+        </div>
+        <div>
+          <dt className="inline-flex items-center gap-1.5 font-medium text-orange-700">
+            <Clock className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
+            Updated
+          </dt>
+          <dd className="mt-0.5 font-medium text-zinc-700">{row.lastUpdated}</dd>
+        </div>
+      </dl>
       <Link
         href={href}
         onClick={() => onOpenBuilder?.(row.id)}
-        className="block rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition hover:shadow-md"
+        className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-violet-700"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="font-semibold text-zinc-900">{row.name}</h3>
-            <p className="mt-1 text-xs text-zinc-500">Trigger: {row.trigger}</p>
-          </div>
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusBadgeClass(row.status)}`}
-          >
-            {row.status}
-          </span>
-        </div>
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <dt className="text-zinc-500">Customers</dt>
-            <dd className="mt-0.5 font-semibold text-zinc-900">
-              {row.customersEntered}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Updated</dt>
-            <dd className="mt-0.5 font-medium text-zinc-700">{row.lastUpdated}</dd>
-          </div>
-        </dl>
-        <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-zinc-900">
-          Open builder
-          <ChevronRight className="size-3.5" aria-hidden />
-        </span>
+        Open builder
+        <ChevronRight className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
       </Link>
-    </motion.div>
+    </article>
   );
 }
