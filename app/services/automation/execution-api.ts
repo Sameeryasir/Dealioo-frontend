@@ -4,6 +4,7 @@ import {
   type AutomationExecution,
   type AutomationExecutionStatus,
   type AutomationExecutionStatusDto,
+  type ExecutionLogsResponse,
   type PaginatedExecutionsResponse,
   type StartAutomationExecutionBody,
   type StartAutomationExecutionResponse,
@@ -42,6 +43,19 @@ export async function getExecutionById(
   id: number,
 ): Promise<AutomationExecution> {
   return automationFetch<AutomationExecution>(`/execution/${id}`);
+}
+
+export async function getExecutionLogs(
+  executionId: number,
+): Promise<ExecutionLogsResponse> {
+  const raw = await automationFetch<ExecutionLogsResponse | { data: ExecutionLogsResponse }>(
+    `/execution/${executionId}/logs`,
+  );
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object" && Array.isArray(raw.data)) {
+    return raw.data;
+  }
+  return [];
 }
 
 export async function getExecutionStatus(

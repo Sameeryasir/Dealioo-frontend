@@ -163,6 +163,18 @@ export interface AutomationExecution {
   executedRecipients?: AutomationExecutionRecipient[];
 }
 
+export interface AutomationLogNode {
+  id: number;
+  automationId: number;
+  type: string;
+  config: Record<string, unknown>;
+  positionX?: number;
+  positionY?: number;
+  order: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AutomationLog {
   id: number;
   executionId: number;
@@ -171,16 +183,11 @@ export interface AutomationLog {
   message: string;
   error: string | null;
   createdAt: string;
-  node?: {
-    id: number;
-    type: string;
-    config: Record<string, unknown>;
-  };
+  node?: AutomationLogNode;
 }
 
-export interface ExecutionLogsResponse {
-  data: AutomationLog[];
-}
+/** API returns a plain array of logs for GET /execution/:id/logs */
+export type ExecutionLogsResponse = AutomationLog[];
 
 export interface StartAutomationExecutionBody {
   automationId: number;

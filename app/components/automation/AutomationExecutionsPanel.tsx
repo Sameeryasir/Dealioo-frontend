@@ -22,6 +22,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DeleteExecutionDialog } from "@/app/components/automation/DeleteExecutionDialog";
+import { ExecutionLogsDrawer } from "@/app/components/automation/ExecutionLogsDrawer";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
@@ -162,11 +163,13 @@ function AutomationRunsSkeleton() {
 
 function RunRow({
   row,
+  onOpenLogs,
   onDelete,
   deleting,
   deleteLocked,
 }: {
   row: AutomationExecution;
+  onOpenLogs: (row: AutomationExecution) => void;
   onDelete: (id: number) => void;
   deleting: boolean;
   deleteLocked: boolean;
@@ -196,7 +199,16 @@ function RunRow({
 
   return (
     <div
-      className={`group ${RUNS_TABLE_GRID} w-full border-l-2 px-5 py-3.5 text-sm transition hover:bg-violet-50/30 ${rowAccentClass(row.status)} pl-[calc(1.25rem-2px)] ${
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenLogs(row)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenLogs(row);
+        }
+      }}
+      className={`group ${RUNS_TABLE_GRID} w-full cursor-pointer border-l-2 px-5 py-3.5 text-sm transition hover:bg-violet-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-inset ${rowAccentClass(row.status)} pl-[calc(1.25rem-2px)] ${
         inProgress ? "bg-sky-50/40" : ""
       }`}
     >
@@ -331,6 +343,11 @@ export function AutomationExecutionsPanel({
     deletingId,
   } = useAutomationExecutions(automationId, apiStatus);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [logsDrawer, setLogsDrawer] = useState<{
+    executionId: number;
+    runStartedAt?: string | null;
+    runTitle: string;
+  } | null>(null);
 
   const deleteTargetName = useMemo(() => {
     if (deleteTargetId == null) return "this run";
@@ -365,6 +382,19 @@ export function AutomationExecutionsPanel({
       customersReached: summary?.customersReached ?? 0,
     };
   }, [meta?.total, summary]);
+
+  const openRunLogs = useCallback((row: AutomationExecution) => {
+    const label = executionRunTitle(
+      row.executedRecipients,
+      row.customerId,
+      row.customer,
+    );
+    setLogsDrawer({
+      executionId: row.id,
+      runStartedAt: row.createdAt,
+      runTitle: label.trim() ? label : `Run #${row.id}`,
+    });
+  }, []);
 
   return (
     <>
@@ -416,6 +446,11 @@ export function AutomationExecutionsPanel({
                 onClick={() =>
                   void run((result) => {
                     setPage(1);
+                    setLogsDrawer({
+                      executionId: result.executionId,
+                      runStartedAt: new Date().toISOString(),
+                      runTitle: `Run #${result.executionId}`,
+                    });
                     onExecutionStarted?.(result.executionId);
                   })
                 }
@@ -535,6 +570,7 @@ export function AutomationExecutionsPanel({
                 >
                   <RunRow
                     row={row}
+                    onOpenLogs={openRunLogs}
                     onDelete={(id) => {
                       if (deletingId != null) return;
                       setDeleteTargetId(id);
@@ -558,6 +594,14 @@ export function AutomationExecutionsPanel({
         if (deletingId == null) setDeleteTargetId(null);
       }}
       onConfirm={() => void confirmDeleteRun()}
+    />
+
+    <ExecutionLogsDrawer
+      open={logsDrawer != null}
+      executionId={logsDrawer?.executionId ?? null}
+      runStartedAt={logsDrawer?.runStartedAt}
+      runTitle={logsDrawer?.runTitle ?? "Run"}
+      onClose={() => setLogsDrawer(null)}
     />
 
     </>
