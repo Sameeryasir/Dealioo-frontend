@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { LayoutTemplate, Maximize2, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -36,7 +36,7 @@ type DragPreview = {
 function FlowLoadingPlaceholder() {
   return (
     <motion.div
-      className="flex w-full max-w-lg flex-col items-center gap-3 py-8"
+      className="flex w-full max-w-lg flex-col items-center gap-4 py-8"
       variants={flowListStagger}
       initial="hidden"
       animate="show"
@@ -45,8 +45,10 @@ function FlowLoadingPlaceholder() {
         <motion.div
           key={i}
           variants={flowStepReveal}
-          className="h-[4.25rem] w-full animate-pulse rounded-2xl bg-zinc-200/80"
-        />
+          className="h-[4.5rem] w-full overflow-hidden rounded-2xl border border-zinc-200/60 bg-zinc-100/80 shadow-sm"
+        >
+          <div className="h-full w-full animate-pulse bg-gradient-to-r from-zinc-100 via-zinc-200/70 to-zinc-100 bg-[length:200%_100%]" />
+        </motion.div>
       ))}
     </motion.div>
   );
@@ -308,21 +310,25 @@ export function BuilderCanvas({
     );
 
   return (
-    <motion.div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f4f5]">
+    <motion.div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#ececee]">
       <motion.div
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "radial-gradient(circle, rgb(212 212 216 / 0.55) 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
+            "radial-gradient(circle, rgb(161 161 170 / 0.22) 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
       />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,rgba(255,255,255,0.55),transparent_70%)]"
+        aria-hidden
+      />
 
       <motion.div
-        className="absolute right-4 top-4 z-20 flex items-center gap-0.5 rounded-xl border border-zinc-200/80 bg-white/95 p-1 shadow-md ring-1 ring-zinc-950/[0.03]"
+        className="absolute right-4 top-4 z-20 flex items-center gap-0.5 rounded-2xl border border-white/70 bg-white/75 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)] ring-1 ring-zinc-950/[0.04] backdrop-blur-md"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, ease: automationEase }}
@@ -331,27 +337,27 @@ export function BuilderCanvas({
           type="button"
           aria-label="Zoom out"
           onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-          className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+          className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95"
         >
           <Minus className="size-4" aria-hidden />
         </button>
-        <span className="min-w-[3rem] text-center text-xs font-semibold tabular-nums text-zinc-600">
+        <span className="min-w-[3.25rem] text-center text-[0.7rem] font-bold tabular-nums tracking-wide text-zinc-500">
           {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"
           aria-label="Zoom in"
           onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-          className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+          className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95"
         >
           <Plus className="size-4" aria-hidden />
         </button>
-        <span className="mx-0.5 h-6 w-px bg-zinc-200" aria-hidden />
+        <span className="mx-0.5 h-6 w-px bg-zinc-200/90" aria-hidden />
         <button
           type="button"
           aria-label="Fit screen"
           onClick={fitScreen}
-          className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+          className="flex h-9 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95"
         >
           <Maximize2 className="size-3.5" aria-hidden />
           Fit
@@ -359,8 +365,8 @@ export function BuilderCanvas({
       </motion.div>
 
       <motion.div
-        className={`min-h-0 flex-1 overflow-auto px-6 py-16 transition-colors ${
-          canvasDragOver ? "bg-violet-50/50" : ""
+        className={`min-h-0 flex-1 overflow-auto px-6 py-16 transition-colors duration-300 ${
+          canvasDragOver ? "bg-violet-50/40" : ""
         }`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -381,19 +387,28 @@ export function BuilderCanvas({
             <FlowLoadingPlaceholder />
           ) : nodes.length === 0 ? (
             <motion.div
-              className={`max-w-sm rounded-2xl border-2 border-dashed px-6 py-14 text-center shadow-sm transition-colors ${
+              className={`max-w-sm rounded-3xl border-2 border-dashed px-8 py-16 text-center shadow-[0_8px_32px_rgba(0,0,0,0.06)] ring-1 transition-all duration-300 ${
                 canvasDragOver
-                  ? "border-violet-400/90 bg-violet-50/90 shadow-violet-100/50"
-                  : "border-zinc-300/90 bg-white/70"
+                  ? "border-violet-400/80 bg-violet-50/90 ring-violet-200/60"
+                  : "border-zinc-300/70 bg-white/85 ring-zinc-950/[0.03] backdrop-blur-sm"
               }`}
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: automationEase }}
             >
-              <p className="text-sm font-medium text-zinc-700">
+              <div
+                className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border transition-colors ${
+                  canvasDragOver
+                    ? "border-violet-200 bg-violet-100 text-violet-600"
+                    : "border-zinc-200/90 bg-zinc-50 text-zinc-400"
+                }`}
+              >
+                <LayoutTemplate className="size-7" strokeWidth={1.5} aria-hidden />
+              </div>
+              <p className="text-sm font-semibold tracking-tight text-zinc-800">
                 Drag a block here
               </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mx-auto mt-2 max-w-[16rem] text-xs leading-relaxed text-zinc-500">
                 Or click a block in the sidebar to add your first step.
               </p>
             </motion.div>

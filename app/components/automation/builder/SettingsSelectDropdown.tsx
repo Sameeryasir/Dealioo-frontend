@@ -41,7 +41,7 @@ export function SettingsSelectDropdown({
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.22, ease: automationEase }}
           style={menuStyle}
-          className="max-h-56 overflow-y-auto overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
+          className="max-h-56 overflow-y-auto overflow-hidden rounded-xl border border-zinc-200/80 bg-white py-1 shadow-[0_12px_40px_rgba(0,0,0,0.12)] ring-1 ring-zinc-950/[0.05]"
         >
           {options.map((option, index) => {
             const isSelected = value === option.value;
@@ -92,7 +92,11 @@ export function SettingsSelectDropdown({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
-        className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-zinc-200/90 bg-white py-2 pl-3 pr-2.5 text-sm font-medium text-zinc-900 shadow-sm outline-none transition hover:border-zinc-300 focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
+        className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border bg-white py-2 pl-3.5 pr-2.5 text-sm font-medium text-zinc-900 shadow-sm ring-1 outline-none transition-all duration-200 active:scale-[0.99] ${
+          open
+            ? "border-zinc-300 ring-zinc-900/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+            : "border-zinc-200/80 ring-zinc-950/[0.03] hover:border-zinc-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+        } focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10`}
       >
         <span className="min-w-0 flex-1 truncate text-left">
           {selected?.label ?? "Select…"}

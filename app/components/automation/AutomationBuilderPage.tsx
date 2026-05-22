@@ -72,7 +72,7 @@ function BuilderTabToggle({
     <div
       role="tablist"
       aria-label="Automation views"
-      className="relative grid w-max min-w-[13rem] grid-cols-2 rounded-full border border-zinc-200/90 bg-white p-1 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_6px_20px_rgba(0,0,0,0.06)] ring-1 ring-zinc-950/[0.04]"
+      className="relative grid w-max min-w-[14rem] grid-cols-2 rounded-full border border-zinc-200/80 bg-zinc-100/80 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-zinc-950/[0.05]"
     >
       {TABS.map((t) => {
         const active = tab === t.id;
@@ -83,14 +83,14 @@ function BuilderTabToggle({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t.id)}
-            className={`relative z-10 cursor-pointer rounded-full px-6 py-2.5 text-sm font-semibold tracking-tight transition-colors duration-200 ${
-              active ? "" : "hover:bg-zinc-100/80"
+            className={`relative z-10 cursor-pointer rounded-full px-7 py-2.5 text-sm font-semibold tracking-tight transition-colors duration-200 ${
+              active ? "" : "text-zinc-500 hover:text-zinc-800"
             }`}
           >
             {active ? (
               <motion.span
                 layoutId="automation-builder-tab-pill"
-                className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-950 shadow-[0_2px_8px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-black/20"
+                className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-zinc-950 shadow-[0_4px_14px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-black/25"
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
@@ -462,44 +462,42 @@ export function AutomationBuilderPage({
   );
 
   const persistentHeader = (
-    <header className="shrink-0 border-b border-zinc-200/80 bg-white px-4 py-3 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <header className="relative shrink-0 border-b border-zinc-200/70 bg-gradient-to-b from-white via-white to-zinc-50/80 px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <BuilderTabToggle tab={tab} onChange={setBuilderTab} />
 
-        <div className="flex min-h-10 flex-wrap items-center gap-2">
-          {tab === "builder" ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setStatus("draft")}
-                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-              >
-                Save draft
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus("published")}
-                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-              >
-                Publish
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus("active")}
-                className="cursor-pointer rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-              >
-                Activate
-              </button>
-            </>
-          ) : null}
-        </div>
+        {tab === "builder" ? (
+          <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-2xl border border-zinc-200/70 bg-zinc-100/60 p-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.04]">
+            <button
+              type="button"
+              onClick={() => setStatus("draft")}
+              className="cursor-pointer rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-600 shadow-sm ring-1 ring-zinc-950/[0.04] transition hover:text-zinc-900 active:scale-[0.98]"
+            >
+              Save draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("published")}
+              className="cursor-pointer rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-600 shadow-sm ring-1 ring-zinc-950/[0.04] transition hover:text-zinc-900 active:scale-[0.98]"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("active")}
+              className="cursor-pointer rounded-xl bg-gradient-to-b from-zinc-800 to-zinc-950 px-5 py-2 text-sm font-semibold text-white shadow-[0_3px_12px_rgba(0,0,0,0.2)] ring-1 ring-black/20 transition hover:from-zinc-700 hover:to-zinc-900 active:scale-[0.98]"
+            >
+              Activate
+            </button>
+          </div>
+        ) : null}
       </div>
     </header>
   );
 
   return (
     <motion.div
-      className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden bg-zinc-50"
+      className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden bg-[#f0f0f2]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: automationEase }}
@@ -543,29 +541,29 @@ export function AutomationBuilderPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, ease: automationEase }}
               >
-                <div className="pointer-events-auto rounded-xl border border-zinc-200/80 bg-white/95 px-4 py-3 shadow-lg ring-1 ring-zinc-950/[0.03] backdrop-blur-sm">
-                  <dl className="flex divide-x divide-zinc-200/80">
-                    <div className="min-w-[4.5rem] pr-4">
-                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                <div className="pointer-events-auto rounded-2xl border border-white/70 bg-white/85 px-5 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.09),0_1px_0_rgba(255,255,255,0.95)_inset] ring-1 ring-zinc-950/[0.05] backdrop-blur-lg">
+                  <dl className="flex divide-x divide-zinc-200/70">
+                    <div className="min-w-[5rem] pr-5">
+                      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-zinc-400">
                         Steps
                       </dt>
-                      <dd className="mt-0.5 text-base font-bold tabular-nums text-zinc-900">
+                      <dd className="mt-1 text-lg font-bold tabular-nums tracking-tight text-zinc-900">
                         {stats.nodeCount}
                       </dd>
                     </div>
-                    <div className="min-w-[4.5rem] px-4">
-                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                    <div className="min-w-[5rem] px-5">
+                      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-zinc-400">
                         Est. time
                       </dt>
-                      <dd className="mt-0.5 text-base font-bold text-zinc-900">
+                      <dd className="mt-1 text-lg font-bold tracking-tight text-zinc-900">
                         {stats.estimated}
                       </dd>
                     </div>
-                    <div className="min-w-[4.5rem] pl-4">
-                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                    <div className="min-w-[5rem] pl-5">
+                      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-zinc-400">
                         In flow
                       </dt>
-                      <dd className="mt-0.5 text-base font-bold tabular-nums text-zinc-900">
+                      <dd className="mt-1 text-lg font-bold tabular-nums tracking-tight text-zinc-900">
                         {stats.customers}
                       </dd>
                     </div>
