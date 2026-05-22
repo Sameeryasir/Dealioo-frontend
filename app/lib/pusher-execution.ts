@@ -12,6 +12,10 @@ export function pusherExecutionChannel(executionId: number): string {
   return `automation-execution-${executionId}`;
 }
 
+export function pusherAutomationChannel(automationId: number): string {
+  return `automation-${automationId}`;
+}
+
 export type ExecutionTerminalPusherPayload = {
   executionId: number;
   automationId: number;

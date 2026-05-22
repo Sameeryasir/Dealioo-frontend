@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAsyncResource } from "@/app/hooks/use-async-resource";
 import { triggerIconClass } from "@/app/lib/badge-variants";
 import { panelRowMotion, panelStagger, standardEase } from "@/app/lib/motion";
@@ -38,6 +38,8 @@ import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import { StatusPill } from "@/app/components/StatusPill";
 import { useAutomationRouteContext } from "@/app/hooks/use-automation-route-context";
+import { ensureAutomationListSubscriptions } from "@/app/lib/pusher-client";
+import { isPusherConfigured } from "@/app/lib/pusher-execution";
 import SearchBar from "@/app/components/SearchBar";
 import { Skeleton } from "@/app/components/skeleton";
 import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
@@ -168,6 +170,28 @@ export function AutomationListPage({
       resetWhenDisabled: [],
     },
   );
+
+  const automationNumericIds = useMemo(
+    () =>
+      (items ?? [])
+        .map((row) => row.numericId)
+        .filter((id): id is number => id != null && id >= 1),
+    [items],
+  );
+
+  const handleListPusherTerminal = useCallback(() => {
+    void loadAutomations();
+  }, [loadAutomations]);
+
+  useEffect(() => {
+    if (!isPusherConfigured() || loading || automationNumericIds.length === 0) {
+      return;
+    }
+    ensureAutomationListSubscriptions(
+      automationNumericIds,
+      handleListPusherTerminal,
+    );
+  }, [automationNumericIds, handleListPusherTerminal, loading]);
 
   const createContextInput = useMemo(
     () => ({ restaurantId, campaignId }),

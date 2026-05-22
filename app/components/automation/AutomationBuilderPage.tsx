@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +9,6 @@ import { AutomationExecutionsPanel } from "@/app/components/automation/Automatio
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
 import { NodeSettingsPanel } from "@/app/components/automation/builder/NodeSettingsPanel";
-import { automationStatusBadgeClass } from "@/app/lib/badge-variants";
 import { automationEase } from "@/app/lib/motion";
 import { AUTOMATION_BLOCKS } from "@/app/components/automation/mock-data";
 import type {
@@ -126,7 +124,6 @@ export function AutomationBuilderPage({
   listHref?: string;
 }) {
   const [automation, setAutomation] = useState<AutomationListItem | null>(null);
-  const title = automation?.name ?? "Automation";
   const [status, setStatus] = useState<AutomationStatus>("draft");
 
   const router = useRouter();
@@ -466,61 +463,36 @@ export function AutomationBuilderPage({
 
   const persistentHeader = (
     <header className="shrink-0 border-b border-zinc-200/80 bg-white px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 shrink">
-          <nav
-            className="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-500"
-            aria-label="Breadcrumb"
-          >
-            <Link
-              href={automationsListHref}
-              className="transition hover:text-zinc-900"
-            >
-              Automations
-            </Link>
-            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate text-sm font-semibold text-zinc-900">{title}</span>
-          </nav>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${automationStatusBadgeClass(status)}`}
-            >
-              {status}
-            </span>
-          </div>
-        </div>
-
-        {tab === "builder" ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setStatus("draft")}
-              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-            >
-              Save draft
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus("published")}
-              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-            >
-              Publish
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus("active")}
-              className="cursor-pointer rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-            >
-              Activate
-            </button>
-          </div>
-        ) : (
-          <div className="hidden min-h-10 lg:block" aria-hidden />
-        )}
-      </div>
-
-      <div className="mt-4 min-w-0 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:-mx-6 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <BuilderTabToggle tab={tab} onChange={setBuilderTab} />
+
+        <div className="flex min-h-10 flex-wrap items-center gap-2">
+          {tab === "builder" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setStatus("draft")}
+                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+              >
+                Save draft
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus("published")}
+                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+              >
+                Publish
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus("active")}
+                className="cursor-pointer rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+              >
+                Activate
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
     </header>
   );

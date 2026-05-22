@@ -5,11 +5,17 @@ import {
   PUSHER_EXECUTION_EVENT,
   type ExecutionTerminalPusherPayload,
   isPusherConfigured,
+  pusherAutomationChannel,
   pusherExecutionChannel,
 } from "@/app/lib/pusher-execution";
 
 let sharedClient: Pusher | null = null;
 const channelRefCounts = new Map<string, number>();
+
+const listSubscribedAutomationIds = new Set<number>();
+let listTerminalHandler:
+  | ((payload: ExecutionTerminalPusherPayload) => void)
+  | null = null;
 
 export function parseExecutionTerminalPayload(
   data: unknown,
@@ -90,8 +96,8 @@ const TERMINAL_EVENTS = [
   PUSHER_EXECUTION_EVENT.FAILED,
 ] as const;
 
-export function subscribeExecutionTerminal(
-  executionId: number,
+function subscribeChannelTerminal(
+  channelName: string,
   onTerminal: (payload: ExecutionTerminalPusherPayload) => void,
 ): () => void {
   const client = getPusherClient();
@@ -99,7 +105,6 @@ export function subscribeExecutionTerminal(
     return () => {};
   }
 
-  const channelName = pusherExecutionChannel(executionId);
   const channel = retainChannel(client, channelName);
 
   const handlers = TERMINAL_EVENTS.map((eventName) => {
@@ -131,4 +136,37 @@ export function subscribeExecutionTerminal(
     channel.unbind("pusher:subscription_succeeded", bindHandlers);
     releaseChannel(client, channelName);
   };
+}
+
+export function subscribeExecutionTerminal(
+  executionId: number,
+  onTerminal: (payload: ExecutionTerminalPusherPayload) => void,
+): () => void {
+  return subscribeChannelTerminal(pusherExecutionChannel(executionId), onTerminal);
+}
+
+/**
+ * Subscribes each automation channel once for the session (list view).
+ * Stays subscribed after leaving the Automations tab.
+ */
+export function ensureAutomationListSubscriptions(
+  automationIds: number[],
+  onTerminal: (payload: ExecutionTerminalPusherPayload) => void,
+): void {
+  listTerminalHandler = onTerminal;
+
+  if (!getPusherClient()) {
+    return;
+  }
+
+  const unique = [...new Set(automationIds)].filter((id) => id >= 1);
+  for (const automationId of unique) {
+    if (listSubscribedAutomationIds.has(automationId)) {
+      continue;
+    }
+    listSubscribedAutomationIds.add(automationId);
+    subscribeChannelTerminal(pusherAutomationChannel(automationId), (payload) => {
+      listTerminalHandler?.(payload);
+    });
+  }
 }
