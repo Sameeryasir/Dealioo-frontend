@@ -308,21 +308,21 @@ export function BuilderCanvas({
     );
 
   return (
-    <motion.div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-100/80">
+    <motion.div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f4f5]">
       <motion.div
-        className="pointer-events-none absolute inset-0 opacity-[0.55]"
+        className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "radial-gradient(circle, rgb(161 161 170 / 0.45) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+            "radial-gradient(circle, rgb(212 212 216 / 0.55) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
         }}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.55 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
       />
 
       <motion.div
-        className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-xl border border-zinc-200/90 bg-white/90 p-1 shadow-lg backdrop-blur-md"
+        className="absolute right-4 top-4 z-20 flex items-center gap-0.5 rounded-xl border border-zinc-200/80 bg-white/95 p-1 shadow-md ring-1 ring-zinc-950/[0.03]"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, ease: automationEase }}
@@ -381,10 +381,10 @@ export function BuilderCanvas({
             <FlowLoadingPlaceholder />
           ) : nodes.length === 0 ? (
             <motion.div
-              className={`max-w-sm rounded-2xl border-2 border-dashed px-6 py-16 text-center transition-colors ${
+              className={`max-w-sm rounded-2xl border-2 border-dashed px-6 py-14 text-center shadow-sm transition-colors ${
                 canvasDragOver
-                  ? "border-violet-400 bg-violet-50/80"
-                  : "border-zinc-300 bg-white/50"
+                  ? "border-violet-400/90 bg-violet-50/90 shadow-violet-100/50"
+                  : "border-zinc-300/90 bg-white/70"
               }`}
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}

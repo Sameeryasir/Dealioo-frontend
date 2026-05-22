@@ -3,7 +3,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SettingsSelectDropdown } from "@/app/components/automation/builder/SettingsSelectDropdown";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
+import {
+  blockSectionLabel,
+  nodeToneClass,
+} from "@/app/components/automation/automation-ui";
 import { automationEase } from "@/app/lib/motion";
 import { primaryButtonMdClass } from "@/app/lib/panel-styles";
 import type { WorkflowNode } from "@/app/components/automation/types";
@@ -212,16 +217,17 @@ export function NodeSettingsPanel({
   deleting?: boolean;
 }) {
   const block = node ? getBlockByKind(node.kind) : null;
+  const tone = block ? nodeToneClass(block.tone) : null;
   const Icon = block?.icon;
 
   return (
-    <aside className="flex h-full w-[300px] shrink-0 flex-col border-l border-zinc-200/90 bg-white/85 backdrop-blur-xl lg:w-[320px]">
-      <motion.div className="border-b border-zinc-100 px-4 py-4">
+    <aside className="flex h-full w-[300px] shrink-0 flex-col border-l border-zinc-200/80 bg-white shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] lg:w-[320px]">
+      <motion.div className="border-b border-zinc-100/90 bg-zinc-50/40 px-4 py-4">
         <h2 className="text-sm font-bold tracking-tight text-zinc-900">
           Settings
         </h2>
-        <p className="mt-0.5 text-xs text-zinc-500">
-          {node ? "Configure the selected block." : "Select a node on the canvas."}
+        <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">
+          {node ? "Configure the selected block." : "Select a step on the canvas."}
         </p>
       </motion.div>
 
@@ -251,6 +257,7 @@ export function NodeSettingsPanel({
             <NodeSettingsForm
               node={node}
               blockSection={block.section}
+              tone={tone}
               icon={Icon}
               onSave={onSave}
               onDelete={onDelete}
@@ -267,6 +274,7 @@ export function NodeSettingsPanel({
 function NodeSettingsForm({
   node,
   blockSection,
+  tone,
   icon: Icon,
   onSave,
   onDelete,
@@ -275,6 +283,7 @@ function NodeSettingsForm({
 }: {
   node: WorkflowNode;
   blockSection: string;
+  tone: ReturnType<typeof nodeToneClass> | null;
   icon?: LucideIcon;
   onSave?: (config: Record<string, unknown>) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
@@ -372,7 +381,7 @@ function NodeSettingsForm({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: 0.25, ease: automationEase }}
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4"
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={(e) => {
         e.preventDefault();
         if (!onSave) return;
@@ -395,20 +404,25 @@ function NodeSettingsForm({
         );
       }}
     >
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <motion.div
-        className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3 py-2.5"
+        className={`mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5 ${tone?.shell ?? "border-zinc-200/90 bg-zinc-50/80"}`}
         layout
       >
-        {Icon ? (
-          <span className="flex size-9 items-center justify-center rounded-lg bg-zinc-900 text-white">
+        {Icon && tone ? (
+          <span
+            className={`flex size-9 shrink-0 items-center justify-center rounded-lg shadow-sm ${tone.icon}`}
+          >
             <Icon className="size-4" strokeWidth={2} aria-hidden />
           </span>
         ) : null}
         <motion.div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {blockSection}
-          </p>
-          <p className="truncate text-sm font-bold text-zinc-900">{node.label}</p>
+          <span
+            className={`inline-flex rounded-md px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide ${tone?.badge ?? "bg-zinc-100 text-zinc-600"}`}
+          >
+            {blockSectionLabel(blockSection)}
+          </span>
+          <p className="mt-1 truncate text-sm font-bold text-zinc-900">{node.label}</p>
         </motion.div>
       </motion.div>
 
@@ -461,34 +475,34 @@ function NodeSettingsForm({
         />
       )}
       {!editable && (
-        <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-4 text-xs text-zinc-500">
+        <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-4 text-xs leading-relaxed text-zinc-500">
           No additional settings for this block.
         </p>
       )}
+      </div>
 
-      {editable && onSave ? (
-        <div className="mt-4">
-          <button
-            type="submit"
-            disabled={saving || deleting}
-            className={`w-full ${primaryButtonMdClass}`}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-      ) : null}
-
-      {onDelete ? (
-        <div className="mt-4 border-t border-zinc-100 pt-4">
-          <button
-            type="button"
-            disabled={deleting || saving}
-            onClick={() => void onDelete()}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
-          >
-            <Trash2 className="size-4" aria-hidden />
-            {deleting ? "Removing…" : "Delete step"}
-          </button>
+      {(editable && onSave) || onDelete ? (
+        <div className="shrink-0 border-t border-zinc-100/90 bg-white/95 px-4 pt-4 pb-5 backdrop-blur-sm">
+          {editable && onSave ? (
+            <button
+              type="submit"
+              disabled={saving || deleting}
+              className={`mb-4 w-full ${primaryButtonMdClass}`}
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          ) : null}
+          {onDelete ? (
+            <button
+              type="button"
+              disabled={deleting || saving}
+              onClick={() => void onDelete()}
+              className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+            >
+              <Trash2 className="size-4" aria-hidden />
+              {deleting ? "Removing…" : "Delete step"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </motion.form>
@@ -567,17 +581,12 @@ function CronSettings({
       {frequency === "weekly" ? (
         <>
           {fieldLabel("Day of week")}
-          <select
+          <SettingsSelectDropdown
             value={dayOfWeek}
-            onChange={(e) => onDayOfWeekChange(e.target.value as CronDayOfWeek)}
-            className={inputClass()}
-          >
-            {CRON_DAYS.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
+            options={CRON_DAYS.map((d) => ({ value: d.id, label: d.label }))}
+            onChange={(v) => onDayOfWeekChange(v as CronDayOfWeek)}
+            ariaLabel="Day of week"
+          />
         </>
       ) : null}
 
@@ -700,17 +709,12 @@ function EmailSettings({
   return (
     <motion.div className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       {fieldLabel("Template")}
-      <select
+      <SettingsSelectDropdown
         value={template}
-        onChange={(e) => onTemplateChange(e.target.value)}
-        className={inputClass()}
-      >
-        {EMAIL_TEMPLATES.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
+        options={EMAIL_TEMPLATES.map((t) => ({ value: t, label: t }))}
+        onChange={onTemplateChange}
+        ariaLabel="Email template"
+      />
       {fieldLabel("Subject")}
       <input
         type="text"
@@ -736,17 +740,12 @@ function ConditionSettings({
   return (
     <motion.div className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       {fieldLabel("Condition type")}
-      <select
+      <SettingsSelectDropdown
         value={conditionType}
-        onChange={(e) => onConditionTypeChange(e.target.value)}
-        className={inputClass()}
-      >
-        {CONDITION_TYPES.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
+        options={CONDITION_TYPES.map((t) => ({ value: t, label: t }))}
+        onChange={onConditionTypeChange}
+        ariaLabel="Condition type"
+      />
       {fieldLabel("Value")}
       <input
         type="text"
@@ -788,14 +787,15 @@ function WhatsappSettings({
   return (
     <motion.div className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       {fieldLabel("Template")}
-      <select
+      <SettingsSelectDropdown
         value={template}
-        onChange={(e) => onTemplateChange(e.target.value)}
-        className={inputClass()}
-      >
-        <option value="order_reminder">Order reminder</option>
-        <option value="welcome">Welcome message</option>
-      </select>
+        options={[
+          { value: "order_reminder", label: "Order reminder" },
+          { value: "welcome", label: "Welcome message" },
+        ]}
+        onChange={onTemplateChange}
+        ariaLabel="WhatsApp template"
+      />
     </motion.div>
   );
 }

@@ -29,10 +29,10 @@ export function BlockSidebar({
   }, [query]);
 
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-zinc-200/90 bg-white/80 backdrop-blur-xl lg:w-[300px]">
-      <div className="border-b border-zinc-100 px-4 py-4">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-zinc-200/80 bg-white shadow-[inset_-1px_0_0_rgba(0,0,0,0.02)] lg:w-[300px]">
+      <div className="border-b border-zinc-100/90 bg-zinc-50/40 px-4 py-4">
         <h2 className="text-sm font-bold tracking-tight text-zinc-900">Blocks</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">
           Drag onto the canvas or click to add.
         </p>
         <div className="relative mt-3">
@@ -44,7 +44,7 @@ export function BlockSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search block…"
-            className="h-10 w-full rounded-xl border border-zinc-200/90 bg-white py-2 pl-9 pr-3 text-sm outline-none placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
+            className="h-9 w-full rounded-lg border border-zinc-200/90 bg-white py-2 pl-9 pr-3 text-sm shadow-sm outline-none placeholder:text-zinc-400 focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/8"
           />
         </div>
       </div>
@@ -54,9 +54,11 @@ export function BlockSidebar({
           const blocks = filtered.filter((b) => b.section === section.id);
           if (blocks.length === 0) return null;
           return (
-            <div key={section.id} className="mb-5">
-              <p className="mb-2 px-1 text-[0.65rem] font-bold uppercase tracking-wide text-zinc-500">
+            <div key={section.id} className="mb-4 last:mb-2">
+              <p className="mb-2 flex items-center gap-2 px-1 text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                <span className="h-px min-w-[0.5rem] flex-1 bg-zinc-200/90" aria-hidden />
                 {section.label}
+                <span className="h-px min-w-[0.5rem] flex-1 bg-zinc-200/90" aria-hidden />
               </p>
               <div className="space-y-2">
                 {blocks.map((block) => {
@@ -80,7 +82,7 @@ export function BlockSidebar({
                         if (didDragRef.current) return;
                         onAddBlock(block.id);
                       }}
-                      className={`flex w-full cursor-grab items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left shadow-sm transition hover:translate-x-0.5 hover:scale-[1.02] active:scale-[0.98] active:cursor-grabbing ${tone.shell}`}
+                      className={`flex w-full cursor-grab items-center gap-2.5 rounded-xl border px-3 py-2 text-left shadow-sm transition hover:-translate-y-px hover:shadow-md active:scale-[0.99] active:cursor-grabbing ${tone.shell}`}
                     >
                       <span
                         className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tone.icon}`}

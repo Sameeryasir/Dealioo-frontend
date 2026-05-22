@@ -416,7 +416,7 @@ export function AutomationBuilderPage({
   );
 
   const persistentHeader = (
-    <header className="shrink-0 border-b border-zinc-200/90 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
+    <header className="shrink-0 border-b border-zinc-200/80 bg-white px-4 py-3 sm:px-6">
       <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 shrink">
           <nav
@@ -430,7 +430,7 @@ export function AutomationBuilderPage({
               Automations
             </Link>
             <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate font-semibold text-zinc-900">{title}</span>
+            <span className="truncate text-sm font-semibold text-zinc-900">{title}</span>
           </nav>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span
@@ -471,16 +471,16 @@ export function AutomationBuilderPage({
       </div>
 
       <div className="mt-4 min-w-0 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:-mx-6 sm:px-6">
-        <div className="flex w-max min-w-full gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/80 p-1 sm:w-auto">
+        <div className="flex w-max min-w-full gap-0.5 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-0.5 sm:w-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setBuilderTab(t.id)}
-              className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`shrink-0 cursor-pointer rounded-md px-4 py-1.5 text-sm font-semibold transition ${
                 tab === t.id
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
+                  ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/60"
+                  : "text-zinc-600 hover:bg-white/50 hover:text-zinc-900"
               }`}
             >
               {t.label}
@@ -537,29 +537,29 @@ export function AutomationBuilderPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, ease: automationEase }}
               >
-                <div className="pointer-events-auto rounded-2xl border border-zinc-200/90 bg-white/90 p-4 shadow-xl backdrop-blur-md">
-                  <dl className="grid gap-3 text-xs sm:grid-cols-3 sm:gap-6">
-                    <div>
-                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
-                        Total nodes
+                <div className="pointer-events-auto rounded-xl border border-zinc-200/80 bg-white/95 px-4 py-3 shadow-lg ring-1 ring-zinc-950/[0.03] backdrop-blur-sm">
+                  <dl className="flex divide-x divide-zinc-200/80">
+                    <div className="min-w-[4.5rem] pr-4">
+                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                        Steps
                       </dt>
-                      <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
+                      <dd className="mt-0.5 text-base font-bold tabular-nums text-zinc-900">
                         {stats.nodeCount}
                       </dd>
                     </div>
-                    <div>
-                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
+                    <div className="min-w-[4.5rem] px-4">
+                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
                         Est. time
                       </dt>
-                      <dd className="mt-1 text-lg font-bold text-zinc-900">
+                      <dd className="mt-0.5 text-base font-bold text-zinc-900">
                         {stats.estimated}
                       </dd>
                     </div>
-                    <div>
-                      <dt className="font-semibold uppercase tracking-wide text-zinc-500">
-                        In workflow
+                    <div className="min-w-[4.5rem] pl-4">
+                      <dt className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-400">
+                        In flow
                       </dt>
-                      <dd className="mt-1 text-lg font-bold tabular-nums text-zinc-900">
+                      <dd className="mt-0.5 text-base font-bold tabular-nums text-zinc-900">
                         {stats.customers}
                       </dd>
                     </div>
