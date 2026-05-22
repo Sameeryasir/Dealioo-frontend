@@ -44,7 +44,6 @@ import {
   FORM_DESIGN_OPTIONS,
   FORM_FIELD_OPTIONS,
   HERO_DESIGN_OPTIONS,
-  LAYOUT_OPTIONS,
 } from "@/app/components/crm-template-editor/template-data";
 import {
   IMAGE_SCALE_MAX,
@@ -65,7 +64,6 @@ import type {
 
 type SectionId =
   | "templates"
-  | "layout"
   | "sections"
   | "content"
   | "media"
@@ -348,36 +346,6 @@ export function TemplateEditorSidebar({
                 <LayoutTemplate className="size-3.5" aria-hidden />
                 Browse templates
               </button>
-            </AccordionSection>
-
-            <AccordionSection
-              id="layout"
-              title="Page layout"
-              open={isOpen("layout")}
-              onToggle={toggle}
-            >
-              <p className="mb-2 text-xs text-zinc-500">
-                Control alignment and column width — like Wix page layouts.
-              </p>
-              <div className="grid grid-cols-1 gap-1.5">
-                {LAYOUT_OPTIONS.map((opt) => {
-                  const on = page.layoutType === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => onChange({ layoutType: opt.value })}
-                      className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
-                        on
-                          ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
             </AccordionSection>
 
             <AccordionSection

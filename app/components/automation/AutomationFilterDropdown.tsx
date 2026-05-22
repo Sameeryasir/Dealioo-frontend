@@ -4,21 +4,20 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Filter } from "lucide-react";
 import { createPortal } from "react-dom";
 import { automationEase } from "@/app/lib/motion";
-import type { AutomationFilter } from "@/app/components/automation/types";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
-type FilterOption = { id: AutomationFilter; label: string };
-
-export function AutomationFilterDropdown({
+export function AutomationFilterDropdown<T extends string>({
   value,
   options,
   onChange,
   className = "",
+  ariaLabel = "Filter by status",
 }: {
-  value: AutomationFilter;
-  options: FilterOption[];
-  onChange: (value: AutomationFilter) => void;
+  value: T;
+  options: { id: T; label: string }[];
+  onChange: (value: T) => void;
   className?: string;
+  ariaLabel?: string;
 }) {
   const {
     open,
@@ -93,8 +92,8 @@ export function AutomationFilterDropdown({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label="Filter automations by status"
-        className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-zinc-200/90 bg-white py-2.5 pl-3 pr-3 text-sm font-medium text-zinc-800 shadow-sm outline-none transition hover:border-zinc-300 focus-visible:ring-2 focus-visible:ring-violet-500/25"
+        aria-label={ariaLabel}
+        className="flex h-10 w-full min-w-[8.5rem] cursor-pointer items-center gap-2 rounded-xl border border-zinc-200/90 bg-white py-2 pl-3 pr-2.5 text-sm font-semibold text-zinc-800 shadow-sm outline-none transition hover:border-violet-200 hover:bg-violet-50/30 focus-visible:border-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500/20"
       >
         <Filter className="size-4 shrink-0 text-violet-600" aria-hidden strokeWidth={2.5} />
         <span className="min-w-0 flex-1 truncate text-left">{selected?.label}</span>

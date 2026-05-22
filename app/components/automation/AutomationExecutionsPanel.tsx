@@ -22,6 +22,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { DeleteExecutionDialog } from "@/app/components/automation/DeleteExecutionDialog";
 import { ExecutionLogsDrawer } from "@/app/components/automation/ExecutionLogsDrawer";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
@@ -405,19 +406,16 @@ export function AutomationExecutionsPanel({
           </div>
           <div className="min-w-0 -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:-mx-6 sm:px-6 xl:mx-0 xl:overflow-visible xl:px-0 xl:pb-0">
             <div className="flex w-max flex-nowrap items-center gap-2 xl:w-auto xl:flex-wrap">
-            <select
+            <AutomationFilterDropdown
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as typeof statusFilter)
-              }
-              className="h-10 cursor-pointer rounded-xl border border-zinc-200/90 bg-white px-3 text-sm font-medium text-zinc-800 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25"
-            >
-              {STATUS_FILTERS.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+              options={STATUS_FILTERS}
+              onChange={(next) => {
+                setStatusFilter(next);
+                setPage(1);
+              }}
+              ariaLabel="Filter runs by status"
+              className="w-[9.75rem] shrink-0"
+            />
             <button
               type="button"
               onClick={() => void refetch()}
