@@ -6,6 +6,8 @@ import {
   deleteExecution as deleteExecutionApi,
   getExecutions,
 } from "@/app/services/automation/execution-api";
+import { mapPusherPayloadToExecution } from "@/app/lib/pusher-execution";
+import type { ExecutionTerminalPusherPayload } from "@/app/lib/pusher-execution";
 import {
   EXECUTIONS_PAGE_SIZE,
   type AutomationExecution,
@@ -52,16 +54,48 @@ export function useAutomationExecutions(
     error,
     refetch,
     loadPage,
+    patchData,
+    patchMeta,
   } = usePaginatedAsyncResource<AutomationExecution, ExecutionsPageMeta>(
     enabled && automationId != null,
     fetchPage,
-    [automationId, status],
+    [automationId],
     {
       fallbackError: "Could not load runs.",
     },
   );
 
   const summary = useMemo(() => meta?.summary ?? null, [meta]);
+
+  const applyPusherExecution = useCallback(
+    (payload: ExecutionTerminalPusherPayload) => {
+      if (automationId != null && payload.automationId !== automationId) {
+        return;
+      }
+
+      patchData((prev) => {
+        const index = prev.findIndex((row) => row.id === payload.executionId);
+        const updated = mapPusherPayloadToExecution(
+          payload,
+          index >= 0 ? prev[index] : undefined,
+        );
+
+        if (index >= 0) {
+          return prev.map((row, i) => (i === index ? updated : row));
+        }
+
+        if (page !== 1) {
+          return prev;
+        }
+
+        patchMeta((meta) =>
+          meta ? { ...meta, total: meta.total + 1 } : meta,
+        );
+        return [updated, ...prev].slice(0, EXECUTIONS_PAGE_SIZE);
+      });
+    },
+    [automationId, page, patchData, patchMeta],
+  );
 
   const deleteExecution = useCallback(
     async (executionId: number): Promise<void> => {
@@ -91,6 +125,7 @@ export function useAutomationExecutions(
     refreshing,
     error,
     refetch,
+    applyPusherExecution,
     deleteExecution,
     deletingId,
   };

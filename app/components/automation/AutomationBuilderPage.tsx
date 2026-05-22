@@ -12,7 +12,6 @@ import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas
 import { NodeSettingsPanel } from "@/app/components/automation/builder/NodeSettingsPanel";
 import { automationStatusBadgeClass } from "@/app/lib/badge-variants";
 import { automationEase } from "@/app/lib/motion";
-import { workflowStartsWithCronTrigger } from "@/app/components/automation/automation-ui";
 import { AUTOMATION_BLOCKS } from "@/app/components/automation/mock-data";
 import type {
   AutomationListItem,
@@ -243,11 +242,6 @@ export function AutomationBuilderPage({
       customers: automation?.customersEntered ?? 0,
     }),
     [nodes, automation?.customersEntered],
-  );
-
-  const showRunAutomation = useMemo(
-    () => !workflowStartsWithCronTrigger(nodes),
-    [nodes],
   );
 
   const onAddBlock = useCallback(
@@ -606,7 +600,7 @@ export function AutomationBuilderPage({
           <AutomationExecutionsPanel
             automationId={automationNumericId}
             automationActive={automationActive}
-            showRunButton={showRunAutomation}
+            showRunButton
           />
         </motion.div>
       )}

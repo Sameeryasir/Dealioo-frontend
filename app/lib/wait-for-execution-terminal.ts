@@ -1,16 +1,12 @@
-import { getExecutionStatus } from "@/app/services/automation/execution-api";
+import { subscribeExecutionTerminal } from "@/app/lib/pusher-client";
+import {
+  isPusherConfigured,
+  mapPusherPayloadToStatusDto,
+  type ExecutionTerminalPusherPayload,
+} from "@/app/lib/pusher-execution";
 import type { AutomationExecutionStatusDto } from "@/app/services/automation/types";
 
 export const EXECUTION_COMPLETION_MAX_WAIT_MS = 15 * 60 * 1000;
-const STATUS_POLL_INTERVAL_MS = 2500;
-
-function isTerminalStatus(status: AutomationExecutionStatusDto): boolean {
-  return (
-    status.isTerminal ||
-    status.status === "completed" ||
-    status.status === "failed"
-  );
-}
 
 export async function waitForExecutionTerminal(
   executionId: number,
@@ -18,7 +14,7 @@ export async function waitForExecutionTerminal(
   onUpdate: (status: AutomationExecutionStatusDto) => void,
   options?: { maxWaitMs?: number },
 ): Promise<AutomationExecutionStatusDto> {
-  if (isTerminalStatus(initialStatus)) {
+  if (!isPusherConfigured()) {
     return initialStatus;
   }
 
@@ -31,7 +27,7 @@ export async function waitForExecutionTerminal(
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
-      clearInterval(intervalId);
+      cleanup();
       resolve(status);
     };
 
@@ -39,31 +35,17 @@ export async function waitForExecutionTerminal(
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
-      clearInterval(intervalId);
+      cleanup();
       reject(err);
     };
 
-    const poll = async () => {
-      try {
-        const current = await getExecutionStatus(executionId);
-        onUpdate(current);
-        if (isTerminalStatus(current)) {
-          finish(current);
-        }
-      } catch (error) {
-        fail(
-          error instanceof Error
-            ? error
-            : new Error("Could not load run status."),
-        );
-      }
+    const onPusherTerminal = (payload: ExecutionTerminalPusherPayload) => {
+      const status = mapPusherPayloadToStatusDto(payload, initialStatus);
+      onUpdate(status);
+      finish(status);
     };
 
-    void poll();
-
-    const intervalId = setInterval(() => {
-      void poll();
-    }, STATUS_POLL_INTERVAL_MS);
+    const cleanup = subscribeExecutionTerminal(executionId, onPusherTerminal);
 
     const timeoutId = setTimeout(() => {
       fail(

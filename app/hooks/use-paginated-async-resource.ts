@@ -148,6 +148,14 @@ export function usePaginatedAsyncResource<T, M extends { page: number }>(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- caller supplies deps; fetchPage via ref
   }, [enabled, fallbackError, applyDisabledReset, beginFetch, endFetch, ...deps]);
 
+  const patchData = useCallback((updater: (prev: T[]) => T[]) => {
+    setData((prev) => updater(prev));
+  }, []);
+
+  const patchMeta = useCallback((updater: (prev: M | null) => M | null) => {
+    setMeta((prev) => updater(prev));
+  }, []);
+
   return {
     data,
     meta,
@@ -158,5 +166,7 @@ export function usePaginatedAsyncResource<T, M extends { page: number }>(
     error,
     refetch,
     loadPage,
+    patchData,
+    patchMeta,
   };
 }

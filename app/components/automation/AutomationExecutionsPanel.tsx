@@ -45,6 +45,10 @@ import {
 import { Skeleton } from "@/app/components/skeleton";
 import { useAutomationExecutions } from "@/app/hooks/use-automation-executions";
 import { useStartAutomationRun } from "@/app/hooks/use-start-automation-run";
+import {
+  collectInProgressExecutionIds,
+  useWatchExecutionsTerminal,
+} from "@/app/hooks/use-watch-executions-terminal";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { StatusPill } from "@/app/components/StatusPill";
 import { toastApiError } from "@/app/lib/toast-api-error";
@@ -340,9 +344,24 @@ export function AutomationExecutionsPanel({
     refreshing,
     error,
     refetch,
+    applyPusherExecution,
     deleteExecution,
     deletingId,
   } = useAutomationExecutions(automationId, apiStatus);
+
+  const watchExecutionIds = useMemo(() => {
+    const extra: number[] = [];
+    if (activeRun?.executionId && activeRun.isTerminal !== true) {
+      extra.push(activeRun.executionId);
+    }
+    return collectInProgressExecutionIds(executions, extra);
+  }, [executions, activeRun]);
+
+  useWatchExecutionsTerminal({
+    automationId,
+    executionIds: watchExecutionIds,
+    onTerminal: applyPusherExecution,
+  });
 
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [logsDrawer, setLogsDrawer] = useState<{
@@ -416,16 +435,16 @@ export function AutomationExecutionsPanel({
             <AutomationFilterDropdown
               value={statusFilter}
               options={STATUS_FILTERS}
-              onChange={(next) => {
-                setStatusFilter(next);
-                setPage(1);
-              }}
+              onChange={(next) => setStatusFilter(next)}
               ariaLabel="Filter runs by status"
               className="w-[9.75rem] shrink-0"
             />
             <button
               type="button"
-              onClick={() => void refetch()}
+              onClick={() => {
+                if (page === 1) void refetch();
+                else setPage(1);
+              }}
               disabled={loading || busy}
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50"
             >
@@ -441,13 +460,7 @@ export function AutomationExecutionsPanel({
                 disabled={automationActive === false}
                 onClick={() =>
                   void run({
-                    onStarted: () => {
-                      if (page !== 1) {
-                        setPage(1);
-                      }
-                    },
                     onFinished: (status) => {
-                      void refetch();
                       onExecutionStarted?.(status.executionId);
                     },
                   })
