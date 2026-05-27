@@ -11,8 +11,7 @@ import {
   getFunnelCampaignPrice,
   setFunnelCampaignPrice,
 } from "@/app/lib/funnel-campaign-price-storage";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { fetchCampaignsByRestaurant } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
 
 export function useCampaignPricing(
   campaignId: number | null | undefined,
@@ -21,6 +20,10 @@ export function useCampaignPricing(
 ): CampaignPricing {
   const searchParams = useSearchParams();
   const [loaded, setLoaded] = useState<CampaignPricing | null>(null);
+
+  const { data: campaigns } = useCampaignsByRestaurantQuery(
+    override ? null : restaurantId,
+  );
 
   const fromUrl = useMemo(
     () => parseCampaignPrice(searchParams.get("price")),
@@ -44,31 +47,17 @@ export function useCampaignPricing(
 
     if (campaignId == null || restaurantId == null) return;
 
-    const token = getSetupAccessToken().trim();
-    if (!token) return;
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    const subtotal = parseCampaignPrice(campaign?.price);
+    if (subtotal == null) return;
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const list = await fetchCampaignsByRestaurant(token, restaurantId);
-        const campaign = list.find((c) => c.id === campaignId);
-        const subtotal = parseCampaignPrice(campaign?.price);
-        if (cancelled || subtotal == null) return;
-        setFunnelCampaignPrice(subtotal);
-        setLoaded({
-          subtotal,
-          fees: 0,
-          offer: campaign?.offer?.trim() || null,
-        });
-      } catch {
-        void 0;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignId, restaurantId, fromUrl, override]);
+    setFunnelCampaignPrice(subtotal);
+    setLoaded({
+      subtotal,
+      fees: 0,
+      offer: campaign?.offer?.trim() || null,
+    });
+  }, [campaignId, restaurantId, fromUrl, override, campaigns]);
 
   if (override) return override;
 

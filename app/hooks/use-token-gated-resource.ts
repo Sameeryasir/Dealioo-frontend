@@ -1,63 +1,50 @@
 "use client";
 
-import { useCallback } from "react";
-import { useAsyncResource } from "@/app/hooks/use-async-resource";
+import { useQuery } from "@tanstack/react-query";
+import { hasAuthSession } from "@/app/lib/auth-session";
+import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { isPositiveInt } from "@/app/lib/numbers";
 
 export function useTokenGatedResource<T>({
   resourceId,
-  token,
-  fetch,
+  queryKey,
+  queryFn,
   noTokenError,
-  invalidIdError = "Invalid resource.",
   fallbackError,
-  minLoadingMs,
   resetWhenDisabled,
-  initialLoading,
 }: {
   resourceId: number | null | undefined;
-  token: string;
-  fetch: (authToken: string, id: number) => Promise<T>;
+  queryKey: readonly unknown[];
+  queryFn: (id: number) => Promise<T>;
   noTokenError: string;
-  invalidIdError?: string;
   fallbackError: string;
-  minLoadingMs?: boolean;
   resetWhenDisabled?: T;
-  initialLoading?: boolean;
 }) {
-  const enabled = isPositiveInt(resourceId);
-  const hasToken = Boolean(token.trim());
+  const enabled = isPositiveInt(resourceId) && hasAuthSession();
 
-  const fetcher = useCallback(async () => {
-    if (!isPositiveInt(resourceId)) {
-      throw new Error(invalidIdError);
-    }
-    if (!token.trim()) {
-      throw new Error(noTokenError);
-    }
-    return fetch(token, resourceId);
-  }, [resourceId, token, fetch, invalidIdError, noTokenError]);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => queryFn(resourceId!),
+    enabled,
+  });
 
-  const result = useAsyncResource<T>(
-    enabled && hasToken,
-    fetcher,
-    [resourceId, token],
-    {
-      minLoadingMs,
-      fallbackError,
-      resetWhenDisabled,
-      initialLoading,
-    },
-  );
-
-  if (enabled && !hasToken) {
+  if (isPositiveInt(resourceId) && !hasAuthSession()) {
     return {
-      ...result,
       data: resetWhenDisabled ?? null,
       isLoading: false,
+      isFetching: false,
       error: noTokenError,
+      refetch: query.refetch,
     };
   }
 
-  return result;
+  return {
+    data: query.data ?? resetWhenDisabled ?? null,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error
+      ? getApiErrorMessage(query.error, fallbackError)
+      : null,
+    refetch: query.refetch,
+  };
 }

@@ -1,4 +1,5 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type CreateCampaignPayload = {
@@ -28,10 +29,9 @@ export function extractCampaignIdFromCreateResponse(
 }
 
 export async function createCampaign(
-  accessToken: string,
   payload: CreateCampaignPayload,
 ): Promise<unknown> {
-  if (!accessToken.trim()) {
+  if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
   if (!Number.isFinite(payload.restaurantId) || payload.restaurantId < 1) {

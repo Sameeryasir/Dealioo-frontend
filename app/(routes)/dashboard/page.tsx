@@ -8,15 +8,11 @@ import {
   RestaurantCardSkeleton,
   SkeletonGrid,
 } from "@/app/components/skeleton";
-import { useAsyncResource } from "@/app/hooks/use-async-resource";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import {
-  fetchMyRestaurants,
-  type AdminRestaurant,
-} from "@/app/services/restaurant/get-my-restaurant";
+import { useMyRestaurantsQuery } from "@/app/hooks/use-my-restaurants-query";
 import { Plus, Store } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { AdminRestaurant } from "@/app/services/restaurant/get-my-restaurant";
 
 function restaurantMatchesQuery(r: AdminRestaurant, q: string): boolean {
   const needle = q.trim().toLowerCase();
@@ -38,44 +34,20 @@ function restaurantMatchesQuery(r: AdminRestaurant, q: string): boolean {
 }
 
 export default function DashboardPage() {
-  const [tokenReady, setTokenReady] = useState(false);
-  const [accessToken, setAccessToken] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setAccessToken(getSetupAccessToken());
-      setTokenReady(true);
-    });
-  }, []);
-
-  const fetchRestaurants = useCallback(async () => {
-    if (!accessToken) return [];
-    return fetchMyRestaurants(accessToken);
-  }, [accessToken]);
-
   const {
     data: restaurants,
     isLoading: loading,
     error: errorMessage,
     refetch: loadRestaurants,
-  } = useAsyncResource<AdminRestaurant[]>(
-    tokenReady && Boolean(accessToken),
-    fetchRestaurants,
-    [accessToken],
-    {
-      fallbackError: "Could not load restaurants.",
-      resetWhenDisabled: [],
-    },
-  );
+  } = useMyRestaurantsQuery();
 
   const filteredRestaurants = useMemo(() => {
-    if (!restaurants) return [];
     return restaurants.filter((r) => restaurantMatchesQuery(r, searchQuery));
   }, [restaurants, searchQuery]);
 
-  const showSkeleton = !tokenReady || loading;
-  const list = restaurants ?? [];
+  const showSkeleton = loading;
+  const list = restaurants;
 
   const showCreateInHeader = !showSkeleton && !errorMessage;
   const showDashboardSearch =
@@ -84,28 +56,44 @@ export default function DashboardPage() {
   return (
     <div className="w-full px-4 py-8 sm:px-8 lg:px-10">
       <header className="mx-auto mb-8 w-full max-w-[min(100%,77.62rem)] text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
-          Your Restaurants
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          Dashboard
+        </p>
+        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl sm:leading-tight">
+          Your Organizations
         </h1>
+
         {showCreateInHeader ? (
-          <div className="mx-auto mt-5 flex w-full justify-center sm:mt-6">
-            <div className="flex w-full max-w-xl min-w-0 flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3">
+          <div className="mt-6 flex justify-center px-2">
+            <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3 shadow-[0_4px_24px_rgba(15,23,42,0.06)] ring-1 ring-zinc-950/[0.04] sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 sm:p-3.5">
+              <span
+                className="mx-auto flex size-11 shrink-0 items-center justify-center rounded-xl bg-yellow-400 text-yellow-950 shadow-sm sm:mx-0"
+                aria-hidden
+              >
+                <Store className="size-5" strokeWidth={2.25} />
+              </span>
+
               {showDashboardSearch ? (
                 <SearchBar
                   id="dashboard-search"
-                  className="min-w-0 w-full sm:w-72 md:w-80"
+                  variant="toolbar"
+                  className="w-full sm:w-56 md:w-64"
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  placeholder="Search…"
+                  placeholder="Search restaurants…"
                 />
-              ) : null}
+              ) : (
+                <p className="px-1 text-sm text-zinc-500 sm:text-left">
+                  Create your first restaurant to get started.
+                </p>
+              )}
+
               <Link
                 href="/restaurant/register"
-                aria-label="Create restaurant"
-                title="Create restaurant"
-                className="mx-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white shadow-sm transition-colors hover:bg-black"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white shadow-md shadow-zinc-900/15 transition hover:bg-zinc-800 hover:shadow-lg"
               >
-                <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+                Add restaurant
               </Link>
             </div>
           </div>
@@ -115,7 +103,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-[min(100%,77.62rem)]">
         {showSkeleton ? (
           <SkeletonGrid
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
             Card={RestaurantCardSkeleton}
           />
         ) : errorMessage ? (
@@ -134,14 +122,14 @@ export default function DashboardPage() {
               No restaurant yet
             </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
-              Use the <span className="font-medium text-zinc-700">plus (+) button</span>{" "}
-              above to add your first one.
+              Tap <span className="font-medium text-zinc-700">Add restaurant</span> above to
+              create your first one.
             </p>
           </div>
         ) : filteredRestaurants.length === 0 ? (
           <SearchNoMatchFound />
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filteredRestaurants.map((r, index) => (
               <RestaurantDashboardCard
                 key={r.id ?? `restaurant-${index}`}

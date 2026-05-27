@@ -2,11 +2,11 @@
 
 import { useCallback } from "react";
 import { useTokenGatedResource } from "@/app/hooks/use-token-gated-resource";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import {
   getFunnelPayments,
   type FunnelPayment,
 } from "@/app/services/payment/get-funnel-payments";
+import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 
 function sortPayments(list: FunnelPayment[]): FunnelPayment[] {
   return [...list].sort((a, b) => {
@@ -17,20 +17,20 @@ function sortPayments(list: FunnelPayment[]): FunnelPayment[] {
 }
 
 export function useFunnelPayments(funnelId: number | null | undefined) {
-  const token = getSetupAccessToken().trim();
-
-  const fetch = useCallback(async (authToken: string, id: number) => {
-    const list = await getFunnelPayments(authToken, id);
+  const fetch = useCallback(async (id: number) => {
+    const list = await getFunnelPayments(id);
     return sortPayments(list);
   }, []);
 
   const { data, isLoading, error } = useTokenGatedResource<FunnelPayment[]>({
     resourceId: funnelId,
-    token,
-    fetch,
+    queryKey:
+      funnelId != null
+        ? funnelQueryKeys.paymentsByFunnel(funnelId)
+        : funnelQueryKeys.payments(),
+    queryFn: fetch,
     noTokenError: "Sign in to view orders.",
     fallbackError: "Could not load payments.",
-    initialLoading: funnelId != null && funnelId >= 1,
     resetWhenDisabled: [],
   });
 

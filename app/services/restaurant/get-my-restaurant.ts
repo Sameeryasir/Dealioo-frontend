@@ -1,5 +1,6 @@
 import axios from "axios";
 import { parseApiMessage } from "@/app/lib/api";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
 
 export type AdminRestaurant = {
@@ -188,10 +189,8 @@ function coerceRestaurant(value: unknown): AdminRestaurant | null {
   };
 }
 
-export async function fetchMyRestaurants(
-  accessToken: string,
-): Promise<AdminRestaurant[]> {
-  if (!accessToken.trim()) {
+export async function fetchMyRestaurants(): Promise<AdminRestaurant[]> {
+  if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
 

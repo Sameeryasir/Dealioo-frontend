@@ -2,6 +2,7 @@ import {
   getApiBaseUrl,
   parseApiErrorMessage,
 } from "@/app/lib/api";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 
@@ -16,10 +17,9 @@ export type FunnelEventStats = {
 };
 
 export async function getFunnelEventStats(
-  accessToken: string,
   funnelId: number,
 ): Promise<FunnelEventStats> {
-  if (!accessToken.trim()) {
+  if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
   if (!isPositiveInt(funnelId)) {

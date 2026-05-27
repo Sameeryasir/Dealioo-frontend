@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
 import {
   CampaignFunnelCardSkeleton,
@@ -11,21 +12,18 @@ import {
 import CreateCampaigns from "@/app/components/CreateCampaigns";
 import SearchBar from "@/app/components/SearchBar";
 import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
-import { Plus } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
-import { useAsyncResource } from "@/app/hooks/use-async-resource";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
+import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import {
   createCampaign,
   extractCampaignIdFromCreateResponse,
 } from "@/app/services/funnel/create-campaign";
-import {
-  fetchCampaignsByRestaurant,
-  type Funnel,
-} from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
 
 function funnelMatchesQuery(f: Funnel, q: string): boolean {
   const needle = q.trim().toLowerCase();
@@ -48,6 +46,7 @@ function funnelMatchesQuery(f: Funnel, q: string): boolean {
 
 export default function RestaurantCampaignsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useParams();
   const skipPostCreateNavRef = useRef(false);
   const restaurantId = useMemo(
@@ -66,33 +65,12 @@ export default function RestaurantCampaignsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchFunnels = useCallback(async () => {
-    if (restaurantId == null) return [];
-    const token = getSetupAccessToken();
-    if (!token.trim()) {
-      throw new Error("Sign in to view campaigns.");
-    }
-    const data = await fetchCampaignsByRestaurant(token, restaurantId);
-    return Array.isArray(data) ? data : [];
-  }, [restaurantId]);
-
   const {
-    data: funnels,
+    data: funnelList,
     isLoading: funnelsLoading,
     error: funnelsError,
     refetch: loadFunnels,
-    setData: setFunnels,
-  } = useAsyncResource<Funnel[]>(
-    restaurantId != null,
-    fetchFunnels,
-    [restaurantId],
-    {
-      fallbackError: "Could not load campaigns.",
-      resetWhenDisabled: [],
-    },
-  );
-
-  const funnelList = funnels ?? [];
+  } = useCampaignsByRestaurantQuery(restaurantId);
 
   const filteredFunnels = useMemo(() => {
     return funnelList.filter((f) => funnelMatchesQuery(f, searchQuery));
@@ -138,14 +116,28 @@ export default function RestaurantCampaignsPage() {
     >
       {!showCreateCampaign && !funnelsLoading && !funnelsError && funnelList.length > 0 ? (
         <header className="mx-auto mb-8 w-full max-w-[min(100%,77.62rem)] text-center">
-          <div className="mx-auto flex w-full justify-center sm:mt-1">
-            <div className="flex w-full max-w-xl min-w-0 flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+            Campaigns
+          </p>
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl sm:leading-tight">
+            Your Campaigns
+          </h1>
+
+          <div className="mt-6 flex justify-center px-2">
+            <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3 shadow-[0_4px_24px_rgba(15,23,42,0.06)] ring-1 ring-zinc-950/[0.04] sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 sm:p-3.5">
+              <span
+                className="mx-auto flex size-11 shrink-0 items-center justify-center rounded-xl bg-violet-500 text-white shadow-sm sm:mx-0"
+                aria-hidden
+              >
+                <Megaphone className="size-5" strokeWidth={2.25} />
+              </span>
               <SearchBar
                 id="campaigns-search"
-                className="min-w-0 w-full sm:w-72 md:w-80"
+                variant="toolbar"
+                className="w-full sm:w-56 md:w-64"
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Search…"
+                placeholder="Search campaigns…"
               />
               <button
                 type="button"
@@ -153,11 +145,10 @@ export default function RestaurantCampaignsPage() {
                   setOpen(true);
                   setShowCreateCampaign(true);
                 }}
-                aria-label="Create campaign"
-                title="Create campaign"
-                className="mx-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white shadow-sm transition-colors hover:bg-black"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white shadow-md shadow-zinc-900/15 transition hover:bg-zinc-800 hover:shadow-lg"
               >
-                <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+                Add campaign
               </button>
             </div>
           </div>
@@ -166,7 +157,7 @@ export default function RestaurantCampaignsPage() {
 
       {funnelsLoading ? (
         <SkeletonGrid
-          className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-6 md:grid-cols-3"
+          className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
           Card={CampaignFunnelCardSkeleton}
         />
       ) : funnelsError ? (
@@ -176,12 +167,12 @@ export default function RestaurantCampaignsPage() {
           message={funnelsError}
           onRetry={() => loadFunnels()}
         />
-      ) : (funnels ?? []).length > 0 &&
+      ) : funnelList.length > 0 &&
         filteredFunnels.length === 0 &&
         !showCreateCampaign ? (
         <SearchNoMatchFound className="mx-auto w-full max-w-[min(100%,77.62rem)]" />
       ) : filteredFunnels.length > 0 && !showCreateCampaign ? (
-        <div className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filteredFunnels.map((f) => (
             <CampaignFunnelCard
               key={f.id}
@@ -250,24 +241,22 @@ export default function RestaurantCampaignsPage() {
               setSubmitError(null);
               setSubmitting(true);
               try {
-                const createdBody = await createCampaign(
-                  getSetupAccessToken(),
-                  {
-                    restaurantId,
-                    campaignName: payload.campaignName,
-                    websiteUrl: payload.websiteUrl,
-                    image: payload.offerImage,
-                    offer: payload.offerName,
-                    price: parseOfferPrice(payload.offerPrice),
-                  },
-                );
-                skipPostCreateNavRef.current = true;
-                const next = await fetchCampaignsByRestaurant(
-                  getSetupAccessToken(),
+                const createdBody = await createCampaign({
                   restaurantId,
-                );
-                const list = Array.isArray(next) ? next : [];
-                setFunnels(list);
+                  campaignName: payload.campaignName,
+                  websiteUrl: payload.websiteUrl,
+                  image: payload.offerImage,
+                  offer: payload.offerName,
+                  price: parseOfferPrice(payload.offerPrice),
+                });
+                skipPostCreateNavRef.current = true;
+                await queryClient.invalidateQueries({
+                  queryKey: funnelQueryKeys.campaignsByRestaurant(restaurantId),
+                });
+                const list =
+                  queryClient.getQueryData<Funnel[]>(
+                    funnelQueryKeys.campaignsByRestaurant(restaurantId),
+                  ) ?? [];
                 setShowCreateCampaign(list.length === 0);
                 const fromApi =
                   extractCampaignIdFromCreateResponse(createdBody);

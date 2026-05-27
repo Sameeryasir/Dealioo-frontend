@@ -4,15 +4,12 @@ import { FunnelOrdersPanel } from "@/app/components/campaign/FunnelOrdersPanel";
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
 import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
 import CampaignHeader from "@/app/components/CampaignHeader";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import {
-  fetchCampaignsByRestaurant,
-  type Funnel,
-} from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 
@@ -28,9 +25,15 @@ export default function CampaignWelcomePage() {
     [params.campaignId],
   );
 
-  const [campaign, setCampaign] = useState<Funnel | null | undefined>(
-    undefined,
-  );
+  const { data: campaigns, isLoading: campaignsLoading } =
+    useCampaignsByRestaurantQuery(restaurantId);
+
+  const campaign = useMemo((): Funnel | null | undefined => {
+    if (campaignId == null) return undefined;
+    if (campaignsLoading) return undefined;
+    return campaigns.find((f) => f.id === campaignId) ?? null;
+  }, [campaignId, campaigns, campaignsLoading]);
+
   const [activeTabId, setActiveTabId] = useState("overview");
   const { funnelId, isLoading: isFunnelIdLoading } =
     useCampaignFunnelId(campaignId);
@@ -46,26 +49,6 @@ export default function CampaignWelcomePage() {
     },
     [router, restaurantId, funnelId],
   );
-
-  useEffect(() => {
-    if (restaurantId == null || campaignId == null) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const list = await fetchCampaignsByRestaurant(
-          getSetupAccessToken(),
-          restaurantId,
-        );
-        const found = list.find((f) => f.id === campaignId) ?? null;
-        if (!cancelled) setCampaign(found);
-      } catch {
-        if (!cancelled) setCampaign(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [restaurantId, campaignId]);
 
   if (restaurantId == null || campaignId == null) {
     return <InvalidRouteMessage />;

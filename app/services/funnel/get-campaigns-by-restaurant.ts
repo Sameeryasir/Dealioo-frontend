@@ -1,3 +1,4 @@
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
 
 export type Funnel = {
@@ -28,10 +29,9 @@ function campaignsFromResponseBody(body: unknown): Funnel[] {
 }
 
 export async function fetchCampaignsByRestaurant(
-  accessToken: string,
   restaurantId: number,
 ): Promise<Funnel[]> {
-  if (!accessToken) {
+  if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
 

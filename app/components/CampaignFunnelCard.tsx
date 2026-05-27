@@ -84,48 +84,48 @@ export default function CampaignFunnelCard({ funnel, restaurantId }: Props) {
       aria-label={`Open ${openLabel}`}
       className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm outline-none transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
     >
-    <article className="flex min-h-0 flex-1 flex-col">
-      <div className="relative h-44 w-full shrink-0 bg-zinc-100">
-        {imageSrc && !imageFailed ? (
-          <img
-            src={imageSrc}
-            alt={`Campaign ${funnel.id}`}
-            className="h-full w-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div
-            className="flex h-full w-full items-center justify-center text-zinc-400"
-            aria-hidden
-          >
-            <Megaphone className="h-10 w-10" strokeWidth={1.5} />
-          </div>
-        )}
-        {badgeLabel ? (
-          <span
-            className={
-              isPublished
-                ? "absolute right-2 top-2 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 shadow-sm ring-1 ring-black/5"
-                : "absolute right-2 top-2 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-sm ring-1 ring-black/5"
-            }
-          >
-            {badgeLabel}
-          </span>
-        ) : null}
-      </div>
+      <article className="flex min-h-0 flex-1 flex-col">
+        <div className="relative h-44 w-full shrink-0 bg-zinc-100">
+          {imageSrc && !imageFailed ? (
+            <img
+              src={imageSrc}
+              alt={`Campaign ${funnel.id}`}
+              className="h-full w-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <div
+              className="flex h-full w-full items-center justify-center text-zinc-400"
+              aria-hidden
+            >
+              <Megaphone className="h-10 w-10" strokeWidth={1.5} />
+            </div>
+          )}
+          {badgeLabel ? (
+            <span
+              className={
+                isPublished
+                  ? "absolute right-2 top-2 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 shadow-sm ring-1 ring-black/5"
+                  : "absolute right-2 top-2 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-sm ring-1 ring-black/5"
+              }
+            >
+              {badgeLabel}
+            </span>
+          ) : null}
+        </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4 text-sm text-zinc-700">
-        {priceText ? (
-          <p>
-            <span className="font-medium text-zinc-900">Price:</span>{" "}
-            {priceText}
-          </p>
-        ) : null}
-        {created ? (
-          <p className="text-xs text-zinc-500">Created {created}</p>
-        ) : null}
-      </div>
-    </article>
+        <div className="flex flex-1 flex-col gap-2 p-4 text-sm text-zinc-700">
+          {priceText ? (
+            <p>
+              <span className="font-medium text-zinc-900">Price:</span>{" "}
+              {priceText}
+            </p>
+          ) : null}
+          {created ? (
+            <p className="text-xs text-zinc-500">Created {created}</p>
+          ) : null}
+        </div>
+      </article>
     </Link>
   );
 }
