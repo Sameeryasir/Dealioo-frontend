@@ -52,6 +52,7 @@ export function SignupPagePreview({
   signupSubmitFlow = false,
   signupSubmitting = false,
   onSignupSubmit,
+  onButtonClick,
 }: {
   signupPage: SignUpTemplatePage;
   landingPage: LandingTemplatePage;
@@ -63,6 +64,7 @@ export function SignupPagePreview({
   signupSubmitFlow?: boolean;
   signupSubmitting?: boolean;
   onSignupSubmit?: (e: FormEvent<HTMLFormElement>) => void;
+  onButtonClick?: (elementName: string) => void;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
   const landingStyle = getLandingDesignStyle(landingDesign);
@@ -93,11 +95,19 @@ export function SignupPagePreview({
 
   const back =
     signupBackAsLink != null ? (
-      <Link href={signupBackAsLink} className={secondaryClass}>
+      <Link
+        href={signupBackAsLink}
+        className={secondaryClass}
+        onClick={() => onButtonClick?.(signupPage.navBackLabel)}
+      >
         {signupPage.navBackLabel}
       </Link>
     ) : (
-      <button type="button" className={secondaryClass}>
+      <button
+        type="button"
+        className={secondaryClass}
+        onClick={() => onButtonClick?.(signupPage.navBackLabel)}
+      >
         {signupPage.navBackLabel}
       </button>
     );
@@ -108,15 +118,26 @@ export function SignupPagePreview({
       disabled={signupSubmitting}
       className={primaryClass}
       style={primaryStyle}
+      onClick={() => onButtonClick?.(signupPage.navNextLabel)}
     >
       {signupPage.navNextLabel}
     </button>
   ) : signupNextAsLink != null ? (
-    <Link href={signupNextAsLink} className={primaryClass} style={primaryStyle}>
+    <Link
+      href={signupNextAsLink}
+      className={primaryClass}
+      style={primaryStyle}
+      onClick={() => onButtonClick?.(signupPage.navNextLabel)}
+    >
       {signupPage.navNextLabel}
     </Link>
   ) : (
-    <button type="button" className={primaryClass} style={primaryStyle}>
+    <button
+      type="button"
+      className={primaryClass}
+      style={primaryStyle}
+      onClick={() => onButtonClick?.(signupPage.navNextLabel)}
+    >
       {signupPage.navNextLabel}
     </button>
   );

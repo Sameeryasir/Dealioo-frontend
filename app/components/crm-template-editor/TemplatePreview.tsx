@@ -29,6 +29,7 @@ import {
 } from "@/app/lib/funnel-checkout-storage";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
+import { useFunnelAnalyticsTracking } from "@/app/hooks/use-funnel-analytics-tracking";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 
 function isLandingTemplatePage(page: TemplatePage): page is LandingTemplatePage {
@@ -147,6 +148,10 @@ export function TemplatePreview({
 }) {
   const router = useRouter();
   const [signupSubmitting, setSignupSubmitting] = useState(false);
+  const { trackButtonClick } = useFunnelAnalyticsTracking(
+    trackingFunnelId,
+    page.id,
+  );
 
   const isMobile = true;
   const fromLanding = page.id === "signup";
@@ -278,6 +283,7 @@ export function TemplatePreview({
             signupSubmitFlow={signupSubmitFlow}
             signupSubmitting={signupSubmitting}
             onSignupSubmit={onSignupCustomerSubmit}
+            onButtonClick={trackButtonClick}
           />
         </div>
       </div>
@@ -305,6 +311,7 @@ export function TemplatePreview({
             heroImageScale={heroImageScale}
             landingCtaHref={landingCtaAsLink}
             showTopHero={showTopHero}
+            onButtonClick={trackButtonClick}
           />
         </div>
       </div>
@@ -360,6 +367,7 @@ export function TemplatePreview({
                 <Link
                   href={signupBackAsLink}
                   className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-zinc-50"
+                  onClick={() => trackButtonClick(signup.navBackLabel)}
                 >
                   {signup.navBackLabel}
                 </Link>
@@ -367,6 +375,7 @@ export function TemplatePreview({
                 <button
                   type="button"
                   className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5"
+                  onClick={() => trackButtonClick(signup.navBackLabel)}
                 >
                   {signup.navBackLabel}
                 </button>
@@ -375,6 +384,7 @@ export function TemplatePreview({
                 type="submit"
                 disabled={signupSubmitting}
                 className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => trackButtonClick(signup.navNextLabel)}
               >
                 {signup.navNextLabel}
               </button>
@@ -400,6 +410,7 @@ export function TemplatePreview({
                 <Link
                   href={signupBackAsLink}
                   className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-zinc-50"
+                  onClick={() => trackButtonClick(signup.navBackLabel)}
                 >
                   {signup.navBackLabel}
                 </Link>
@@ -407,6 +418,7 @@ export function TemplatePreview({
                 <button
                   type="button"
                   className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5"
+                  onClick={() => trackButtonClick(signup.navBackLabel)}
                 >
                   {signup.navBackLabel}
                 </button>
@@ -415,6 +427,7 @@ export function TemplatePreview({
                 <Link
                   href={signupNextAsLink}
                   className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800"
+                  onClick={() => trackButtonClick(signup.navNextLabel)}
                 >
                   {signup.navNextLabel}
                 </Link>
@@ -422,6 +435,7 @@ export function TemplatePreview({
                 <button
                   type="button"
                   className="min-w-36 rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
+                  onClick={() => trackButtonClick(signup.navNextLabel)}
                 >
                   {signup.navNextLabel}
                 </button>
@@ -441,6 +455,7 @@ export function TemplatePreview({
               <Link
                 href={landingCtaAsLink}
                 className="flex w-full items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800"
+                onClick={() => trackButtonClick(page.buttonText)}
               >
                 {page.buttonText}
               </Link>
@@ -448,6 +463,7 @@ export function TemplatePreview({
               <button
                 type="button"
                 className="w-full rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
+                onClick={() => trackButtonClick(page.buttonText)}
               >
                 {page.buttonText}
               </button>
@@ -504,6 +520,7 @@ export function TemplatePreview({
                       <Link
                         href={signupBackAsLink}
                         className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={() => trackButtonClick(signup.navBackLabel)}
                       >
                         {signup.navBackLabel}
                       </Link>
@@ -511,6 +528,7 @@ export function TemplatePreview({
                       <button
                         type="button"
                         className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm"
+                        onClick={() => trackButtonClick(signup.navBackLabel)}
                       >
                         {signup.navBackLabel}
                       </button>
@@ -519,6 +537,7 @@ export function TemplatePreview({
                       type="submit"
                       disabled={signupSubmitting}
                       className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => trackButtonClick(signup.navNextLabel)}
                     >
                       {signup.navNextLabel}
                     </button>
@@ -544,6 +563,7 @@ export function TemplatePreview({
                       <Link
                         href={signupBackAsLink}
                         className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={() => trackButtonClick(signup.navBackLabel)}
                       >
                         {signup.navBackLabel}
                       </Link>
@@ -551,6 +571,7 @@ export function TemplatePreview({
                       <button
                         type="button"
                         className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm"
+                        onClick={() => trackButtonClick(signup.navBackLabel)}
                       >
                         {signup.navBackLabel}
                       </button>
@@ -559,6 +580,7 @@ export function TemplatePreview({
                       <Link
                         href={signupNextAsLink}
                         className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                        onClick={() => trackButtonClick(signup.navNextLabel)}
                       >
                         {signup.navNextLabel}
                       </Link>
@@ -566,6 +588,7 @@ export function TemplatePreview({
                       <button
                         type="button"
                         className="min-w-36 rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white"
+                        onClick={() => trackButtonClick(signup.navNextLabel)}
                       >
                         {signup.navNextLabel}
                       </button>
@@ -577,6 +600,7 @@ export function TemplatePreview({
               <Link
                 href={landingCtaAsLink}
                 className="mt-6 flex w-full items-center justify-center rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                onClick={() => trackButtonClick(page.buttonText)}
               >
                 {page.buttonText}
               </Link>
@@ -584,6 +608,7 @@ export function TemplatePreview({
               <button
                 type="button"
                 className="mt-6 w-full rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white"
+                onClick={() => trackButtonClick(page.buttonText)}
               >
                 {page.buttonText}
               </button>

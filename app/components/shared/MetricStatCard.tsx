@@ -85,7 +85,7 @@ export function MetricStatCardAccent({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${s.card} ${
+      className={`relative flex h-full min-h-[5.5rem] flex-col overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${s.card} ${
         highlight ? "ring-2 ring-blue-400/30" : "ring-1 ring-zinc-950/[0.03]"
       }`}
     >

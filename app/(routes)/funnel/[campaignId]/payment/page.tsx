@@ -68,6 +68,7 @@ function FunnelCampaignPaymentPageInner() {
             interactiveForms
             paymentStripeCheckout={paymentStripeCheckout}
             campaignPricing={campaignPricing}
+            trackingFunnelId={funnelId}
           />
         </div>
       </main>

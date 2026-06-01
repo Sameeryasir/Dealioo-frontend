@@ -131,6 +131,7 @@ function LandingCta({
   secondary,
   ctaShadow,
   labelColorStyle,
+  onButtonClick,
 }: {
   label: string;
   href: string | null;
@@ -139,6 +140,7 @@ function LandingCta({
   secondary: string;
   ctaShadow: string;
   labelColorStyle?: CSSProperties;
+  onButtonClick?: (elementName: string) => void;
 }) {
   const className = [
     "group relative mt-8 flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99]",
@@ -168,14 +170,24 @@ function LandingCta({
 
   if (href) {
     return (
-      <Link href={href} className={className} style={style}>
+      <Link
+        href={href}
+        className={className}
+        style={style}
+        onClick={() => onButtonClick?.(label)}
+      >
         {inner}
       </Link>
     );
   }
 
   return (
-    <button type="button" className={className} style={style}>
+    <button
+      type="button"
+      className={className}
+      style={style}
+      onClick={() => onButtonClick?.(label)}
+    >
       {inner}
     </button>
   );
@@ -190,6 +202,7 @@ export function LandingPagePreview({
   heroImageScale,
   landingCtaHref,
   showTopHero,
+  onButtonClick,
 }: {
   page: TemplatePage;
   layoutType: string;
@@ -199,6 +212,7 @@ export function LandingPagePreview({
   heroImageScale: number;
   landingCtaHref: string | null;
   showTopHero: boolean;
+  onButtonClick?: (elementName: string) => void;
 }) {
   const style = getLandingDesignStyle(landingDesign);
   const heroStyle = getHeroDesignStyle(heroDesign);
@@ -280,6 +294,7 @@ export function LandingPagePreview({
         secondary={style.secondary}
         ctaShadow={style.ctaShadow}
         labelColorStyle={buttonTextColorStyle}
+        onButtonClick={onButtonClick}
       />
     ),
     trust: (

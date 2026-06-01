@@ -34,6 +34,7 @@ export function LandingFunnelPreview() {
         page={landing}
         landingPage={landing}
         landingCtaHref={landingCtaHref}
+        trackingFunnelId={funnelId}
       />
     </div>
   );
