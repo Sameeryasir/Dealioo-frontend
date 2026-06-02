@@ -14,6 +14,11 @@ export function hasCronTriggerNode(nodes: WorkflowNode[]): boolean {
   return getCronTriggerIndex(nodes) != null;
 }
 
+/** True when the first step in the flow is a Cron Job trigger (scheduled automation). */
+export function isCronStartingTrigger(nodes: WorkflowNode[]): boolean {
+  return getCronTriggerIndex(nodes) === 0;
+}
+
 export function isWorkflowNodeReorderLocked(
   nodes: WorkflowNode[],
   index: number,

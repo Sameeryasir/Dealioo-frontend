@@ -30,7 +30,9 @@ import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 import { ReportTable } from "@/app/components/shared/ReportTable";
+import { PauseAutomationButton } from "@/app/components/shared/PauseAutomationButton";
 import { RunAutomationButton } from "@/app/components/shared/RunAutomationButton";
+import { useToggleAutomationActive } from "@/app/hooks/use-toggle-automation-active";
 import { executionStatusBadgeClass } from "@/app/lib/badge-variants";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { reportTableShellClass } from "@/app/lib/panel-styles";
@@ -325,11 +327,14 @@ export function AutomationExecutionsPanel({
   automationId,
   automationActive,
   showRunButton = true,
+  showPauseButton = false,
   onExecutionStarted,
 }: {
   automationId: number;
   automationActive?: boolean;
   showRunButton?: boolean;
+  /** Cron-first flows: pause/resume the schedule instead of manual Run. */
+  showPauseButton?: boolean;
   onExecutionStarted?: (id: number) => void;
 }) {
   const [statusFilter, setStatusFilter] = useState<
@@ -339,6 +344,11 @@ export function AutomationExecutionsPanel({
     automationId,
     automationActive,
   );
+  const {
+    busy: pauseBusy,
+    pause,
+    resume,
+  } = useToggleAutomationActive(automationId);
 
   const apiStatus = statusFilter === "all" ? undefined : statusFilter;
 
@@ -472,7 +482,15 @@ export function AutomationExecutionsPanel({
               />
               Refresh
             </button>
-            {showRunButton ? (
+            {showPauseButton ? (
+              <PauseAutomationButton
+                busy={pauseBusy}
+                isActive={automationActive !== false}
+                onClick={() =>
+                  void (automationActive !== false ? pause() : resume())
+                }
+              />
+            ) : showRunButton ? (
               <RunAutomationButton
                 busy={busy}
                 disabled={automationActive === false}

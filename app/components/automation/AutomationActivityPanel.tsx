@@ -2,7 +2,9 @@
 
 import { Workflow } from "lucide-react";
 import { RunProgressBanner } from "@/app/components/automation/RunProgressBanner";
+import { PauseAutomationButton } from "@/app/components/shared/PauseAutomationButton";
 import { RunAutomationButton } from "@/app/components/shared/RunAutomationButton";
+import { useToggleAutomationActive } from "@/app/hooks/use-toggle-automation-active";
 import { panelCardClass } from "@/app/lib/panel-styles";
 import { useStartAutomationRun } from "@/app/hooks/use-start-automation-run";
 
@@ -10,17 +12,24 @@ export function AutomationActivityPanel({
   automationId,
   automationActive,
   showRunButton = true,
+  showPauseButton = false,
   onRunStarted,
 }: {
   automationId: number;
   automationActive?: boolean;
   showRunButton?: boolean;
+  showPauseButton?: boolean;
   onRunStarted?: (executionId: number) => void;
 }) {
   const { busy, activeRun, run } = useStartAutomationRun(
     automationId,
     automationActive,
   );
+  const {
+    busy: pauseBusy,
+    pause,
+    resume,
+  } = useToggleAutomationActive(automationId);
 
   return (
     <div className="min-w-0 bg-zinc-50">
@@ -29,12 +38,22 @@ export function AutomationActivityPanel({
           <div>
             <h2 className="text-lg font-bold text-zinc-900">Activity</h2>
             <p className="text-sm text-zinc-500">
-              {showRunButton
-                ? "Start a run here. Open the Runs tab to see each batch and who was reached."
-                : "This flow starts on a cron schedule. Open the Runs tab to see past runs."}
+              {showPauseButton
+                ? "This flow runs on a schedule. Pause or resume it here; open the Runs tab for history."
+                : showRunButton
+                  ? "Start a run here. Open the Runs tab to see each batch and who was reached."
+                  : "Open the Runs tab to see past runs."}
             </p>
           </div>
-          {showRunButton ? (
+          {showPauseButton ? (
+            <PauseAutomationButton
+              busy={pauseBusy}
+              isActive={automationActive !== false}
+              onClick={() =>
+                void (automationActive !== false ? pause() : resume())
+              }
+            />
+          ) : showRunButton ? (
             <RunAutomationButton
               busy={busy}
               disabled={automationActive === false}

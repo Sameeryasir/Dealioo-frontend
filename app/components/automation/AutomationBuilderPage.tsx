@@ -31,6 +31,7 @@ import { toastApiError } from "@/app/lib/toast-api-error";
 import {
   getWorkflowNodeInsertIndex,
   hasCronTriggerNode,
+  isCronStartingTrigger,
   insertWorkflowNode,
   reorderWorkflowNodes,
 } from "@/app/components/automation/workflow-node-order";
@@ -210,6 +211,11 @@ export function AutomationBuilderPage({
     listHref ?? `/restaurant/${restaurantId}/dashboard/automations`;
 
   const automationActive = automationIsActive;
+
+  const cronStartsFlow = useMemo(
+    () => isCronStartingTrigger(nodes),
+    [nodes],
+  );
 
   const shouldBlockFlowNavigation =
     tab === "builder" && isFlowDirty && !automationPublished;
@@ -631,7 +637,8 @@ export function AutomationBuilderPage({
           <AutomationExecutionsPanel
             automationId={automationNumericId}
             automationActive={automationActive}
-            showRunButton
+            showRunButton={!cronStartsFlow}
+            showPauseButton={cronStartsFlow}
           />
         </motion.div>
       )}

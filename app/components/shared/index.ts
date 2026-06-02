@@ -6,3 +6,4 @@ export { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 export { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 export { ReportTable } from "@/app/components/shared/ReportTable";
 export { RunAutomationButton } from "@/app/components/shared/RunAutomationButton";
+export { PauseAutomationButton } from "@/app/components/shared/PauseAutomationButton";
