@@ -24,7 +24,15 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     });
   }, [pathname, router]);
 
-  if (status !== "authenticated") {
+  if (status === "unauthenticated") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-sm text-zinc-500">Redirecting to sign in…</p>
+      </div>
+    );
+  }
+
+  if (status === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50">
         <p className="text-sm text-zinc-500">Loading…</p>

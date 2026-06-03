@@ -7,7 +7,6 @@ import {
   CreditCard,
   Cog,
   ExternalLink,
-  LayoutDashboard,
   Link2,
   Loader2,
   ScanLine,
@@ -16,10 +15,12 @@ import {
   X,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { connectFacebook } from "@/app/services/facebook/connect-facebook";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import { fetchRestaurantById } from "@/app/services/restaurant/get-my-restaurant";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
-import { getStripeDashboardLink } from "@/app/services/stripe/get-stripe-dashboard-link";
 
 function parseRestaurantIdFromParams(raw: unknown): number | undefined {
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
@@ -78,6 +79,23 @@ function StripeLogo({ className }: { className?: string }) {
   );
 }
 
+function FacebookLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Facebook"
+      className={className}
+    >
+      <path
+        fill="currentColor"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+      />
+    </svg>
+  );
+}
+
 type RestaurantSettingsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -100,9 +118,69 @@ export default function RestaurantSettingsDialog({
   );
 
   type ConnectStatus = "idle" | "loading" | "error";
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [stripeStatusLoading, setStripeStatusLoading] = useState(false);
   const [stripeStatus, setStripeStatus] = useState<ConnectStatus>("idle");
-  const [stripeDashboardLoading, setStripeDashboardLoading] = useState(false);
   const [stripeError, setStripeError] = useState<string | null>(null);
+
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [metaStatusLoading, setMetaStatusLoading] = useState(false);
+  const [metaConnectStatus, setMetaConnectStatus] = useState<ConnectStatus>("idle");
+  const [metaError, setMetaError] = useState<string | null>(null);
+
+  const refreshStripeStatus = useCallback(async () => {
+    if (restaurantId == null) {
+      setStripeConnected(false);
+      return;
+    }
+    setStripeStatusLoading(true);
+    setStripeError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        setStripeConnected(false);
+        return;
+      }
+      const restaurant = await fetchRestaurantById(token, restaurantId);
+      setStripeConnected(Boolean(restaurant.stripeAccountId?.trim()));
+    } catch (e) {
+      setStripeError(
+        e instanceof Error ? e.message : "Could not check Stripe connection.",
+      );
+    } finally {
+      setStripeStatusLoading(false);
+    }
+  }, [restaurantId]);
+
+  const refreshMetaStatus = useCallback(async () => {
+    if (restaurantId == null) {
+      setMetaConnected(false);
+      return;
+    }
+    setMetaStatusLoading(true);
+    setMetaError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        setMetaConnected(false);
+        return;
+      }
+      const status = await getFacebookConnectionStatus(token, restaurantId);
+      setMetaConnected(status.connected);
+    } catch (e) {
+      setMetaError(
+        e instanceof Error ? e.message : "Could not check Facebook connection.",
+      );
+    } finally {
+      setMetaStatusLoading(false);
+    }
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (!open || section !== "integrations") return;
+    void refreshStripeStatus();
+    void refreshMetaStatus();
+  }, [open, section, refreshStripeStatus, refreshMetaStatus]);
 
   const handleConnectStripe = async () => {
     setStripeStatus("loading");
@@ -128,29 +206,26 @@ export default function RestaurantSettingsDialog({
     }
   };
 
-  const handleOpenStripeDashboard = async () => {
-    setStripeDashboardLoading(true);
-    setStripeError(null);
-    setStripeStatus("idle");
+  const handleConnectFacebook = async () => {
+    setMetaConnectStatus("loading");
+    setMetaError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) {
-        throw new Error("You're signed out. Sign in again.");
+        throw new Error("You're signed out. Sign in again to connect Facebook.");
       }
       if (restaurantId == null) {
         throw new Error(
-          "Open this from a restaurant page so we know which one to open.",
+          "Open this from a restaurant page so we know which one to connect.",
         );
       }
-      const { url } = await getStripeDashboardLink(token, restaurantId);
-      window.open(url, "_blank", "noopener,noreferrer");
+      const { url } = await connectFacebook(token, restaurantId);
+      window.location.href = url;
     } catch (e) {
-      setStripeStatus("error");
-      setStripeError(
-        e instanceof Error ? e.message : "Could not open Stripe dashboard.",
+      setMetaConnectStatus("error");
+      setMetaError(
+        e instanceof Error ? e.message : "Could not connect to Facebook.",
       );
-    } finally {
-      setStripeDashboardLoading(false);
     }
   };
 
@@ -271,70 +346,55 @@ export default function RestaurantSettingsDialog({
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-white">Stripe</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-white">Stripe</p>
+                          {stripeStatusLoading ? (
+                            <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[0.65rem] font-medium text-zinc-400">
+                              …
+                            </span>
+                          ) : stripeConnected ? (
+                            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[0.65rem] font-semibold text-emerald-300">
+                              Connected
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">
                           Accept payments and manage subscriptions for your funnels.
                         </p>
                       </div>
 
-                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-                        <button
-                          type="button"
-                          onClick={() => void handleOpenStripeDashboard()}
-                          disabled={
-                            stripeStatus === "loading" || stripeDashboardLoading
-                          }
-                          className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-600 bg-zinc-800 px-3.5 text-xs font-semibold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {stripeDashboardLoading ? (
-                            <>
-                              <Loader2
-                                className="size-3.5 animate-spin"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              Opening…
-                            </>
-                          ) : (
-                            <>
-                              <LayoutDashboard
-                                className="size-3.5"
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                              Stripe dashboard
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleConnectStripe()}
-                          disabled={
-                            stripeStatus === "loading" || stripeDashboardLoading
-                          }
-                          className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#635BFF] px-3.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#544ae0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9C95FF] disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {stripeStatus === "loading" ? (
-                            <>
-                              <Loader2
-                                className="size-3.5 animate-spin"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              Connecting…
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink
-                                className="size-3.5"
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                              Connect
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      {!stripeConnected ? (
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                          <button
+                            type="button"
+                            onClick={() => void handleConnectStripe()}
+                            disabled={
+                              stripeStatus === "loading" || stripeStatusLoading
+                            }
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#635BFF] px-3.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#544ae0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9C95FF] disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {stripeStatus === "loading" ? (
+                              <>
+                                <Loader2
+                                  className="size-3.5 animate-spin"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                Connecting…
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink
+                                  className="size-3.5"
+                                  strokeWidth={2}
+                                  aria-hidden
+                                />
+                                Connect
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
 
                     {stripeStatus === "error" && stripeError ? (
@@ -348,6 +408,84 @@ export default function RestaurantSettingsDialog({
                           aria-hidden
                         />
                         <span>{stripeError}</span>
+                      </div>
+                    ) : null}
+                  </li>
+
+                  <li className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <span
+                        aria-hidden
+                        className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#1877F2] shadow-sm ring-1 ring-white/10"
+                      >
+                        <FacebookLogo className="size-7 text-white" />
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-white">
+                            Facebook
+                          </p>
+                          {metaStatusLoading ? (
+                            <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[0.65rem] font-medium text-zinc-400">
+                              …
+                            </span>
+                          ) : metaConnected ? (
+                            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[0.65rem] font-semibold text-emerald-300">
+                              Connected
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">
+                          Connect Meta to run ads and send guests to your funnel.
+                        </p>
+                      </div>
+
+                      {!metaConnected ? (
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                          <button
+                            type="button"
+                            onClick={() => void handleConnectFacebook()}
+                            disabled={
+                              metaConnectStatus === "loading" || metaStatusLoading
+                            }
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#1877F2] px-3.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/60 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {metaConnectStatus === "loading" ? (
+                              <>
+                                <Loader2
+                                  className="size-3.5 animate-spin"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                Connecting…
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink
+                                  className="size-3.5"
+                                  strokeWidth={2}
+                                  aria-hidden
+                                />
+                                Connect with Facebook
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {metaConnectStatus === "error" && metaError ? (
+                      <div
+                        role="alert"
+                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                      >
+                        <AlertCircle
+                          className="mt-px size-3.5 shrink-0"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span>{metaError}</span>
                       </div>
                     ) : null}
                   </li>

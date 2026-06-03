@@ -33,6 +33,7 @@ export default function CampaignGuestExperiencePage() {
 
   return (
     <CampaignGuestExperience
+      restaurantId={restaurantId}
       campaignsHref={campaignsHref}
       funnel={undefined}
       loadError={null}

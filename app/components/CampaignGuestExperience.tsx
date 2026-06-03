@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import {
+  AlertCircle,
   Check,
+  ExternalLink,
   LayoutTemplate,
+  Loader2,
   MessageSquare,
   Smartphone,
 } from "lucide-react";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { connectFacebook } from "@/app/services/facebook/connect-facebook";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 
 export type CampaignGuestExperienceProps = {
+  restaurantId: number;
   campaignsHref: string;
   /** `undefined` while loading; `null` if not found after load. */
   funnel: Funnel | null | undefined;
@@ -23,11 +31,59 @@ const CARD_PRIMARY_ACTION_CLASS =
   "w-full shrink-0 cursor-pointer rounded-xl border border-zinc-800/90 bg-zinc-950 py-3 text-sm font-semibold leading-snug text-white shadow-md shadow-zinc-950/30 ring-1 ring-inset ring-white/[0.08] transition hover:border-zinc-700 hover:bg-zinc-800 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 active:bg-zinc-900";
 
 export default function CampaignGuestExperience({
+  restaurantId,
   campaignsHref,
   funnel,
   loadError,
   funnelEditorHref,
 }: CampaignGuestExperienceProps) {
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metaConnectLoading, setMetaConnectLoading] = useState(false);
+  const [metaError, setMetaError] = useState<string | null>(null);
+
+  const refreshMetaStatus = useCallback(async () => {
+    setMetaLoading(true);
+    setMetaError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        setMetaConnected(false);
+        return;
+      }
+      const status = await getFacebookConnectionStatus(token, restaurantId);
+      setMetaConnected(status.connected);
+    } catch (e) {
+      setMetaError(
+        e instanceof Error ? e.message : "Could not check Facebook connection.",
+      );
+    } finally {
+      setMetaLoading(false);
+    }
+  }, [restaurantId]);
+
+  useEffect(() => {
+    void refreshMetaStatus();
+  }, [refreshMetaStatus]);
+
+  const handleConnectFacebook = async () => {
+    setMetaConnectLoading(true);
+    setMetaError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        throw new Error("You're signed out. Sign in again.");
+      }
+      const { url } = await connectFacebook(token, restaurantId);
+      window.location.href = url;
+    } catch (e) {
+      setMetaConnectLoading(false);
+      setMetaError(
+        e instanceof Error ? e.message : "Could not connect to Facebook.",
+      );
+    }
+  };
+
   const offerTitle =
     funnel?.offer?.trim() || funnel?.campaignName || "Offer";
   const offerSubtitle =
@@ -147,26 +203,72 @@ export default function CampaignGuestExperience({
               <p className="text-xs font-semibold uppercase leading-none tracking-wide text-zinc-500">
                 Step 2 · Ads
               </p>
-              <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide text-zinc-600">
-                Not started
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide ${
+                  metaConnected
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-zinc-100 text-zinc-600"
+                }`}
+              >
+                {metaLoading
+                  ? "…"
+                  : metaConnected
+                    ? "Connected"
+                    : "Not started"}
               </span>
             </div>
             <p className="mt-2 text-sm font-normal leading-relaxed text-zinc-600">
-              Short-form videos in social feeds — paid placements that send
-              guests to your funnel.
+              Connect your Facebook (Meta) account to run ads that send guests
+              to your funnel.
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col justify-start">
-            <p className="text-sm font-normal leading-relaxed text-zinc-600">
-              Connect Meta and launch ads
-            </p>
+            {metaConnected ? (
+              <p className="flex items-center gap-2 text-sm text-emerald-800">
+                <Check className="size-4 shrink-0" aria-hidden />
+                Facebook is connected. Use your tracking link when you run Meta
+                ads.
+              </p>
+            ) : (
+              <p className="text-sm font-normal leading-relaxed text-zinc-600">
+                Sign in with Facebook to link your ad account.
+              </p>
+            )}
+            {metaError ? (
+              <p
+                className="mt-2 flex items-start gap-2 text-xs text-red-700"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                {metaError}
+              </p>
+            ) : null}
           </div>
-          <button
-            type="button"
-            className={CARD_PRIMARY_ACTION_CLASS}
-          >
-            Launch ads
-          </button>
+          {!metaConnected ? (
+            <button
+              type="button"
+              onClick={() => void handleConnectFacebook()}
+              disabled={metaConnectLoading || metaLoading}
+              className={`${CARD_PRIMARY_ACTION_CLASS} inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              {metaConnectLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Connecting…
+                </>
+              ) : (
+                <>
+                  <span
+                    className="flex size-5 items-center justify-center rounded bg-[#1877F2] text-[10px] font-bold text-white"
+                    aria-hidden
+                  >
+                    f
+                  </span>
+                  Connect with Facebook
+                </>
+              )}
+            </button>
+          ) : null}
         </section>
 
         <section className="flex h-full min-h-0 flex-col gap-4 rounded-2xl border border-amber-300 bg-amber-50/70 p-6 shadow-md ring-1 ring-amber-900/[0.06]">

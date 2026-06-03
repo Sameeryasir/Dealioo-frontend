@@ -17,6 +17,7 @@ export type AdminRestaurant = {
   country?: string | null;
   postalCode?: string | null;
   branchCount?: number | null;
+  stripeAccountId?: string | null;
 };
 
 export type RestaurantOwner = {
@@ -186,6 +187,8 @@ function coerceRestaurant(value: unknown): AdminRestaurant | null {
     country: pickString(o, "country", "country") ?? null,
     postalCode: pickString(o, "postalCode", "postal_code") ?? null,
     branchCount: pickNumber(o, "branchCount", "branch_count") ?? null,
+    stripeAccountId:
+      pickString(o, "stripeAccountId", "stripe_account_id") ?? null,
   };
 }
 
