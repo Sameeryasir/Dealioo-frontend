@@ -13,7 +13,6 @@ import {
   ScanLine,
   ShoppingBag,
   Users,
-  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { isRestaurantSidebarChromeMinimal } from "@/app/lib/restaurant-dashboard-pathname";
@@ -58,7 +57,9 @@ export default function AdminPanelSidebar() {
         activeMatch: "exact",
       },
       {
-        href: "/dashboard/orders",
+        href: restaurantId
+          ? `${restaurantHomeHref}/orders`
+          : "/dashboard/orders",
         label: "Orders",
         icon: ShoppingBag,
         activeMatch: "prefix",
@@ -88,12 +89,6 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: `${restaurantHomeHref}/automations`,
-        label: "Automations",
-        icon: Workflow,
-        activeMatch: "prefix",
-      },
-      {
         href: "/dashboard/ad-library",
         label: "Ad library",
         icon: Library,
@@ -118,13 +113,13 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
     ],
-    [restaurantHomeHref],
+    [restaurantHomeHref, restaurantId],
   );
 
   return (
     <aside
       className={`relative flex min-h-0 shrink-0 flex-col border-r border-zinc-200 bg-gradient-to-b from-white via-zinc-50/40 to-white shadow-[6px_0_32px_-8px_rgba(0,0,0,0.06)] transition-[width] duration-300 ease-out ${
-        collapsed ? "w-12" : "w-50"
+        collapsed ? "w-12 overflow-visible" : "w-50"
       }`}
       aria-label="Admin navigation"
     >
@@ -164,12 +159,12 @@ export default function AdminPanelSidebar() {
       ) : null}
 
       <nav
-        className={`flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-4 ${
+        className={`flex min-h-0 flex-1 flex-col gap-0.5 pb-4 ${
           collapsed
             ? sidebarChromeMinimal
-              ? "items-center px-1 pt-3"
-              : "items-center px-1 pt-2"
-            : "px-3 pt-3"
+              ? "items-center overflow-visible px-1 pt-3"
+              : "items-center overflow-visible px-1 pt-2"
+            : "overflow-y-auto px-3 pt-3"
         }`}
       >
         {nav.map(({ href, label, icon: Icon, activeMatch }) => {
@@ -183,16 +178,21 @@ export default function AdminPanelSidebar() {
               <Link
                 key={href}
                 href={href}
-                title={label}
                 aria-label={label}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
+                className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
                   active
                     ? "bg-black text-white shadow-sm shadow-black/25 ring-1 ring-white/15"
                     : "text-zinc-600 hover:bg-black hover:text-white hover:shadow-sm hover:shadow-black/20 active:bg-black active:text-white"
                 }`}
               >
                 <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  {label}
+                </span>
               </Link>
             );
           }

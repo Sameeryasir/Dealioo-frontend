@@ -443,7 +443,7 @@ export default function RestaurantSettingsDialog({
                         </div>
                         <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">
                           Link Meta to pull ad spend, impressions, reach, clicks,
-                          and campaign stats into Feastalytics. A small Facebook
+                          and campaign stats into RetentionPlus. A small Facebook
                           window opens — you stay on this page.
                         </p>
                       </div>
