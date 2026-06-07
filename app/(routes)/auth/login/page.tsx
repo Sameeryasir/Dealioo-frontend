@@ -3,11 +3,12 @@
 import LoginForm from "@/app/components/LoginForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { login } from "@/app/services/auth/login";
-import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useState } from "react";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setCredentials } = useCredentialContext();
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -19,7 +20,12 @@ export default function LoginPage() {
       try {
         await login(email, password);
         setCredentials(email, password);
-        router.push("/auth/verify-otp");
+        const returnTo = searchParams.get("returnTo");
+        const nextPath =
+          returnTo != null && returnTo.trim() !== ""
+            ? `/auth/verify-otp?returnTo=${encodeURIComponent(returnTo)}`
+            : "/auth/verify-otp";
+        router.push(nextPath);
       } catch (error) {
         const message =
           error instanceof Error
@@ -30,7 +36,7 @@ export default function LoginPage() {
         setSubmitting(false);
       }
     },
-    [router, setCredentials],
+    [router, searchParams, setCredentials],
   );
 
   return (
@@ -56,5 +62,19 @@ export default function LoginPage() {
         />
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+          <p className="text-sm text-zinc-500">Loading…</p>
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

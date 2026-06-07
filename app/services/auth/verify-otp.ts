@@ -18,6 +18,7 @@ export type VerifyOtpUser = {
   updatedAt: string;
   role: VerifyOtpUserRole;
   twoFactorEnabled?: boolean;
+  isTwoFactorVerified?: boolean;
 };
 
 export type VerifyOtpResponse = {

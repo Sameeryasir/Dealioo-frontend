@@ -2,24 +2,39 @@
 
 import OtpForm from "@/app/components/OtpForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
+import {
+  resolvePostLoginPath,
+  shouldSkipPasswordSetup,
+} from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback } from "react";
 
-export default function VerifyOtpPage() {
+function VerifyOtpPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { email } = useCredentialContext();
+  const returnTo = searchParams.get("returnTo");
 
   const onVerifyOtp = useCallback(
     async (otp: number) => {
       const { token, refreshToken, user } = await verifyOtp(email, otp);
       setAuthTokens(token, refreshToken);
       setSetupUser(user);
-      router.push("/auth/new-password");
+
+      const status = await getOnboardingStatus();
+
+      if (!shouldSkipPasswordSetup(status)) {
+        router.push("/auth/new-password");
+        return;
+      }
+
+      router.push(resolvePostLoginPath(status, returnTo));
     },
-    [email, router],
+    [email, returnTo, router],
   );
 
   const onResendOtp = useCallback(async () => {
@@ -51,5 +66,19 @@ export default function VerifyOtpPage() {
         />
       </main>
     </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+          <p className="text-sm text-zinc-500">Loading…</p>
+        </div>
+      }
+    >
+      <VerifyOtpPageInner />
+    </Suspense>
   );
 }

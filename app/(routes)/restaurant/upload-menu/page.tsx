@@ -1,7 +1,10 @@
 "use client";
 
 import UploadMenuForm from "@/app/components/UploadMenuForm";
+import { OnboardingRouteGuard } from "@/app/components/OnboardingRouteGuard";
+import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { uploadRestaurantMenu } from "@/app/services/restaurant/upload-menu";
 import { Upload } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -35,7 +38,8 @@ function UploadMenuPageInner() {
       setSubmitting(true);
       try {
         await uploadRestaurantMenu(accessToken, payload);
-        router.push("/dashboard");
+        const status = await getOnboardingStatus(payload.restaurantId);
+        router.push(resolvePostLoginPath(status));
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -56,7 +60,7 @@ function UploadMenuPageInner() {
     );
   }
 
-  return (
+  const content = (
     <div className="min-h-screen bg-zinc-50 px-4 py-10 sm:px-8">
       <header className="mx-auto flex max-w-2xl gap-4">
         <div
@@ -89,6 +93,16 @@ function UploadMenuPageInner() {
         </p>
       )}
     </div>
+  );
+
+  if (defaultRestaurantId == null) {
+    return content;
+  }
+
+  return (
+    <OnboardingRouteGuard step="menu_setup" restaurantId={defaultRestaurantId}>
+      {content}
+    </OnboardingRouteGuard>
   );
 }
 

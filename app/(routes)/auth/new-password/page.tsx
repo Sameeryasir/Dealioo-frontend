@@ -2,7 +2,9 @@
 
 import SetupPasswordForm from "@/app/components/SetupPasswordForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
+import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { setupPassword } from "@/app/services/auth/setup-password";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -34,7 +36,8 @@ export default function NewPasswordPage() {
       try {
         await setupPassword(accessToken, currentPassword, newPassword);
         clearPassword();
-        router.push("/auth/2fa");
+        const status = await getOnboardingStatus();
+        router.push(resolvePostLoginPath(status));
       } catch (error) {
         const message =
           error instanceof Error

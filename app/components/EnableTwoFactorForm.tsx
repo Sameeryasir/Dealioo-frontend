@@ -44,7 +44,10 @@ export default function EnableTwoFactorForm({
     } else {
       const result = await verify2faSetup(getSetupAccessToken(), otp);
       if (typeof result.twoFactorEnabled === "boolean") {
-        mergeSetupUser({ twoFactorEnabled: result.twoFactorEnabled });
+        mergeSetupUser({
+          twoFactorEnabled: result.twoFactorEnabled,
+          isTwoFactorVerified: result.twoFactorEnabled,
+        });
       }
     }
     finishFlow();
