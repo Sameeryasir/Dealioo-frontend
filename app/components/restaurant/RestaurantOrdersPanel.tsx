@@ -207,13 +207,6 @@ export function RestaurantOrdersPanel({
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Orders
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          All funnel activity across {meta?.campaignCount ?? 0} campaign
-          {(meta?.campaignCount ?? 0) === 1 ? "" : "s"} and{" "}
-          {meta?.funnelCount ?? 0} funnel
-          {(meta?.funnelCount ?? 0) === 1 ? "" : "s"} — online payments and
-          in-restaurant visits.
-        </p>
       </div>
 
       <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
