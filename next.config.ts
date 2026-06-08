@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const ngrokHost =
   process.env.NGROK_DEV_HOST?.trim() ||
   process.env.NEXT_PUBLIC_NGROK_HOST?.trim() ||
-  "fdf9-203-99-184-85.ngrok-free.app";
+  "eeb5-182-185-34-34.ngrok-free.app";
 
 const backendUrl =
   process.env.BACKEND_URL?.trim() ||

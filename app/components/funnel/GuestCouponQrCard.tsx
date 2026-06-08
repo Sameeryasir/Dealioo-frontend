@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Loader2, QrCode } from "lucide-react";
+import { CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   getGuestCouponByCustomerAndFunnel,
@@ -67,8 +67,6 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
     return null;
   }
 
-  const isPaid = coupon.paymentConfirmed || coupon.paymentStatus === "PAID";
-
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
       <div className="pointer-events-auto w-full max-w-xs overflow-hidden rounded-2xl bg-white text-center shadow-2xl ring-1 ring-zinc-200">
@@ -78,9 +76,7 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
             Your QR Code
           </p>
           <p className="mt-0.5 text-xs text-zinc-300">
-            {isPaid
-              ? "Ready to redeem at the restaurant"
-              : "Complete payment to unlock redemption"}
+            Ready to redeem at the restaurant
           </p>
         </div>
         <div className="p-4">
@@ -91,17 +87,10 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
               className="mx-auto size-44 rounded-lg"
             />
           </div>
-          {isPaid ? (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-semibold text-white ring-1 ring-zinc-800">
-              <CheckCircle2 className="size-3.5" aria-hidden />
-              Payment confirmed
-            </div>
-          ) : (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-200">
-              <AlertCircle className="size-3.5" aria-hidden />
-              Payment pending
-            </div>
-          )}
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-semibold text-white ring-1 ring-zinc-800">
+            <CheckCircle2 className="size-3.5" aria-hidden />
+            Your pass is ready
+          </div>
           {coupon.campaignName ? (
             <p className="mt-2 text-xs font-semibold text-zinc-900">
               {coupon.campaignName}
@@ -109,7 +98,6 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
           ) : null}
           <p className="mt-3 text-xs leading-relaxed text-zinc-500">
             Present this to staff when you arrive.
-            {!isPaid ? " Reward unlocks after payment." : ""}
           </p>
         </div>
       </div>
