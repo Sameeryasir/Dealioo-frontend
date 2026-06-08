@@ -194,6 +194,17 @@ export async function getRedemptionStats(
   return (await res.json()) as RedemptionStats;
 }
 
+export type GuestActiveDeal = {
+  couponId: number;
+  campaignName: string;
+  offerName: string;
+  paymentLabel: "PREPAID" | "UNPAID";
+  paymentStatus: string;
+  expiresAt: string | null;
+  canSelect?: boolean;
+  qrToken?: string;
+};
+
 export type GuestProfile = {
   customerId: number;
   customerName: string;
@@ -207,6 +218,7 @@ export type GuestProfile = {
     campaignName: string;
     redeemedAt: string;
   }>;
+  activeDeals: GuestActiveDeal[];
 };
 
 export async function getGuestProfile(
@@ -238,7 +250,11 @@ export async function getGuestProfile(
     );
   }
 
-  return (await res.json()) as GuestProfile;
+  const profile = (await res.json()) as GuestProfile;
+  return {
+    ...profile,
+    activeDeals: profile.activeDeals ?? [],
+  };
 }
 
 export type GuestCouponResponse = {

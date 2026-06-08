@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  CheckCircle2,
   ChevronRight,
+  Gift,
   Loader2,
   Mail,
   Phone,
@@ -10,10 +12,12 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { ReportTable } from "@/app/components/shared/ReportTable";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import { ScanCompleteOrderDialog } from "@/app/components/restaurant/ScanCompleteOrderDialog";
+import { ScanOrderSubtotalDialog } from "@/app/components/restaurant/ScanOrderSubtotalDialog";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   GUEST_SEARCH_PAGE_SIZE,
@@ -23,7 +27,11 @@ import {
 import { deleteCustomer } from "@/app/services/customer/delete-customer";
 import {
   getGuestProfile,
+  scanRedemptionQr,
+  type GuestActiveDeal,
   type GuestProfile,
+  type RedeemableReward,
+  type ScanRedemptionSuccess,
 } from "@/app/services/redemption/scan-redemption";
 
 const thClass =
@@ -53,6 +61,107 @@ function guestAvatarColor(seed: number): string {
   return AVATAR_COLORS[Math.abs(seed) % AVATAR_COLORS.length];
 }
 
+function DealPaymentBadge({ label }: { label: "PREPAID" | "UNPAID" }) {
+  const isPrepaid = label === "PREPAID";
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white ${
+        isPrepaid ? "bg-emerald-600" : "bg-zinc-500"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+type NormalizedGuestActiveDeal = GuestActiveDeal & {
+  canSelect: boolean;
+  qrToken: string;
+};
+
+function normalizeDeal(deal: GuestActiveDeal): NormalizedGuestActiveDeal {
+  return {
+    ...deal,
+    canSelect:
+      deal.canSelect ??
+      (deal.paymentLabel === "PREPAID" || deal.paymentStatus === "PENDING"),
+    qrToken: deal.qrToken ?? "",
+  };
+}
+
+function toRedeemableReward(deal: NormalizedGuestActiveDeal): RedeemableReward {
+  return {
+    couponId: deal.couponId,
+    label: `${deal.offerName} [${deal.paymentLabel}]`,
+    paymentLabel: deal.paymentLabel,
+    isScannedCoupon: false,
+    canSelect: deal.canSelect,
+  };
+}
+
+function DealSelectRow({
+  deal,
+  checked,
+  disabled,
+  tone,
+  onToggle,
+}: {
+  deal: NormalizedGuestActiveDeal;
+  checked: boolean;
+  disabled: boolean;
+  tone: "prepaid" | "unpaid";
+  onToggle: () => void;
+}) {
+  const cardClass =
+    tone === "prepaid"
+      ? checked
+        ? "border-emerald-300 bg-emerald-50 ring-1 ring-emerald-200"
+        : "border-emerald-100 bg-emerald-50/50"
+      : checked
+        ? "border-zinc-400 bg-zinc-100 ring-1 ring-zinc-300"
+        : "border-zinc-200 bg-zinc-50";
+
+  return (
+    <li>
+      <button
+        type="button"
+        disabled={disabled || !deal.canSelect}
+        onClick={onToggle}
+        className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition ${
+          deal.canSelect ? "cursor-pointer hover:shadow-sm" : "cursor-not-allowed opacity-60"
+        } ${cardClass}`}
+      >
+        {deal.canSelect ? (
+          <span
+            className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border ${
+              checked
+                ? "border-zinc-900 bg-zinc-900 text-xs text-white"
+                : "border-zinc-300 bg-white"
+            }`}
+            aria-hidden
+          >
+            {checked ? "✓" : ""}
+          </span>
+        ) : (
+          <span className="mt-0.5 size-5 shrink-0" aria-hidden />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-zinc-900">{deal.offerName}</span>
+            <DealPaymentBadge label={deal.paymentLabel} />
+          </span>
+          <span className="mt-1 block text-xs text-zinc-500">
+            {deal.campaignName}
+            {deal.expiresAt ? (
+              <> · Expires {formatDateTimeShort(deal.expiresAt)}</>
+            ) : null}
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+}
+
 export function ScannerSearchGuestPanel({
   restaurantId,
 }: {
@@ -76,6 +185,15 @@ export function ScannerSearchGuestPanel({
   );
   const [showPreviousRedemptions, setShowPreviousRedemptions] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedDealIds, setSelectedDealIds] = useState<number[]>([]);
+  const [redeemStep, setRedeemStep] = useState<
+    null | "completeOrder" | "enterSubtotal"
+  >(null);
+  const [confirmingRedemption, setConfirmingRedemption] = useState(false);
+  const [redeemSuccess, setRedeemSuccess] = useState<ScanRedemptionSuccess | null>(
+    null,
+  );
+  const idempotencyKeyRef = useRef("");
 
   const runSearch = useCallback(
     async (searchQuery: string, searchPage: number) => {
@@ -133,6 +251,10 @@ export function ScannerSearchGuestPanel({
       setLoadingProfile(true);
       setErrorMessage(null);
       setShowPreviousRedemptions(false);
+      setSelectedDealIds([]);
+      setRedeemStep(null);
+      setRedeemSuccess(null);
+      idempotencyKeyRef.current = "";
 
       try {
         const profile = await getGuestProfile(restaurantId, guest.id);
@@ -182,6 +304,94 @@ export function ScannerSearchGuestPanel({
     }
   }, [activeQuery, page, runSearch, selectedProfile]);
 
+  const activeDeals = useMemo(
+    () => (selectedProfile?.activeDeals ?? []).map(normalizeDeal),
+    [selectedProfile],
+  );
+  const prepaidDeals = useMemo(
+    () => activeDeals.filter((deal) => deal.paymentLabel === "PREPAID"),
+    [activeDeals],
+  );
+  const unpaidDeals = useMemo(
+    () => activeDeals.filter((deal) => deal.paymentLabel === "UNPAID"),
+    [activeDeals],
+  );
+
+  const toggleDealSelection = useCallback((deal: NormalizedGuestActiveDeal) => {
+    if (!deal.canSelect || confirmingRedemption) return;
+
+    setSelectedDealIds((current) =>
+      current.includes(deal.couponId)
+        ? current.filter((id) => id !== deal.couponId)
+        : [...current, deal.couponId],
+    );
+  }, [confirmingRedemption]);
+
+  const selectedDeals = useMemo(
+    () => activeDeals.filter((deal) => selectedDealIds.includes(deal.couponId)),
+    [activeDeals, selectedDealIds],
+  );
+
+  const handleConfirmRedeem = useCallback(
+    async (couponIds: number[], orderSubtotal?: number) => {
+      if (!selectedProfile || couponIds.length === 0) return;
+
+      const anchorDeal = activeDeals.find(
+        (deal) => couponIds.includes(deal.couponId) && deal.qrToken,
+      );
+      if (!anchorDeal?.qrToken) {
+        setErrorMessage("Could not redeem — missing coupon token.");
+        return;
+      }
+
+      setConfirmingRedemption(true);
+      setErrorMessage(null);
+
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `redeem-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+      }
+
+      try {
+        const result = await scanRedemptionQr(
+          restaurantId,
+          anchorDeal.qrToken,
+          couponIds,
+          orderSubtotal,
+          idempotencyKeyRef.current,
+        );
+
+        if (result.success) {
+          idempotencyKeyRef.current = "";
+          setRedeemStep(null);
+          setSelectedDealIds([]);
+          setRedeemSuccess(result);
+
+          const profile = await getGuestProfile(
+            restaurantId,
+            selectedProfile.customerId,
+          );
+          if (profile) {
+            setSelectedProfile(profile);
+          }
+        } else {
+          setErrorMessage(result.message);
+          setRedeemStep(null);
+        }
+      } catch (err) {
+        setErrorMessage(
+          err instanceof Error ? err.message : "Redemption failed. Try again.",
+        );
+        setRedeemStep(null);
+      } finally {
+        setConfirmingRedemption(false);
+      }
+    },
+    [activeDeals, restaurantId, selectedProfile],
+  );
+
   const showTable = !selectedProfile && activeQuery.length > 0;
   const rowOffset = useMemo(
     () => ((meta?.page ?? page) - 1) * (meta?.limit ?? GUEST_SEARCH_PAGE_SIZE),
@@ -189,38 +399,75 @@ export function ScannerSearchGuestPanel({
   );
 
   return (
+    <>
+      {selectedProfile && redeemStep === "completeOrder" ? (
+        <ScanCompleteOrderDialog
+          customerName={selectedProfile.customerName}
+          selectedRewards={selectedDeals.map(toRedeemableReward)}
+          confirming={false}
+          onBack={() => setRedeemStep(null)}
+          onContinue={() => {
+            const hasUnpaid = selectedDeals.some(
+              (deal) => deal.paymentLabel === "UNPAID",
+            );
+            if (hasUnpaid) {
+              setRedeemStep("enterSubtotal");
+              return;
+            }
+            void handleConfirmRedeem(selectedDealIds, 0);
+          }}
+          onDismiss={() => setRedeemStep(null)}
+        />
+      ) : null}
+
+      {selectedProfile && redeemStep === "enterSubtotal" ? (
+        <ScanOrderSubtotalDialog
+          confirming={confirmingRedemption}
+          requirePositiveAmount={selectedDeals.some(
+            (deal) => deal.paymentLabel === "UNPAID",
+          )}
+          onBack={() => setRedeemStep("completeOrder")}
+          onDone={(orderSubtotal) =>
+            void handleConfirmRedeem(selectedDealIds, orderSubtotal)
+          }
+          onDismiss={() => setRedeemStep(null)}
+        />
+      ) : null}
+
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
-          <Search className="size-4" aria-hidden />
-          Search by name, email, or phone
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                handleSearch();
-              }
-            }}
-            placeholder="e.g. Jane Doe or jane@email.com"
-            className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
-          />
-          <button
-            type="button"
-            disabled={!query.trim() || searching}
-            onClick={handleSearch}
-            className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {searching ? "Searching…" : "Search"}
-          </button>
+      {!selectedProfile && !loadingProfile ? (
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <Search className="size-4" aria-hidden />
+            Search by name, email, or phone
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              placeholder="e.g. Jane Doe or jane@email.com"
+              className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+            />
+            <button
+              type="button"
+              disabled={!query.trim() || searching}
+              onClick={handleSearch}
+              className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {searching ? "Searching…" : "Search"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">
+            Type at least 2 characters, then search.
+          </p>
         </div>
-        <p className="mt-2 text-xs text-zinc-500">
-          Type at least 2 characters, then search.
-        </p>
-      </div>
+      ) : null}
 
       {errorMessage ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -255,6 +502,10 @@ export function ScannerSearchGuestPanel({
                 onClick={() => {
                   setSelectedProfile(null);
                   setShowPreviousRedemptions(false);
+                  setSelectedDealIds([]);
+                  setRedeemStep(null);
+                  setRedeemSuccess(null);
+                  idempotencyKeyRef.current = "";
                 }}
                 className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
               >
@@ -272,16 +523,113 @@ export function ScannerSearchGuestPanel({
             </div>
           </div>
 
-          <ul className="mt-5 list-disc space-y-2 pl-5 text-sm text-zinc-800">
-            <li>
-              {selectedProfile.totalVisits} total visit
-              {selectedProfile.totalVisits === 1 ? "" : "s"}
-            </li>
-            <li>
-              {selectedProfile.rewardsAvailable} reward
-              {selectedProfile.rewardsAvailable === 1 ? "" : "s"} available
-            </li>
-          </ul>
+          {redeemSuccess ? (
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2
+                className="mt-0.5 size-5 shrink-0 text-emerald-600"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-emerald-900">
+                  Redeemed successfully
+                </p>
+                <p className="mt-0.5 text-sm text-emerald-800">
+                  {redeemSuccess.campaignName} ·{" "}
+                  {formatDateTimeShort(redeemSuccess.redeemedAt)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRedeemSuccess(null)}
+                className="shrink-0 text-xs font-medium text-emerald-700 hover:text-emerald-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mt-5 border-t border-zinc-100 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Gift className="size-4 text-zinc-500" aria-hidden />
+                <h3 className="text-sm font-semibold text-zinc-900">Deals</h3>
+              </div>
+              {activeDeals.some((deal) => deal.canSelect) ? (
+                <p className="text-xs text-zinc-500">
+                  Select deals to redeem, then continue.
+                </p>
+              ) : null}
+            </div>
+
+            {activeDeals.length === 0 ? (
+              <p className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                No active deals for this guest at this restaurant.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    Paid ({prepaidDeals.length})
+                  </p>
+                  {prepaidDeals.length > 0 ? (
+                    <ul className="mt-2 space-y-2">
+                      {prepaidDeals.map((deal) => (
+                        <DealSelectRow
+                          key={deal.couponId}
+                          deal={deal}
+                          checked={selectedDealIds.includes(deal.couponId)}
+                          disabled={confirmingRedemption}
+                          tone="prepaid"
+                          onToggle={() => toggleDealSelection(deal)}
+                        />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-zinc-500">No paid deals.</p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Not paid yet ({unpaidDeals.length})
+                  </p>
+                  {unpaidDeals.length > 0 ? (
+                    <ul className="mt-2 space-y-2">
+                      {unpaidDeals.map((deal) => (
+                        <DealSelectRow
+                          key={deal.couponId}
+                          deal={deal}
+                          checked={selectedDealIds.includes(deal.couponId)}
+                          disabled={confirmingRedemption}
+                          tone="unpaid"
+                          onToggle={() => toggleDealSelection(deal)}
+                        />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-zinc-500">
+                      No unpaid deals.
+                    </p>
+                  )}
+                </div>
+
+                {selectedDealIds.length > 0 ? (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      disabled={confirmingRedemption}
+                      onClick={() => setRedeemStep("completeOrder")}
+                      className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {confirmingRedemption
+                        ? "Redeeming…"
+                        : `Redeem selected (${selectedDealIds.length})`}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
 
           {selectedProfile.previouslyRedeemedCount > 0 ? (
             <div className="mt-5">
@@ -478,5 +826,6 @@ export function ScannerSearchGuestPanel({
         </ReportTable>
       ) : null}
     </div>
+    </>
   );
 }
