@@ -10,6 +10,8 @@ import {
 } from "@/app/services/funnel/get-campaigns-by-restaurant";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 
+const EMPTY_CAMPAIGNS: Funnel[] = [];
+
 export function useCampaignsByRestaurantQuery(
   restaurantId: number | null | undefined,
 ) {
@@ -28,7 +30,7 @@ export function useCampaignsByRestaurantQuery(
   });
 
   return {
-    data: query.data ?? ([] as Funnel[]),
+    data: query.data ?? EMPTY_CAMPAIGNS,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error

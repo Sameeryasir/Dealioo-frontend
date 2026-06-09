@@ -10,11 +10,10 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
 
-export const authAxios = axios.create({
-  baseURL: getApiBaseUrl(),
-});
+export const authAxios = axios.create();
 
 authAxios.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = getSetupAccessToken().trim();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

@@ -67,7 +67,9 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/activity",
+        href: restaurantId
+          ? `${restaurantHomeHref}/activity`
+          : "/dashboard/activity",
         label: "Activity",
         icon: Activity,
         activeMatch: "prefix",
