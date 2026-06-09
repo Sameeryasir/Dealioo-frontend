@@ -75,7 +75,9 @@ export function RestaurantQrScannerPanel({
             <ScannerSearchGuestPanel restaurantId={restaurantId} />
           ) : null}
 
-          {activeTab === "create" ? <ScannerCreateGuestPanel /> : null}
+          {activeTab === "create" ? (
+            <ScannerCreateGuestPanel restaurantId={restaurantId} />
+          ) : null}
         </div>
       </nav>
     </div>
