@@ -2,8 +2,6 @@
 
 import {
   Activity,
-  ChevronsLeft,
-  ChevronsRight,
   Gift,
   Home,
   LayoutTemplate,
@@ -15,11 +13,10 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { isRestaurantSidebarChromeMinimal } from "@/app/lib/restaurant-dashboard-pathname";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 type NavItem = {
   href: string;
@@ -31,14 +28,7 @@ type NavItem = {
 export default function AdminPanelSidebar() {
   const pathname = usePathname();
   const params = useParams();
-  const [collapsed, setCollapsed] = useState(false);
   const scannerUser = isScannerUser();
-
-  const sidebarChromeMinimal = isRestaurantSidebarChromeMinimal(pathname);
-
-  useLayoutEffect(() => {
-    if (sidebarChromeMinimal) setCollapsed(true);
-  }, [sidebarChromeMinimal]);
 
   const restaurantIdParam = params?.restaurantId;
   const restaurantId =
@@ -124,9 +114,7 @@ export default function AdminPanelSidebar() {
 
   return (
     <aside
-      className={`relative flex min-h-0 shrink-0 flex-col border-r border-zinc-200 bg-gradient-to-b from-white via-zinc-50/40 to-white shadow-[6px_0_32px_-8px_rgba(0,0,0,0.06)] transition-[width] duration-300 ease-out ${
-        collapsed ? "w-12 overflow-visible" : "w-50"
-      }`}
+      className="relative flex min-h-0 w-12 shrink-0 flex-col overflow-visible border-r border-zinc-200 bg-gradient-to-b from-white via-zinc-50/40 to-white shadow-[6px_0_32px_-8px_rgba(0,0,0,0.06)]"
       aria-label="Admin navigation"
     >
       <div
@@ -134,45 +122,7 @@ export default function AdminPanelSidebar() {
         aria-hidden
       />
 
-      {!sidebarChromeMinimal ? (
-        <div
-          className={`flex shrink-0 border-b border-zinc-100/80 py-2.5 ${
-            collapsed ? "justify-center px-0" : "justify-end px-2"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setCollapsed((current) => !current)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? (
-              <ChevronsRight
-                className="h-[18px] w-[18px]"
-                aria-hidden
-                strokeWidth={2.25}
-              />
-            ) : (
-              <ChevronsLeft
-                className="h-[18px] w-[18px]"
-                aria-hidden
-                strokeWidth={2.25}
-              />
-            )}
-          </button>
-        </div>
-      ) : null}
-
-      <nav
-        className={`flex min-h-0 flex-1 flex-col gap-0.5 pb-4 ${
-          collapsed
-            ? sidebarChromeMinimal
-              ? "items-center overflow-visible px-1 pt-3"
-              : "items-center overflow-visible px-1 pt-2"
-            : "overflow-y-auto px-3 pt-3"
-        }`}
-      >
+      <nav className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-visible px-1 pb-4 pt-3">
         {nav.map(({ href, label, icon: Icon, activeMatch }) => {
           const active =
             activeMatch === "exact"
@@ -181,54 +131,15 @@ export default function AdminPanelSidebar() {
           const disabled = scannerUser && label !== "Scanning";
 
           if (disabled) {
-            if (collapsed) {
-              return (
-                <span
-                  key={href}
-                  aria-disabled="true"
-                  aria-label={`${label} (disabled)`}
-                  className="flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-xl text-zinc-300"
-                >
-                  <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
-                </span>
-              );
-            }
-
             return (
               <span
                 key={href}
                 aria-disabled="true"
-                className="flex cursor-not-allowed items-center gap-3 rounded-xl py-2.5 pl-3 pr-3 text-sm font-medium text-zinc-300"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-zinc-300">
-                  <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
-                </span>
-                {label}
-              </span>
-            );
-          }
-
-          if (collapsed) {
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  active
-                    ? "bg-black text-white shadow-sm shadow-black/25 ring-1 ring-white/15"
-                    : "text-zinc-600 hover:bg-black hover:text-white hover:shadow-sm hover:shadow-black/20 active:bg-black active:text-white"
-                }`}
+                aria-label={`${label} (disabled)`}
+                className="flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-xl text-zinc-300"
               >
                 <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
-                <span
-                  role="tooltip"
-                  className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-                >
-                  {label}
-                </span>
-              </Link>
+              </span>
             );
           }
 
@@ -236,22 +147,21 @@ export default function AdminPanelSidebar() {
             <Link
               key={href}
               href={href}
-              className={`group flex items-center gap-3 rounded-xl py-2.5 pl-3 pr-3 text-sm font-medium transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
                 active
                   ? "bg-black text-white shadow-sm shadow-black/25 ring-1 ring-white/15"
                   : "text-zinc-600 hover:bg-black hover:text-white hover:shadow-sm hover:shadow-black/20 active:bg-black active:text-white"
               }`}
             >
+              <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
               <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
-                  active
-                    ? "bg-white/15 text-white ring-1 ring-white/20"
-                    : "bg-transparent text-zinc-500 group-hover:bg-white/15 group-hover:text-white group-active:text-white"
-                }`}
+                role="tooltip"
+                className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
               >
-                <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
+                {label}
               </span>
-              {label}
             </Link>
           );
         })}

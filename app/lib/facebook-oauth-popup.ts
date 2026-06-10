@@ -91,7 +91,7 @@ export async function connectFacebookInPopup(
 
   if (!popup) {
     throw new Error(
-      "Pop-up was blocked. Allow pop-ups for RetentionPlus, then try again.",
+      "Pop-up was blocked. Allow pop-ups for Only Deals, then try again.",
     );
   }
 
