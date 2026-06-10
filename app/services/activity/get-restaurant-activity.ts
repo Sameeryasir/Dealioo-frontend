@@ -3,12 +3,13 @@ import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 
-export const RESTAURANT_ACTIVITY_PAGE_SIZE = 25;
+export const RESTAURANT_ACTIVITY_PAGE_SIZE = 10;
 
 export type ActivityEventType =
   | "visited"
   | "redeemed_reward"
-  | "prepaid_for_offer";
+  | "prepaid_for_offer"
+  | "message_sent";
 
 export type RestaurantActivityEvent = {
   id: number;
@@ -24,6 +25,7 @@ export type ActivitySummary = {
   totalVisited: number;
   totalRedeemed: number;
   totalPrepaid: number;
+  totalMessagesSent: number;
 };
 
 export type PaginatedActivityResponse = {

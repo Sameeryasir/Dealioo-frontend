@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   Gift,
   MapPin,
+  MessageSquare,
   UserRound,
 } from "lucide-react";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
@@ -14,6 +15,7 @@ import { ReportTable } from "@/app/components/shared/ReportTable";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { ActivityEventTypeDropdown } from "@/app/components/restaurant/ActivityEventTypeDropdown";
 import { ActivityMonthCalendarPicker } from "@/app/components/restaurant/ActivityMonthCalendarPicker";
+import { formatMessageSentDescription } from "@/app/lib/activity-message-preview";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   ACTIVITY_ALL_MONTHS_ID,
@@ -36,6 +38,17 @@ const tdClass =
 
 type EventFilter = "all" | ActivityEventType;
 
+function activityDescription(event: RestaurantActivityEvent): string {
+  const text = event.description?.trim();
+  if (!text) {
+    return "—";
+  }
+  if (event.eventType === "message_sent") {
+    return formatMessageSentDescription(text);
+  }
+  return text;
+}
+
 function eventTypeLabel(type: ActivityEventType): string {
   switch (type) {
     case "visited":
@@ -44,6 +57,8 @@ function eventTypeLabel(type: ActivityEventType): string {
       return "Redeemed reward";
     case "prepaid_for_offer":
       return "Prepaid for offer";
+    case "message_sent":
+      return "Text sent";
     default:
       return type;
   }
@@ -72,8 +87,19 @@ function EventTypeBadge({ type }: { type: ActivityEventType }) {
           Prepaid for offer
         </span>
       );
+    case "message_sent":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 ring-1 ring-blue-200">
+          <MessageSquare className="size-3.5" aria-hidden />
+          Text sent
+        </span>
+      );
     default:
-      return null;
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200">
+          {eventTypeLabel(type)}
+        </span>
+      );
   }
 }
 
@@ -276,7 +302,7 @@ export function RestaurantActivityPanel({
                       Events
                     </h3>
                     <p className="text-xs text-zinc-500">
-                      Visits, redemptions, and prepaid funnel payments
+                      Visits, redemptions, prepaid payments, and text sent
                     </p>
                   </div>
                 </div>
@@ -350,9 +376,7 @@ export function RestaurantActivityPanel({
                             ) : null}
                           </td>
                           <td className={tdClass}>
-                            {event.description?.trim()
-                              ? event.description
-                              : "—"}
+                            {activityDescription(event)}
                           </td>
                         </tr>
                       ))}

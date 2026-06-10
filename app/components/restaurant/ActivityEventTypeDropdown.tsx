@@ -14,6 +14,7 @@ const EVENT_TYPE_OPTIONS: { id: ActivityEventFilter; label: string }[] = [
   { id: "visited", label: "Visited" },
   { id: "redeemed_reward", label: "Redeemed reward" },
   { id: "prepaid_for_offer", label: "Prepaid for offer" },
+  { id: "message_sent", label: "Text sent" },
 ];
 
 export function ActivityEventTypeDropdown({
