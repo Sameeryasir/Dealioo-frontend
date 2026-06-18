@@ -18,7 +18,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
 import { fetchRestaurantById } from "@/app/services/restaurant/get-my-restaurant";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 
@@ -125,8 +127,13 @@ export default function RestaurantSettingsDialog({
 
   const [metaConnected, setMetaConnected] = useState(false);
   const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
+  const [metaOauthScopes, setMetaOauthScopes] = useState<string[]>([]);
+  const [metaMissingRequiredScopes, setMetaMissingRequiredScopes] = useState<
+    string[]
+  >([]);
   const [metaStatusLoading, setMetaStatusLoading] = useState(false);
   const [metaConnectStatus, setMetaConnectStatus] = useState<ConnectStatus>("idle");
+  const [metaDisconnectStatus, setMetaDisconnectStatus] = useState<ConnectStatus>("idle");
   const [metaError, setMetaError] = useState<string | null>(null);
 
   const refreshStripeStatus = useCallback(async () => {
@@ -169,6 +176,8 @@ export default function RestaurantSettingsDialog({
       const status = await getFacebookConnectionStatus(token, restaurantId);
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
+      setMetaOauthScopes(status.metaOauthScopes ?? []);
+      setMetaMissingRequiredScopes(status.missingRequiredScopes ?? []);
     } catch (e) {
       setMetaError(
         e instanceof Error ? e.message : "Could not check Facebook connection.",
@@ -230,6 +239,35 @@ export default function RestaurantSettingsDialog({
       setMetaConnectStatus("error");
       setMetaError(
         e instanceof Error ? e.message : "Could not connect to Facebook.",
+      );
+    }
+  };
+
+  const handleDisconnectFacebook = async () => {
+    if (restaurantId == null) return;
+
+    const confirmed = window.confirm(
+      "Remove this Facebook account from Only Deals? Your linked ad account and login will be cleared. You can connect again anytime.",
+    );
+    if (!confirmed) return;
+
+    setMetaDisconnectStatus("loading");
+    setMetaError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        throw new Error("You're signed out. Sign in again to remove Facebook.");
+      }
+      await disconnectFacebook(token, restaurantId);
+      setMetaConnected(false);
+      setMetaAdAccountId(null);
+      setMetaOauthScopes([]);
+      setMetaMissingRequiredScopes([]);
+      setMetaDisconnectStatus("idle");
+    } catch (e) {
+      setMetaDisconnectStatus("error");
+      setMetaError(
+        e instanceof Error ? e.message : "Could not remove Facebook account.",
       );
     }
   };
@@ -446,17 +484,57 @@ export default function RestaurantSettingsDialog({
                           and campaign stats into Only Deals. A small Facebook
                           window opens — you stay on this page.
                         </p>
+                        {metaConnected && metaAdAccountId ? (
+                          <p className="mt-2 text-xs text-zinc-500">
+                            Ad account:{" "}
+                            <span className="font-mono text-zinc-400">
+                              {metaAdAccountId.replace(/^act_/, "")}
+                            </span>
+                          </p>
+                        ) : null}
                       </div>
 
-                      {metaConnected && !metaAdAccountId && restaurantId != null ? (
-                        <a
-                          href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
-                          className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-zinc-600 bg-zinc-800 px-3.5 text-xs font-semibold text-zinc-100 no-underline transition-colors hover:border-zinc-500 hover:bg-zinc-700"
-                        >
-                          Choose ad account
-                        </a>
-                      ) : null}
-                      {!metaConnected ? (
+                      {metaConnected ? (
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                          {metaAdAccountId && restaurantId != null ? (
+                            <a
+                              href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                              className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-zinc-600 bg-zinc-800 px-3.5 text-xs font-semibold text-zinc-100 no-underline transition-colors hover:border-zinc-500 hover:bg-zinc-700"
+                            >
+                              Change ad account
+                            </a>
+                          ) : restaurantId != null ? (
+                            <a
+                              href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                              className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-zinc-600 bg-zinc-800 px-3.5 text-xs font-semibold text-zinc-100 no-underline transition-colors hover:border-zinc-500 hover:bg-zinc-700"
+                            >
+                              Choose ad account
+                            </a>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => void handleDisconnectFacebook()}
+                            disabled={
+                              metaDisconnectStatus === "loading" ||
+                              metaStatusLoading
+                            }
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3.5 text-xs font-semibold text-red-200 transition-colors hover:border-red-500/60 hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {metaDisconnectStatus === "loading" ? (
+                              <>
+                                <Loader2
+                                  className="size-3.5 animate-spin"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                Removing…
+                              </>
+                            ) : (
+                              "Remove account"
+                            )}
+                          </button>
+                        </div>
+                      ) : (
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
                           <button
                             type="button"
@@ -487,10 +565,17 @@ export default function RestaurantSettingsDialog({
                             )}
                           </button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
 
-                    {metaConnectStatus === "error" && metaError ? (
+                    <FacebookPermissionsPanel
+                      grantedScopes={metaOauthScopes}
+                      missingRequiredScopes={metaMissingRequiredScopes}
+                      connected={metaConnected}
+                    />
+
+                    {(metaConnectStatus === "error" || metaDisconnectStatus === "error") &&
+                    metaError ? (
                       <div
                         role="alert"
                         className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"

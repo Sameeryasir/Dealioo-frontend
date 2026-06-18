@@ -3,9 +3,13 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type MetaConnectionStatus = {
   connected: boolean;
+  status?: string | null;
   metaUserId: string | null;
   metaConnectedAt: string | null;
   metaAdAccountId: string | null;
+  metaTokenExpiresAt?: string | null;
+  metaOauthScopes?: string[];
+  missingRequiredScopes?: string[];
 };
 
 export async function getFacebookConnectionStatus(

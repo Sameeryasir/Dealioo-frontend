@@ -9,6 +9,7 @@ import {
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScanCompleteOrderDialog } from "@/app/components/restaurant/ScanCompleteOrderDialog";
+import { GuestNotInDatabasePanel } from "@/app/components/restaurant/GuestNotInDatabasePanel";
 import { ScanCustomerConfirmDialog } from "@/app/components/restaurant/ScanCustomerConfirmDialog";
 import { ScanOrderSubtotalDialog } from "@/app/components/restaurant/ScanOrderSubtotalDialog";
 import { ScanRewardSelectDialog } from "@/app/components/restaurant/ScanRewardSelectDialog";
@@ -45,8 +46,10 @@ async function resolveCameraConfig(): Promise<string | MediaTrackConstraints> {
 
 export function ScannerScanCodePanel({
   restaurantId,
+  onCreateGuest,
 }: {
   restaurantId: number;
+  onCreateGuest?: () => void;
 }) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannedRef = useRef(false);
@@ -251,6 +254,13 @@ export function ScannerScanCodePanel({
     scannedRef.current = false;
   };
 
+  const guestNotInDatabase =
+    scanState === "error" &&
+    Boolean(
+      errorMessage?.toLowerCase().includes("customer not found") ||
+        errorMessage?.toLowerCase().includes("guest not found"),
+    );
+
   return (
     <>
       {scanState === "preview" && previewResult && dialogStep === "confirm" ? (
@@ -316,6 +326,12 @@ export function ScannerScanCodePanel({
       ) : null}
 
       <div className="flex flex-col gap-4">
+        {guestNotInDatabase ? (
+          <GuestNotInDatabasePanel
+            onCreateGuest={onCreateGuest}
+            onScanAgain={() => void resetScan()}
+          />
+        ) : (
         <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm shadow-zinc-200/40 ring-1 ring-zinc-950/[0.03]">
           {scanState === "idle" ? (
             <div className="flex flex-col items-center gap-5 px-6 py-12 sm:py-14">
@@ -456,6 +472,7 @@ export function ScannerScanCodePanel({
             </div>
           ) : null}
         </div>
+        )}
       </div>
     </>
   );

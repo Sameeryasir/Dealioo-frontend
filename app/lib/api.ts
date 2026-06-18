@@ -8,6 +8,7 @@ function configuredApiUrl(): string {
 function isNgrokHostname(hostname: string): boolean {
   return (
     hostname.endsWith(".ngrok-free.app") ||
+    hostname.endsWith(".ngrok-free.dev") ||
     hostname.endsWith(".ngrok.io") ||
     hostname.endsWith(".ngrok.app")
   );

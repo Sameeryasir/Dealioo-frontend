@@ -73,11 +73,17 @@ export function RestaurantQrScannerPanel({
 
         <div className="bg-gradient-to-b from-zinc-50/30 to-white p-4 sm:p-5" role="tabpanel">
           {activeTab === "scan" ? (
-            <ScannerScanCodePanel restaurantId={restaurantId} />
+            <ScannerScanCodePanel
+              restaurantId={restaurantId}
+              onCreateGuest={() => setActiveTab("create")}
+            />
           ) : null}
 
           {activeTab === "search" ? (
-            <ScannerSearchGuestPanel restaurantId={restaurantId} />
+            <ScannerSearchGuestPanel
+              restaurantId={restaurantId}
+              onCreateGuest={() => setActiveTab("create")}
+            />
           ) : null}
 
           {activeTab === "create" ? (

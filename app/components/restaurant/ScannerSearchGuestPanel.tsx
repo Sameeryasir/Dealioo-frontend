@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { GuestNotInDatabasePanel } from "@/app/components/restaurant/GuestNotInDatabasePanel";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { ReportTable } from "@/app/components/shared/ReportTable";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -164,8 +165,10 @@ function DealSelectRow({
 
 export function ScannerSearchGuestPanel({
   restaurantId,
+  onCreateGuest,
 }: {
   restaurantId: number;
+  onCreateGuest?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -173,6 +176,9 @@ export function ScannerSearchGuestPanel({
   const [searching, setSearching] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [guestNotInDatabaseQuery, setGuestNotInDatabaseQuery] = useState<
+    string | null
+  >(null);
   const [results, setResults] = useState<CustomerSearchResult[]>([]);
   const [meta, setMeta] = useState<{
     page: number;
@@ -202,6 +208,7 @@ export function ScannerSearchGuestPanel({
 
       setSearching(true);
       setErrorMessage(null);
+      setGuestNotInDatabaseQuery(null);
       setSelectedProfile(null);
       setShowPreviousRedemptions(false);
 
@@ -217,9 +224,7 @@ export function ScannerSearchGuestPanel({
         setPage(response.meta.page);
 
         if (response.meta.total === 0) {
-          setErrorMessage(
-            "No guests found. Try a different name, email, or phone.",
-          );
+          setErrorMessage(null);
         }
       } catch (err) {
         setResults([]);
@@ -250,6 +255,7 @@ export function ScannerSearchGuestPanel({
     async (guest: CustomerSearchResult) => {
       setLoadingProfile(true);
       setErrorMessage(null);
+      setGuestNotInDatabaseQuery(null);
       setShowPreviousRedemptions(false);
       setSelectedDealIds([]);
       setRedeemStep(null);
@@ -259,8 +265,10 @@ export function ScannerSearchGuestPanel({
       try {
         const profile = await getGuestProfile(restaurantId, guest.id);
         if (!profile) {
-          setErrorMessage("Guest not found.");
           setSelectedProfile(null);
+          setGuestNotInDatabaseQuery(
+            guest.name?.trim() || guest.email?.trim() || activeQuery,
+          );
           return;
         }
         setSelectedProfile(profile);
@@ -273,7 +281,7 @@ export function ScannerSearchGuestPanel({
         setLoadingProfile(false);
       }
     },
-    [restaurantId],
+    [restaurantId, activeQuery],
   );
 
   const handleDeleteGuest = useCallback(async () => {
@@ -392,7 +400,18 @@ export function ScannerSearchGuestPanel({
     [activeDeals, restaurantId, selectedProfile],
   );
 
-  const showTable = !selectedProfile && activeQuery.length > 0;
+  const showGuestNotFound =
+    !selectedProfile &&
+    !loadingProfile &&
+    !searching &&
+    (guestNotInDatabaseQuery != null ||
+      (activeQuery.length > 0 && (meta?.total ?? 0) === 0));
+
+  const guestNotFoundQuery =
+    guestNotInDatabaseQuery ?? (showGuestNotFound ? activeQuery : undefined);
+
+  const showTable =
+    !selectedProfile && activeQuery.length > 0 && (meta?.total ?? 0) > 0;
   const rowOffset = useMemo(
     () => ((meta?.page ?? page) - 1) * (meta?.limit ?? GUEST_SEARCH_PAGE_SIZE),
     [meta, page],
@@ -469,7 +488,7 @@ export function ScannerSearchGuestPanel({
         </div>
       ) : null}
 
-      {errorMessage ? (
+      {errorMessage && !showGuestNotFound ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
         </p>
@@ -665,6 +684,21 @@ export function ScannerSearchGuestPanel({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {showGuestNotFound ? (
+        <GuestNotInDatabasePanel
+          searchQuery={guestNotFoundQuery}
+          onCreateGuest={onCreateGuest}
+          onSearchAgain={() => {
+            setActiveQuery("");
+            setResults([]);
+            setMeta(null);
+            setQuery("");
+            setGuestNotInDatabaseQuery(null);
+            setErrorMessage(null);
+          }}
+        />
       ) : null}
 
       {showTable ? (

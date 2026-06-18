@@ -18,6 +18,7 @@ export function redirectToLogin(): void {
 export async function authenticatedFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
+  timeoutMs?: number,
 ): Promise<Response> {
   const token = getSetupAccessToken().trim();
   const refreshToken = getSetupRefreshToken().trim();
@@ -32,7 +33,7 @@ export async function authenticatedFetch(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  let res = await fetchWithTimeout(input, { ...init, headers });
+  let res = await fetchWithTimeout(input, { ...init, headers }, timeoutMs);
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
@@ -42,7 +43,7 @@ export async function authenticatedFetch(
     }
 
     headers.set("Authorization", `Bearer ${newToken}`);
-    res = await fetchWithTimeout(input, { ...init, headers });
+    res = await fetchWithTimeout(input, { ...init, headers }, timeoutMs);
 
     if (res.status === 401) {
       redirectToLogin();
