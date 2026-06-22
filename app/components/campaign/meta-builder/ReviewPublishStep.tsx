@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink } from "lucide-react";
+import { CheckCircle2, ExternalLink, XCircle } from "lucide-react";
+import {
+  getPublishMetaCampaignDiagnostic,
+  type PublishMetaCampaignDiagnostic,
+} from "@/app/services/facebook/meta-campaign-draft";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -100,6 +104,27 @@ export function ReviewPublishStep({
   onPublish,
 }: ReviewPublishStepProps) {
   const [facebookPageName, setFacebookPageName] = useState<string | null>(null);
+  const [diagnostic, setDiagnostic] = useState<PublishMetaCampaignDiagnostic | null>(
+    null,
+  );
+  const [diagnosticLoading, setDiagnosticLoading] = useState(true);
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getPublishMetaCampaignDiagnostic(restaurantId, draftId)
+      .then((report) => {
+        setDiagnostic(report);
+        console.group("[MetaPublish] Review step preflight");
+        console.log(report);
+        console.groupEnd();
+      })
+      .catch((err) => {
+        setDiagnosticError(
+          err instanceof Error ? err.message : "Could not run publish diagnostic.",
+        );
+      })
+      .finally(() => setDiagnosticLoading(false));
+  }, [draftId, restaurantId]);
 
   useEffect(() => {
     void getFacebookPages(restaurantId)
@@ -126,6 +151,74 @@ export function ReviewPublishStep({
         description="Confirm everything below, then publish once to Meta. Campaign → Ad Set → Media → Creative → Ad."
         badge="One-time publish"
       />
+
+      {!publishSuccess ? (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
+            Publish preflight check
+          </h3>
+          {diagnosticLoading ? (
+            <p className="mt-2 text-sm text-zinc-500">Running diagnostic…</p>
+          ) : null}
+          {diagnosticError ? (
+            <p className="mt-2 text-sm text-red-700">{diagnosticError}</p>
+          ) : null}
+          {diagnostic ? (
+            <div className="mt-3 space-y-2">
+              <p
+                className={`text-sm font-semibold ${
+                  diagnostic.overallSuccess ? "text-emerald-700" : "text-red-700"
+                }`}
+              >
+                {diagnostic.overallSuccess
+                  ? "Ready to publish — all preflight checks passed."
+                  : `Blocked at: ${diagnostic.firstFailingStep ?? "unknown"}`}
+              </p>
+              {!diagnostic.overallSuccess && diagnostic.recommendedFix ? (
+                <p className="text-sm text-zinc-600">{diagnostic.recommendedFix}</p>
+              ) : null}
+              <ul className="space-y-1.5">
+                {diagnostic.steps
+                  .filter((step) => step.status !== "skipped")
+                  .map((step) => (
+                    <li
+                      key={step.name}
+                      className="flex items-start gap-2 text-sm text-zinc-700"
+                    >
+                      {step.status === "success" ? (
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                      ) : (
+                        <XCircle className="mt-0.5 size-4 shrink-0 text-red-600" />
+                      )}
+                      <span>
+                        <span className="font-medium">{step.label}</span>
+                        {step.message ? (
+                          <span className="block text-zinc-500">{step.message}</span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+              <dl className="mt-3 grid gap-1 rounded-xl bg-zinc-50 p-3 font-mono text-xs text-zinc-600">
+                <div>ad_account_id: {diagnostic.connection.adAccountId ?? "—"}</div>
+                <div>facebook_user_id: {diagnostic.connection.metaUserId ?? "—"}</div>
+                <div>page_id: {diagnostic.connection.facebookPageId ?? "—"}</div>
+                <div>
+                  permissions:{" "}
+                  {Object.entries(diagnostic.permissions)
+                    .filter(([key]) =>
+                      ["ads_management", "ads_read", "business_management"].includes(
+                        key,
+                      ),
+                    )
+                    .map(([key, val]) => `${key}=${val}`)
+                    .join(", ") || "—"}
+                </div>
+              </dl>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {partialPublish?.metaCampaignId && !publishSuccess ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">

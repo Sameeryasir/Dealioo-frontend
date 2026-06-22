@@ -17,6 +17,7 @@ import { PlaceholderBuilderStep } from "@/app/components/campaign/meta-builder/P
 import { ReviewPublishStep } from "@/app/components/campaign/meta-builder/ReviewPublishStep";
 import {
   getMetaCampaignDraft,
+  getPublishMetaCampaignDiagnostic,
   publishMetaCampaignDraft,
   saveAdCreativeStep,
   saveAdSetStep,
@@ -194,7 +195,27 @@ export function MetaCampaignBuilder({
     setError(null);
 
     try {
-      const result = await publishMetaCampaignDraft(restaurantId, draftId);
+      const diagnostic = await getPublishMetaCampaignDiagnostic(
+        restaurantId,
+        draftId,
+      );
+      console.group("[MetaPublish] Preflight diagnostic");
+      console.log(diagnostic);
+      console.groupEnd();
+
+      if (!diagnostic.overallSuccess) {
+        throw new Error(
+          diagnostic.recommendedFix ??
+            `Publish blocked at ${diagnostic.firstFailingStep ?? "preflight"}.`,
+        );
+      }
+
+      const result = await publishMetaCampaignDraft(restaurantId, draftId, {
+        campaignName: campaignData.name,
+        adSetName: adSetData.name,
+        creativeName: adCreativeData.name,
+        facebookPageId: adCreativeData.facebookPageId,
+      });
       setPublishSuccess(result);
       setPartialMeta(null);
       setError(null);

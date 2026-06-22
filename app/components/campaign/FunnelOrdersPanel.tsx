@@ -4,11 +4,9 @@ import {
   Calendar,
   CircleCheck,
   CircleDollarSign,
-  ExternalLink,
   Hash,
   Layers,
   Mail,
-  Receipt,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -52,7 +50,6 @@ function TableSkeleton() {
           <Skeleton funnel className="h-3 w-[12%]" />
           <Skeleton funnel className="h-3 w-[12%]" />
           <Skeleton funnel className="h-3 w-[20%]" />
-          <Skeleton funnel className="h-3 w-[12%]" />
         </div>
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
@@ -65,7 +62,6 @@ function TableSkeleton() {
           <Skeleton funnel className="h-4 w-[12%]" />
           <Skeleton funnel className="h-4 w-[12%]" />
           <Skeleton funnel className="h-4 w-[20%]" />
-          <Skeleton funnel className="h-4 w-[12%]" />
         </div>
       ))}
     </div>
@@ -203,15 +199,6 @@ export function FunnelOrdersPanel({
                         iconBoxClassName="border-orange-200/80 bg-orange-50"
                       />
                     </th>
-                    <th className={`${thClass} whitespace-nowrap`}>
-                      <TableColumnHeader
-                        variant="boxed"
-                        icon={Receipt}
-                        label="Receipt"
-                        iconClassName="text-violet-600"
-                        iconBoxClassName="border-violet-200/80 bg-violet-50"
-                      />
-                    </th>
                   </motion.tr>
                 </thead>
                 <motion.tbody
@@ -223,9 +210,7 @@ export function FunnelOrdersPanel({
                     <motion.tr
                       key={payment.id}
                       variants={tableRowReveal}
-                      className={`group border-b border-zinc-100/90 bg-white transition-[background-color,box-shadow] duration-200 last:border-0 hover:bg-zinc-50/90 hover:shadow-[inset_3px_0_0_0_rgb(24_24_27)] ${
-                        payment.receiptUrl ? "hover:cursor-pointer" : ""
-                      }`}
+                      className="group border-b border-zinc-100/90 bg-white transition-[background-color,box-shadow] duration-200 last:border-0 hover:bg-zinc-50/90 hover:shadow-[inset_3px_0_0_0_rgb(24_24_27)]"
                     >
                       <td className={`${tdClass} w-12`}>
                         <span className="inline-flex size-7 items-center justify-center rounded-lg bg-zinc-100/90 text-xs font-semibold tabular-nums text-zinc-600 ring-1 ring-zinc-200/80">
@@ -274,24 +259,6 @@ export function FunnelOrdersPanel({
                             </span>
                           );
                         })()}
-                      </td>
-                      <td className={`${tdClass} whitespace-nowrap`}>
-                        {payment.receiptUrl ? (
-                          <a
-                            href={payment.receiptUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950"
-                          >
-                            View receipt
-                            <ExternalLink
-                              className="size-3.5 text-zinc-400 transition group-hover:text-zinc-600"
-                              aria-hidden
-                            />
-                          </a>
-                        ) : (
-                          <span className="text-sm text-zinc-300">—</span>
-                        )}
                       </td>
                     </motion.tr>
                   ))}

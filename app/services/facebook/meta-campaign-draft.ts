@@ -21,10 +21,102 @@ export type PublishMetaCampaignResult = {
   message: string;
 };
 
+export type PublishDiagnosticStep = {
+  name: string;
+  label: string;
+  status: "success" | "failed" | "skipped" | "warning";
+  message?: string;
+  metaErrorCode?: number | null;
+  metaErrorMessage?: string;
+  details?: Record<string, unknown>;
+};
+
+export type PublishMetaCampaignDiagnostic = {
+  generatedAt: string;
+  draftId: string;
+  restaurantId: number;
+  overallSuccess: boolean;
+  firstFailingStep?: string;
+  recommendedFix?: string;
+  steps: PublishDiagnosticStep[];
+  connection: {
+    metaUserId: string | null;
+    adAccountId: string | null;
+    facebookPageId: string | null;
+    tokenExpiresAt: string | null;
+    tokenValid: boolean;
+    connectedAt: string | null;
+    storedScopes: string | null;
+  };
+  permissions: Record<string, string>;
+  adAccounts: Array<{ id: string; name?: string; accountStatus?: number }>;
+  selectedAdAccountFound: boolean;
+  storedMetaIds: {
+    metaCampaignId: string | null;
+    metaAdsetId: string | null;
+    metaCreativeId: string | null;
+    metaAdId: string | null;
+    draftStatus: string | null;
+  };
+  draftSummary: {
+    campaignName: string;
+    adSetName: string;
+    creativeName: string;
+    creativeFormat: string;
+    hasImage: boolean;
+    hasVideo: boolean;
+  };
+  publishEndpoint: {
+    method: string;
+    path: string;
+  };
+};
+
+export async function getPublishMetaCampaignDiagnostic(
+  restaurantId: number,
+  draftId: string,
+): Promise<PublishMetaCampaignDiagnostic> {
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish-diagnostic`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not run publish diagnostic."),
+    );
+  }
+
+  return res.json() as Promise<PublishMetaCampaignDiagnostic>;
+}
+
 export async function publishMetaCampaignDraft(
   restaurantId: number,
   draftId: string,
+  auditContext?: {
+    campaignName?: string;
+    adSetName?: string;
+    creativeName?: string;
+    adAccountId?: string | null;
+    facebookPageId?: string | null;
+  },
 ): Promise<PublishMetaCampaignResult> {
+  const url = `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish`;
+
+  console.group("[MetaPublish] Frontend publish trigger");
+  console.log("Request URL:", url);
+  console.log("Request Method:", "POST");
+  console.log("Request Body:", "(none — draft loaded server-side by draftId)");
+  console.log("Audit context:", {
+    restaurantId,
+    draftId,
+    ad_account_id: auditContext?.adAccountId ?? "(from restaurant record on server)",
+    campaign: auditContext?.campaignName,
+    adSet: auditContext?.adSetName,
+    creative: auditContext?.creativeName,
+    facebook_page_id: auditContext?.facebookPageId,
+  });
+
   const controller = new AbortController();
   const timeout = window.setTimeout(
     () => controller.abort(),
@@ -32,22 +124,26 @@ export async function publishMetaCampaignDraft(
   );
 
   try {
-    const res = await authenticatedFetch(
-      `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-      },
-    );
+    const res = await authenticatedFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
+
+    console.log("Response Status:", res.status, res.statusText);
 
     if (!res.ok) {
+      const errorBody = await res.clone().text();
+      console.log("Response Body (error):", errorBody);
+      console.groupEnd();
       throw new Error(
         await parseApiErrorMessage(res, "Could not publish campaign to Meta."),
       );
     }
 
     const data = (await res.json()) as PublishMetaCampaignResult;
+    console.log("Response Body (success):", data);
+    console.groupEnd();
 
     if (
       !data.metaCampaignId ||

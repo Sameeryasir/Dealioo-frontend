@@ -211,8 +211,12 @@ export function CampaignAdsPanel({
     : "https://www.facebook.com/adsmanager";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="relative overflow-hidden bg-gradient-to-b from-[#1877F2]/5 via-white to-zinc-50/30 px-4 py-8 sm:px-8 sm:py-10">
+      <div
+        className="pointer-events-none absolute -right-20 top-0 size-64 rounded-full bg-[#1877F2]/10 blur-3xl"
+        aria-hidden
+      />
+      <div className="relative mx-auto w-full max-w-5xl space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#1877F2]/10 px-3 py-1 text-xs font-semibold text-[#1877F2]">
@@ -263,8 +267,8 @@ export function CampaignAdsPanel({
           ) : null}
         </div>
 
-        <div className={`overflow-hidden ${panelCardClass}`}>
-          <div className="border-b border-zinc-200/80 bg-gradient-to-r from-[#1877F2]/5 via-white to-violet-50/40 px-5 py-4 sm:px-6">
+        <div className="overflow-hidden rounded-3xl border border-zinc-200/70 bg-white/90 shadow-xl shadow-zinc-900/5 ring-1 ring-zinc-950/[0.04] backdrop-blur-sm">
+          <div className="border-b border-zinc-200/80 bg-gradient-to-r from-[#1877F2]/8 via-white to-violet-50/50 px-5 py-4 sm:px-6">
             {metaLoading ? (
               <p className="flex items-center gap-2 text-sm text-zinc-500">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -273,12 +277,13 @@ export function CampaignAdsPanel({
             ) : null}
 
             {!metaLoading && !metaConnected ? (
-              <div>
-                <p className="font-semibold text-zinc-900">
-                  Facebook is not connected
-                </p>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Open <span className="font-medium text-zinc-800">Settings → Integrations</span>{" "}
+              <div className="py-6 text-center sm:py-8">
+                <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#1877F2]/10 text-[#1877F2] ring-1 ring-[#1877F2]/20">
+                  <Megaphone className="size-7" aria-hidden />
+                </span>
+                <p className="mt-4 font-bold text-zinc-900">Connect Facebook Ads</p>
+                <p className="mt-2 text-sm text-zinc-600">
+                  Open <span className="font-semibold text-zinc-800">Settings → Integrations</span>{" "}
                   and connect Facebook to see ad spend, reach, and campaigns here.
                 </p>
               </div>

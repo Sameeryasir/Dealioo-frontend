@@ -10,35 +10,42 @@ type FacebookPermissionsPanelProps = {
   grantedScopes: string[];
   missingRequiredScopes: string[];
   connected: boolean;
+  loading?: boolean;
 };
 
 export function FacebookPermissionsPanel({
   grantedScopes,
   missingRequiredScopes,
   connected,
+  loading = false,
 }: FacebookPermissionsPanelProps) {
   const granted = parseGrantedScopes(grantedScopes);
   const hasStoredScopes = granted.size > 0;
 
+  if (loading) {
+    return (
+      <div className="mt-4 rounded-xl border border-zinc-800/60 bg-zinc-950/60 px-4 py-3 ring-1 ring-inset ring-white/[0.03]">
+        <p className="text-xs text-zinc-500">Loading Facebook permissions…</p>
+      </div>
+    );
+  }
+
   if (!hasStoredScopes && !connected) {
     return (
-      <div className="mt-4 rounded-xl border border-dashed border-zinc-700 bg-zinc-950/40 px-4 py-3">
+      <div className="mt-4 rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-4 py-3 ring-1 ring-inset ring-white/[0.03]">
         <p className="text-xs leading-relaxed text-zinc-400">
-          Permissions are saved after you connect. Tap{" "}
-          <span className="font-semibold text-zinc-300">Connect with Facebook</span>{" "}
-          — Meta will ask you to approve ad access. We store what you grant here so
-          you can see exactly what Only Deals can do.
+          Connect Facebook to see which ad permissions Only Deals can use.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 space-y-3 rounded-xl border border-zinc-800/50 bg-zinc-950/40 p-4 ring-1 ring-inset ring-white/[0.03]">
       <div className="flex items-center gap-2">
         <Shield className="size-4 text-[#1877F2]" aria-hidden />
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Permissions granted at connect
+        <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-400">
+          Permissions granted
         </p>
       </div>
 
@@ -114,9 +121,8 @@ export function FacebookPermissionsPanel({
       </ul>
 
       <p className="text-[11px] leading-relaxed text-zinc-500">
-        Even with all permissions granted, Meta may still block publishing if your
-        Facebook account is not an Administrator on the Only Deals Meta app while
-        the app is in Development mode.
+        Meta may block publishing if your account is not an Administrator on the
+        Only Deals app while it is in Development mode.
       </p>
     </div>
   );

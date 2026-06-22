@@ -1,6 +1,7 @@
 "use client";
 
 import { CampaignAdsPanel } from "@/app/components/campaign/CampaignAdsPanel";
+import { CampaignGoogleAdsPanel } from "@/app/components/campaign/CampaignGoogleAdsPanel";
 import { FunnelOrdersPanel } from "@/app/components/campaign/FunnelOrdersPanel";
 import { CampaignGuestsPanel } from "@/app/components/campaign/CampaignGuestsPanel";
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
@@ -108,11 +109,20 @@ export default function CampaignWelcomePage() {
       ) : activeTabId === "automations" ? (
         <AutomationListPage onOpenBuilder={openAutomationBuilder} />
       ) : activeTabId === "ads" ? (
-        <CampaignAdsPanel
-          restaurantId={restaurantId}
-          campaignName={campaign?.campaignName}
-          campaignImageUrl={campaign?.imageUrl}
-        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-zinc-50/50">
+          <CampaignAdsPanel
+            restaurantId={restaurantId}
+            campaignName={campaign?.campaignName}
+            campaignImageUrl={campaign?.imageUrl}
+          />
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-8">
+            <div
+              className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
+              aria-hidden
+            />
+          </div>
+          <CampaignGoogleAdsPanel restaurantId={restaurantId} />
+        </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
           <p className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
