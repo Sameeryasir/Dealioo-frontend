@@ -27,15 +27,20 @@ export type FacebookAdCampaignStats = {
 
 export async function getFacebookAdCampaignStats(
   restaurantId: number,
+  websiteUrl?: string | null,
 ): Promise<FacebookAdCampaignStats> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Restaurant is required.");
   }
 
-  const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}`,
-    { method: "GET" },
-  );
+  const params = new URLSearchParams();
+  if (websiteUrl?.trim()) {
+    params.set("websiteUrl", websiteUrl.trim());
+  }
+  const query = params.toString();
+  const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}${query ? `?${query}` : ""}`;
+
+  const res = await authenticatedFetch(path, { method: "GET" });
 
   if (!res.ok) {
     throw new Error(

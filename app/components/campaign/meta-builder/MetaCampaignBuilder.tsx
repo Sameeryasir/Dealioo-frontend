@@ -17,7 +17,6 @@ import { PlaceholderBuilderStep } from "@/app/components/campaign/meta-builder/P
 import { ReviewPublishStep } from "@/app/components/campaign/meta-builder/ReviewPublishStep";
 import {
   getMetaCampaignDraft,
-  getPublishMetaCampaignDiagnostic,
   publishMetaCampaignDraft,
   saveAdCreativeStep,
   saveAdSetStep,
@@ -29,6 +28,7 @@ type MetaCampaignBuilderProps = {
   open: boolean;
   restaurantId: number;
   defaultName?: string;
+  defaultWebsiteUrl?: string;
   draftId?: string | null;
   initialDraft?: MetaCampaignDraft | null;
   onClose: () => void;
@@ -39,6 +39,7 @@ export function MetaCampaignBuilder({
   open,
   restaurantId,
   defaultName = "",
+  defaultWebsiteUrl,
   draftId: initialDraftId = null,
   initialDraft = null,
   onClose,
@@ -81,6 +82,8 @@ export function MetaCampaignBuilder({
         }
       : null,
   );
+
+  const [refreshingPublishStatus, setRefreshingPublishStatus] = useState(false);
 
   const publishStartedRef = useRef(false);
 
@@ -180,6 +183,58 @@ export function MetaCampaignBuilder({
     [draftId, onDraftSaved, restaurantId],
   );
 
+  const handleRefreshPublishStatus = useCallback(async () => {
+    if (!draftId) return;
+
+    setRefreshingPublishStatus(true);
+    setError(null);
+    try {
+      const refreshed = await getMetaCampaignDraft(restaurantId, draftId, 15_000);
+      if (
+        refreshed.status === "published" &&
+        refreshed.metaCampaignId &&
+        refreshed.metaAdsetId &&
+        refreshed.metaCreativeId &&
+        refreshed.metaAdId
+      ) {
+        const result: PublishMetaCampaignResult = {
+          draftId: refreshed.id,
+          trackingId: refreshed.id,
+          metaCampaignId: refreshed.metaCampaignId,
+          metaAdsetId: refreshed.metaAdsetId,
+          metaCreativeId: refreshed.metaCreativeId,
+          metaAdId: refreshed.metaAdId,
+          status: "PAUSED",
+          adsManagerUrl: "",
+          message: "Campaign published successfully to Meta (paused).",
+        };
+        setPublishSuccess(result);
+        setPartialMeta(null);
+        onDraftSaved?.(refreshed);
+        return;
+      }
+
+      if (refreshed.metaCampaignId && !refreshed.metaAdId) {
+        setPartialMeta({
+          metaCampaignId: refreshed.metaCampaignId,
+          metaAdsetId: refreshed.metaAdsetId,
+          metaCreativeId: refreshed.metaCreativeId,
+          previousError: refreshed.errorMessage,
+        });
+        setError(
+          refreshed.errorMessage ??
+            "Still waiting on Meta. If Ads Manager already shows your ad, wait a minute and check again.",
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not refresh publish status.",
+      );
+    } finally {
+      setRefreshingPublishStatus(false);
+    }
+  }, [draftId, onDraftSaved, restaurantId]);
+
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
       setError("Complete all steps before publishing.");
@@ -195,21 +250,6 @@ export function MetaCampaignBuilder({
     setError(null);
 
     try {
-      const diagnostic = await getPublishMetaCampaignDiagnostic(
-        restaurantId,
-        draftId,
-      );
-      console.group("[MetaPublish] Preflight diagnostic");
-      console.log(diagnostic);
-      console.groupEnd();
-
-      if (!diagnostic.overallSuccess) {
-        throw new Error(
-          diagnostic.recommendedFix ??
-            `Publish blocked at ${diagnostic.firstFailingStep ?? "preflight"}.`,
-        );
-      }
-
       const result = await publishMetaCampaignDraft(restaurantId, draftId, {
         campaignName: campaignData.name,
         adSetName: adSetData.name,
@@ -252,7 +292,6 @@ export function MetaCampaignBuilder({
             });
           }
         } catch {
-          // Keep the publish error message only.
         }
       }
     } finally {
@@ -271,12 +310,12 @@ export function MetaCampaignBuilder({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
+    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-50">
+      <div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-4">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-zinc-200 bg-white p-2.5 text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800"
+          className="rounded-xl border border-zinc-200 bg-white p-2.5 text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900"
           aria-label="Close builder"
         >
           <X className="size-5" />
@@ -289,14 +328,14 @@ export function MetaCampaignBuilder({
         onStepClick={handleStepClick}
       />
 
-      <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-        <div className="mx-auto max-w-3xl space-y-4">
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
           {saving && !publishing ? (
             <BuilderLoadingBanner message="Saving draft…" />
           ) : null}
 
           {publishing ? (
-            <BuilderLoadingBanner message="Publishing to Meta… this may take up to a minute." />
+            <BuilderLoadingBanner message="Publishing to Meta… this may take up to a few minutes." />
           ) : null}
 
           {currentStep === 1 ? (
@@ -338,6 +377,7 @@ export function MetaCampaignBuilder({
               draftId={draftId}
               campaignData={campaignData}
               adSetData={adSetData}
+              defaultWebsiteUrl={defaultWebsiteUrl}
               initialData={adCreativeData}
               saving={saving}
               error={error}
@@ -370,6 +410,8 @@ export function MetaCampaignBuilder({
               onBack={onClose}
               onPrevious={() => setCurrentStep(3)}
               onPublish={handlePublish}
+              onRefreshStatus={handleRefreshPublishStatus}
+              refreshingStatus={refreshingPublishStatus}
             />
           ) : null}
 

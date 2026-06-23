@@ -17,7 +17,6 @@ function initialFunnelIdLoading(campaignId: number | undefined): boolean {
 export function useCampaignFunnelId(campaignId: number | undefined): {
   funnelId: number | null;
   isLoading: boolean;
-  /** Re-read cache or call GET /funnel/campaign/:id (e.g. before creating automations). */
   ensureFunnelIdLoaded: () => void;
 } {
   const [funnelId, setFunnelId] = useState<number | null>(() =>
@@ -49,6 +48,10 @@ export function useCampaignFunnelId(campaignId: number | undefined): {
         if (cancelled()) return;
         const resolved = isPositiveInt(remote?.id) ? remote.id : null;
         setFunnelId(resolved);
+      } catch (err) {
+        if (cancelled()) return;
+        console.warn("[Funnel] Could not load funnel for campaign", id, err);
+        setFunnelId(null);
       } finally {
         if (!cancelled()) setIsLoading(false);
       }

@@ -197,6 +197,9 @@ export type AdCreativeStepData = {
   callToAction?: MetaCallToAction;
   pixelId?: string;
   conversionEvent?: string;
+  brandingEnabled?: boolean;
+  brandName?: string;
+  brandLogoUrl?: string;
 };
 export type MetaCampaignDraft = {
   id: string;

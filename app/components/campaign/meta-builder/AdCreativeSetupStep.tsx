@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
-import { getPublicAppUrl } from "@/app/lib/public-app-url";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, ExternalLink, Loader2, Plus, Trash2, Video } from "lucide-react";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { getMetaLandingUrl } from "@/app/lib/public-app-url";
 import {
   CTA_OPTIONS,
-  hasInstagramPlacements,
 } from "@/app/lib/meta-ad-creative-helpers";
 import type {
   AdCreativeStepData,
@@ -18,22 +18,31 @@ import type {
 } from "@/app/lib/meta-campaign-builder-types";
 import {
   resolveMetaImageUrl,
+  validateHttpsUrl,
   validateMetaImageUrl,
 } from "@/app/lib/resolve-meta-image-url";
 import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
 import {
+  BuilderCard,
+  BuilderCollapsible,
   BuilderErrorAlert,
+  BuilderField,
   BuilderFooter,
-  BuilderSectionTitle,
+  BuilderRadioCard,
+  BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
+  builderInputErrorClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
 import { getFacebookPages } from "@/app/services/facebook/get-facebook-pages";
+import {
+  getFacebookAdAccounts,
+  type FacebookAdAccount,
+} from "@/app/services/facebook/get-facebook-ad-accounts";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-account";
 import { uploadFacebookCampaignImage } from "@/app/services/facebook/upload-facebook-campaign-image";
 import { uploadFacebookCampaignVideo } from "@/app/services/facebook/upload-facebook-campaign-video";
-
-const sectionCardClass =
-  "space-y-4 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)]";
 
 function emptyCarouselCard(destination: string): CarouselCard {
   return {
@@ -45,11 +54,16 @@ function emptyCarouselCard(destination: string): CarouselCard {
   };
 }
 
+function adAccountLabel(account: FacebookAdAccount): string {
+  return account.name?.trim() || account.accountId || account.id;
+}
+
 type AdCreativeSetupStepProps = {
   restaurantId: number;
   draftId: string;
   campaignData: CampaignStepData;
   adSetData: AdSetStepData;
+  defaultWebsiteUrl?: string;
   initialData?: AdCreativeStepData | null;
   saving: boolean;
   error: string | null;
@@ -63,6 +77,7 @@ export function AdCreativeSetupStep({
   draftId,
   campaignData,
   adSetData,
+  defaultWebsiteUrl,
   initialData,
   saving,
   error,
@@ -70,14 +85,30 @@ export function AdCreativeSetupStep({
   onPrevious,
   onSave,
 }: AdCreativeSetupStepProps) {
-  const defaultDestination = getPublicAppUrl();
+  const defaultDestination = getMetaLandingUrl(defaultWebsiteUrl);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
 
+  const [destinationMode, setDestinationMode] = useState<"website" | "instant">(
+    "website",
+  );
   const [name, setName] = useState(initialData?.name ?? `${campaignData.name} Ad`);
   const [facebookPageId, setFacebookPageId] = useState(initialData?.facebookPageId ?? "");
-  const [instagramActorId, setInstagramActorId] = useState(initialData?.instagramActorId ?? "");
+  const [instagramProfileMode, setInstagramProfileMode] = useState<
+    "facebook_page" | "custom"
+  >(initialData?.instagramActorId?.trim() ? "custom" : "facebook_page");
+  const [instagramActorId, setInstagramActorId] = useState(
+    initialData?.instagramActorId ?? "",
+  );
+  const [showInstagramConnect, setShowInstagramConnect] = useState(
+    Boolean(initialData?.instagramActorId?.trim()),
+  );
+  const [brandingEnabled, setBrandingEnabled] = useState(
+    initialData?.brandingEnabled ?? false,
+  );
+  const [brandName, setBrandName] = useState(initialData?.brandName ?? "");
+  const [brandLogoUrl, setBrandLogoUrl] = useState(initialData?.brandLogoUrl ?? "");
   const [status, setStatus] = useState<MetaCampaignStatus>(initialData?.status ?? "PAUSED");
   const [creativeFormat, setCreativeFormat] = useState<MetaCreativeFormat>(
     initialData?.creativeFormat ?? "SINGLE_IMAGE",
@@ -104,13 +135,13 @@ export function AdCreativeSetupStep({
 
   const [pages, setPages] = useState<Array<{ id: string; name: string | null }>>([]);
   const [pagesLoading, setPagesLoading] = useState(true);
+  const [adAccounts, setAdAccounts] = useState<FacebookAdAccount[]>([]);
+  const [selectedAdAccountId, setSelectedAdAccountId] = useState("");
+  const [adAccountsLoading, setAdAccountsLoading] = useState(true);
+  const [switchingAccount, setSwitchingAccount] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-
-  const instagramRequired = useMemo(
-    () => hasInstagramPlacements(adSetData.placements),
-    [adSetData.placements],
-  );
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const previewImage =
     creativeFormat === "SINGLE_IMAGE" && imageUrl.trim()
@@ -138,17 +169,75 @@ export function AdCreativeSetupStep({
       .finally(() => setPagesLoading(false));
   }, [restaurantId, initialData?.facebookPageId]);
 
+  useEffect(() => {
+    setAdAccountsLoading(true);
+    const token = getSetupAccessToken().trim();
+    void (async () => {
+      try {
+        const accounts = await getFacebookAdAccounts(restaurantId);
+        setAdAccounts(accounts);
+        if (token) {
+          const status = await getFacebookConnectionStatus(token, restaurantId);
+          if (status.metaAdAccountId) {
+            setSelectedAdAccountId(status.metaAdAccountId);
+            return;
+          }
+        }
+        if (accounts[0]?.id) {
+          setSelectedAdAccountId(accounts[0].id);
+        }
+      } catch {
+        setAdAccounts([]);
+      } finally {
+        setAdAccountsLoading(false);
+      }
+    })();
+  }, [restaurantId]);
+
+  const selectedAdAccount = adAccounts.find((a) => a.id === selectedAdAccountId);
+
+  const handleAdAccountChange = async (nextId: string) => {
+    if (!nextId || nextId === selectedAdAccountId) return;
+    setSwitchingAccount(true);
+    setLocalError(null);
+    try {
+      await setFacebookAdAccount(restaurantId, nextId);
+      setSelectedAdAccountId(nextId);
+    } catch (err) {
+      setLocalError(
+        err instanceof Error ? err.message : "Could not switch ad account.",
+      );
+    } finally {
+      setSwitchingAccount(false);
+    }
+  };
+
+  const buildCreativeExtras = () => ({
+    instagramActorId:
+      instagramProfileMode === "custom" && instagramActorId.trim()
+        ? instagramActorId.trim()
+        : undefined,
+    ...(brandingEnabled
+      ? {
+          brandingEnabled: true,
+          brandName: brandName.trim() || undefined,
+          brandLogoUrl: brandLogoUrl.trim() || undefined,
+        }
+      : {}),
+  });
+
   const handleImageUpload = async (file: File | undefined, target: "main" | "thumb" | number) => {
     if (!file) return;
     setUploading(true);
     setLocalError(null);
     try {
       const { imageUrl: url } = await uploadFacebookCampaignImage(restaurantId, file);
-      if (target === "main") setImageUrl(url);
-      else if (target === "thumb") setThumbnailUrl(url);
+      const resolved = resolveMetaImageUrl(url);
+      if (target === "main") setImageUrl(resolved);
+      else if (target === "thumb") setThumbnailUrl(resolved);
       else {
         setCarouselCards((prev) =>
-          prev.map((card, i) => (i === target ? { ...card, imageUrl: url, mediaType: "image" } : card)),
+          prev.map((card, i) => (i === target ? { ...card, imageUrl: resolved, mediaType: "image" } : card)),
         );
       }
     } catch (err) {
@@ -175,29 +264,32 @@ export function AdCreativeSetupStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
+    setFieldErrors({});
 
-    if (!name.trim()) return setLocalError("Ad name is required.");
-    if (!facebookPageId.trim()) return setLocalError("Facebook Page is required.");
-    if (!primaryText.trim()) return setLocalError("Primary text is required.");
-
-    if (instagramRequired && !instagramActorId.trim()) {
-      return setLocalError(
-        "Instagram placements are enabled. Select an Instagram account or change placements on Step 2.",
-      );
-    }
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = "Ad name is required.";
+    if (!facebookPageId.trim()) errors.facebookPageId = "Select the Facebook Page that will run this ad.";
+    if (!primaryText.trim()) errors.primaryText = "Primary text is required.";
 
     if (creativeFormat === "SINGLE_IMAGE") {
       const resolved = resolveMetaImageUrl(imageUrl);
       const imgErr = validateMetaImageUrl(resolved);
-      if (imgErr) return setLocalError(imgErr);
-      if (!headline.trim()) return setLocalError("Headline is required.");
-      if (!destinationUrl.trim()) return setLocalError("Destination URL is required.");
+      if (imgErr) errors.imageUrl = imgErr;
+      if (!headline.trim()) errors.headline = "Headline is required.";
+      if (destinationMode !== "website") {
+        errors.destinationUrl = "Instant Experience is not supported yet. Choose Website.";
+      }
+      const destErr = validateHttpsUrl(destinationUrl, "Website URL");
+      if (destErr) errors.destinationUrl = destErr;
+      if (Object.keys(errors).length) {
+        setFieldErrors(errors);
+        return;
+      }
 
       await onSave({
         name: name.trim(),
         draftId,
         facebookPageId: facebookPageId.trim(),
-        instagramActorId: instagramActorId.trim() || undefined,
         status,
         creativeFormat,
         imageUrl: resolved,
@@ -211,20 +303,28 @@ export function AdCreativeSetupStep({
         callToAction,
         pixelId: pixelId.trim() || undefined,
         conversionEvent: conversionEvent.trim() || undefined,
+        ...buildCreativeExtras(),
       });
       return;
     }
 
     if (creativeFormat === "SINGLE_VIDEO") {
-      if (!videoUrl.trim()) return setLocalError("Video is required.");
-      if (!headline.trim()) return setLocalError("Headline is required.");
-      if (!destinationUrl.trim()) return setLocalError("Destination URL is required.");
+      if (!videoUrl.trim()) errors.videoUrl = "Upload a video for this ad.";
+      if (!headline.trim()) errors.headline = "Headline is required.";
+      if (destinationMode !== "website") {
+        errors.destinationUrl = "Instant Experience is not supported yet. Choose Website.";
+      }
+      const destErr = validateHttpsUrl(destinationUrl, "Website URL");
+      if (destErr) errors.destinationUrl = destErr;
+      if (Object.keys(errors).length) {
+        setFieldErrors(errors);
+        return;
+      }
 
       await onSave({
         name: name.trim(),
         draftId,
         facebookPageId: facebookPageId.trim(),
-        instagramActorId: instagramActorId.trim() || undefined,
         status,
         creativeFormat,
         videoUrl: videoUrl.trim(),
@@ -238,26 +338,37 @@ export function AdCreativeSetupStep({
         callToAction,
         pixelId: pixelId.trim() || undefined,
         conversionEvent: conversionEvent.trim() || undefined,
+        ...buildCreativeExtras(),
       });
       return;
     }
 
     if (carouselCards.length < 2) {
-      return setLocalError("Carousel requires at least 2 cards.");
+      setLocalError("Carousel requires at least 2 cards.");
+      return;
     }
     for (const [i, card] of carouselCards.entries()) {
-      if (!card.headline.trim()) return setLocalError(`Card ${i + 1}: headline required.`);
-      if (!card.destinationUrl.trim()) return setLocalError(`Card ${i + 1}: destination URL required.`);
-      if (!card.imageUrl?.trim() && !card.videoUrl?.trim()) {
-        return setLocalError(`Card ${i + 1}: image or video required.`);
+      if (!card.headline.trim()) {
+        errors[`carousel_${i}_headline`] = `Card ${i + 1}: headline is required.`;
       }
+      const destErr = validateHttpsUrl(card.destinationUrl, `Card ${i + 1} destination URL`);
+      if (destErr) errors[`carousel_${i}_destination`] = destErr;
+      if (!card.imageUrl?.trim() && !card.videoUrl?.trim()) {
+        errors[`carousel_${i}_media`] = `Card ${i + 1}: upload an image or video.`;
+      }
+    }
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      if (!errors.primaryText && !errors.name && !errors.facebookPageId) {
+        setLocalError("Fix the highlighted carousel card fields below.");
+      }
+      return;
     }
 
     await onSave({
       name: name.trim(),
       draftId,
       facebookPageId: facebookPageId.trim(),
-      instagramActorId: instagramActorId.trim() || undefined,
       status,
       creativeFormat,
       carouselCards,
@@ -265,6 +376,7 @@ export function AdCreativeSetupStep({
       urlParameters: urlParameters.trim() || undefined,
       pixelId: pixelId.trim() || undefined,
       conversionEvent: conversionEvent.trim() || undefined,
+      ...buildCreativeExtras(),
     });
   };
 
@@ -277,15 +389,70 @@ export function AdCreativeSetupStep({
         badge="Draft only"
       />
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Identity</BuilderSectionTitle>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Ad name</span>
-          <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Facebook Page</span>
-          <select required value={facebookPageId} onChange={(e) => setFacebookPageId(e.target.value)} disabled={pagesLoading} className={inputClass}>
+      <BuilderCard
+        title="Account & identity"
+        description="Choose the Meta ad account, page, and how your ad appears on Instagram."
+      >
+        <BuilderField
+          label="Ad account"
+          hint="Campaigns are billed to this Meta ad account."
+        >
+          <div className="relative">
+            {selectedAdAccount ? (
+              <span
+                className="pointer-events-none absolute left-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white"
+                aria-hidden
+              >
+                {adAccountLabel(selectedAdAccount).charAt(0).toUpperCase()}
+              </span>
+            ) : null}
+            <select
+              value={selectedAdAccountId}
+              onChange={(e) => void handleAdAccountChange(e.target.value)}
+              disabled={adAccountsLoading || switchingAccount || adAccounts.length === 0}
+              className={`${inputClass} ${selectedAdAccount ? "pl-11" : ""}`}
+            >
+              {adAccounts.length === 0 ? (
+                <option value="">
+                  {adAccountsLoading ? "Loading accounts…" : "No ad accounts"}
+                </option>
+              ) : (
+                adAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {adAccountLabel(account)}
+                  </option>
+                ))
+              )}
+            </select>
+            {switchingAccount ? (
+              <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-zinc-400" />
+            ) : null}
+          </div>
+        </BuilderField>
+
+        <BuilderField label="Ad name" required error={fieldErrors.name}>
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={`${inputClass} ${fieldErrors.name ? builderInputErrorClass : ""}`}
+            placeholder="Internal name for this ad"
+          />
+        </BuilderField>
+
+        <BuilderField
+          label="Facebook Page"
+          required
+          error={fieldErrors.facebookPageId}
+          hint="The page that represents your business in the ad."
+        >
+          <select
+            required
+            value={facebookPageId}
+            onChange={(e) => setFacebookPageId(e.target.value)}
+            disabled={pagesLoading}
+            className={`${inputClass} ${fieldErrors.facebookPageId ? builderInputErrorClass : ""}`}
+          >
             {pages.length === 0 ? (
               <option value="">{pagesLoading ? "Loading…" : "No pages"}</option>
             ) : (
@@ -294,30 +461,96 @@ export function AdCreativeSetupStep({
               ))
             )}
           </select>
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">
-            Instagram account ID {instagramRequired ? "(required)" : "(optional)"}
-          </span>
-          <input
-            value={instagramActorId}
-            onChange={(e) => setInstagramActorId(e.target.value)}
-            placeholder="Instagram actor ID for Instagram placements"
-            className={inputClass}
-          />
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {(["PAUSED", "ACTIVE"] as const).map((value) => (
-            <label key={value} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${status === value ? "border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]" : "border-zinc-200"}`}>
-              <input type="radio" name="ad-status" checked={status === value} onChange={() => setStatus(value)} className="sr-only" />
-              {value === "PAUSED" ? "Paused (default)" : "Active"}
-            </label>
-          ))}
-        </div>
-      </section>
+        </BuilderField>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Creative format</BuilderSectionTitle>
+        <BuilderField
+          label="Instagram profile"
+          hint="By default, Instagram uses the linked Facebook Page. Use a custom account only if you manage a separate Instagram business profile."
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={instagramProfileMode}
+              onChange={(e) => {
+                const mode = e.target.value as "facebook_page" | "custom";
+                setInstagramProfileMode(mode);
+                if (mode === "facebook_page") {
+                  setShowInstagramConnect(false);
+                  setInstagramActorId("");
+                }
+              }}
+              className={inputClass}
+            >
+              <option value="facebook_page">Use Facebook Page</option>
+              <option value="custom">Custom Instagram account</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setInstagramProfileMode("custom");
+                setShowInstagramConnect(true);
+              }}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
+            >
+              Connect profile
+            </button>
+          </div>
+          {showInstagramConnect || instagramProfileMode === "custom" ? (
+            <input
+              value={instagramActorId}
+              onChange={(e) => setInstagramActorId(e.target.value)}
+              placeholder="Instagram account ID from Meta Business Suite"
+              className={`${inputClass} mt-2`}
+            />
+          ) : null}
+        </BuilderField>
+
+        <BuilderField
+          label="Branding"
+          hint="Optional business name and logo stored on this draft."
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3">
+            <span className="text-sm font-medium text-zinc-600">
+              {brandingEnabled ? "Active" : "Inactive"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setBrandingEnabled((prev) => !prev)}
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+            >
+              {brandingEnabled ? "Remove" : "Add branding"}
+            </button>
+          </div>
+          {brandingEnabled ? (
+            <div className="mt-3 space-y-3 rounded-xl border border-zinc-200 p-4">
+              <input
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="Business name"
+                className={inputClass}
+              />
+              <input
+                value={brandLogoUrl}
+                onChange={(e) => setBrandLogoUrl(e.target.value)}
+                placeholder="Logo URL (https://…)"
+                className={inputClass}
+              />
+            </div>
+          ) : null}
+        </BuilderField>
+
+        <BuilderField label="Ad status" hint="Paused is recommended until you review in Ads Manager.">
+          <BuilderStatusToggle
+            value={status}
+            onChange={(v) => setStatus(v as MetaCampaignStatus)}
+            options={[
+              { value: "PAUSED", label: "Paused", hint: "Recommended" },
+              { value: "ACTIVE", label: "Active", hint: "Runs when published" },
+            ]}
+          />
+        </BuilderField>
+      </BuilderCard>
+
+      <BuilderCard title="Creative format" description="Pick how your ad will look in feed and stories.">
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -330,16 +563,19 @@ export function AdCreativeSetupStep({
               key={value}
               type="button"
               onClick={() => setCreativeFormat(value)}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold ${creativeFormat === value ? "bg-zinc-900 text-white" : "border border-zinc-200"}`}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                creativeFormat === value
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
             >
               {label}
             </button>
           ))}
         </div>
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Media</BuilderSectionTitle>
+      <BuilderCard title="Media" description="Upload the image or video people will see in your ad.">
 
         {creativeFormat === "SINGLE_IMAGE" ? (
           <div className="space-y-3">
@@ -348,27 +584,40 @@ export function AdCreativeSetupStep({
               <img src={imageUrl} alt={imageAltText || "Preview"} className="max-h-48 rounded-lg object-contain" />
             ) : null}
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e.target.files?.[0], "main")} />
-            <button type="button" disabled={uploading} onClick={() => imageInputRef.current?.click()} className="flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold">
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
-              Upload image
-            </button>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Alt text (optional)</span>
+            <BuilderField label="Ad image" required error={fieldErrors.imageUrl} hint="Use a high-quality photo of your food, venue, or offer. HTTPS required.">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => imageInputRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+                {imageUrl ? "Replace image" : "Upload image"}
+              </button>
+            </BuilderField>
+            <BuilderField label="Alt text" hint="Describes the image for accessibility. Optional but recommended.">
               <input value={imageAltText} onChange={(e) => setImageAltText(e.target.value)} className={inputClass} />
-            </label>
+            </BuilderField>
           </div>
         ) : null}
 
         {creativeFormat === "SINGLE_VIDEO" ? (
           <div className="space-y-3">
-            {videoUrl ? <p className="text-xs text-zinc-600 break-all">Video: {videoUrl}</p> : null}
+            {videoUrl ? <p className="text-xs text-zinc-600 break-all">Video uploaded</p> : null}
             <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => void handleVideoUpload(e.target.files?.[0])} />
-            <button type="button" disabled={uploading} onClick={() => videoInputRef.current?.click()} className="flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold">
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Video className="size-4" />}
-              Upload video
-            </button>
+            <BuilderField label="Ad video" required error={fieldErrors.videoUrl} hint="Short clips (under 60s) work best in feed and stories.">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => videoInputRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="size-4 animate-spin" /> : <Video className="size-4" />}
+                {videoUrl ? "Replace video" : "Upload video"}
+              </button>
+            </BuilderField>
             <input ref={thumbInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e.target.files?.[0], "thumb")} />
-            <button type="button" disabled={uploading} onClick={() => thumbInputRef.current?.click()} className="text-sm font-semibold text-[#1877F2]">
+            <button type="button" disabled={uploading} onClick={() => thumbInputRef.current?.click()} className="text-sm font-semibold text-[#1877F2] hover:underline">
               Upload thumbnail (optional)
             </button>
           </div>
@@ -377,11 +626,11 @@ export function AdCreativeSetupStep({
         {creativeFormat === "CAROUSEL" ? (
           <div className="space-y-4">
             {carouselCards.map((card, index) => (
-              <div key={index} className="rounded-xl border border-zinc-200 p-4 space-y-3">
+              <div key={index} className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold">Card {index + 1}</p>
+                  <p className="text-sm font-semibold text-zinc-900">Card {index + 1}</p>
                   {carouselCards.length > 2 ? (
-                    <button type="button" onClick={() => setCarouselCards((prev) => prev.filter((_, i) => i !== index))} className="text-red-600">
+                    <button type="button" onClick={() => setCarouselCards((prev) => prev.filter((_, i) => i !== index))} className="text-red-600 hover:text-red-700" aria-label={`Remove card ${index + 1}`}>
                       <Trash2 className="size-4" />
                     </button>
                   ) : null}
@@ -390,74 +639,175 @@ export function AdCreativeSetupStep({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={card.imageUrl} alt="" className="max-h-24 rounded object-contain" />
                 ) : null}
-                <input type="file" accept="image/*" className="text-xs" onChange={(e) => void handleImageUpload(e.target.files?.[0], index)} />
-                <input value={card.headline} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, headline: e.target.value } : c))} placeholder="Headline" className={inputClass} />
-                <input value={card.description ?? ""} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, description: e.target.value } : c))} placeholder="Description" className={inputClass} />
-                <input value={card.destinationUrl} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, destinationUrl: e.target.value } : c))} placeholder="Destination URL" className={inputClass} />
-                <select value={card.callToAction} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, callToAction: e.target.value as MetaCallToAction } : c))} className={inputClass}>
-                  {CTA_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+                <BuilderField label="Image" required error={fieldErrors[`carousel_${index}_media`]}>
+                  <input type="file" accept="image/*" className="text-xs" onChange={(e) => void handleImageUpload(e.target.files?.[0], index)} />
+                </BuilderField>
+                <BuilderField label="Headline" required error={fieldErrors[`carousel_${index}_headline`]}>
+                  <input
+                    value={card.headline}
+                    onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, headline: e.target.value } : c))}
+                    className={`${inputClass} ${fieldErrors[`carousel_${index}_headline`] ? builderInputErrorClass : ""}`}
+                  />
+                </BuilderField>
+                <BuilderField label="Description">
+                  <input value={card.description ?? ""} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, description: e.target.value } : c))} className={inputClass} />
+                </BuilderField>
+                <BuilderField label="Destination URL" required error={fieldErrors[`carousel_${index}_destination`]} hint="HTTPS link when someone taps this card.">
+                  <input
+                    value={card.destinationUrl}
+                    onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, destinationUrl: e.target.value } : c))}
+                    className={`${inputClass} ${fieldErrors[`carousel_${index}_destination`] ? builderInputErrorClass : ""}`}
+                  />
+                </BuilderField>
+                <BuilderField label="Call-to-action">
+                  <select value={card.callToAction} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, callToAction: e.target.value as MetaCallToAction } : c))} className={inputClass}>
+                    {CTA_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </BuilderField>
               </div>
             ))}
-            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard(defaultDestination)])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2]">
+            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard(defaultDestination)])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2] hover:underline">
               <Plus className="size-4" /> Add card
             </button>
           </div>
         ) : null}
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Copy</BuilderSectionTitle>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Primary text</span>
-          <textarea required rows={3} value={primaryText} onChange={(e) => setPrimaryText(e.target.value)} className={inputClass} />
-        </label>
+      <BuilderCard title="Ad copy" description="Write the message people see with your image or video.">
+        <BuilderField label="Primary text" required error={fieldErrors.primaryText} hint="The main message above your image or video.">
+          <textarea
+            required
+            rows={3}
+            value={primaryText}
+            onChange={(e) => setPrimaryText(e.target.value)}
+            className={`${inputClass} ${fieldErrors.primaryText ? builderInputErrorClass : ""}`}
+          />
+        </BuilderField>
         {creativeFormat !== "CAROUSEL" ? (
           <>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Headline</span>
-              <input required value={headline} onChange={(e) => setHeadline(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Description</span>
+            <BuilderField label="Headline" required error={fieldErrors.headline}>
+              <input
+                required
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                className={`${inputClass} ${fieldErrors.headline ? builderInputErrorClass : ""}`}
+              />
+            </BuilderField>
+            <BuilderField label="Description" hint="Optional supporting line under the headline.">
               <input value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Display link (optional)</span>
-              <input value={displayLink} onChange={(e) => setDisplayLink(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Landing page URL</span>
-              <input required type="url" value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-zinc-800">CTA button</span>
+            </BuilderField>
+            <BuilderField label="Call-to-action button">
               <select value={callToAction} onChange={(e) => setCallToAction(e.target.value as MetaCallToAction)} className={inputClass}>
                 {CTA_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
-            </label>
+            </BuilderField>
           </>
         ) : null}
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Tracking</BuilderSectionTitle>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">URL parameters / UTM (optional)</span>
-          <input value={urlParameters} onChange={(e) => setUrlParameters(e.target.value)} placeholder="utm_source=facebook&utm_medium=paid" className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Pixel ID (optional)</span>
-          <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Conversion event (optional)</span>
-          <input value={conversionEvent} onChange={(e) => setConversionEvent(e.target.value)} className={inputClass} />
-        </label>
-      </section>
+      <BuilderCard
+        title="Destination"
+        description="Tell us where to send people immediately after they tap or click your ad."
+      >
+        {creativeFormat === "CAROUSEL" ? (
+          <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-600">
+            Carousel ads use a destination URL on each card in the Media section above.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <BuilderRadioCard
+                name="creative-destination"
+                selected={destinationMode === "instant"}
+                title="Instant Experience"
+                description="Send people to a fast-loading, mobile-optimised experience."
+                onSelect={() => setDestinationMode("instant")}
+              />
+              <BuilderRadioCard
+                name="creative-destination"
+                selected={destinationMode === "website"}
+                title="Website"
+                description="Send people to your website."
+                onSelect={() => setDestinationMode("website")}
+              />
+            </div>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Preview</BuilderSectionTitle>
+            {destinationMode === "instant" ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Instant Experience is not available in OnlyDeals yet. Select <strong>Website</strong> to send people to your site.
+              </p>
+            ) : (
+              <div className="space-y-4 border-t border-zinc-100 pt-4">
+                <BuilderField
+                  label="Website URL"
+                  required
+                  error={fieldErrors.destinationUrl}
+                  hint="Must be HTTPS — your menu, offer page, or booking link."
+                >
+                  <div className="flex gap-2">
+                    <input
+                      required
+                      type="url"
+                      value={destinationUrl}
+                      onChange={(e) => setDestinationUrl(e.target.value)}
+                      className={`${inputClass} ${fieldErrors.destinationUrl ? builderInputErrorClass : ""}`}
+                      placeholder="https://your-restaurant.com/offer"
+                    />
+                    {destinationUrl.trim() ? (
+                      <a
+                        href={destinationUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 text-zinc-600 shadow-sm hover:bg-zinc-50"
+                        aria-label="Open website URL"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    ) : null}
+                  </div>
+                </BuilderField>
+
+                <BuilderField
+                  label="Display link"
+                  hint="Optional short link text shown in the ad (e.g. yourrestaurant.com)."
+                >
+                  <input
+                    value={displayLink}
+                    onChange={(e) => setDisplayLink(e.target.value)}
+                    placeholder="yourrestaurant.com"
+                    className={inputClass}
+                  />
+                </BuilderField>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3">
+                  <p className="text-sm font-semibold text-zinc-800">Browser add-ons</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Optional overlays in the in-app browser — not configured for this draft.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </BuilderCard>
+
+      <BuilderCard title="Advanced tracking" description="Optional UTM tags and Meta pixel settings.">
+        <BuilderCollapsible title="Tracking & pixel" description="Only needed if you use Meta Pixel or custom UTM tags.">
+          <div className="space-y-4">
+            <BuilderField label="URL parameters (UTM)" hint="Appended to your website URL for analytics.">
+              <input value={urlParameters} onChange={(e) => setUrlParameters(e.target.value)} placeholder="utm_source=facebook&utm_medium=paid" className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Meta Pixel ID" hint="Only needed if you track conversions with Meta Pixel.">
+              <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Conversion event" hint="e.g. Purchase, Lead — matches your pixel setup.">
+              <input value={conversionEvent} onChange={(e) => setConversionEvent(e.target.value)} className={inputClass} />
+            </BuilderField>
+          </div>
+        </BuilderCollapsible>
+      </BuilderCard>
+
+      <BuilderCard title="Placement preview" description="See how your ad may look across Facebook and Instagram.">
         {showPreviews ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <AdCreativePreview placement="facebook_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} displayLink={displayLink} callToAction={callToAction} />
@@ -467,10 +817,10 @@ export function AdCreativeSetupStep({
           </div>
         ) : (
           <p className="text-sm text-zinc-500">
-            Upload your ad image or video to see placement previews here.
+            Upload an image or video above to preview placements here.
           </p>
         )}
-      </section>
+      </BuilderCard>
 
       {localError || error ? (
         <BuilderErrorAlert message={localError ?? error ?? ""} />
@@ -483,6 +833,9 @@ export function AdCreativeSetupStep({
         primaryLabel={saving ? "Saving draft…" : "Save & continue to Review"}
         primaryLoading={saving || uploading}
         primaryDisabled={saving || uploading}
+        primaryDisabledReason={
+          saving || uploading ? "Please wait while your creative is saved." : undefined
+        }
       />
     </form>
   );

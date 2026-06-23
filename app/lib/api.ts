@@ -50,10 +50,26 @@ export async function fetchWithTimeout(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  const externalSignal = init?.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timeoutId);
+      throw new DOMException("The operation was aborted.", "AbortError");
+    }
+    externalSignal.addEventListener(
+      "abort",
+      () => controller.abort(),
+      { once: true },
+    );
+  }
+
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
+      if (externalSignal?.aborted) {
+        throw e;
+      }
       throw new Error("Request timed out. Please try again.");
     }
     throw e;

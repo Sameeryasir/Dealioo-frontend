@@ -329,7 +329,6 @@ export function peekCachedFunnelId(campaignId: number): number | null {
   return isPositiveInt(cached) ? cached : null;
 }
 
-/** Sync funnel id when the funnel editor (or any fetch) caches it for a campaign. */
 export function subscribeCampaignFunnelId(
   campaignId: number,
   listener: (funnelId: number | null) => void,
@@ -374,12 +373,16 @@ export async function fetchFunnelByCampaignId(
     throw new Error(await parseApiErrorMessage(res, "Could not load funnel."));
   }
 
-  const contentType = res.headers.get("content-type");
-  if (!contentType?.includes("application/json")) {
+  const text = await res.text();
+  if (!text.trim()) {
     return null;
   }
 
-  const data = (await res.json()) as FunnelByCampaignResponse;
+  const data = JSON.parse(text) as FunnelByCampaignResponse | null;
+  if (data == null || !isPositiveInt(data.id)) {
+    return null;
+  }
+
   readFunnelId(campaignId, data);
 
   console.group("[Funnel DB] GET /funnel/campaign/:campaignId");

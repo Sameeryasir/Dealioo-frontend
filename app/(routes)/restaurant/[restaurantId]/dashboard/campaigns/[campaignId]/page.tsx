@@ -114,6 +114,7 @@ export default function CampaignWelcomePage() {
             restaurantId={restaurantId}
             campaignName={campaign?.campaignName}
             campaignImageUrl={campaign?.imageUrl}
+            campaignWebsiteUrl={campaign?.websiteUrl}
           />
           <div className="mx-auto w-full max-w-5xl px-4 sm:px-8">
             <div

@@ -10,30 +10,63 @@ function isFolderUploadPath(pathname: string): boolean {
   return false;
 }
 
-/** Turns relative /uploads/ paths into a public HTTPS URL Meta can fetch (ngrok or production). */
 export function resolveMetaImageUrl(raw: string | undefined | null): string {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return "";
+
+  const ngrokBase = getPublicAppUrl().replace(/\/$/, "");
+  const campaignBase = `${ngrokBase}/backend/uploads/campaigns`;
+
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    try {
+      const parsed = new URL(trimmed);
+      const path = parsed.pathname.replace(/\/+$/, "");
+      if (path.startsWith("/backend/uploads/campaigns/")) {
+        const fileName = path.slice("/backend/uploads/campaigns/".length);
+        if (fileName && !fileName.includes("/")) {
+          return `${campaignBase}/${fileName}`;
+        }
+      }
+      if (path.startsWith("/uploads/campaigns/")) {
+        const fileName = path.slice("/uploads/campaigns/".length);
+        if (fileName && !fileName.includes("/")) {
+          return `${campaignBase}/${fileName}`;
+        }
+      }
+    } catch {
+      return trimmed;
+    }
     return trimmed;
   }
-  const base = getPublicAppUrl().replace(/\/$/, "");
+
+  if (trimmed.startsWith("/backend/uploads/campaigns/")) {
+    return `${ngrokBase}${trimmed}`;
+  }
+
+  if (trimmed.startsWith("/uploads/campaigns/")) {
+    const fileName = trimmed.slice("/uploads/campaigns/".length);
+    return `${campaignBase}/${fileName}`;
+  }
+
+  if (!trimmed.includes("/")) {
+    return `${campaignBase}/${trimmed.replace(/^\/+/, "")}`;
+  }
+
   if (trimmed.startsWith("/backend/uploads/")) {
-    return `${base}${trimmed}`;
+    return `${ngrokBase}${trimmed}`;
   }
   if (trimmed.startsWith("/uploads/")) {
-    return `${base}/backend${trimmed}`;
+    return `${ngrokBase}/backend${trimmed}`;
   }
+
   return trimmed;
 }
 
-/** Returns a usable campaign image URL, or empty when the stored value is a folder/invalid. */
 export function pickMetaImageUrl(raw: string | undefined | null): string {
   const resolved = resolveMetaImageUrl(raw);
   return validateMetaImageUrl(resolved) ? "" : resolved;
 }
 
-/** Client-side guard before calling Meta campaign API. */
 export function validateMetaImageUrl(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return "Image URL is required.";
@@ -56,6 +89,24 @@ export function validateMetaImageUrl(url: string): string | null {
 
   if (!META_IMAGE_EXT.test(path)) {
     return "Image URL must end with .jpg, .jpeg, .png, or .webp.";
+  }
+
+  return null;
+}
+
+export function validateHttpsUrl(url: string, label = "URL"): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return `${label} is required.`;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:") {
+      return `${label} must use HTTPS (required by Meta). Set NEXT_PUBLIC_FRONTEND_URL to your ngrok URL.`;
+    }
+  } catch {
+    return `${label} is not valid.`;
   }
 
   return null;

@@ -27,16 +27,16 @@ import {
 } from "@/app/lib/meta-location-targeting";
 import { AdSetLocationsBox } from "@/app/components/campaign/meta-builder/AdSetLocationsBox";
 import {
+  BuilderCard,
+  BuilderCollapsible,
   BuilderErrorAlert,
+  BuilderField,
   BuilderFooter,
-  BuilderSectionTitle,
+  BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
 import type { AdSetLocationTarget } from "@/app/lib/meta-campaign-builder-types";
-
-const sectionCardClass =
-  "space-y-4 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)]";
 
 const DEFAULT_PLACEMENTS: AdSetStepData["placements"] = {
   advantagePlusPlacements: false,
@@ -169,7 +169,7 @@ export function AdSetSetupStep({
     initialData?.placements ?? DEFAULT_PLACEMENTS,
   );
   const [localError, setLocalError] = useState<string | null>(null);
-
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const inputClass = builderInputClass;
 
   const showBidAmount =
@@ -183,7 +183,11 @@ export function AdSetSetupStep({
   );
 
   const togglePlacement = <
-    K extends keyof AdSetStepData["placements"],
+    K extends
+      | "devicePlatforms"
+      | "publisherPlatforms"
+      | "facebookPositions"
+      | "instagramPositions",
     F extends keyof AdSetStepData["placements"][K],
   >(
     section: K,
@@ -193,7 +197,7 @@ export function AdSetSetupStep({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: !(prev[section] as Record<string, boolean>)[field as string],
+        [field]: !prev[section][field],
       },
     }));
   };
@@ -201,10 +205,11 @@ export function AdSetSetupStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
+    setFieldErrors({});
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setLocalError("Ad set name is required.");
+      setFieldErrors({ name: "Ad set name is required." });
       return;
     }
 
@@ -326,35 +331,43 @@ export function AdSetSetupStep({
       <BuilderStepHeader
         step={2}
         title="Ad set setup"
-        description="Set budget, schedule, audience, and placements. Saved as draft — Meta runs only when you publish."
+        description="Who sees your ads, when they run, and where they appear. Saved as draft until you publish."
         badge={campaignData.objective.replace("OUTCOME_", "")}
       />
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Basic</BuilderSectionTitle>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Ad set name</span>
-          <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {(["PAUSED", "ACTIVE"] as const).map((value) => (
-            <label
-              key={value}
-              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
-                status === value
-                  ? "border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]"
-                  : "border-zinc-200 text-zinc-700"
-              }`}
-            >
-              <input type="radio" name="adset-status" checked={status === value} onChange={() => setStatus(value)} className="sr-only" />
-              {value === "PAUSED" ? "Paused (default)" : "Active"}
-            </label>
-          ))}
-        </div>
-      </section>
+      <BuilderCard title="Basics" description="Name this ad set and choose whether it starts paused or active.">
+        <BuilderField label="Ad set name" required error={fieldErrors.name}>
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={builderInputClass}
+            placeholder="e.g. Local diners — lunch hours"
+          />
+        </BuilderField>
+        <BuilderField
+          label="Delivery status"
+          hint="Paused is recommended so you can review in Ads Manager before spending."
+        >
+          <BuilderStatusToggle
+            value={status}
+            onChange={(v) => setStatus(v as MetaCampaignStatus)}
+            options={[
+              { value: "PAUSED", label: "Paused (recommended)", hint: "Review before going live" },
+              { value: "ACTIVE", label: "Active", hint: "Start when published" },
+            ]}
+          />
+        </BuilderField>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Budget &amp; bidding</BuilderSectionTitle>
+      <BuilderCard
+        title="Budget & bidding"
+        description={
+          cboEnabled
+            ? "This ad set uses the campaign budget you set in Step 1."
+            : "Set how much you want to spend and how Meta should bid for results."
+        }
+      >
         {cboEnabled ? (
           <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
             <p className="font-semibold text-zinc-900">Using campaign budget</p>
@@ -423,10 +436,9 @@ export function AdSetSetupStep({
             <option value="LINK_CLICKS">Link clicks</option>
           </select>
         </label>
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Schedule</BuilderSectionTitle>
+      <BuilderCard title="Schedule" description="When your ad set should start and stop delivering.">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="font-medium text-zinc-800">Start date</span>
@@ -453,10 +465,12 @@ export function AdSetSetupStep({
             ))}
           </select>
         </label>
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Optimization</BuilderSectionTitle>
+      <BuilderCard
+        title="Optimization"
+        description="Tell Meta what result you want and where people should go after clicking."
+      >
         <label className="block text-sm">
           <span className="font-medium text-zinc-800">Optimization goal</span>
           <select value={optimizationGoal} onChange={(e) => setOptimizationGoal(e.target.value as MetaOptimizationGoal)} className={inputClass}>
@@ -490,10 +504,12 @@ export function AdSetSetupStep({
             </label>
           </div>
         ) : null}
-      </section>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Audience</BuilderSectionTitle>
+      <BuilderCard
+        title="Audience"
+        description="Choose who should see your ads. At least one included location is required."
+      >
         <AdSetLocationsBox locations={locations} onChange={setLocations} />
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">
@@ -513,37 +529,41 @@ export function AdSetSetupStep({
             </select>
           </label>
         </div>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Languages (optional, comma-separated)</span>
-          <input value={languages} onChange={(e) => setLanguages(e.target.value)} className={inputClass} placeholder="en, es" />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Interests (optional)</span>
-          <input value={interests} onChange={(e) => setInterests(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Behaviors (optional)</span>
-          <input value={behaviors} onChange={(e) => setBehaviors(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Demographics (optional)</span>
-          <input value={demographics} onChange={(e) => setDemographics(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Custom audiences (optional)</span>
-          <input value={customAudiences} onChange={(e) => setCustomAudiences(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Excluded custom audiences (optional)</span>
-          <input value={excludedCustomAudiences} onChange={(e) => setExcludedCustomAudiences(e.target.value)} className={inputClass} />
-        </label>
-      </section>
+        <BuilderCollapsible
+          title="Advanced audience targeting"
+          description="Interests, behaviors, and custom audiences — optional."
+        >
+          <div className="space-y-4">
+            <BuilderField label="Languages" hint="Comma-separated, e.g. en, es">
+              <input value={languages} onChange={(e) => setLanguages(e.target.value)} className={inputClass} placeholder="en, es" />
+            </BuilderField>
+            <BuilderField label="Interests" hint="Optional targeting hints for Meta.">
+              <input value={interests} onChange={(e) => setInterests(e.target.value)} className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Behaviors" hint="Optional.">
+              <input value={behaviors} onChange={(e) => setBehaviors(e.target.value)} className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Demographics" hint="Optional.">
+              <input value={demographics} onChange={(e) => setDemographics(e.target.value)} className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Custom audiences" hint="Meta audience IDs, comma-separated.">
+              <input value={customAudiences} onChange={(e) => setCustomAudiences(e.target.value)} className={inputClass} />
+            </BuilderField>
+            <BuilderField label="Excluded custom audiences" hint="People to exclude from this ad set.">
+              <input value={excludedCustomAudiences} onChange={(e) => setExcludedCustomAudiences(e.target.value)} className={inputClass} />
+            </BuilderField>
+          </div>
+        </BuilderCollapsible>
+      </BuilderCard>
 
-      <section className={sectionCardClass}>
-        <BuilderSectionTitle>Placements</BuilderSectionTitle>
-        <label className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+      <BuilderCard
+        title="Placements"
+        description="Where your ads can appear. Advantage+ lets Meta pick the best placements."
+      >
+        <label className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-3 text-sm">
           <input
             type="checkbox"
+            className="mt-0.5"
             checked={placements.advantagePlusPlacements}
             onChange={(e) =>
               setPlacements((prev) => ({
@@ -552,7 +572,12 @@ export function AdSetSetupStep({
               }))
             }
           />
-          Advantage+ Placements (Meta auto-optimizes)
+          <span>
+            <span className="font-semibold text-zinc-900">Advantage+ Placements</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Recommended. Meta automatically shows ads where they perform best.
+            </span>
+          </span>
         </label>
         {!placements.advantagePlusPlacements ? (
           <>
@@ -629,7 +654,7 @@ export function AdSetSetupStep({
             </div>
           </>
         ) : null}
-      </section>
+      </BuilderCard>
 
       {localError || error ? (
         <BuilderErrorAlert message={localError ?? error ?? ""} />
@@ -642,6 +667,7 @@ export function AdSetSetupStep({
         primaryLabel={saving ? "Saving draft…" : "Save & continue to Ad / Creative"}
         primaryLoading={saving}
         primaryDisabled={saving}
+        primaryDisabledReason={saving ? "Saving your ad set draft…" : undefined}
       />
     </form>
   );

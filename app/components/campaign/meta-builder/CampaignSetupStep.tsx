@@ -14,6 +14,7 @@ import type {
 import {
   BuilderCard,
   BuilderErrorAlert,
+  BuilderField,
   BuilderFooter,
   BuilderRadioCard,
   BuilderStatusToggle,
@@ -102,6 +103,7 @@ export function CampaignSetupStep({
     initialData?.status ?? "PAUSED",
   );
   const [localError, setLocalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const inputClass = builderInputClass;
 
@@ -133,10 +135,11 @@ export function CampaignSetupStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
+    setFieldErrors({});
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setLocalError("Campaign name is required.");
+      setFieldErrors({ name: "Campaign name is required." });
       return;
     }
 
@@ -192,8 +195,7 @@ export function CampaignSetupStep({
       />
 
       <BuilderCard title="Campaign details" icon={Target}>
-        <label className="block text-sm">
-          <span className="font-semibold text-zinc-800">Campaign name</span>
+        <BuilderField label="Campaign name" required error={fieldErrors.name} hint="Use a name you'll recognize in Ads Manager.">
           <input
             required
             value={name}
@@ -201,19 +203,17 @@ export function CampaignSetupStep({
             className={inputClass}
             placeholder="e.g. Summer lunch deal"
           />
-        </label>
+        </BuilderField>
 
-        <label className="block text-sm">
-          <span className="font-semibold text-zinc-800">Buying type</span>
+        <BuilderField label="Buying type" hint="Auction is the standard way Meta runs ads.">
           <input
             readOnly
             value="Auction"
-            className={`${inputClass} bg-zinc-50/80 text-zinc-600`}
+            className={`${inputClass} bg-zinc-50 text-zinc-600`}
           />
-        </label>
+        </BuilderField>
 
-        <label className="block text-sm">
-          <span className="font-semibold text-zinc-800">Objective</span>
+        <BuilderField label="Objective" hint="What you want people to do when they see your ad.">
           <select
             value={objective}
             onChange={(e) =>
@@ -227,7 +227,7 @@ export function CampaignSetupStep({
               </option>
             ))}
           </select>
-        </label>
+        </BuilderField>
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-semibold text-zinc-800">
@@ -417,6 +417,7 @@ export function CampaignSetupStep({
         primaryLabel={saving ? "Saving draft…" : "Save & continue to Ad Set"}
         primaryLoading={saving}
         primaryDisabled={saving}
+        primaryDisabledReason={saving ? "Saving your campaign draft…" : undefined}
       />
     </form>
   );
