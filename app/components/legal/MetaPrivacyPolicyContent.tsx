@@ -22,7 +22,7 @@ const META_PERMISSIONS = [
   {
     permission: "ads_read",
     purpose:
-      "Read campaign performance, delivery status, and ad account details so you can review results inside OnlyDeals.",
+      "Read campaign performance, delivery status, and ad account details so you can review results inside Dealioo.",
   },
   {
     permission: "business_management",
@@ -57,7 +57,7 @@ const META_DATA_COLLECTED = [
     items: [
       "Ad account names and IDs available to your Facebook user",
       "Facebook Page IDs and names you can access",
-      "Campaign, ad set, ad, and creative IDs created or referenced through OnlyDeals",
+      "Campaign, ad set, ad, and creative IDs created or referenced through Dealioo",
       "Campaign setup fields you enter in our builder (budget, audience, schedule, creative text, media)",
     ],
   },
@@ -91,7 +91,7 @@ export function MetaPrivacyPolicyContent() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1877F2]">
-                OnlyDeals · Meta integration
+                Dealioo · Meta integration
               </p>
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
                 Privacy Policy
@@ -99,7 +99,7 @@ export function MetaPrivacyPolicyContent() {
             </div>
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base">
-            This policy explains how <strong className="font-semibold text-zinc-800">OnlyDeals</strong>{" "}
+            This policy explains how <strong className="font-semibold text-zinc-800">Dealioo</strong>{" "}
             uses Meta (Facebook) when restaurant owners connect their accounts,
             build campaigns, and publish ads. It is written in plain language so
             you know exactly what we do and what data we handle.
@@ -115,9 +115,9 @@ export function MetaPrivacyPolicyContent() {
           <div className="flex items-start gap-3">
             <Megaphone className="mt-0.5 size-5 shrink-0 text-[#1877F2]" aria-hidden />
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">What OnlyDeals does</h2>
+              <h2 className="text-lg font-semibold text-zinc-900">What Dealioo does</h2>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                OnlyDeals is a restaurant marketing platform. We help you run
+                Dealioo is a restaurant marketing platform. We help you run
                 promotional campaigns, build signup funnels, track guests, and
                 measure results. When you connect Meta, we act as your authorized
                 tool to manage advertising through the{" "}
@@ -186,7 +186,7 @@ export function MetaPrivacyPolicyContent() {
               <h2 className="text-lg font-semibold text-zinc-900">Permissions we request</h2>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 When you click Connect Facebook, Meta shows you these permissions.
-                You can revoke them anytime by disconnecting in OnlyDeals or in your
+                You can revoke them anytime by disconnecting in Dealioo or in your
                 Facebook settings.
               </p>
               <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
@@ -229,7 +229,7 @@ export function MetaPrivacyPolicyContent() {
                 </li>
                 <li>
                   <strong className="font-medium text-zinc-800">Show performance</strong> —
-                  display spend, delivery, and status in your OnlyDeals dashboard.
+                  display spend, delivery, and status in your Dealioo dashboard.
                 </li>
                 <li>
                   <strong className="font-medium text-zinc-800">Support & troubleshooting</strong> —
@@ -272,7 +272,7 @@ export function MetaPrivacyPolicyContent() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 You can disconnect Meta at any time from{" "}
                 <strong className="font-medium text-zinc-800">Settings → Integrations</strong>{" "}
-                in OnlyDeals. When you disconnect:
+                in Dealioo. When you disconnect:
               </p>
               <ul className="mt-3 space-y-2 text-sm text-zinc-600">
                 <li>We remove your stored access token and clear the ad account selection.</li>
@@ -280,14 +280,14 @@ export function MetaPrivacyPolicyContent() {
                 <li>Existing campaigns in Meta Ads Manager remain in Meta — we do not delete live ads unless you delete them in Meta.</li>
               </ul>
               <p className="mt-4 text-sm leading-relaxed text-zinc-600">
-                You can also remove OnlyDeals from your Facebook account under{" "}
+                You can also remove Dealioo from your Facebook account under{" "}
                 <strong className="font-medium text-zinc-800">Facebook → Settings → Business integrations</strong>.
                 For data deletion requests, contact us at{" "}
                 <a
-                  href="mailto:support@onlydeals.com"
+                  href="mailto:support@dealioo.com"
                   className="font-medium text-[#1877F2] underline underline-offset-2"
                 >
-                  support@onlydeals.com
+                  support@dealioo.com
                 </a>.
               </p>
             </div>
@@ -297,7 +297,7 @@ export function MetaPrivacyPolicyContent() {
         <section className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/80 p-6 sm:p-8">
           <h2 className="text-lg font-semibold text-zinc-900">Other platform data (brief)</h2>
           <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-            Beyond Meta, OnlyDeals collects guest signup data (name, email, phone)
+            Beyond Meta, Dealioo collects guest signup data (name, email, phone)
             through restaurant funnels, payment details processed by Stripe (we do
             not store full card numbers), and restaurant account information you
             provide when registering. That data is separate from Meta and is used
@@ -311,7 +311,7 @@ export function MetaPrivacyPolicyContent() {
           </p>
           <div className="flex flex-wrap gap-3">
             <a
-              href="mailto:support@onlydeals.com"
+              href="mailto:support@dealioo.com"
               className="inline-flex rounded-xl bg-[#1877F2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#166FE0]"
             >
               Contact support
@@ -320,14 +320,14 @@ export function MetaPrivacyPolicyContent() {
               href="/dashboard"
               className="inline-flex rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              Back to OnlyDeals
+              Back to Dealioo
             </Link>
           </div>
         </div>
 
         <p className="text-center text-xs text-zinc-500">
           Meta, Facebook, and Meta Ads Manager are trademarks of Meta Platforms, Inc.
-          OnlyDeals is not affiliated with or endorsed by Meta.
+          Dealioo is not affiliated with or endorsed by Meta.
         </p>
       </div>
     </div>

@@ -14,7 +14,7 @@ function openGoogleConnectPopup(oauthUrl: string): Window | null {
 
   return window.open(
     oauthUrl,
-    "onlydeals_google_oauth",
+    "dealioo_google_oauth",
     `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
   );
 }
@@ -82,7 +82,7 @@ export async function connectGoogleAdsInPopup(
 
   if (!popup) {
     throw new Error(
-      "Pop-up was blocked. Allow pop-ups for Only Deals, then try again.",
+      "Pop-up was blocked. Allow pop-ups for Dealioo, then try again.",
     );
   }
 

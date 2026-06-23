@@ -9,6 +9,13 @@ import type {
   CampaignStepData,
   MetaCampaignDraft,
 } from "@/app/lib/meta-campaign-builder-types";
+import {
+  buildMetaAdsManagerUrl,
+  openMetaAdsManager,
+  shouldOpenMetaAdsManagerAfterPublish,
+} from "@/app/lib/meta-campaign-builder-types";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { AdCreativeSetupStep } from "@/app/components/campaign/meta-builder/AdCreativeSetupStep";
 import { AdSetSetupStep } from "@/app/components/campaign/meta-builder/AdSetSetupStep";
 import { BuilderStepNav } from "@/app/components/campaign/meta-builder/BuilderStepNav";
@@ -184,7 +191,7 @@ export function MetaCampaignBuilder({
   );
 
   const handleRefreshPublishStatus = useCallback(async () => {
-    if (!draftId) return;
+    if (!draftId || !campaignData) return;
 
     setRefreshingPublishStatus(true);
     setError(null);
@@ -197,6 +204,23 @@ export function MetaCampaignBuilder({
         refreshed.metaCreativeId &&
         refreshed.metaAdId
       ) {
+        let adsManagerUrl = "";
+        const token = getSetupAccessToken().trim();
+        if (token) {
+          try {
+            const connection = await getFacebookConnectionStatus(
+              token,
+              restaurantId,
+            );
+            if (connection.metaAdAccountId) {
+              adsManagerUrl = buildMetaAdsManagerUrl(connection.metaAdAccountId);
+            }
+          } catch {
+            /* optional — link still shown in review if available */
+          }
+        }
+
+        const deliveryStatus = campaignData.status;
         const result: PublishMetaCampaignResult = {
           draftId: refreshed.id,
           trackingId: refreshed.id,
@@ -204,13 +228,22 @@ export function MetaCampaignBuilder({
           metaAdsetId: refreshed.metaAdsetId,
           metaCreativeId: refreshed.metaCreativeId,
           metaAdId: refreshed.metaAdId,
-          status: "PAUSED",
-          adsManagerUrl: "",
-          message: "Campaign published successfully to Meta (paused).",
+          status: deliveryStatus,
+          adsManagerUrl,
+          message:
+            deliveryStatus === "ACTIVE"
+              ? "Campaign published to Meta as Active."
+              : "Campaign published successfully to Meta (paused).",
         };
         setPublishSuccess(result);
         setPartialMeta(null);
         onDraftSaved?.(refreshed);
+        if (
+          shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
+          adsManagerUrl
+        ) {
+          openMetaAdsManager(adsManagerUrl);
+        }
         return;
       }
 
@@ -233,7 +266,7 @@ export function MetaCampaignBuilder({
     } finally {
       setRefreshingPublishStatus(false);
     }
-  }, [draftId, onDraftSaved, restaurantId]);
+  }, [campaignData, draftId, onDraftSaved, restaurantId]);
 
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
@@ -259,6 +292,12 @@ export function MetaCampaignBuilder({
       setPublishSuccess(result);
       setPartialMeta(null);
       setError(null);
+      if (
+        shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
+        result.adsManagerUrl?.trim()
+      ) {
+        openMetaAdsManager(result.adsManagerUrl);
+      }
       onDraftSaved?.({
         id: draftId,
         restaurantId,

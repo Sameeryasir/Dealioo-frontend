@@ -105,7 +105,7 @@ export function ReviewPublishStep({
 
       {partialPublish?.metaCampaignId && !publishSuccess ? (
         <BuilderWarningAlert
-          title="Publish did not finish in OnlyDeals"
+          title="Publish did not finish in Dealioo"
           message="Meta may have already created your campaign while our app was still waiting for a response. Publishing can take 30–90 seconds (image upload, creative, and ad creation). If you already see the campaign in Ads Manager, use “Check status” below or close and reopen this builder."
         >
           <ul className="mt-3 space-y-1 font-mono text-xs text-amber-950">
@@ -122,7 +122,7 @@ export function ReviewPublishStep({
           </ul>
           {partialPublish.previousError ? (
             <p className="mt-3 text-sm text-amber-900">
-              <span className="font-semibold">What OnlyDeals reported: </span>
+              <span className="font-semibold">What Dealioo reported: </span>
               {partialPublish.previousError}
             </p>
           ) : null}
@@ -142,7 +142,11 @@ export function ReviewPublishStep({
       {publishSuccess ? (
         <BuilderSuccessAlert
           title={publishSuccess.message}
-          message="Your ad was created on Meta in Paused status. Turn it on in Ads Manager when you're ready."
+          message={
+            campaignData.status === "ACTIVE"
+              ? "Your campaign was published as Active. We opened Meta Ads Manager in a new tab so you can confirm delivery and spending."
+              : "Your ad was created on Meta in Paused status. Turn it on in Ads Manager when you're ready."
+          }
         >
           <ul className="space-y-1 font-mono text-xs text-emerald-900">
             <li>Campaign: {publishSuccess.metaCampaignId}</li>

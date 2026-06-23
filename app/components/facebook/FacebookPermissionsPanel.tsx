@@ -34,7 +34,7 @@ export function FacebookPermissionsPanel({
     return (
       <div className="mt-4 rounded-xl border border-zinc-700/40 bg-zinc-950/50 px-4 py-3 ring-1 ring-inset ring-white/[0.03]">
         <p className="text-xs leading-relaxed text-zinc-400">
-          Connect Facebook to see which ad permissions Only Deals can use.
+          Connect Facebook to see which ad permissions Dealioo can use.
         </p>
       </div>
     );
@@ -122,7 +122,7 @@ export function FacebookPermissionsPanel({
 
       <p className="text-[11px] leading-relaxed text-zinc-500">
         Meta may block publishing if your account is not an Administrator on the
-        Only Deals app while it is in Development mode.
+        Dealioo app while it is in Development mode.
       </p>
     </div>
   );

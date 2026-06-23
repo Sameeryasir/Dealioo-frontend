@@ -23,7 +23,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Only Deals",
+  title: "Dealioo",
   description: "Restaurant deals, funnels, and guest retention",
 };
 

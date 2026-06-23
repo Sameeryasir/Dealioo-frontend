@@ -235,3 +235,25 @@ export const BUILDER_STEPS = [
   { id: 3, label: "Ad / Creative" },
   { id: 4, label: "Review & Publish" },
 ] as const;
+
+/** Ads Manager deep link for the restaurant's linked ad account. */
+export function buildMetaAdsManagerUrl(adAccountId: string): string {
+  const numeric = adAccountId.replace(/^act_/, "").trim();
+  if (!numeric) {
+    return "https://www.facebook.com/adsmanager";
+  }
+  return `https://www.facebook.com/adsmanager/manage/campaigns?act=${numeric}`;
+}
+
+/** Open Ads Manager after publish when the owner chose Active delivery in the builder. */
+export function shouldOpenMetaAdsManagerAfterPublish(
+  campaign: Pick<CampaignStepData, "status">,
+): boolean {
+  return campaign.status === "ACTIVE";
+}
+
+export function openMetaAdsManager(url: string): void {
+  const trimmed = url.trim();
+  if (!trimmed) return;
+  window.open(trimmed, "_blank", "noopener,noreferrer");
+}

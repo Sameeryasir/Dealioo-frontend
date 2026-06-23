@@ -343,7 +343,7 @@ export default function RestaurantSettingsDialog({
     if (restaurantId == null) return;
 
     const confirmed = window.confirm(
-      "Remove this Facebook account from Only Deals? Your linked ad account and login will be cleared. You can connect again anytime.",
+      "Remove this Facebook account from Dealioo? Your linked ad account and login will be cleared. You can connect again anytime.",
     );
     if (!confirmed) return;
 
@@ -401,7 +401,7 @@ export default function RestaurantSettingsDialog({
     if (restaurantId == null) return;
 
     const confirmed = window.confirm(
-      "Remove this Google Ads account from Only Deals? Your linked customer account and login will be cleared. You can connect again anytime.",
+      "Remove this Google Ads account from Dealioo? Your linked customer account and login will be cleared. You can connect again anytime.",
     );
     if (!confirmed) return;
 

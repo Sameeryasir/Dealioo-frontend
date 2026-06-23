@@ -734,7 +734,7 @@ export function AdCreativeSetupStep({
 
             {destinationMode === "instant" ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Instant Experience is not available in OnlyDeals yet. Select <strong>Website</strong> to send people to your site.
+                Instant Experience is not available in Dealioo yet. Select <strong>Website</strong> to send people to your site.
               </p>
             ) : (
               <div className="space-y-4 border-t border-zinc-100 pt-4">

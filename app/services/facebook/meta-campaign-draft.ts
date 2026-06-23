@@ -5,7 +5,12 @@ import type {
   SaveAdSetStepPayload,
   SaveCampaignStepPayload,
 } from "@/app/lib/meta-campaign-builder-types";
+import {
+  buildMetaAdsManagerUrl,
+} from "@/app/lib/meta-campaign-builder-types";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 
 const PUBLISH_META_CAMPAIGN_TIMEOUT_MS = 180_000;
 
@@ -31,6 +36,8 @@ function mapDraftToResult(draft: MetaCampaignDraft): PublishMetaCampaignResult |
     return null;
   }
 
+  const deliveryStatus = draft.campaignData?.status ?? "PAUSED";
+
   return {
     draftId: draft.id,
     trackingId: draft.id,
@@ -38,10 +45,40 @@ function mapDraftToResult(draft: MetaCampaignDraft): PublishMetaCampaignResult |
     metaAdsetId: draft.metaAdsetId,
     metaCreativeId: draft.metaCreativeId,
     metaAdId: draft.metaAdId,
-    status: "PAUSED",
+    status: deliveryStatus,
     adsManagerUrl: "",
-    message: "Campaign published successfully to Meta (paused).",
+    message:
+      deliveryStatus === "ACTIVE"
+        ? "Campaign published to Meta as Active."
+        : "Campaign published successfully to Meta (paused).",
   };
+}
+
+async function enrichPublishResult(
+  restaurantId: number,
+  result: PublishMetaCampaignResult,
+): Promise<PublishMetaCampaignResult> {
+  if (result.adsManagerUrl?.trim()) {
+    return result;
+  }
+
+  const token = getSetupAccessToken().trim();
+  if (!token) {
+    return result;
+  }
+
+  try {
+    const connection = await getFacebookConnectionStatus(token, restaurantId);
+    if (!connection.metaAdAccountId) {
+      return result;
+    }
+    return {
+      ...result,
+      adsManagerUrl: buildMetaAdsManagerUrl(connection.metaAdAccountId),
+    };
+  } catch {
+    return result;
+  }
 }
 
 async function pollDraftAfterPublishIssue(
@@ -56,7 +93,7 @@ async function pollDraftAfterPublishIssue(
     try {
       const draft = await getMetaCampaignDraft(restaurantId, draftId, 15_000);
       const result = mapDraftToResult(draft);
-      if (result) return result;
+      if (result) return await enrichPublishResult(restaurantId, result);
       if (draft.status === "failed") {
         throw new Error(
           draft.errorMessage ??
@@ -132,7 +169,7 @@ export async function publishMetaCampaignDraft(
       );
     }
 
-    return data;
+    return enrichPublishResult(restaurantId, data);
   } catch (error) {
     if (
       (error instanceof DOMException && error.name === "AbortError") ||

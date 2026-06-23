@@ -22,7 +22,7 @@ function openFacebookConnectPopup(oauthUrl: string): Window | null {
   // Do not use noopener — the popup must postMessage back to this window.
   return window.open(
     oauthUrl,
-    "feastalytics_facebook_oauth",
+    "dealioo_facebook_oauth",
     `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
   );
 }
@@ -91,7 +91,7 @@ export async function connectFacebookInPopup(
 
   if (!popup) {
     throw new Error(
-      "Pop-up was blocked. Allow pop-ups for Only Deals, then try again.",
+      "Pop-up was blocked. Allow pop-ups for Dealioo, then try again.",
     );
   }
 

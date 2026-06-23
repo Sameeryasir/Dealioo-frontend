@@ -51,11 +51,11 @@ export function GuestNotInDatabasePanel({
               <span className="font-semibold text-white">
                 &ldquo;{trimmedQuery}&rdquo;
               </span>{" "}
-              but no profile exists in Only Deals.
+              but no profile exists in Dealioo.
             </>
           ) : (
             <>
-              No matching guest profile exists in Only Deals. They may not have
+              No matching guest profile exists in Dealioo. They may not have
               signed up through your deal page yet.
             </>
           )}
