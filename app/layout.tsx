@@ -25,6 +25,9 @@ const playfairDisplay = Playfair_Display({
 export const metadata: Metadata = {
   title: "Dealioo",
   description: "Restaurant deals, funnels, and guest retention",
+  icons: {
+    icon: "/favicon(3).png",
+  },
 };
 
 export default function RootLayout({
