@@ -18,6 +18,20 @@ export function isCronStartingTrigger(nodes: WorkflowNode[]): boolean {
   return getCronTriggerIndex(nodes) === 0;
 }
 
+export function isSignupTriggerNode(node: WorkflowNode): boolean {
+  return node.kind === "signup_trigger";
+}
+
+/** Signup-triggered flows run automatically when a guest signs up on the funnel. */
+export function isSignupStartingTrigger(nodes: WorkflowNode[]): boolean {
+  return nodes.length > 0 && isSignupTriggerNode(nodes[0]);
+}
+
+/** Manual Run is only for flows that are not event-driven (cron or signup). */
+export function isManualRunDisabledFlow(nodes: WorkflowNode[]): boolean {
+  return isCronStartingTrigger(nodes) || isSignupStartingTrigger(nodes);
+}
+
 export function isWorkflowNodeReorderLocked(
   nodes: WorkflowNode[],
   index: number,

@@ -100,6 +100,7 @@ export function nodeTypeToBlockKind(
     if (trigger === "payment") return "payment_trigger";
     if (trigger === "funnel_complete") return "funnel_complete";
     if (trigger === "cron") return "cron_trigger";
+    if (trigger === "abandoned_checkout") return "signup_trigger";
     return "signup_trigger";
   }
   if (API_NODE_TYPES.includes(type as ApiNodeType)) {

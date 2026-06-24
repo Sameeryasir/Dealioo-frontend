@@ -25,9 +25,9 @@ import type {
 } from "@/app/components/crm-template-editor/template-types";
 import { createCustomer } from "@/app/services/customer/create-customer";
 import {
-  setFunnelCheckoutCustomerId,
-  setFunnelCheckoutEmail,
-} from "@/app/lib/funnel-checkout-storage";
+  checkoutUrlToAppPath,
+  createCheckoutSession,
+} from "@/app/services/payment/checkout-session";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { useFunnelAnalyticsTracking } from "@/app/hooks/use-funnel-analytics-tracking";
@@ -140,6 +140,8 @@ export function TemplatePreview({
   fullPageShellChrome = false,
   paymentStripeCheckout = null,
   trackingFunnelId = null,
+  checkoutRestaurantId = null,
+  checkoutCampaignId = null,
   campaignPricing,
 }: {
   page: TemplatePage;
@@ -153,6 +155,8 @@ export function TemplatePreview({
   fullPageShellChrome?: boolean;
   paymentStripeCheckout?: FunnelStripePaymentContext | null;
   trackingFunnelId?: number | null;
+  checkoutRestaurantId?: number | null;
+  checkoutCampaignId?: number | null;
   campaignPricing?: CampaignPricing | null;
 }) {
   const router = useRouter();
@@ -228,8 +232,6 @@ export function TemplatePreview({
       setSignupSubmitting(true);
       try {
         const customer = await createCustomer({ name, email, phone });
-        setFunnelCheckoutEmail(email);
-        setFunnelCheckoutCustomerId(customer.id);
 
         if (trackingFunnelId != null && trackingFunnelId >= 1) {
           try {
@@ -244,13 +246,37 @@ export function TemplatePreview({
           }
         }
 
+        if (
+          signupSubmitFlow &&
+          checkoutRestaurantId != null &&
+          checkoutRestaurantId >= 1 &&
+          trackingFunnelId != null
+        ) {
+          const checkout = await createCheckoutSession({
+            customerId: customer.id,
+            funnelId: trackingFunnelId,
+            restaurantId: checkoutRestaurantId,
+            campaignId: checkoutCampaignId,
+          });
+          toast.success("You're all set — continuing to payment.", {
+            duration: 2400,
+          });
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 1000);
+          });
+          router.push(checkoutUrlToAppPath(checkout.checkoutUrl));
+          return;
+        }
+
         toast.success("You're all set — continuing to payment.", {
           duration: 2400,
         });
         await new Promise<void>((resolve) => {
           window.setTimeout(resolve, 1000);
         });
-        router.push(signupNextAsLink);
+        if (signupNextAsLink) {
+          router.push(signupNextAsLink);
+        }
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Something went wrong.",
@@ -259,7 +285,7 @@ export function TemplatePreview({
         setSignupSubmitting(false);
       }
     },
-    [signupSubmitFlow, signupNextAsLink, router, trackingFunnelId],
+    [signupSubmitFlow, signupNextAsLink, router, trackingFunnelId, checkoutRestaurantId, checkoutCampaignId],
   );
 
   const withSurface = (alignClass: string, children: React.ReactNode) => (

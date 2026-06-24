@@ -14,6 +14,19 @@ export function isTriggerNodeKind(kind: WorkflowNodeKind): boolean {
   return TRIGGER_NODE_KINDS.has(kind);
 }
 
+const ACTION_NODE_KINDS = new Set<WorkflowNodeKind>([
+  "send_email",
+  "send_sms",
+  "send_whatsapp",
+  "create_coupon",
+  "tag_customer",
+  "reviews",
+]);
+
+export function isActionNodeKind(kind: WorkflowNodeKind): boolean {
+  return ACTION_NODE_KINDS.has(kind);
+}
+
 export function workflowStartsWithTrigger(nodes: WorkflowNode[]): boolean {
   const first = nodes[0];
   return first != null && isTriggerNodeKind(first.kind);

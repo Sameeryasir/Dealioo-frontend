@@ -23,7 +23,12 @@ export function parseExecutionTerminalPayload(
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
   const executionId = Number(row.executionId);
+  const automationId = Number(row.automationId);
   if (!Number.isFinite(executionId) || executionId < 1) return null;
+  if (!Number.isFinite(automationId) || automationId < 1) return null;
+
+  const status = row.status;
+  if (status !== "completed" && status !== "failed") return null;
 
   const finishedAtRaw = row.finishedAt ?? row.completedAt;
   if (typeof finishedAtRaw !== "string" || !finishedAtRaw.trim()) {
@@ -32,11 +37,11 @@ export function parseExecutionTerminalPayload(
 
   return {
     executionId,
-    automationId: Number(row.automationId),
-    status: row.status as ExecutionTerminalPusherPayload["status"],
+    automationId,
+    status,
     isTerminal: true,
     totalRecipients: Number(row.totalRecipients) || 0,
-    emailsSent: Number(row.emailsSent) || 0,
+    emailsSent: Number(row.emailsSent ?? row.emailsSentCount) || 0,
     progressPercent: Number(row.progressPercent) || 0,
     queueJobId:
       row.queueJobId == null ? null : String(row.queueJobId),
@@ -107,18 +112,21 @@ function subscribeChannelTerminal(
 
   const channel = retainChannel(client, channelName);
 
-  const handlers = TERMINAL_EVENTS.map((eventName) => {
-    const handler = (raw: unknown) => {
-      const payload = parseExecutionTerminalPayload(raw);
-      if (!payload) return;
-      onTerminal(payload);
-    };
-    return { eventName, handler };
-  });
+  const handlerFactory = (eventName: string) => (raw: unknown) => {
+    const payload = parseExecutionTerminalPayload(raw);
+    if (!payload) {
+      return;
+    }
+    onTerminal(payload);
+  };
+
+  const handlers = TERMINAL_EVENTS.map((eventName) => ({
+    eventName,
+    handler: handlerFactory(eventName),
+  }));
 
   const bindHandlers = () => {
     channel.unbind("pusher:subscription_succeeded", bindHandlers);
-    console.log("[Pusher] channel subscribed:", channelName);
     for (const { eventName, handler } of handlers) {
       channel.bind(eventName, handler);
     }

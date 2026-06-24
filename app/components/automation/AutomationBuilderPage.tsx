@@ -32,6 +32,7 @@ import {
   getWorkflowNodeInsertIndex,
   hasCronTriggerNode,
   isCronStartingTrigger,
+  isManualRunDisabledFlow,
   insertWorkflowNode,
   reorderWorkflowNodes,
 } from "@/app/components/automation/workflow-node-order";
@@ -51,6 +52,7 @@ import {
 } from "@/app/services/automation/node-api";
 import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 
 type BuilderTab = "builder" | "runs";
 
@@ -217,6 +219,11 @@ export function AutomationBuilderPage({
     [nodes],
   );
 
+  const manualRunDisabled = useMemo(
+    () => isManualRunDisabledFlow(nodes),
+    [nodes],
+  );
+
   const shouldBlockFlowNavigation =
     tab === "builder" && isFlowDirty && !automationPublished;
 
@@ -322,6 +329,15 @@ export function AutomationBuilderPage({
       return false;
     }
 
+    const scheduleValidation = validatePaymentReminderSchedule(
+      nodes,
+      remoteAutomation?.purpose,
+    );
+    if (!scheduleValidation.ok) {
+      toast.error(scheduleValidation.message);
+      return false;
+    }
+
     setActivating(true);
     try {
       if (isFlowDirty) {
@@ -348,7 +364,9 @@ export function AutomationBuilderPage({
   }, [
     automationNumericId,
     isFlowDirty,
+    nodes,
     queryClient,
+    remoteAutomation?.purpose,
     syncDirtyNodesToServer,
   ]);
 
@@ -491,6 +509,16 @@ export function AutomationBuilderPage({
     async (config: Record<string, unknown>) => {
       if (!selectedNode) return;
 
+      const scheduleValidation = validatePaymentReminderSchedule(
+        nodes,
+        remoteAutomation?.purpose,
+        { nodeId: selectedNode.id, config },
+      );
+      if (!scheduleValidation.ok) {
+        toast.error(scheduleValidation.message);
+        return;
+      }
+
       const nodeId = selectedNode.id;
       const numericId = selectedNode.numericId;
       setSavingNode(true);
@@ -519,7 +547,7 @@ export function AutomationBuilderPage({
         setSavingNode(false);
       }
     },
-    [nodes, selectedNode],
+    [nodes, remoteAutomation?.purpose, selectedNode],
   );
 
   const onDeleteNode = useCallback(async () => {
@@ -640,6 +668,8 @@ export function AutomationBuilderPage({
             settingsPanel={
               <NodeSettingsPanel
                 node={selectedNode}
+                nodes={nodes}
+                automationPurpose={remoteAutomation?.purpose}
                 onSave={onUpdateNode}
                 onDelete={onDeleteNode}
                 saving={savingNode}
@@ -679,7 +709,7 @@ export function AutomationBuilderPage({
           <AutomationExecutionsPanel
             automationId={automationNumericId}
             automationActive={automationActive}
-            showRunButton={!cronStartsFlow}
+            showRunButton={!manualRunDisabled}
             showPauseButton={cronStartsFlow}
           />
         </motion.div>

@@ -3,9 +3,6 @@
 import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
-import {
-  setFunnelCheckoutFunnelId,
-} from "@/app/lib/funnel-checkout-storage";
 import { parsePositiveInt } from "@/app/lib/numbers";
 
 function readRouteSegment(raw: string | string[] | undefined): string {
@@ -47,9 +44,6 @@ export function useFunnelGuestRoute() {
 
   useEffect(() => {
     getOrCreateVisitorId();
-    if (funnelId != null) {
-      setFunnelCheckoutFunnelId(funnelId);
-    }
   }, [funnelId]);
 
   return {

@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { useFunnelTemplatePagesFromStorage } from "@/app/components/crm-template-editor/funnel-template-storage";
-import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { PaymentConfirmedSprinkles } from "@/app/components/funnel/PaymentConfirmedSprinkles";
 import { usePaymentStatusPoll } from "@/app/hooks/use-payment-status-poll";
-import {
-  getFunnelCheckoutCustomerId,
-  getFunnelPaymentId,
-} from "@/app/lib/funnel-checkout-storage";
+import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 
@@ -25,7 +21,9 @@ export function FunnelConfirmationView({
 }) {
   const searchParams = useSearchParams();
   const trackedRef = useRef(false);
-  const [paymentId] = useState(() => getFunnelPaymentId());
+  const { session, ready } = useCheckoutContext();
+
+  const paymentId = session?.funnelPaymentId ?? null;
 
   const expectsPayment = useMemo(() => {
     if (searchParams.get("redirect_status") === "succeeded") return true;
@@ -35,7 +33,7 @@ export function FunnelConfirmationView({
 
   const { isPaid, loading, error, status } = usePaymentStatusPoll({
     paymentId,
-    enabled: expectsPayment && paymentId != null,
+    enabled: expectsPayment && ready && paymentId != null,
   });
 
   const celebrate = expectsPayment && (isPaid || (!loading && status === "paid"));
@@ -49,7 +47,7 @@ export function FunnelConfirmationView({
     if (paymentId == null) return;
     trackedRef.current = true;
 
-    const customerId = getFunnelCheckoutCustomerId();
+    const customerId = session?.customerId;
     void trackFunnelEvent({
       eventType: "payment",
       funnelId,
@@ -60,7 +58,11 @@ export function FunnelConfirmationView({
     }).catch((err) => {
       console.warn("[Funnel] payment track failed", err);
     });
-  }, [celebrate, funnelId, paymentId]);
+  }, [celebrate, funnelId, paymentId, session?.customerId]);
+
+  if (!ready || isLoading) {
+    return <FunnelPreviewSkeleton />;
+  }
 
   return (
     <>
@@ -71,7 +73,7 @@ export function FunnelConfirmationView({
           role="status"
           aria-live="polite"
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg">
+          <span className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg">
             <Loader2 className="size-3.5 animate-spin" aria-hidden />
             Confirming your payment…
           </span>
@@ -87,18 +89,12 @@ export function FunnelConfirmationView({
           </p>
         </div>
       ) : null}
-      <FunnelGuestPageShell>
-        {isLoading ? (
-          <FunnelPreviewSkeleton />
-        ) : (
-          <TemplatePreview
-            page={pages.confirmation}
-            landingPage={pages.landing}
-            fullPageShellChrome
-            trackingFunnelId={funnelId}
-          />
-        )}
-      </FunnelGuestPageShell>
+      <TemplatePreview
+        page={pages.confirmation}
+        landingPage={pages.landing}
+        fullPageShellChrome
+        trackingFunnelId={funnelId}
+      />
     </>
   );
 }

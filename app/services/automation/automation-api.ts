@@ -13,6 +13,7 @@ const UI_TRIGGER_TO_API: Record<string, string> = {
   Signup: "signup",
   Payment: "payment",
   "Funnel Complete": "funnel_complete",
+  "Abandoned Checkout": "abandoned_checkout",
   "Cron Job": "cron",
   "Tag Added": "tag_added",
 };
@@ -21,6 +22,7 @@ const API_TRIGGER_TO_UI: Record<string, string> = {
   signup: "Signup",
   payment: "Payment",
   funnel_complete: "Funnel Complete",
+  abandoned_checkout: "Abandoned Checkout",
   cron: "Cron Job",
   tag_added: "Tag Added",
 };

@@ -15,10 +15,6 @@ import {
   stripeCardElementStyle,
 } from "@/app/components/payment-templates/shared/stripe-card-styles";
 import type { PaymentTemplatePage } from "@/app/components/crm-template-editor/template-types";
-import {
-  getFunnelCheckoutCustomerId,
-  getFunnelPaymentId,
-} from "@/app/lib/funnel-checkout-storage";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 import { waitForPaymentPaid } from "@/app/lib/wait-for-payment-paid";
@@ -33,6 +29,9 @@ export type CustomCardCheckoutFormProps = {
   campaignId?: number | null;
   restaurantId?: number | null;
   customerEmail: string;
+  customerId?: number;
+  checkoutToken?: string | null;
+  funnelPaymentId?: number | null;
   page: PaymentTemplatePage;
   formStyles: CheckoutFormStyles;
   submitLabel?: string;
@@ -40,14 +39,12 @@ export type CustomCardCheckoutFormProps = {
 
 async function trackPaymentSuccessWhenConfirmed(
   funnelId: number,
+  funnelPaymentId: number,
+  customerId?: number,
 ): Promise<void> {
-  const funnelPaymentId = getFunnelPaymentId();
-  if (funnelPaymentId == null) return;
-
   const paid = await waitForPaymentPaid(funnelPaymentId);
   if (!paid) return;
 
-  const customerId = getFunnelCheckoutCustomerId();
   await trackFunnelEvent({
     eventType: "payment",
     funnelId,
@@ -64,6 +61,9 @@ export function CustomCardCheckoutForm({
   campaignId,
   restaurantId,
   customerEmail,
+  customerId,
+  checkoutToken,
+  funnelPaymentId,
   page,
   formStyles,
   submitLabel,
@@ -103,7 +103,7 @@ export function CustomCardCheckoutForm({
     try {
       const confirmationPath = buildFunnelPaymentConfirmationPath(
         funnelId,
-        { campaignId, restaurantId },
+        { campaignId, restaurantId, checkoutToken },
         { redirectStatus: "succeeded", paymentConfirmed: true },
       );
       const returnUrl = new URL(confirmationPath, window.location.origin);
@@ -142,13 +142,12 @@ export function CustomCardCheckoutForm({
           window.location.href = returnUrl.toString();
           return;
         }
-        setFormError(error.message);
+        setFormError(error.message ?? "Payment failed.");
         return;
       }
 
       if (paymentIntent?.status === "succeeded") {
         setFormError(null);
-        const funnelPaymentId = getFunnelPaymentId();
         if (funnelPaymentId != null) {
           const confirmed = await waitForPaymentPaid(funnelPaymentId, {
             maxAttempts: 20,
@@ -161,7 +160,13 @@ export function CustomCardCheckoutForm({
           }
         }
         try {
-          await trackPaymentSuccessWhenConfirmed(funnelId);
+          if (funnelPaymentId != null) {
+            await trackPaymentSuccessWhenConfirmed(
+              funnelId,
+              funnelPaymentId,
+              customerId,
+            );
+          }
         } catch (trackErr) {
           console.warn("[Funnel] payment track failed", trackErr);
         }

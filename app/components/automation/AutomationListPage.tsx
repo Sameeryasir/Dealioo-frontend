@@ -55,15 +55,18 @@ import type {
 import {
   createAutomation,
   deleteAutomation,
+  getAutomationById,
   mapAutomationToListItem,
 } from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
 import { useAutomationsQuery } from "@/app/hooks/use-automations-query";
+import { getAutomationTemplateById } from "@/app/components/automation/automation-templates";
 import {
   buildCreateAutomationBody,
   validateAutomationCreateContext,
 } from "@/app/services/automation/automation-create-context";
+import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
 
 function truncateDescription(description: string, maxLength = 40): string {
   const text = description.trim();
@@ -381,10 +384,17 @@ export function AutomationListPage({
         onClose={() => {
           if (!creating) setModalOpen(false);
         }}
-        onCreate={async ({ name, description, trigger, purpose }) => {
+        onCreate={async ({ name, description, trigger, purpose, templateId }) => {
           const context = validateAutomationCreateContext(createContextInput);
           if (!context.ok) {
             toast.error(context.message);
+            return;
+          }
+          const template = templateId
+            ? getAutomationTemplateById(templateId)
+            : undefined;
+          if (templateId && !template) {
+            toast.error("Could not find that automation template.");
             return;
           }
           setCreating(true);
@@ -398,6 +408,13 @@ export function AutomationListPage({
                 ids: context.ids,
               }),
             );
+            if (template) {
+              await applyAutomationTemplate(created.id, template);
+              const withNodes = await getAutomationById(created.id);
+              syncAutomationQueryCache(queryClient, withNodes);
+            } else {
+              syncAutomationQueryCache(queryClient, created);
+            }
             const next = mapAutomationToListItem(created);
             if (restaurantId != null) {
               queryClient.setQueryData<AutomationListItem[]>(
@@ -405,9 +422,12 @@ export function AutomationListPage({
                 (prev) => [next, ...(prev ?? [])],
               );
             }
-            syncAutomationQueryCache(queryClient, created);
             setModalOpen(false);
-            toast.success("Automation created.");
+            toast.success(
+              template
+                ? `"${template.name}" template applied.`
+                : "Automation created.",
+            );
             const builderId = String(created.id);
             onOpenBuilder?.(builderId);
           } catch (err) {

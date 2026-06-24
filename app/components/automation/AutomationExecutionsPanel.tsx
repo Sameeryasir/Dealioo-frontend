@@ -61,9 +61,12 @@ import {
   runsRowReveal,
   runsStagger,
 } from "@/app/lib/motion";
+import { mapPusherPayloadToStatusDto } from "@/app/lib/pusher-execution";
+import type { ExecutionTerminalPusherPayload } from "@/app/lib/pusher-execution";
 import type {
   AutomationExecution,
   AutomationExecutionStatus,
+  AutomationExecutionStatusDto,
 } from "@/app/services/automation/types";
 
 const ICON_STROKE = 2.25;
@@ -322,6 +325,8 @@ function RunRow({
   );
 }
 
+const TERMINAL_BANNER_MS = 2500;
+
 export function AutomationExecutionsPanel({
   automationId,
   automationActive,
@@ -365,6 +370,41 @@ export function AutomationExecutionsPanel({
     deletingId,
   } = useAutomationExecutions(automationId, apiStatus);
 
+  const [cronRunBanner, setCronRunBanner] =
+    useState<AutomationExecutionStatusDto | null>(null);
+
+  const handlePusherTerminal = useCallback(
+    (payload: ExecutionTerminalPusherPayload) => {
+      applyPusherExecution(payload);
+
+      if (!showPauseButton) {
+        return;
+      }
+
+      const status = mapPusherPayloadToStatusDto(payload);
+      setCronRunBanner(status);
+
+      if (payload.status === "completed") {
+        const sent = payload.emailsSent || payload.totalRecipients;
+        const total = payload.totalRecipients;
+        toast.success(
+          `Scheduled run completed — ${sent} of ${total} recipient${total === 1 ? "" : "s"} reached.`,
+        );
+      } else if (payload.status === "failed") {
+        toast.error(payload.lastError ?? "Scheduled run failed.");
+      }
+
+      window.setTimeout(() => {
+        setCronRunBanner((current) =>
+          current?.executionId === payload.executionId ? null : current,
+        );
+      }, TERMINAL_BANNER_MS);
+    },
+    [applyPusherExecution, showPauseButton],
+  );
+
+  const progressRun = activeRun ?? cronRunBanner;
+
   const watchExecutionIds = useMemo(() => {
     const extra: number[] = [];
     if (activeRun?.executionId && activeRun.isTerminal !== true) {
@@ -376,10 +416,10 @@ export function AutomationExecutionsPanel({
   useWatchExecutionsTerminal({
     automationId,
     executionIds: watchExecutionIds,
-    onTerminal: applyPusherExecution,
+    onTerminal: handlePusherTerminal,
   });
 
-  useAutomationPusherTerminal(automationId, applyPusherExecution);
+  useAutomationPusherTerminal(automationId, handlePusherTerminal);
 
   useEffect(() => {
     if (!automationActive) return;
@@ -504,14 +544,23 @@ export function AutomationExecutionsPanel({
             </div>
           </div>
         </div>
-        {showRunButton && automationActive === false ? (
+        {showPauseButton ? (
+          <p className="mt-3 text-sm text-zinc-500">
+            This flow runs on a schedule. Pause or resume it here; each batch
+            appears below when unpaid guests are found.
+          </p>
+        ) : !showRunButton ? (
+          <p className="mt-3 text-sm text-zinc-500">
+            This flow runs automatically when guests sign up on the funnel.
+          </p>
+        ) : showRunButton && automationActive === false ? (
           <ActivateAutomationFirstHint className="mt-3" />
         ) : null}
       </div>
 
       <div className="relative px-4 py-4 sm:px-6">
         <AnimatePresence initial={false}>
-          {activeRun ? (
+          {progressRun ? (
             <motion.div
               key="run-progress"
               className="mb-5"
@@ -520,7 +569,7 @@ export function AutomationExecutionsPanel({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <RunProgressBanner status={activeRun} />
+              <RunProgressBanner status={progressRun} />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -630,7 +679,13 @@ export function AutomationExecutionsPanel({
               <PanelEmptyState
                 icon={Workflow}
                 title="No runs yet"
-                description="Run this automation to email unpaid customers. Each batch appears here with everyone it reached."
+                description={
+                  showRunButton
+                    ? "Run this automation to email unpaid customers. Each batch appears here with everyone it reached."
+                    : showPauseButton
+                      ? "Runs appear here on the cron schedule when unpaid guests are found and reminded by email."
+                      : "Runs appear here automatically when guests sign up on the funnel."
+                }
               />
             </motion.div>
           ) : (
