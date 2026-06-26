@@ -130,14 +130,28 @@ export function executionRunSubtitle(
 export function executionRunDisplayName(
   row: Pick<
     AutomationExecution,
-    "id" | "executedRecipients" | "customerId" | "customer" | "totalRecipients"
+    | "id"
+    | "status"
+    | "executedRecipients"
+    | "customerId"
+    | "customer"
+    | "totalRecipients"
   >,
 ): string {
-  const recipientCount =
-    row.executedRecipients?.length ?? row.totalRecipients ?? 0;
-  if (recipientCount > 1) {
-    return `Completed for ${recipientCount} customers`;
+  const bulkRecipientCount = row.totalRecipients ?? 0;
+  if (bulkRecipientCount > 1) {
+    return row.status === "completed"
+      ? `Completed for ${bulkRecipientCount} customers`
+      : `${bulkRecipientCount} customers`;
   }
+
+  const executedCount = row.executedRecipients?.length ?? 0;
+  if (executedCount > 1) {
+    return row.status === "completed"
+      ? `Completed for ${executedCount} customers`
+      : `${executedCount} customers`;
+  }
+
   const label = executionRunTitle(
     row.executedRecipients,
     row.customerId,

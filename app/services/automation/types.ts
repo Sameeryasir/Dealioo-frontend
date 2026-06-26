@@ -108,6 +108,7 @@ export type AutomationExecutionStatus =
   | "queued"
   | "running"
   | "waiting"
+  | "paused"
   | "completed"
   | "failed";
 
@@ -140,6 +141,12 @@ export type ExecutionListItem = {
   status: AutomationExecutionStatus;
   startedAt: string;
   customerCount: number;
+  customerId?: number | null;
+  customerEmail?: string | null;
+  customerName?: string | null;
+  totalRecipients?: number;
+  emailsSentCount?: number;
+  scheduledAt?: string | null;
   stepType?: string | null;
 };
 

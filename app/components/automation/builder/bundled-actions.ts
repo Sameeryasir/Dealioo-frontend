@@ -1,6 +1,8 @@
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
 
 export const PREPAID_PAYMENT_ACTIONS_KIND = "prepaid_payment_actions";
+export const PREPAID_VISIT_REMINDER_LOOP_KIND = "prepaid_visit_reminder";
+export const PREPAID_VISIT_REMINDER_WAIT_LOOP_KIND = "prepaid_visit_reminder_wait";
 
 export const PREPAID_FIRST_EMAIL_DEFAULTS = {
   subject: "Your prepaid offer is ready — visit us with your pass",
@@ -75,7 +77,6 @@ export function isPrepaidBundledActionsNode(node: WorkflowNode): boolean {
   );
 }
 
-/** First prepaid email step — regular Send Email or legacy bundled Actions node. */
 export function isPrepaidFirstEmailNode(node: WorkflowNode): boolean {
   if (isPrepaidBundledActionsNode(node)) {
     return true;
@@ -83,6 +84,22 @@ export function isPrepaidFirstEmailNode(node: WorkflowNode): boolean {
   return (
     node.kind === "send_email" &&
     String(node.config.workflowKind ?? "").trim() === PREPAID_PAYMENT_ACTIONS_KIND
+  );
+}
+
+export function isPrepaidVisitReminderWaitLoopNode(node: WorkflowNode): boolean {
+  return (
+    node.kind === "wait" &&
+    String(node.config.workflowKind ?? "").trim() ===
+      PREPAID_VISIT_REMINDER_WAIT_LOOP_KIND
+  );
+}
+
+export function isPrepaidVisitReminderLoopNode(node: WorkflowNode): boolean {
+  return (
+    node.kind === "send_email" &&
+    String(node.config.workflowKind ?? "").trim() ===
+      PREPAID_VISIT_REMINDER_LOOP_KIND
   );
 }
 

@@ -83,6 +83,7 @@ const STATUS_FILTERS: { id: "all" | AutomationExecutionStatus; label: string }[]
     { id: "queued", label: "Queued" },
     { id: "running", label: "Running" },
     { id: "waiting", label: "Waiting" },
+    { id: "paused", label: "Paused" },
     { id: "completed", label: "Completed" },
     { id: "failed", label: "Failed" },
   ];
@@ -95,6 +96,8 @@ function statusIcon(status: AutomationExecutionStatus): LucideIcon {
       return CircleDot;
     case "waiting":
       return Clock;
+    case "paused":
+      return PauseCircle;
     case "completed":
       return CheckCircle2;
     case "failed":
@@ -120,6 +123,8 @@ function rowAccentClass(status: AutomationExecutionStatus): string {
       return "border-l-red-500";
     case "waiting":
       return "border-l-amber-500";
+    case "paused":
+      return "border-l-zinc-400";
     case "running":
     case "queued":
       return "border-l-blue-500";
@@ -210,7 +215,13 @@ function RunRow({
   const stepType = row.currentNode?.type;
   const StepIcon = stepTypeIcon(stepType);
   const recipientCount =
-    row.executedRecipients?.length ?? row.totalRecipients ?? 0;
+    row.totalRecipients && row.totalRecipients > 0
+      ? row.totalRecipients
+      : row.executedRecipients?.length && row.executedRecipients.length > 0
+        ? row.executedRecipients.length
+        : row.customerId
+          ? 1
+          : 0;
   const stepLabel = formatExecutionStepType(stepType);
 
   return (

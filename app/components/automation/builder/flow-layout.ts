@@ -1,5 +1,5 @@
 import type { WorkflowNode } from "@/app/components/automation/types";
-import { isPrepaidFirstEmailNode } from "@/app/components/automation/builder/bundled-actions";
+import { isPrepaidVisitReminderWaitLoopNode } from "@/app/components/automation/builder/bundled-actions";
 import { buildFlowSegments, type FlowSegment } from "@/app/components/automation/builder/flow-segments";
 
 export const FLOW_BRANCH_PASS = "pass";
@@ -77,10 +77,7 @@ export function parsePrepaidVisitSplitLayout(
       return;
     }
 
-    if (
-      isPrepaidFirstEmailNode(node) ||
-      String(node.config?.workflowKind ?? "") === "prepaid_payment_actions"
-    ) {
+    if (isPrepaidVisitReminderWaitLoopNode(node)) {
       loopTarget = entry;
     }
 

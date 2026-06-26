@@ -321,7 +321,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       key: "payment_confirmation_email",
       kind: "send_email",
       label: "Send Email",
-      summary: "First prepaid offer email with pass link — runs after payment and restarts here when guest has not visited.",
+      summary: "First prepaid offer email with pass link — sent once after payment.",
       config: {
         workflowKind: "prepaid_payment_actions",
         subject: PREPAID_FIRST_EMAIL_DEFAULTS.subject,
@@ -336,7 +336,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       kind: "wait",
       label: "Wait until",
       summary: "1 day elapsed",
-      config: { delay: 1, unit: "days" },
+      config: { delay: 1, unit: "days", workflowKind: "prepaid_visit_reminder_wait" },
     },
     {
       key: "email_visit_reminder",
@@ -344,6 +344,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       label: "Send Email",
       summary: "Pass reminder — visit anytime and show your pass.",
       config: {
+        workflowKind: "prepaid_visit_reminder",
         subject: "Your offer is ready — visit us anytime",
         template: "Payment confirmation",
         message:
@@ -360,9 +361,9 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       config: {
         conditionType: "Customer visited",
         value: "Customer visited",
-        onFalseLoopWorkflowKind: "prepaid_payment_actions",
+        onFalseLoopWorkflowKind: "prepaid_visit_reminder_wait",
         branchLabelTrue: "Customer visited",
-        branchLabelFalse: "Not visited — restart from first email",
+        branchLabelFalse: "Not visited — wait then send reminder again",
       },
     },
     {
