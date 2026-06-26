@@ -103,7 +103,9 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/chats",
+        href: restaurantId
+          ? `${restaurantHomeHref}/chats`
+          : "/dashboard/chats",
         label: "Chats",
         icon: MessageSquare,
         activeMatch: "prefix",

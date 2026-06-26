@@ -248,7 +248,10 @@ export function AutomationBuilderPage({
   const hasUnsavedBuilderChanges = isFlowDirty || hasUnsavedStepSettings;
 
   const shouldBlockFlowNavigation =
-    tab === "builder" && hasUnsavedBuilderChanges && !automationPublished;
+    tab === "builder" &&
+    hasUnsavedBuilderChanges &&
+    !automationPublished &&
+    automationActive;
 
   const applyBuilderTab = useCallback(
     (next: BuilderTab) => {
@@ -419,6 +422,8 @@ export function AutomationBuilderPage({
       setAutomation(mapAutomationToListItem(updated));
       setStatus("draft");
       setAutomationPublished(false);
+      setNavPromptOpen(false);
+      setPendingNav(null);
       toast.success("Automation deactivated.");
     } catch (err) {
       toastApiError(err, "Could not deactivate automation.");
