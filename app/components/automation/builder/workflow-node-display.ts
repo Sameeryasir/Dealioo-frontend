@@ -51,7 +51,6 @@ export function getFilterPills(node: WorkflowNode): {
     "value",
     configString(node.config, "conditionType", "NOT Prepaid"),
   );
-  // Placeholder "true" from default settings — show the intended payment filter instead.
   if (raw === "true") {
     return { negated: true, label: "Status not paid" };
   }
@@ -67,7 +66,6 @@ export type FilterConditionDisplay = {
   label: string;
 };
 
-/** Supports single or multi-condition filter nodes (e.g. branch filters). */
 export function getFilterConditions(node: WorkflowNode): FilterConditionDisplay[] {
   const rawList = node.config.conditions;
   if (Array.isArray(rawList) && rawList.length > 0) {
@@ -95,7 +93,9 @@ export function getSmsMessage(config: Record<string, unknown>): string {
 }
 
 export function getSmsLinkLabel(config: Record<string, unknown>): string | null {
-  const label = configString(config, "linkLabel", "").trim();
+  const label =
+    configString(config, "linkLabel", "").trim() ||
+    configString(config, "ctaLabel", "").trim();
   return label || null;
 }
 
@@ -111,7 +111,6 @@ export function getExpirationNote(config: Record<string, unknown>): string {
   );
 }
 
-/** Clean expiration text for display — avoids duplicated "Set expiration" / "Expires" prefixes. */
 export function formatExpirationDisplay(config: Record<string, unknown>): string {
   const raw = getExpirationNote(config).trim();
   return raw
@@ -126,4 +125,30 @@ export function splitSmsPreviewParts(message: string): string[] {
 
 export function isSmsMergeTag(part: string): boolean {
   return /^\[[^\]]+\]$/.test(part);
+}
+
+export function isReturnOfferEmailNode(node: {
+  kind: string;
+  config: Record<string, unknown>;
+}): boolean {
+  if (node.kind !== "create_coupon") {
+    return false;
+  }
+  const message = String(node.config.message ?? "").trim();
+  const subject = String(node.config.subject ?? "").trim();
+  const rewardName = String(node.config.rewardName ?? "").trim();
+  return Boolean(message || subject || rewardName);
+}
+
+export function getReturnOfferEmailPreview(
+  config: Record<string, unknown>,
+): string {
+  const message = String(config.message ?? "").trim();
+  if (message) {
+    return message;
+  }
+
+  const rewardName = getRewardName(config);
+  const expiration = formatExpirationDisplay(config);
+  return `Hi [First Name] — we'd love to see you again! Your ${rewardName} is ready.\n\n${expiration}`;
 }

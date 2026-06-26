@@ -45,16 +45,18 @@ export function FunnelConfirmationView({
     if (!celebrate || funnelId == null) return;
     if (trackedRef.current) return;
     if (paymentId == null) return;
+    const customerId = session?.customerId;
+    if (customerId == null) return;
+
     trackedRef.current = true;
 
-    const customerId = session?.customerId;
     void trackFunnelEvent({
       eventType: "payment",
       funnelId,
       funnelPaymentId: paymentId,
       paymentStatus: "paid",
       visitorId: getOrCreateVisitorId(),
-      ...(customerId != null ? { customerId } : {}),
+      customerId,
     }).catch((err) => {
       console.warn("[Funnel] payment track failed", err);
     });

@@ -8,7 +8,9 @@ import type { AutomationPurpose } from "@/app/services/automation/types";
 import {
   FLOW_BRANCH_PASS,
   FLOW_BRANCH_PAYMENT,
+  FLOW_BRANCH_VISITED_YES,
 } from "@/app/components/automation/builder/flow-layout";
+import { PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
 
 export type AutomationTemplateNodeDef = {
   key: string;
@@ -294,7 +296,6 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
   ],
 };
 
-/** Post-payment guest journey — thank you, visit reminders, review, return offer. */
 export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
   id: "post_payment_journey",
   name: "Prepaid Offer",
@@ -317,23 +318,17 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       },
     },
     {
-      key: "payment_confirmation_actions",
-      kind: "tag_customer",
-      label: "Actions",
-      summary: "Thank you and confirmation email after payment.",
+      key: "payment_confirmation_email",
+      kind: "send_email",
+      label: "Send Email",
+      summary: "First prepaid offer email with pass link — runs after payment and restarts here when guest has not visited.",
       config: {
         workflowKind: "prepaid_payment_actions",
-        actions: [
-          {
-            type: "send_email",
-            subject: "Thank you for your payment — your offer is confirmed",
-            template: "Payment confirmation",
-            message:
-              "Hi [First Name]! Thank you for your payment — we're excited to see you at the restaurant. Your offer is confirmed!\n\nThank you for trusting us. Your payment is confirmed. Tap the button below to view your QR pass and add it to your wallet before you visit.",
-            headline: "Your payment is confirmed",
-            ctaLabel: "View my pass",
-          },
-        ],
+        subject: PREPAID_FIRST_EMAIL_DEFAULTS.subject,
+        template: PREPAID_FIRST_EMAIL_DEFAULTS.template,
+        message: PREPAID_FIRST_EMAIL_DEFAULTS.message,
+        headline: PREPAID_FIRST_EMAIL_DEFAULTS.headline,
+        ctaLabel: PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel,
       },
     },
     {
@@ -365,6 +360,9 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       config: {
         conditionType: "Customer visited",
         value: "Customer visited",
+        onFalseLoopWorkflowKind: "prepaid_payment_actions",
+        branchLabelTrue: "Customer visited",
+        branchLabelFalse: "Not visited — restart from first email",
       },
     },
     {
@@ -373,6 +371,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       label: "Send Email",
       summary: "Thank you message after the visit.",
       config: {
+        flowBranch: FLOW_BRANCH_VISITED_YES,
         subject: "Thanks for visiting us!",
         template: "Payment confirmation",
         message:
@@ -385,7 +384,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       kind: "wait",
       label: "Wait until",
       summary: "2 days elapsed",
-      config: { delay: 2, unit: "days" },
+      config: { flowBranch: FLOW_BRANCH_VISITED_YES, delay: 2, unit: "days" },
     },
     {
       key: "email_review",
@@ -393,6 +392,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       label: "Send Email",
       summary: "Review request with link.",
       config: {
+        flowBranch: FLOW_BRANCH_VISITED_YES,
         subject: "We'd love your feedback",
         template: "Payment confirmation",
         message:
@@ -406,23 +406,25 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       kind: "wait",
       label: "Wait until",
       summary: "7 days elapsed",
-      config: { delay: 7, unit: "days" },
+      config: { flowBranch: FLOW_BRANCH_VISITED_YES, delay: 7, unit: "days" },
     },
     {
       key: "return_offer",
-      kind: "create_coupon",
-      label: "Give Rewards",
-      summary: "Return visit offer / coupon.",
+      kind: "send_email",
+      label: "Send Email",
+      summary: "Return visit offer email.",
       config: {
-        rewardName: "Return visit offer",
-        expiration: "30 days",
-        expirationNote: "Valid for 30 days after send",
+        flowBranch: FLOW_BRANCH_VISITED_YES,
+        subject: "Your return visit offer is ready",
+        message:
+          "Hi [First Name] — we'd love to see you again! Your return visit offer is ready.\n\nValid for 30 days after send.",
+        headline: "Return visit offer",
       },
     },
   ],
   connections: [
-    { sourceKey: "trigger", targetKey: "payment_confirmation_actions" },
-    { sourceKey: "payment_confirmation_actions", targetKey: "wait_before_reminder" },
+    { sourceKey: "trigger", targetKey: "payment_confirmation_email" },
+    { sourceKey: "payment_confirmation_email", targetKey: "wait_before_reminder" },
     { sourceKey: "wait_before_reminder", targetKey: "email_visit_reminder" },
     { sourceKey: "email_visit_reminder", targetKey: "filter_visited" },
     { sourceKey: "filter_visited", targetKey: "email_post_visit_thanks" },

@@ -57,10 +57,14 @@ function BlockChip({
   blockId,
   onAddBlock,
   didDragRef,
+  editLocked = false,
+  onEditBlocked,
 }: {
   blockId: WorkflowNodeKind;
   onAddBlock: (blockId: WorkflowNodeKind) => void;
   didDragRef: React.MutableRefObject<boolean>;
+  editLocked?: boolean;
+  onEditBlocked?: () => void;
 }) {
   const block = getBlockByKind(blockId);
   const tone = nodeToneClass(block.tone);
@@ -69,8 +73,13 @@ function BlockChip({
   return (
     <button
       type="button"
-      draggable
+      draggable={!editLocked}
       onDragStart={(e: React.DragEvent<HTMLButtonElement>) => {
+        if (editLocked) {
+          e.preventDefault();
+          onEditBlocked?.();
+          return;
+        }
         didDragRef.current = true;
         setBlockDragData(e.dataTransfer, block.id);
       }}
@@ -81,9 +90,17 @@ function BlockChip({
       }}
       onClick={() => {
         if (didDragRef.current) return;
+        if (editLocked) {
+          onEditBlocked?.();
+          return;
+        }
         onAddBlock(block.id);
       }}
-      className={`group relative flex w-full cursor-grab items-center gap-2 overflow-hidden rounded-xl border bg-white px-2.5 py-2 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.03] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)] active:scale-[0.98] active:cursor-grabbing xl:gap-3 xl:rounded-2xl xl:px-3 xl:py-2.5 ${blockBorderClass(block.tone)}`}
+      className={`group relative flex w-full items-center gap-2 overflow-hidden rounded-xl border bg-white px-2.5 py-2 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.03] transition-all duration-200 xl:gap-3 xl:rounded-2xl xl:px-3 xl:py-2.5 ${
+        editLocked
+          ? "cursor-not-allowed opacity-60"
+          : "cursor-grab hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)] active:scale-[0.98] active:cursor-grabbing"
+      } ${blockBorderClass(block.tone)}`}
     >
       <span
         className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-zinc-200/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
@@ -107,8 +124,12 @@ function BlockChip({
 
 export function BlockSidebar({
   onAddBlock,
+  editLocked = false,
+  onEditBlocked,
 }: {
   onAddBlock: (blockId: WorkflowNodeKind) => void;
+  editLocked?: boolean;
+  onEditBlocked?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const didDragRef = useRef(false);
@@ -180,6 +201,8 @@ export function BlockSidebar({
                     blockId={block.id}
                     onAddBlock={onAddBlock}
                     didDragRef={didDragRef}
+                    editLocked={editLocked}
+                    onEditBlocked={onEditBlocked}
                   />
                 ))}
               </div>

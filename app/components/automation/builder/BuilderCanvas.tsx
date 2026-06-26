@@ -12,17 +12,20 @@ import {
   WorkflowConnector,
   TriggerFlowConnector,
   FlowSplitConnector,
+  PrepaidVisitSplitConnector,
 } from "@/app/components/automation/builder/WorkflowConnector";
 import {
   FlowActionsBlock,
   FlowBranchContainer,
   FlowStepCard,
+  PrepaidLoopBackCard,
 } from "@/app/components/automation/builder/flow-step-cards";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import {
   buildSegmentsForIndexedNodes,
   FLOW_BRANCH_PASS,
   FLOW_BRANCH_PAYMENT,
+  parsePrepaidVisitSplitLayout,
   parseSplitFlowLayout,
 } from "@/app/components/automation/builder/flow-layout";
 import {
@@ -89,6 +92,8 @@ export function BuilderCanvas({
   onSelect,
   onDropBlock,
   onReorderNodes,
+  editLocked = false,
+  onEditBlocked,
 }: {
   nodes: WorkflowNode[];
   loading?: boolean;
@@ -96,6 +101,8 @@ export function BuilderCanvas({
   onSelect: (id: string) => void;
   onDropBlock?: (blockId: WorkflowNodeKind) => void;
   onReorderNodes?: (fromIndex: number, toIndex: number) => void;
+  editLocked?: boolean;
+  onEditBlocked?: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
   const [revealKey, setRevealKey] = useState(0);
@@ -115,8 +122,8 @@ export function BuilderCanvas({
     didDrag: boolean;
   } | null>(null);
 
-  const canDropBlocks = onDropBlock != null;
-  const canReorder = onReorderNodes != null && nodes.length > 1;
+  const canDropBlocks = onDropBlock != null && !editLocked;
+  const canReorder = onReorderNodes != null && nodes.length > 1 && !editLocked;
 
   const fitScreen = useCallback(() => setZoom(1), []);
 
@@ -305,14 +312,19 @@ export function BuilderCanvas({
 
   const handleBlockDrop = useCallback(
     (e: React.DragEvent) => {
-      if (!canDropBlocks || !isBlockDrag(e.dataTransfer)) return;
+      if (!isBlockDrag(e.dataTransfer)) return;
       e.preventDefault();
       e.stopPropagation();
       clearDragState();
+      if (editLocked) {
+        onEditBlocked?.();
+        return;
+      }
+      if (!onDropBlock) return;
       const blockId = readBlockDragData(e.dataTransfer);
-      if (blockId) onDropBlock?.(blockId);
+      if (blockId) onDropBlock(blockId);
     },
-    [canDropBlocks, clearDragState, onDropBlock],
+    [clearDragState, editLocked, onDropBlock, onEditBlocked],
   );
 
   useEffect(() => {
@@ -320,15 +332,24 @@ export function BuilderCanvas({
   }, [nodes.length]);
 
   const { trigger, flowNodes, flowStartIndex } = splitTriggerAndFlow(nodes);
+  const prepaidVisitSplit = parsePrepaidVisitSplitLayout(flowNodes, flowStartIndex);
   const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
-  const headSegments = buildSegmentsForIndexedNodes(splitLayout.head);
+  const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
+  const headSegments = usePrepaidVisitSplit
+    ? buildSegmentsForIndexedNodes(prepaidVisitSplit.head)
+    : splitLayout.hasSplit
+      ? buildSegmentsForIndexedNodes(splitLayout.head)
+      : buildFlowSegments(flowNodes, flowStartIndex);
+  const visitedYesSegments = buildSegmentsForIndexedNodes(
+    prepaidVisitSplit.visitedYes,
+  );
   const passBranchSegments = buildSegmentsForIndexedNodes(
     splitLayout.branches[FLOW_BRANCH_PASS],
   );
   const paymentBranchSegments = buildSegmentsForIndexedNodes(
     splitLayout.branches[FLOW_BRANCH_PAYMENT],
   );
-  const flowSegments = splitLayout.hasSplit
+  const flowSegments = usePrepaidVisitSplit || splitLayout.hasSplit
     ? headSegments
     : buildFlowSegments(flowNodes, flowStartIndex);
 
@@ -375,16 +396,17 @@ export function BuilderCanvas({
     options?: { branchStepNumber?: number },
   ) =>
     segments.map((segment, segmentIndex) => {
-      const node =
-        segment.type === "actions" ? segment.nodes[0]! : segment.node;
       const index =
         segment.type === "actions" ? segment.startIndex : segment.index;
+      const slotNode = nodes[index]!;
+      const displayNode =
+        segment.type === "actions" ? segment.nodes[0]! : segment.node;
       const isLast = segmentIndex === segments.length - 1;
       const isBranchAction =
         options?.branchStepNumber != null &&
         isLast &&
         (segment.type === "actions" ||
-          (segment.type === "node" && isActionNodeKind(node.kind)));
+          (segment.type === "node" && isActionNodeKind(displayNode.kind)));
 
       const stepFooter = isBranchAction ? (
         <>
@@ -401,31 +423,32 @@ export function BuilderCanvas({
       const stepContent =
         segment.type === "actions" ? (
           renderNodeSlot(
-            node,
+            slotNode,
             index,
             <FlowActionsBlock
               nodes={segment.nodes}
               selectedId={selectedId}
+              ownerNodeId={slotNode.id}
               footer={stepFooter}
             />,
           )
-        ) : isActionNodeKind(node.kind) ? (
+        ) : isActionNodeKind(displayNode.kind) ? (
           renderNodeSlot(
-            node,
+            slotNode,
             index,
             <FlowActionsBlock
-              nodes={[node]}
+              nodes={[displayNode]}
               selectedId={selectedId}
               footer={stepFooter}
             />,
           )
         ) : (
           renderNodeSlot(
-            node,
+            slotNode,
             index,
             <FlowStepCard
-              node={node}
-              selected={selectedId === node.id}
+              node={displayNode}
+              selected={selectedId === slotNode.id}
               pressing={pressingIndex === index}
             />,
           )
@@ -435,8 +458,8 @@ export function BuilderCanvas({
         <motion.div
           key={
             segment.type === "actions"
-              ? `actions-${segment.nodes.map((n) => n.id).join("-")}`
-              : node.id
+              ? `actions-${slotNode.id}`
+              : slotNode.id
           }
           className="flex w-full flex-col items-center"
           variants={flowStepReveal}
@@ -465,6 +488,20 @@ export function BuilderCanvas({
         </FlowBranchContainer>
         <FlowBranchContainer>
           {renderSegmentList(paymentBranchSegments, { branchStepNumber: 19 })}
+        </FlowBranchContainer>
+      </div>
+    </div>
+  );
+
+  const renderPrepaidVisitBranches = () => (
+    <div className="flex w-full flex-col items-center">
+      <PrepaidVisitSplitConnector wide />
+      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <FlowBranchContainer>
+          <PrepaidLoopBackCard loopTarget={prepaidVisitSplit.loopTarget?.node ?? null} />
+        </FlowBranchContainer>
+        <FlowBranchContainer>
+          {renderSegmentList(visitedYesSegments)}
         </FlowBranchContainer>
       </div>
     </div>
@@ -642,7 +679,11 @@ export function BuilderCanvas({
                       </>
                     ) : null}
                   </motion.div>
-                  {splitLayout.hasSplit ? (
+                  {usePrepaidVisitSplit ? (
+                    <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
+                      {renderPrepaidVisitBranches()}
+                    </div>
+                  ) : splitLayout.hasSplit ? (
                     <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
                       {renderSplitBranches()}
                     </div>

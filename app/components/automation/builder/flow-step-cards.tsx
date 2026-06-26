@@ -1,10 +1,4 @@
 "use client";
-
-/**
- * Reusable flow step cards — shared by trigger, wait, filter, and actions blocks.
- * MCP Context 7: one component set for template canvas + drag preview.
- */
-
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
@@ -13,6 +7,7 @@ import {
   Filter,
   Gift,
   MessageSquare,
+  RotateCcw,
   Send,
   UserPlus,
 } from "lucide-react";
@@ -29,14 +24,17 @@ import {
   formatWaitSummary,
   getFilterConditions,
   getRewardName,
+  getReturnOfferEmailPreview,
   getSmsLinkLabel,
   getSmsMessage,
   getTriggerDescription,
   getTriggerTitle,
+  isReturnOfferEmailNode,
   isSmsMergeTag,
   splitSmsPreviewParts,
 } from "@/app/components/automation/builder/workflow-node-display";
-import { expandBundledActionsForDisplay, isBundledActionsNode } from "@/app/components/automation/builder/bundled-actions";
+import { expandBundledActionsForDisplay, isBundledActionsNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
+import { isCustomerVisitedFilterNode } from "@/app/components/automation/builder/flow-layout";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
 
@@ -227,6 +225,77 @@ export function FlowFilterCard({
           </span>
         ))}
       </div>
+      {isCustomerVisitedFilterNode(node) ? (
+        <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
+            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-amber-800">
+              If not visited
+            </p>
+            <p className="mt-1 text-xs font-medium text-amber-950">
+              {String(node.config.branchLabelFalse ?? "Restart from first email")}
+            </p>
+          </div>
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
+            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-800">
+              If visited
+            </p>
+            <p className="mt-1 text-xs font-medium text-emerald-950">
+              {String(node.config.branchLabelTrue ?? "Continue post-visit emails")}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function PrepaidLoopBackCard({
+  loopTarget,
+}: {
+  loopTarget: WorkflowNode | null;
+}) {
+  const previewSubject =
+    loopTarget != null
+      ? String(loopTarget.config?.subject ?? "").trim()
+      : "";
+  const previewMessage =
+    loopTarget?.config?.actions &&
+    Array.isArray(loopTarget.config.actions) &&
+    typeof loopTarget.config.actions[0] === "object" &&
+    loopTarget.config.actions[0] != null
+      ? String(
+          (loopTarget.config.actions[0] as Record<string, unknown>).message ??
+            "",
+        ).trim()
+      : String(loopTarget?.config?.message ?? "").trim() ||
+        PREPAID_FIRST_EMAIL_DEFAULTS.message;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-amber-100 bg-amber-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+          <RotateCcw className="size-4" aria-hidden />
+        </span>
+        <div>
+          <p className="text-sm font-bold tracking-tight text-zinc-900">
+            Loop back
+          </p>
+          <p className="text-xs font-medium text-amber-800">
+            Customer not visited → restart from first email
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-4">
+        <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+          Send Email
+        </p>
+        {previewSubject ? (
+          <p className="mt-1 text-xs font-semibold text-zinc-800">{previewSubject}</p>
+        ) : null}
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+          {previewMessage || "Restart from the first offer email with pass link."}
+        </p>
+      </div>
     </div>
   );
 }
@@ -239,6 +308,9 @@ function actionMeta(node: WorkflowNode): { label: string; icon: LucideIcon } {
     case "send_whatsapp":
       return { label: "Send Text", icon: MessageSquare };
     case "create_coupon":
+      if (isReturnOfferEmailNode(node)) {
+        return { label: "Send Email", icon: MessageSquare };
+      }
       return { label: "Give Rewards", icon: Gift };
     case "tag_customer":
       return { label: "Set Reward Expiration", icon: CalendarClock };
@@ -254,9 +326,13 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
   if (
     node.kind === "send_sms" ||
     node.kind === "send_email" ||
-    node.kind === "send_whatsapp"
+    node.kind === "send_whatsapp" ||
+    isReturnOfferEmailNode(node)
   ) {
-    const parts = splitSmsPreviewParts(getSmsMessage(config));
+    const previewMessage = isReturnOfferEmailNode(node)
+      ? getReturnOfferEmailPreview(config)
+      : getSmsMessage(config);
+    const parts = splitSmsPreviewParts(previewMessage);
     return (
       <div className="space-y-2.5 text-left">
         <p className="whitespace-pre-wrap text-left text-[0.9375rem] leading-relaxed text-zinc-700">
@@ -384,13 +460,17 @@ export function FlowActionsGroupBody({
 export function FlowActionsBlock({
   nodes,
   selectedId,
+  ownerNodeId,
   footer,
 }: {
   nodes: WorkflowNode[];
   selectedId?: string | null;
+  ownerNodeId?: string;
   footer?: ReactNode;
 }) {
-  const groupSelected = nodes.some((node) => node.id === selectedId);
+  const groupSelected =
+    (ownerNodeId != null && selectedId === ownerNodeId) ||
+    nodes.some((node) => node.id === selectedId);
   return (
     <div
       className={`overflow-hidden rounded-2xl border bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all ${
@@ -403,7 +483,10 @@ export function FlowActionsBlock({
           <FlowActionStepContent
             key={node.id}
             node={node}
-            selected={selectedId === node.id}
+            selected={
+              groupSelected ||
+              selectedId === node.id
+            }
           />
         ))}
       </FlowActionsGroupBody>
