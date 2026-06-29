@@ -8,6 +8,12 @@ import {
   pusherAutomationChannel,
   pusherExecutionChannel,
 } from "@/app/lib/pusher-execution";
+import {
+  PUSHER_CHAT_EVENT,
+  parseChatMessagePusherPayload,
+  pusherRestaurantChatChannel,
+  type ChatMessagePusherPayload,
+} from "@/app/lib/pusher-chat";
 
 let sharedClient: Pusher | null = null;
 const channelRefCounts = new Map<string, number>();
@@ -161,6 +167,57 @@ export function subscribeAutomationTerminal(
   return subscribeChannelTerminal(
     pusherAutomationChannel(automationId),
     onTerminal,
+  );
+}
+
+function subscribeChannelEvent<T>(
+  channelName: string,
+  eventName: string,
+  onEvent: (payload: T) => void,
+  parsePayload: (raw: unknown) => T | null,
+): () => void {
+  const client = getPusherClient();
+  if (!client) {
+    return () => {};
+  }
+
+  const channel = retainChannel(client, channelName);
+
+  const handler = (raw: unknown) => {
+    const payload = parsePayload(raw);
+    if (!payload) {
+      return;
+    }
+    onEvent(payload);
+  };
+
+  const bindHandler = () => {
+    channel.unbind("pusher:subscription_succeeded", bindHandler);
+    channel.bind(eventName, handler);
+  };
+
+  if (channel.subscribed) {
+    bindHandler();
+  } else {
+    channel.bind("pusher:subscription_succeeded", bindHandler);
+  }
+
+  return () => {
+    channel.unbind(eventName, handler);
+    channel.unbind("pusher:subscription_succeeded", bindHandler);
+    releaseChannel(client, channelName);
+  };
+}
+
+export function subscribeRestaurantChatMessages(
+  restaurantId: number,
+  onMessage: (payload: ChatMessagePusherPayload) => void,
+): () => void {
+  return subscribeChannelEvent(
+    pusherRestaurantChatChannel(restaurantId),
+    PUSHER_CHAT_EVENT.MESSAGE_SENT,
+    onMessage,
+    parseChatMessagePusherPayload,
   );
 }
 

@@ -17,5 +17,9 @@ export default function RestaurantChatsPage() {
     return <InvalidRouteMessage />;
   }
 
-  return <RestaurantChatsPanel restaurantId={restaurantId} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <RestaurantChatsPanel restaurantId={restaurantId} />
+    </div>
+  );
 }

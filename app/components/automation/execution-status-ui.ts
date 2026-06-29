@@ -31,6 +31,21 @@ export function formatExecutionStepType(type?: string | null): string {
     .join(" ");
 }
 
+export function executionStepLabel(
+  status: AutomationExecutionStatus,
+  stepType?: string | null,
+): string {
+  if (status === "completed") return "Completed";
+  if (status === "failed") return "Failed";
+  return formatExecutionStepType(stepType);
+}
+
+export function executionStepUsesCurrentNode(
+  status: AutomationExecutionStatus,
+): boolean {
+  return isExecutionInProgress(status) || status === "paused";
+}
+
 export function isExecutionInProgress(
   status: AutomationExecutionStatus,
 ): boolean {
