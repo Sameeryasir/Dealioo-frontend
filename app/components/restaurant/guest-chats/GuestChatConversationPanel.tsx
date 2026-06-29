@@ -90,7 +90,7 @@ export function GuestChatConversationPanel({
                   <GuestChatNoMessagesEmptyState />
                 </div>
               ) : (
-                <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
+                <div className="flex w-full flex-col gap-4 py-6 pl-4 pr-1 sm:pl-6 sm:pr-2">
                   {messageGroups.map((group) => (
                     <div key={group.day} className="space-y-3">
                       <GuestChatDayDivider label={group.day} />

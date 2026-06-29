@@ -9,7 +9,12 @@ import {
 import { useRestaurantChatPusher } from "@/app/hooks/use-restaurant-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
-import { patchChatCustomersFromPusher } from "@/app/services/chat/chat-query-cache";
+import {
+  getStoredChatCustomers,
+  patchChatCustomersFromPusherInIndexedDb,
+  saveChatCustomers,
+  subscribeChatCustomers,
+} from "@/app/services/chat/chat-indexed-db";
 import { chatQueryKeys } from "@/app/services/chat/chat-query-keys";
 import {
   getRestaurantChatCustomers,
@@ -25,13 +30,57 @@ export function useRestaurantChatCustomersQuery(restaurantId: number) {
     setPageState(1);
   }, [restaurantId]);
 
+  const customersQueryKey = chatQueryKeys.customers(restaurantId, page);
+
+  useEffect(() => {
+    if (restaurantId < 1) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCachedCustomers() {
+      const cached = await getStoredChatCustomers(restaurantId, page);
+      if (cancelled || !cached) {
+        return;
+      }
+
+      queryClient.setQueryData<PaginatedChatCustomersResponse>(
+        customersQueryKey,
+        cached,
+      );
+    }
+
+    void loadCachedCustomers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customersQueryKey, page, queryClient, restaurantId]);
+
+  useEffect(() => {
+    return subscribeChatCustomers((storedRestaurantId, storedPage, data) => {
+      if (storedRestaurantId !== restaurantId || storedPage !== page) {
+        return;
+      }
+
+      queryClient.setQueryData<PaginatedChatCustomersResponse>(
+        chatQueryKeys.customers(storedRestaurantId, storedPage),
+        data,
+      );
+    });
+  }, [page, queryClient, restaurantId]);
+
   const query = useQuery({
-    queryKey: chatQueryKeys.customers(restaurantId, page),
-    queryFn: () =>
-      getRestaurantChatCustomers(restaurantId, {
+    queryKey: customersQueryKey,
+    queryFn: async () => {
+      const fresh = await getRestaurantChatCustomers(restaurantId, {
         page,
         limit: RESTAURANT_CHAT_PAGE_SIZE,
-      }),
+      });
+      await saveChatCustomers(restaurantId, page, fresh);
+      return fresh;
+    },
     enabled: restaurantId >= 1,
     placeholderData: keepPreviousData,
   });
@@ -46,29 +95,9 @@ export function useRestaurantChatCustomersQuery(restaurantId: number) {
         return;
       }
 
-      const customersRoot = chatQueryKeys.customersRoot(restaurantId);
-      void queryClient.cancelQueries({ queryKey: customersRoot });
-
-      const cachedQueries = queryClient
-        .getQueryCache()
-        .findAll({ queryKey: customersRoot });
-
-      if (cachedQueries.length === 0) {
-        void queryClient.invalidateQueries({ queryKey: customersRoot });
-        return;
-      }
-
-      for (const cachedQuery of cachedQueries) {
-        const cachedPage = cachedQuery.queryKey.at(-1);
-        const pageNumber = typeof cachedPage === "number" ? cachedPage : page;
-
-        queryClient.setQueryData<PaginatedChatCustomersResponse>(
-          cachedQuery.queryKey,
-          (prev) => patchChatCustomersFromPusher(prev, payload, pageNumber),
-        );
-      }
+      void patchChatCustomersFromPusherInIndexedDb(restaurantId, payload);
     },
-    [page, queryClient, restaurantId],
+    [restaurantId],
   );
 
   useRestaurantChatPusher(restaurantId, applyPusherMessage);
