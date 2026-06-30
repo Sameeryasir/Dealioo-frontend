@@ -15,7 +15,7 @@ function isNgrokHostname(hostname: string): boolean {
 }
 
 /**
- * On mobile via ngrok, localhost points at the phone — not your Mac.
+ * On mobile via ngrok, localhost points at the phone, not your Mac.
  * Use the Next.js /backend proxy so API calls stay on the same ngrok host.
  */
 export function getApiBaseUrl(): string {

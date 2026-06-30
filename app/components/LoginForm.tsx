@@ -1,7 +1,13 @@
 "use client";
 
+/**
+ * Login form — split layout matching signup (brand panel + form side).
+ */
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { LoginBrandCopy, LoginExperiencePanel, LoginPreviewCard } from "@/app/components/SignupExperiencePanel";
 import {
   AlertCircle,
+  ArrowRight,
   Eye,
   EyeOff,
   Loader2,
@@ -9,6 +15,7 @@ import {
   LogIn,
   Mail,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -20,21 +27,20 @@ type LoginFormValues = {
 export type LoginFormProps = {
   submitting: boolean;
   errorMessage: string | null;
+  signupHref?: string;
   onCredentialsSubmit: (email: string, password: string) => Promise<void>;
 };
 
-const inputBase =
-  "h-11 w-full rounded-xl border bg-zinc-50/50 px-4 text-[16px] leading-normal text-zinc-900 outline-none ring-zinc-900/0 transition-[border-color,box-shadow,background-color] placeholder:text-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60";
-
 function fieldRing(hasError: boolean) {
   return hasError
-    ? "border-red-300 focus:border-red-400 focus:ring-red-900/10"
-    : "border-zinc-200 focus:border-zinc-300";
+    ? "border-red-400 ring-2 ring-red-100"
+    : "border-[#e8edf5] focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15";
 }
 
 export default function LoginForm({
   submitting,
   errorMessage,
+  signupHref = "/auth/signup",
   onCredentialsSubmit,
 }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,159 +49,183 @@ export default function LoginForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<LoginFormValues>({
     defaultValues: { email: "", password: "" },
+    mode: "onTouched",
   });
 
+  const watchEmail = watch("email");
+
+  const inputClass = (hasError: boolean) =>
+    `brand-input py-3 text-sm read-only:bg-[#f8faff]/80 ${fieldRing(hasError)}`;
+
   return (
-    <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-200/40 ring-1 ring-black/[0.03] backdrop-blur-sm sm:p-10">
-      <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/25">
-          <LogIn className="h-6 w-6" strokeWidth={2} aria-hidden />
+    <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-[#e8edf5]/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04),0_24px_56px_rgba(15,23,42,0.1)]">
+      <div className="grid lg:grid-cols-[0.96fr_1.04fr] lg:items-stretch">
+        <LoginExperiencePanel email={watchEmail ?? ""} />
+
+        <div className="flex flex-col bg-white p-6 sm:p-7 lg:p-8">
+          <div className="mb-5 flex items-center justify-between gap-3 border-b border-[#e8edf5] pb-4">
+            <Link href="/" className="shrink-0">
+              <DealiooLogo variant="light" className="h-8 w-auto" priority />
+            </Link>
+            <Link
+              href={signupHref}
+              className="text-xs font-semibold text-brand-primary transition-colors hover:text-brand-primary-hover"
+            >
+              Sign up free
+            </Link>
+          </div>
+
+          <div className="mb-5 lg:hidden">
+            <LoginBrandCopy />
+            <div className="mt-5">
+              <LoginPreviewCard email={watchEmail ?? ""} />
+            </div>
+          </div>
+
+          <div className="mb-5 hidden items-start gap-3.5 lg:flex">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary text-white shadow-sm">
+              <LogIn className="h-[18px] w-[18px]" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div>
+              <h1 className="brand-landing-display text-xl font-semibold leading-snug">
+                Sign in to your{" "}
+                <span className="landing-hero-accent-blue">dashboard</span>
+              </h1>
+              <p className="mt-1.5 text-sm leading-relaxed text-brand-body">
+                Enter your email and password to continue.
+              </p>
+            </div>
+          </div>
+
+          <form
+            method="post"
+            action="/"
+            className="flex flex-1 flex-col"
+            onSubmit={handleSubmit((data) => onCredentialsSubmit(data.email, data.password))}
+            noValidate
+          >
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="login-email" className="brand-label mb-1.5">
+                  <Mail className="h-4 w-4 text-brand-muted" aria-hidden />
+                  Email
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="username"
+                  disabled={submitting}
+                  readOnly={ignoreAutofill}
+                  onFocus={() => setIgnoreAutofill(false)}
+                  aria-invalid={!!errors.email}
+                  className={inputClass(!!errors.email)}
+                  placeholder="you@restaurant.com"
+                  {...register("email", {
+                    required: "Enter your email.",
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Enter a valid email.",
+                    },
+                  })}
+                />
+                {errors.email ? (
+                  <p className="mt-1 text-xs text-brand-error">{errors.email.message}</p>
+                ) : null}
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <label htmlFor="login-password" className="brand-label !mb-0">
+                    <Lock className="h-4 w-4 text-brand-muted" aria-hidden />
+                    Password
+                  </label>
+                  <a
+                    href="#"
+                    className="text-xs font-medium text-brand-muted transition-colors hover:text-brand-primary"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    disabled={submitting}
+                    readOnly={ignoreAutofill}
+                    onFocus={() => setIgnoreAutofill(false)}
+                    aria-invalid={!!errors.password}
+                    className={`${inputClass(!!errors.password)} pr-11`}
+                    placeholder="Enter your password"
+                    {...register("password", {
+                      required: "Enter your password.",
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    disabled={submitting}
+                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-brand-muted hover:bg-[#f8faff] hover:text-brand-navy"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password ? (
+                  <p className="mt-1 text-xs text-brand-error">{errors.password.message}</p>
+                ) : null}
+              </div>
+            </div>
+
+            {errorMessage ? (
+              <div
+                className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>{errorMessage}</span>
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Link
+                href="/"
+                className="landing-btn-ghost inline-flex h-11 items-center justify-center text-sm font-medium"
+              >
+                ← Back to home
+              </Link>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                aria-busy={submitting}
+                className="landing-btn-primary inline-flex h-11 items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold disabled:opacity-50 sm:ml-auto"
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <p className="mt-5 text-center text-sm text-brand-body">
+            Don&apos;t have an account?{" "}
+            <Link href={signupHref} className="font-semibold text-brand-primary hover:underline">
+              Sign up free
+            </Link>
+          </p>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Welcome back
-        </h1>
-        <p className="mt-1.5 max-w-[280px] text-sm leading-relaxed text-zinc-500">
-          Sign in to continue.
-        </p>
       </div>
-
-      <form
-        method="post"
-        action="/"
-        className="flex w-full flex-col gap-5 font-sans"
-        onSubmit={handleSubmit((data) => onCredentialsSubmit(data.email, data.password))}
-        noValidate
-      >
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="login-email"
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
-          >
-            <Mail className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
-            Email
-          </label>
-
-          <input
-            id="login-email"
-            type="email"
-            autoComplete="username"
-            disabled={submitting}
-            readOnly={ignoreAutofill}
-            onFocus={() => setIgnoreAutofill(false)}
-            aria-invalid={!!errors.email}
-            className={`${inputBase} py-2 read-only:bg-zinc-50/50 ${fieldRing(!!errors.email)}`}
-            placeholder="Enter email"
-            {...register("email", {
-              required: "Enter your email.",
-              pattern: {
-                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: "Enter a valid email.",
-              },
-            })}
-          />
-          {errors.email && (
-            <p className="text-sm text-red-600">{errors.email.message}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <label
-              htmlFor="login-password"
-              className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
-            >
-              <Lock className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
-              Password
-            </label>
-            <a
-              href="#"
-              className="text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-800 hover:underline"
-              onClick={(e) => e.preventDefault()}
-            >
-              Forgot password?
-            </a>
-          </div>
-
-          <div className="relative">
-            <input
-              id="login-password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              disabled={submitting}
-              readOnly={ignoreAutofill}
-              onFocus={() => setIgnoreAutofill(false)}
-              aria-invalid={!!errors.password}
-              className={`${inputBase} py-2 pl-4 pr-11 read-only:bg-zinc-50/50 ${fieldRing(!!errors.password)}`}
-              placeholder="Enter password"
-              {...register("password", {
-                required: "Enter your password.",
-              })}
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPassword((value) => !value)}
-              disabled={submitting}
-              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4 shrink-0" aria-hidden />
-              ) : (
-                <Eye className="h-4 w-4 shrink-0" aria-hidden />
-              )}
-            </button>
-          </div>
-          {errors.password && (
-            <p className="text-sm text-red-600">{errors.password.message}</p>
-          )}
-        </div>
-
-        {errorMessage && (
-          <div
-            className="flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800"
-            role="alert"
-          >
-            <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
-              aria-hidden
-            />
-            <span className="leading-snug">{errorMessage}</span>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          aria-busy={submitting}
-          aria-label={submitting ? "Signing in" : "Login"}
-          className="group mt-1 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all duration-200 ease-out hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {submitting ? (
-            <Loader2
-              className="h-6 w-6 animate-spin text-white"
-              strokeWidth={2.5}
-              aria-hidden
-            />
-          ) : (
-            <>
-              <span>Login</span>
-              <LogIn
-                className="h-5 w-5 opacity-90 transition-transform group-hover:translate-x-0.5"
-                strokeWidth={2}
-                aria-hidden
-              />
-            </>
-          )}
-        </button>
-      </form>
-
-      <p className="mt-8 text-center text-xs text-zinc-400">
-        Protected sign-in. Use the credentials provided by your administrator.
-      </p>
     </div>
   );
 }

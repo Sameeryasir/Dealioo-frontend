@@ -45,7 +45,7 @@ export function useStartAutomationRun(
       setActiveRun(null);
 
       try {
-        console.log("[Automation Run] Run button tapped — starting execution", {
+        console.log("[Automation Run] Run button tapped, starting execution", {
           automationId,
         });
 
@@ -53,7 +53,7 @@ export function useStartAutomationRun(
         if (generation !== pollGenerationRef.current) return;
 
         console.log(
-          "[Automation Run] Execution queued — waiting for completion (Pusher if configured, no status polling API)",
+          "[Automation Run] Execution queued, waiting for completion (Pusher if configured, no status polling API)",
           { executionId: initial.executionId },
         );
 
@@ -89,7 +89,7 @@ export function useStartAutomationRun(
           const sent = displayFinal.emailsSent || displayFinal.totalRecipients;
           const total = displayFinal.totalRecipients;
           toast.success(
-            `Run completed — ${sent} of ${total} email${total === 1 ? "" : "s"} sent.`,
+            `Run completed, ${sent} of ${total} email${total === 1 ? "" : "s"} sent.`,
           );
         } else if (final.status === "failed") {
           toast.error(final.lastError ?? "Run failed.");

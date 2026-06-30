@@ -342,7 +342,7 @@ export function AdSetSetupStep({
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={builderInputClass}
-            placeholder="e.g. Local diners — lunch hours"
+            placeholder="e.g. Local diners, lunch hours"
           />
         </BuilderField>
         <BuilderField
@@ -373,9 +373,9 @@ export function AdSetSetupStep({
             <p className="font-semibold text-zinc-900">Using campaign budget</p>
             <p className="mt-1">
               {campaignData.campaignBudgetType === "lifetime"
-                ? `Lifetime budget: $${campaignData.campaignLifetimeBudget?.toFixed(2) ?? "—"}`
-                : `Daily budget: $${campaignData.campaignDailyBudget?.toFixed(2) ?? "—"}`}
-              {" · "}
+                ? `Lifetime budget: $${campaignData.campaignLifetimeBudget?.toFixed(2) ?? "N/A"}`
+                : `Daily budget: $${campaignData.campaignDailyBudget?.toFixed(2) ?? "N/A"}`}
+              {", "}
               Bid strategy:{" "}
               {campaignData.campaignBidStrategy === "LOWEST_COST_WITHOUT_CAP"
                 ? "Highest volume"
@@ -531,7 +531,7 @@ export function AdSetSetupStep({
         </div>
         <BuilderCollapsible
           title="Advanced audience targeting"
-          description="Interests, behaviors, and custom audiences — optional."
+          description="Interests, behaviors, and custom audiences, optional."
         >
           <div className="space-y-4">
             <BuilderField label="Languages" hint="Comma-separated, e.g. en, es">

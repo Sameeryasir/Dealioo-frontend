@@ -4,7 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getApiBaseUrl } from "@/app/lib/api";
 
-/** @deprecated Use /facebook/callback — kept so old Meta redirect URIs still work. */
+/** @deprecated Use /facebook/callback, kept so old Meta redirect URIs still work. */
 function LegacyFacebookCallbackRedirectInner() {
   const searchParams = useSearchParams();
 

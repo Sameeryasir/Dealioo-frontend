@@ -112,7 +112,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "ocean-trust",
     name: "Ocean Trust",
-    description: "Cool blues — professional, clean, and trustworthy",
+    description: "Cool blues, professional, clean, and trustworthy",
     tags: ["Minimal", "E‑commerce"],
     landingDesign: "ocean_breeze",
     heroDesign: "clean_edge",
@@ -134,7 +134,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "bold-flash",
     name: "Bold Flash Sale",
-    description: "High-contrast yellow on black — loud, urgent campaigns",
+    description: "High-contrast yellow on black, loud, urgent campaigns",
     tags: ["Events", "E‑commerce"],
     landingDesign: "bold_contrast",
     heroDesign: "wide_banner",
@@ -145,7 +145,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "golden-membership",
     name: "Golden Membership",
-    description: "Gold on charcoal — premium clubs and memberships",
+    description: "Gold on charcoal, premium clubs and memberships",
     tags: ["Luxury", "Restaurant"],
     landingDesign: "golden_hour",
     heroDesign: "premium_inset",
@@ -156,7 +156,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "cream-hospitality",
     name: "Cream Hospitality",
-    description: "Warm paper tones — calm, readable, restaurant-ready",
+    description: "Warm paper tones, calm, readable, restaurant-ready",
     tags: ["Restaurant", "Popular"],
     landingDesign: "soft_cream",
     heroDesign: "tall_focus",
@@ -167,7 +167,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "plum-spa",
     name: "Plum Spa",
-    description: "Deep purple luxury — spas, wine bars, and boutiques",
+    description: "Deep purple luxury, spas, wine bars, and boutiques",
     tags: ["Luxury", "Wellness"],
     landingDesign: "plum_luxe",
     heroDesign: "floating_hero",
@@ -178,7 +178,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "coral-fun",
     name: "Coral Pop",
-    description: "Bright coral and pink — fun promos and family brands",
+    description: "Bright coral and pink, fun promos and family brands",
     tags: ["Events", "Restaurant"],
     landingDesign: "coral_pop",
     heroDesign: "product_square",
@@ -189,7 +189,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "arctic-saas",
     name: "Arctic SaaS",
-    description: "Cool gray minimal — tech, SaaS, and pro services",
+    description: "Cool gray minimal, tech, SaaS, and pro services",
     tags: ["Minimal", "E‑commerce"],
     landingDesign: "arctic_mist",
     heroDesign: "split_margin",
@@ -200,7 +200,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "electric-nightlife",
     name: "Electric Nightlife",
-    description: "Neon on violet — concerts, clubs, and live events",
+    description: "Neon on violet, concerts, clubs, and live events",
     tags: ["Events", "Dark"],
     landingDesign: "electric_pulse",
     heroDesign: "immersive_story",
@@ -211,7 +211,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "sage-yoga",
     name: "Sage Calm",
-    description: "Muted sage green — yoga, meditation, and calm brands",
+    description: "Muted sage green, yoga, meditation, and calm brands",
     tags: ["Wellness"],
     landingDesign: "sage_calm",
     heroDesign: "soft_frame",
@@ -222,7 +222,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "wine-dining",
     name: "Wine Velvet",
-    description: "Rich burgundy — fine dining and wine clubs",
+    description: "Rich burgundy, fine dining and wine clubs",
     tags: ["Restaurant", "Luxury"],
     landingDesign: "wine_velvet",
     heroDesign: "wide_banner",
@@ -233,7 +233,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "candy-bakery",
     name: "Candy Shop",
-    description: "Playful fuchsia — bakeries, treats, and family brands",
+    description: "Playful fuchsia, bakeries, treats, and family brands",
     tags: ["Restaurant", "Events"],
     landingDesign: "candy_shop",
     heroDesign: "product_square",
@@ -244,7 +244,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "coastal-resort",
     name: "Coastal Resort",
-    description: "Teal and sand — beach clubs, resorts, and travel",
+    description: "Teal and sand, beach clubs, resorts, and travel",
     tags: ["Restaurant", "Events"],
     landingDesign: "coastal_sand",
     heroDesign: "edge_to_edge",
@@ -255,7 +255,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "graphite-b2b",
     name: "Graphite Pro",
-    description: "Slate blue dark — finance, consulting, and B2B",
+    description: "Slate blue dark, finance, consulting, and B2B",
     tags: ["Dark", "E‑commerce"],
     landingDesign: "graphite_pro",
     heroDesign: "premium_inset",
@@ -266,7 +266,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "berry-retail",
     name: "Berry Burst",
-    description: "Bold berry red — retail drops and limited releases",
+    description: "Bold berry red, retail drops and limited releases",
     tags: ["E‑commerce", "Events"],
     landingDesign: "berry_burst",
     heroDesign: "wide_banner",
@@ -277,7 +277,7 @@ export const FUNNEL_PAGE_DESIGN_TEMPLATES: FunnelPageDesignTemplate[] = [
   {
     id: "evergreen-outdoor",
     name: "Evergreen Outdoor",
-    description: "Deep forest green — outdoor, eco, and adventure",
+    description: "Deep forest green, outdoor, eco, and adventure",
     tags: ["Wellness", "Events"],
     landingDesign: "evergreen_night",
     heroDesign: "immersive_story",

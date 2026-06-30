@@ -1,7 +1,7 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
-/** Meta campaign create runs 5 Graph API calls — needs more than the default 5s. */
+/** Meta campaign create runs 5 Graph API calls, needs more than the default 5s. */
 const CREATE_FACEBOOK_CAMPAIGN_TIMEOUT_MS = 120_000;
 
 export type MetaCampaignObjective =

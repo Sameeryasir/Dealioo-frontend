@@ -19,7 +19,7 @@ const API_NODE_TYPE_LABELS: Record<string, string> = {
 
 export function formatExecutionStepType(type?: string | null): string {
   const raw = type?.trim();
-  if (!raw) return "—";
+  if (!raw) return "N/A";
   const apiLabel = API_NODE_TYPE_LABELS[raw.toLowerCase()];
   if (apiLabel) return apiLabel;
   const block = AUTOMATION_BLOCKS.find((b) => b.id === raw.toLowerCase());

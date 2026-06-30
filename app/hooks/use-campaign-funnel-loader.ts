@@ -107,7 +107,7 @@ export function useCampaignFunnelLoader(
         loadedFrom = "indexeddb";
       }
       loadError = "Sign in to load funnel data from the server.";
-      console.warn("[Funnel Editor] No auth token — IndexedDB only", {
+      console.warn("[Funnel Editor] No auth token, IndexedDB only", {
         campaignId: id,
         pages,
       });

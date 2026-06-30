@@ -1,7 +1,7 @@
 export function formatDateTimeShort(
   iso: string | null | undefined,
 ): string {
-  if (!iso) return "—";
+  if (!iso) return "N/A";
   try {
     return new Date(iso).toLocaleString(undefined, {
       month: "short",
@@ -11,14 +11,14 @@ export function formatDateTimeShort(
       hour12: true,
     });
   } catch {
-    return "—";
+    return "N/A";
   }
 }
 
 export function formatLogDrawerTimestamp(
   iso: string | null | undefined,
 ): string {
-  if (!iso) return "—";
+  if (!iso) return "N/A";
   try {
     const d = new Date(iso);
     const date = d.toLocaleDateString("en-US", {
@@ -34,7 +34,7 @@ export function formatLogDrawerTimestamp(
     });
     return `${date} (${time})`;
   } catch {
-    return "—";
+    return "N/A";
   }
 }
 

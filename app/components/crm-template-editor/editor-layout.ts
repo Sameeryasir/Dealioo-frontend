@@ -26,7 +26,7 @@ export const editorPanelScrollClass =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain";
 
 /**
- * Scrollable picker list — height fits ~3 option rows, then scrolls.
+ * Scrollable picker list, height fits ~3 option rows, then scrolls.
  * Row ≈ 4.25rem (preview + padding) × 3 + gaps ≈ 13.5rem.
  */
 export const editorSidebarPickerScrollClass = [

@@ -1,12 +1,14 @@
 import axios from "axios";
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 
-export type SendOtpResponse = string;
+export type SendOtpResponse = {
+  message: string;
+};
 
 export async function sendOtp(email: string): Promise<SendOtpResponse> {
   try {
     const response = await axios.post<SendOtpResponse>(
-      `${getApiBaseUrl()}/auth/send-otp`,
+      `${getApiBaseUrl()}/auth/resend-otp`,
       {
         email,
       },

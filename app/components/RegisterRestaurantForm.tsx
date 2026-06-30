@@ -43,18 +43,14 @@ export type RegisterRestaurantFormProps = {
   onSubmit: (data: RegisterRestaurantFormValues) => Promise<void>;
 };
 
-const inputBase =
-  "h-11 w-full rounded-xl border bg-white px-4 text-[16px] leading-normal text-zinc-900 outline-none ring-zinc-900/0 transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60";
+const inputBase = "brand-input h-11 bg-white py-2";
 
-const selectBase = `${inputBase} appearance-none bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat py-2 pr-10`;
+const selectBase = `${inputBase} appearance-none bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10`;
 
-const textareaBase =
-  "min-h-[100px] w-full rounded-xl border bg-white px-4 py-3 text-[16px] leading-relaxed text-zinc-900 outline-none ring-zinc-900/0 transition placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60";
+const textareaBase = "brand-input min-h-[100px] bg-white py-3 leading-relaxed";
 
 function fieldRing(hasError: boolean) {
-  return hasError
-    ? "border-red-300 focus:border-red-400 focus:ring-red-900/10"
-    : "border-zinc-200 focus:border-zinc-300";
+  return hasError ? "brand-input-error" : "";
 }
 
 function optionalUrlRule(value: string) {
@@ -226,7 +222,7 @@ function RestaurantLogoDropField({
               <div className="absolute inset-x-0 bottom-0 flex flex-wrap justify-center gap-2 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
                 <button
                   type="button"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-zinc-900 shadow-md transition hover:bg-zinc-100"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-brand-navy shadow-md transition hover:bg-zinc-100"
                   onClick={() => inputRef.current?.click()}
                 >
                   <Upload className="h-4 w-4" aria-hidden />
@@ -275,7 +271,7 @@ function RestaurantLogoDropField({
             />
           </span>
           <span className="max-w-[240px]">
-            <span className="block text-sm font-semibold text-zinc-900">
+            <span className="block text-sm font-semibold text-brand-navy">
               {isDragging ? "Drop image here" : "Upload restaurant logo"}
             </span>
             <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
@@ -346,7 +342,7 @@ export default function RegisterRestaurantForm({
   });
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm ring-1 ring-black/[0.03] sm:p-8 lg:p-10">
+    <div className="brand-auth-card-wide p-6 sm:p-8 lg:p-10">
       <form className="flex flex-col gap-10 font-sans" onSubmit={submit} noValidate>
         <section className="flex flex-col gap-5">
           <div className="grid gap-5 md:grid-cols-2">
@@ -507,7 +503,7 @@ export default function RegisterRestaurantForm({
         </section>
 
         <section className="flex flex-col gap-5">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-brand-navy">
             <MapPin className="h-5 w-5 shrink-0 text-zinc-500" strokeWidth={2} aria-hidden />
             Location
           </h2>
@@ -608,7 +604,7 @@ export default function RegisterRestaurantForm({
         </section>
 
         <section className="flex flex-col gap-5">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-brand-navy">
             <ImagePlus className="h-5 w-5 shrink-0 text-zinc-500" strokeWidth={2} aria-hidden />
             Upload image
           </h2>
@@ -641,7 +637,7 @@ export default function RegisterRestaurantForm({
             disabled={submitting}
             aria-busy={submitting}
             aria-label={submitting ? "Creating restaurant" : "Create restaurant"}
-            className="group relative inline-flex h-12 min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-6 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all duration-200 ease-out hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="brand-btn-primary relative inline-flex h-12 min-h-12 px-6"
           >
             <span
               className={`inline-flex items-center justify-center gap-2 ${

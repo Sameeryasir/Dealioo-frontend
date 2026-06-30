@@ -4,7 +4,7 @@ export const FORM_DESIGN_OPTIONS: FormDesignOptionRow[] = [
   {
     value: "stacked_input_form",
     label: "Stacked Input Form",
-    description: "Labels above fields—classic stack.",
+    description: "Labels above fields, classic stack.",
   },
   {
     value: "two_column_form",

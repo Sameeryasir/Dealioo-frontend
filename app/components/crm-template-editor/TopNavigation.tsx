@@ -49,7 +49,7 @@ export function TopNavigation({
   saveError,
 }: TopNavigationProps) {
   const campaignLine = campaignName
-    ? `Campaign · ${campaignName}`
+    ? `Campaign, ${campaignName}`
     : "Funnel builder";
 
   return (

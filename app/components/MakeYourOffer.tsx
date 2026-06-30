@@ -211,7 +211,7 @@ export default function MakeYourOffer({
     offerName.trim() || offerPrice.trim()
       ? [offerName.trim(), offerPrice.trim() ? `$${offerPrice.trim()}` : ""]
           .filter(Boolean)
-          .join(" · ") || "Your offer"
+          .join(", ") || "Your offer"
       : "Your offer name";
 
   const previewCard = (

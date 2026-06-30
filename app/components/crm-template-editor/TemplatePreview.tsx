@@ -244,7 +244,7 @@ export function TemplatePreview({
           }
         }
 
-        toast.success("You're all set — continuing to payment.", {
+        toast.success("You're all set, continuing to payment.", {
           duration: 2400,
         });
         await new Promise<void>((resolve) => {

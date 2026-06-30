@@ -17,7 +17,7 @@ export type CreatePaymentIntentResponse = {
   status?: string;
   stripeAccountId?: string;
   reused?: boolean;
-  /** Payment already succeeded in Stripe — do not call confirmCardPayment again. */
+  /** Payment already succeeded in Stripe, do not call confirmCardPayment again. */
   alreadyCompleted?: boolean;
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import {
   AlertCircle,
   Eye,
@@ -25,13 +26,10 @@ export type SetupPasswordFormProps = {
   onSavePasswords: (currentPassword: string, newPassword: string) => Promise<void>;
 };
 
-const inputBase =
-  "h-11 w-full rounded-xl border bg-zinc-50/50 py-2 text-[16px] leading-normal text-zinc-900 outline-none ring-zinc-900/0 transition-[border-color,box-shadow,background-color] placeholder:text-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60";
+const inputBase = "brand-input py-2";
 
 function fieldRing(hasError: boolean) {
-  return hasError
-    ? "border-red-300 focus:border-red-400 focus:ring-red-900/10"
-    : "border-zinc-200 focus:border-zinc-300";
+  return hasError ? "brand-input-error" : "";
 }
 
 export default function SetupPasswordForm({
@@ -70,15 +68,11 @@ export default function SetupPasswordForm({
   }, [currentPasswordFromLogin, requireTypedCurrent, setValue]);
 
   return (
-    <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-200/40 ring-1 ring-black/[0.03] backdrop-blur-sm sm:p-10">
+    <div className="brand-auth-card">
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/25">
-          <Lock className="h-6 w-6" strokeWidth={2} aria-hidden />
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Set new password
-        </h1>
-        <p className="mt-1.5 whitespace-nowrap text-sm leading-relaxed text-zinc-500">
+        <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
+        <h1 className="brand-heading">Set new password</h1>
+        <p className="mt-1.5 whitespace-nowrap text-sm leading-relaxed text-brand-muted">
           Enter a new password (at least {AUTH_PASSWORD_MIN} characters).
         </p>
       </div>
@@ -123,9 +117,9 @@ export default function SetupPasswordForm({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="setup-current-password"
-              className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
+              className="brand-label"
             >
-              <Lock className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+              <Lock className="h-4 w-4 shrink-0 text-brand-muted" aria-hidden />
               Current password
             </label>
             <div className="relative">
@@ -143,7 +137,7 @@ export default function SetupPasswordForm({
                 type="button"
                 onClick={() => setShowCurrent((v) => !v)}
                 disabled={submitting}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-brand-muted transition-colors hover:bg-brand-soft hover:text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={showCurrent ? "Hide password" : "Show password"}
               >
                 {showCurrent ? (
@@ -154,7 +148,7 @@ export default function SetupPasswordForm({
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-brand-error">
                 {errors.currentPassword.message}
               </p>
             )}
@@ -166,9 +160,9 @@ export default function SetupPasswordForm({
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="setup-new-password"
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
+            className="brand-label"
           >
-            <Lock className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+            <Lock className="h-4 w-4 shrink-0 text-brand-muted" aria-hidden />
             New password
           </label>
           <div className="relative">
@@ -186,7 +180,7 @@ export default function SetupPasswordForm({
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               disabled={submitting}
-              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-brand-muted transition-colors hover:bg-brand-soft hover:text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
@@ -197,16 +191,16 @@ export default function SetupPasswordForm({
             </button>
           </div>
           {errors.newPassword && (
-            <p className="text-sm text-red-600">{errors.newPassword.message}</p>
+            <p className="text-sm text-brand-error">{errors.newPassword.message}</p>
           )}
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="setup-confirm"
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
+            className="brand-label"
           >
-            <Lock className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+            <Lock className="h-4 w-4 shrink-0 text-brand-muted" aria-hidden />
             Confirm new password
           </label>
           <input
@@ -220,17 +214,17 @@ export default function SetupPasswordForm({
             {...register("confirm")}
           />
           {errors.confirm && (
-            <p className="text-sm text-red-600">{errors.confirm.message}</p>
+            <p className="text-sm text-brand-error">{errors.confirm.message}</p>
           )}
         </div>
 
         {errorMessage && (
           <div
-            className="flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800"
+            className="brand-error-banner"
             role="alert"
           >
             <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+              className="mt-0.5 h-4 w-4 shrink-0 text-brand-error"
               aria-hidden
             />
             <span className="leading-snug">{errorMessage}</span>
@@ -240,7 +234,7 @@ export default function SetupPasswordForm({
         <button
           type="submit"
           disabled={submitting}
-          className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="brand-btn-primary mt-1"
         >
           {submitting ? (
             <Loader2

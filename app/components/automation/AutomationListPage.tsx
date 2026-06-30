@@ -67,7 +67,7 @@ import {
 
 function truncateDescription(description: string, maxLength = 40): string {
   const text = description.trim();
-  if (!text) return "—";
+  if (!text) return "N/A";
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}…`;
 }
@@ -217,7 +217,7 @@ export function AutomationListPage({
   if (restaurantId == null) {
     return (
       <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-zinc-700">
-        <p>Invalid link — restaurant id not found in the URL.</p>
+        <p>Invalid link, restaurant id not found in the URL.</p>
       </div>
     );
   }

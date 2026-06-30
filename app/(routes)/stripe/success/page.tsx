@@ -130,7 +130,7 @@ export default function StripeConnectSuccessPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-zinc-500">
-          You can safely close this tab — your account stays connected.
+          You can safely close this tab, your account stays connected.
         </p>
       </div>
     </main>

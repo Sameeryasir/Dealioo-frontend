@@ -325,7 +325,7 @@ export default function CampaignHeader({
                       </p>
                     </div>
                     <p className="mt-2 font-mono text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                      {funnelId != null && funnelId >= 1 ? funnelId : "—"}
+                      {funnelId != null && funnelId >= 1 ? funnelId : "N/A"}
                     </p>
                   </div>
                 </div>
@@ -351,7 +351,7 @@ export default function CampaignHeader({
                       <p className="min-w-0 text-[11px] leading-relaxed text-zinc-500">
                         Origin
                         <span className="mt-0.5 block break-all font-mono text-zinc-700">
-                          {trackingOrigin || "—"}
+                          {trackingOrigin || "N/A"}
                         </span>
                       </p>
                       <button
@@ -385,7 +385,7 @@ export default function CampaignHeader({
                     <span className="font-mono font-semibold text-zinc-900">
                       3002
                     </span>
-                    . Uses your current browser origin — works with ngrok and
+                    . Uses your current browser origin, works with ngrok and
                     local testing.
                   </p>
                 </div>

@@ -38,7 +38,7 @@ authAxios.interceptors.response.use(
         const returnTo = encodeURIComponent(
           `${window.location.pathname}${window.location.search}`,
         );
-        window.location.href = `/auth/login?returnTo=${returnTo}`;
+        window.location.href = `/?returnTo=${returnTo}`;
       }
       return Promise.reject(error);
     }

@@ -3,12 +3,14 @@ import { CredentialProvider } from "@/app/contexts/credential-context";
 import { QueryProvider } from "@/app/providers/QueryProvider";
 import { StoreProvider } from "@/app/store/StoreProvider";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -16,17 +18,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const playfairDisplay = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
-
 export const metadata: Metadata = {
   title: "Dealioo",
-  description: "Restaurant deals, funnels, and guest retention",
+  description: "Create branded deal funnels, collect payments, issue QR passes, track redemptions and automate repeat visits from one dashboard.",
   icons: {
-    icon: "/favicon(3).png",
+    icon: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
@@ -38,11 +35,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      style={{ colorScheme: "light" }}
     >
-      <body
-        className={`${geistSans.className} min-h-full flex flex-col antialiased`}
-      >
+      <body className={`${poppins.className} min-h-full flex flex-col antialiased`}>
         <StoreProvider>
           <QueryProvider>
             <CredentialProvider>

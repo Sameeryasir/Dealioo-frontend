@@ -254,12 +254,12 @@ export function CampaignGoogleAdsPanel({
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
                   Google ads
                 </h2>
-                <p className="text-sm text-zinc-500">Last 30 days · live sync</p>
+                <p className="text-sm text-zinc-500">Last 30 days, live sync</p>
               </div>
             </div>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-600">
               Track spend, impressions, clicks, and conversions from your linked
-              Google Ads account — all in one place.
+              Google Ads account, all in one place.
             </p>
           </div>
 
@@ -326,7 +326,7 @@ export function CampaignGoogleAdsPanel({
                 </span>
                 <div>
                   <p className="font-bold text-zinc-900">
-                    Google linked — pick your Ads account
+                    Google linked, pick your Ads account
                   </p>
                   <p className="mt-1 text-sm text-zinc-600">
                     Choose which customer account powers this restaurant.
@@ -366,7 +366,7 @@ export function CampaignGoogleAdsPanel({
                     </p>
                     <p className="mt-0.5 font-mono text-xs text-blue-100/90">
                       {formatCustomerId(googleCustomerId)}
-                      {currency ? ` · ${currency}` : ""}
+                      {currency ? `, ${currency}` : ""}
                     </p>
                   </div>
                 </div>
@@ -513,7 +513,7 @@ export function CampaignGoogleAdsPanel({
                   No campaigns yet
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
-                  Create campaigns in Google Ads — they&apos;ll show here once
+                  Create campaigns in Google Ads, they&apos;ll show here once
                   they have activity in the last 30 days.
                 </p>
                 <a

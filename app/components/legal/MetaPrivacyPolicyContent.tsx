@@ -66,7 +66,7 @@ const META_DATA_COLLECTED = [
     items: [
       "Campaign and ad delivery metrics returned by Meta (e.g. spend, impressions, clicks)",
       "API error messages when publish or sync fails (to help you fix issues)",
-      "Integration audit events (connection, disconnect, publish steps — tokens are never logged)",
+      "Integration audit events (connection, disconnect, publish steps, tokens are never logged)",
     ],
   },
 ] as const;
@@ -91,7 +91,7 @@ export function MetaPrivacyPolicyContent() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1877F2]">
-                Dealioo · Meta integration
+                Dealioo, Meta integration
               </p>
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
                 Privacy Policy
@@ -122,7 +122,7 @@ export function MetaPrivacyPolicyContent() {
                 measure results. When you connect Meta, we act as your authorized
                 tool to manage advertising through the{" "}
                 <strong className="font-medium text-zinc-800">Meta Marketing API</strong>{" "}
-                (Facebook Graph API v23.0) — the same infrastructure Meta Ads
+                (Facebook Graph API v23.0), the same infrastructure Meta Ads
                 Manager uses.
               </p>
               <ul className="mt-4 space-y-2 text-sm text-zinc-600">
@@ -220,23 +220,23 @@ export function MetaPrivacyPolicyContent() {
               <h2 className="text-lg font-semibold text-zinc-900">How we use this data</h2>
               <ul className="mt-3 space-y-2 text-sm leading-relaxed text-zinc-600">
                 <li>
-                  <strong className="font-medium text-zinc-800">Operate the integration</strong> —
+                  <strong className="font-medium text-zinc-800">Operate the integration</strong>,{" "}
                   authenticate API calls, refresh tokens, and keep your connection healthy.
                 </li>
                 <li>
-                  <strong className="font-medium text-zinc-800">Publish your ads</strong> —
+                  <strong className="font-medium text-zinc-800">Publish your ads</strong>,{" "}
                   send campaign, ad set, creative, and ad payloads you configure in our builder to Meta.
                 </li>
                 <li>
-                  <strong className="font-medium text-zinc-800">Show performance</strong> —
+                  <strong className="font-medium text-zinc-800">Show performance</strong>,{" "}
                   display spend, delivery, and status in your Dealioo dashboard.
                 </li>
                 <li>
-                  <strong className="font-medium text-zinc-800">Support & troubleshooting</strong> —
+                  <strong className="font-medium text-zinc-800">Support & troubleshooting</strong>,{" "}
                   diagnose publish failures and integration errors (without logging access tokens).
                 </li>
                 <li>
-                  <strong className="font-medium text-zinc-800">Security & compliance</strong> —
+                  <strong className="font-medium text-zinc-800">Security & compliance</strong>,{" "}
                   audit connection events and protect against unauthorized access.
                 </li>
               </ul>
@@ -277,7 +277,7 @@ export function MetaPrivacyPolicyContent() {
               <ul className="mt-3 space-y-2 text-sm text-zinc-600">
                 <li>We remove your stored access token and clear the ad account selection.</li>
                 <li>We stop making Marketing API calls on your behalf.</li>
-                <li>Existing campaigns in Meta Ads Manager remain in Meta — we do not delete live ads unless you delete them in Meta.</li>
+                <li>Existing campaigns in Meta Ads Manager remain in Meta, we do not delete live ads unless you delete them in Meta.</li>
               </ul>
               <p className="mt-4 text-sm leading-relaxed text-zinc-600">
                 You can also remove Dealioo from your Facebook account under{" "}

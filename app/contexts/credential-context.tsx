@@ -15,6 +15,7 @@ export type CredentialContextValue = {
   email: string;
   password: string;
   setCredentials: (email: string, password: string) => void;
+  rememberCredentials: (email: string, password: string) => void;
   clearPassword: () => void;
 };
 
@@ -31,6 +32,11 @@ export function CredentialProvider({ children }: { children: ReactNode }) {
     clearSetupUser();
   }, []);
 
+  const rememberCredentials = useCallback((nextEmail: string, nextPassword: string) => {
+    setEmail(nextEmail);
+    setPasswordState(nextPassword);
+  }, []);
+
   const clearPassword = useCallback(() => {
     setPasswordState("");
   }, []);
@@ -40,9 +46,10 @@ export function CredentialProvider({ children }: { children: ReactNode }) {
       email,
       password,
       setCredentials,
+      rememberCredentials,
       clearPassword,
     }),
-    [email, password, setCredentials, clearPassword],
+    [email, password, setCredentials, rememberCredentials, clearPassword],
   );
 
   return (

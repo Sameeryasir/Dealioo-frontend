@@ -312,7 +312,7 @@ function NodeSettingsForm({
     configString(config, "template", EMAIL_TEMPLATES[0]),
   );
   const [subject, setSubject] = useState(() =>
-    configString(config, "subject", "Complete your order — offer inside"),
+    configString(config, "subject", "Complete your order, offer inside"),
   );
   const [conditionType, setConditionType] = useState(() =>
     configString(config, "conditionType", CONDITION_TYPES[0]),
@@ -324,7 +324,7 @@ function NodeSettingsForm({
     configString(
       config,
       "message",
-      "Hi! Your table offer is waiting — reply STOP to opt out.",
+      "Hi! Your table offer is waiting, reply STOP to opt out.",
     ),
   );
   const [whatsappTemplate, setWhatsappTemplate] = useState(() =>
@@ -359,7 +359,7 @@ function NodeSettingsForm({
     setUnit(configUnit(saved));
     setTemplate(configString(saved, "template", EMAIL_TEMPLATES[0]));
     setSubject(
-      configString(saved, "subject", "Complete your order — offer inside"),
+      configString(saved, "subject", "Complete your order, offer inside"),
     );
     setConditionType(configString(saved, "conditionType", CONDITION_TYPES[0]));
     setConditionValue(configString(saved, "value", "true"));
@@ -367,7 +367,7 @@ function NodeSettingsForm({
       configString(
         saved,
         "message",
-        "Hi! Your table offer is waiting — reply STOP to opt out.",
+        "Hi! Your table offer is waiting, reply STOP to opt out.",
       ),
     );
     setWhatsappTemplate(configString(saved, "template", "order_reminder"));

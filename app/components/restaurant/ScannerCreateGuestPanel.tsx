@@ -242,7 +242,7 @@ export function ScannerCreateGuestPanel({
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
             <p className="font-semibold text-zinc-900">Guest created</p>
             <p className="mt-1 text-sm text-zinc-600">
-              {createdGuestName || "Guest"} · ID #{createdGuestId}
+              {createdGuestName || "Guest"}, ID #{createdGuestId}
             </p>
           </div>
         ) : null}

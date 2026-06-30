@@ -265,7 +265,7 @@ export function FunnelOverviewPanel({
               {displayName}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
-              Conversion metrics and live funnel behavior analytics — month
+              Conversion metrics and live funnel behavior analytics, month
               view (last {OVERVIEW_MONTH_COUNT} months).
             </p>
           </div>
@@ -361,7 +361,7 @@ export function FunnelOverviewPanel({
                     Behavior analytics
                   </h3>
                   <p className="mt-0.5 text-xs text-zinc-500">
-                    Page views, clicks, sessions, and customers — month view
+                    Page views, clicks, sessions, and customers, month view
                   </p>
                 </div>
 

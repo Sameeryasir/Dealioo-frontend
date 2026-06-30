@@ -60,15 +60,15 @@ export default function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-40 flex w-full items-center justify-end border-b border-white/10 bg-[#0c152f] px-4 py-3 sm:px-6"
+      className="sticky top-0 z-40 flex w-full items-center justify-end border-b border-white/10 brand-nav px-4 py-3 sm:px-6"
       aria-label="Main"
     >
-      <div ref={menuRootRef} className="relative bg-[#0c152f]">
+      <div ref={menuRootRef} className="relative brand-nav">
         <button
           type="button"
           onClick={() => setMenuOpen((o) => !o)}
-          className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-xs font-semibold uppercase tracking-tight text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-[#0c152f] active:scale-[0.98] ${
-            menuOpen ? "ring-2 ring-white/50 ring-offset-2 ring-offset-[#0c152f]" : ""
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 brand-nav text-xs font-semibold uppercase tracking-tight text-white outline-none ring-offset-2 ring-offset-brand-navy transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-brand-navy active:scale-[0.98] ${
+            menuOpen ? "ring-2 ring-white/50 ring-offset-2 ring-offset-brand-navy" : ""
           }`}
           aria-expanded={menuOpen}
           aria-haspopup="menu"

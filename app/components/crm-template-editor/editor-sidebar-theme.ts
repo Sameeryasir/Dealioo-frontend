@@ -1,6 +1,6 @@
 /**
  * Visual tokens for the funnel editor right sidebar (settings / content panel).
- * Premium light surfaces — aligned with the left funnel steps panel (white + zinc).
+ * Premium light surfaces, aligned with the left funnel steps panel (white + zinc).
  * Layout classes (padding, gap, sizes) stay in components.
  */
 

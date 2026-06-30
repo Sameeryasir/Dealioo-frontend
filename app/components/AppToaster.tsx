@@ -2,7 +2,7 @@
 
 import { Toaster } from "sonner";
 
-/** Global toast host — funnel signup preview and other flows use `toast()` from `sonner`. */
+/** Global toast host, funnel signup preview and other flows use `toast()` from `sonner`. */
 export function AppToaster() {
   return (
     <Toaster

@@ -26,7 +26,7 @@ export type HeroLayoutPreset = Pick<
   | "previewKind"
 >;
 
-/** Reusable layout tokens — catalog rows pick a preset + optional overrides. */
+/** Reusable layout tokens, catalog rows pick a preset + optional overrides. */
 export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> = {
   edge_bleed: {
     previewKind: "edge",

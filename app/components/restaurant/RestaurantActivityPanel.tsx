@@ -41,7 +41,7 @@ type EventFilter = "all" | ActivityEventType;
 function activityDescription(event: RestaurantActivityEvent): string {
   const text = event.description?.trim();
   if (!text) {
-    return "—";
+    return "N/A";
   }
   if (event.eventType === "message_sent") {
     return formatMessageSentDescription(text);

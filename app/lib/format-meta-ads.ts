@@ -2,7 +2,7 @@ export function formatMetaSpend(
   spend: string | null | undefined,
   currency: string | null | undefined,
 ): string {
-  if (spend == null || spend.trim() === "") return "—";
+  if (spend == null || spend.trim() === "") return "N/A";
   const n = Number.parseFloat(spend);
   if (!Number.isFinite(n)) return spend;
   try {
@@ -21,7 +21,7 @@ export function formatMetaDailyBudget(
   dailyBudget: string | null | undefined,
   currency: string | null | undefined,
 ): string {
-  if (dailyBudget == null || dailyBudget.trim() === "") return "—";
+  if (dailyBudget == null || dailyBudget.trim() === "") return "N/A";
   const n = Number.parseInt(dailyBudget, 10);
   if (!Number.isFinite(n)) return dailyBudget;
   try {
@@ -38,7 +38,7 @@ export function formatMetaDailyBudget(
 }
 
 export function formatMetaCount(value: string | null | undefined): string {
-  if (value == null || value.trim() === "") return "—";
+  if (value == null || value.trim() === "") return "N/A";
   const n = Number.parseInt(value, 10);
   if (!Number.isFinite(n)) return value;
   return new Intl.NumberFormat().format(n);
@@ -47,7 +47,7 @@ export function formatMetaCount(value: string | null | undefined): string {
 export function formatMetaDeliveryStatus(
   effectiveStatus: string | null | undefined,
 ): string {
-  if (!effectiveStatus?.trim()) return "—";
+  if (!effectiveStatus?.trim()) return "N/A";
   return effectiveStatus
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

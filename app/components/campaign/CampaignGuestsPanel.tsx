@@ -297,7 +297,7 @@ export function CampaignGuestsPanel() {
                                 {customer.phone}
                               </a>
                             ) : (
-                              <span className="text-zinc-300">—</span>
+                              <span className="text-zinc-300">N/A</span>
                             )}
                           </td>
                           <td className={`${tdClass} whitespace-nowrap text-zinc-600`}>

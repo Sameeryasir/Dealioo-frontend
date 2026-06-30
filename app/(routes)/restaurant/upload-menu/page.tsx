@@ -1,12 +1,13 @@
 "use client";
 
 import UploadMenuForm from "@/app/components/UploadMenuForm";
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { OnboardingRouteGuard } from "@/app/components/OnboardingRouteGuard";
 import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { uploadRestaurantMenu } from "@/app/services/restaurant/upload-menu";
-import { Upload } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -53,27 +54,18 @@ function UploadMenuPageInner() {
   );
 
   if (!tokenReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-500">Loading…</p>
-      </div>
-    );
+    return <AuthPageLoading />;
   }
 
   const content = (
-    <div className="min-h-screen bg-zinc-50 px-4 py-10 sm:px-8">
-      <header className="mx-auto flex max-w-2xl gap-4">
-        <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-md"
-          aria-hidden
-        >
-          <Upload className="h-6 w-6" strokeWidth={2} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Upload menu</h1>
-          <p className="mt-1 text-sm text-zinc-500">Add your menu items here after creating your restaurant.</p>
-        </div>
-      </header>
+    <div className="min-h-screen brand-page-soft px-4 py-10 sm:px-8">
+      <header className="mx-auto mb-8 flex max-w-2xl flex-col items-center text-center">
+        <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
+        <h1 className="brand-heading">Upload menu</h1>
+          <p className="brand-subtext mt-1">
+            Add your menu items here after creating your restaurant.
+          </p>
+        </header>
 
       {defaultRestaurantId != null ? (
         <UploadMenuForm
@@ -83,9 +75,9 @@ function UploadMenuPageInner() {
           onSubmit={onSubmit}
         />
       ) : (
-        <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-offer/30 bg-brand-offer/10 px-4 py-3 text-sm text-brand-navy">
           This step needs a restaurant. Finish{" "}
-          <a href="/restaurant/register" className="font-medium underline underline-offset-2">
+          <a href="/restaurant/register" className="brand-link">
             create restaurant
           </a>{" "}
           first (you will be sent here automatically), or open this page with{" "}
@@ -108,13 +100,7 @@ function UploadMenuPageInner() {
 
 export default function UploadMenuPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-          <p className="text-sm text-zinc-500">Loading…</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthPageLoading />}>
       <UploadMenuPageInner />
     </Suspense>
   );

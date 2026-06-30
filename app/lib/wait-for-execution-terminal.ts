@@ -47,7 +47,7 @@ export async function waitForExecutionTerminal(
 
   if (!isPusherConfigured()) {
     console.warn(
-      "[Automation Run] Pusher not configured — falling back to status polling.",
+      "[Automation Run] Pusher not configured, falling back to status polling.",
     );
 
     while (Date.now() < deadline) {

@@ -154,7 +154,7 @@ function DealSelectRow({
           <span className="mt-1 block text-xs text-zinc-500">
             {deal.campaignName}
             {deal.expiresAt ? (
-              <> · Expires {formatDateTimeShort(deal.expiresAt)}</>
+              <>, Expires {formatDateTimeShort(deal.expiresAt)}</>
             ) : null}
           </span>
         </span>
@@ -348,7 +348,7 @@ export function ScannerSearchGuestPanel({
         (deal) => couponIds.includes(deal.couponId) && deal.qrToken,
       );
       if (!anchorDeal?.qrToken) {
-        setErrorMessage("Could not redeem — missing coupon token.");
+        setErrorMessage("Could not redeem, missing coupon token.");
         return;
       }
 
@@ -674,7 +674,7 @@ export function ScannerSearchGuestPanel({
                       {item.redeemedAt ? (
                         <span className="text-zinc-500">
                           {" "}
-                          · {formatDateTimeShort(item.redeemedAt)}
+                         , {formatDateTimeShort(item.redeemedAt)}
                         </span>
                       ) : null}
                     </li>
@@ -843,7 +843,7 @@ export function ScannerSearchGuestPanel({
                               {guest.phone}
                             </span>
                           ) : (
-                            <span className="text-zinc-300">—</span>
+                            <span className="text-zinc-300">N/A</span>
                           )}
                         </td>
                         <td className={`${tdClass} text-right`}>

@@ -9,7 +9,7 @@ const privacyUrl = `${baseUrl}/privacy`;
 export const metadata: Metadata = {
   title: "Privacy Policy | Dealioo",
   description:
-    "Dealioo privacy policy — Meta integration, data collection, and how we protect your information.",
+    "Dealioo privacy policy, Meta integration, data collection, and how we protect your information.",
   alternates: {
     canonical: privacyUrl,
   },

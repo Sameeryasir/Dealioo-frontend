@@ -12,7 +12,7 @@ export function redirectToLogin(): void {
   const returnTo = encodeURIComponent(
     `${window.location.pathname}${window.location.search}`,
   );
-  window.location.href = `/auth/login?returnTo=${returnTo}`;
+  window.location.href = `/?returnTo=${returnTo}`;
 }
 
 export async function authenticatedFetch(

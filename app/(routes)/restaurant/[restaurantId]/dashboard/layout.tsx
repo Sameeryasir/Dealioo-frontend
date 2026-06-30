@@ -7,7 +7,7 @@ export default function RestaurantDashboardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex min-h-dvh min-h-0 w-full flex-col bg-zinc-50">
+    <div className="flex min-h-dvh min-h-0 w-full flex-col brand-page-soft">
       <RestaurantNavbar />
       <div className="flex min-h-0 min-w-0 flex-1">
         <AdminPanelSidebar />

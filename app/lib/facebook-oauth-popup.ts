@@ -19,7 +19,7 @@ function openFacebookConnectPopup(oauthUrl: string): Window | null {
     window.screenY + (window.outerHeight - height) / 2,
   );
 
-  // Do not use noopener — the popup must postMessage back to this window.
+  // Do not use noopener, the popup must postMessage back to this window.
   return window.open(
     oauthUrl,
     "dealioo_facebook_oauth",

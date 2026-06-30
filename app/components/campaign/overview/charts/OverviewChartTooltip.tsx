@@ -30,9 +30,9 @@ export function OverviewChartTooltip({
           const row = item.payload;
           const extra =
             typeof row?.pct === "number"
-              ? ` · ${row.pct.toFixed(1)}% of signups`
+              ? `, ${row.pct.toFixed(1)}% of signups`
               : typeof row?.count === "number"
-                ? ` · ${row.count.toLocaleString()} total`
+                ? `, ${row.count.toLocaleString()} total`
                 : "";
 
           return (

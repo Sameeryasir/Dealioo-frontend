@@ -8,7 +8,7 @@ export function parseCampaignPrice(
 }
 
 export function formatCampaignPrice(amount: number | null | undefined): string {
-  if (amount == null || !Number.isFinite(amount)) return "—";
+  if (amount == null || !Number.isFinite(amount)) return "N/A";
   if (Number.isInteger(amount)) return `$${amount}`;
   return `$${amount.toFixed(2)}`;
 }

@@ -28,7 +28,7 @@ export function SignupsPaymentsBarChart({
   return (
     <OverviewChartShell
       title="Signups vs payments"
-      subtitle={`Month view · last ${OVERVIEW_MONTH_COUNT} months`}
+      subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months`}
       minHeightClass="min-h-[280px]"
     >
       <div className="h-[260px] w-full min-w-0">
