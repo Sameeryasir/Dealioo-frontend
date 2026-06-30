@@ -21,6 +21,63 @@ function buildChatCustomerRow(
     lastMessageChannel: payload.lastMessageChannel,
     lastMessageAt: payload.lastMessageAt,
     lastAutomationName: existing?.lastAutomationName ?? null,
+    createdAt: existing?.createdAt ?? payload.lastMessageAt,
+  };
+}
+
+export function getLatestCustomerIdByCreatedAt(
+  customers: PaginatedChatCustomersResponse,
+): number | null {
+  if (customers.data.length === 0) {
+    return null;
+  }
+
+  let latest: ChatCustomer | null = null;
+
+  for (const row of customers.data) {
+    if (!row.createdAt) {
+      return null;
+    }
+
+    if (
+      !latest ||
+      new Date(row.createdAt).getTime() > new Date(latest.createdAt).getTime()
+    ) {
+      latest = row;
+    }
+  }
+
+  return latest?.customerId ?? null;
+}
+
+export function mergeCustomersAfterSync(
+  previous: PaginatedChatCustomersResponse,
+  incoming: ChatCustomer[],
+): PaginatedChatCustomersResponse {
+  if (incoming.length === 0) {
+    return previous;
+  }
+
+  const existingIds = new Set(previous.data.map((row) => row.customerId));
+  const newRows = incoming.filter((row) => !existingIds.has(row.customerId));
+
+  if (newRows.length === 0) {
+    return previous;
+  }
+
+  const merged = [...newRows, ...previous.data].sort(
+    (left, right) =>
+      new Date(right.lastMessageAt).getTime() -
+      new Date(left.lastMessageAt).getTime(),
+  );
+
+  return {
+    ...previous,
+    data: merged.slice(0, previous.meta.limit),
+    meta: {
+      ...previous.meta,
+      total: previous.meta.total + newRows.length,
+    },
   };
 }
 
@@ -30,7 +87,19 @@ export function patchChatCustomersFromPusher(
   page: number,
 ): PaginatedChatCustomersResponse | undefined {
   if (!prev) {
-    return prev;
+    if (page !== 1) {
+      return prev;
+    }
+
+    return {
+      data: [buildChatCustomerRow(payload)],
+      meta: {
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+      },
+    };
   }
 
   const existingIndex = prev.data.findIndex(
@@ -59,6 +128,35 @@ export function patchChatCustomersFromPusher(
   return {
     ...prev,
     data: [updatedRow, ...prev.data],
+  };
+}
+
+export function mergeConversationAfterSync(
+  previous: CustomerConversationDetail | null | undefined,
+  incoming: CustomerConversationDetail,
+): CustomerConversationDetail {
+  if (!previous) {
+    return incoming;
+  }
+
+  const existingIds = new Set(previous.messages.map((message) => message.id));
+  const newMessages = incoming.messages.filter(
+    (message) => !existingIds.has(message.id),
+  );
+
+  if (newMessages.length === 0) {
+    return {
+      ...previous,
+      customerName: incoming.customerName ?? previous.customerName,
+      customerEmail: incoming.customerEmail ?? previous.customerEmail,
+    };
+  }
+
+  return {
+    customerId: incoming.customerId,
+    customerName: incoming.customerName ?? previous.customerName,
+    customerEmail: incoming.customerEmail ?? previous.customerEmail,
+    messages: [...previous.messages, ...newMessages],
   };
 }
 

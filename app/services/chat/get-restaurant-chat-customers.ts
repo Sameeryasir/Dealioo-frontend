@@ -15,6 +15,7 @@ export type ChatCustomer = {
   lastMessageChannel: ConversationMessageKind;
   lastMessageAt: string;
   lastAutomationName: string | null;
+  createdAt: string;
 };
 
 export type PaginatedChatCustomersResponse = {
@@ -25,6 +26,10 @@ export type PaginatedChatCustomersResponse = {
     total: number;
     totalPages: number;
   };
+};
+
+export type SyncChatCustomersResponse = {
+  data: ChatCustomer[];
 };
 
 export async function getRestaurantChatCustomers(
@@ -61,4 +66,44 @@ export async function getRestaurantChatCustomers(
   }
 
   return (await res.json()) as PaginatedChatCustomersResponse;
+}
+
+export async function syncRestaurantChatCustomers(
+  restaurantId: number,
+  afterCustomerId: number,
+  options: { limit?: number } = {},
+): Promise<SyncChatCustomersResponse> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(restaurantId)) {
+    throw new Error("Valid restaurant id is required.");
+  }
+  if (!isPositiveInt(afterCustomerId)) {
+    throw new Error("Valid after customer id is required.");
+  }
+
+  const q = new URLSearchParams({
+    afterCustomerId: String(afterCustomerId),
+    limit: String(options.limit ?? RESTAURANT_CHAT_PAGE_SIZE),
+  });
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/sync?${q.toString()}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(
+        res,
+        "Could not sync guest conversations.",
+      ),
+    );
+  }
+
+  return (await res.json()) as SyncChatCustomersResponse;
 }

@@ -7,11 +7,13 @@ export const GuestChatScrollArea = forwardRef<
   {
     children: ReactNode;
     className?: string;
+    onScroll?: () => void;
   }
->(function GuestChatScrollArea({ children, className = "" }, ref) {
+>(function GuestChatScrollArea({ children, className = "", onScroll }, ref) {
   return (
     <div
       ref={ref}
+      onScroll={onScroll}
       className={`guest-chat-scrollbar min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain ${className}`}
     >
       {children}

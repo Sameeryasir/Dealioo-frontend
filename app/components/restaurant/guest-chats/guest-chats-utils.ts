@@ -6,6 +6,49 @@ import type {
   ConversationMessageParticipant,
 } from "@/app/services/chat/get-restaurant-conversation";
 
+export const CHAT_MESSAGE_PAGE_SIZE = 10;
+
+export function getLatestMessageWindow(
+  messages: ConversationMessage[],
+  pageSize = CHAT_MESSAGE_PAGE_SIZE,
+): {
+  window: ConversationMessage[];
+  startIndex: number;
+  hasOlder: boolean;
+} {
+  if (messages.length <= pageSize) {
+    return { window: messages, startIndex: 0, hasOlder: false };
+  }
+
+  const startIndex = messages.length - pageSize;
+  return {
+    window: messages.slice(startIndex),
+    startIndex,
+    hasOlder: true,
+  };
+}
+
+export function getOlderMessageWindow(
+  messages: ConversationMessage[],
+  currentStartIndex: number,
+  pageSize = CHAT_MESSAGE_PAGE_SIZE,
+): {
+  window: ConversationMessage[];
+  startIndex: number;
+  hasOlder: boolean;
+} {
+  if (currentStartIndex <= 0) {
+    return { window: messages, startIndex: 0, hasOlder: false };
+  }
+
+  const startIndex = Math.max(0, currentStartIndex - pageSize);
+  return {
+    window: messages.slice(startIndex),
+    startIndex,
+    hasOlder: startIndex > 0,
+  };
+}
+
 export function guestDisplayName(row: Pick<ChatCustomer, "customerId" | "customerName" | "customerEmail">): string {
   if (row.customerName?.trim()) return row.customerName.trim();
   if (row.customerEmail?.trim()) return row.customerEmail.trim();

@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRestaurantChatCustomersQuery } from "@/app/hooks/use-restaurant-chat-customers-query";
+import { useRestaurantChatPusherConnection } from "@/app/hooks/use-restaurant-chat-pusher-connection";
+import { warmRestaurantConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
@@ -17,11 +19,22 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
     totalPages,
     total,
     loading,
+    syncing,
+    refreshing,
     error,
     page,
     setPage,
     refetch,
   } = useRestaurantChatCustomersQuery(restaurantId);
+  const connectionStatus = useRestaurantChatPusherConnection();
+
+  useEffect(() => {
+    if (restaurantId < 1) {
+      return;
+    }
+
+    void warmRestaurantConversationMessageCache(restaurantId);
+  }, [restaurantId]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => matchesSearch(row, search)),
@@ -57,6 +70,7 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
             search={search}
             onSearchChange={setSearch}
             onSelect={handleSelectGuest}
+            restaurantId={restaurantId}
             loading={loading}
             error={error}
             page={page}
@@ -64,6 +78,8 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
             total={total}
             onPageChange={setPage}
             onRefresh={() => void refetch()}
+            refreshing={refreshing || syncing}
+            connectionStatus={connectionStatus}
           />
         </div>
 

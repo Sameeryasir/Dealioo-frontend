@@ -10,8 +10,10 @@ export const PUSHER_CHAT_EVENT = {
   MESSAGE_SENT: "chat-message-sent",
 } as const;
 
+export const PUSHER_PRIVATE_CHANNEL_PREFIX = "private-";
+
 export function pusherRestaurantChatChannel(restaurantId: number): string {
-  return `restaurant-chat-${restaurantId}`;
+  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}restaurant-chat-${restaurantId}`;
 }
 
 export type ChatMessagePusherPayload = {
@@ -56,6 +58,18 @@ function parseMessageKind(value: unknown): ConversationMessageKind {
   return "email";
 }
 
+function parseIsoTimestamp(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+
+  return null;
+}
+
 export function parseChatMessagePusherPayload(
   data: unknown,
 ): ChatMessagePusherPayload | null {
@@ -71,15 +85,15 @@ export function parseChatMessagePusherPayload(
   if (!messageRaw || typeof messageRaw !== "object") return null;
   const messageRow = messageRaw as Record<string, unknown>;
   const messageId = Number(messageRow.id);
-  const sentAt = messageRow.sentAt;
+  const sentAt = parseIsoTimestamp(messageRow.sentAt);
   if (!Number.isFinite(messageId) || messageId < 1) return null;
-  if (typeof sentAt !== "string" || !sentAt.trim()) return null;
+  if (!sentAt) return null;
 
   const direction = messageRow.direction;
   if (direction !== "outbound" && direction !== "system") return null;
 
-  const lastMessageAt = row.lastMessageAt;
-  if (typeof lastMessageAt !== "string" || !lastMessageAt.trim()) return null;
+  const lastMessageAt = parseIsoTimestamp(row.lastMessageAt);
+  if (!lastMessageAt) return null;
 
   return {
     restaurantId,

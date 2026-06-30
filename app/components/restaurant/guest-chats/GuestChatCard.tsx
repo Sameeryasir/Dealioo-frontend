@@ -3,16 +3,19 @@
 import { motion } from "framer-motion";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import type { ChatCustomer } from "@/app/services/chat/get-restaurant-chat-customers";
+import { prefetchConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
 import { GuestChatAvatar } from "./GuestChatAvatar";
 import { guestChatHoverLift } from "./guest-chats-motion";
 import { guestDisplayName, listItemPreview } from "./guest-chats-utils";
 
 export function GuestChatCard({
   row,
+  restaurantId,
   selected,
   onSelect,
 }: {
   row: ChatCustomer;
+  restaurantId: number;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -23,6 +26,9 @@ export function GuestChatCard({
     <motion.button
       type="button"
       onClick={onSelect}
+      onMouseEnter={() =>
+        prefetchConversationMessageCache(restaurantId, row.customerId)
+      }
       variants={guestChatHoverLift}
       initial="rest"
       animate={selected ? "selected" : "rest"}

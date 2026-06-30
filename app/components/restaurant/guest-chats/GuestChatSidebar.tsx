@@ -15,6 +15,8 @@ import { GuestChatIconButton } from "./GuestChatIconButton";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
 import { GuestChatSearchBar } from "./GuestChatSearchBar";
 import { GuestChatSidebarSkeleton } from "./GuestChatSkeletons";
+import { GuestChatConnectionStatus } from "./GuestChatConnectionStatus";
+import type { PusherConnectionStatus } from "@/app/lib/pusher-client";
 
 export function GuestChatSidebar({
   rows,
@@ -23,6 +25,7 @@ export function GuestChatSidebar({
   search,
   onSearchChange,
   onSelect,
+  restaurantId,
   loading,
   error,
   page,
@@ -30,6 +33,8 @@ export function GuestChatSidebar({
   total,
   onPageChange,
   onRefresh,
+  refreshing = false,
+  connectionStatus = "offline",
 }: {
   rows: ChatCustomer[];
   filteredRows: ChatCustomer[];
@@ -37,6 +42,7 @@ export function GuestChatSidebar({
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (customerId: number) => void;
+  restaurantId: number;
   loading: boolean;
   error: string | null;
   page: number;
@@ -44,13 +50,18 @@ export function GuestChatSidebar({
   total: number;
   onPageChange: (page: number) => void;
   onRefresh: () => void;
+  refreshing?: boolean;
+  connectionStatus?: PusherConnectionStatus;
 }) {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-zinc-200/80 bg-white lg:w-[380px] lg:shrink-0">
       <div className="shrink-0 border-b border-zinc-200/80 bg-white px-5 pb-4 pt-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Guest Chats</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Guest Chats</h1>
+              <GuestChatConnectionStatus status={connectionStatus} />
+            </div>
             <p className="mt-1 text-sm text-zinc-500">Messages sent by automations</p>
           </div>
           <div className="flex items-center gap-2">
@@ -58,8 +69,8 @@ export function GuestChatSidebar({
               icon={RefreshCw}
               label="Refresh chats"
               onClick={onRefresh}
-              disabled={loading}
-              spinning={loading}
+              disabled={loading || refreshing}
+              spinning={refreshing}
             />
           </div>
         </div>
@@ -67,7 +78,7 @@ export function GuestChatSidebar({
       </div>
 
       <GuestChatScrollArea className="min-h-0 flex-1">
-        {loading ? (
+        {loading && rows.length === 0 ? (
           <GuestChatSidebarSkeleton />
         ) : error ? (
           <GuestChatErrorEmptyState title="Could not load guests" description={error} />
@@ -88,6 +99,7 @@ export function GuestChatSidebar({
               <motion.div key={row.customerId} variants={guestChatCardReveal}>
                 <GuestChatCard
                   row={row}
+                  restaurantId={restaurantId}
                   selected={selectedCustomerId === row.customerId}
                   onSelect={() => onSelect(row.customerId)}
                 />
@@ -97,7 +109,7 @@ export function GuestChatSidebar({
         )}
       </GuestChatScrollArea>
 
-      {!loading && !error && totalPages > 1 ? (
+      {!(loading && rows.length === 0) && !error && totalPages > 1 ? (
         <div className="shrink-0 border-t border-zinc-200/80 px-5 py-4">
           <OffsetPagination
             page={page}

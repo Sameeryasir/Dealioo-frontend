@@ -1,89 +1,180 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  keepPreviousData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
 import { useRestaurantChatPusher } from "@/app/hooks/use-restaurant-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
+import {
+  getLatestCustomerIdByCreatedAt,
+  mergeCustomersAfterSync,
+  patchChatCustomersFromPusher,
+} from "@/app/services/chat/chat-query-cache";
 import {
   getStoredChatCustomers,
   patchChatCustomersFromPusherInIndexedDb,
   saveChatCustomers,
   subscribeChatCustomers,
 } from "@/app/services/chat/chat-indexed-db";
-import { chatQueryKeys } from "@/app/services/chat/chat-query-keys";
 import {
   getRestaurantChatCustomers,
   RESTAURANT_CHAT_PAGE_SIZE,
+  syncRestaurantChatCustomers,
   type PaginatedChatCustomersResponse,
 } from "@/app/services/chat/get-restaurant-chat-customers";
+import { useGuestChatCatchUpRegistration } from "@/app/hooks/use-restaurant-chat-catch-up-sync";
 
 export function useRestaurantChatCustomersQuery(restaurantId: number) {
-  const queryClient = useQueryClient();
   const [page, setPageState] = useState(1);
+  const [data, setData] = useState<PaginatedChatCustomersResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setPageState(1);
   }, [restaurantId]);
 
-  const customersQueryKey = chatQueryKeys.customers(restaurantId, page);
+  const fetchAndStoreCustomers = useCallback(async () => {
+    const fresh = await getRestaurantChatCustomers(restaurantId, {
+      page,
+      limit: RESTAURANT_CHAT_PAGE_SIZE,
+    });
+    await saveChatCustomers(restaurantId, page, fresh);
+    setData(fresh);
+    setError(null);
+    return fresh;
+  }, [page, restaurantId]);
+
+  const syncCustomersFromApi = useCallback(
+    async (cached: PaginatedChatCustomersResponse) => {
+      if (page !== 1) {
+        await fetchAndStoreCustomers();
+        return;
+      }
+
+      const afterCustomerId = getLatestCustomerIdByCreatedAt(cached);
+      if (!afterCustomerId) {
+        await fetchAndStoreCustomers();
+        return;
+      }
+
+      const delta = await syncRestaurantChatCustomers(
+        restaurantId,
+        afterCustomerId,
+        { limit: RESTAURANT_CHAT_PAGE_SIZE },
+      );
+
+      if (delta.data.length === 0) {
+        return;
+      }
+
+      const merged = mergeCustomersAfterSync(cached, delta.data);
+      await saveChatCustomers(restaurantId, page, merged);
+      setData(merged);
+      setError(null);
+    },
+    [fetchAndStoreCustomers, page, restaurantId],
+  );
 
   useEffect(() => {
     if (restaurantId < 1) {
+      setData(null);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
 
-    async function loadCachedCustomers() {
+    async function loadFromDbAndSync() {
+      setSyncing(false);
+      setError(null);
+
       const cached = await getStoredChatCustomers(restaurantId, page);
-      if (cancelled || !cached) {
+      if (cancelled) {
         return;
       }
 
-      queryClient.setQueryData<PaginatedChatCustomersResponse>(
-        customersQueryKey,
-        cached,
-      );
+      const hadCachedCustomers = Boolean(cached);
+
+      if (cached) {
+        setData(cached);
+      } else {
+        setData(null);
+        setLoading(true);
+      }
+
+      setSyncing(true);
+
+      try {
+        if (cached) {
+          await syncCustomersFromApi(cached);
+        } else {
+          await fetchAndStoreCustomers();
+        }
+      } catch (syncError) {
+        if (!cancelled && !hadCachedCustomers) {
+          setError(
+            getApiErrorMessage(syncError, "Could not load guest conversations."),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setSyncing(false);
+          if (!hadCachedCustomers) {
+            setLoading(false);
+          }
+        }
+      }
     }
 
-    void loadCachedCustomers();
+    void loadFromDbAndSync();
 
     return () => {
       cancelled = true;
     };
-  }, [customersQueryKey, page, queryClient, restaurantId]);
+  }, [fetchAndStoreCustomers, page, restaurantId, syncCustomersFromApi]);
 
   useEffect(() => {
-    return subscribeChatCustomers((storedRestaurantId, storedPage, data) => {
+    return subscribeChatCustomers((storedRestaurantId, storedPage, customers) => {
       if (storedRestaurantId !== restaurantId || storedPage !== page) {
         return;
       }
 
-      queryClient.setQueryData<PaginatedChatCustomersResponse>(
-        chatQueryKeys.customers(storedRestaurantId, storedPage),
-        data,
-      );
+      setData(customers);
     });
-  }, [page, queryClient, restaurantId]);
+  }, [page, restaurantId]);
 
-  const query = useQuery({
-    queryKey: customersQueryKey,
-    queryFn: async () => {
-      const fresh = await getRestaurantChatCustomers(restaurantId, {
-        page,
-        limit: RESTAURANT_CHAT_PAGE_SIZE,
-      });
-      await saveChatCustomers(restaurantId, page, fresh);
-      return fresh;
-    },
-    enabled: restaurantId >= 1,
-    placeholderData: keepPreviousData,
-  });
+  const refetch = useCallback(async () => {
+    if (restaurantId < 1) {
+      return;
+    }
+
+    setRefreshing(true);
+
+    try {
+      await fetchAndStoreCustomers();
+    } catch (refetchError) {
+      setError(
+        getApiErrorMessage(refetchError, "Could not load guest conversations."),
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchAndStoreCustomers, restaurantId]);
+
+  const catchUpSync = useCallback(async () => {
+    if (restaurantId < 1) {
+      return;
+    }
+
+    try {
+      await fetchAndStoreCustomers();
+    } catch {
+    }
+  }, [fetchAndStoreCustomers, restaurantId]);
+
+  useGuestChatCatchUpRegistration(catchUpSync);
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(nextPage);
@@ -95,27 +186,24 @@ export function useRestaurantChatCustomersQuery(restaurantId: number) {
         return;
       }
 
+      setData((prev) => patchChatCustomersFromPusher(prev ?? undefined, payload, page) ?? prev);
       void patchChatCustomersFromPusherInIndexedDb(restaurantId, payload);
     },
-    [restaurantId],
+    [page, restaurantId],
   );
 
   useRestaurantChatPusher(restaurantId, applyPusherMessage);
 
   return {
-    rows: query.data?.data ?? [],
-    totalPages: query.data?.meta.totalPages ?? 0,
-    total: query.data?.meta.total ?? 0,
-    loading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error
-      ? getApiErrorMessage(
-          query.error,
-          "Could not load guest conversations.",
-        )
-      : null,
+    rows: data?.data ?? [],
+    totalPages: data?.meta.totalPages ?? 0,
+    total: data?.meta.total ?? 0,
+    loading,
+    syncing,
+    refreshing,
+    error,
     page,
     setPage,
-    refetch: query.refetch,
+    refetch,
   };
 }

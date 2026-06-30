@@ -115,3 +115,42 @@ export async function getCustomerConversation(
 
   return (await res.json()) as CustomerConversationDetail;
 }
+
+export async function syncCustomerConversationMessages(
+  restaurantId: number,
+  customerId: number,
+  afterMessageId: number,
+): Promise<CustomerConversationDetail> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(restaurantId)) {
+    throw new Error("Valid restaurant id is required.");
+  }
+  if (!isPositiveInt(customerId)) {
+    throw new Error("Valid customer id is required.");
+  }
+  if (!isPositiveInt(afterMessageId)) {
+    throw new Error("Valid after message id is required.");
+  }
+
+  const query = new URLSearchParams({
+    afterMessageId: String(afterMessageId),
+  });
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages/sync?${query.toString()}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not sync this conversation."),
+    );
+  }
+
+  return (await res.json()) as CustomerConversationDetail;
+}
