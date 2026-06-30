@@ -7,12 +7,22 @@ import { guestChatMessageReveal } from "./guest-chats-motion";
 import { messagePreview } from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
 
-function messageCardClass(isError: boolean): string {
-  if (isError) {
-    return "rounded-2xl border border-red-200 bg-red-50 px-6 py-5 shadow-sm";
+type MessageSide = "guest" | "you" | "automation";
+
+function resolveMessageSide(message: ConversationMessage): MessageSide {
+  if (message.direction === "inbound" || message.sentBy?.type === "customer") {
+    return "guest";
   }
 
-  return "rounded-2xl bg-white px-6 py-5 shadow-sm";
+  if (
+    message.direction === "outbound" &&
+    message.kind === "sms" &&
+    !message.stepType
+  ) {
+    return "you";
+  }
+
+  return "automation";
 }
 
 export function GuestChatMessageBubble({
@@ -22,36 +32,39 @@ export function GuestChatMessageBubble({
   message: ConversationMessage;
   index: number;
 }) {
-  const isOutbound = message.direction === "outbound";
   const isError = message.kind === "error";
   const body = messagePreview(message);
-  const cardClass = messageCardClass(isError);
+  const side = resolveMessageSide(message);
+  const isGuest = side === "guest";
+  const isYou = side === "you";
+  const alignLeft = isYou;
 
-  if (!isOutbound) {
-    return (
-      <motion.div
-        custom={index}
-        variants={guestChatMessageReveal}
-        initial="hidden"
-        animate="show"
-        className="flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4"
-      >
-        <div
-          className={`max-w-[min(28rem,88%)] text-left ${cardClass} ${
-            isError ? "text-red-800" : "text-zinc-700"
-          }`}
-        >
-          <LinkifiedText
-            text={body}
-            className="text-sm leading-relaxed"
-          />
-          <p className="mt-4 text-[11px] font-medium text-zinc-400">
-            {formatDateTimeShort(message.sentAt)}
-          </p>
-        </div>
-      </motion.div>
-    );
+  const rowClass = alignLeft
+    ? "flex w-full justify-start pl-3 pr-14 sm:pl-4 sm:pr-20"
+    : "flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4";
+
+  let bubbleClass =
+    "max-w-[min(28rem,88%)] text-left rounded-2xl px-4 py-3 shadow-sm sm:px-5 sm:py-4";
+
+  if (isError) {
+    bubbleClass += " border border-red-200 bg-red-50 text-red-800";
+  } else if (isGuest) {
+    bubbleClass +=
+      " rounded-br-md border border-zinc-200 bg-zinc-100 text-zinc-800";
+  } else if (isYou) {
+    bubbleClass += " rounded-bl-md bg-blue-600 text-white";
+  } else {
+    bubbleClass +=
+      " rounded-br-md border border-zinc-200/80 bg-white text-zinc-800";
   }
+
+  const textClass = isYou
+    ? "whitespace-pre-wrap text-sm leading-relaxed text-white"
+    : "whitespace-pre-wrap text-sm leading-relaxed";
+
+  const timeClass = isYou
+    ? "mt-3 block text-[11px] font-medium text-blue-100"
+    : "mt-3 block text-[11px] font-medium text-zinc-400";
 
   return (
     <motion.div
@@ -59,16 +72,11 @@ export function GuestChatMessageBubble({
       variants={guestChatMessageReveal}
       initial="hidden"
       animate="show"
-      className="flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4"
+      className={rowClass}
     >
-      <article className={`ml-auto max-w-[min(28rem,88%)] ${cardClass}`}>
-        <LinkifiedText
-          text={body}
-          className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800"
-        />
-        <time className="mt-4 block text-[11px] font-medium text-zinc-400">
-          {formatDateTimeShort(message.sentAt)}
-        </time>
+      <article className={bubbleClass}>
+        <LinkifiedText text={body} className={textClass} />
+        <time className={timeClass}>{formatDateTimeShort(message.sentAt)}</time>
       </article>
     </motion.div>
   );

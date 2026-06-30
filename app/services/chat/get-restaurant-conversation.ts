@@ -11,7 +11,7 @@ export type ConversationMessageKind =
   | "system"
   | "error";
 
-export type ConversationMessageDirection = "outbound" | "system";
+export type ConversationMessageDirection = "outbound" | "inbound" | "system";
 
 export type ConversationMessageParticipant = {
   type: "restaurant" | "customer";

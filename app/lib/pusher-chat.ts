@@ -90,7 +90,7 @@ export function parseChatMessagePusherPayload(
   if (!sentAt) return null;
 
   const direction = messageRow.direction;
-  if (direction !== "outbound" && direction !== "system") return null;
+  if (direction !== "outbound" && direction !== "inbound" && direction !== "system") return null;
 
   const lastMessageAt = parseIsoTimestamp(row.lastMessageAt);
   if (!lastMessageAt) return null;

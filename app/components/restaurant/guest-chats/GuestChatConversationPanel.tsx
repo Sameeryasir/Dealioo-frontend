@@ -14,6 +14,7 @@ import {
 import { groupMessagesByDay } from "./guest-chats-utils";
 import { GuestChatMessageBubble } from "./GuestChatMessageBubble";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
+import { peekStoredChatMessagesLatestPage } from "@/app/services/chat/chat-indexed-db";
 import {
   GuestChatMessagesSkeleton,
 } from "./GuestChatSkeletons";
@@ -45,10 +46,19 @@ export function GuestChatConversationPanel({
   const stickToBottomRef = useRef(true);
   const loadingOlderRef = useRef(false);
 
+  const memoryPage = peekStoredChatMessagesLatestPage(restaurantId, row.customerId);
   const messages =
-    conversation?.customerId === row.customerId ? conversation.messages : [];
+    conversation?.customerId === row.customerId
+      ? conversation.messages
+      : (memoryPage?.messages ?? []);
   const messageGroups = groupMessagesByDay(messages);
   const lastMessageId = messages.at(-1)?.id ?? null;
+  const isSwitchingGuest =
+    conversation != null && conversation.customerId !== row.customerId;
+  const showMessageSkeleton =
+    messages.length === 0 &&
+    memoryPage == null &&
+    (loading || awaitingCache || isSwitchingGuest);
 
   const scrollToLatestMessage = useCallback(() => {
     const container = scrollAreaRef.current;
@@ -113,9 +123,6 @@ export function GuestChatConversationPanel({
       });
     });
   }, [hasOlderMessages, loadOlderMessages, loadingOlder]);
-
-  const showMessageSkeleton =
-    (loading || awaitingCache) && messages.length === 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">

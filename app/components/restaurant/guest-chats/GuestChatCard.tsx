@@ -25,6 +25,9 @@ export function GuestChatCard({
   return (
     <motion.button
       type="button"
+      onMouseDown={() =>
+        prefetchConversationMessageCache(restaurantId, row.customerId)
+      }
       onClick={onSelect}
       onMouseEnter={() =>
         prefetchConversationMessageCache(restaurantId, row.customerId)

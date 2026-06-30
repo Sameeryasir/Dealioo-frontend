@@ -32,7 +32,9 @@ export function useCustomerConversationQuery(
     null,
   );
   const [loading, setLoading] = useState(false);
-  const [awaitingCache, setAwaitingCache] = useState(true);
+  const [awaitingCache, setAwaitingCache] = useState(
+    () => !peekStoredChatMessagesLatestPage(restaurantId, customerId),
+  );
   const [syncing, setSyncing] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

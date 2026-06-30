@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRestaurantChatCustomersQuery } from "@/app/hooks/use-restaurant-chat-customers-query";
 import { useRestaurantChatPusherConnection } from "@/app/hooks/use-restaurant-chat-pusher-connection";
-import { warmRestaurantConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
+import { warmRestaurantConversationMessageCache, prefetchConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
@@ -34,7 +34,7 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
     }
 
     void warmRestaurantConversationMessageCache(restaurantId);
-  }, [restaurantId]);
+  }, [restaurantId, rows]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => matchesSearch(row, search)),
@@ -49,6 +49,7 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
   }, [filteredRows, selectedCustomerId]);
 
   function handleSelectGuest(customerId: number) {
+    prefetchConversationMessageCache(restaurantId, customerId);
     setSelectedCustomerId(customerId);
     setMobileShowList(false);
   }
