@@ -1,70 +1,82 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { formatDateTimeShort } from "@/app/lib/datetime";
+import { formatTimeShort } from "@/app/lib/datetime";
 import type { ConversationMessage } from "@/app/services/chat/get-restaurant-conversation";
 import { guestChatMessageReveal } from "./guest-chats-motion";
 import { messagePreview } from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
 
-type MessageSide = "guest" | "you" | "automation";
+export type GuestChatBubbleStackPosition = "single" | "first" | "middle" | "last";
 
-function resolveMessageSide(message: ConversationMessage): MessageSide {
-  if (message.direction === "inbound" || message.sentBy?.type === "customer") {
-    return "guest";
+function BubbleTail({
+  position,
+  className,
+}: {
+  position: "top-right" | "bottom-right";
+  className: string;
+}) {
+  if (position === "top-right") {
+    return (
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute top-0 -right-[7px] h-[14px] w-[14px] rounded-tr-[14px] ${className}`}
+      />
+    );
   }
 
-  if (
-    message.direction === "outbound" &&
-    message.kind === "sms" &&
-    !message.stepType
-  ) {
-    return "you";
-  }
-
-  return "automation";
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute bottom-0 -right-[7px] h-[14px] w-[14px] rounded-bl-[14px] ${className}`}
+    />
+  );
 }
 
 export function GuestChatMessageBubble({
   message,
   index,
+  stackPosition = "single",
 }: {
   message: ConversationMessage;
   index: number;
+  stackPosition?: GuestChatBubbleStackPosition;
 }) {
   const isError = message.kind === "error";
   const body = messagePreview(message);
-  const side = resolveMessageSide(message);
-  const isGuest = side === "guest";
-  const isYou = side === "you";
-  const alignLeft = isYou;
 
-  const rowClass = alignLeft
-    ? "flex w-full justify-start pl-3 pr-14 sm:pl-4 sm:pr-20"
-    : "flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4";
+  const rowClass =
+    stackPosition === "first" || stackPosition === "middle"
+      ? "flex w-full justify-end pl-14 pr-3 pt-0.5 sm:pl-20 sm:pr-4"
+      : "flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4";
+
+  const bubbleBg = isError ? "bg-red-50" : "bg-white";
+  const tailBg = isError ? "bg-red-50" : "bg-white";
 
   let bubbleClass =
-    "max-w-[min(28rem,88%)] text-left rounded-2xl px-4 py-3 shadow-sm sm:px-5 sm:py-4";
+    "relative max-w-[min(28rem,88%)] text-left px-3 py-2 shadow-sm sm:px-3.5 sm:py-2.5";
 
   if (isError) {
-    bubbleClass += " border border-red-200 bg-red-50 text-red-800";
-  } else if (isGuest) {
-    bubbleClass +=
-      " rounded-br-md border border-zinc-200 bg-zinc-100 text-zinc-800";
-  } else if (isYou) {
-    bubbleClass += " rounded-bl-md bg-blue-600 text-white";
+    bubbleClass += " text-red-800";
   } else {
-    bubbleClass +=
-      " rounded-br-md border border-zinc-200/80 bg-white text-zinc-800";
+    bubbleClass += " text-zinc-800";
   }
 
-  const textClass = isYou
-    ? "whitespace-pre-wrap text-sm leading-relaxed text-white"
-    : "whitespace-pre-wrap text-sm leading-relaxed";
+  if (stackPosition === "single") {
+    bubbleClass += ` ${bubbleBg} rounded-[12px] rounded-br-[3px]`;
+  } else if (stackPosition === "first") {
+    bubbleClass += ` ${bubbleBg} rounded-[12px] rounded-tr-[3px]`;
+  } else if (stackPosition === "middle") {
+    bubbleClass += ` ${bubbleBg} rounded-[12px]`;
+  } else {
+    bubbleClass += ` ${bubbleBg} rounded-[12px]`;
+  }
 
-  const timeClass = isYou
-    ? "mt-3 block text-[11px] font-medium text-blue-100"
-    : "mt-3 block text-[11px] font-medium text-zinc-400";
+  const textClass = "whitespace-pre-wrap text-[14.5px] leading-[1.35] sm:text-[15px]";
+  const timeClass = "shrink-0 text-[11px] font-normal text-zinc-400/90";
+
+  const showTopTail = stackPosition === "first";
+  const showBottomTail = stackPosition === "single";
 
   return (
     <motion.div
@@ -75,8 +87,15 @@ export function GuestChatMessageBubble({
       className={rowClass}
     >
       <article className={bubbleClass}>
-        <LinkifiedText text={body} className={textClass} />
-        <time className={timeClass}>{formatDateTimeShort(message.sentAt)}</time>
+        {showTopTail ? <BubbleTail position="top-right" className={tailBg} /> : null}
+        {showBottomTail ? <BubbleTail position="bottom-right" className={tailBg} /> : null}
+
+        <div className="relative z-[1] min-w-0">
+          <LinkifiedText text={body} className={textClass} />
+          <div className="mt-1 flex justify-end">
+            <time className={timeClass}>{formatTimeShort(message.sentAt)}</time>
+          </div>
+        </div>
       </article>
     </motion.div>
   );

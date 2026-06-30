@@ -159,11 +159,30 @@ export function GuestChatConversationPanel({
                 </p>
               ) : null}
               {messageGroups.map((group) => (
-                <div key={group.day} className="space-y-3">
+                <div key={group.day} className="mb-4 last:mb-0">
                   <GuestChatDayDivider label={group.day} />
-                  {group.messages.map((message, index) => (
-                    <GuestChatMessageBubble key={message.id} message={message} index={index} />
-                  ))}
+                  <div className="mt-2 space-y-0.5">
+                  {group.messages.map((message, index) => {
+                    const stackLength = group.messages.length;
+                    const stackPosition =
+                      stackLength === 1
+                        ? "single"
+                        : index === 0
+                          ? "first"
+                          : index === stackLength - 1
+                            ? "last"
+                            : "middle";
+
+                    return (
+                      <GuestChatMessageBubble
+                        key={message.id}
+                        message={message}
+                        index={index}
+                        stackPosition={stackPosition}
+                      />
+                    );
+                  })}
+                  </div>
                 </div>
               ))}
             </div>

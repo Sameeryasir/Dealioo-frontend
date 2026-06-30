@@ -1,3 +1,16 @@
+export function formatTimeShort(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "—";
+  }
+}
+
 export function formatDateTimeShort(
   iso: string | null | undefined,
 ): string {
