@@ -7,7 +7,12 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   getLatestMessageWindow,
 } from "@/app/components/restaurant/guest-chats/guest-chats-utils";
-import { mergeConversationAfterSync } from "@/app/services/chat/chat-query-cache";
+import {
+  getLatestMessageId,
+  insertMessageIfAbsent,
+  mergeConversationAfterSync,
+  messageExistsById,
+} from "@/app/services/chat/chat-query-cache";
 import {
   getStoredChatConversation,
   getStoredChatMessagesLatestPage,
@@ -303,8 +308,10 @@ export function useCustomerConversationQuery(
     }
 
     try {
-      const page = await getStoredChatMessagesLatestPage(restaurantId, customerId);
-      await syncConversationFromApi(page?.lastMessageId ?? null);
+      const cached = await getStoredChatConversation(restaurantId, customerId);
+      const lastMessageId =
+        cached != null ? getLatestMessageId(cached.messages) : null;
+      await syncConversationFromApi(lastMessageId);
     } catch {
     }
   }, [customerId, restaurantId, syncConversationFromApi]);
@@ -330,7 +337,7 @@ export function useCustomerConversationQuery(
           };
         }
 
-        if (prev.messages.some((message) => message.id === payload.message.id)) {
+        if (messageExistsById(prev.messages, payload.message.id)) {
           return prev;
         }
 
@@ -338,7 +345,7 @@ export function useCustomerConversationQuery(
           customerId: prev.customerId,
           customerName: payload.customerName ?? prev.customerName,
           customerEmail: payload.customerEmail ?? prev.customerEmail,
-          messages: [...prev.messages, payload.message],
+          messages: insertMessageIfAbsent(prev.messages, payload.message),
         };
       });
 

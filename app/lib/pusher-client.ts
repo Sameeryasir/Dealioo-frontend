@@ -33,6 +33,7 @@ let connectionStatus: PusherConnectionStatus = isPusherConfigured()
 const connectionListeners = new Set<(status: PusherConnectionStatus) => void>();
 const reconnectListeners = new Set<() => void>();
 let connectionBindingsAttached = false;
+let wasDisconnected = false;
 
 function mapPusherState(state: string): PusherConnectionStatus {
   if (state === "connected") {
@@ -72,11 +73,15 @@ function attachConnectionBindings(client: Pusher) {
     notifyConnectionStatus(next);
 
     if (
-      states.current === "connected" &&
-      (states.previous === "disconnected" ||
-        states.previous === "unavailable" ||
-        states.previous === "failed")
+      states.current === "disconnected" ||
+      states.current === "unavailable" ||
+      states.current === "failed"
     ) {
+      wasDisconnected = true;
+    }
+
+    if (states.current === "connected" && wasDisconnected) {
+      wasDisconnected = false;
       notifyReconnect();
     }
   });

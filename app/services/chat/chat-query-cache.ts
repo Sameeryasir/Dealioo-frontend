@@ -8,6 +8,34 @@ import type {
   CustomerConversationDetail,
 } from "@/app/services/chat/get-restaurant-conversation";
 
+export function messageExistsById(
+  messages: ConversationMessage[],
+  messageId: number,
+): boolean {
+  return messages.some((message) => message.id === messageId);
+}
+
+export function insertMessageIfAbsent(
+  messages: ConversationMessage[],
+  message: ConversationMessage,
+): ConversationMessage[] {
+  if (messageExistsById(messages, message.id)) {
+    return messages;
+  }
+
+  return [...messages, message];
+}
+
+export function getLatestMessageId(
+  messages: ConversationMessage[],
+): number | null {
+  if (messages.length === 0) {
+    return null;
+  }
+
+  return messages[messages.length - 1]!.id;
+}
+
 function buildChatCustomerRow(
   payload: ChatMessagePusherPayload,
   existing?: ChatCustomer | null,
@@ -139,9 +167,8 @@ export function mergeConversationAfterSync(
     return incoming;
   }
 
-  const existingIds = new Set(previous.messages.map((message) => message.id));
   const newMessages = incoming.messages.filter(
-    (message) => !existingIds.has(message.id),
+    (message) => !messageExistsById(previous.messages, message.id),
   );
 
   if (newMessages.length === 0) {
@@ -170,7 +197,7 @@ export function patchConversationFromPusher(
   }
 
   const existingMessages = prev?.messages ?? [];
-  if (existingMessages.some((message) => message.id === payload.message.id)) {
+  if (messageExistsById(existingMessages, payload.message.id)) {
     return prev;
   }
 
@@ -178,7 +205,7 @@ export function patchConversationFromPusher(
     customerId,
     customerName: payload.customerName ?? prev?.customerName ?? null,
     customerEmail: payload.customerEmail ?? prev?.customerEmail ?? null,
-    messages: [...existingMessages, payload.message],
+    messages: insertMessageIfAbsent(existingMessages, payload.message),
   };
 }
 
@@ -188,7 +215,7 @@ export function appendConversationMessage(
   guest: Pick<ChatCustomer, "customerId" | "customerName" | "customerEmail">,
 ): CustomerConversationDetail {
   const existingMessages = prev?.messages ?? [];
-  if (existingMessages.some((row) => row.id === message.id)) {
+  if (messageExistsById(existingMessages, message.id)) {
     return (
       prev ?? {
         customerId: guest.customerId,
@@ -203,7 +230,7 @@ export function appendConversationMessage(
     customerId: guest.customerId,
     customerName: prev?.customerName ?? guest.customerName,
     customerEmail: prev?.customerEmail ?? guest.customerEmail,
-    messages: [...existingMessages, message],
+    messages: insertMessageIfAbsent(existingMessages, message),
   };
 }
 

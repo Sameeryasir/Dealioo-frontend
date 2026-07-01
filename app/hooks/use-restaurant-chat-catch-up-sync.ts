@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  getPusherConnectionStatus,
-  subscribePusherReconnect,
-} from "@/app/lib/pusher-client";
+import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-chat";
 
-const OFFLINE_POLL_MS = 30_000;
+export const CHAT_SAFETY_SYNC_MS = 30_000;
 
 const guestCatchUpHandlers = new Set<() => Promise<void>>();
 const conversationCatchUpHandlers = new Set<() => Promise<void>>();
@@ -24,26 +21,33 @@ function runCatchUpSync() {
   }
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    runCatchUpSync();
+  }
+}
+
+function handleWindowFocus() {
+  runCatchUpSync();
+}
+
 function ensureCatchUpListeners() {
-  if (listenersAttached || !isPusherConfigured()) {
+  if (listenersAttached) {
     return;
   }
 
   listenersAttached = true;
 
-  subscribePusherReconnect(runCatchUpSync);
+  if (isPusherConfigured()) {
+    subscribePusherReconnect(runCatchUpSync);
+  }
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      runCatchUpSync();
-    }
-  });
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("focus", handleWindowFocus);
 
   window.setInterval(() => {
-    if (getPusherConnectionStatus() !== "live") {
-      runCatchUpSync();
-    }
-  }, OFFLINE_POLL_MS);
+    runCatchUpSync();
+  }, CHAT_SAFETY_SYNC_MS);
 }
 
 export function registerGuestChatCatchUpSync(
