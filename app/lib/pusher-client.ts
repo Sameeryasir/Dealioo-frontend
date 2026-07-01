@@ -295,9 +295,13 @@ function subscribeChannelEvent<T>(
   eventName: string,
   onEvent: (payload: T) => void,
   parsePayload: (raw: unknown) => T | null,
+  debugLabel?: string,
 ): () => void {
   const client = getPusherClient();
   if (!client) {
+    if (debugLabel) {
+      console.warn(`[Chat Pusher] ${debugLabel}: client not available (check env vars).`);
+    }
     return () => {};
   }
 
@@ -306,7 +310,17 @@ function subscribeChannelEvent<T>(
   const handler = (raw: unknown) => {
     const payload = parsePayload(raw);
     if (!payload) {
+      if (debugLabel) {
+        console.warn(`[Chat Pusher] ${debugLabel}: ignored invalid payload`, raw);
+      }
       return;
+    }
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: event received`, {
+        channel: channelName,
+        event: eventName,
+        payload,
+      });
     }
     onEvent(payload);
   };
@@ -314,15 +328,33 @@ function subscribeChannelEvent<T>(
   const bindHandler = () => {
     channel.unbind("pusher:subscription_succeeded", bindHandler);
     channel.bind(eventName, handler);
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: subscribed`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
   };
 
   if (channel.subscribed) {
     bindHandler();
   } else {
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: waiting for subscription`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
     channel.bind("pusher:subscription_succeeded", bindHandler);
   }
 
   return () => {
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: unsubscribed`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
     channel.unbind(eventName, handler);
     channel.unbind("pusher:subscription_succeeded", bindHandler);
     releaseChannel(client, channelName);
@@ -338,6 +370,7 @@ export function subscribeRestaurantChatMessages(
     PUSHER_CHAT_EVENT.MESSAGE_SENT,
     onMessage,
     parseChatMessagePusherPayload,
+    `restaurant-${restaurantId}`,
   );
 }
 

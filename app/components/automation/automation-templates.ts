@@ -271,14 +271,21 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
       kind: "send_email",
       label: "Send Email",
       summary: "Payment reminder with link to complete checkout.",
-      config: PAYMENT_REMINDER_EMAIL_CONFIG,
+      config: {
+        ...PAYMENT_REMINDER_EMAIL_CONFIG,
+        workflowKind: "payment_reminder_email",
+      },
     },
     {
       key: "wait_pass",
       kind: "wait",
       label: "Wait until",
-      summary: "15 minutes elapsed",
-      config: { delay: 15, unit: "minutes" },
+      summary: "2 minutes elapsed",
+      config: {
+        delay: 2,
+        unit: "minutes",
+        workflowKind: "payment_reminder_wait",
+      },
     },
     {
       key: "email_pass",
@@ -287,12 +294,25 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
       summary: "QR pass — add to Wallet and use at scanner.",
       config: QR_PASS_EMAIL_CONFIG,
     },
+    {
+      key: "filter_loop",
+      kind: "condition",
+      label: "Filters",
+      summary: "Still unpaid — loop reminders until paid",
+      config: {
+        conditionType: "Has not completed payment",
+        onFalseLoopWorkflowKind: "payment_reminder_email",
+        branchLabelTrue: "Guest paid — stop",
+        branchLabelFalse: "Still unpaid — send reminders again",
+      },
+    },
   ],
   connections: [
     { sourceKey: "trigger", targetKey: "filter" },
     { sourceKey: "filter", targetKey: "email_payment" },
     { sourceKey: "email_payment", targetKey: "wait_pass" },
     { sourceKey: "wait_pass", targetKey: "email_pass" },
+    { sourceKey: "email_pass", targetKey: "filter_loop" },
   ],
 };
 

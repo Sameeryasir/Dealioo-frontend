@@ -305,12 +305,14 @@ export function AutomationExecutionsPanel({
   automationActive,
   showRunButton = true,
   showPauseButton = false,
+  autoRunHint = "This flow runs automatically when guests sign up on the funnel.",
   onExecutionStarted,
 }: {
   automationId: number;
   automationActive?: boolean;
   showRunButton?: boolean;
   showPauseButton?: boolean;
+  autoRunHint?: string;
   onExecutionStarted?: (id: number) => void;
 }) {
   const [statusFilter, setStatusFilter] = useState<
@@ -523,9 +525,7 @@ export function AutomationExecutionsPanel({
             appears below when unpaid guests are found.
           </p>
         ) : !showRunButton ? (
-          <p className="mt-3 text-sm text-zinc-500">
-            This flow runs automatically when guests sign up on the funnel.
-          </p>
+          <p className="mt-3 text-sm text-zinc-500">{autoRunHint}</p>
         ) : showRunButton && automationActive === false ? (
           <ActivateAutomationFirstHint className="mt-3" />
         ) : null}
@@ -657,7 +657,7 @@ export function AutomationExecutionsPanel({
                     ? "Run this automation to email unpaid customers. Each batch appears here with everyone it reached."
                     : showPauseButton
                       ? "Runs appear here on the cron schedule when unpaid guests are found and reminded by email."
-                      : "Runs appear here automatically when guests sign up on the funnel."
+                      : autoRunHint
                 }
               />
             </motion.div>

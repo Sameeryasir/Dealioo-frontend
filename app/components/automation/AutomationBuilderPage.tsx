@@ -34,6 +34,8 @@ import {
   hasCronTriggerNode,
   isCronStartingTrigger,
   isManualRunDisabledFlow,
+  isPaymentStartingTrigger,
+  isSignupStartingTrigger,
   insertWorkflowNode,
   reorderWorkflowNodes,
 } from "@/app/components/automation/workflow-node-order";
@@ -244,6 +246,16 @@ export function AutomationBuilderPage({
     () => isManualRunDisabledFlow(nodes),
     [nodes],
   );
+
+  const autoRunHint = useMemo(() => {
+    if (isPaymentStartingTrigger(nodes)) {
+      return "This flow runs automatically when a guest completes payment.";
+    }
+    if (isSignupStartingTrigger(nodes)) {
+      return "This flow runs automatically when guests sign up on the funnel.";
+    }
+    return "This flow runs automatically.";
+  }, [nodes]);
 
   const hasUnsavedBuilderChanges = isFlowDirty || hasUnsavedStepSettings;
 
@@ -793,6 +805,7 @@ export function AutomationBuilderPage({
             automationActive={automationActive}
             showRunButton={!manualRunDisabled}
             showPauseButton={cronStartsFlow}
+            autoRunHint={autoRunHint}
           />
         </motion.div>
       )}
