@@ -108,47 +108,9 @@ function findPaymentReminderWaitMinutes(nodes: WorkflowNode[]): number {
 }
 
 export function validatePaymentReminderSchedule(
-  nodes: WorkflowNode[],
-  purpose: string | undefined | null,
-  nodePatch?: { nodeId: string; config: Record<string, unknown> },
+  _nodes: WorkflowNode[],
+  _purpose: string | undefined | null,
+  _nodePatch?: { nodeId: string; config: Record<string, unknown> },
 ): PaymentReminderScheduleValidation {
-  if (purpose !== "funnel_signup_payment_reminder") {
-    return { ok: true };
-  }
-
-  const mergedNodes = nodePatch
-    ? nodes.map((node) =>
-        node.id === nodePatch.nodeId
-          ? { ...node, config: nodePatch.config }
-          : node,
-      )
-    : nodes;
-
-  const cronNode = mergedNodes.find((node) => node.kind === "cron_trigger");
-  if (!cronNode) {
-    return { ok: true };
-  }
-
-  const cronIntervalMinutes = resolveCronIntervalMinutes(cronNode.config);
-  if (cronIntervalMinutes === null) {
-    return { ok: true };
-  }
-
-  const waitDelayMinutes = findPaymentReminderWaitMinutes(mergedNodes);
-  if (waitDelayMinutes <= 0) {
-    return { ok: true };
-  }
-
-  if (cronIntervalMinutes < waitDelayMinutes) {
-    return {
-      ok: false,
-      message:
-        `The cron schedule (every ${formatMinutesLabel(cronIntervalMinutes)}) cannot be shorter than the Wait step (${formatMinutesLabel(waitDelayMinutes)}). ` +
-        "Increase the cron interval or reduce the wait time so guests do not get duplicate reminders before the QR pass email is sent.",
-      cronIntervalMinutes,
-      waitDelayMinutes,
-    };
-  }
-
   return { ok: true };
 }
