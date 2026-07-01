@@ -1,9 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { formatTimeShort } from "@/app/lib/datetime";
 import type { ConversationMessage } from "@/app/services/chat/get-restaurant-conversation";
-import { guestChatMessageReveal } from "./guest-chats-motion";
 import { messagePreview } from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
 
@@ -35,11 +33,10 @@ function BubbleTail({
 
 export function GuestChatMessageBubble({
   message,
-  index,
   stackPosition = "single",
 }: {
   message: ConversationMessage;
-  index: number;
+  index?: number;
   stackPosition?: GuestChatBubbleStackPosition;
 }) {
   const isError = message.kind === "error";
@@ -79,13 +76,7 @@ export function GuestChatMessageBubble({
   const showBottomTail = stackPosition === "single";
 
   return (
-    <motion.div
-      custom={index}
-      variants={guestChatMessageReveal}
-      initial="hidden"
-      animate="show"
-      className={rowClass}
-    >
+    <div className={rowClass}>
       <article className={bubbleClass}>
         {showTopTail ? <BubbleTail position="top-right" className={tailBg} /> : null}
         {showBottomTail ? <BubbleTail position="bottom-right" className={tailBg} /> : null}
@@ -97,6 +88,6 @@ export function GuestChatMessageBubble({
           </div>
         </div>
       </article>
-    </motion.div>
+    </div>
   );
 }
