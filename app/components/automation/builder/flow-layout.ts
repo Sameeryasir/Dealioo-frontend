@@ -1,5 +1,5 @@
 import type { WorkflowNode } from "@/app/components/automation/types";
-import { isPrepaidVisitReminderWaitLoopNode } from "@/app/components/automation/builder/bundled-actions";
+import { resolvePrepaidFalseLoopTargetNode } from "@/app/components/automation/builder/bundled-actions";
 import { buildFlowSegments, type FlowSegment } from "@/app/components/automation/builder/flow-segments";
 
 export const FLOW_BRANCH_PASS = "pass";
@@ -77,12 +77,20 @@ export function parsePrepaidVisitSplitLayout(
       return;
     }
 
-    if (isPrepaidVisitReminderWaitLoopNode(node)) {
-      loopTarget = entry;
-    }
-
     head.push(entry);
   });
+
+  loopTarget = (() => {
+    const targetNode = resolvePrepaidFalseLoopTargetNode(flowNodes);
+    if (!targetNode) {
+      return null;
+    }
+    const index = flowNodes.indexOf(targetNode);
+    if (index < 0) {
+      return null;
+    }
+    return { node: targetNode, index: startIndex + index };
+  })();
 
   const hasSplit =
     visitFilterIndex >= 0 && visitedYes.length > 0 && loopTarget != null;

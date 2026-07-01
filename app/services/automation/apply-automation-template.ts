@@ -1,11 +1,3 @@
-/**
- * Change summary:
- * - Creates automation nodes and connections from an import template.
- * - Why: Pre-fills the builder when a user picks a template like Abandoned Cart.
- * - Related: automation-templates.ts, AutomationListPage
- * - MCP Context 7: keeps graph creation in one service, separate from UI.
- */
-
 import type { AutomationTemplate } from "@/app/components/automation/automation-templates";
 import { createAutomationConnection } from "@/app/services/automation/connection-api";
 import {

@@ -254,8 +254,10 @@ export function PrepaidLoopBackCard({
 }: {
   loopTarget: WorkflowNode | null;
 }) {
+  const isWaitLoop = loopTarget?.kind === "wait";
+  const waitSummary = isWaitLoop ? formatWaitSummary(loopTarget.config) : "";
   const previewSubject =
-    loopTarget != null
+    !isWaitLoop && loopTarget != null
       ? String(loopTarget.config?.subject ?? "").trim()
       : "";
   const previewMessage =
@@ -268,7 +270,9 @@ export function PrepaidLoopBackCard({
             "",
         ).trim()
       : String(loopTarget?.config?.message ?? "").trim() ||
-        PREPAID_FIRST_EMAIL_DEFAULTS.message;
+        (isWaitLoop
+          ? "After the wait, the visit reminder email is sent again."
+          : PREPAID_FIRST_EMAIL_DEFAULTS.message);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
@@ -281,20 +285,41 @@ export function PrepaidLoopBackCard({
             Loop back
           </p>
           <p className="text-xs font-medium text-amber-800">
-            Customer not visited → restart from first email
+            {isWaitLoop
+              ? "Customer not visited → wait, then visit reminder"
+              : "Customer not visited → restart from first email"}
           </p>
         </div>
       </div>
       <div className="px-5 py-4">
-        <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
-          Send Email
-        </p>
-        {previewSubject ? (
-          <p className="mt-1 text-xs font-semibold text-zinc-800">{previewSubject}</p>
-        ) : null}
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
-          {previewMessage || "Restart from the first offer email with pass link."}
-        </p>
+        {isWaitLoop ? (
+          <>
+            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-violet-700">
+              Wait until
+            </p>
+            <p className="mt-1 text-sm font-semibold text-zinc-800">
+              {waitSummary || "Delay before next reminder"}
+            </p>
+            <p className="mt-3 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+              Then send email
+            </p>
+            <p className="mt-1 text-sm text-zinc-700">
+              Visit reminder — your offer is ready
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+              Send Email
+            </p>
+            {previewSubject ? (
+              <p className="mt-1 text-xs font-semibold text-zinc-800">{previewSubject}</p>
+            ) : null}
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+              {previewMessage || "Restart from the first offer email with pass link."}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

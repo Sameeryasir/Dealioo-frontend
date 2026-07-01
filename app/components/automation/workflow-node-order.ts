@@ -22,7 +22,6 @@ export function isSignupTriggerNode(node: WorkflowNode): boolean {
   return node.kind === "signup_trigger";
 }
 
-/** Signup-triggered flows run automatically when a guest signs up on the funnel. */
 export function isSignupStartingTrigger(nodes: WorkflowNode[]): boolean {
   return nodes.length > 0 && isSignupTriggerNode(nodes[0]);
 }

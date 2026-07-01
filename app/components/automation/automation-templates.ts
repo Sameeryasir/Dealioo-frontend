@@ -1,8 +1,3 @@
-/**
- * Change summary:
- * - Abandoned Cart, Payment Reminder, and Prepaid Offer import templates.
- */
-
 import type { WorkflowNodeKind } from "@/app/components/automation/types";
 import type { AutomationPurpose } from "@/app/services/automation/types";
 import {
@@ -383,7 +378,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
         value: "Customer visited",
         onFalseLoopWorkflowKind: "prepaid_visit_reminder_wait",
         branchLabelTrue: "Customer visited",
-        branchLabelFalse: "Not visited — wait then send reminder again",
+        branchLabelFalse: "Not visited — wait, then send visit reminder again",
       },
     },
     {

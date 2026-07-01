@@ -540,3 +540,11 @@ export async function patchChatCustomersAfterSendInIndexedDb(
     await saveChatCustomers(restaurantId, record.page, next);
   }
 }
+
+export async function clearChatIndexedDbCache(): Promise<void> {
+  conversationMessageCache.clear();
+  const { clearAllRetentionIndexedDb } = await import(
+    "@/app/lib/clear-retention-indexed-db"
+  );
+  await clearAllRetentionIndexedDb();
+}

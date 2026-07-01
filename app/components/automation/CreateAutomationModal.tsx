@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - Added Import vs Create-from-scratch flow with Abandoned Cart template preview.
- * - Why: Users asked to pick a template and open the builder with nodes pre-filled.
- * - Related: automation-templates.ts, apply-automation-template.ts, AutomationListPage
- * - MCP Context 7: modal owns UX only; parent handles API create + template apply.
- */
-
 import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {

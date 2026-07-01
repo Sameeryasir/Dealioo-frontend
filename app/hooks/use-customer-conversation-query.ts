@@ -320,24 +320,29 @@ export function useCustomerConversationQuery(
         return;
       }
 
-      void patchChatConversationFromPusher(
-        restaurantId,
-        customerId,
-        payload,
-      ).then((next) => {
-        if (!next) {
-          return;
+      setConversation((prev) => {
+        if (!prev) {
+          return {
+            customerId,
+            customerName: payload.customerName,
+            customerEmail: payload.customerEmail,
+            messages: [payload.message],
+          };
         }
 
-        const startIndex = messageStartIndexRef.current;
-        setConversation({
-          customerId: next.customerId,
-          customerName: next.customerName,
-          customerEmail: next.customerEmail,
-          messages: next.messages.slice(startIndex),
-        });
-        setHasOlderMessages(startIndex > 0);
+        if (prev.messages.some((message) => message.id === payload.message.id)) {
+          return prev;
+        }
+
+        return {
+          customerId: prev.customerId,
+          customerName: payload.customerName ?? prev.customerName,
+          customerEmail: payload.customerEmail ?? prev.customerEmail,
+          messages: [...prev.messages, payload.message],
+        };
       });
+
+      void patchChatConversationFromPusher(restaurantId, customerId, payload);
     },
     [customerId, restaurantId],
   );

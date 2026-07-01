@@ -95,6 +95,46 @@ export function isPrepaidVisitReminderWaitLoopNode(node: WorkflowNode): boolean 
   );
 }
 
+export function resolvePrepaidFalseLoopTargetNode(
+  flowNodes: WorkflowNode[],
+): WorkflowNode | null {
+  const visitFilter = flowNodes.find((node) => {
+    const conditionType = String(
+      node.config?.conditionType ?? node.config?.type ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    return (
+      conditionType.includes("customer visited") ||
+      conditionType.includes("visited restaurant") ||
+      conditionType === "visit_completed"
+    );
+  });
+
+  const loopKind = String(
+    visitFilter?.config?.onFalseLoopWorkflowKind ??
+      PREPAID_VISIT_REMINDER_WAIT_LOOP_KIND,
+  ).trim();
+
+  if (loopKind === PREPAID_VISIT_REMINDER_WAIT_LOOP_KIND) {
+    return flowNodes.find(isPrepaidVisitReminderWaitLoopNode) ?? null;
+  }
+
+  if (loopKind === PREPAID_VISIT_REMINDER_LOOP_KIND) {
+    return flowNodes.find(isPrepaidVisitReminderLoopNode) ?? null;
+  }
+
+  if (loopKind === PREPAID_PAYMENT_ACTIONS_KIND) {
+    return flowNodes.find(isPrepaidFirstEmailNode) ?? null;
+  }
+
+  return (
+    flowNodes.find(
+      (node) => String(node.config?.workflowKind ?? "").trim() === loopKind,
+    ) ?? flowNodes.find(isPrepaidVisitReminderWaitLoopNode) ?? null
+  );
+}
+
 export function isPrepaidVisitReminderLoopNode(node: WorkflowNode): boolean {
   return (
     node.kind === "send_email" &&
