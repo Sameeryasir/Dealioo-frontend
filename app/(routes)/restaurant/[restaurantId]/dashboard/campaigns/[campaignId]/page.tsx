@@ -7,8 +7,7 @@ import { CampaignGuestsPanel } from "@/app/components/campaign/CampaignGuestsPan
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
 import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
 import CampaignHeader from "@/app/components/CampaignHeader";
-import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import { useParams, useRouter } from "next/navigation";
@@ -31,14 +30,8 @@ export default function CampaignWelcomePage() {
     [params.campaignId],
   );
 
-  const { data: campaigns, isLoading: campaignsLoading } =
-    useCampaignsByRestaurantQuery(restaurantId);
-
-  const campaign = useMemo((): Funnel | null | undefined => {
-    if (campaignId == null) return undefined;
-    if (campaignsLoading) return undefined;
-    return campaigns.find((f) => f.id === campaignId) ?? null;
-  }, [campaignId, campaigns, campaignsLoading]);
+  const { data: campaign, isLoading: campaignsLoading } =
+    useCampaignByIdQuery(campaignId);
 
   const [activeTabId, setActiveTabId] = useState("overview");
   const { funnelId, isLoading: isFunnelIdLoading } =
@@ -59,9 +52,12 @@ export default function CampaignWelcomePage() {
   const handleCampaignUpdated = useCallback(async () => {
     if (restaurantId == null) return;
     await queryClient.invalidateQueries({
-      queryKey: funnelQueryKeys.campaignsByRestaurant(restaurantId),
+      queryKey: [...funnelQueryKeys.campaigns(), restaurantId],
     });
-  }, [queryClient, restaurantId]);
+    await queryClient.invalidateQueries({
+      queryKey: [...funnelQueryKeys.campaigns(), "detail", campaignId],
+    });
+  }, [queryClient, restaurantId, campaignId]);
 
   if (restaurantId == null || campaignId == null) {
     return <InvalidRouteMessage />;
@@ -98,6 +94,7 @@ export default function CampaignWelcomePage() {
           price={campaign?.price}
           funnelId={funnelId}
           isFunnelIdLoading={isFunnelIdLoading}
+          onCreateFunnel={() => setActiveTabId("funnel")}
         />
       ) : activeTabId === "orders" ? (
         <FunnelOrdersPanel

@@ -4,54 +4,39 @@ import RestaurantDashboardCard from "@/app/components/RestaurantDashboardCard";
 import SearchBar from "@/app/components/SearchBar";
 import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
   RestaurantCardSkeleton,
   SkeletonGrid,
 } from "@/app/components/skeleton";
 import { useMyRestaurantsQuery } from "@/app/hooks/use-my-restaurants-query";
+import { MY_RESTAURANTS_PAGE_SIZE } from "@/app/services/restaurant/get-my-restaurant";
 import { Plus, Store } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { AdminRestaurant } from "@/app/services/restaurant/get-my-restaurant";
-
-function restaurantMatchesQuery(r: AdminRestaurant, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  const hay = [
-    r.name,
-    r.description,
-    r.email,
-    r.cuisineType,
-    r.city,
-    r.state,
-    r.country,
-    r.websiteUrl,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
-}
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   const {
     data: restaurants,
+    meta,
     isLoading: loading,
+    isFetching,
     error: errorMessage,
     refetch: loadRestaurants,
-  } = useMyRestaurantsQuery();
-
-  const filteredRestaurants = useMemo(() => {
-    return restaurants.filter((r) => restaurantMatchesQuery(r, searchQuery));
-  }, [restaurants, searchQuery]);
+  } = useMyRestaurantsQuery({ page, search: searchQuery });
 
   const showSkeleton = loading;
-  const list = restaurants;
-
+  const hasAnyRestaurants = meta.total > 0 || searchQuery.trim().length > 0;
   const showCreateInHeader = !showSkeleton && !errorMessage;
   const showDashboardSearch =
-    !showSkeleton && !errorMessage && list.length > 0;
+    !showSkeleton && !errorMessage && (meta.total > 0 || searchQuery.trim());
 
   return (
     <div className="w-full px-4 py-8 sm:px-8 lg:px-10">
@@ -113,7 +98,7 @@ export default function DashboardPage() {
             message={errorMessage}
             onRetry={() => loadRestaurants()}
           />
-        ) : list.length === 0 ? (
+        ) : !hasAnyRestaurants && !searchQuery.trim() ? (
           <div className="rounded-3xl border border-zinc-200 bg-white px-6 py-12 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200">
               <Store className="h-7 w-7" strokeWidth={1.75} aria-hidden />
@@ -126,17 +111,33 @@ export default function DashboardPage() {
               create your first one.
             </p>
           </div>
-        ) : filteredRestaurants.length === 0 ? (
+        ) : restaurants.length === 0 ? (
           <SearchNoMatchFound />
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredRestaurants.map((r, index) => (
-              <RestaurantDashboardCard
-                key={r.id ?? `restaurant-${index}`}
-                restaurant={r}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {restaurants.map((r, index) => (
+                <RestaurantDashboardCard
+                  key={r.id ?? `restaurant-${index}`}
+                  restaurant={r}
+                />
+              ))}
+            </div>
+
+            {meta.totalPages > 1 ? (
+              <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                <OffsetPagination
+                  page={meta.page}
+                  totalPages={meta.totalPages}
+                  total={meta.total}
+                  limit={MY_RESTAURANTS_PAGE_SIZE}
+                  loading={isFetching}
+                  onPageChange={setPage}
+                  itemLabel="restaurants"
+                />
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>

@@ -385,7 +385,7 @@ export function CrmTemplateEditor({
       <EditorShell
         navbar={
           <TopNavigation
-            campaignName={campaignName ?? (campaignId ? `#${campaignId}` : undefined)}
+            campaignName={campaignName ?? "Campaign"}
             pageLabel={activePage.label}
             saveStatus={displaySaveStatus}
             isDirty={isDirty}

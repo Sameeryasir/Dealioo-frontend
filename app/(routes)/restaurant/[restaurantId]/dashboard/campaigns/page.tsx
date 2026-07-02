@@ -14,9 +14,11 @@ import SearchBar from "@/app/components/SearchBar";
 import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
 import { Megaphone, Plus } from "lucide-react";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
+import { CAMPAIGNS_PAGE_SIZE } from "@/app/services/funnel/get-campaigns-by-restaurant";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import {
@@ -24,25 +26,6 @@ import {
   extractCampaignIdFromCreateResponse,
 } from "@/app/services/funnel/create-campaign";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
-
-function funnelMatchesQuery(f: Funnel, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  const hay = [
-    f.campaignName,
-    f.offer,
-    f.websiteUrl,
-    f.imageUrl,
-    f.price != null ? String(f.price) : "",
-    f.status,
-    f.published === true ? "published" : "unpublished",
-    String(f.id),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
-}
 
 export default function RestaurantCampaignsPage() {
   const router = useRouter();
@@ -64,25 +47,34 @@ export default function RestaurantCampaignsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, restaurantId]);
 
   const {
     data: funnelList,
+    meta,
     isLoading: funnelsLoading,
+    isFetching: funnelsFetching,
     error: funnelsError,
     refetch: loadFunnels,
-  } = useCampaignsByRestaurantQuery(restaurantId);
+  } = useCampaignsByRestaurantQuery(restaurantId, {
+    page,
+    search: searchQuery,
+  });
 
-  const filteredFunnels = useMemo(() => {
-    return funnelList.filter((f) => funnelMatchesQuery(f, searchQuery));
-  }, [funnelList, searchQuery]);
+  const hasAnyCampaigns = meta.total > 0 || searchQuery.trim().length > 0;
 
   useEffect(() => {
     if (funnelsLoading || funnelsError) return;
-    setShowCreateCampaign(funnelList.length === 0);
-  }, [funnelList.length, funnelsLoading, funnelsError]);
+    setShowCreateCampaign(!hasAnyCampaigns && !searchQuery.trim());
+  }, [hasAnyCampaigns, funnelsLoading, funnelsError, searchQuery]);
 
   useEffect(() => {
     setSearchQuery("");
+    setPage(1);
   }, [restaurantId]);
 
   if (restaurantId == null) {
@@ -95,16 +87,28 @@ export default function RestaurantCampaignsPage() {
   }
 
   const centerEmptyCreateFlow =
-    !funnelsLoading && !funnelsError && funnelList.length === 0;
+    !funnelsLoading && !funnelsError && !hasAnyCampaigns && !searchQuery.trim();
 
   const centerCreateWithExistingFunnels =
     showCreateCampaign &&
     !funnelsLoading &&
     !funnelsError &&
-    funnelList.length > 0;
+    hasAnyCampaigns;
 
   const shouldVerticallyCenterPage =
     centerEmptyCreateFlow || centerCreateWithExistingFunnels;
+
+  const showCampaignSkeleton =
+    funnelsLoading || (funnelsFetching && !funnelsLoading);
+
+  const isConfirmedEmpty =
+    !funnelsLoading &&
+    !funnelsFetching &&
+    !hasAnyCampaigns &&
+    !searchQuery.trim();
+
+  const showCampaignsHeader =
+    !showCreateCampaign && !funnelsError && !isConfirmedEmpty;
 
   return (
     <div
@@ -114,7 +118,7 @@ export default function RestaurantCampaignsPage() {
           : "flex min-h-[calc(100dvh-8rem)] w-full flex-col px-4 py-8 sm:px-8 lg:px-10"
       }
     >
-      {!showCreateCampaign && !funnelsLoading && !funnelsError && funnelList.length > 0 ? (
+      {showCampaignsHeader ? (
         <header className="mx-auto mb-8 w-full max-w-[min(100%,77.62rem)] text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
             Campaigns
@@ -155,11 +159,27 @@ export default function RestaurantCampaignsPage() {
         </header>
       ) : null}
 
-      {funnelsLoading ? (
-        <SkeletonGrid
-          className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
-          Card={CampaignFunnelCardSkeleton}
-        />
+      {showCampaignSkeleton && !showCreateCampaign ? (
+        <>
+          <SkeletonGrid
+            count={CAMPAIGNS_PAGE_SIZE}
+            className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+            Card={CampaignFunnelCardSkeleton}
+          />
+          {meta.totalPages > 1 ? (
+            <div className="mx-auto mt-6 w-full max-w-[min(100%,77.62rem)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <OffsetPagination
+                page={meta.page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                limit={CAMPAIGNS_PAGE_SIZE}
+                loading={funnelsFetching}
+                onPageChange={setPage}
+                itemLabel="campaigns"
+              />
+            </div>
+          ) : null}
+        </>
       ) : funnelsError ? (
         <AsyncErrorRetry
           layout="inline"
@@ -167,20 +187,36 @@ export default function RestaurantCampaignsPage() {
           message={funnelsError}
           onRetry={() => loadFunnels()}
         />
-      ) : funnelList.length > 0 &&
-        filteredFunnels.length === 0 &&
+      ) : funnelList.length === 0 &&
+        searchQuery.trim() &&
         !showCreateCampaign ? (
         <SearchNoMatchFound className="mx-auto w-full max-w-[min(100%,77.62rem)]" />
-      ) : filteredFunnels.length > 0 && !showCreateCampaign ? (
-        <div className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredFunnels.map((f) => (
-            <CampaignFunnelCard
-              key={f.id}
-              funnel={f}
-              restaurantId={restaurantId}
-            />
-          ))}
-        </div>
+      ) : funnelList.length > 0 && !showCreateCampaign ? (
+        <>
+          <div className="mx-auto grid w-full max-w-[min(100%,77.62rem)] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {funnelList.map((f) => (
+              <CampaignFunnelCard
+                key={f.id}
+                funnel={f}
+                restaurantId={restaurantId}
+              />
+            ))}
+          </div>
+
+          {meta.totalPages > 1 ? (
+            <div className="mx-auto mt-6 w-full max-w-[min(100%,77.62rem)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <OffsetPagination
+                page={meta.page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                limit={CAMPAIGNS_PAGE_SIZE}
+                loading={funnelsFetching}
+                onPageChange={setPage}
+                itemLabel="campaigns"
+              />
+            </div>
+          ) : null}
+        </>
       ) : null}
 
         <div
@@ -189,7 +225,7 @@ export default function RestaurantCampaignsPage() {
               ? "mx-auto w-full max-w-[min(100%,77.62rem)]"
               : centerCreateWithExistingFunnels
                 ? "mx-auto flex w-full max-w-[min(100%,77.62rem)] flex-col items-center"
-                : funnelList.length > 0
+                : hasAnyCampaigns
                   ? "contents"
                   : ""
           }
@@ -212,7 +248,7 @@ export default function RestaurantCampaignsPage() {
           className={
             centerCreateWithExistingFunnels
               ? "w-full"
-              : funnelList.length > 0
+              : hasAnyCampaigns
                 ? "mt-10 w-full"
                 : centerEmptyCreateFlow
                   ? "w-full"
@@ -230,7 +266,7 @@ export default function RestaurantCampaignsPage() {
                   skipPostCreateNavRef.current = false;
                   return;
                 }
-                if (funnelList.length === 0) {
+                if (!hasAnyCampaigns) {
                   router.push(dashboardHref);
                 } else {
                   setShowCreateCampaign(false);
@@ -251,28 +287,12 @@ export default function RestaurantCampaignsPage() {
                 });
                 skipPostCreateNavRef.current = true;
                 await queryClient.invalidateQueries({
-                  queryKey: funnelQueryKeys.campaignsByRestaurant(restaurantId),
+                  queryKey: [...funnelQueryKeys.campaigns(), restaurantId],
                 });
-                const list =
-                  queryClient.getQueryData<Funnel[]>(
-                    funnelQueryKeys.campaignsByRestaurant(restaurantId),
-                  ) ?? [];
-                setShowCreateCampaign(list.length === 0);
+                setShowCreateCampaign(false);
                 const fromApi =
                   extractCampaignIdFromCreateResponse(createdBody);
-                const name = payload.campaignName.trim();
-                const sameName = list.filter(
-                  (f) => f.campaignName.trim() === name,
-                );
-                const fallbackId =
-                  sameName.length === 1
-                    ? sameName[0].id
-                    : sameName.length > 1
-                      ? Math.max(...sameName.map((f) => f.id))
-                      : list.length > 0
-                        ? Math.max(...list.map((f) => f.id))
-                        : undefined;
-                const campaignId = fromApi ?? fallbackId;
+                const campaignId = fromApi;
                 if (campaignId == null) {
                   setShowCreateCampaign(false);
                 }

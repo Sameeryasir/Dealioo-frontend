@@ -2,8 +2,10 @@
 
 import {
   Activity,
+  ArrowRight,
   DollarSign,
   Eye,
+  Layers,
   MousePointerClick,
   TrendingUp,
   UserPlus,
@@ -105,15 +107,69 @@ function NoRecordsFoundCard() {
   );
 }
 
+function NoFunnelEmptyState({
+  onCreateFunnel,
+}: {
+  onCreateFunnel?: () => void;
+}) {
+  return (
+    <motion.div
+      className={`relative overflow-hidden ${panelCardClass} px-6 py-14 sm:px-10 sm:py-16`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: standardEase }}
+    >
+      <div
+        className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-violet-200/40 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-20 -left-12 size-48 rounded-full bg-indigo-100/60 blur-3xl"
+        aria-hidden
+      />
+
+      <div className="relative mx-auto max-w-lg text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-white/20">
+          <Layers className="size-8" strokeWidth={1.75} aria-hidden />
+        </div>
+
+        <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600">
+          Funnel not set up
+        </p>
+        <h3 className="font-display mt-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+          No activity on the funnel yet
+        </h3>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-600">
+          Create your funnel first to start capturing signups, payments, and
+          live analytics for this campaign.
+        </p>
+
+        {onCreateFunnel ? (
+          <button
+            type="button"
+            onClick={onCreateFunnel}
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition hover:bg-zinc-800 hover:shadow-lg"
+          >
+            Create funnel
+            <ArrowRight className="size-4" aria-hidden />
+          </button>
+        ) : null}
+      </div>
+    </motion.div>
+  );
+}
+
 export function FunnelOverviewPanel({
   campaignName,
   funnelId,
   isFunnelIdLoading = false,
+  onCreateFunnel,
 }: {
   campaignName?: string;
   price?: number | string;
   funnelId?: number | null;
   isFunnelIdLoading?: boolean;
+  onCreateFunnel?: () => void;
 }) {
   const {
     monthly: statsMonthly,
@@ -272,9 +328,7 @@ export function FunnelOverviewPanel({
         </motion.header>
 
         {showNoFunnelMessage ? (
-          <p className="rounded-2xl border border-amber-200/90 bg-amber-50 px-4 py-3.5 text-sm text-amber-950 shadow-sm">
-            No funnel id yet. Open the Funnel tab and save once to load stats.
-          </p>
+          <NoFunnelEmptyState onCreateFunnel={onCreateFunnel} />
         ) : null}
 
         {showSkeleton ? (
