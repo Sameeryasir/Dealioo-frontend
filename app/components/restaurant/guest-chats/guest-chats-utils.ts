@@ -8,24 +8,46 @@ import type {
 
 export const CHAT_MESSAGE_PAGE_SIZE = 10;
 
+export type GuestChatBubbleStackPosition = "single" | "first" | "middle" | "last";
+
+export function isGuestInboundMessage(message: ConversationMessage): boolean {
+  return (
+    message.direction === "inbound" || message.sentBy?.type === "customer"
+  );
+}
+
+export function getMessageStackPositions(
+  messages: ConversationMessage[],
+): GuestChatBubbleStackPosition[] {
+  return messages.map((message, index) => {
+    const isGuest = isGuestInboundMessage(message);
+    const prevSame =
+      index > 0 && isGuestInboundMessage(messages[index - 1]!) === isGuest;
+    const nextSame =
+      index < messages.length - 1 &&
+      isGuestInboundMessage(messages[index + 1]!) === isGuest;
+
+    if (!prevSame && !nextSame) {
+      return "single";
+    }
+    if (!prevSame && nextSame) {
+      return "first";
+    }
+    if (prevSame && nextSame) {
+      return "middle";
+    }
+    return "last";
+  });
+}
+
 export function getLatestMessageWindow(
   messages: ConversationMessage[],
-  pageSize = CHAT_MESSAGE_PAGE_SIZE,
 ): {
   window: ConversationMessage[];
   startIndex: number;
   hasOlder: boolean;
 } {
-  if (messages.length <= pageSize) {
-    return { window: messages, startIndex: 0, hasOlder: false };
-  }
-
-  const startIndex = messages.length - pageSize;
-  return {
-    window: messages.slice(startIndex),
-    startIndex,
-    hasOlder: true,
-  };
+  return { window: messages, startIndex: 0, hasOlder: false };
 }
 
 export function getOlderMessageWindow(

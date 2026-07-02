@@ -2,23 +2,27 @@
 
 import { formatTimeShort } from "@/app/lib/datetime";
 import type { ConversationMessage } from "@/app/services/chat/get-restaurant-conversation";
-import { messagePreview } from "./guest-chats-utils";
+import {
+  isGuestInboundMessage,
+  messagePreview,
+  type GuestChatBubbleStackPosition,
+} from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
 
-export type GuestChatBubbleStackPosition = "single" | "first" | "middle" | "last";
+export type { GuestChatBubbleStackPosition };
 
 function BubbleTail({
   position,
   className,
 }: {
-  position: "top-right" | "bottom-right";
+  position: "bottom-right" | "bottom-left";
   className: string;
 }) {
-  if (position === "top-right") {
+  if (position === "bottom-right") {
     return (
       <span
         aria-hidden
-        className={`pointer-events-none absolute top-0 -right-[7px] h-[14px] w-[14px] rounded-tr-[14px] ${className}`}
+        className={`pointer-events-none absolute bottom-0 -right-[6px] h-[13px] w-[13px] rounded-bl-[13px] ${className}`}
       />
     );
   }
@@ -26,9 +30,35 @@ function BubbleTail({
   return (
     <span
       aria-hidden
-      className={`pointer-events-none absolute bottom-0 -right-[7px] h-[14px] w-[14px] rounded-bl-[14px] ${className}`}
+      className={`pointer-events-none absolute bottom-0 -left-[6px] h-[13px] w-[13px] rounded-br-[13px] ${className}`}
     />
   );
+}
+
+function guestBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
+  switch (stackPosition) {
+    case "single":
+      return "rounded-[16px] rounded-bl-[4px]";
+    case "first":
+      return "rounded-[16px] rounded-bl-[6px]";
+    case "middle":
+      return "rounded-[16px] rounded-tl-[6px] rounded-bl-[6px]";
+    case "last":
+      return "rounded-[16px] rounded-tl-[6px] rounded-bl-[4px]";
+  }
+}
+
+function outboundBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
+  switch (stackPosition) {
+    case "single":
+      return "rounded-[16px] rounded-br-[4px]";
+    case "first":
+      return "rounded-[16px] rounded-br-[6px]";
+    case "middle":
+      return "rounded-[16px] rounded-tr-[6px] rounded-br-[6px]";
+    case "last":
+      return "rounded-[16px] rounded-tr-[6px] rounded-br-[4px]";
+  }
 }
 
 export function GuestChatMessageBubble({
@@ -40,50 +70,53 @@ export function GuestChatMessageBubble({
   stackPosition?: GuestChatBubbleStackPosition;
 }) {
   const isError = message.kind === "error";
+  const isGuestMessage = !isError && isGuestInboundMessage(message);
   const body = messagePreview(message);
+  const isStackEnd = stackPosition === "single" || stackPosition === "last";
+  const rowSpacing =
+    stackPosition === "first" || stackPosition === "middle" ? "mb-2" : "mb-4";
 
-  const rowClass =
-    stackPosition === "first" || stackPosition === "middle"
-      ? "flex w-full justify-end pl-14 pr-3 pt-0.5 sm:pl-20 sm:pr-4"
-      : "flex w-full justify-end pl-14 pr-3 sm:pl-20 sm:pr-4";
+  const rowClass = isGuestMessage
+    ? `flex w-full justify-start px-3 sm:px-4 ${rowSpacing}`
+    : `flex w-full justify-end px-3 sm:px-4 ${rowSpacing}`;
 
-  const bubbleBg = isError ? "bg-red-50" : "bg-white";
-  const tailBg = isError ? "bg-red-50" : "bg-white";
+  const bubbleBg = isError
+    ? "bg-red-50"
+    : isGuestMessage
+      ? "bg-blue-500"
+      : "bg-white";
 
   let bubbleClass =
-    "relative max-w-[min(28rem,88%)] text-left px-3 py-2 shadow-sm sm:px-3.5 sm:py-2.5";
+    "relative max-w-[min(28rem,82%)] overflow-hidden text-left px-3 py-2 shadow-sm sm:px-3.5 sm:py-2.5";
 
   if (isError) {
-    bubbleClass += " text-red-800";
+    bubbleClass += " text-red-800 rounded-[16px]";
+  } else if (isGuestMessage) {
+    bubbleClass += ` text-white ${bubbleBg} ${guestBubbleRadius(stackPosition)}`;
   } else {
-    bubbleClass += " text-zinc-800";
+    bubbleClass += ` text-zinc-800 ${bubbleBg} ${outboundBubbleRadius(stackPosition)}`;
   }
 
-  if (stackPosition === "single") {
-    bubbleClass += ` ${bubbleBg} rounded-[12px] rounded-br-[3px]`;
-  } else if (stackPosition === "first") {
-    bubbleClass += ` ${bubbleBg} rounded-[12px] rounded-tr-[3px]`;
-  } else if (stackPosition === "middle") {
-    bubbleClass += ` ${bubbleBg} rounded-[12px]`;
-  } else {
-    bubbleClass += ` ${bubbleBg} rounded-[12px]`;
-  }
+  const textClass =
+    "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[14.5px] leading-[1.35] sm:text-[15px]";
+  const timeClass = isGuestMessage
+    ? "shrink-0 text-[11px] font-normal text-blue-100"
+    : "shrink-0 text-[11px] font-normal text-zinc-400/90";
 
-  const textClass = "whitespace-pre-wrap text-[14.5px] leading-[1.35] sm:text-[15px]";
-  const timeClass = "shrink-0 text-[11px] font-normal text-zinc-400/90";
-
-  const showTopTail = stackPosition === "first";
-  const showBottomTail = stackPosition === "single";
+  const tailPosition = isGuestMessage ? "bottom-left" : "bottom-right";
 
   return (
     <div className={rowClass}>
       <article className={bubbleClass}>
-        {showTopTail ? <BubbleTail position="top-right" className={tailBg} /> : null}
-        {showBottomTail ? <BubbleTail position="bottom-right" className={tailBg} /> : null}
+        {isStackEnd && !isError ? (
+          <BubbleTail position={tailPosition} className={bubbleBg} />
+        ) : null}
 
         <div className="relative z-[1] min-w-0">
           <LinkifiedText text={body} className={textClass} />
-          <div className="mt-1 flex justify-end">
+          <div
+            className={`mt-1 flex ${isGuestMessage ? "justify-start" : "justify-end"}`}
+          >
             <time className={timeClass}>{formatTimeShort(message.sentAt)}</time>
           </div>
         </div>

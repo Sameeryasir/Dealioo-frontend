@@ -281,15 +281,13 @@ async function getStoredChatConversationRecord(
 export function peekStoredChatMessagesLatestPage(
   restaurantId: number,
   customerId: number,
-  pageSize = CHAT_MESSAGE_PAGE_SIZE,
 ): StoredChatMessagePage | null {
   const entry = conversationMessageCache.get(conversationKey(restaurantId, customerId));
   if (!entry) {
     return null;
   }
 
-  const startIndex = Math.max(0, entry.messages.length - pageSize);
-  return buildMessagePage(entry, startIndex);
+  return buildMessagePage(entry, 0);
 }
 
 export async function warmRestaurantConversationMessageCache(
@@ -335,7 +333,6 @@ export function prefetchConversationMessageCache(
 export async function getStoredChatMessagesLatestPage(
   restaurantId: number,
   customerId: number,
-  pageSize = CHAT_MESSAGE_PAGE_SIZE,
 ): Promise<StoredChatMessagePage | null> {
   try {
     const entry = await loadConversationMessageCache(restaurantId, customerId);
@@ -343,8 +340,7 @@ export async function getStoredChatMessagesLatestPage(
       return null;
     }
 
-    const startIndex = Math.max(0, entry.messages.length - pageSize);
-    return buildMessagePage(entry, startIndex);
+    return buildMessagePage(entry, 0);
   } catch {
     return null;
   }

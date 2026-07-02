@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { ChatCustomer } from "@/app/services/chat/get-restaurant-chat-customers";
 import { useCustomerConversationQuery } from "@/app/hooks/use-customer-conversation-query";
 import { useSendCustomerMessage } from "@/app/hooks/use-send-customer-message";
@@ -11,7 +11,7 @@ import {
   GuestChatErrorEmptyState,
   GuestChatNoMessagesEmptyState,
 } from "./GuestChatEmptyStates";
-import { groupMessagesByDay } from "./guest-chats-utils";
+import { getMessageStackPositions, groupMessagesByDay } from "./guest-chats-utils";
 import { GuestChatMessageBubble } from "./GuestChatMessageBubble";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
 import { peekStoredChatMessagesLatestPage } from "@/app/services/chat/chat-indexed-db";
@@ -45,6 +45,7 @@ export function GuestChatConversationPanel({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const loadingOlderRef = useRef(false);
+  const openedCustomerRef = useRef<number | null>(null);
 
   const memoryPage = peekStoredChatMessagesLatestPage(restaurantId, row.customerId);
   const messages =
@@ -73,15 +74,36 @@ export function GuestChatConversationPanel({
     stickToBottomRef.current = true;
   }, [row.customerId]);
 
-  useEffect(() => {
-    if (loading || messages.length === 0 || !stickToBottomRef.current) {
+  useLayoutEffect(() => {
+    if (showMessageSkeleton || messages.length === 0) {
+      return;
+    }
+
+    const isOpeningGuest = openedCustomerRef.current !== row.customerId;
+    if (isOpeningGuest) {
+      openedCustomerRef.current = row.customerId;
+      stickToBottomRef.current = true;
+    }
+
+    if (!stickToBottomRef.current && !isOpeningGuest) {
       return;
     }
 
     scrollToLatestMessage();
-    const frame = requestAnimationFrame(scrollToLatestMessage);
+
+    const frame = requestAnimationFrame(() => {
+      scrollToLatestMessage();
+    });
+
     return () => cancelAnimationFrame(frame);
-  }, [loading, lastMessageId, row.customerId, scrollToLatestMessage]);
+  }, [
+    lastMessageId,
+    messages.length,
+    row.customerId,
+    scrollToLatestMessage,
+    showMessageSkeleton,
+    syncing,
+  ]);
 
   const handleScroll = useCallback(() => {
     const container = scrollAreaRef.current;
@@ -152,39 +174,31 @@ export function GuestChatConversationPanel({
               <GuestChatNoMessagesEmptyState />
             </div>
           ) : (
-            <div className="flex w-full flex-col gap-4 py-6 pl-4 pr-1 sm:pl-6 sm:pr-2">
+            <div className="flex w-full flex-col gap-4 px-3 py-6 sm:px-5">
               {loadingOlder ? (
                 <p className="py-2 text-center text-xs font-medium text-zinc-400">
                   Loading older messages...
                 </p>
               ) : null}
-              {messageGroups.map((group) => (
+              {messageGroups.map((group) => {
+                const groupStackPositions = getMessageStackPositions(group.messages);
+
+                return (
                 <div key={group.day} className="mb-4 last:mb-0">
                   <GuestChatDayDivider label={group.day} />
-                  <div className="mt-2 space-y-0.5">
-                  {group.messages.map((message, index) => {
-                    const stackLength = group.messages.length;
-                    const stackPosition =
-                      stackLength === 1
-                        ? "single"
-                        : index === 0
-                          ? "first"
-                          : index === stackLength - 1
-                            ? "last"
-                            : "middle";
-
-                    return (
-                      <GuestChatMessageBubble
-                        key={message.id}
-                        message={message}
-                        index={index}
-                        stackPosition={stackPosition}
-                      />
-                    );
-                  })}
+                  <div className="mt-2">
+                  {group.messages.map((message, index) => (
+                    <GuestChatMessageBubble
+                      key={message.id}
+                      message={message}
+                      index={index}
+                      stackPosition={groupStackPositions[index] ?? "single"}
+                    />
+                  ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </GuestChatScrollArea>
