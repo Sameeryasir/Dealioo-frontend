@@ -5,7 +5,6 @@ import type {
 
 const BLOCKED_STATUSES = new Set(["REVOKED", "REDEEMED", "EXPIRED"]);
 
-/** Decide if the guest should see the unavailable alert instead of a QR. */
 export function isGuestPassUnavailable(
   coupon: GuestCouponResponse | null | undefined,
 ): boolean {

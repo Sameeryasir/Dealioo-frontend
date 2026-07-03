@@ -145,7 +145,6 @@ export function GuestPassUnavailableCard({
       aria-live="assertive"
       className="overflow-hidden rounded-3xl bg-white shadow-2xl shadow-zinc-900/12 ring-1 ring-zinc-200/90"
     >
-      {/* --- Hero header (matches active pass card style) --- */}
       <div className={`relative px-6 pb-8 pt-8 text-center text-white sm:px-8 ${styles.header}`}>
         <div
           className="pointer-events-none absolute -left-8 -top-8 size-36 rounded-full bg-white/10 blur-2xl"
@@ -174,7 +173,6 @@ export function GuestPassUnavailableCard({
         </p>
       </div>
 
-      {/* --- Body --- */}
       <div className="px-6 py-7 sm:px-8">
         <p className="text-center text-[15px] leading-relaxed text-zinc-600">
           {copy.message}

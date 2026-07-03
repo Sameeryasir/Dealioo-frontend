@@ -1,4 +1,8 @@
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
+import {
+  sanitizeChatMessageBody,
+  sanitizeChatMessagePreview,
+} from "@/app/lib/strip-email-signoff-for-chat";
 import type {
   ChatCustomer,
   PaginatedChatCustomersResponse,
@@ -36,11 +40,43 @@ export function getLatestMessageId(
   return messages[messages.length - 1]!.id;
 }
 
+function sanitizeStoredMessage(message: ConversationMessage): ConversationMessage {
+  return {
+    ...message,
+    body: sanitizeChatMessageBody(message.body),
+  };
+}
+
+function sanitizeStoredCustomerRow(row: ChatCustomer): ChatCustomer {
+  return {
+    ...row,
+    lastMessagePreview: sanitizeChatMessagePreview(row.lastMessagePreview),
+  };
+}
+
+function sanitizeStoredCustomers(
+  customers: PaginatedChatCustomersResponse,
+): PaginatedChatCustomersResponse {
+  return {
+    ...customers,
+    data: customers.data.map(sanitizeStoredCustomerRow),
+  };
+}
+
+function sanitizeStoredConversation(
+  conversation: CustomerConversationDetail,
+): CustomerConversationDetail {
+  return {
+    ...conversation,
+    messages: conversation.messages.map(sanitizeStoredMessage),
+  };
+}
+
 function buildChatCustomerRow(
   payload: ChatMessagePusherPayload,
   existing?: ChatCustomer | null,
 ): ChatCustomer {
-  return {
+  return sanitizeStoredCustomerRow({
     customerId: payload.customerId,
     customerName: payload.customerName,
     customerEmail: payload.customerEmail,
@@ -50,7 +86,7 @@ function buildChatCustomerRow(
     lastMessageAt: payload.lastMessageAt,
     lastAutomationName: existing?.lastAutomationName ?? null,
     createdAt: existing?.createdAt ?? payload.lastMessageAt,
-  };
+  });
 }
 
 export function getLatestCustomerIdByCreatedAt(
@@ -163,27 +199,30 @@ export function mergeConversationAfterSync(
   previous: CustomerConversationDetail | null | undefined,
   incoming: CustomerConversationDetail,
 ): CustomerConversationDetail {
+  const sanitizedIncoming = sanitizeStoredConversation(incoming);
+
   if (!previous) {
-    return incoming;
+    return sanitizedIncoming;
   }
 
-  const newMessages = incoming.messages.filter(
-    (message) => !messageExistsById(previous.messages, message.id),
+  const sanitizedPrevious = sanitizeStoredConversation(previous);
+  const newMessages = sanitizedIncoming.messages.filter(
+    (message) => !messageExistsById(sanitizedPrevious.messages, message.id),
   );
 
   if (newMessages.length === 0) {
     return {
-      ...previous,
-      customerName: incoming.customerName ?? previous.customerName,
-      customerEmail: incoming.customerEmail ?? previous.customerEmail,
+      ...sanitizedPrevious,
+      customerName: sanitizedIncoming.customerName ?? sanitizedPrevious.customerName,
+      customerEmail: sanitizedIncoming.customerEmail ?? sanitizedPrevious.customerEmail,
     };
   }
 
   return {
-    customerId: incoming.customerId,
-    customerName: incoming.customerName ?? previous.customerName,
-    customerEmail: incoming.customerEmail ?? previous.customerEmail,
-    messages: [...previous.messages, ...newMessages],
+    customerId: sanitizedIncoming.customerId,
+    customerName: sanitizedIncoming.customerName ?? sanitizedPrevious.customerName,
+    customerEmail: sanitizedIncoming.customerEmail ?? sanitizedPrevious.customerEmail,
+    messages: [...sanitizedPrevious.messages, ...newMessages],
   };
 }
 
@@ -205,7 +244,10 @@ export function patchConversationFromPusher(
     customerId,
     customerName: payload.customerName ?? prev?.customerName ?? null,
     customerEmail: payload.customerEmail ?? prev?.customerEmail ?? null,
-    messages: insertMessageIfAbsent(existingMessages, payload.message),
+    messages: insertMessageIfAbsent(
+      existingMessages,
+      sanitizeStoredMessage(payload.message),
+    ),
   };
 }
 
@@ -226,12 +268,15 @@ export function appendConversationMessage(
     );
   }
 
-  return {
+  return sanitizeStoredConversation({
     customerId: guest.customerId,
     customerName: prev?.customerName ?? guest.customerName,
     customerEmail: prev?.customerEmail ?? guest.customerEmail,
-    messages: insertMessageIfAbsent(existingMessages, message),
-  };
+    messages: insertMessageIfAbsent(
+      existingMessages,
+      sanitizeStoredMessage(message),
+    ),
+  });
 }
 
 export function patchChatCustomersAfterSend(
@@ -249,8 +294,8 @@ export function patchChatCustomersAfterSend(
     customerId: guest.customerId,
     customerName: guest.customerName,
     customerEmail: guest.customerEmail,
-    message,
-    lastMessagePreview: message.body.slice(0, 80),
+    message: sanitizeStoredMessage(message),
+    lastMessagePreview: sanitizeChatMessagePreview(message.body).slice(0, 80),
     lastMessageChannel: message.kind === "error" ? "email" : message.kind,
     lastMessageAt: message.sentAt,
     messageCount: guest.messageCount + 1,

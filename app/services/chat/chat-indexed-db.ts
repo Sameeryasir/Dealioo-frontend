@@ -1,5 +1,9 @@
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import {
+  sanitizeChatMessageBody,
+  sanitizeChatMessagePreview,
+} from "@/app/lib/strip-email-signoff-for-chat";
+import {
   appendConversationMessage,
   patchChatCustomersAfterSend,
   patchChatCustomersFromPusher,
@@ -48,11 +52,12 @@ function setConversationMessageCacheEntry(
   customerId: number,
   conversation: CustomerConversationDetail,
 ) {
+  const sanitized = sanitizeStoredConversation(conversation);
   conversationMessageCache.set(conversationKey(restaurantId, customerId), {
-    customerId: conversation.customerId,
-    customerName: conversation.customerName,
-    customerEmail: conversation.customerEmail,
-    messages: conversation.messages,
+    customerId: sanitized.customerId,
+    customerName: sanitized.customerName,
+    customerEmail: sanitized.customerEmail,
+    messages: sanitized.messages,
   });
 }
 
@@ -71,11 +76,12 @@ async function loadConversationMessageCache(
     return null;
   }
 
+  const sanitized = sanitizeStoredConversation(record.data);
   const entry: ConversationMessageCacheEntry = {
-    customerId: record.data.customerId,
-    customerName: record.data.customerName,
-    customerEmail: record.data.customerEmail,
-    messages: record.data.messages,
+    customerId: sanitized.customerId,
+    customerName: sanitized.customerName,
+    customerEmail: sanitized.customerEmail,
+    messages: sanitized.messages,
   };
   conversationMessageCache.set(key, entry);
   return entry;
@@ -130,6 +136,38 @@ const customersListeners = new Set<CustomersListener>();
 
 function conversationKey(restaurantId: number, customerId: number) {
   return `${restaurantId}:${customerId}`;
+}
+
+function sanitizeStoredMessage(message: ConversationMessage): ConversationMessage {
+  return {
+    ...message,
+    body: sanitizeChatMessageBody(message.body),
+  };
+}
+
+function sanitizeStoredConversation(
+  conversation: CustomerConversationDetail,
+): CustomerConversationDetail {
+  return {
+    ...conversation,
+    messages: conversation.messages.map(sanitizeStoredMessage),
+  };
+}
+
+function sanitizeStoredCustomerRow(row: ChatCustomer): ChatCustomer {
+  return {
+    ...row,
+    lastMessagePreview: sanitizeChatMessagePreview(row.lastMessagePreview),
+  };
+}
+
+function sanitizeStoredCustomers(
+  customers: PaginatedChatCustomersResponse,
+): PaginatedChatCustomersResponse {
+  return {
+    ...customers,
+    data: customers.data.map(sanitizeStoredCustomerRow),
+  };
 }
 
 function customersKey(restaurantId: number, page: number) {
@@ -261,7 +299,7 @@ export async function getStoredChatConversation(
 ): Promise<CustomerConversationDetail | null> {
   try {
     const record = await getStoredChatConversationRecord(restaurantId, customerId);
-    return record?.data ?? null;
+    return record?.data ? sanitizeStoredConversation(record.data) : null;
   } catch {
     return null;
   }
@@ -376,7 +414,7 @@ export async function getStoredChatCustomers(
       (store) => store.get(customersKey(restaurantId, page)),
     );
 
-    return record?.data ?? null;
+    return record?.data ? sanitizeStoredCustomers(record.data) : null;
   } catch {
     return null;
   }
@@ -403,11 +441,12 @@ export async function saveChatConversation(
   customerId: number,
   conversation: CustomerConversationDetail,
 ): Promise<void> {
+  const sanitized = sanitizeStoredConversation(conversation);
   const record: ConversationRecord = {
     key: conversationKey(restaurantId, customerId),
     restaurantId,
     customerId,
-    data: conversation,
+    data: sanitized,
     updatedAt: new Date().toISOString(),
   };
 
@@ -416,8 +455,8 @@ export async function saveChatConversation(
     "readwrite",
     (store) => store.put(record),
   );
-  setConversationMessageCacheEntry(restaurantId, customerId, conversation);
-  notifyConversationListeners(restaurantId, customerId, conversation);
+  setConversationMessageCacheEntry(restaurantId, customerId, sanitized);
+  notifyConversationListeners(restaurantId, customerId, sanitized);
 }
 
 export async function saveChatCustomers(
@@ -425,11 +464,12 @@ export async function saveChatCustomers(
   page: number,
   customers: PaginatedChatCustomersResponse,
 ): Promise<void> {
+  const sanitized = sanitizeStoredCustomers(customers);
   const record: CustomersRecord = {
     key: customersKey(restaurantId, page),
     restaurantId,
     page,
-    data: customers,
+    data: sanitized,
     updatedAt: new Date().toISOString(),
   };
 
@@ -438,7 +478,7 @@ export async function saveChatCustomers(
     "readwrite",
     (store) => store.put(record),
   );
-  notifyCustomersListeners(restaurantId, page, customers);
+  notifyCustomersListeners(restaurantId, page, sanitized);
 }
 
 export async function appendChatConversationMessage(

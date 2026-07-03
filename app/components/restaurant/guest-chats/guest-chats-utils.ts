@@ -1,4 +1,7 @@
 import { customerLabel } from "@/app/components/automation/execution-status-ui";
+import {
+  stripEmailSignoffForChat,
+} from "@/app/lib/strip-email-signoff-for-chat";
 import type { ChatCustomer } from "@/app/services/chat/get-restaurant-chat-customers";
 import type {
   ConversationMessage,
@@ -159,11 +162,12 @@ export function truncateListPreview(text: string, maxLength = 72): string {
 }
 
 export function listItemPreview(row: ChatCustomer): string {
-  return truncateListPreview(row.lastMessagePreview);
+  return truncateListPreview(stripEmailSignoffForChat(row.lastMessagePreview));
 }
 
 export function messagePreview(message: ConversationMessage): string {
-  return message.body.trim() || "Message sent";
+  const body = message.body.trim() || "Message sent";
+  return stripEmailSignoffForChat(body) || "Message sent";
 }
 
 export function participantLabel(

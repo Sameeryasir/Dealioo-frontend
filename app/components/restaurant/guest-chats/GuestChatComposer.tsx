@@ -5,7 +5,9 @@ import { Loader2, SendHorizonal } from "lucide-react";
 
 function resizeTextarea(element: HTMLTextAreaElement) {
   element.style.height = "auto";
-  element.style.height = `${Math.min(element.scrollHeight, 128)}px`;
+  const nextHeight = Math.min(element.scrollHeight, 128);
+  element.style.height = `${nextHeight}px`;
+  element.style.overflowY = element.scrollHeight > 128 ? "auto" : "hidden";
 }
 
 export function GuestChatComposer({
@@ -31,6 +33,7 @@ export function GuestChatComposer({
     setDraft("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
+      textareaRef.current.style.overflowY = "hidden";
     }
     await onSend(body);
   }
@@ -59,7 +62,7 @@ export function GuestChatComposer({
           onKeyDown={handleKeyDown}
           rows={1}
           disabled={disabled || sending}
-          className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-zinc-200/90 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-900 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+          className="max-h-32 min-h-[2.75rem] flex-1 resize-none overflow-y-hidden rounded-2xl border border-zinc-200/90 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-900 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <button
           type="button"
