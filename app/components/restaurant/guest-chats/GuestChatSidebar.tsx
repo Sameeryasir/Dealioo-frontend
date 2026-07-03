@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { RefreshCw } from "lucide-react";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { RESTAURANT_CHAT_PAGE_SIZE, type ChatCustomer } from "@/app/services/chat/get-restaurant-chat-customers";
 import { GuestChatCard } from "./GuestChatCard";
@@ -11,12 +10,9 @@ import {
   GuestChatNoThreadsEmptyState,
 } from "./GuestChatEmptyStates";
 import { guestChatStagger, guestChatCardReveal } from "./guest-chats-motion";
-import { GuestChatIconButton } from "./GuestChatIconButton";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
 import { GuestChatSearchBar } from "./GuestChatSearchBar";
 import { GuestChatSidebarSkeleton } from "./GuestChatSkeletons";
-import { GuestChatConnectionStatus } from "./GuestChatConnectionStatus";
-import type { PusherConnectionStatus } from "@/app/lib/pusher-client";
 
 export function GuestChatSidebar({
   rows,
@@ -32,9 +28,6 @@ export function GuestChatSidebar({
   totalPages,
   total,
   onPageChange,
-  onRefresh,
-  refreshing = false,
-  connectionStatus = "offline",
 }: {
   rows: ChatCustomer[];
   filteredRows: ChatCustomer[];
@@ -49,30 +42,13 @@ export function GuestChatSidebar({
   totalPages: number;
   total: number;
   onPageChange: (page: number) => void;
-  onRefresh: () => void;
-  refreshing?: boolean;
-  connectionStatus?: PusherConnectionStatus;
 }) {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-zinc-200/80 bg-white lg:w-[380px] lg:shrink-0">
       <div className="shrink-0 border-b border-zinc-200/80 bg-white px-5 pb-4 pt-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Guest Chats</h1>
-              <GuestChatConnectionStatus status={connectionStatus} />
-            </div>
-            <p className="mt-1 text-sm text-zinc-500">Messages sent by automations</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <GuestChatIconButton
-              icon={RefreshCw}
-              label="Refresh chats"
-              onClick={onRefresh}
-              disabled={loading || refreshing}
-              spinning={refreshing}
-            />
-          </div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Guest Chats</h1>
+          <p className="mt-1 text-sm text-zinc-500">Messages sent by automations</p>
         </div>
         <GuestChatSearchBar value={search} onChange={onSearchChange} />
       </div>

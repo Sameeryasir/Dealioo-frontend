@@ -38,26 +38,26 @@ function BubbleTail({
 function guestBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
   switch (stackPosition) {
     case "single":
-      return "rounded-[16px] rounded-bl-[4px]";
+      return "rounded-[18px] rounded-bl-[4px]";
     case "first":
-      return "rounded-[16px] rounded-bl-[6px]";
+      return "rounded-[18px] rounded-bl-[6px]";
     case "middle":
-      return "rounded-[16px] rounded-tl-[6px] rounded-bl-[6px]";
+      return "rounded-[18px] rounded-tl-[6px] rounded-bl-[6px]";
     case "last":
-      return "rounded-[16px] rounded-tl-[6px] rounded-bl-[4px]";
+      return "rounded-[18px] rounded-tl-[6px] rounded-bl-[4px]";
   }
 }
 
 function outboundBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
   switch (stackPosition) {
     case "single":
-      return "rounded-[16px] rounded-br-[4px]";
+      return "rounded-[18px] rounded-br-[4px]";
     case "first":
-      return "rounded-[16px] rounded-br-[6px]";
+      return "rounded-[18px] rounded-br-[6px]";
     case "middle":
-      return "rounded-[16px] rounded-tr-[6px] rounded-br-[6px]";
+      return "rounded-[18px] rounded-tr-[6px] rounded-br-[6px]";
     case "last":
-      return "rounded-[16px] rounded-tr-[6px] rounded-br-[4px]";
+      return "rounded-[18px] rounded-tr-[6px] rounded-br-[4px]";
   }
 }
 
@@ -87,10 +87,10 @@ export function GuestChatMessageBubble({
       : "bg-white";
 
   let bubbleClass =
-    "relative max-w-[min(28rem,82%)] overflow-hidden text-left px-3 py-2 shadow-sm sm:px-3.5 sm:py-2.5";
+    "relative max-w-[min(28rem,82%)] overflow-hidden text-left px-3.5 py-2 shadow-sm sm:px-4 sm:py-2.5";
 
   if (isError) {
-    bubbleClass += " text-red-800 rounded-[16px]";
+    bubbleClass += " text-red-800 rounded-[18px]";
   } else if (isGuestMessage) {
     bubbleClass += ` text-white ${bubbleBg} ${guestBubbleRadius(stackPosition)}`;
   } else {
@@ -98,7 +98,7 @@ export function GuestChatMessageBubble({
   }
 
   const textClass =
-    "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[14.5px] leading-[1.35] sm:text-[15px]";
+    "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[15px] leading-[1.35] font-normal tracking-[-0.01em]";
   const timeClass = isGuestMessage
     ? "shrink-0 text-[11px] font-normal text-blue-100"
     : "shrink-0 text-[11px] font-normal text-zinc-400/90";
@@ -113,7 +113,15 @@ export function GuestChatMessageBubble({
         ) : null}
 
         <div className="relative z-[1] min-w-0">
-          <LinkifiedText text={body} className={textClass} />
+          <LinkifiedText
+            text={body}
+            className={textClass}
+            linkClassName={
+              isGuestMessage
+                ? "font-medium text-blue-100 underline decoration-blue-200/70 underline-offset-2"
+                : "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
+            }
+          />
           <div
             className={`mt-1 flex ${isGuestMessage ? "justify-start" : "justify-end"}`}
           >

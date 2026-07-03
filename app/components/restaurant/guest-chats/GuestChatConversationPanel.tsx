@@ -36,9 +36,7 @@ export function GuestChatConversationPanel({
     loadingOlder,
     hasOlderMessages,
     loadOlderMessages,
-    refreshing,
     error,
-    refetch,
   } = useCustomerConversationQuery(restaurantId, row.customerId);
   const sendMessage = useSendCustomerMessage(restaurantId, row);
 
@@ -149,12 +147,7 @@ export function GuestChatConversationPanel({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
       <div className="shrink-0">
-        <GuestChatConversationHeader
-          row={row}
-          onRefresh={() => void refetch()}
-          refreshing={refreshing || syncing}
-          onBack={onBack}
-        />
+        <GuestChatConversationHeader row={row} onBack={onBack} />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col bg-white">

@@ -8,7 +8,15 @@ function isUrl(value: string): boolean {
   return /^https?:\/\//.test(value);
 }
 
-export function LinkifiedText({ text, className = "" }: { text: string; className?: string }) {
+export function LinkifiedText({
+  text,
+  className = "",
+  linkClassName = "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700",
+}: {
+  text: string;
+  className?: string;
+  linkClassName?: string;
+}) {
   const parts = text.split(URL_PATTERN);
 
   return (
@@ -20,7 +28,7 @@ export function LinkifiedText({ text, className = "" }: { text: string; classNam
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
+            className={linkClassName}
           >
             {part}
           </a>

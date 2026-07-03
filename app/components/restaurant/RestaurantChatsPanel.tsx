@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRestaurantChatCustomersQuery } from "@/app/hooks/use-restaurant-chat-customers-query";
-import { useRestaurantChatPusherConnection } from "@/app/hooks/use-restaurant-chat-pusher-connection";
 import { warmRestaurantConversationMessageCache, prefetchConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
@@ -19,14 +18,10 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
     totalPages,
     total,
     loading,
-    syncing,
-    refreshing,
     error,
     page,
     setPage,
-    refetch,
   } = useRestaurantChatCustomersQuery(restaurantId);
-  const connectionStatus = useRestaurantChatPusherConnection();
 
   useEffect(() => {
     if (restaurantId < 1) {
@@ -78,9 +73,6 @@ export function RestaurantChatsPanel({ restaurantId }: { restaurantId: number })
             totalPages={totalPages}
             total={total}
             onPageChange={setPage}
-            onRefresh={() => void refetch()}
-            refreshing={refreshing || syncing}
-            connectionStatus={connectionStatus}
           />
         </div>
 
