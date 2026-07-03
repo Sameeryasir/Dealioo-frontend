@@ -343,6 +343,43 @@ export function subscribeCampaignFunnelId(
   };
 }
 
+export async function fetchFunnelSummaryByCampaignId(
+  accessToken: string,
+  campaignId: number,
+): Promise<number | null> {
+  if (!accessToken.trim()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(campaignId)) {
+    throw new Error("Valid campaignId is required.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/funnel/campaign/${encodeURIComponent(String(campaignId))}/summary`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+  );
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res, "Could not load funnel."));
+  }
+
+  const data = (await res.json()) as { id?: number } | null;
+  const funnelId = isPositiveInt(data?.id) ? data.id : null;
+  if (funnelId != null) {
+    readFunnelId(campaignId, { id: funnelId, campaignId });
+  }
+  return funnelId;
+}
+
 export async function fetchFunnelByCampaignId(
   accessToken: string,
   campaignId: number,

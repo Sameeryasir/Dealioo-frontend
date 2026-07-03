@@ -12,6 +12,7 @@ export function useTokenGatedResource<T>({
   noTokenError,
   fallbackError,
   resetWhenDisabled,
+  staleTime,
 }: {
   resourceId: number | null | undefined;
   queryKey: readonly unknown[];
@@ -19,6 +20,7 @@ export function useTokenGatedResource<T>({
   noTokenError: string;
   fallbackError: string;
   resetWhenDisabled?: T;
+  staleTime?: number;
 }) {
   const enabled = isPositiveInt(resourceId) && hasAuthSession();
 
@@ -26,6 +28,7 @@ export function useTokenGatedResource<T>({
     queryKey,
     queryFn: () => queryFn(resourceId!),
     enabled,
+    staleTime: staleTime ?? 60_000,
   });
 
   if (isPositiveInt(resourceId) && !hasAuthSession()) {

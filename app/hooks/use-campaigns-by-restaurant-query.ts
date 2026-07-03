@@ -74,6 +74,7 @@ export function useCampaignByIdQuery(
       return fetchCampaignById(campaignId);
     },
     enabled: isPositiveInt(campaignId) && hasAuthSession(),
+    staleTime: 60_000,
   });
 
   return {

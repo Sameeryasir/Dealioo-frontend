@@ -37,11 +37,9 @@ import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/mot
 import { panelCardClass, panelCardPaddingClass } from "@/app/lib/panel-styles";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import {
-  buildMockAnalyticsMonthlyPoints,
-  buildMockStatsMonthlyPoints,
-  mergeAnalyticsWithMockPreview,
-  mergeStatsWithMockPreview,
-} from "@/app/components/campaign/overview/charts/overview-mock-monthly-data";
+  hasAnalyticsMonthlyActivity,
+  hasStatsMonthlyActivity,
+} from "@/app/components/campaign/overview/charts/overview-monthly-activity";
 
 function OverviewSkeleton() {
   return (
@@ -189,33 +187,37 @@ export function FunnelOverviewPanel({
     isFunnelIdLoading || isStatsMonthlyLoading || isAnalyticsMonthlyLoading;
   const showNoFunnelMessage = !showSkeleton && funnelId == null;
 
-  const statsMerge = useMemo(() => {
+  const statsPoints = useMemo(() => {
     if (showSkeleton || funnelId == null) {
-      return { points: null as FunnelStatsMonthlyPoint[] | null, usedMock: false };
+      return null;
     }
-    if (statsMonthly?.data?.length) {
-      return mergeStatsWithMockPreview(statsMonthly.data);
-    }
-    return { points: buildMockStatsMonthlyPoints(), usedMock: true };
+    return statsMonthly?.data ?? [];
   }, [showSkeleton, funnelId, statsMonthly]);
 
-  const analyticsMerge = useMemo(() => {
+  const analyticsPoints = useMemo(() => {
     if (showSkeleton || funnelId == null) {
-      return {
-        points: null as FunnelAnalyticsMonthlyPoint[] | null,
-        usedMock: false,
-      };
+      return null;
     }
-    if (analyticsMonthly?.data?.length) {
-      return mergeAnalyticsWithMockPreview(analyticsMonthly.data);
-    }
-    return { points: buildMockAnalyticsMonthlyPoints(), usedMock: true };
+    return analyticsMonthly?.data ?? [];
   }, [showSkeleton, funnelId, analyticsMonthly]);
 
-  const statsPoints = statsMerge.points;
-  const analyticsPoints = analyticsMerge.points;
+  const hasStatsActivity = useMemo(
+    () => (statsPoints ? hasStatsMonthlyActivity(statsPoints) : false),
+    [statsPoints],
+  );
 
-  const showNoRecords = false;
+  const hasAnalyticsActivity = useMemo(
+    () => (analyticsPoints ? hasAnalyticsMonthlyActivity(analyticsPoints) : false),
+    [analyticsPoints],
+  );
+
+  const showNoRecords =
+    !showSkeleton &&
+    funnelId != null &&
+    statsPoints != null &&
+    analyticsPoints != null &&
+    !hasStatsActivity &&
+    !hasAnalyticsActivity;
 
   useEffect(() => {
     if (showSkeleton) return;
@@ -292,8 +294,8 @@ export function FunnelOverviewPanel({
   );
 
   const displayName = campaignName?.trim() ? campaignName : "Campaign";
-  const hasMonthlyCharts = signupsPaymentsMonthly.length > 0;
-  const hasAnalyticsMonthly = (analyticsPoints?.length ?? 0) > 0;
+  const hasMonthlyCharts = hasStatsActivity && signupsPaymentsMonthly.length > 0;
+  const hasAnalyticsMonthly = hasAnalyticsActivity;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-zinc-50 via-white to-zinc-100/70">

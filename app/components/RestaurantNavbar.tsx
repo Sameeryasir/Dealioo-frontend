@@ -5,9 +5,9 @@ import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import RestaurantSettingsDialog from "@/app/components/RestaurantSettingsDialog";
-import { ArrowBigLeft, LogOut, Settings } from "lucide-react";
+import { ArrowBigLeft, Bell, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function initialsFromUser(user: VerifyOtpUser | null): string {
@@ -22,6 +22,7 @@ function initialsFromUser(user: VerifyOtpUser | null): string {
 
 export default function RestaurantNavbar() {
   const router = useRouter();
+  const params = useParams();
   const { clearPassword } = useCredentialContext();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -35,6 +36,18 @@ export default function RestaurantNavbar() {
   }, []);
 
   const initials = useMemo(() => initialsFromUser(user), [user]);
+
+  const restaurantIdParam = params?.restaurantId;
+  const restaurantId =
+    typeof restaurantIdParam === "string" && /^\d+$/.test(restaurantIdParam)
+      ? restaurantIdParam
+      : null;
+  const notificationsHref = restaurantId
+    ? `/restaurant/${restaurantId}/dashboard/activity`
+    : "/dashboard/activity";
+
+  const iconButtonClass =
+    "flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] active:scale-[0.98]";
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -83,10 +96,22 @@ export default function RestaurantNavbar() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href={notificationsHref}
+            className={iconButtonClass}
+            aria-label="Notifications"
+          >
+            <Bell
+              className="size-[1.125rem] text-white"
+              aria-hidden
+              strokeWidth={2}
+            />
+          </Link>
+
           <button
             type="button"
             onClick={openSettingsDialog}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] active:scale-[0.98]"
+            className={iconButtonClass}
             aria-label="Settings"
             aria-haspopup="dialog"
             aria-expanded={settingsOpen}

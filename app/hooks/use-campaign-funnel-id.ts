@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { isPositiveInt } from "@/app/lib/numbers";
 import {
-  fetchFunnelByCampaignId,
+  fetchFunnelSummaryByCampaignId,
   peekCachedFunnelId,
   subscribeCampaignFunnelId,
 } from "@/app/services/funnel/get-funnel-by-campaign";
@@ -44,10 +44,9 @@ export function useCampaignFunnelId(campaignId: number | undefined): {
 
       setIsLoading(true);
       try {
-        const remote = await fetchFunnelByCampaignId(token, id);
+        const remoteId = await fetchFunnelSummaryByCampaignId(token, id);
         if (cancelled()) return;
-        const resolved = isPositiveInt(remote?.id) ? remote.id : null;
-        setFunnelId(resolved);
+        setFunnelId(remoteId);
       } catch (err) {
         if (cancelled()) return;
         console.warn("[Funnel] Could not load funnel for campaign", id, err);
