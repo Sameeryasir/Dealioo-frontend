@@ -65,7 +65,9 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/website-builder",
+        href: restaurantId
+          ? `${restaurantHomeHref}/website-builder`
+          : "/dashboard/website-builder",
         label: "Website builder",
         icon: LayoutTemplate,
         activeMatch: "prefix",
@@ -85,19 +87,25 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/ad-library",
+        href: restaurantId
+          ? `${restaurantHomeHref}/ad-library`
+          : "/dashboard/ad-library",
         label: "Ad library",
         icon: Library,
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/members",
+        href: restaurantId
+          ? `${restaurantHomeHref}/members`
+          : "/dashboard/members",
         label: "Members",
         icon: Users,
         activeMatch: "prefix",
       },
       {
-        href: "/dashboard/program",
+        href: restaurantId
+          ? `${restaurantHomeHref}/program`
+          : "/dashboard/program",
         label: "Program",
         icon: Gift,
         activeMatch: "prefix",
