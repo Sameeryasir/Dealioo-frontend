@@ -2,11 +2,17 @@
 
 import { CheckCircle2, Loader2, QrCode, ScanLine } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GuestPassUnavailableCard } from "@/app/components/pass/GuestPassUnavailableCard";
 import {
   getGuestCouponByCustomerAndFunnel,
   getGuestCouponByPayment,
   type GuestCouponResponse,
 } from "@/app/services/redemption/scan-redemption";
+import {
+  canShowGuestPassQr,
+  isGuestPassUnavailable,
+  resolveGuestPassUnavailableReason,
+} from "@/app/lib/guest-pass-state";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 
 type GuestPassViewProps =
@@ -16,7 +22,7 @@ type GuestPassViewProps =
 export function GuestPassView(props: GuestPassViewProps) {
   const [coupon, setCoupon] = useState<GuestCouponResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,15 +41,16 @@ export function GuestPassView(props: GuestPassViewProps) {
         if (!cancelled) {
           setCoupon(data);
           setLoading(false);
+          setLoadFailed(false);
         }
       } catch {
         if (cancelled) return;
-        if (attempts < 8) {
-          window.setTimeout(() => void load(), 1500);
-        } else {
-          setError("We couldn't load your QR code. Please refresh and try again.");
-          setLoading(false);
+        if (attempts < 4) {
+          window.setTimeout(() => void load(), 1200);
+          return;
         }
+        setLoadFailed(true);
+        setLoading(false);
       }
     };
 
@@ -53,9 +60,12 @@ export function GuestPassView(props: GuestPassViewProps) {
     };
   }, [props.paymentId, props.customerId, props.funnelId]);
 
+  const showUnavailable = isGuestPassUnavailable(coupon);
+  const showQr = canShowGuestPassQr(coupon);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-stone-100 via-zinc-100 to-stone-100 px-4 py-10">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
         {loading ? (
           <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-zinc-200/80">
             <div className="bg-black px-6 py-5 text-center">
@@ -72,16 +82,17 @@ export function GuestPassView(props: GuestPassViewProps) {
           </div>
         ) : null}
 
-        {error ? (
-          <div
-            className="rounded-2xl bg-white px-6 py-10 text-center text-sm text-red-600 shadow-lg ring-1 ring-red-100"
-            role="alert"
-          >
-            {error}
-          </div>
+        {loadFailed ? (
+          <GuestPassUnavailableCard reason="loadFailed" />
         ) : null}
 
-        {!loading && !error && coupon?.qr?.qrDataUrl ? (
+        {!loading && !loadFailed && showUnavailable && coupon ? (
+          <GuestPassUnavailableCard
+            reason={resolveGuestPassUnavailableReason(coupon)}
+          />
+        ) : null}
+
+        {!loading && !loadFailed && showQr ? (
           <article className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-zinc-900/10 ring-1 ring-stone-200/80">
             <header className="flex flex-col items-center bg-black px-6 py-6 text-center text-white">
               <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
@@ -145,6 +156,10 @@ export function GuestPassView(props: GuestPassViewProps) {
               ) : null}
             </div>
           </article>
+        ) : null}
+
+        {!loading && !loadFailed && coupon && !showUnavailable && !showQr ? (
+          <GuestPassUnavailableCard reason="expired" />
         ) : null}
       </div>
     </main>
