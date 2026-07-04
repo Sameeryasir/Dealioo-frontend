@@ -3393,18 +3393,12 @@ body {
     min-height: 2.75rem;
   }
 
-  /* Nav logo */
+  /* Nav logo — no hover ring; logo should stay clean on light nav */
   .landing-nav-logo {
     display: inline-flex;
     background: transparent;
     border-radius: 0.75rem;
     padding: 0.125rem 0.25rem;
-    transition: box-shadow 0.25s ease;
-  }
-
-  .landing-nav-logo:hover {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 12%, transparent),
-      0 8px 24px color-mix(in srgb, var(--brand-violet) 10%, transparent);
   }
 
   .landing-nav-logo img {
@@ -5492,3 +5486,4 @@ body {
     transform: none !important;
   }
 }
+

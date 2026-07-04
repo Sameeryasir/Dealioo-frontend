@@ -5,7 +5,6 @@
  * Business rule: primary CTA → signup; secondary → meeting booking form.
  */
 import { LandingLoopSimulator } from "@/app/components/landing/LandingLoopSimulator";
-import { LANDING_MEETING_FORM_URL } from "@/app/components/landing/landing-config";
 import { headlineLine, easeOut } from "@/app/components/landing/landing-motion";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarDays } from "lucide-react";
@@ -46,7 +45,6 @@ function HeroSubline({ reduced }: { reduced: boolean | null }) {
 
 export function LandingHero({ signupHref }: { signupHref: string }) {
   const reduced = useReducedMotion();
-  const meetingFormUrl = LANDING_MEETING_FORM_URL;
 
   return (
     <section
@@ -102,16 +100,13 @@ export function LandingHero({ signupHref }: { signupHref: string }) {
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
-                <a
-                  href={meetingFormUrl || "#"}
-                  target={meetingFormUrl ? "_blank" : undefined}
-                  rel={meetingFormUrl ? "noopener noreferrer" : undefined}
+                <Link
+                  href="/book-meeting"
                   className="landing-btn-secondary landing-hero-btn-outline inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold sm:h-12 sm:w-auto"
-                  aria-disabled={!meetingFormUrl}
                 >
                   <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
                   Book a Meeting
-                </a>
+                </Link>
               </motion.div>
             </motion.div>
           </motion.div>
