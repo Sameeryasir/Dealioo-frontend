@@ -380,10 +380,34 @@ export async function fetchFunnelSummaryByCampaignId(
   return funnelId;
 }
 
+export type FunnelFetchResult =
+  | FunnelByCampaignResponse
+  | null
+  | 'not-modified';
+
+function funnelEtagStorageKey(campaignId: number): string {
+  return `retention:funnel-etag:${campaignId}`;
+}
+
+function readStoredFunnelEtag(campaignId: number): string | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  return sessionStorage.getItem(funnelEtagStorageKey(campaignId));
+}
+
+function storeFunnelEtag(campaignId: number, etag: string | null): void {
+  if (typeof sessionStorage === 'undefined' || !etag) return;
+  sessionStorage.setItem(funnelEtagStorageKey(campaignId), etag);
+}
+
+export function clearStoredFunnelEtag(campaignId: number): void {
+  if (typeof sessionStorage === 'undefined') return;
+  sessionStorage.removeItem(funnelEtagStorageKey(campaignId));
+}
+
 export async function fetchFunnelByCampaignId(
   accessToken: string,
   campaignId: number,
-): Promise<FunnelByCampaignResponse | null> {
+): Promise<FunnelFetchResult> {
   if (!accessToken.trim()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -391,24 +415,35 @@ export async function fetchFunnelByCampaignId(
     throw new Error("Valid campaignId is required.");
   }
 
+  const cachedEtag = readStoredFunnelEtag(campaignId);
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (cachedEtag) {
+    headers["If-None-Match"] = cachedEtag;
+  }
+
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/funnel/campaign/${encodeURIComponent(String(campaignId))}`,
     {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers,
     },
   );
 
+  if (res.status === 304) {
+    return "not-modified";
+  }
+
   if (res.status === 404) {
-    console.info("[Funnel DB] No funnel in database yet (404)", { campaignId });
     return null;
   }
 
   if (!res.ok) {
     throw new Error(await parseApiErrorMessage(res, "Could not load funnel."));
   }
+
+  storeFunnelEtag(campaignId, res.headers.get("ETag"));
 
   const text = await res.text();
   if (!text.trim()) {
@@ -421,12 +456,6 @@ export async function fetchFunnelByCampaignId(
   }
 
   readFunnelId(campaignId, data);
-
-  console.group("[Funnel DB] GET /funnel/campaign/:campaignId");
-  console.log("campaignId:", campaignId);
-  console.log("stored in database (raw API JSON):", data);
-  console.groupEnd();
-
   return data;
 }
 
@@ -437,7 +466,19 @@ export async function loadTemplatePagesForCampaign(
 ): Promise<CampaignFunnelLoadResult> {
   const start = baseline ?? cloneTemplatePages();
   const remote = await fetchFunnelByCampaignId(accessToken, campaignId);
-  const funnelId = readFunnelId(campaignId, remote);
+  const funnelId =
+    remote === "not-modified"
+      ? peekCachedFunnelId(campaignId)
+      : readFunnelId(campaignId, remote);
+
+  if (remote === "not-modified") {
+    return {
+      pages: start,
+      funnelId,
+      fromApi: false,
+      apiPageKeys: [],
+    };
+  }
 
   const apiPageKeys = remote?.pages
     ? (Object.keys(remote.pages) as (keyof NonNullable<

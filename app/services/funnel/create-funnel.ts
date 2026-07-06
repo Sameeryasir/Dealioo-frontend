@@ -15,6 +15,7 @@ import type {
 
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import { clearStoredFunnelEtag } from "@/app/services/funnel/get-funnel-by-campaign";
 
 export type CreateFunnelFormFieldId =
   | "first_name"
@@ -308,6 +309,8 @@ export async function createFunnel(
   if (!res.ok) {
     throw new Error(await parseApiErrorMessage(res, "Could not save funnel."));
   }
+
+  clearStoredFunnelEtag(body.campaignId);
 
   const ct = res.headers.get("content-type");
   if (ct?.includes("application/json")) {

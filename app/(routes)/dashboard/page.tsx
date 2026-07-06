@@ -15,28 +15,40 @@ import { Plus, Store } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function useDebouncedValue<T>(value: T, delayMs = 300): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery]);
+  }, [debouncedSearch]);
 
   const {
     data: restaurants,
     meta,
-    isLoading: loading,
+    isPending,
     isFetching,
     error: errorMessage,
     refetch: loadRestaurants,
-  } = useMyRestaurantsQuery({ page, search: searchQuery });
+  } = useMyRestaurantsQuery({ page, search: debouncedSearch });
 
-  const showSkeleton = loading;
-  const hasAnyRestaurants = meta.total > 0 || searchQuery.trim().length > 0;
+  const showSkeleton = isPending && restaurants.length === 0;
+  const hasAnyRestaurants = meta.total > 0 || debouncedSearch.length > 0;
   const showCreateInHeader = !showSkeleton && !errorMessage;
   const showDashboardSearch =
-    !showSkeleton && !errorMessage && (meta.total > 0 || searchQuery.trim());
+    !showSkeleton && !errorMessage && (meta.total > 0 || debouncedSearch.length > 0);
 
   return (
     <div className="w-full px-4 py-8 sm:px-8 lg:px-10">
@@ -98,7 +110,7 @@ export default function DashboardPage() {
             message={errorMessage}
             onRetry={() => loadRestaurants()}
           />
-        ) : !hasAnyRestaurants && !searchQuery.trim() ? (
+        ) : !hasAnyRestaurants && !debouncedSearch.trim() ? (
           <div className="rounded-3xl border border-zinc-200 bg-white px-6 py-12 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200">
               <Store className="h-7 w-7" strokeWidth={1.75} aria-hidden />

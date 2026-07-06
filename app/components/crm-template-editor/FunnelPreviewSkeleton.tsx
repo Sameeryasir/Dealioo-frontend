@@ -11,7 +11,7 @@ export function FunnelPreviewSkeleton() {
     >
       <Skeleton
         funnel
-        className="aspect-[4/3] w-full rounded-none sm:aspect-[3/2]"
+        className="aspect-[4/3] w-full rounded-none"
       />
 
       <div className="space-y-4 px-5 pb-8 pt-6 text-center">

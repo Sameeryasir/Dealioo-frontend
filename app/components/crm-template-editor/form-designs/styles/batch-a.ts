@@ -17,7 +17,7 @@ export const formDesignStylesBatchA: Partial<Record<FormDesign, FormDesignStyle>
     fieldClass:
       "h-10 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 shadow-sm",
     rowClass: "min-w-0 text-left",
-    fieldsContainerClass: "grid grid-cols-1 gap-4 sm:grid-cols-2",
+    fieldsContainerClass: "grid grid-cols-1 gap-4",
     splitVariant: null,
     swatchKind: "card",
   },

@@ -19,14 +19,10 @@ function FunnelCampaignConfirmationInner() {
 
 export default function FunnelCampaignConfirmationPage() {
   return (
-    <Suspense
-      fallback={
-        <FunnelGuestPageShell>
-          <FunnelPreviewSkeleton />
-        </FunnelGuestPageShell>
-      }
-    >
-      <FunnelCampaignConfirmationInner />
-    </Suspense>
+    <FunnelGuestPageShell>
+      <Suspense fallback={<FunnelPreviewSkeleton />}>
+        <FunnelCampaignConfirmationInner />
+      </Suspense>
+    </FunnelGuestPageShell>
   );
 }

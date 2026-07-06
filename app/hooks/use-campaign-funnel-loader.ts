@@ -33,6 +33,17 @@ function clonePages(pages: TemplatePagesState): TemplatePagesState {
   return JSON.parse(JSON.stringify(pages)) as TemplatePagesState;
 }
 
+function persistFunnelPagesLocally(
+  campaignId: number,
+  funnelId: number | null,
+  pages: TemplatePagesState,
+): void {
+  const key = String(campaignId);
+  void saveFunnelTemplatePagesAsync(key, pages).then(() =>
+    mirrorFunnelTemplatePagesToFunnelId(key, funnelId, pages),
+  );
+}
+
 export function useCampaignFunnelLoader(
   campaignId: number | undefined,
 ): CampaignFunnelLoaderState {
@@ -47,89 +58,72 @@ export function useCampaignFunnelLoader(
   );
 
   const load = useCallback(async (id: number, signal: { cancelled: boolean }) => {
-    setState((prev) => ({
-      ...prev,
-      isLoading: true,
-      loadError: null,
-      isHydrated: false,
-    }));
-
     const token = getSetupAccessToken().trim();
-    let pages = cloneTemplatePages();
-    let funnelId: number | null = null;
-    let loadError: string | null = null;
-
     const local = await loadFunnelTemplatePagesAsync(String(id));
-    if (local) {
-      pages = local;
+    const baseline = local ?? cloneTemplatePages();
+
+    if (local && !signal.cancelled) {
+      setState({
+        pages: local,
+        pagesBaseline: clonePages(local),
+        funnelId: null,
+        isLoading: Boolean(token),
+        loadError: null,
+        isHydrated: true,
+      });
+    } else if (!signal.cancelled) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: true,
+        loadError: null,
+        isHydrated: false,
+      }));
     }
 
-    let loadedFrom: "api" | "indexeddb" | "defaults" = local
-      ? "indexeddb"
-      : "defaults";
+    if (!token) {
+      if (signal.cancelled) return;
+      setState({
+        pages: baseline,
+        pagesBaseline: clonePages(baseline),
+        funnelId: null,
+        isLoading: false,
+        loadError: local
+          ? null
+          : "Sign in to load funnel data from the server.",
+        isHydrated: true,
+      });
+      return;
+    }
 
-    if (token) {
-      try {
-        const result = await loadTemplatePagesForCampaign(id, token, pages);
-        pages = result.pages;
-        funnelId = result.funnelId;
-        loadedFrom = result.fromApi ? "api" : loadedFrom;
+    try {
+      const result = await loadTemplatePagesForCampaign(id, token, baseline);
+      if (signal.cancelled) return;
 
-        console.group("[Funnel Editor] Loaded from API → syncing to IndexedDB");
-        console.log("campaignId:", id);
-        console.log("funnelId:", funnelId);
-        console.log("api page keys:", result.apiPageKeys);
-        console.log("pages shown in editor:", pages);
-        console.groupEnd();
+      setState({
+        pages: result.pages,
+        pagesBaseline: clonePages(result.pages),
+        funnelId: result.funnelId,
+        isLoading: false,
+        loadError: null,
+        isHydrated: true,
+      });
 
-        await saveFunnelTemplatePagesAsync(String(id), pages);
-        await mirrorFunnelTemplatePagesToFunnelId(String(id), funnelId, pages);
+      persistFunnelPagesLocally(id, result.funnelId, result.pages);
+    } catch (e) {
+      const loadError =
+        e instanceof Error ? e.message : "Could not load funnel from server.";
+      if (signal.cancelled) return;
 
-        const cached = await loadFunnelTemplatePagesAsync(String(id));
-        console.log("[Funnel Editor] IndexedDB after sync (campaign key):", cached);
-      } catch (e) {
-        loadError =
-          e instanceof Error ? e.message : "Could not load funnel from server.";
-        const cached = await loadFunnelTemplatePagesAsync(String(id));
-        if (cached) {
-          pages = cached;
-          loadedFrom = "indexeddb";
-        }
-        console.warn("[Funnel Editor] API failed, using IndexedDB cache", {
-          campaignId: id,
-          error: loadError,
-          pages,
-        });
-      }
-    } else {
-      if (local) {
-        pages = local;
-        loadedFrom = "indexeddb";
-      }
-      loadError = "Sign in to load funnel data from the server.";
-      console.warn("[Funnel Editor] No auth token — IndexedDB only", {
-        campaignId: id,
-        pages,
+      const cached = local ?? (await loadFunnelTemplatePagesAsync(String(id)));
+      setState({
+        pages: cached ?? baseline,
+        pagesBaseline: clonePages(cached ?? baseline),
+        funnelId: null,
+        isLoading: false,
+        loadError: cached ? loadError : loadError,
+        isHydrated: true,
       });
     }
-
-    if (signal.cancelled) return;
-
-    console.log("[Funnel Editor] Ready to display", {
-      campaignId: id,
-      funnelId,
-      loadedFrom,
-      loadError,
-    });
-
-    setState({
-      pages,
-      pagesBaseline: clonePages(pages),
-      funnelId,
-      isLoading: false,
-      loadError,
-      isHydrated: true,
-    });
   }, []);
 
   useEffect(() => {
@@ -158,11 +152,7 @@ export function usePersistCampaignFunnelDraft(
     if (!canPersistDraft || campaignId == null) return;
 
     const timer = window.setTimeout(() => {
-      void (async () => {
-        const key = String(campaignId);
-        await saveFunnelTemplatePagesAsync(key, pages);
-        await mirrorFunnelTemplatePagesToFunnelId(key, funnelId, pages);
-      })();
+      persistFunnelPagesLocally(campaignId, funnelId, pages);
     }, 320);
 
     return () => window.clearTimeout(timer);

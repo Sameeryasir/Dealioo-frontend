@@ -99,7 +99,7 @@ function HeroImage({
 }) {
   const bleed = variant === "fullBleedTop";
   const frameClass = bleed
-    ? "aspect-[4/3] w-full overflow-hidden rounded-t-2xl sm:aspect-[3/2]"
+    ? "aspect-[4/3] w-full overflow-hidden rounded-t-2xl"
     : "aspect-[16/9] w-full overflow-hidden rounded-xl shadow-sm";
 
   if (!url?.trim()) {

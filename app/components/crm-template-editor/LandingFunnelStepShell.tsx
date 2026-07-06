@@ -50,7 +50,7 @@ export function LandingFunnelStepShell({
         heroStyle={heroStyle}
       />
       <div
-        className={`flex w-full flex-col items-stretch px-5 pb-8 pt-6 sm:px-6 ${fillViewport ? "flex-1" : ""} ${centered ? "text-center" : "text-left"}`}
+        className={`flex w-full flex-col items-stretch px-5 pb-8 pt-6 ${fillViewport ? "flex-1" : ""} ${centered ? "text-center" : "text-left"}`}
         style={pageBackgroundStyle(
           landingPage.backgroundColor,
           landingStyle.backgroundDefault,

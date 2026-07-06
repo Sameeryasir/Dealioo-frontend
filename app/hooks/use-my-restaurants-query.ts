@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -26,6 +26,8 @@ export function useMyRestaurantsQuery(options: UseMyRestaurantsQueryOptions = {}
     queryKey: restaurantQueryKeys.myList(page, search),
     queryFn: () => fetchMyRestaurants({ page, search, limit }),
     enabled: hasAuthSession(),
+    staleTime: 120_000,
+    placeholderData: keepPreviousData,
   });
 
   const emptyMeta: PaginatedMyRestaurantsResponse["meta"] = {
@@ -40,6 +42,7 @@ export function useMyRestaurantsQuery(options: UseMyRestaurantsQueryOptions = {}
     meta: query.data?.meta ?? emptyMeta,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
+    isPending: query.isPending,
     error: query.error
       ? getApiErrorMessage(query.error, "Could not load restaurants.")
       : null,

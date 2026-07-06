@@ -255,7 +255,7 @@ export function LandingPagePreview({
     heading: (
       <h1
         key="heading"
-        className={`text-[1.65rem] font-bold leading-[1.15] sm:text-3xl ${headingColorStyle ? "" : style.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
+        className={`text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : style.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
         style={headingColorStyle}
       >
         {page.heading}
@@ -321,7 +321,7 @@ export function LandingPagePreview({
 
   const content = (
     <div
-      className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 sm:px-6 ${fillViewport ? "flex-1" : ""}`}
+      className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 ${fillViewport ? "flex-1" : ""}`}
       style={pageBackgroundStyle(page.backgroundColor, style.backgroundDefault)}
     >
       {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
