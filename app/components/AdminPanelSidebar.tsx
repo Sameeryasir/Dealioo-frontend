@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -39,6 +40,15 @@ export default function AdminPanelSidebar() {
   const restaurantHomeHref = restaurantId
     ? `/restaurant/${restaurantId}/dashboard`
     : "/dashboard";
+
+  const chatsHref = restaurantId
+    ? `${restaurantHomeHref}/chats`
+    : "/dashboard/chats";
+
+  const hasUnreadChats = useChatSidebarUnread(
+    restaurantId != null ? Number(restaurantId) : null,
+    restaurantId != null ? chatsHref : null,
+  );
 
   const nav = useMemo<NavItem[]>(
     () => [
@@ -111,15 +121,13 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/chats`
-          : "/dashboard/chats",
+        href: chatsHref,
         label: "Chats",
         icon: MessageSquare,
         activeMatch: "prefix",
       },
     ],
-    [restaurantHomeHref, restaurantId],
+    [restaurantHomeHref, restaurantId, chatsHref],
   );
 
   return (
@@ -157,7 +165,7 @@ export default function AdminPanelSidebar() {
             <Link
               key={href}
               href={href}
-              aria-label={label}
+              aria-label={label === "Chats" && hasUnreadChats ? `${label} (new message)` : label}
               aria-current={active ? "page" : undefined}
               className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-black/20 ${
                 active
@@ -166,6 +174,12 @@ export default function AdminPanelSidebar() {
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden strokeWidth={2} />
+              {label === "Chats" && hasUnreadChats ? (
+                <span
+                  className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-white"
+                  aria-hidden
+                />
+              ) : null}
               <span
                 role="tooltip"
                 className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"

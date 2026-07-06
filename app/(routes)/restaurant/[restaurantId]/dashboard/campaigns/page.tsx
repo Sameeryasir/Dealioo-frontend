@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
 import {
   CampaignFunnelCardSkeleton,
@@ -17,10 +18,13 @@ import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
+import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import { CAMPAIGNS_PAGE_SIZE } from "@/app/services/funnel/get-campaigns-by-restaurant";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
+import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
+import { provisionCampaignDefaultAutomations } from "@/app/services/automation/provision-campaign-default-automations";
 import {
   createCampaign,
   extractCampaignIdFromCreateResponse,
@@ -293,7 +297,26 @@ export default function RestaurantCampaignsPage() {
                 const fromApi =
                   extractCampaignIdFromCreateResponse(createdBody);
                 const campaignId = fromApi;
-                if (campaignId == null) {
+                if (campaignId != null) {
+                  try {
+                    await provisionCampaignDefaultAutomations(
+                      restaurantId,
+                      campaignId,
+                    );
+                    await queryClient.invalidateQueries({
+                      queryKey: automationQueryKeys.list(restaurantId),
+                    });
+                  } catch (automationError) {
+                    const message = getApiErrorMessage(
+                      automationError,
+                      "Could not set up default automations for this campaign.",
+                    );
+                    toast.error(message);
+                    setSubmitError(
+                      `Campaign was created, but automations could not be set up: ${message}`,
+                    );
+                  }
+                } else {
                   setShowCreateCampaign(false);
                 }
                 return campaignId ?? undefined;
