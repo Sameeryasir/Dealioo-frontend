@@ -1,22 +1,27 @@
 const CHAT_UNREAD_STORAGE_PREFIX = "retention:chat-unread:";
 
-function storageKey(restaurantId: number): string {
-  return `${CHAT_UNREAD_STORAGE_PREFIX}${restaurantId}`;
+function storageKey(userId: number, restaurantId: number): string {
+  return `${CHAT_UNREAD_STORAGE_PREFIX}${userId}:${restaurantId}`;
 }
 
-export function readChatHasUnread(restaurantId: number): boolean {
-  if (typeof sessionStorage === "undefined") return false;
-  return sessionStorage.getItem(storageKey(restaurantId)) === "1";
+export function readChatHasUnread(
+  userId: number,
+  restaurantId: number,
+): boolean {
+  if (typeof localStorage === "undefined") return false;
+  return localStorage.getItem(storageKey(userId, restaurantId)) === "1";
 }
 
 export function writeChatHasUnread(
+  userId: number,
   restaurantId: number,
   hasUnread: boolean,
 ): void {
-  if (typeof sessionStorage === "undefined") return;
+  if (typeof localStorage === "undefined") return;
+  const key = storageKey(userId, restaurantId);
   if (hasUnread) {
-    sessionStorage.setItem(storageKey(restaurantId), "1");
+    localStorage.setItem(key, "1");
   } else {
-    sessionStorage.removeItem(storageKey(restaurantId));
+    localStorage.removeItem(key);
   }
 }
