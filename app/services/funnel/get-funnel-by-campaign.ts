@@ -402,19 +402,15 @@ function storeFunnelEtag(campaignId: number, etag: string | null): void {
 export function clearStoredFunnelEtag(campaignId: number): void {
   if (typeof sessionStorage === 'undefined') return;
   sessionStorage.removeItem(funnelEtagStorageKey(campaignId));
+  funnelFetchInflight.delete(campaignId);
 }
 
-export async function fetchFunnelByCampaignId(
+const funnelFetchInflight = new Map<number, Promise<FunnelFetchResult>>();
+
+async function fetchFunnelByCampaignIdOnce(
   accessToken: string,
   campaignId: number,
 ): Promise<FunnelFetchResult> {
-  if (!accessToken.trim()) {
-    throw new Error("Missing access token. Sign in again.");
-  }
-  if (!isPositiveInt(campaignId)) {
-    throw new Error("Valid campaignId is required.");
-  }
-
   const cachedEtag = readStoredFunnelEtag(campaignId);
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -457,6 +453,34 @@ export async function fetchFunnelByCampaignId(
 
   readFunnelId(campaignId, data);
   return data;
+}
+
+export async function fetchFunnelByCampaignId(
+  accessToken: string,
+  campaignId: number,
+): Promise<FunnelFetchResult> {
+  if (!accessToken.trim()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(campaignId)) {
+    throw new Error("Valid campaignId is required.");
+  }
+
+  const inflight = funnelFetchInflight.get(campaignId);
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = fetchFunnelByCampaignIdOnce(accessToken, campaignId).finally(
+    () => {
+      if (funnelFetchInflight.get(campaignId) === request) {
+        funnelFetchInflight.delete(campaignId);
+      }
+    },
+  );
+
+  funnelFetchInflight.set(campaignId, request);
+  return request;
 }
 
 export async function loadTemplatePagesForCampaign(
