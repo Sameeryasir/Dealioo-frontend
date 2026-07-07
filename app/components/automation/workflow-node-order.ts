@@ -18,6 +18,30 @@ export function isCronStartingTrigger(nodes: WorkflowNode[]): boolean {
   return getCronTriggerIndex(nodes) === 0;
 }
 
+export function isSignupTriggerNode(node: WorkflowNode): boolean {
+  return node.kind === "signup_trigger";
+}
+
+export function isSignupStartingTrigger(nodes: WorkflowNode[]): boolean {
+  return nodes.length > 0 && isSignupTriggerNode(nodes[0]);
+}
+
+export function isPaymentTriggerNode(node: WorkflowNode): boolean {
+  return node.kind === "payment_trigger";
+}
+
+export function isPaymentStartingTrigger(nodes: WorkflowNode[]): boolean {
+  return nodes.length > 0 && isPaymentTriggerNode(nodes[0]);
+}
+
+export function isManualRunDisabledFlow(nodes: WorkflowNode[]): boolean {
+  return (
+    isCronStartingTrigger(nodes) ||
+    isSignupStartingTrigger(nodes) ||
+    isPaymentStartingTrigger(nodes)
+  );
+}
+
 export function isWorkflowNodeReorderLocked(
   nodes: WorkflowNode[],
   index: number,

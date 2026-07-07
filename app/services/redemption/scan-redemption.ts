@@ -257,6 +257,8 @@ export async function getGuestProfile(
   };
 }
 
+export type GuestPassUnavailableReason = "revoked" | "expired" | "redeemed";
+
 export type GuestCouponResponse = {
   id: number;
   status: string;
@@ -266,11 +268,14 @@ export type GuestCouponResponse = {
   expiresAt: string | null;
   campaignName: string | null;
   customerName: string | null;
+  passAvailable: boolean;
+  passUnavailableReason: GuestPassUnavailableReason | null;
+  passMessage: string | null;
   qr: {
     couponId: number;
     token: string;
     qrDataUrl: string;
-  };
+  } | null;
 };
 
 export async function getGuestCouponByPayment(

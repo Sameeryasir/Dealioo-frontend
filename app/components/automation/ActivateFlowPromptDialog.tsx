@@ -71,8 +71,8 @@ export function ActivateFlowPromptDialog({
                 Please activate your flow
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-                You have unsaved changes. Activate your flow before leaving this
-                page.
+                You have unsaved changes. Save your step settings and activate
+                your flow before leaving this page.
               </p>
             </div>
           </div>

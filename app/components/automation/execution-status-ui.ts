@@ -31,6 +31,21 @@ export function formatExecutionStepType(type?: string | null): string {
     .join(" ");
 }
 
+export function executionStepLabel(
+  status: AutomationExecutionStatus,
+  stepType?: string | null,
+): string {
+  if (status === "completed") return "Completed";
+  if (status === "failed") return "Failed";
+  return formatExecutionStepType(stepType);
+}
+
+export function executionStepUsesCurrentNode(
+  status: AutomationExecutionStatus,
+): boolean {
+  return isExecutionInProgress(status) || status === "paused";
+}
+
 export function isExecutionInProgress(
   status: AutomationExecutionStatus,
 ): boolean {
@@ -130,14 +145,28 @@ export function executionRunSubtitle(
 export function executionRunDisplayName(
   row: Pick<
     AutomationExecution,
-    "id" | "executedRecipients" | "customerId" | "customer" | "totalRecipients"
+    | "id"
+    | "status"
+    | "executedRecipients"
+    | "customerId"
+    | "customer"
+    | "totalRecipients"
   >,
 ): string {
-  const recipientCount =
-    row.executedRecipients?.length ?? row.totalRecipients ?? 0;
-  if (recipientCount > 1) {
-    return `Completed for ${recipientCount} customers`;
+  const bulkRecipientCount = row.totalRecipients ?? 0;
+  if (bulkRecipientCount > 1) {
+    return row.status === "completed"
+      ? `Completed for ${bulkRecipientCount} customers`
+      : `${bulkRecipientCount} customers`;
   }
+
+  const executedCount = row.executedRecipients?.length ?? 0;
+  if (executedCount > 1) {
+    return row.status === "completed"
+      ? `Completed for ${executedCount} customers`
+      : `${executedCount} customers`;
+  }
+
   const label = executionRunTitle(
     row.executedRecipients,
     row.customerId,

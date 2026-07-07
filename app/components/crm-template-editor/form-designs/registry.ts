@@ -54,16 +54,16 @@ export function getSplitShellExtraClass(design: FormDesign): string {
 export function getSplitImageColumnClass(design: FormDesign): string {
   const v = getFormDesignStyle(design).splitVariant;
   const neutral =
-    "relative min-h-[140px] overflow-hidden sm:min-h-[180px] bg-gradient-to-br from-zinc-200 to-zinc-100";
-  if (v === "neutral") return `${neutral} sm:min-h-[200px]`;
+    "relative min-h-[140px] overflow-hidden bg-gradient-to-br from-zinc-200 to-zinc-100";
+  if (v === "neutral") return `${neutral}`;
   if (v === "gradient") {
-    return "relative min-h-[140px] overflow-hidden bg-gradient-to-br from-fuchsia-600/90 via-rose-500/80 to-amber-400/90 sm:min-h-[180px]";
+    return "relative min-h-[140px] overflow-hidden bg-gradient-to-br from-fuchsia-600/90 via-rose-500/80 to-amber-400/90";
   }
   if (v === "warm") {
-    return "relative min-h-[140px] overflow-hidden bg-gradient-to-br from-amber-900/90 to-zinc-900 sm:min-h-[180px]";
+    return "relative min-h-[140px] overflow-hidden bg-gradient-to-br from-amber-900/90 to-zinc-900";
   }
   if (v === "shop") {
-    return `${neutral} sm:min-h-[200px]`;
+    return `${neutral}`;
   }
   return neutral;
 }

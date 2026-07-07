@@ -27,6 +27,57 @@ type ExecutionsPageMeta = PaginationMeta & {
   summary?: ExecutionListSummary;
 };
 
+function patchExecutionsPageFromPusher(
+  prev: PaginatedExecutionsResponse | undefined,
+  payload: ExecutionTerminalPusherPayload,
+  statusFilter: AutomationExecutionStatus | undefined,
+  page: number,
+): PaginatedExecutionsResponse | undefined {
+  if (!prev) return prev;
+
+  const index = prev.data.findIndex((row) => row.id === payload.executionId);
+  const updated = mapPusherPayloadToExecution(
+    payload,
+    index >= 0 ? prev.data[index] : undefined,
+  );
+
+  if (statusFilter && payload.status !== statusFilter) {
+    if (index >= 0) {
+      const nextMeta = prev.meta
+        ? { ...prev.meta, total: Math.max(0, prev.meta.total - 1) }
+        : prev.meta;
+      return {
+        ...prev,
+        meta: nextMeta,
+        data: prev.data.filter((row) => row.id !== payload.executionId),
+      };
+    }
+    return prev;
+  }
+
+  if (index >= 0) {
+    return {
+      ...prev,
+      data: prev.data.map((row, i) => (i === index ? updated : row)),
+    };
+  }
+
+  if (page !== 1) {
+    return prev;
+  }
+
+  const nextData = [updated, ...prev.data].slice(0, EXECUTIONS_PAGE_SIZE);
+  const nextMeta = prev.meta
+    ? { ...prev.meta, total: prev.meta.total + 1 }
+    : prev.meta;
+
+  return {
+    ...prev,
+    data: nextData,
+    meta: nextMeta,
+  };
+}
+
 export function useAutomationExecutions(
   automationId: number | null,
   status?: AutomationExecutionStatus,
@@ -106,32 +157,50 @@ export function useAutomationExecutions(
 
   const applyPusherExecution = useCallback(
     (payload: ExecutionTerminalPusherPayload) => {
-      if (automationId != null && payload.automationId !== automationId) {
+      if (automationId == null || payload.automationId !== automationId) {
         return;
       }
 
-      patchData((prev) => {
-        const index = prev.findIndex((row) => row.id === payload.executionId);
-        const updated = mapPusherPayloadToExecution(
-          payload,
-          index >= 0 ? prev[index] : undefined,
+      const executionsRoot = automationQueryKeys.executionsRoot(automationId);
+
+      void queryClient.cancelQueries({ queryKey: executionsRoot });
+
+      const cachedQueries = queryClient
+        .getQueryCache()
+        .findAll({ queryKey: executionsRoot });
+
+      if (cachedQueries.length === 0) {
+        void queryClient.invalidateQueries({ queryKey: executionsRoot });
+        return;
+      }
+
+      for (const query of cachedQueries) {
+        const [, , , cachedStatus, cachedPage] = query.queryKey;
+        const pageNumber =
+          typeof cachedPage === "number" ? cachedPage : page;
+        const filterStatus =
+          cachedStatus === "all" || cachedStatus == null
+            ? undefined
+            : (cachedStatus as AutomationExecutionStatus);
+
+        queryClient.setQueryData<PaginatedExecutionsResponse>(
+          query.queryKey,
+          (prev) =>
+            patchExecutionsPageFromPusher(
+              prev,
+              payload,
+              filterStatus,
+              pageNumber,
+            ),
         );
+      }
 
-        if (index >= 0) {
-          return prev.map((row, i) => (i === index ? updated : row));
-        }
-
-        if (page !== 1) {
-          return prev;
-        }
-
-        patchMeta((currentMeta) =>
-          currentMeta ? { ...currentMeta, total: currentMeta.total + 1 } : currentMeta,
-        );
-        return [updated, ...prev].slice(0, EXECUTIONS_PAGE_SIZE);
+      void queryClient.invalidateQueries({
+        queryKey: executionsRoot,
+        refetchType: "active",
       });
     },
-    [automationId, page, patchData, patchMeta],
+    [automationId, page, queryClient],
   );
 
   const deleteExecution = useCallback(

@@ -143,11 +143,18 @@ export async function mirrorFunnelTemplatePagesToFunnelId(
   await saveFunnelTemplatePagesAsync(funnelKey, pages);
 }
 
+function readInitialTemplatePages(campaignId: string): TemplatePagesState {
+  if (!campaignId) return INITIAL_TEMPLATE_PAGES;
+  return loadFromLocalStorage(campaignId) ?? INITIAL_TEMPLATE_PAGES;
+}
+
 export function useFunnelTemplatePagesFromStorage(campaignId: string) {
-  const [pages, setPages] = useState<TemplatePagesState>(
-    INITIAL_TEMPLATE_PAGES,
+  const [pages, setPages] = useState<TemplatePagesState>(() =>
+    readInitialTemplatePages(campaignId),
   );
-  const [isLoading, setIsLoading] = useState(() => Boolean(campaignId));
+  const [isLoading, setIsLoading] = useState(
+    () => Boolean(campaignId) && loadFromLocalStorage(campaignId) == null,
+  );
 
   const reload = useCallback(async (withLoading = false) => {
     if (!campaignId) {

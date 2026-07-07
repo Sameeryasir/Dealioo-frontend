@@ -192,21 +192,103 @@ function coerceRestaurant(value: unknown): AdminRestaurant | null {
   };
 }
 
-export async function fetchMyRestaurants(): Promise<AdminRestaurant[]> {
+export const MY_RESTAURANTS_PAGE_SIZE = 6;
+
+export type PaginatedMyRestaurantsResponse = {
+  data: AdminRestaurant[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export async function fetchMyRestaurants(
+  options: { page?: number; limit?: number; search?: string } = {},
+): Promise<PaginatedMyRestaurantsResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
 
+  const params = new URLSearchParams({
+    page: String(options.page ?? 1),
+    limit: String(options.limit ?? MY_RESTAURANTS_PAGE_SIZE),
+  });
+  const search = options.search?.trim();
+  if (search) {
+    params.set("search", search);
+  }
+
   try {
-    const response = await authAxios.get<unknown>("/restaurant/all");
-    const data = response.data;
-    if (Array.isArray(data)) {
-      return data
+    const response = await authAxios.get<unknown>(
+      `/restaurant/all?${params.toString()}`,
+    );
+    const payload = response.data;
+
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const record = payload as Record<string, unknown>;
+      const rawItems = Array.isArray(record.data) ? record.data : [];
+      const rawMeta =
+        record.meta && typeof record.meta === "object"
+          ? (record.meta as Record<string, unknown>)
+          : null;
+
+      const data = rawItems
         .map((item) => coerceRestaurant(item))
         .filter((r): r is AdminRestaurant => r != null);
+
+      const page =
+        typeof rawMeta?.page === "number" && Number.isFinite(rawMeta.page)
+          ? rawMeta.page
+          : (options.page ?? 1);
+      const limit =
+        typeof rawMeta?.limit === "number" && Number.isFinite(rawMeta.limit)
+          ? rawMeta.limit
+          : (options.limit ?? MY_RESTAURANTS_PAGE_SIZE);
+      const total =
+        typeof rawMeta?.total === "number" && Number.isFinite(rawMeta.total)
+          ? rawMeta.total
+          : data.length;
+      const totalPages =
+        typeof rawMeta?.totalPages === "number" &&
+        Number.isFinite(rawMeta.totalPages)
+          ? rawMeta.totalPages
+          : total === 0
+            ? 0
+            : Math.ceil(total / limit);
+
+      return {
+        data,
+        meta: { page, limit, total, totalPages },
+      };
     }
-    const one = coerceRestaurant(data);
-    return one ? [one] : [];
+
+    if (Array.isArray(payload)) {
+      const data = payload
+        .map((item) => coerceRestaurant(item))
+        .filter((r): r is AdminRestaurant => r != null);
+      return {
+        data,
+        meta: {
+          page: 1,
+          limit: data.length || MY_RESTAURANTS_PAGE_SIZE,
+          total: data.length,
+          totalPages: data.length === 0 ? 0 : 1,
+        },
+      };
+    }
+
+    const one = coerceRestaurant(payload);
+    return {
+      data: one ? [one] : [],
+      meta: {
+        page: 1,
+        limit: MY_RESTAURANTS_PAGE_SIZE,
+        total: one ? 1 : 0,
+        totalPages: one ? 1 : 0,
+      },
+    };
   } catch (error) {
     console.error("Fetch my restaurant error:", error);
     if (axios.isAxiosError(error)) {

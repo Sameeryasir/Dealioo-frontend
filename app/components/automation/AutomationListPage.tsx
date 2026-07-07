@@ -3,7 +3,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  Building2,
   ChevronRight,
   CircleDot,
   Clock,
@@ -19,7 +18,6 @@ import {
   Send,
   Tag,
   UserPlus,
-  Users,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -55,15 +53,18 @@ import type {
 import {
   createAutomation,
   deleteAutomation,
+  getAutomationById,
   mapAutomationToListItem,
 } from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
 import { useAutomationsQuery } from "@/app/hooks/use-automations-query";
+import { getAutomationTemplateById } from "@/app/components/automation/automation-templates";
 import {
   buildCreateAutomationBody,
   validateAutomationCreateContext,
 } from "@/app/services/automation/automation-create-context";
+import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
 
 function truncateDescription(description: string, maxLength = 40): string {
   const text = description.trim();
@@ -198,8 +199,7 @@ export function AutomationListPage({
       if (!q) return true;
       return (
         row.name.toLowerCase().includes(q) ||
-        row.trigger.toLowerCase().includes(q) ||
-        row.restaurant.toLowerCase().includes(q)
+        row.trigger.toLowerCase().includes(q)
       );
     });
   }, [items, query, filter]);
@@ -310,19 +310,9 @@ export function AutomationListPage({
               iconClassName="text-emerald-600"
             />
             <TableColumnHeader
-              icon={Building2}
-              label="Restaurant"
-              iconClassName="text-blue-600"
-            />
-            <TableColumnHeader
               icon={Clock}
               label="Last updated"
               iconClassName="text-orange-600"
-            />
-            <TableColumnHeader
-              icon={Users}
-              label="Customers"
-              iconClassName="text-indigo-600"
             />
             <span aria-hidden />
           </div>
@@ -381,10 +371,17 @@ export function AutomationListPage({
         onClose={() => {
           if (!creating) setModalOpen(false);
         }}
-        onCreate={async ({ name, description, trigger, purpose }) => {
+        onCreate={async ({ name, description, trigger, purpose, templateId }) => {
           const context = validateAutomationCreateContext(createContextInput);
           if (!context.ok) {
             toast.error(context.message);
+            return;
+          }
+          const template = templateId
+            ? getAutomationTemplateById(templateId)
+            : undefined;
+          if (templateId && !template) {
+            toast.error("Could not find that automation template.");
             return;
           }
           setCreating(true);
@@ -398,6 +395,13 @@ export function AutomationListPage({
                 ids: context.ids,
               }),
             );
+            if (template) {
+              await applyAutomationTemplate(created.id, template);
+              const withNodes = await getAutomationById(created.id);
+              syncAutomationQueryCache(queryClient, withNodes);
+            } else {
+              syncAutomationQueryCache(queryClient, created);
+            }
             const next = mapAutomationToListItem(created);
             if (restaurantId != null) {
               queryClient.setQueryData<AutomationListItem[]>(
@@ -405,9 +409,12 @@ export function AutomationListPage({
                 (prev) => [next, ...(prev ?? [])],
               );
             }
-            syncAutomationQueryCache(queryClient, created);
             setModalOpen(false);
-            toast.success("Automation created.");
+            toast.success(
+              template
+                ? `"${template.name}" template applied.`
+                : "Automation created.",
+            );
             const builderId = String(created.id);
             onOpenBuilder?.(builderId);
           } catch (err) {
@@ -454,7 +461,7 @@ export function AutomationListPage({
 }
 
 const TABLE_GRID =
-  "grid grid-cols-[minmax(0,1.4fr)_0.7fr_0.6fr_0.9fr_0.8fr_0.7fr_2.5rem] gap-4";
+  "grid grid-cols-[minmax(0,1.4fr)_0.7fr_0.6fr_0.8fr_2.5rem] gap-4";
 
 function AutomationListSkeleton() {
   return (
@@ -463,7 +470,7 @@ function AutomationListSkeleton() {
         <div
           className={`${TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5`}
         >
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} funnel className="h-3 w-16" />
           ))}
           <Skeleton funnel className="h-3 w-3" />
@@ -479,9 +486,7 @@ function AutomationListSkeleton() {
             </div>
             <Skeleton funnel className="h-4 w-14" />
             <Skeleton funnel className="h-6 w-16 rounded-full" />
-            <Skeleton funnel className="h-4 w-20" />
             <Skeleton funnel className="h-4 w-16" />
-            <Skeleton funnel className="h-4 w-8" />
             <Skeleton funnel className="size-4 rounded-full" />
           </div>
         ))}
@@ -637,11 +642,7 @@ function AutomationTableRow({
             {row.status}
           </StatusPill>
         </span>
-        <span className="truncate text-zinc-600">{row.restaurant}</span>
         <span className="text-zinc-500">{row.lastUpdated}</span>
-        <span className="font-semibold tabular-nums text-zinc-900">
-          {row.customersEntered}
-        </span>
       </Link>
       <AutomationRowMenu
         href={href}
@@ -716,24 +717,10 @@ function AutomationCard({
           />
         </div>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <dt className="inline-flex items-center gap-1.5 font-medium text-indigo-700">
-            <Users className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
-            Customers
-          </dt>
-          <dd className="mt-0.5 font-semibold text-zinc-900">
-            {row.customersEntered}
-          </dd>
-        </div>
-        <div>
-          <dt className="inline-flex items-center gap-1.5 font-medium text-orange-700">
-            <Clock className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
-            Updated
-          </dt>
-          <dd className="mt-0.5 font-medium text-zinc-700">{row.lastUpdated}</dd>
-        </div>
-      </dl>
+      <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+        <Clock className="size-3.5 text-orange-600" aria-hidden strokeWidth={ICON_STROKE} />
+        Updated {row.lastUpdated}
+      </p>
       <Link
         href={href}
         onClick={() => onOpenBuilder?.(row.id)}

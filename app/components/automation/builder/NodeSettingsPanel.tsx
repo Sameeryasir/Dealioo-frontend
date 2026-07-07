@@ -1,5 +1,4 @@
 "use client";
-
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarClock,
@@ -8,8 +7,25 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
+import { toast } from "sonner";
+import {
+  findPrepaidBundledEmailActionIndex,
+  isPrepaidBundledActionsNode,
+  isPrepaidFirstEmailNode,
+  mergePrepaidBundledEmailAction,
+  PREPAID_FIRST_EMAIL_DEFAULTS,
+} from "@/app/components/automation/builder/bundled-actions";
 import { SettingsSelectDropdown } from "@/app/components/automation/builder/SettingsSelectDropdown";
+import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
+import { isReturnOfferEmailNode } from "@/app/components/automation/builder/workflow-node-display";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
 import {
   blockSectionLabel,
@@ -19,9 +35,9 @@ import { automationEase } from "@/app/lib/motion";
 import type { WorkflowNode } from "@/app/components/automation/types";
 
 const EMAIL_TEMPLATES = [
+  "Payment reminder",
+  "QR pass guide",
   "Abandoned checkout reminder",
-  "Welcome series #1",
-  "Review request",
 ];
 
 const CONDITION_TYPES = [
@@ -30,92 +46,22 @@ const CONDITION_TYPES = [
   "Tag equals VIP",
 ];
 
+import {
+  CRON_DAYS,
+  CRON_INTERVAL_MIN,
+  clampCronInterval,
+  configCronDay,
+  configCronFrequency,
+  configCronIntervalUnit,
+  configCronIntervalValue,
+  cronIntervalUnitLabel,
+  formatCronScheduleSummary,
+  type CronDayOfWeek,
+  type CronFrequency,
+  type CronIntervalUnit,
+} from "@/app/components/automation/builder/cron-schedule-display";
+
 type WaitUnit = "minutes" | "hours" | "days";
-type CronIntervalUnit = WaitUnit;
-type CronFrequency = "daily" | "weekly" | "interval";
-const CRON_INTERVAL_MIN = 1;
-type CronDayOfWeek =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
-
-const CRON_DAYS: { id: CronDayOfWeek; label: string }[] = [
-  { id: "monday", label: "Mon" },
-  { id: "tuesday", label: "Tue" },
-  { id: "wednesday", label: "Wed" },
-  { id: "thursday", label: "Thu" },
-  { id: "friday", label: "Fri" },
-  { id: "saturday", label: "Sat" },
-  { id: "sunday", label: "Sun" },
-];
-
-function configCronFrequency(config: Record<string, unknown>): CronFrequency {
-  if (config.frequency === "weekly") return "weekly";
-  if (config.frequency === "interval") return "interval";
-  return "daily";
-}
-
-function configCronIntervalUnit(config: Record<string, unknown>): CronIntervalUnit {
-  const value = config.unit;
-  if (value === "hours" || value === "days" || value === "minutes") return value;
-  return "minutes";
-}
-
-function configCronIntervalValue(config: Record<string, unknown>): number {
-  const fromInterval = configNumber(config, "interval", 0);
-  if (fromInterval >= CRON_INTERVAL_MIN) {
-    return Math.max(CRON_INTERVAL_MIN, Math.floor(fromInterval));
-  }
-  const legacyMinutes = configNumber(config, "intervalMinutes", 5);
-  return Math.max(CRON_INTERVAL_MIN, Math.floor(legacyMinutes));
-}
-
-function clampCronInterval(value: number): number {
-  if (!Number.isFinite(value)) return CRON_INTERVAL_MIN;
-  return Math.max(CRON_INTERVAL_MIN, Math.floor(value));
-}
-
-function cronIntervalUnitLabel(value: number, unit: CronIntervalUnit): string {
-  if (unit === "minutes") return value === 1 ? "minute" : "minutes";
-  if (unit === "hours") return value === 1 ? "hour" : "hours";
-  return value === 1 ? "day" : "days";
-}
-
-function configCronDay(config: Record<string, unknown>): CronDayOfWeek {
-  const value = config.dayOfWeek;
-  const match = CRON_DAYS.find((d) => d.id === value);
-  return match?.id ?? "monday";
-}
-
-function formatCronTime12h(time24: string): string {
-  const [hStr, mStr] = time24.split(":");
-  const h = Number.parseInt(hStr ?? "9", 10);
-  const m = Number.parseInt(mStr ?? "0", 10);
-  if (Number.isNaN(h)) return time24;
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
-}
-
-export function formatCronScheduleSummary(config: Record<string, unknown>): string {
-  const frequency = configCronFrequency(config);
-  if (frequency === "interval") {
-    const value = configCronIntervalValue(config);
-    const unit = configCronIntervalUnit(config);
-    return `Every ${value} ${cronIntervalUnitLabel(value, unit)}`;
-  }
-  const time = configString(config, "time", "09:00");
-  const timeLabel = formatCronTime12h(time);
-  if (frequency === "weekly") {
-    const day = CRON_DAYS.find((d) => d.id === configCronDay(config))?.label ?? "Mon";
-    return `Every ${day} at ${timeLabel}`;
-  }
-  return `Every day at ${timeLabel}`;
-}
 
 function configString(
   config: Record<string, unknown>,
@@ -133,6 +79,12 @@ function configNumber(
 ): number {
   const value = config[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function initialConditionValue(config: Record<string, unknown>): string {
+  const value = configString(config, "value", "Status not paid");
+  if (value === "true") return "Status not paid";
+  return value.replace(/^NOT\s+/i, "").trim() || value || "Status not paid";
 }
 
 function configUnit(config: Record<string, unknown>): WaitUnit {
@@ -165,6 +117,7 @@ function buildConfigForNode(
     conditionType: string;
     conditionValue: string;
     message: string;
+    ctaLabel: string;
     whatsappTemplate: string;
     cronFrequency: CronFrequency;
     cronTime: string;
@@ -193,12 +146,23 @@ function buildConfigForNode(
     case "delay":
       return { delay: values.delay, unit: values.unit };
     case "send_email":
-      return { template: values.template, subject: values.subject };
-    case "condition":
+      return {
+        template: values.template,
+        subject: values.subject,
+        message: values.message.trim(),
+        ctaLabel: values.ctaLabel.trim() || "Complete payment",
+      };
+    case "condition": {
+      const label =
+        values.conditionValue.replace(/^NOT\s+/i, "").trim() || "Status not paid";
       return {
         conditionType: values.conditionType,
-        value: values.conditionValue,
+        value: values.conditionValue.startsWith("NOT")
+          ? values.conditionValue
+          : `NOT ${label}`,
+        conditions: [{ negated: true, value: label }],
       };
+    }
     case "send_sms":
       return { message: values.message.trim() };
     case "send_whatsapp":
@@ -210,14 +174,26 @@ function buildConfigForNode(
 
 export function NodeSettingsPanel({
   node,
+  nodes = [],
+  automationPurpose,
   onSave,
   onDelete,
+  onSettingsDirtyChange,
+  settingsSaveRef,
+  readOnly = false,
+  onEditBlocked,
   saving = false,
   deleting = false,
 }: {
   node: WorkflowNode | null;
+  nodes?: WorkflowNode[];
+  automationPurpose?: string | null;
   onSave?: (config: Record<string, unknown>) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  onSettingsDirtyChange?: (dirty: boolean) => void;
+  settingsSaveRef?: MutableRefObject<(() => Promise<boolean>) | null>;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   saving?: boolean;
   deleting?: boolean;
 }) {
@@ -267,11 +243,17 @@ export function NodeSettingsPanel({
           >
             <NodeSettingsForm
               node={node}
+              nodes={nodes}
+              automationPurpose={automationPurpose}
               blockSection={block.section}
               tone={tone}
               icon={Icon}
               onSave={onSave}
               onDelete={onDelete}
+              onSettingsDirtyChange={onSettingsDirtyChange}
+              settingsSaveRef={settingsSaveRef}
+              readOnly={readOnly}
+              onEditBlocked={onEditBlocked}
               saving={saving}
               deleting={deleting}
             />
@@ -284,25 +266,59 @@ export function NodeSettingsPanel({
 
 function NodeSettingsForm({
   node,
+  nodes,
+  automationPurpose,
   blockSection,
   tone,
   icon: Icon,
   onSave,
   onDelete,
+  onSettingsDirtyChange,
+  settingsSaveRef,
+  readOnly = false,
+  onEditBlocked,
   saving,
   deleting,
 }: {
   node: WorkflowNode;
+  nodes: WorkflowNode[];
+  automationPurpose?: string | null;
   blockSection: string;
   tone: ReturnType<typeof nodeToneClass> | null;
   icon?: LucideIcon;
   onSave?: (config: Record<string, unknown>) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  onSettingsDirtyChange?: (dirty: boolean) => void;
+  settingsSaveRef?: MutableRefObject<(() => Promise<boolean>) | null>;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   saving: boolean;
   deleting: boolean;
 }) {
   const config = node.config;
-  const editable = hasEditableSettings(node.kind);
+  const prepaidBundled = isPrepaidFirstEmailNode(node);
+  const returnOfferEmail = isReturnOfferEmailNode(node);
+  const bundledEmailIndex = prepaidBundled
+    ? findPrepaidBundledEmailActionIndex(node)
+    : -1;
+  const bundledEmailConfig =
+    bundledEmailIndex >= 0 &&
+    Array.isArray(config.actions) &&
+    config.actions[bundledEmailIndex] &&
+    typeof config.actions[bundledEmailIndex] === "object"
+      ? (config.actions[bundledEmailIndex] as Record<string, unknown>)
+      : {};
+  const editable = hasEditableSettings(node.kind) || prepaidBundled || returnOfferEmail;
+  const blockEdit = useCallback(() => {
+    if (readOnly) {
+      onEditBlocked?.();
+      return true;
+    }
+    return false;
+  }, [onEditBlocked, readOnly]);
+  const emailFieldConfig = isPrepaidBundledActionsNode(node)
+    ? bundledEmailConfig
+    : config;
 
   const [delay, setDelay] = useState(() =>
     configNumber(config, "delay", 30),
@@ -312,19 +328,40 @@ function NodeSettingsForm({
     configString(config, "template", EMAIL_TEMPLATES[0]),
   );
   const [subject, setSubject] = useState(() =>
-    configString(config, "subject", "Complete your order, offer inside"),
+    configString(
+      emailFieldConfig,
+      "subject",
+      prepaidBundled
+        ? PREPAID_FIRST_EMAIL_DEFAULTS.subject
+        : node.kind === "send_email" || returnOfferEmail
+          ? "Complete your payment — your offer is waiting"
+          : "Complete your order — offer inside",
+    ),
   );
   const [conditionType, setConditionType] = useState(() =>
     configString(config, "conditionType", CONDITION_TYPES[0]),
   );
   const [conditionValue, setConditionValue] = useState(() =>
-    configString(config, "value", "true"),
+    initialConditionValue(config),
   );
   const [message, setMessage] = useState(() =>
     configString(
-      config,
+      emailFieldConfig,
       "message",
-      "Hi! Your table offer is waiting, reply STOP to opt out.",
+      prepaidBundled
+        ? PREPAID_FIRST_EMAIL_DEFAULTS.message
+        : node.kind === "send_email" || returnOfferEmail
+          ? returnOfferEmail
+            ? "Hi [First Name] — we'd love to see you again! Your return visit offer is ready.\n\nValid for 30 days after send."
+            : "Hi — thank you for signing up! Your offer is almost ready. Please complete your payment to unlock it. If you already paid, you can ignore this email."
+          : "Hi! Your table offer is waiting — reply STOP to opt out.",
+    ),
+  );
+  const [ctaLabel, setCtaLabel] = useState(() =>
+    configString(
+      emailFieldConfig,
+      "ctaLabel",
+      prepaidBundled ? PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel : "Complete payment",
     ),
   );
   const [whatsappTemplate, setWhatsappTemplate] = useState(() =>
@@ -355,19 +392,55 @@ function NodeSettingsForm({
     } catch {
       saved = {};
     }
+    const prepaid = isPrepaidFirstEmailNode(node);
+    const returnOffer = isReturnOfferEmailNode(node);
+    const bundledIndex = isPrepaidBundledActionsNode(node)
+      ? findPrepaidBundledEmailActionIndex(node)
+      : -1;
+    const bundledConfig =
+      bundledIndex >= 0 &&
+      Array.isArray(saved.actions) &&
+      saved.actions[bundledIndex] &&
+      typeof saved.actions[bundledIndex] === "object"
+        ? (saved.actions[bundledIndex] as Record<string, unknown>)
+        : {};
+    const emailConfig = isPrepaidBundledActionsNode(node) ? bundledConfig : saved;
     setDelay(configNumber(saved, "delay", 30));
     setUnit(configUnit(saved));
     setTemplate(configString(saved, "template", EMAIL_TEMPLATES[0]));
     setSubject(
-      configString(saved, "subject", "Complete your order, offer inside"),
+      configString(
+        emailConfig,
+        "subject",
+        prepaid
+          ? PREPAID_FIRST_EMAIL_DEFAULTS.subject
+          : node.kind === "send_email" || returnOffer
+            ? returnOffer
+              ? "Your return visit offer is ready"
+              : "Complete your payment — your offer is waiting"
+            : "Complete your order — offer inside",
+      ),
     );
     setConditionType(configString(saved, "conditionType", CONDITION_TYPES[0]));
-    setConditionValue(configString(saved, "value", "true"));
+    setConditionValue(initialConditionValue(saved));
     setMessage(
       configString(
-        saved,
+        emailConfig,
         "message",
-        "Hi! Your table offer is waiting, reply STOP to opt out.",
+        prepaid
+          ? PREPAID_FIRST_EMAIL_DEFAULTS.message
+          : node.kind === "send_email" || returnOffer
+            ? returnOffer
+              ? "Hi [First Name] — we'd love to see you again! Your return visit offer is ready.\n\nValid for 30 days after send."
+              : "Hi — thank you for signing up! Your offer is almost ready. Please complete your payment to unlock it. If you already paid, you can ignore this email."
+            : "Hi! Your table offer is waiting — reply STOP to opt out.",
+      ),
+    );
+    setCtaLabel(
+      configString(
+        emailConfig,
+        "ctaLabel",
+        prepaid ? PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel : "Complete payment",
       ),
     );
     setWhatsappTemplate(configString(saved, "template", "order_reminder"));
@@ -386,6 +459,201 @@ function NodeSettingsForm({
     unit: cronIntervalUnit,
   });
 
+  const pendingFormValues = {
+    delay,
+    unit,
+    template,
+    subject,
+    conditionType,
+    conditionValue,
+    message,
+    ctaLabel,
+    whatsappTemplate,
+    cronFrequency,
+    cronTime,
+    cronDayOfWeek,
+    cronInterval,
+    cronIntervalUnit,
+  };
+
+  const buildNextConfig = useCallback((): Record<string, unknown> => {
+    if (isPrepaidBundledActionsNode(node)) {
+      return mergePrepaidBundledEmailAction(node, {
+        subject,
+        message: message.trim(),
+        ctaLabel: ctaLabel.trim() || "View my pass",
+        template,
+      });
+    }
+    if (isPrepaidFirstEmailNode(node) && node.kind === "send_email") {
+      return {
+        ...node.config,
+        subject,
+        message: message.trim(),
+        ctaLabel: ctaLabel.trim() || PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel,
+        template,
+        headline:
+          configString(node.config, "headline", "") ||
+          PREPAID_FIRST_EMAIL_DEFAULTS.headline,
+      };
+    }
+    if (returnOfferEmail) {
+      return {
+        ...node.config,
+        subject,
+        message: message.trim(),
+        ctaLabel: ctaLabel.trim(),
+        template,
+        headline:
+          configString(node.config, "headline", "") ||
+          configString(node.config, "rewardName", "Return visit offer"),
+      };
+    }
+    return buildConfigForNode(node.kind, {
+      delay,
+      unit,
+      template,
+      subject,
+      conditionType,
+      conditionValue,
+      message,
+      ctaLabel,
+      whatsappTemplate,
+      cronFrequency,
+      cronTime,
+      cronDayOfWeek,
+      cronInterval,
+      cronIntervalUnit,
+    });
+  }, [
+    conditionType,
+    conditionValue,
+    cronDayOfWeek,
+    cronFrequency,
+    cronInterval,
+    cronIntervalUnit,
+    cronTime,
+    ctaLabel,
+    delay,
+    message,
+    node,
+    prepaidBundled,
+    returnOfferEmail,
+    subject,
+    template,
+    unit,
+    whatsappTemplate,
+  ]);
+
+  const isSettingsDirty = useMemo(() => {
+    if (!editable || readOnly) {
+      return false;
+    }
+    try {
+      return (
+        JSON.stringify(buildNextConfig()) !==
+        JSON.stringify(node.config ?? {})
+      );
+    } catch {
+      return false;
+    }
+  }, [buildNextConfig, editable, node.config, readOnly]);
+
+  useEffect(() => {
+    onSettingsDirtyChange?.(isSettingsDirty);
+  }, [isSettingsDirty, onSettingsDirtyChange]);
+
+  const submitSave = useCallback(async (): Promise<boolean> => {
+    if (blockEdit()) {
+      return false;
+    }
+    if (!onSave || !isSettingsDirty) {
+      return true;
+    }
+
+    const nextConfig = buildNextConfig();
+    const validation = validatePaymentReminderSchedule(nodes, automationPurpose, {
+      nodeId: node.id,
+      config: nextConfig,
+    });
+    if (!validation.ok) {
+      toast.error(validation.message);
+      return false;
+    }
+
+    try {
+      await onSave(nextConfig);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [
+    automationPurpose,
+    blockEdit,
+    buildNextConfig,
+    isSettingsDirty,
+    node.id,
+    nodes,
+    onSave,
+  ]);
+
+  useEffect(() => {
+    if (!settingsSaveRef) {
+      return;
+    }
+    settingsSaveRef.current = submitSave;
+    return () => {
+      settingsSaveRef.current = null;
+    };
+  }, [settingsSaveRef, submitSave]);
+
+  const scheduleWarning = useMemo(() => {
+    if (
+      node.kind !== "cron_trigger" &&
+      node.kind !== "wait" &&
+      node.kind !== "delay"
+    ) {
+      return null;
+    }
+
+    const nextConfig = buildConfigForNode(node.kind, {
+      delay,
+      unit,
+      template,
+      subject,
+      conditionType,
+      conditionValue,
+      message,
+      ctaLabel,
+      whatsappTemplate,
+      cronFrequency,
+      cronTime,
+      cronDayOfWeek,
+      cronInterval,
+      cronIntervalUnit,
+    });
+    const validation = validatePaymentReminderSchedule(nodes, automationPurpose, {
+      nodeId: node.id,
+      config: nextConfig,
+    });
+    return validation.ok ? null : validation.message;
+  }, [
+    automationPurpose,
+    ctaLabel,
+    cronDayOfWeek,
+    cronFrequency,
+    cronInterval,
+    cronIntervalUnit,
+    cronTime,
+    delay,
+    message,
+    node.id,
+    node.kind,
+    nodes,
+    subject,
+    unit,
+  ]);
+
   return (
     <motion.form
       initial={{ opacity: 0, x: 12 }}
@@ -395,24 +663,7 @@ function NodeSettingsForm({
       className="flex min-h-0 flex-1 flex-col"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!onSave) return;
-        void onSave(
-          buildConfigForNode(node.kind, {
-            delay,
-            unit,
-            template,
-            subject,
-            conditionType,
-            conditionValue,
-            message,
-            whatsappTemplate,
-            cronFrequency,
-            cronTime,
-            cronDayOfWeek,
-            cronInterval,
-            cronIntervalUnit,
-          }),
-        );
+        void submitSave();
       }}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 [scrollbar-gutter:stable]">
@@ -440,6 +691,18 @@ function NodeSettingsForm({
       </motion.div>
 
       <div className="space-y-8">
+      {readOnly ? (
+        <SummaryBanner
+          summary="This flow is active. Deactivate it before editing email copy or step settings."
+          tone="blue"
+        />
+      ) : null}
+      {isSettingsDirty ? (
+        <SummaryBanner
+          summary="Not saved yet — guests still get the old email text until you click Save changes below."
+          tone="orange"
+        />
+      ) : null}
       {node.kind === "cron_trigger" && (
         <CronSettings
           frequency={cronFrequency}
@@ -448,6 +711,9 @@ function NodeSettingsForm({
           interval={cronInterval}
           intervalUnit={cronIntervalUnit}
           summary={cronPreview}
+          scheduleWarning={scheduleWarning}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
           onFrequencyChange={setCronFrequency}
           onTimeChange={setCronTime}
           onDayOfWeekChange={setCronDayOfWeek}
@@ -459,32 +725,50 @@ function NodeSettingsForm({
         <WaitSettings
           delay={delay}
           unit={unit}
+          scheduleWarning={scheduleWarning}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
           onDelayChange={setDelay}
           onUnitChange={setUnit}
         />
       )}
-      {node.kind === "send_email" && (
+      {(node.kind === "send_email" || prepaidBundled || returnOfferEmail) && (
         <EmailSettings
           template={template}
           subject={subject}
+          message={message}
+          ctaLabel={ctaLabel}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
           onTemplateChange={setTemplate}
           onSubjectChange={setSubject}
+          onMessageChange={setMessage}
+          onCtaLabelChange={setCtaLabel}
         />
       )}
       {node.kind === "condition" && (
         <ConditionSettings
           conditionType={conditionType}
           value={conditionValue}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
           onConditionTypeChange={setConditionType}
           onValueChange={setConditionValue}
         />
       )}
       {node.kind === "send_sms" && (
-        <SmsSettings message={message} onMessageChange={setMessage} />
+        <SmsSettings
+          message={message}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
+          onMessageChange={setMessage}
+        />
       )}
       {node.kind === "send_whatsapp" && (
         <WhatsappSettings
           template={whatsappTemplate}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
           onTemplateChange={setWhatsappTemplate}
         />
       )}
@@ -503,7 +787,13 @@ function NodeSettingsForm({
           {editable && onSave ? (
             <button
               type="submit"
-              disabled={saving || deleting}
+              disabled={saving || deleting || Boolean(scheduleWarning)}
+              onClick={(e) => {
+                if (readOnly) {
+                  e.preventDefault();
+                  onEditBlocked?.();
+                }
+              }}
               className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save changes"}
@@ -513,7 +803,13 @@ function NodeSettingsForm({
             <button
               type="button"
               disabled={deleting || saving}
-              onClick={() => void onDelete()}
+              onClick={() => {
+                if (readOnly) {
+                  onEditBlocked?.();
+                  return;
+                }
+                void onDelete();
+              }}
               className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >
               <Trash2 className="size-4" aria-hidden />
@@ -575,6 +871,13 @@ function textareaClass() {
   return "w-full resize-none rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-2 focus:ring-zinc-900/5";
 }
 
+function lockedInputProps(readOnly: boolean, onEditBlocked?: () => void) {
+  return {
+    readOnly,
+    onFocus: readOnly ? () => onEditBlocked?.() : undefined,
+  };
+}
+
 function SegmentGroup({ children }: { children: ReactNode }) {
   return (
     <div className="grid grid-cols-3 gap-2 rounded-2xl bg-zinc-100/70 p-1.5">
@@ -586,16 +889,26 @@ function SegmentGroup({ children }: { children: ReactNode }) {
 function SegmentButton({
   active,
   onClick,
+  locked = false,
+  onLockedEdit,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  locked?: boolean;
+  onLockedEdit?: () => void;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        if (locked) {
+          onLockedEdit?.();
+          return;
+        }
+        onClick();
+      }}
       className={`cursor-pointer rounded-xl px-2 py-2.5 text-xs font-semibold transition ${
         active
           ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/80"
@@ -638,6 +951,9 @@ function CronSettings({
   interval,
   intervalUnit,
   summary,
+  scheduleWarning,
+  readOnly = false,
+  onEditBlocked,
   onFrequencyChange,
   onTimeChange,
   onDayOfWeekChange,
@@ -650,6 +966,9 @@ function CronSettings({
   interval: number;
   intervalUnit: CronIntervalUnit;
   summary: string;
+  scheduleWarning?: string | null;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onFrequencyChange: (value: CronFrequency) => void;
   onTimeChange: (value: string) => void;
   onDayOfWeekChange: (value: CronDayOfWeek) => void;
@@ -671,7 +990,10 @@ function CronSettings({
   return (
     <SettingsSection title="Schedule" description="Choose when this automation should run.">
     <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <SummaryBanner summary={summary} tone="emerald" />
+      <SummaryBanner summary={summary} tone="violet" />
+      {scheduleWarning ? (
+        <SummaryBanner summary={scheduleWarning} tone="orange" />
+      ) : null}
 
       <FormField label="How often">
         <SegmentGroup>
@@ -679,6 +1001,8 @@ function CronSettings({
             <SegmentButton
               key={item.id}
               active={frequency === item.id}
+              locked={readOnly}
+              onLockedEdit={onEditBlocked}
               onClick={() => onFrequencyChange(item.id)}
             >
               {item.label}
@@ -694,6 +1018,8 @@ function CronSettings({
             options={CRON_DAYS.map((d) => ({ value: d.id, label: d.label }))}
             onChange={(v) => onDayOfWeekChange(v as CronDayOfWeek)}
             ariaLabel="Day of week"
+            locked={readOnly}
+            onLockedEdit={onEditBlocked}
           />
         </FormField>
       ) : null}
@@ -714,6 +1040,7 @@ function CronSettings({
               onBlur={() => onIntervalChange(clampCronInterval(interval))}
               className={inputClass()}
               aria-describedby="cron-interval-hint"
+              {...lockedInputProps(readOnly, onEditBlocked)}
             />
           </FormField>
           <FormField label="Unit">
@@ -722,6 +1049,8 @@ function CronSettings({
                 <SegmentButton
                   key={item.id}
                   active={intervalUnit === item.id}
+                  locked={readOnly}
+                  onLockedEdit={onEditBlocked}
                   onClick={() => onIntervalUnitChange(item.id)}
                 >
                   {item.label}
@@ -741,6 +1070,7 @@ function CronSettings({
               value={time}
               onChange={(e) => onTimeChange(e.target.value)}
               className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
             />
             <CalendarClock
               className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
@@ -757,11 +1087,17 @@ function CronSettings({
 function WaitSettings({
   delay,
   unit,
+  scheduleWarning,
+  readOnly = false,
+  onEditBlocked,
   onDelayChange,
   onUnitChange,
 }: {
   delay: number;
   unit: WaitUnit;
+  scheduleWarning?: string | null;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onDelayChange: (value: number) => void;
   onUnitChange: (value: WaitUnit) => void;
 }) {
@@ -774,6 +1110,9 @@ function WaitSettings({
   return (
     <SettingsSection title="Timing" description="Wait before the next step runs.">
     <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {scheduleWarning ? (
+        <SummaryBanner summary={scheduleWarning} tone="orange" />
+      ) : null}
       <FormField label="Delay value">
         <input
           type="number"
@@ -781,6 +1120,7 @@ function WaitSettings({
           value={delay}
           onChange={(e) => onDelayChange(Number.parseInt(e.target.value, 10) || 1)}
           className={inputClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
         />
       </FormField>
       <FormField label="Unit">
@@ -789,6 +1129,8 @@ function WaitSettings({
             <SegmentButton
               key={item.id}
               active={unit === item.id}
+              locked={readOnly}
+              onLockedEdit={onEditBlocked}
               onClick={() => onUnitChange(item.id)}
             >
               {item.label}
@@ -804,16 +1146,31 @@ function WaitSettings({
 function EmailSettings({
   template,
   subject,
+  message,
+  ctaLabel,
+  readOnly = false,
+  onEditBlocked,
   onTemplateChange,
   onSubjectChange,
+  onMessageChange,
+  onCtaLabelChange,
 }: {
   template: string;
   subject: string;
+  message: string;
+  ctaLabel: string;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onTemplateChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
+  onMessageChange: (value: string) => void;
+  onCtaLabelChange: (value: string) => void;
 }) {
   return (
-    <SettingsSection title="Email" description="Pick the template and subject line.">
+    <SettingsSection
+      title="Email"
+      description="Subject and message are sent exactly as you write them. Click Save changes when you are done editing."
+    >
     <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <FormField label="Template">
         <SettingsSelectDropdown
@@ -821,6 +1178,8 @@ function EmailSettings({
           options={EMAIL_TEMPLATES.map((t) => ({ value: t, label: t }))}
           onChange={onTemplateChange}
           ariaLabel="Email template"
+          locked={readOnly}
+          onLockedEdit={onEditBlocked}
         />
       </FormField>
       <FormField label="Subject">
@@ -829,6 +1188,25 @@ function EmailSettings({
           value={subject}
           onChange={(e) => onSubjectChange(e.target.value)}
           className={inputClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
+        />
+      </FormField>
+      <FormField label="Message">
+        <textarea
+          rows={6}
+          value={message}
+          onChange={(e) => onMessageChange(e.target.value)}
+          className={textareaClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
+        />
+      </FormField>
+      <FormField label="Button label">
+        <input
+          type="text"
+          value={ctaLabel}
+          onChange={(e) => onCtaLabelChange(e.target.value)}
+          className={inputClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
         />
       </FormField>
     </motion.div>
@@ -839,11 +1217,15 @@ function EmailSettings({
 function ConditionSettings({
   conditionType,
   value,
+  readOnly = false,
+  onEditBlocked,
   onConditionTypeChange,
   onValueChange,
 }: {
   conditionType: string;
   value: string;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onConditionTypeChange: (value: string) => void;
   onValueChange: (value: string) => void;
 }) {
@@ -856,6 +1238,8 @@ function ConditionSettings({
           options={CONDITION_TYPES.map((t) => ({ value: t, label: t }))}
           onChange={onConditionTypeChange}
           ariaLabel="Condition type"
+          locked={readOnly}
+          onLockedEdit={onEditBlocked}
         />
       </FormField>
       <FormField label="Value">
@@ -864,6 +1248,7 @@ function ConditionSettings({
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
           className={inputClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
         />
       </FormField>
     </motion.div>
@@ -873,9 +1258,13 @@ function ConditionSettings({
 
 function SmsSettings({
   message,
+  readOnly = false,
+  onEditBlocked,
   onMessageChange,
 }: {
   message: string;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onMessageChange: (value: string) => void;
 }) {
   return (
@@ -887,6 +1276,7 @@ function SmsSettings({
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
           className={textareaClass()}
+          {...lockedInputProps(readOnly, onEditBlocked)}
         />
       </FormField>
     </motion.div>
@@ -896,9 +1286,13 @@ function SmsSettings({
 
 function WhatsappSettings({
   template,
+  readOnly = false,
+  onEditBlocked,
   onTemplateChange,
 }: {
   template: string;
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
   onTemplateChange: (value: string) => void;
 }) {
   return (
@@ -913,6 +1307,8 @@ function WhatsappSettings({
           ]}
           onChange={onTemplateChange}
           ariaLabel="WhatsApp template"
+          locked={readOnly}
+          onLockedEdit={onEditBlocked}
         />
       </FormField>
     </motion.div>

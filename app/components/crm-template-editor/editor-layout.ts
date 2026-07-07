@@ -43,7 +43,7 @@ export const editorSidebarPickerPanelClass =
   "overflow-hidden rounded-xl border border-zinc-200/90 bg-gradient-to-b from-zinc-50/40 to-white p-1.5 shadow-sm ring-1 ring-zinc-950/[0.03]";
 
 export const previewPhoneFrameClass =
-  "mx-auto w-full max-w-[min(390px,100%)] max-h-[calc(100dvh-5.5rem)] min-h-0 overflow-x-hidden overflow-y-auto rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 [scrollbar-width:thin]";
+  "@container/preview mx-auto w-full max-w-[min(390px,100%)] max-h-[calc(100dvh-5.5rem)] min-h-0 overflow-x-hidden overflow-y-auto rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 [scrollbar-width:thin]";
 
 export const funnelFullPagePreviewFrameClass =
-  "flex w-full min-h-dvh flex-col overflow-hidden sm:max-w-[min(390px,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:shadow-sm sm:ring-1 sm:ring-zinc-200/80";
+  "@container/preview flex w-full min-h-dvh flex-col overflow-hidden sm:max-w-[min(390px,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:shadow-sm sm:ring-1 sm:ring-zinc-200/80";

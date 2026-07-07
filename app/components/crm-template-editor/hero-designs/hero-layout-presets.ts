@@ -32,7 +32,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "edge",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:aspect-[3/2]",
+      "relative aspect-[4/3] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "full",
     placeholderClass: "border-b border-dashed",
@@ -59,7 +59,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "wide",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[21/9] w-full shrink-0 overflow-hidden sm:aspect-[2.35/1]",
+      "relative aspect-[21/9] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover object-center",
     fade: "full",
     placeholderClass: "border-b border-dashed",
@@ -68,7 +68,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "tall",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/5] w-full max-h-[min(72vw,22rem)] shrink-0 overflow-hidden sm:aspect-[3/4]",
+      "relative aspect-[4/5] w-full max-h-[22rem] shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "full",
     placeholderClass: "border-b border-dashed",
@@ -77,7 +77,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "edge",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:aspect-[3/2]",
+      "relative aspect-[4/3] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "none",
     placeholderClass: "border-b border-dashed",
@@ -104,7 +104,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "arch",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-b-[2.5rem] sm:aspect-[3/2] sm:rounded-b-[3rem]",
+      "relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-b-[2.5rem]",
     imageClass: "h-full w-full object-cover",
     fade: "full",
     placeholderClass: "border-b border-dashed rounded-b-[2.5rem]",
@@ -113,7 +113,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "immersive",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[3/4] w-full min-h-[12rem] max-h-[28rem] shrink-0 overflow-hidden sm:aspect-[4/5]",
+      "relative aspect-[3/4] w-full min-h-[12rem] max-h-[28rem] shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "full",
     placeholderClass: "border-b border-dashed",
@@ -131,7 +131,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "band",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[2/1] w-full shrink-0 overflow-hidden sm:aspect-[2.2/1]",
+      "relative aspect-[2/1] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "soft",
     placeholderClass: "border-b border-dashed",
@@ -140,7 +140,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "glass",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:aspect-[3/2]",
+      "relative aspect-[4/3] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
     fade: "soft",
     placeholderClass: "border-b border-dashed",

@@ -1,7 +1,6 @@
 "use client";
 
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import MakeYourOffer from "@/app/components/MakeYourOffer";
 import {
@@ -40,7 +39,6 @@ export default function CreateCampaigns({
   restaurantId,
   onComplete,
 }: CreateCampaignsProps) {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const isModal = variant === "modal";
   const nameFieldId = useId();
@@ -58,8 +56,6 @@ export default function CreateCampaigns({
     null,
   );
   const [isCompletingOffer, setIsCompletingOffer] = useState(false);
-  const [isRedirectingToExperience, setIsRedirectingToExperience] =
-    useState(false);
 
   useEffect(() => {
     if (isModal) setMounted(true);
@@ -76,7 +72,6 @@ export default function CreateCampaigns({
     setShowOfferStep(false);
     setPendingWebsiteUrl(null);
     setIsCompletingOffer(false);
-    setIsRedirectingToExperience(false);
     queueMicrotask(() => nameInputRef.current?.focus());
   }, [open, dispatch]);
 
@@ -304,25 +299,8 @@ export default function CreateCampaigns({
           offerImage: payload.imageFile,
         };
         setIsCompletingOffer(true);
-        let navigatedToExperience = false;
         try {
-          const createdId = await onComplete?.(completePayload);
-          if (
-            typeof createdId === "number" &&
-            Number.isFinite(createdId) &&
-            createdId >= 1 &&
-            restaurantId != null &&
-            restaurantId >= 1
-          ) {
-            setIsRedirectingToExperience(true);
-            setShowOfferStep(false);
-            setPendingWebsiteUrl(null);
-            router.push(
-              `/restaurant/${restaurantId}/dashboard/campaigns/${createdId}/experience`,
-            );
-            navigatedToExperience = true;
-            return;
-          }
+          await onComplete?.(completePayload);
         } catch {
           setIsCompletingOffer(false);
           return;
@@ -330,21 +308,9 @@ export default function CreateCampaigns({
         setIsCompletingOffer(false);
         setShowOfferStep(false);
         setPendingWebsiteUrl(null);
-        if (!navigatedToExperience) {
-          onOpenChange(false);
-        }
+        onOpenChange(false);
       }}
     />
-  );
-
-  const redirectingPanel = (
-    <div
-      className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-600 shadow-sm"
-      role="status"
-      aria-live="polite"
-    >
-      Opening campaign experience…
-    </div>
   );
 
   if (isModal) {
@@ -367,11 +333,7 @@ export default function CreateCampaigns({
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {isRedirectingToExperience
-            ? redirectingPanel
-            : showOfferStep
-              ? offerForm
-              : panel}
+          {showOfferStep ? offerForm : panel}
         </div>
       </div>,
       document.body,
@@ -384,11 +346,7 @@ export default function CreateCampaigns({
         showOfferStep ? "max-w-5xl mx-auto" : ""
       }`}
     >
-      {isRedirectingToExperience
-        ? redirectingPanel
-        : showOfferStep
-          ? offerForm
-          : panel}
+      {showOfferStep ? offerForm : panel}
     </div>
   );
 }

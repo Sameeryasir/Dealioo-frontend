@@ -1,13 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
+import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
@@ -32,6 +33,9 @@ import {
   getWorkflowNodeInsertIndex,
   hasCronTriggerNode,
   isCronStartingTrigger,
+  isManualRunDisabledFlow,
+  isPaymentStartingTrigger,
+  isSignupStartingTrigger,
   insertWorkflowNode,
   reorderWorkflowNodes,
 } from "@/app/components/automation/workflow-node-order";
@@ -51,6 +55,7 @@ import {
 } from "@/app/services/automation/node-api";
 import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 
 type BuilderTab = "builder" | "runs";
 
@@ -146,7 +151,10 @@ export function AutomationBuilderPage({
   const [activating, setActivating] = useState(false);
   const [automationPublished, setAutomationPublished] = useState(false);
   const [isFlowDirty, setIsFlowDirty] = useState(false);
+  const [hasUnsavedStepSettings, setHasUnsavedStepSettings] = useState(false);
+  const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [navPromptOpen, setNavPromptOpen] = useState(false);
+  const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
     null,
   );
@@ -161,6 +169,7 @@ export function AutomationBuilderPage({
 
   useEffect(() => {
     setIsFlowDirty(false);
+    setHasUnsavedStepSettings(false);
   }, [automationNumericId]);
 
   useEffect(() => {
@@ -212,13 +221,49 @@ export function AutomationBuilderPage({
 
   const automationActive = automationIsActive;
 
+  const showDeactivatePrompt = useCallback(() => {
+    setDeactivatePromptOpen(true);
+  }, []);
+
+  const guardEdit = useCallback((): boolean => {
+    if (!automationActive) {
+      return true;
+    }
+    showDeactivatePrompt();
+    return false;
+  }, [automationActive, showDeactivatePrompt]);
+
+  const closeDeactivatePrompt = useCallback(() => {
+    setDeactivatePromptOpen(false);
+  }, []);
+
   const cronStartsFlow = useMemo(
     () => isCronStartingTrigger(nodes),
     [nodes],
   );
 
+  const manualRunDisabled = useMemo(
+    () => isManualRunDisabledFlow(nodes),
+    [nodes],
+  );
+
+  const autoRunHint = useMemo(() => {
+    if (isPaymentStartingTrigger(nodes)) {
+      return "This flow runs automatically when a guest completes payment.";
+    }
+    if (isSignupStartingTrigger(nodes)) {
+      return "This flow runs automatically when guests sign up on the funnel.";
+    }
+    return "This flow runs automatically.";
+  }, [nodes]);
+
+  const hasUnsavedBuilderChanges = isFlowDirty || hasUnsavedStepSettings;
+
   const shouldBlockFlowNavigation =
-    tab === "builder" && isFlowDirty && !automationPublished;
+    tab === "builder" &&
+    hasUnsavedBuilderChanges &&
+    !automationPublished &&
+    automationActive;
 
   const applyBuilderTab = useCallback(
     (next: BuilderTab) => {
@@ -282,6 +327,7 @@ export function AutomationBuilderPage({
 
   useEffect(() => {
     if (
+      automationActive ||
       !selectedNode ||
       !isTriggerBlockKind(selectedNode.kind) ||
       selectedNode.kind === "cron_trigger"
@@ -303,6 +349,7 @@ export function AutomationBuilderPage({
     selectedNode?.id,
     selectedNode?.kind,
     selectedNode?.config?.trigger,
+    automationActive,
   ]);
 
   const syncDirtyNodesToServer = useCallback(async () => {
@@ -322,8 +369,24 @@ export function AutomationBuilderPage({
       return false;
     }
 
+    const scheduleValidation = validatePaymentReminderSchedule(
+      nodes,
+      remoteAutomation?.purpose,
+    );
+    if (!scheduleValidation.ok) {
+      toast.error(scheduleValidation.message);
+      return false;
+    }
+
     setActivating(true);
     try {
+      if (settingsSaveRef.current) {
+        const stepSaved = await settingsSaveRef.current();
+        if (!stepSaved) {
+          return false;
+        }
+      }
+
       if (isFlowDirty) {
         await syncDirtyNodesToServer();
       }
@@ -337,6 +400,7 @@ export function AutomationBuilderPage({
       setStatus("active");
       setAutomationPublished(updated.published === true);
       setIsFlowDirty(false);
+      setHasUnsavedStepSettings(false);
       toast.success("Automation activated.");
       return true;
     } catch (err) {
@@ -348,7 +412,9 @@ export function AutomationBuilderPage({
   }, [
     automationNumericId,
     isFlowDirty,
+    nodes,
     queryClient,
+    remoteAutomation?.purpose,
     syncDirtyNodesToServer,
   ]);
 
@@ -368,6 +434,8 @@ export function AutomationBuilderPage({
       setAutomation(mapAutomationToListItem(updated));
       setStatus("draft");
       setAutomationPublished(false);
+      setNavPromptOpen(false);
+      setPendingNav(null);
       toast.success("Automation deactivated.");
     } catch (err) {
       toastApiError(err, "Could not deactivate automation.");
@@ -375,6 +443,11 @@ export function AutomationBuilderPage({
       setActivating(false);
     }
   }, [automationNumericId, queryClient]);
+
+  const handleDeactivateFromPrompt = useCallback(async () => {
+    await handleDeactivate();
+    setDeactivatePromptOpen(false);
+  }, [handleDeactivate]);
 
   const handleDialogActivate = useCallback(async () => {
     const ok = await handleActivate();
@@ -390,6 +463,10 @@ export function AutomationBuilderPage({
 
   const onAddBlock = useCallback(
     async (blockId: WorkflowNodeKind) => {
+      if (!guardEdit()) {
+        return;
+      }
+
       const block = AUTOMATION_BLOCKS.find((b) => b.id === blockId);
       if (!block) return;
 
@@ -484,12 +561,22 @@ export function AutomationBuilderPage({
         addingBlockRef.current = false;
       }
     },
-    [automationNumericId, nodes],
+    [automationNumericId, guardEdit, nodes],
   );
 
   const onUpdateNode = useCallback(
     async (config: Record<string, unknown>) => {
-      if (!selectedNode) return;
+      if (!guardEdit() || !selectedNode) return;
+
+      const scheduleValidation = validatePaymentReminderSchedule(
+        nodes,
+        remoteAutomation?.purpose,
+        { nodeId: selectedNode.id, config },
+      );
+      if (!scheduleValidation.ok) {
+        toast.error(scheduleValidation.message);
+        return;
+      }
 
       const nodeId = selectedNode.id;
       const numericId = selectedNode.numericId;
@@ -519,11 +606,11 @@ export function AutomationBuilderPage({
         setSavingNode(false);
       }
     },
-    [nodes, selectedNode],
+    [guardEdit, nodes, remoteAutomation?.purpose, selectedNode],
   );
 
   const onDeleteNode = useCallback(async () => {
-    if (!selectedNode) return;
+    if (!guardEdit() || !selectedNode) return;
 
     const nodeId = selectedNode.id;
     const numericId = selectedNode.numericId;
@@ -551,9 +638,13 @@ export function AutomationBuilderPage({
     } finally {
       setDeletingNode(false);
     }
-  }, [selectedNode]);
+  }, [guardEdit, selectedNode]);
 
   const onReorderNodes = useCallback((fromIndex: number, toIndex: number) => {
+    if (!guardEdit()) {
+      return;
+    }
+
     let changed = false;
     setNodes((prev) => {
       const next = reorderWorkflowNodes(prev, fromIndex, toIndex);
@@ -563,7 +654,7 @@ export function AutomationBuilderPage({
     if (changed) {
       setIsFlowDirty(true);
     }
-  }, []);
+  }, [guardEdit]);
 
   const persistentHeader = (
     <header className="relative shrink-0 border-b border-zinc-200/70 bg-gradient-to-b from-white via-white to-zinc-50/80 px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] sm:px-4 sm:py-3 lg:px-6 lg:py-3.5">
@@ -604,6 +695,25 @@ export function AutomationBuilderPage({
             </button>
         ) : null}
       </div>
+      {tab === "builder" && automationActive ? (
+        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-blue-200/90 bg-blue-50/90 px-3 py-2.5 text-xs leading-relaxed text-blue-950 sm:text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden />
+          <p>
+            This automation is live. Deactivate it before editing steps or email
+            copy.
+          </p>
+        </div>
+      ) : null}
+      {tab === "builder" && !automationActive && hasUnsavedStepSettings ? (
+        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-2.5 text-xs leading-relaxed text-amber-950 sm:text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
+          <p>
+            Unsaved email changes — guests still get the old text until you click{" "}
+            <span className="font-semibold">Save changes</span> in the settings panel.
+            Activate saves your edits automatically.
+          </p>
+        </div>
+      ) : null}
     </header>
   );
 
@@ -626,13 +736,21 @@ export function AutomationBuilderPage({
           transition={{ duration: 0.22, ease: automationEase }}
         >
           <BuilderShell
-            sidebar={<BlockSidebar onAddBlock={(id) => void onAddBlock(id)} />}
+            sidebar={
+              <BlockSidebar
+                editLocked={automationActive}
+                onEditBlocked={showDeactivatePrompt}
+                onAddBlock={(id) => void onAddBlock(id)}
+              />
+            }
             canvas={
               <BuilderCanvas
                 nodes={nodes}
                 loading={nodesLoading}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
+                editLocked={automationActive}
+                onEditBlocked={showDeactivatePrompt}
                 onDropBlock={(id) => void onAddBlock(id)}
                 onReorderNodes={onReorderNodes}
               />
@@ -640,8 +758,14 @@ export function AutomationBuilderPage({
             settingsPanel={
               <NodeSettingsPanel
                 node={selectedNode}
+                nodes={nodes}
+                automationPurpose={remoteAutomation?.purpose}
+                readOnly={automationActive}
+                onEditBlocked={showDeactivatePrompt}
                 onSave={onUpdateNode}
                 onDelete={onDeleteNode}
+                onSettingsDirtyChange={setHasUnsavedStepSettings}
+                settingsSaveRef={settingsSaveRef}
                 saving={savingNode}
                 deleting={deletingNode}
               />
@@ -679,8 +803,9 @@ export function AutomationBuilderPage({
           <AutomationExecutionsPanel
             automationId={automationNumericId}
             automationActive={automationActive}
-            showRunButton={!cronStartsFlow}
+            showRunButton={!manualRunDisabled}
             showPauseButton={cronStartsFlow}
+            autoRunHint={autoRunHint}
           />
         </motion.div>
       )}
@@ -691,6 +816,12 @@ export function AutomationBuilderPage({
         isLoading={activating}
         onStay={closeNavPrompt}
         onActivate={() => void handleDialogActivate()}
+      />
+      <DeactivateToEditDialog
+        open={deactivatePromptOpen}
+        isLoading={activating}
+        onClose={closeDeactivatePrompt}
+        onDeactivate={() => void handleDeactivateFromPrompt()}
       />
     </motion.div>
   );

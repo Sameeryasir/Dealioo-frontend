@@ -42,7 +42,7 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     label: "Cron Job",
     section: "triggers",
     icon: CalendarClock,
-    tone: "emerald",
+    tone: "violet",
   },
   {
     id: "wait",

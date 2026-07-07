@@ -5,9 +5,9 @@ import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import RestaurantSettingsDialog from "@/app/components/RestaurantSettingsDialog";
-import { ArrowBigLeft, LogOut, Settings } from "lucide-react";
+import { ArrowBigLeft, Bell, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function initialsFromUser(user: VerifyOtpUser | null): string {
@@ -22,6 +22,7 @@ function initialsFromUser(user: VerifyOtpUser | null): string {
 
 export default function RestaurantNavbar() {
   const router = useRouter();
+  const params = useParams();
   const { clearPassword } = useCredentialContext();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -35,6 +36,18 @@ export default function RestaurantNavbar() {
   }, []);
 
   const initials = useMemo(() => initialsFromUser(user), [user]);
+
+  const restaurantIdParam = params?.restaurantId;
+  const restaurantId =
+    typeof restaurantIdParam === "string" && /^\d+$/.test(restaurantIdParam)
+      ? restaurantIdParam
+      : null;
+  const notificationsHref = restaurantId
+    ? `/restaurant/${restaurantId}/dashboard/activity`
+    : "/dashboard/activity";
+
+  const iconButtonClass =
+    "flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] active:scale-[0.98]";
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -70,23 +83,35 @@ export default function RestaurantNavbar() {
   return (
     <>
     <nav
-      className="sticky top-0 z-40 w-full shrink-0 border-b border-white/10 brand-nav px-4 py-3 sm:px-6"
+      className="sticky top-0 z-40 w-full shrink-0 border-b border-white/10 bg-[#0c152f] px-4 py-3 sm:px-6"
       aria-label="Restaurant dashboard"
     >
-      <div className="flex w-full items-center justify-between gap-3 brand-nav sm:gap-4">
+      <div className="flex w-full items-center justify-between gap-3 bg-[#0c152f] sm:gap-4">
         <Link
           href="/dashboard"
           aria-label="Back to dashboard"
-          className="-ml-4 inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white outline-none ring-offset-2 ring-offset-brand-navy transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-brand-navy sm:-ml-6"
+          className="-ml-4 inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] sm:-ml-6"
         >
           <ArrowBigLeft className="size-5 shrink-0 text-white" aria-hidden strokeWidth={2} />
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href={notificationsHref}
+            className={iconButtonClass}
+            aria-label="Notifications"
+          >
+            <Bell
+              className="size-[1.125rem] text-white"
+              aria-hidden
+              strokeWidth={2}
+            />
+          </Link>
+
           <button
             type="button"
             onClick={openSettingsDialog}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 brand-nav text-white outline-none ring-offset-2 ring-offset-brand-navy transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-brand-navy active:scale-[0.98]"
+            className={iconButtonClass}
             aria-label="Settings"
             aria-haspopup="dialog"
             aria-expanded={settingsOpen}
@@ -98,12 +123,12 @@ export default function RestaurantNavbar() {
             />
           </button>
 
-          <div ref={menuRootRef} className="relative brand-nav">
+          <div ref={menuRootRef} className="relative bg-[#0c152f]">
             <button
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
-              className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 brand-nav text-xs font-semibold uppercase tracking-tight text-white outline-none ring-offset-2 ring-offset-brand-navy transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-brand-navy active:scale-[0.98] ${
-                menuOpen ? "ring-2 ring-white/50 ring-offset-2 ring-offset-brand-navy" : ""
+              className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-xs font-semibold uppercase tracking-tight text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-[#0c152f] active:scale-[0.98] ${
+                menuOpen ? "ring-2 ring-white/50 ring-offset-2 ring-offset-[#0c152f]" : ""
               }`}
               aria-expanded={menuOpen}
               aria-haspopup="menu"
@@ -116,13 +141,13 @@ export default function RestaurantNavbar() {
               <div
                 role="menu"
                 aria-label="Account actions"
-                className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-brand-border bg-white py-1 shadow-xl shadow-black/10"
+                className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-zinc-200/80 bg-white py-1 shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-900/[0.04]"
               >
                 <button
                   type="button"
                   role="menuitem"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-brand-body transition-colors hover:bg-brand-soft hover:text-brand-navy"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-black"
                 >
                   <LogOut
                     className="size-4 shrink-0 text-zinc-500"

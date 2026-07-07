@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-/** Host only (no https://) — must match your ngrok subdomain. Restart `npm run dev` after changes. */
 const ngrokHost =
   process.env.NGROK_DEV_HOST?.trim() ||
   process.env.NEXT_PUBLIC_NGROK_HOST?.trim() ||
@@ -14,10 +13,15 @@ const backendUrl =
 const nextConfig: NextConfig = {
   allowedDevOrigins: [ngrokHost],
   async rewrites() {
+    const apiBase = backendUrl.replace(/\/$/, "");
     return [
       {
         source: "/backend/:path*",
-        destination: `${backendUrl.replace(/\/$/, "")}/:path*`,
+        destination: `${apiBase}/:path*`,
+      },
+      {
+        source: "/sms/twilio/:path*",
+        destination: `${apiBase}/sms/twilio/:path*`,
       },
     ];
   },

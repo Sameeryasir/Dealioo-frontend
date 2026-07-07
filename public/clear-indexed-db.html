@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clear Retention cache</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 32rem;
+        margin: 3rem auto;
+        padding: 0 1rem;
+        color: #18181b;
+      }
+      .ok {
+        color: #15803d;
+      }
+      .err {
+        color: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Clearing local cache…</h1>
+    <p id="status">Working…</p>
+    <script>
+      const CHAT_DB = "retention-chat";
+      const FUNNEL_DB = "retention-funnel-templates";
+      const PREFIXES = ["retention:funnel-template:", "retention-chat"];
+
+      function deleteDb(name) {
+        return new Promise(function (resolve, reject) {
+          var request = indexedDB.deleteDatabase(name);
+          request.onsuccess = function () {
+            resolve();
+          };
+          request.onerror = function () {
+            reject(request.error || new Error("delete failed"));
+          };
+          request.onblocked = function () {
+            resolve();
+          };
+        });
+      }
+
+      function clearLocalStorage() {
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i += 1) {
+          var key = localStorage.key(i);
+          if (!key) continue;
+          for (var j = 0; j < PREFIXES.length; j += 1) {
+            if (key.indexOf(PREFIXES[j]) === 0) {
+              keys.push(key);
+              break;
+            }
+          }
+        }
+        keys.forEach(function (key) {
+          localStorage.removeItem(key);
+        });
+      }
+
+      Promise.all([deleteDb(CHAT_DB), deleteDb(FUNNEL_DB)])
+        .then(function () {
+          clearLocalStorage();
+          document.getElementById("status").className = "ok";
+          document.getElementById("status").textContent =
+            "Done. Chat IndexedDB, funnel template IndexedDB, and related localStorage entries were cleared. You can close this tab and refresh Guest Chats.";
+        })
+        .catch(function (error) {
+          document.getElementById("status").className = "err";
+          document.getElementById("status").textContent =
+            "Could not clear cache: " + (error && error.message ? error.message : String(error));
+        });
+    </script>
+  </body>
+</html>

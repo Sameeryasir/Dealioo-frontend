@@ -56,6 +56,8 @@ function FunnelCampaignSignupInner() {
       submitCustomerOnSignupNext
       fullPageShellChrome
       trackingFunnelId={funnelId}
+      checkoutRestaurantId={restaurantId}
+      checkoutCampaignId={campaignId}
     />
   );
 }

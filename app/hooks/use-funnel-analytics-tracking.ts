@@ -6,7 +6,7 @@ import {
   resolveFunnelStepContext,
   resolvePagePath,
 } from "@/app/lib/funnel-analytics-steps";
-import { getFunnelCheckoutCustomerId } from "@/app/lib/funnel-checkout-storage";
+import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getOrCreateFunnelSessionId } from "@/app/lib/funnel-session-id";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackAnalyticsEvent } from "@/app/services/funnel/track-analytics-event";
@@ -25,7 +25,12 @@ export function useFunnelAnalyticsTracking(
   funnelId: number | null | undefined,
   pageName: string,
 ) {
+  const { session } = useCheckoutContext();
   const lastPageViewKey = useRef<string | null>(null);
+
+  const resolveCustomerId = useCallback(() => {
+    return session?.customerId ?? null;
+  }, [session?.customerId]);
 
   useEffect(() => {
     if (funnelId == null || funnelId < 1) return;
@@ -34,7 +39,7 @@ export function useFunnelAnalyticsTracking(
     if (lastPageViewKey.current === viewKey) return;
     lastPageViewKey.current = viewKey;
 
-    const customerId = getFunnelCheckoutCustomerId();
+    const customerId = resolveCustomerId();
     const ctx = buildAnalyticsContext(pageName);
 
     void trackAnalyticsEvent({
@@ -49,13 +54,13 @@ export function useFunnelAnalyticsTracking(
     }).catch((err) => {
       console.warn("[Analytics] page_view track failed", err);
     });
-  }, [funnelId, pageName]);
+  }, [funnelId, pageName, resolveCustomerId]);
 
   const trackButtonClick = useCallback(
     (elementName: string, section = "CTA") => {
       if (funnelId == null || funnelId < 1) return;
 
-      const customerId = getFunnelCheckoutCustomerId();
+      const customerId = resolveCustomerId();
       const ctx = buildAnalyticsContext(pageName);
 
       void trackAnalyticsEvent({
@@ -75,7 +80,7 @@ export function useFunnelAnalyticsTracking(
         console.warn("[Analytics] button_click track failed", err);
       });
     },
-    [funnelId, pageName],
+    [funnelId, pageName, resolveCustomerId],
   );
 
   return { trackButtonClick };

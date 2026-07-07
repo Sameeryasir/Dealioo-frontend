@@ -7,11 +7,8 @@ import { Loader2 } from "lucide-react";
 import { CustomCardCheckoutForm } from "@/app/components/funnel/CustomCardCheckoutForm";
 import type { PaymentTemplatePage } from "@/app/components/crm-template-editor/template-types";
 import type { CheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
+import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import {
-  getFunnelCheckoutCustomerId,
-  setFunnelPaymentId,
-} from "@/app/lib/funnel-checkout-storage";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 import { createPaymentIntent } from "@/app/services/payment/create-payment-intent";
 import { isPositiveInt } from "@/app/lib/numbers";
@@ -21,7 +18,10 @@ export type FunnelStripePaymentContext = {
   restaurantId: number;
   currency: string;
   customerEmail: string;
+  customerId?: number;
   campaignId?: number | null;
+  checkoutToken?: string | null;
+  funnelPaymentId?: number | null;
 };
 
 export function FunnelStripePaymentForm({
@@ -33,8 +33,12 @@ export function FunnelStripePaymentForm({
   page: PaymentTemplatePage;
   formStyles: CheckoutFormStyles;
 }) {
+  const { refreshSession } = useCheckoutContext();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<number | null>(
+    context.funnelPaymentId ?? null,
+  );
   const [creating, setCreating] = useState(false);
   const [intentError, setIntentError] = useState<string | null>(null);
 
@@ -58,31 +62,46 @@ export function FunnelStripePaymentForm({
     setClientSecret(null);
     setStripeAccountId(null);
     setIntentError(null);
+    setPaymentId(context.funnelPaymentId ?? null);
   }, [
     context.funnelId,
     context.restaurantId,
     context.currency,
     context.customerEmail,
+    context.checkoutToken,
   ]);
+
+  useEffect(() => {
+    if (context.funnelPaymentId != null) {
+      setPaymentId((current) => current ?? context.funnelPaymentId ?? null);
+    }
+  }, [context.funnelPaymentId]);
 
   const startPaymentIntent = async () => {
     if (!publishableKey) return;
     setIntentError(null);
     setCreating(true);
     try {
-      const customerId = getFunnelCheckoutCustomerId();
       const res = await createPaymentIntent(
         {
           funnelId: context.funnelId,
           restaurantId: context.restaurantId,
           currency: context.currency,
           customerEmail: context.customerEmail,
-          ...(customerId != null ? { customerId } : {}),
+          ...(isPositiveInt(context.customerId)
+            ? { customerId: context.customerId }
+            : {}),
+          ...(context.checkoutToken?.trim()
+            ? { checkoutSessionToken: context.checkoutToken.trim() }
+            : {}),
         },
         getSetupAccessToken(),
       );
       if (isPositiveInt(res.paymentId)) {
-        setFunnelPaymentId(res.paymentId);
+        setPaymentId(res.paymentId);
+        if (context.checkoutToken?.trim()) {
+          await refreshSession();
+        }
       }
       if (res.alreadyCompleted) {
         const confirmationPath = buildFunnelPaymentConfirmationPath(
@@ -90,6 +109,7 @@ export function FunnelStripePaymentForm({
           {
             campaignId: context.campaignId,
             restaurantId: context.restaurantId,
+            checkoutToken: context.checkoutToken,
           },
           { redirectStatus: "succeeded", paymentConfirmed: true },
         );
@@ -188,6 +208,9 @@ export function FunnelStripePaymentForm({
         campaignId={context.campaignId}
         restaurantId={context.restaurantId}
         customerEmail={context.customerEmail}
+        customerId={context.customerId}
+        checkoutToken={context.checkoutToken}
+        funnelPaymentId={paymentId}
         page={page}
         formStyles={formStyles}
       />

@@ -6886,3 +6886,50 @@ body {
   }
 }
 
+}
+
+@keyframes guest-chat-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.guest-chat-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  animation: guest-chat-shimmer 1.5s infinite;
+}
+
+.guest-chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(212 212 216) transparent;
+}
+
+.guest-chat-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.guest-chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.guest-chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(212 212 216);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.guest-chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(161 161 170);
+  background-clip: content-box;
+}

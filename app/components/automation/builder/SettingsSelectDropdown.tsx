@@ -11,11 +11,15 @@ export function SettingsSelectDropdown({
   options,
   onChange,
   ariaLabel = "Select option",
+  locked = false,
+  onLockedEdit,
 }: {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   ariaLabel?: string;
+  locked?: boolean;
+  onLockedEdit?: () => void;
 }) {
   const {
     open,
@@ -88,7 +92,13 @@ export function SettingsSelectDropdown({
     <div ref={anchorRef} className="w-full">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (locked) {
+            onLockedEdit?.();
+            return;
+          }
+          setOpen((o) => !o);
+        }}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}

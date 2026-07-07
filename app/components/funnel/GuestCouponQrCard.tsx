@@ -2,11 +2,17 @@
 
 import { CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GuestPassUnavailableCard } from "@/app/components/pass/GuestPassUnavailableCard";
 import {
   getGuestCouponByCustomerAndFunnel,
   getGuestCouponByPayment,
   type GuestCouponResponse,
 } from "@/app/services/redemption/scan-redemption";
+import {
+  canShowGuestPassQr,
+  isGuestPassUnavailable,
+  resolveGuestPassUnavailableReason,
+} from "@/app/lib/guest-pass-state";
 
 type GuestCouponQrCardProps =
   | { paymentId: number; customerId?: never; funnelId?: never }
@@ -63,7 +69,23 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
     );
   }
 
-  if (error || !coupon?.qr?.qrDataUrl) {
+  if (error) {
+    return null;
+  }
+
+  if (coupon && isGuestPassUnavailable(coupon)) {
+    return (
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+        <div className="pointer-events-auto w-full max-w-sm">
+          <GuestPassUnavailableCard
+            reason={resolveGuestPassUnavailableReason(coupon)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canShowGuestPassQr(coupon)) {
     return null;
   }
 

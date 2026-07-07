@@ -27,26 +27,40 @@ export function mapExecutionListItemToExecution(
   automationId = 0,
 ): AutomationExecution {
   const id = item.id ?? item.runId;
-  const count = Math.max(0, item.customerCount ?? 0);
   const startedAt = toIsoDate(item.startedAt);
   const status = item.status as AutomationExecutionStatus;
-  const completed = status === "completed";
+  const customerId = item.customerId ?? 0;
+  const customerEmail = item.customerEmail?.trim() || undefined;
+  const customerName = item.customerName?.trim() || undefined;
+  const totalRecipients = Math.max(0, item.totalRecipients ?? 0);
+  const emailsSentCount = Math.max(0, item.emailsSentCount ?? 0);
+  const scheduledAt =
+    item.scheduledAt == null ? null : toIsoDate(item.scheduledAt);
 
   const stepType = item.stepType?.trim() || undefined;
 
   return {
     id,
     automationId,
-    customerId: 0,
+    customerId,
     currentNodeId: 0,
     status,
-    scheduledAt: null,
-    totalRecipients: count,
-    emailsSentCount: completed ? count : 0,
+    scheduledAt,
+    totalRecipients,
+    emailsSentCount,
     queueJobId: null,
     lastError: null,
     createdAt: startedAt,
     updatedAt: startedAt,
+    ...(customerId > 0 || customerEmail || customerName
+      ? {
+          customer: {
+            id: customerId,
+            email: customerEmail,
+            name: customerName,
+          },
+        }
+      : {}),
     ...(stepType
       ? {
           currentNode: {

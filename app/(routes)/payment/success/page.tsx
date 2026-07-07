@@ -3,9 +3,6 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
-import {
-  getFunnelCheckoutFunnelId,
-} from "@/app/lib/funnel-checkout-storage";
 import { parsePositiveInt } from "@/app/lib/numbers";
 
 function PaymentSuccessRedirectInner() {
@@ -13,18 +10,17 @@ function PaymentSuccessRedirectInner() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const funnelId =
-      parsePositiveInt(searchParams.get("funnelId")) ??
-      getFunnelCheckoutFunnelId();
+    const funnelId = parsePositiveInt(searchParams.get("funnelId"));
     if (funnelId == null) return;
 
     const campaignId = parsePositiveInt(searchParams.get("campaignId"));
     const restaurantId = parsePositiveInt(searchParams.get("restaurantId"));
+    const checkoutToken = searchParams.get("checkoutToken")?.trim() || null;
     const redirectStatus = searchParams.get("redirect_status") ?? "succeeded";
 
     const path = buildFunnelPaymentConfirmationPath(
       funnelId,
-      { campaignId, restaurantId },
+      { campaignId, restaurantId, checkoutToken },
       {
         redirectStatus,
         paymentConfirmed: redirectStatus === "succeeded",

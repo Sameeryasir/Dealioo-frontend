@@ -8,7 +8,31 @@ import {
   isBlockDrag,
   readBlockDragData,
 } from "@/app/components/automation/builder/automation-dnd";
-import { WorkflowConnector } from "@/app/components/automation/builder/WorkflowConnector";
+import {
+  WorkflowConnector,
+  TriggerFlowConnector,
+  FlowSplitConnector,
+  PrepaidVisitSplitConnector,
+} from "@/app/components/automation/builder/WorkflowConnector";
+import {
+  FlowActionsBlock,
+  FlowBranchContainer,
+  FlowStepCard,
+  PrepaidLoopBackCard,
+} from "@/app/components/automation/builder/flow-step-cards";
+import { isActionNodeKind } from "@/app/components/automation/automation-ui";
+import {
+  buildSegmentsForIndexedNodes,
+  FLOW_BRANCH_PASS,
+  FLOW_BRANCH_PAYMENT,
+  parsePrepaidVisitSplitLayout,
+  parseSplitFlowLayout,
+} from "@/app/components/automation/builder/flow-layout";
+import {
+  buildFlowSegments,
+  splitTriggerAndFlow,
+  type FlowSegment,
+} from "@/app/components/automation/builder/flow-segments";
 import { WorkflowNodeCard } from "@/app/components/automation/builder/WorkflowNodeCard";
 import {
   automationEase,
@@ -23,6 +47,8 @@ import {
 } from "@/app/components/automation/workflow-node-order";
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
 
+const FLOW_TRUNK_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-xl";
+const FLOW_TREE_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-5xl";
 const ZOOM_MIN = 0.72;
 const ZOOM_MAX = 1.2;
 const ZOOM_STEP = 0.08;
@@ -41,7 +67,7 @@ type DragPreview = {
 function FlowLoadingPlaceholder() {
   return (
     <motion.div
-      className="flex w-full max-w-lg flex-col items-center gap-4 py-8"
+      className={`flex ${FLOW_TRUNK_WIDTH} flex-col items-center gap-4 py-8`}
       variants={flowListStagger}
       initial="hidden"
       animate="show"
@@ -66,6 +92,8 @@ export function BuilderCanvas({
   onSelect,
   onDropBlock,
   onReorderNodes,
+  editLocked = false,
+  onEditBlocked,
 }: {
   nodes: WorkflowNode[];
   loading?: boolean;
@@ -73,6 +101,8 @@ export function BuilderCanvas({
   onSelect: (id: string) => void;
   onDropBlock?: (blockId: WorkflowNodeKind) => void;
   onReorderNodes?: (fromIndex: number, toIndex: number) => void;
+  editLocked?: boolean;
+  onEditBlocked?: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
   const [revealKey, setRevealKey] = useState(0);
@@ -92,8 +122,8 @@ export function BuilderCanvas({
     didDrag: boolean;
   } | null>(null);
 
-  const canDropBlocks = onDropBlock != null;
-  const canReorder = onReorderNodes != null && nodes.length > 1;
+  const canDropBlocks = onDropBlock != null && !editLocked;
+  const canReorder = onReorderNodes != null && nodes.length > 1 && !editLocked;
 
   const fitScreen = useCallback(() => setZoom(1), []);
 
@@ -282,22 +312,202 @@ export function BuilderCanvas({
 
   const handleBlockDrop = useCallback(
     (e: React.DragEvent) => {
-      if (!canDropBlocks || !isBlockDrag(e.dataTransfer)) return;
+      if (!isBlockDrag(e.dataTransfer)) return;
       e.preventDefault();
       e.stopPropagation();
       clearDragState();
+      if (editLocked) {
+        onEditBlocked?.();
+        return;
+      }
+      if (!onDropBlock) return;
       const blockId = readBlockDragData(e.dataTransfer);
-      if (blockId) onDropBlock?.(blockId);
+      if (blockId) onDropBlock(blockId);
     },
-    [canDropBlocks, clearDragState, onDropBlock],
+    [clearDragState, editLocked, onDropBlock, onEditBlocked],
   );
 
   useEffect(() => {
     nodeSlotRefs.current.length = nodes.length;
   }, [nodes.length]);
 
-  const draggedNode =
-    draggingIndex != null ? nodes[draggingIndex] : null;
+  const { trigger, flowNodes, flowStartIndex } = splitTriggerAndFlow(nodes);
+  const prepaidVisitSplit = parsePrepaidVisitSplitLayout(flowNodes, flowStartIndex);
+  const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
+  const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
+  const headSegments = usePrepaidVisitSplit
+    ? buildSegmentsForIndexedNodes(prepaidVisitSplit.head)
+    : splitLayout.hasSplit
+      ? buildSegmentsForIndexedNodes(splitLayout.head)
+      : buildFlowSegments(flowNodes, flowStartIndex);
+  const visitedYesSegments = buildSegmentsForIndexedNodes(
+    prepaidVisitSplit.visitedYes,
+  );
+  const passBranchSegments = buildSegmentsForIndexedNodes(
+    splitLayout.branches[FLOW_BRANCH_PASS],
+  );
+  const paymentBranchSegments = buildSegmentsForIndexedNodes(
+    splitLayout.branches[FLOW_BRANCH_PAYMENT],
+  );
+  const flowSegments = usePrepaidVisitSplit || splitLayout.hasSplit
+    ? headSegments
+    : buildFlowSegments(flowNodes, flowStartIndex);
+
+  const renderNodeSlot = (
+    node: WorkflowNode,
+    index: number,
+    content: React.ReactNode,
+  ) => {
+    const reorderLocked = isWorkflowNodeReorderLocked(nodes, index);
+    return (
+      <div
+        ref={(el) => {
+          nodeSlotRefs.current[index] = el;
+        }}
+        className={`w-full ${
+          draggingIndex !== null || pressingIndex !== null ? "touch-none" : ""
+        } ${
+          reorderLocked
+            ? "cursor-default"
+            : canReorder
+              ? "cursor-grab active:cursor-grabbing"
+              : "cursor-pointer"
+        }`}
+        onPointerDown={(e) => handleNodePointerDown(e, index)}
+        onPointerMove={handleNodePointerMove}
+        onPointerUp={(e) => handleNodePointerUp(e, node.id)}
+        onPointerCancel={handleNodePointerCancel}
+      >
+        {draggingIndex === index ? (
+          <div
+            className="flex w-full items-center justify-center rounded-2xl border-2 border-dashed border-violet-300/90 bg-violet-50/50 px-4 text-xs font-semibold text-violet-500"
+            style={{ minHeight: dragPreview?.height ?? 72 }}
+            aria-hidden
+          />
+        ) : (
+          content
+        )}
+      </div>
+    );
+  };
+
+  const renderSegmentList = (
+    segments: FlowSegment[],
+    options?: { branchStepNumber?: number },
+  ) =>
+    segments.map((segment, segmentIndex) => {
+      const index =
+        segment.type === "actions" ? segment.startIndex : segment.index;
+      const slotNode = nodes[index]!;
+      const displayNode =
+        segment.type === "actions" ? segment.nodes[0]! : segment.node;
+      const isLast = segmentIndex === segments.length - 1;
+      const isBranchAction =
+        options?.branchStepNumber != null &&
+        isLast &&
+        (segment.type === "actions" ||
+          (segment.type === "node" && isActionNodeKind(displayNode.kind)));
+
+      const stepFooter = isBranchAction ? (
+        <>
+          <span>#{options!.branchStepNumber}</span>
+          <span>0 sends · $0.00 · v0</span>
+        </>
+      ) : segment.type === "actions" ? (
+        <>
+          <span>#{index + 1}</span>
+          <span>0 sends · $0.00</span>
+        </>
+      ) : undefined;
+
+      const stepContent =
+        segment.type === "actions" ? (
+          renderNodeSlot(
+            slotNode,
+            index,
+            <FlowActionsBlock
+              nodes={segment.nodes}
+              selectedId={selectedId}
+              ownerNodeId={slotNode.id}
+              footer={stepFooter}
+            />,
+          )
+        ) : isActionNodeKind(displayNode.kind) ? (
+          renderNodeSlot(
+            slotNode,
+            index,
+            <FlowActionsBlock
+              nodes={[displayNode]}
+              selectedId={selectedId}
+              footer={stepFooter}
+            />,
+          )
+        ) : (
+          renderNodeSlot(
+            slotNode,
+            index,
+            <FlowStepCard
+              node={displayNode}
+              selected={selectedId === slotNode.id}
+              pressing={pressingIndex === index}
+            />,
+          )
+        );
+
+      return (
+        <motion.div
+          key={
+            segment.type === "actions"
+              ? `actions-${slotNode.id}`
+              : slotNode.id
+          }
+          className="flex w-full flex-col items-center"
+          variants={flowStepReveal}
+        >
+          {stepContent}
+          {segmentIndex < segments.length - 1 ? (
+            <motion.div
+              className="flex w-full justify-center py-1.5"
+              variants={flowConnectorReveal}
+              onDragOver={handleSlotDragOver}
+              onDrop={handleBlockDrop}
+            >
+              <WorkflowConnector />
+            </motion.div>
+          ) : null}
+        </motion.div>
+      );
+    });
+
+  const renderSplitBranches = () => (
+    <div className="flex w-full flex-col items-center">
+      <FlowSplitConnector wide />
+      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <FlowBranchContainer>
+          {renderSegmentList(passBranchSegments, { branchStepNumber: 18 })}
+        </FlowBranchContainer>
+        <FlowBranchContainer>
+          {renderSegmentList(paymentBranchSegments, { branchStepNumber: 19 })}
+        </FlowBranchContainer>
+      </div>
+    </div>
+  );
+
+  const renderPrepaidVisitBranches = () => (
+    <div className="flex w-full flex-col items-center">
+      <PrepaidVisitSplitConnector wide />
+      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <FlowBranchContainer>
+          <PrepaidLoopBackCard loopTarget={prepaidVisitSplit.loopTarget?.node ?? null} />
+        </FlowBranchContainer>
+        <FlowBranchContainer>
+          {renderSegmentList(visitedYesSegments)}
+        </FlowBranchContainer>
+      </div>
+    </div>
+  );
+
+  const draggedNode = draggingIndex != null ? nodes[draggingIndex] : null;
 
   const dragGhost =
     typeof document !== "undefined" &&
@@ -392,7 +602,7 @@ export function BuilderCanvas({
         onDrop={handleBlockDrop}
       >
         <motion.div
-          className="mx-auto flex w-full max-w-[min(100%,15rem)] flex-col items-center sm:max-w-xs lg:max-w-[14.5rem] xl:max-w-sm 2xl:max-w-md"
+          className="mx-auto flex w-full flex-col items-center"
           animate={{ scale: zoom }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
         >
@@ -435,65 +645,56 @@ export function BuilderCanvas({
               onDragOver={handleCanvasDragOver}
               onDrop={handleBlockDrop}
             >
-              {nodes.map((node, index) => {
-                const reorderLocked = isWorkflowNodeReorderLocked(nodes, index);
-                return (
-                <motion.div
-                  key={node.id}
-                  className="flex w-full flex-col items-center"
-                  variants={flowStepReveal}
-                >
-                  <div
-                    ref={(el) => {
-                      nodeSlotRefs.current[index] = el;
-                    }}
-                    className={`w-full max-w-[min(100%,15rem)] sm:max-w-xs lg:max-w-[14.5rem] xl:max-w-sm 2xl:max-w-md ${
-                      draggingIndex !== null || pressingIndex !== null
-                        ? "touch-none"
-                        : ""
-                    } ${
-                      reorderLocked
-                        ? "cursor-default"
-                        : canReorder
-                          ? "cursor-grab active:cursor-grabbing"
-                          : "cursor-pointer"
-                    }`}
-                    onPointerDown={(e) => handleNodePointerDown(e, index)}
-                    onPointerMove={handleNodePointerMove}
-                    onPointerUp={(e) => handleNodePointerUp(e, node.id)}
-                    onPointerCancel={handleNodePointerCancel}
+              {trigger ? (
+                <>
+                  <motion.div
+                    className={`flex flex-col items-center ${FLOW_TRUNK_WIDTH}`}
+                    variants={flowStepReveal}
                   >
-                    {draggingIndex === index ? (
-                      <div
-                        className="flex w-full items-center justify-center rounded-2xl border-2 border-dashed border-violet-300/90 bg-violet-50/50 px-4 text-xs font-semibold text-violet-500"
-                        style={{ minHeight: dragPreview?.height ?? 72 }}
-                        aria-hidden
-                      />
-                    ) : (
+                    {renderNodeSlot(
+                      trigger,
+                      0,
                       <WorkflowNodeCard
-                        node={node}
-                        selected={selectedId === node.id}
-                        isPressing={pressingIndex === index}
-                        reorderLocked={reorderLocked}
-                      />
+                        node={trigger}
+                        selected={selectedId === trigger.id}
+                        isPressing={pressingIndex === 0}
+                        reorderLocked={isWorkflowNodeReorderLocked(nodes, 0)}
+                      />,
                     )}
-                  </div>
-                  {index < nodes.length - 1 ? (
-                    <motion.div
-                      className="flex w-full justify-center py-1"
-                      variants={flowConnectorReveal}
-                      onDragOver={handleSlotDragOver}
-                      onDrop={handleBlockDrop}
-                    >
-                      <WorkflowConnector />
-                    </motion.div>
+                    {flowSegments.length > 0 ? (
+                      <>
+                        <TriggerFlowConnector />
+                        <div className="relative w-full rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
+                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.65rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.6875rem]">
+                            <span
+                              className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
+                              aria-hidden
+                            />
+                            Live
+                          </span>
+                          <div className="mt-10 flex flex-col gap-3 sm:mt-11 sm:gap-4">
+                            {renderSegmentList(flowSegments)}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+                  </motion.div>
+                  {usePrepaidVisitSplit ? (
+                    <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
+                      {renderPrepaidVisitBranches()}
+                    </div>
+                  ) : splitLayout.hasSplit ? (
+                    <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
+                      {renderSplitBranches()}
+                    </div>
                   ) : null}
-                </motion.div>
-              );
-              })}
+                </>
+              ) : (
+                <div className={FLOW_TRUNK_WIDTH}>{renderSegmentList(flowSegments)}</div>
+              )}
               {canDropBlocks ? (
                 <div
-                  className="h-8 w-full max-w-[min(100%,15rem)] sm:max-w-xs lg:max-w-[14.5rem] xl:max-w-sm 2xl:max-w-md"
+                  className="h-8 w-full"
                   onDragOver={handleSlotDragOver}
                   onDrop={handleBlockDrop}
                 />

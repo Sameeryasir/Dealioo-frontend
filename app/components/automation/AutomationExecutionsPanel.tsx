@@ -6,18 +6,14 @@ import {
   CheckCircle2,
   CircleDot,
   Clock,
-  GitBranch,
-  Hash,
   ListChecks,
   Loader2,
-  Mail,
   PauseCircle,
   RefreshCw,
   Trash2,
   Users,
   Workflow,
   XCircle,
-  Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -40,8 +36,6 @@ import { RunProgressBanner } from "@/app/components/automation/RunProgressBanner
 import {
   executionRunCustomersLine,
   executionRunDisplayName,
-  formatExecutionStepType,
-  formatScheduledCountdown,
   isExecutionInProgress,
 } from "@/app/components/automation/execution-status-ui";
 import { Skeleton } from "@/app/components/skeleton";
@@ -61,15 +55,18 @@ import {
   runsRowReveal,
   runsStagger,
 } from "@/app/lib/motion";
+import { mapPusherPayloadToStatusDto } from "@/app/lib/pusher-execution";
+import type { ExecutionTerminalPusherPayload } from "@/app/lib/pusher-execution";
 import type {
   AutomationExecution,
   AutomationExecutionStatus,
+  AutomationExecutionStatusDto,
 } from "@/app/services/automation/types";
 
 const ICON_STROKE = 2.25;
 
 const RUNS_TABLE_GRID =
-  "grid grid-cols-[minmax(12rem,1.35fr)_minmax(11rem,1.15fr)_7.25rem_8.5rem_5.5rem_minmax(9.5rem,1fr)] items-center gap-x-3";
+  "grid grid-cols-[minmax(10rem,1.5fr)_minmax(9rem,1.2fr)_minmax(8.5rem,1fr)_minmax(9.5rem,1.1fr)] items-center gap-x-4";
 const RUNS_CELL = "min-w-0 justify-self-start";
 const RUNS_STATUS_ACTIONS_CELL =
   "flex min-w-0 items-center justify-between gap-2 justify-self-stretch";
@@ -80,6 +77,7 @@ const STATUS_FILTERS: { id: "all" | AutomationExecutionStatus; label: string }[]
     { id: "queued", label: "Queued" },
     { id: "running", label: "Running" },
     { id: "waiting", label: "Waiting" },
+    { id: "paused", label: "Paused" },
     { id: "completed", label: "Completed" },
     { id: "failed", label: "Failed" },
   ];
@@ -92,6 +90,8 @@ function statusIcon(status: AutomationExecutionStatus): LucideIcon {
       return CircleDot;
     case "waiting":
       return Clock;
+    case "paused":
+      return PauseCircle;
     case "completed":
       return CheckCircle2;
     case "failed":
@@ -99,14 +99,6 @@ function statusIcon(status: AutomationExecutionStatus): LucideIcon {
     default:
       return PauseCircle;
   }
-}
-
-function stepTypeIcon(type?: string): LucideIcon {
-  const t = (type ?? "").toLowerCase();
-  if (t.includes("email")) return Mail;
-  if (t.includes("condition")) return GitBranch;
-  if (t.includes("trigger")) return Zap;
-  return CircleDot;
 }
 
 function rowAccentClass(status: AutomationExecutionStatus): string {
@@ -117,6 +109,8 @@ function rowAccentClass(status: AutomationExecutionStatus): string {
       return "border-l-red-500";
     case "waiting":
       return "border-l-amber-500";
+    case "paused":
+      return "border-l-zinc-400";
     case "running":
     case "queued":
       return "border-l-blue-500";
@@ -150,15 +144,15 @@ function AutomationRunsSkeleton() {
           <Skeleton funnel className="h-4 w-28" />
           <Skeleton funnel className="mt-2 h-3 w-48" />
         </div>
-        <div className="min-w-[48rem] overflow-x-auto">
+        <div className="min-w-[36rem] overflow-x-auto">
           <div
             className={`${RUNS_TABLE_GRID} border-b border-zinc-200 px-5 py-3`}
           >
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton
                 key={i}
                 funnel
-                className={`h-3 ${i === 5 ? "ml-auto h-8 w-8 rounded-lg" : "w-14"}`}
+                className={`h-3 ${i === 3 ? "ml-auto h-8 w-8 rounded-lg" : "w-14"}`}
               />
             ))}
           </div>
@@ -169,9 +163,7 @@ function AutomationRunsSkeleton() {
             >
               <Skeleton funnel className="h-4 w-full" />
               <Skeleton funnel className="h-4 w-full" />
-              <Skeleton funnel className="h-6 w-16 rounded-lg" />
               <Skeleton funnel className="h-4 w-20" />
-              <Skeleton funnel className="h-3.5 w-10" />
               <div className={RUNS_STATUS_ACTIONS_CELL}>
                 <Skeleton funnel className="h-6 w-20 rounded-full" />
                 <Skeleton funnel className="size-8 shrink-0 rounded-lg" />
@@ -198,17 +190,18 @@ function RunRow({
   deleteLocked: boolean;
 }) {
   const StatusIcon = statusIcon(row.status);
-  const countdown =
-    row.status === "waiting" ? formatScheduledCountdown(row.scheduledAt) : null;
   const customersText = executionRunCustomersLine(row);
   const runSummary = executionRunDisplayName(row);
 
   const inProgress = isExecutionInProgress(row.status);
-  const stepType = row.currentNode?.type;
-  const StepIcon = stepTypeIcon(stepType);
   const recipientCount =
-    row.executedRecipients?.length ?? row.totalRecipients ?? 0;
-  const stepLabel = formatExecutionStepType(stepType);
+    row.totalRecipients && row.totalRecipients > 0
+      ? row.totalRecipients
+      : row.executedRecipients?.length && row.executedRecipients.length > 0
+        ? row.executedRecipients.length
+        : row.customerId
+          ? 1
+          : 0;
 
   return (
     <div
@@ -252,14 +245,6 @@ function RunRow({
         <p className="min-w-0 truncate">{customersText}</p>
       </div>
 
-      <span
-        className={`${RUNS_CELL} inline-flex max-w-full items-center gap-1.5 truncate rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-200/80`}
-        title={stepType ?? undefined}
-      >
-        <StepIcon className="size-3.5 shrink-0 text-zinc-500" aria-hidden />
-        {stepLabel}
-      </span>
-
       <div
         className={`${RUNS_CELL} flex items-center gap-1.5 tabular-nums text-zinc-600`}
       >
@@ -272,15 +257,6 @@ function RunRow({
           {formatDateTimeShort(row.createdAt)}
         </span>
       </div>
-
-      <span
-        className={`${RUNS_CELL} inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs font-semibold tabular-nums text-zinc-700 ring-1 ring-zinc-200/80`}
-      >
-        <Hash className="size-3 shrink-0 text-zinc-400" aria-hidden />
-        {row.status === "waiting"
-          ? countdown ?? formatDateTimeShort(row.scheduledAt)
-          : row.id}
-      </span>
 
       <div className={RUNS_STATUS_ACTIONS_CELL}>
         <StatusPill
@@ -322,17 +298,21 @@ function RunRow({
   );
 }
 
+const TERMINAL_BANNER_MS = 2500;
+
 export function AutomationExecutionsPanel({
   automationId,
   automationActive,
   showRunButton = true,
   showPauseButton = false,
+  autoRunHint = "This flow runs automatically when guests sign up on the funnel.",
   onExecutionStarted,
 }: {
   automationId: number;
   automationActive?: boolean;
   showRunButton?: boolean;
   showPauseButton?: boolean;
+  autoRunHint?: string;
   onExecutionStarted?: (id: number) => void;
 }) {
   const [statusFilter, setStatusFilter] = useState<
@@ -365,6 +345,41 @@ export function AutomationExecutionsPanel({
     deletingId,
   } = useAutomationExecutions(automationId, apiStatus);
 
+  const [cronRunBanner, setCronRunBanner] =
+    useState<AutomationExecutionStatusDto | null>(null);
+
+  const handlePusherTerminal = useCallback(
+    (payload: ExecutionTerminalPusherPayload) => {
+      applyPusherExecution(payload);
+
+      if (!showPauseButton) {
+        return;
+      }
+
+      const status = mapPusherPayloadToStatusDto(payload);
+      setCronRunBanner(status);
+
+      if (payload.status === "completed") {
+        const sent = payload.emailsSent || payload.totalRecipients;
+        const total = payload.totalRecipients;
+        toast.success(
+          `Scheduled run completed — ${sent} of ${total} recipient${total === 1 ? "" : "s"} reached.`,
+        );
+      } else if (payload.status === "failed") {
+        toast.error(payload.lastError ?? "Scheduled run failed.");
+      }
+
+      window.setTimeout(() => {
+        setCronRunBanner((current) =>
+          current?.executionId === payload.executionId ? null : current,
+        );
+      }, TERMINAL_BANNER_MS);
+    },
+    [applyPusherExecution, showPauseButton],
+  );
+
+  const progressRun = activeRun ?? cronRunBanner;
+
   const watchExecutionIds = useMemo(() => {
     const extra: number[] = [];
     if (activeRun?.executionId && activeRun.isTerminal !== true) {
@@ -376,10 +391,10 @@ export function AutomationExecutionsPanel({
   useWatchExecutionsTerminal({
     automationId,
     executionIds: watchExecutionIds,
-    onTerminal: applyPusherExecution,
+    onTerminal: handlePusherTerminal,
   });
 
-  useAutomationPusherTerminal(automationId, applyPusherExecution);
+  useAutomationPusherTerminal(automationId, handlePusherTerminal);
 
   useEffect(() => {
     if (!automationActive) return;
@@ -504,14 +519,21 @@ export function AutomationExecutionsPanel({
             </div>
           </div>
         </div>
-        {showRunButton && automationActive === false ? (
+        {showPauseButton ? (
+          <p className="mt-3 text-sm text-zinc-500">
+            This flow runs on a schedule. Pause or resume it here; each batch
+            appears below when unpaid guests are found.
+          </p>
+        ) : !showRunButton ? (
+          <p className="mt-3 text-sm text-zinc-500">{autoRunHint}</p>
+        ) : showRunButton && automationActive === false ? (
           <ActivateAutomationFirstHint className="mt-3" />
         ) : null}
       </div>
 
       <div className="relative px-4 py-4 sm:px-6">
         <AnimatePresence initial={false}>
-          {activeRun ? (
+          {progressRun ? (
             <motion.div
               key="run-progress"
               className="mb-5"
@@ -520,7 +542,7 @@ export function AutomationExecutionsPanel({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <RunProgressBanner status={activeRun} />
+              <RunProgressBanner status={progressRun} />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -630,7 +652,13 @@ export function AutomationExecutionsPanel({
               <PanelEmptyState
                 icon={Workflow}
                 title="No runs yet"
-                description="Run this automation to email unpaid customers. Each batch appears here with everyone it reached."
+                description={
+                  showRunButton
+                    ? "Run this automation to email unpaid customers. Each batch appears here with everyone it reached."
+                    : showPauseButton
+                      ? "Runs appear here on the cron schedule when unpaid guests are found and reminded by email."
+                      : autoRunHint
+                }
               />
             </motion.div>
           ) : (
@@ -642,7 +670,7 @@ export function AutomationExecutionsPanel({
               exit="exit"
             >
           <ReportTable
-            minWidthClass="min-w-[48rem]"
+            minWidthClass="min-w-[36rem]"
             header={
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/90 bg-gradient-to-r from-zinc-50 to-white px-5 py-3.5">
                 <div className="flex items-center gap-2.5">
@@ -690,13 +718,7 @@ export function AutomationExecutionsPanel({
                 <TableColumnHeader icon={Users} label="Customers" />
               </span>
               <span className={RUNS_CELL}>
-                <TableColumnHeader icon={Mail} label="Step" />
-              </span>
-              <span className={RUNS_CELL}>
                 <TableColumnHeader icon={CalendarClock} label="Started" />
-              </span>
-              <span className={RUNS_CELL}>
-                <TableColumnHeader icon={Hash} label="Run ID" />
               </span>
               <div className={RUNS_STATUS_ACTIONS_CELL}>
                 <TableColumnHeader icon={CheckCircle2} label="Status" />

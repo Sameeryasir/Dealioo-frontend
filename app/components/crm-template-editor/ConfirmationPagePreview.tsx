@@ -76,7 +76,7 @@ export function ConfirmationPagePreview({
       />
 
       <h1
-        className={`mt-4 text-[1.65rem] font-bold leading-[1.15] sm:text-3xl ${headingColorStyle ? "" : landingStyle.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
+        className={`mt-4 text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : landingStyle.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
         style={headingColorStyle}
       >
         {copy.heading}

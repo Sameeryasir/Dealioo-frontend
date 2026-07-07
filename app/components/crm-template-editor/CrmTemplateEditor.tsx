@@ -17,7 +17,6 @@ import {
   buildFunnelPublicPath,
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
-import { getFunnelCheckoutEmail } from "@/app/lib/funnel-checkout-storage";
 import {
   parseCampaignPrice,
   type CampaignPricing,
@@ -205,9 +204,7 @@ export function CrmTemplateEditor({
     if (!interactivePreview || activeId !== "payment") return null;
     if (previewRestaurantId == null) return null;
     const email =
-      getFunnelCheckoutEmail()?.trim() ||
-      process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_PREVIEW_EMAIL?.trim() ||
-      null;
+      process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_PREVIEW_EMAIL?.trim() || null;
     if (!email || funnelId == null || funnelId < 1) return null;
     return {
       funnelId,
@@ -388,7 +385,7 @@ export function CrmTemplateEditor({
       <EditorShell
         navbar={
           <TopNavigation
-            campaignName={campaignName ?? (campaignId ? `#${campaignId}` : undefined)}
+            campaignName={campaignName ?? "Campaign"}
             pageLabel={activePage.label}
             saveStatus={displaySaveStatus}
             isDirty={isDirty}

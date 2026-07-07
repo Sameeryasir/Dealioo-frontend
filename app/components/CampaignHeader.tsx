@@ -6,7 +6,6 @@ import {
   Circle,
   Copy,
   ExternalLink,
-  Hash,
   Info,
   Link2,
   Megaphone,
@@ -85,6 +84,9 @@ export default function CampaignHeader({
     if (parts.length === 0) return null;
     return parts.join(".");
   }, [offerLine, priceText]);
+
+  const campaignTitle =
+    campaign?.campaignName?.trim() || offerPriceLine || "Campaign";
 
   const [internalTabId, setInternalTabId] = useState(defaultTabId);
   const isControlled =
@@ -172,8 +174,11 @@ export default function CampaignHeader({
             <ArrowLeft className="size-5" aria-hidden strokeWidth={2} />
           </Link>
           <div className="min-w-0 flex-1 text-left">
-            {offerPriceLine ? (
-              <p className="truncate text-left text-sm font-medium text-zinc-900 sm:text-base">
+            <p className="truncate text-left text-sm font-medium text-zinc-900 sm:text-base">
+              {campaignTitle}
+            </p>
+            {offerPriceLine && campaign?.campaignName?.trim() ? (
+              <p className="truncate text-left text-xs text-zinc-500 sm:text-sm">
                 {offerPriceLine}
               </p>
             ) : null}
@@ -186,7 +191,7 @@ export default function CampaignHeader({
             disabled={campaignId == null || !isFunnelTab}
             title={
               campaignId == null
-                ? "Campaign id missing"
+                ? "Campaign details not loaded yet"
                 : !isFunnelTab
                   ? "Open the Funnel tab to generate a tracking link"
                   : "Get link for Facebook ads"
@@ -305,29 +310,18 @@ export default function CampaignHeader({
           <div className="bg-white px-6 py-6">
             {campaignId != null && landingTrackingUrl ? (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className="flex items-center gap-1.5 text-zinc-500">
-                      <Hash className="size-3.5" strokeWidth={2.5} aria-hidden />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em]">
-                        Campaign
-                      </p>
-                    </div>
-                    <p className="mt-2 font-mono text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                      {campaignId}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className="flex items-center gap-1.5 text-zinc-500">
-                      <Hash className="size-3.5" strokeWidth={2.5} aria-hidden />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em]">
-                        Funnel
-                      </p>
-                    </div>
-                    <p className="mt-2 font-mono text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                      {funnelId != null && funnelId >= 1 ? funnelId : "N/A"}
-                    </p>
-                  </div>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Campaign
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-zinc-900">
+                    {campaignTitle}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    {funnelId != null && funnelId >= 1
+                      ? "Funnel is ready — copy the link below for your ads."
+                      : "Save your funnel first so this link points to your live pages."}
+                  </p>
                 </div>
 
                 <div>
@@ -351,7 +345,7 @@ export default function CampaignHeader({
                       <p className="min-w-0 text-[11px] leading-relaxed text-zinc-500">
                         Origin
                         <span className="mt-0.5 block break-all font-mono text-zinc-700">
-                          {trackingOrigin || "N/A"}
+                          {trackingOrigin || "—"}
                         </span>
                       </p>
                       <button
@@ -385,14 +379,14 @@ export default function CampaignHeader({
                     <span className="font-mono font-semibold text-zinc-900">
                       3002
                     </span>
-                    . Uses your current browser origin, works with ngrok and
+                    . Uses your current browser origin — works with ngrok and
                     local testing.
                   </p>
                 </div>
               </div>
             ) : (
               <p className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3.5 text-sm text-zinc-700">
-                This campaign has no id in the URL, so a tracking link cannot be
+                This campaign is not ready yet, so a tracking link cannot be
                 built.
               </p>
             )}

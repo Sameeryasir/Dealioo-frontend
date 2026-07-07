@@ -1,6 +1,8 @@
 "use client";
 
 import Pusher, { type Channel } from "pusher-js";
+import { getApiBaseUrl } from "@/app/lib/api";
+import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import {
   PUSHER_EXECUTION_EVENT,
   type ExecutionTerminalPusherPayload,
@@ -8,6 +10,14 @@ import {
   pusherAutomationChannel,
   pusherExecutionChannel,
 } from "@/app/lib/pusher-execution";
+import {
+  PUSHER_CHAT_EVENT,
+  parseChatMessagePusherPayload,
+  pusherRestaurantChatChannel,
+  type ChatMessagePusherPayload,
+} from "@/app/lib/pusher-chat";
+
+export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
 
 let sharedClient: Pusher | null = null;
 const channelRefCounts = new Map<string, number>();
@@ -17,13 +27,100 @@ let listTerminalHandler:
   | ((payload: ExecutionTerminalPusherPayload) => void)
   | null = null;
 
+let connectionStatus: PusherConnectionStatus = isPusherConfigured()
+  ? "reconnecting"
+  : "offline";
+const connectionListeners = new Set<(status: PusherConnectionStatus) => void>();
+const reconnectListeners = new Set<() => void>();
+let connectionBindingsAttached = false;
+let wasDisconnected = false;
+
+function mapPusherState(state: string): PusherConnectionStatus {
+  if (state === "connected") {
+    return "live";
+  }
+
+  if (state === "connecting") {
+    return "reconnecting";
+  }
+
+  return "offline";
+}
+
+function notifyConnectionStatus(status: PusherConnectionStatus) {
+  connectionStatus = status;
+  for (const listener of connectionListeners) {
+    listener(status);
+  }
+}
+
+function notifyReconnect() {
+  for (const listener of reconnectListeners) {
+    listener();
+  }
+}
+
+function attachConnectionBindings(client: Pusher) {
+  if (connectionBindingsAttached) {
+    return;
+  }
+
+  connectionBindingsAttached = true;
+  notifyConnectionStatus(mapPusherState(client.connection.state));
+
+  client.connection.bind("state_change", (states: { previous: string; current: string }) => {
+    const next = mapPusherState(states.current);
+    notifyConnectionStatus(next);
+
+    if (
+      states.current === "disconnected" ||
+      states.current === "unavailable" ||
+      states.current === "failed"
+    ) {
+      wasDisconnected = true;
+    }
+
+    if (states.current === "connected" && wasDisconnected) {
+      wasDisconnected = false;
+      notifyReconnect();
+    }
+  });
+}
+
+export function getPusherConnectionStatus(): PusherConnectionStatus {
+  return connectionStatus;
+}
+
+export function subscribePusherConnectionStatus(
+  listener: (status: PusherConnectionStatus) => void,
+): () => void {
+  connectionListeners.add(listener);
+  listener(connectionStatus);
+
+  return () => {
+    connectionListeners.delete(listener);
+  };
+}
+
+export function subscribePusherReconnect(listener: () => void): () => void {
+  reconnectListeners.add(listener);
+  return () => {
+    reconnectListeners.delete(listener);
+  };
+}
+
 export function parseExecutionTerminalPayload(
   data: unknown,
 ): ExecutionTerminalPusherPayload | null {
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
   const executionId = Number(row.executionId);
+  const automationId = Number(row.automationId);
   if (!Number.isFinite(executionId) || executionId < 1) return null;
+  if (!Number.isFinite(automationId) || automationId < 1) return null;
+
+  const status = row.status;
+  if (status !== "completed" && status !== "failed") return null;
 
   const finishedAtRaw = row.finishedAt ?? row.completedAt;
   if (typeof finishedAtRaw !== "string" || !finishedAtRaw.trim()) {
@@ -32,11 +129,11 @@ export function parseExecutionTerminalPayload(
 
   return {
     executionId,
-    automationId: Number(row.automationId),
-    status: row.status as ExecutionTerminalPusherPayload["status"],
+    automationId,
+    status,
     isTerminal: true,
     totalRecipients: Number(row.totalRecipients) || 0,
-    emailsSent: Number(row.emailsSent) || 0,
+    emailsSent: Number(row.emailsSent ?? row.emailsSentCount) || 0,
     progressPercent: Number(row.progressPercent) || 0,
     queueJobId:
       row.queueJobId == null ? null : String(row.queueJobId),
@@ -61,7 +158,46 @@ export function getPusherClient(): Pusher | null {
     sharedClient = new Pusher(key, {
       cluster,
       forceTLS: true,
+      authorizer: (channel) => ({
+        authorize: (socketId, callback) => {
+          if (!channel.name.startsWith("private-")) {
+            callback(new Error("Unsupported channel type."), null);
+            return;
+          }
+
+          void authenticatedFetch(`${getApiBaseUrl()}/pusher/auth`, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              socket_id: socketId,
+              channel_name: channel.name,
+            }),
+          })
+            .then(async (response) => {
+              if (!response.ok) {
+                throw new Error("Could not authorize realtime channel.");
+              }
+
+              const auth = (await response.json()) as {
+                auth: string;
+                channel_data?: string;
+              };
+              callback(null, auth);
+            })
+            .catch((error: unknown) => {
+              callback(
+                error instanceof Error ? error : new Error("Pusher auth failed."),
+                null,
+              );
+            });
+        },
+      }),
     });
+
+    attachConnectionBindings(sharedClient);
   }
 
   return sharedClient;
@@ -107,18 +243,21 @@ function subscribeChannelTerminal(
 
   const channel = retainChannel(client, channelName);
 
-  const handlers = TERMINAL_EVENTS.map((eventName) => {
-    const handler = (raw: unknown) => {
-      const payload = parseExecutionTerminalPayload(raw);
-      if (!payload) return;
-      onTerminal(payload);
-    };
-    return { eventName, handler };
-  });
+  const handlerFactory = () => (raw: unknown) => {
+    const payload = parseExecutionTerminalPayload(raw);
+    if (!payload) {
+      return;
+    }
+    onTerminal(payload);
+  };
+
+  const handlers = TERMINAL_EVENTS.map((eventName) => ({
+    eventName,
+    handler: handlerFactory(),
+  }));
 
   const bindHandlers = () => {
     channel.unbind("pusher:subscription_succeeded", bindHandlers);
-    console.log("[Pusher] channel subscribed:", channelName);
     for (const { eventName, handler } of handlers) {
       channel.bind(eventName, handler);
     }
@@ -153,6 +292,90 @@ export function subscribeAutomationTerminal(
   return subscribeChannelTerminal(
     pusherAutomationChannel(automationId),
     onTerminal,
+  );
+}
+
+function subscribeChannelEvent<T>(
+  channelName: string,
+  eventName: string,
+  onEvent: (payload: T) => void,
+  parsePayload: (raw: unknown) => T | null,
+  debugLabel?: string,
+): () => void {
+  const client = getPusherClient();
+  if (!client) {
+    if (debugLabel) {
+      console.warn(`[Chat Pusher] ${debugLabel}: client not available (check env vars).`);
+    }
+    return () => {};
+  }
+
+  const channel = retainChannel(client, channelName);
+
+  const handler = (raw: unknown) => {
+    const payload = parsePayload(raw);
+    if (!payload) {
+      if (debugLabel) {
+        console.warn(`[Chat Pusher] ${debugLabel}: ignored invalid payload`, raw);
+      }
+      return;
+    }
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: event received`, {
+        channel: channelName,
+        event: eventName,
+        payload,
+      });
+    }
+    onEvent(payload);
+  };
+
+  const bindHandler = () => {
+    channel.unbind("pusher:subscription_succeeded", bindHandler);
+    channel.bind(eventName, handler);
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: subscribed`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
+  };
+
+  if (channel.subscribed) {
+    bindHandler();
+  } else {
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: waiting for subscription`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
+    channel.bind("pusher:subscription_succeeded", bindHandler);
+  }
+
+  return () => {
+    if (debugLabel) {
+      console.log(`[Chat Pusher] ${debugLabel}: unsubscribed`, {
+        channel: channelName,
+        event: eventName,
+      });
+    }
+    channel.unbind(eventName, handler);
+    channel.unbind("pusher:subscription_succeeded", bindHandler);
+    releaseChannel(client, channelName);
+  };
+}
+
+export function subscribeRestaurantChatMessages(
+  restaurantId: number,
+  onMessage: (payload: ChatMessagePusherPayload) => void,
+): () => void {
+  return subscribeChannelEvent(
+    pusherRestaurantChatChannel(restaurantId),
+    PUSHER_CHAT_EVENT.MESSAGE_SENT,
+    onMessage,
+    parseChatMessagePusherPayload,
+    `restaurant-${restaurantId}`,
   );
 }
 

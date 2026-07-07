@@ -25,6 +25,8 @@ export function executionStatusBadgeClass(
       return "bg-blue-100 text-blue-900 ring-1 ring-blue-200";
     case "waiting":
       return "bg-amber-100 text-amber-900 ring-1 ring-amber-200";
+    case "paused":
+      return "bg-zinc-200 text-zinc-800 ring-1 ring-zinc-300";
     case "completed":
       return "bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200";
     case "failed":
