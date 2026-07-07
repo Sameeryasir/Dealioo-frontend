@@ -6886,8 +6886,6 @@ body {
   }
 }
 
-}
-
 @keyframes guest-chat-shimmer {
   100% {
     transform: translateX(100%);
