@@ -4,8 +4,21 @@ import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import {
+  getSignupPlanCta,
+  SignupPlanStep,
+} from "@/app/components/auth/SignupPlanStep";
 import OtpForm from "@/app/components/OtpForm";
+import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { easeOut } from "@/app/components/landing/landing-motion";
+import { useCredentialContext } from "@/app/contexts/credential-context";
+import { hasAuthSession } from "@/app/lib/auth-session";
+import {
+  clearSignupProgress,
+  readSignupProgress,
+  resolveSignupStep,
+  saveSignupProgress,
+} from "@/app/lib/signup-progress-storage";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -18,6 +31,7 @@ import {
   Phone,
   User,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -39,6 +53,7 @@ export type SignupFormProps = {
   onRegister: (values: SignupRegisterValues) => Promise<void>;
   onVerifyOtp: (otp: number) => Promise<void>;
   onResendOtp: () => Promise<void>;
+  onFinishSignup: (selection: { planId: string; billing: BillingCycle }) => Promise<void>;
 };
 
 const STEPS = [
@@ -59,6 +74,12 @@ const STEPS = [
     accent: "email",
     subtitle: "Enter the 6-digit code we sent to your inbox.",
     accentClass: "landing-hero-accent-pink",
+  },
+  {
+    lead: "Choose your ",
+    accent: "plan",
+    subtitle: "Pick the same plan options from our pricing page.",
+    accentClass: "landing-hero-accent-blue",
   },
 ] as const;
 
@@ -93,24 +114,32 @@ function FieldError({ message }: { message?: string }) {
 export default function SignupForm({
   submitting,
   errorMessage,
-  loginHref: _loginHref = "/auth/login",
+  loginHref = "/auth/login",
   onRegister,
   onVerifyOtp,
   onResendOtp,
+  onFinishSignup,
 }: SignupFormProps) {
   const router = useRouter();
+  const { rememberCredentials } = useCredentialContext();
   const reduced = useReducedMotion();
+  const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
   const [accountCreated, setAccountCreated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState("starter");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const {
     register,
     control,
     watch,
     getValues,
+    reset,
     trigger,
     formState: { errors },
   } = useForm<SignupFormValues>({
@@ -126,13 +155,105 @@ export default function SignupForm({
 
   const passwordValue = watch("password");
   const emailValue = watch("email");
+  const nameValue = watch("name");
+  const phoneValue = watch("phone");
   const strength = useMemo(() => passwordStrength(passwordValue ?? ""), [passwordValue]);
   const currentStep = STEPS[step];
   const progress = ((step + 1) / STEPS.length) * 100;
   const stepSubtitle =
     step === 2 && emailValue.trim()
       ? `Enter the 6-digit code we sent to ${emailValue.trim()}.`
-      : currentStep.subtitle;
+      : step === 3
+        ? "Starter is selected by default — switch anytime before you continue."
+        : currentStep.subtitle;
+
+  const handleVerifyOtp = async (otp: number) => {
+    await onVerifyOtp(otp);
+    setEmailVerified(true);
+    setStep(3);
+  };
+
+  const handleFinishSignup = async () => {
+    if (!selectedPlanId) return;
+    await onFinishSignup({ planId: selectedPlanId, billing: billingCycle });
+    clearSignupProgress();
+  };
+
+  useEffect(() => {
+    const saved = readSignupProgress();
+    if (saved) {
+      const restored = resolveSignupStep(saved);
+
+      reset({
+        name: saved.name,
+        email: saved.email,
+        phone: saved.phone,
+        password: saved.password,
+        confirmPassword: saved.password,
+      });
+
+      setStep(restored.step);
+      setAccountCreated(saved.accountCreated);
+      setEmailVerified(restored.emailVerified);
+      setSelectedPlanId(saved.selectedPlanId);
+      setBillingCycle(saved.billing);
+
+      if (saved.email.trim()) {
+        rememberCredentials(saved.email.trim(), saved.password);
+      }
+    } else if (hasAuthSession()) {
+      setEmailVerified(true);
+    }
+
+    setHydrated(true);
+  }, [rememberCredentials, reset]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    saveSignupProgress({
+      step,
+      name: nameValue ?? "",
+      email: emailValue ?? "",
+      phone: phoneValue ?? "",
+      password: passwordValue ?? "",
+      accountCreated,
+      emailVerified: emailVerified || hasAuthSession(),
+      selectedPlanId,
+      billing: billingCycle,
+    });
+  }, [
+    hydrated,
+    step,
+    nameValue,
+    emailValue,
+    phoneValue,
+    passwordValue,
+    accountCreated,
+    emailVerified,
+    selectedPlanId,
+    billingCycle,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mobileQuery = window.matchMedia("(max-width: 639px)");
+    const scrollFocusedField = (event: FocusEvent) => {
+      if (!mobileQuery.matches) return;
+
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.matches("input, textarea, select")) return;
+
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 320);
+    };
+
+    document.addEventListener("focusin", scrollFocusedField);
+    return () => document.removeEventListener("focusin", scrollFocusedField);
+  }, []);
 
   const goNext = async () => {
     if (step === 0) {
@@ -161,6 +282,10 @@ export default function SignupForm({
   };
 
   const goBack = () => {
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
     if (step === 2) {
       setStep(1);
       return;
@@ -177,29 +302,23 @@ export default function SignupForm({
 
   const inputClass = (hasError: boolean) =>
     `brand-input py-3 text-sm read-only:bg-[#f8faff]/80 ${fieldRing(hasError)}`;
-  useEffect(() => {
-    if (typeof window === "undefined") return;
 
-    const mobileQuery = window.matchMedia("(max-width: 639px)");
-    const scrollFocusedField = (event: FocusEvent) => {
-      if (!mobileQuery.matches) return;
-
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.matches("input, textarea, select")) return;
-
-      window.setTimeout(() => {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
-      }, 320);
-    };
-
-    document.addEventListener("focusin", scrollFocusedField);
-    return () => document.removeEventListener("focusin", scrollFocusedField);
-  }, []);
+  if (!hydrated) {
+    return (
+      <div className="auth-signup-scroll-block flex min-h-[14rem] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-primary" aria-hidden />
+        <span className="sr-only">Loading signup progress…</span>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="auth-signup-scroll-block">
+      <div
+        className={`auth-signup-scroll-block${
+          step === 2 ? " auth-signup-scroll-block--otp-step" : ""
+        }${step === 3 ? " auth-signup-scroll-block--plan-step" : ""}`}
+      >
         <div className="auth-signup-progress-block">
           <p className="auth-signup-step-meta">
             Step {step + 1} of {STEPS.length}
@@ -231,7 +350,11 @@ export default function SignupForm({
           </motion.div>
         </AnimatePresence>
 
-        <div className="auth-signup-step-body">
+        <div
+          className={`auth-signup-step-body${
+            step === 2 ? " auth-signup-step-body--otp-step" : ""
+          }${step === 3 ? " auth-signup-step-body--plan-step" : ""}`}
+        >
         {errorMessage ? (
           <div className="auth-signup-form-alert-banner" role="alert" aria-live="polite">
             <div className="auth-signup-form-alert flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 text-red-700">
@@ -245,9 +368,21 @@ export default function SignupForm({
             <OtpForm
               embedded
               email={emailValue.trim()}
-              onVerifyOtp={onVerifyOtp}
+              formId="auth-signup-otp-form"
+              actionsPlacement="footer"
+              onLoadingChange={setOtpLoading}
+              onVerifyOtp={handleVerifyOtp}
               onResendOtp={onResendOtp}
               onBack={goBack}
+            />
+          </div>
+        ) : step === 3 ? (
+          <div className="auth-signup-fields auth-signup-fields--plan-step">
+            <SignupPlanStep
+              billing={billingCycle}
+              onBillingChange={setBillingCycle}
+              selectedPlanId={selectedPlanId}
+              onSelectPlan={setSelectedPlanId}
             />
           </div>
         ) : (
@@ -482,13 +617,13 @@ export default function SignupForm({
         </div>
       </div>
 
-      {step < 2 ? (
+      <div className="auth-signup-mobile-dock">
         <div className="auth-signup-actions">
           {step > 0 ? (
             <button
               type="button"
               onClick={goBack}
-              disabled={submitting}
+              disabled={submitting || otpLoading}
               className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
             >
               Back
@@ -504,21 +639,58 @@ export default function SignupForm({
             </button>
           )}
 
-          <button
-            type="submit"
-            form="auth-signup-form"
-            disabled={submitting}
-            aria-busy={submitting}
-            className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
-          >
-            {submitting ? (
-              <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-            ) : (
-              "Next"
-            )}
-          </button>
+          {step < 2 ? (
+            <button
+              type="submit"
+              form="auth-signup-form"
+              disabled={submitting}
+              aria-busy={submitting}
+              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              ) : (
+                "Next"
+              )}
+            </button>
+          ) : step === 2 ? (
+            <button
+              type="submit"
+              form="auth-signup-otp-form"
+              disabled={otpLoading || submitting}
+              aria-busy={otpLoading || submitting}
+              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
+            >
+              {otpLoading || submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              ) : (
+                "Verify"
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleFinishSignup()}
+              disabled={submitting || !selectedPlanId || !emailVerified}
+              aria-busy={submitting}
+              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              ) : (
+                getSignupPlanCta(selectedPlanId)
+              )}
+            </button>
+          )}
         </div>
-      ) : null}
+
+        <footer className="auth-signup-card-footer">
+          Already have an account?{" "}
+          <Link href={loginHref} className="font-semibold text-brand-primary hover:underline">
+            Log in
+          </Link>
+        </footer>
+      </div>
     </>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-/**
- * SuperBuzz-inspired editorial sections — quote band, final CTA, pricing.
- * Business rule: dark 3D bands break white rhythm; hero stays light.
- */
 import { landingSignupHref } from "@/app/components/landing/landing-auth";
+import {
+  getPlanTier,
+  PRICING_PLANS,
+  type BillingCycle,
+  type PricingPlan,
+} from "@/app/components/landing/pricing-plans";
 import { Reveal } from "@/app/components/landing/LandingMotionParts";
 import { BRAND_COLORS } from "@/app/components/landing/landing-brand";
 import { easeOut } from "@/app/components/landing/landing-motion";
@@ -18,13 +20,6 @@ import {
   MousePointerClick,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-type BillingCycle = "monthly" | "annual";
-
-type PricingFeatureGroup = {
-  label: string;
-  items: readonly string[];
-};
 
 const PRODUCT_CAPABILITIES = [
   {
@@ -88,121 +83,20 @@ const CTA_CHIPS = [
 
 const SPOTLIGHT_POINTING_SRC = "/pointing.png";
 
-const PLANS = [
-  {
-    id: "starter",
-    name: "Starter",
-    badge: "Perfect for small businesses",
-    tagline: "Perfect for businesses getting started.",
-    description: "Ideal for businesses managing marketing in-house.",
-    monthly: { price: "$29", period: "/ month", promo: null as string | null, subline: "Billed monthly" },
-    annual: { price: "$24", period: "/ mo", promo: "2 months free", subline: "Billed annually ($290/year)" },
-    features: [
-      "One location",
-      "DIY Campaign Builder",
-      "Landing pages",
-      "QR redemption",
-      "Stripe checkout",
-      "Customer CRM",
-      "Analytics",
-    ],
-    cta: "Get Started",
-    highlighted: false,
-    color: BRAND_COLORS.blue,
-  },
-  {
-    id: "growth-ai",
-    name: "Growth AI",
-    badge: "Most Popular ⭐",
-    tagline: "Everything you need to grow with AI.",
-    description: "Everything in Starter, powered by AI.",
-    monthly: { price: "$99", period: "/ month", promo: null, subline: "Billed monthly" },
-    annual: { price: "$82", period: "/ mo", promo: "2 months free", subline: "Billed annually ($990/year)" },
-    features: [
-      "Everything in Starter",
-      "AI Deal Generator",
-      "AI Image Generation",
-      "AI Copywriting",
-      "AI Campaign Builder",
-      "AI Chat Assistant",
-      "AI Follow-ups",
-      "AI Email, SMS & WhatsApp Automation",
-      "Unlimited campaigns",
-    ],
-    cta: "Start Now",
-    highlighted: true,
-    color: BRAND_COLORS.pink,
-  },
-  {
-    id: "growth-expert",
-    name: "Growth Expert",
-    badge: "Best ROI",
-    tagline: "AI plus a dedicated marketing expert.",
-    description: "Everything in Growth AI—with a dedicated marketing expert.",
-    monthly: { price: "$299", period: "/ month", promo: null, subline: "Billed monthly" },
-    annual: { price: "$249", period: "/ mo", promo: "2 months free", subline: "Billed annually ($2,990/year)" },
-    salesEmail: "support@dealioo.com",
-    featureGroups: [
-      {
-        label: "Included",
-        items: ["Everything in Growth AI"],
-      },
-      {
-        label: "Expert Services",
-        items: [
-          "Dedicated marketing expert",
-          "Monthly strategy session",
-          "Weekly strategy call",
-          "Campaign reviews",
-          "Creative feedback",
-          "Growth strategy",
-          "Campaign recommendations",
-          "Priority support",
-        ],
-      },
-    ] satisfies readonly PricingFeatureGroup[],
-    cta: "Talk to Us",
-    highlighted: false,
-    color: BRAND_COLORS.violet,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    badge: "Contact Sales",
-    tagline: "Built for multi-location businesses.",
-    description: "Custom plans for multi-location brands and franchises.",
-    monthly: { price: "Custom", period: "", promo: null, subline: null as string | null },
-    annual: { price: "Custom", period: "", promo: null, subline: null as string | null },
-    salesEmail: "support@dealioo.com",
-    features: [
-      "Unlimited locations",
-      "Multi-location & franchise",
-      "White label",
-      "Dedicated success manager",
-      "API access",
-      "Custom AI",
-      "SLA",
-    ],
-    cta: "Contact Sales",
-    highlighted: false,
-    color: BRAND_COLORS.violet,
-  },
-] as const;
-
 function PricingPlanFeatures({
   plan,
 }: {
-  plan: (typeof PLANS)[number];
+  plan: PricingPlan;
 }) {
   if ("featureGroups" in plan && plan.featureGroups) {
     return (
-      <div className="landing-pricing-feature-groups mt-3 flex-1 space-y-2">
+      <div className="landing-pricing-feature-groups mt-2 space-y-1.5">
         {plan.featureGroups.map((group) => (
           <div key={group.label}>
             <p className="landing-pricing-feature-group-label mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-brand-muted">
               {group.label}
             </p>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {group.items.map((feature) => (
                 <li key={feature} className="flex items-start gap-1.5 text-[10px] leading-snug text-brand-body sm:text-[11px]">
                   <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-retain" strokeWidth={3} />
@@ -217,14 +111,13 @@ function PricingPlanFeatures({
   }
 
   return (
-    <ul className="mt-3 flex-1 space-y-1.5">
-      {"features" in plan &&
-        plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-1.5 text-[11px] text-brand-body sm:text-xs">
-            <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-retain" strokeWidth={3} />
-            {feature}
-          </li>
-        ))}
+    <ul className="mt-2 space-y-1">
+      {(plan.features ?? []).map((feature) => (
+        <li key={feature} className="flex items-start gap-1.5 text-[11px] text-brand-body sm:text-xs">
+          <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-retain" strokeWidth={3} />
+          {feature}
+        </li>
+      ))}
     </ul>
   );
 }
@@ -279,7 +172,6 @@ function BillingToggle({
   );
 }
 
-/** Dark quote band — brand philosophy between How it works and pricing */
 export function LandingSpotlightBand() {
   const reduced = useReducedMotion();
 
@@ -335,7 +227,6 @@ export function LandingSpotlightBand() {
             <span className="landing-spotlight-corner landing-spotlight-corner-bl" aria-hidden />
             <span className="landing-spotlight-corner landing-spotlight-corner-br" aria-hidden />
             <blockquote className="landing-spotlight-quote">
-              {/* Desktop — "with a" stays on line 1; pink phrase alone on line 2 */}
               <span className="landing-spotlight-quote-desktop hidden sm:block">
                 <span className="landing-spotlight-quote-line landing-spotlight-quote-line-lead">
                   <span>Marketing shouldn&apos;t end with a click.</span>{" "}
@@ -345,7 +236,6 @@ export function LandingSpotlightBand() {
                   returning customer.
                 </span>
               </span>
-              {/* Mobile — natural wrap */}
               <span className="sm:hidden">
                 Marketing shouldn&apos;t end with a click. It should end with a{" "}
                 <span className="landing-spotlight-highlight">returning customer.</span>
@@ -382,7 +272,6 @@ export function LandingSpotlightBand() {
   );
 }
 
-/** Navy CTA band — stats chips + signup; sole bottom CTA before footer */
 export function LandingFinalCtaBand({ returnTo }: { returnTo?: string | null }) {
   const reduced = useReducedMotion();
   const signupHref = landingSignupHref(returnTo);
@@ -612,12 +501,10 @@ export function LandingSocialProof() {
   );
 }
 
-/** @deprecated use LandingSocialProof, quote + testimonials merged */
 export function LandingTestimonials() {
   return <LandingSocialProof />;
 }
 
-/** @deprecated merged into LandingSocialProof */
 export function LandingQuoteStat() {
   return null;
 }
@@ -657,7 +544,9 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
           </p>
         </Reveal>
 
-        <BillingToggle cycle={billing} onChange={setBilling} />
+        <div className="landing-pricing-billing-wrap flex justify-center">
+          <BillingToggle cycle={billing} onChange={setBilling} />
+        </div>
         <p className="landing-pricing-billing-note mx-auto mt-3 max-w-md text-center text-[11px] font-semibold text-brand-muted sm:mt-4 sm:text-xs">
           {billingNote}
         </p>
@@ -670,8 +559,8 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
           className="landing-section-card-shell landing-pricing-card-shell !mt-5 sm:!mt-6"
         >
           <div className="landing-pricing-grid grid md:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#e8edf5]">
-            {PLANS.map((plan, i) => {
-              const tier = billing === "annual" ? plan.annual : plan.monthly;
+            {PRICING_PLANS.map((plan, i) => {
+              const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";
 
               return (
@@ -681,11 +570,11 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                     initial={reduced ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22 }}
-                    className={`landing-pricing-card flex h-full flex-col p-4 shadow-none sm:p-5 ${
+                    className={`landing-pricing-card flex h-full flex-col p-3 shadow-none sm:p-4 ${
                       plan.highlighted ? "landing-pricing-card-featured relative bg-[#f8faff] lg:z-[1]" : "bg-white"
                     } ${isExpertPlan ? "landing-pricing-card-expert" : ""}`}
                   >
-                    <div className="mb-1.5 flex min-h-[1.125rem] flex-wrap items-center gap-1.5">
+                    <div className="mb-1 flex min-h-0 flex-wrap items-center gap-1.5">
                       {plan.badge ? (
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide ${
@@ -702,22 +591,22 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                     </div>
                     <h3 className="text-base font-bold text-brand-navy sm:text-lg">{plan.name}</h3>
                     <p className="mt-0.5 text-[11px] text-brand-muted sm:text-xs">{plan.tagline}</p>
-                    <div className="mt-3 flex items-baseline gap-1">
+                    <div className="mt-2 flex items-baseline gap-1">
                       <span className="text-2xl font-black tracking-tight text-brand-navy sm:text-3xl">{tier.price}</span>
                       {tier.period ? (
                         <span className="text-xs text-brand-muted">{tier.period}</span>
                       ) : null}
                     </div>
-                    <p className="landing-pricing-tier-subline mt-0.5 min-h-[0.9375rem] text-[10px] text-brand-muted">
+                    <p className="landing-pricing-tier-subline mt-0.5 min-h-0 text-[10px] text-brand-muted">
                       {tier.subline ?? "\u00A0"}
                     </p>
-                    <p className="mt-2 text-[11px] leading-snug text-brand-body sm:text-xs">{plan.description}</p>
+                    <p className="mt-1.5 text-[11px] leading-snug text-brand-body sm:text-xs">{plan.description}</p>
                     <PricingPlanFeatures plan={plan} />
                     <motion.a
                       href={signupHref}
                       whileHover={reduced ? undefined : { scale: 1.02, y: -1 }}
                       whileTap={reduced ? undefined : { scale: 0.98 }}
-                      className={`mt-4 flex h-10 items-center justify-center rounded-full text-xs font-bold sm:h-11 sm:text-sm ${
+                      className={`mt-3 flex h-9 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:text-sm ${
                         plan.highlighted
                           ? "bg-brand-primary text-white shadow-[0_6px_20px_rgba(24,119,242,0.28)]"
                           : "border border-brand-border bg-white text-brand-navy hover:bg-brand-soft"

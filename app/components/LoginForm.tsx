@@ -253,32 +253,41 @@ export default function LoginForm({
         </div>
       </div>
 
-      {view === "credentials" ? (
-        <div className="auth-signup-actions">
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            disabled={submitting || forgotSubmitting}
-            className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
-          >
-            Back to Home
-          </button>
+      <div className="auth-signup-mobile-dock">
+        {view === "credentials" ? (
+          <div className="auth-signup-actions">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              disabled={submitting || forgotSubmitting}
+              className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
+            >
+              Back to Home
+            </button>
 
-          <button
-            type="submit"
-            form="auth-login-form"
-            disabled={submitting || forgotSubmitting}
-            aria-busy={submitting}
-            className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
-          >
-            {submitting ? (
-              <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-            ) : (
-              "Sign In"
-            )}
-          </button>
-        </div>
-      ) : null}
+            <button
+              type="submit"
+              form="auth-login-form"
+              disabled={submitting || forgotSubmitting}
+              aria-busy={submitting}
+              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </div>
+        ) : null}
+
+        <footer className="auth-signup-card-footer">
+          Don&apos;t have an account?{" "}
+          <Link href={signupHref} className="font-semibold text-brand-primary hover:underline">
+            Sign up free
+          </Link>
+        </footer>
+      </div>
     </>
   );
 }

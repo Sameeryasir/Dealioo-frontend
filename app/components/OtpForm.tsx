@@ -39,10 +39,13 @@ export type OtpFormProps = {
   authenticatorMode?: boolean;
   onBack?: () => void;
   suppressEmailResend?: boolean;
+  actionsPlacement?: "inline" | "footer";
+  formId?: string;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 const cellBase =
-  "brand-input h-11 w-full min-w-0 text-center text-lg font-semibold tabular-nums";
+  "brand-input auth-otp-cell text-center text-lg font-semibold tabular-nums";
 
 function cellRing(hasError: boolean) {
   return hasError ? "brand-input-error" : "";
@@ -56,6 +59,9 @@ export default function OtpForm({
   authenticatorMode = false,
   onBack,
   suppressEmailResend = false,
+  actionsPlacement = "inline",
+  formId,
+  onLoadingChange,
 }: OtpFormProps) {
   const showEmailResend = !suppressEmailResend && !!onResendOtp;
 
@@ -82,6 +88,10 @@ export default function OtpForm({
   useEffect(() => {
     setValue("code", digits.join(""), { shouldValidate: false });
   }, [digits, setValue]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const focusInput = useCallback((index: number) => {
     const el = inputRefs.current[index];
@@ -211,8 +221,41 @@ export default function OtpForm({
 
   const codeInvalid = !!errors.code;
 
+  const showInlineEmbeddedActions =
+    embedded && onBack && actionsPlacement === "inline";
+
+  const embeddedActionButtons = showInlineEmbeddedActions ? (
+    <div className="auth-signup-actions">
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={loading}
+        className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
+      >
+        Back
+      </button>
+      <button
+        type="submit"
+        disabled={loading}
+        aria-busy={loading}
+        aria-label={loading ? "Verifying" : "Verify"}
+        className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-full px-3 text-sm font-bold disabled:opacity-50"
+      >
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+        ) : (
+          <>
+            <span>Verify</span>
+            <LogIn className="h-4 w-4 opacity-90" strokeWidth={2} aria-hidden />
+          </>
+        )}
+      </button>
+    </div>
+  ) : null;
+
   const formInner = (
     <form
+      id={formId}
       method="post"
       action="/"
       autoComplete="off"
@@ -224,13 +267,13 @@ export default function OtpForm({
       <input type="hidden" {...register("code")} />
 
       <div className="flex flex-col gap-1.5">
-        <label className="brand-label justify-center">
+        <label className="brand-label auth-otp-label justify-center">
           <span>
             {authenticatorMode ? "Authenticator code" : "One-time password"}
           </span>
         </label>
 
-        <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
+        <div className="auth-otp-grid mx-auto flex w-full justify-center gap-2.5 sm:gap-3">
           {digits.map((digit, index) => (
             <input
               key={index}
@@ -268,42 +311,7 @@ export default function OtpForm({
         </div>
       )}
 
-      {embedded && onBack ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={loading}
-            className="brand-btn-secondary sm:w-auto sm:min-w-[140px]"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            aria-busy={loading}
-            aria-label={loading ? "Verifying" : "Verify"}
-            className="brand-btn-primary group sm:w-auto sm:min-w-[140px]"
-          >
-            {loading ? (
-              <Loader2
-                className="h-6 w-6 animate-spin text-white"
-                strokeWidth={2.5}
-                aria-hidden
-              />
-            ) : (
-              <>
-                <span>Verify</span>
-                <LogIn
-                  className="h-5 w-5 opacity-90 transition-transform group-hover:translate-x-0.5"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-              </>
-            )}
-          </button>
-        </div>
-      ) : (
+      {!embedded ? (
         <button
           type="submit"
           disabled={loading}
@@ -328,7 +336,7 @@ export default function OtpForm({
             </>
           )}
         </button>
-      )}
+      ) : null}
     </form>
   );
 
@@ -354,9 +362,10 @@ export default function OtpForm({
 
   if (embedded) {
     return (
-      <div className="flex flex-col gap-6 font-sans">
+      <div className="auth-signup-otp-embedded flex flex-col font-sans">
         {formInner}
         {resendBlock}
+        {embeddedActionButtons}
       </div>
     );
   }

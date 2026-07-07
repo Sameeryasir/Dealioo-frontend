@@ -7,6 +7,9 @@ import {
   resolvePostLoginPath,
   shouldSkipPasswordSetup,
 } from "@/app/lib/onboarding-redirect";
+import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
+import { clearSignupProgress } from "@/app/lib/signup-progress-storage";
+import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
@@ -70,6 +73,25 @@ function SignupPageInner() {
         const { token, refreshToken, user } = await verifyOtp(email, otp);
         setAuthTokens(token, refreshToken);
         setSetupUser(user);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not verify code. Try again.";
+        setErrorMessage(message);
+        throw error;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [email],
+  );
+
+  const onFinishSignup = useCallback(
+    async (selection: { planId: string; billing: BillingCycle }) => {
+      setErrorMessage(null);
+      setSubmitting(true);
+      try {
+        saveSelectedSignupPlan(selection);
+        clearSignupProgress();
 
         const status = await getOnboardingStatus();
 
@@ -81,14 +103,14 @@ function SignupPageInner() {
         router.push(resolvePostLoginPath(status, returnTo));
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Could not verify code. Try again.";
+          error instanceof Error ? error.message : "Could not finish signup. Try again.";
         setErrorMessage(message);
         throw error;
       } finally {
         setSubmitting(false);
       }
     },
-    [email, returnTo, router],
+    [returnTo, router],
   );
 
   const onResendOtp = useCallback(async () => {
@@ -108,6 +130,7 @@ function SignupPageInner() {
         onRegister={onRegister}
         onVerifyOtp={onVerifyOtp}
         onResendOtp={onResendOtp}
+        onFinishSignup={onFinishSignup}
       />
     </SignupPageShell>
   );

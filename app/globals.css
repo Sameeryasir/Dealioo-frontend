@@ -2708,7 +2708,7 @@ body {
 
   @media (min-width: 1280px) {
     .landing-pricing-grid .landing-pricing-card {
-      padding: 1rem 0.875rem;
+      padding: 0.75rem 0.75rem;
     }
 
     .landing-pricing-grid .landing-pricing-card h3 {
@@ -2721,23 +2721,23 @@ body {
   }
 
   .landing-page .landing-pricing-grid {
-    align-items: stretch;
+    align-items: start;
   }
 
   .landing-page .landing-pricing-grid > * {
-    height: 100%;
+    height: auto;
   }
 
   .landing-page .landing-pricing-card-expert .landing-pricing-feature-groups {
-    gap: 0.5rem;
+    gap: 0.375rem;
   }
 
   .landing-page .landing-pricing-card-expert .landing-pricing-feature-group-label {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.125rem;
   }
 
   .landing-page .landing-pricing-card-expert .landing-pricing-feature-groups ul {
-    gap: 0.25rem;
+    gap: 0.125rem;
   }
 
   .landing-page .landing-editorial-section {
@@ -5415,6 +5415,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-bottom: 0;
 }
 .auth-signup-page > .auth-signup-main {
   flex: 1;
@@ -6083,6 +6084,678 @@ body {
   min-height: 14rem;
 }
 
+.auth-signup-scroll-block--otp-step {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.auth-signup-step-body--otp-step {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.auth-signup-step-body--otp-step .auth-signup-fields--otp-step {
+  flex: 0 0 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.auth-signup-otp-embedded {
+  width: 100%;
+}
+
+.auth-signup-scroll-block--plan-step {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.auth-signup-page .auth-signup-scroll-block--plan-step {
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.auth-signup-step-body--plan-step {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  justify-content: flex-start;
+}
+
+.auth-signup-fields--plan-step {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-signup-plan-step {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  gap: 0.625rem;
+  --auth-signup-plan-card-width: 9rem;
+}
+
+.auth-signup-plan-billing-wrap {
+  flex-shrink: 0;
+}
+
+.auth-signup-plan-list-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.auth-signup-plan-list-scroll {
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 0.5rem;
+  touch-action: pan-x pan-y;
+}
+
+.auth-signup-plan-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: max-content;
+  min-width: 100%;
+  gap: 0.5rem;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.375rem;
+  padding-inline: 0.125rem;
+}
+
+.auth-signup-plan-row {
+  display: contents;
+}
+
+.auth-signup-plan-card {
+  cursor: pointer;
+  touch-action: manipulation;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--auth-signup-plan-card-width);
+  width: var(--auth-signup-plan-card-width);
+  min-width: var(--auth-signup-plan-card-width);
+  max-width: var(--auth-signup-plan-card-width);
+  height: auto;
+  align-self: stretch;
+  overflow: visible;
+  scroll-snap-align: start;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.auth-signup-plan-card-badge {
+  font-size: 0.5625rem;
+  padding: 0.1875rem 0.4375rem;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+
+.auth-signup-plan-card-name {
+  font-size: 0.8125rem;
+}
+
+.auth-signup-plan-card-tagline {
+  font-size: 0.625rem;
+}
+
+.auth-signup-plan-card-price-value {
+  font-size: 0.9375rem;
+}
+
+.auth-signup-plan-card-price-period {
+  font-size: 0.5625rem;
+}
+
+.auth-signup-plan-card-subline {
+  font-size: 0.5625rem;
+}
+
+.auth-signup-plan-card-desc {
+  font-size: 0.625rem;
+}
+
+.auth-signup-plan-feature-group-label {
+  font-size: 0.5625rem;
+}
+
+.auth-signup-plan-feature-item {
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.auth-signup-plan-feature-check {
+  width: 0.6875rem;
+  height: 0.6875rem;
+}
+
+.auth-signup-plan-features {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-signup-plan-feature-groups {
+  min-height: 0;
+}
+
+.auth-signup-plan-more-hint {
+  display: none;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  gap: 0.25rem;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-signup-plan-more-hint-pill {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1875rem;
+  padding: 0.3125rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid rgba(24, 119, 242, 0.22);
+  background: rgba(248, 250, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.08);
+  animation: auth-signup-plan-more-hint-glow 2.6s ease-in-out infinite;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.auth-signup-plan-more-hint:hover .auth-signup-plan-more-hint-pill,
+.auth-signup-plan-more-hint:focus-visible .auth-signup-plan-more-hint-pill {
+  border-color: rgba(24, 119, 242, 0.45);
+  background: #f0f5ff;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.14);
+  animation-play-state: paused;
+}
+
+.auth-signup-plan-more-hint:focus-visible {
+  outline: none;
+}
+
+.auth-signup-plan-more-hint:focus-visible .auth-signup-plan-more-hint-pill {
+  outline: 2px solid var(--brand-primary, #1877f2);
+  outline-offset: 2px;
+}
+
+.auth-signup-plan-more-hint-icon {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  flex-shrink: 0;
+  color: var(--brand-primary, #1877f2);
+  animation: auth-signup-plan-more-hint-bob 1.8s ease-in-out infinite;
+}
+
+.auth-signup-plan-more-hint:hover .auth-signup-plan-more-hint-icon,
+.auth-signup-plan-more-hint:focus-visible .auth-signup-plan-more-hint-icon {
+  animation-play-state: paused;
+}
+
+@keyframes auth-signup-plan-more-hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(0.125rem);
+  }
+}
+
+@keyframes auth-signup-plan-more-hint-glow {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.08);
+    border-color: rgba(24, 119, 242, 0.22);
+  }
+
+  50% {
+    box-shadow: 0 4px 14px rgba(24, 119, 242, 0.15);
+    border-color: rgba(24, 119, 242, 0.34);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-signup-plan-more-hint-pill,
+  .auth-signup-plan-more-hint-icon {
+    animation: none;
+  }
+}
+
+.auth-signup-plan-more-hint-text {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--brand-navy, #07111f);
+}
+
+.auth-signup-scroll-block--plan-step .auth-signup-progress-block {
+  margin-bottom: 0.25rem;
+}
+
+.auth-signup-scroll-block--plan-step .auth-signup-step-head {
+  margin-bottom: 0.25rem;
+}
+
+.auth-signup-scroll-block--plan-step .auth-signup-step-sub {
+  display: none;
+}
+
+.auth-signup-scroll-block--plan-step .auth-signup-step-title {
+  font-size: clamp(1.0625rem, 4.2vw, 1.25rem);
+  line-height: 1.2;
+}
+
+@media (max-width: 1023px) {
+  .auth-signup-plan-step {
+    gap: 0.5rem;
+  }
+
+  .auth-signup-plan-list-wrap,
+  .auth-signup-plan-list-scroll {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .auth-signup-plan-card-shell {
+    overflow: hidden;
+    border-radius: 1rem;
+    background: #ffffff;
+    box-shadow:
+      0 20px 48px rgba(15, 23, 42, 0.09),
+      0 0 0 1px #e8edf5;
+  }
+
+  .auth-signup-plan-list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    gap: 0;
+    padding: 0;
+  }
+
+  .auth-signup-plan-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 0 auto;
+    min-height: 0;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid #e8edf5;
+    box-shadow: none;
+    padding: 1rem 1.25rem;
+  }
+
+  .auth-signup-plan-list > .auth-signup-plan-card:first-child {
+    border-top: none;
+  }
+
+  .auth-signup-plan-card--featured:not(.auth-signup-plan-card--selected) {
+    border-top-color: color-mix(in srgb, var(--brand-primary, #1877f2) 28%, #e8edf5);
+    background: #fcfdff;
+  }
+
+  .auth-signup-plan-card-top {
+    margin-bottom: 0.375rem;
+  }
+
+  .auth-signup-plan-card-badge {
+    font-size: 0.5625rem;
+    padding: 0.125rem 0.5rem;
+    letter-spacing: 0.02em;
+  }
+
+  .auth-signup-plan-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .auth-signup-plan-card-tagline {
+    font-size: 0.6875rem;
+  }
+
+  .auth-signup-plan-card-price {
+    margin-top: 0.75rem;
+  }
+
+  .auth-signup-plan-card-price-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  .auth-signup-plan-card-price-period {
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .auth-signup-plan-card-subline {
+    font-size: 0.625rem;
+    min-height: 0.9375rem;
+  }
+
+  .auth-signup-plan-card-desc {
+    margin-top: 0.5rem;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+  }
+
+  .auth-signup-plan-card-features-wrap {
+    margin-top: 0.75rem;
+    min-height: 0;
+  }
+
+  .auth-signup-plan-feature-group-label {
+    font-size: 0.5625rem;
+    letter-spacing: 0.14em;
+  }
+
+  .auth-signup-plan-feature-item {
+    font-size: 0.625rem;
+    line-height: 1.35;
+  }
+
+  .auth-signup-plan-feature-check {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .auth-signup-plan-card--expert .auth-signup-plan-feature-groups {
+    gap: 0.5rem;
+  }
+
+  .auth-signup-plan-card--expert .auth-signup-plan-feature-group-label {
+    margin-bottom: 0.25rem;
+  }
+
+  .auth-signup-plan-card--expert .auth-signup-plan-features {
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-signup-plan-card {
+    padding: 0.875rem 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-page .auth-signup-scroll-block--plan-step {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: clamp(1.25rem, 2.5vh, 1.75rem);
+    padding-bottom: 1.25rem;
+  }
+
+  .auth-signup-page .auth-signup-step-body--plan-step {
+    flex: 0 0 auto;
+    margin-top: clamp(0.5rem, 1.5vh, 1rem);
+    margin-bottom: 0;
+    overflow: visible;
+    justify-content: flex-start;
+    padding-bottom: 0.5rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-list-scroll {
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-step-head {
+    margin-bottom: 0.375rem;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-progress-block {
+    margin-bottom: 0.375rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-step {
+    gap: 0.5rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-billing-wrap {
+    padding-bottom: 0.125rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(22rem, auto);
+    align-items: stretch;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    gap: 0.75rem;
+    scroll-snap-type: none;
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-shell {
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .auth-signup-page .auth-signup-plan-list > .auth-signup-plan-card:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .auth-signup-page .auth-signup-plan-list > .auth-signup-plan-card:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .auth-signup-page .auth-signup-plan-list > .auth-signup-plan-card:nth-child(4) {
+    grid-column: 1;
+    grid-row: 2;
+    scroll-margin-top: 1rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-list > .auth-signup-plan-card:nth-child(5) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .auth-signup-page .auth-signup-plan-list > .auth-signup-plan-more-hint {
+    display: flex;
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 0.875rem);
+    z-index: 3;
+    transform: translate(-50%, -50%);
+    margin: 0;
+  }
+
+  .auth-signup-page .auth-signup-plan-more-hint-pill {
+    padding: 0.375rem 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-more-hint-text {
+    font-size: 0.625rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: unset;
+    min-height: 22rem;
+    height: 100%;
+    padding: 0.875rem 0.75rem 1rem;
+    border: 1px solid #dbe3ef;
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    scroll-margin-top: 0.75rem;
+    scroll-margin-bottom: 1rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card--featured:not([aria-checked="true"]) {
+    border-color: color-mix(in srgb, var(--brand-primary, #1877f2) 28%, #dbe3ef);
+    background: #fcfdff;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-features-wrap {
+    flex: 1 1 auto;
+    min-height: 11.5rem;
+    overflow: visible;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-desc {
+    overflow: visible;
+    display: block;
+    -webkit-line-clamp: unset;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-badge {
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-name {
+    font-size: 0.9375rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-price-value {
+    font-size: 1.0625rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-price-period,
+  .auth-signup-page .auth-signup-plan-card-subline {
+    font-size: 0.625rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-card-desc {
+    font-size: 0.6875rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-feature-group-label {
+    font-size: 0.625rem;
+  }
+
+  .auth-signup-page .auth-signup-plan-feature-item {
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+
+  .auth-signup-page .auth-signup-plan-feature-check {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+.auth-signup-plan-card:focus-visible {
+  outline: 2px solid var(--brand-primary, #1877f2);
+  outline-offset: 2px;
+}
+
+.auth-otp-grid {
+  flex-wrap: nowrap;
+}
+
+.auth-otp-label {
+  font-weight: 700;
+  color: var(--brand-navy, #07111f);
+  letter-spacing: -0.01em;
+}
+
+.auth-otp-cell {
+  width: 3.375rem;
+  height: 3.625rem;
+  min-width: 3.375rem;
+  max-width: 3.375rem;
+  min-height: 3.625rem;
+  padding: 0;
+  flex: 0 0 auto;
+  border-width: 1.5px;
+  border-color: #94a3b8;
+  background: #ffffff;
+  color: var(--brand-navy, #07111f);
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.auth-otp-cell:focus {
+  border-color: var(--brand-primary, #1877f2);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.14);
+}
+
+@media (min-width: 640px) {
+  .auth-otp-cell {
+    width: 3.5rem;
+    height: 3.875rem;
+    min-width: 3.5rem;
+    max-width: 3.5rem;
+    min-height: 3.875rem;
+    font-size: 1.375rem;
+  }
+}
+
 .auth-signup-field-error {
   margin-top: 0.25rem;
   font-size: 0.75rem;
@@ -6145,6 +6818,30 @@ body {
   }
   .auth-login-page .auth-signup-step-body {
     margin-top: clamp(3rem, 7.5vh, 4.5rem);
+  }
+
+  .auth-signup-page .auth-signup-step-body--otp-step {
+    flex: 1 1 auto;
+    margin-top: clamp(0.75rem, 2vh, 1.25rem);
+    margin-bottom: 0;
+    justify-content: center;
+  }
+
+  .auth-signup-page .auth-signup-step-body--plan-step {
+    flex: 0 0 auto;
+    margin-top: clamp(0.5rem, 1.5vh, 1rem);
+    margin-bottom: 0;
+    overflow: visible;
+    justify-content: flex-start;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: clamp(1rem, 3vh, 1.5rem);
+    padding-bottom: 1.25rem;
   }
 
   .auth-signup-fields--profile-step .auth-signup-field-stack,
@@ -6372,6 +7069,12 @@ body {
     text-align: center;
   }
 }
+.auth-signup-mobile-dock {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  width: 100%;
+}
+
 @media (max-width: 639px) {
   .auth-signup-page {
     -webkit-text-size-adjust: 100%;
@@ -6389,12 +7092,30 @@ body {
     --auth-mobile-helper: 0.8125rem;
     --auth-mobile-header-h: 11.75rem;
     --auth-mobile-footer-h: 3.25rem;
+    --auth-mobile-bottom-inset: max(0.625rem, env(safe-area-inset-bottom, 0px));
+    --auth-mobile-actions-h: 3.875rem;
+    --auth-mobile-footer-content-h: 2.75rem;
+    --auth-mobile-bottom-dock-h: calc(
+      var(--auth-mobile-actions-h) + var(--auth-mobile-footer-content-h) + var(--auth-mobile-bottom-inset)
+    );
+  }
+
+  html:has(.auth-signup-page),
+  body:has(.auth-signup-page) {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;
   }
 
   .landing-page.auth-signup-page {
-    min-height: 100svh;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    min-height: 0;
     height: 100svh;
     max-height: 100svh;
+    padding-bottom: 0;
     overflow: hidden;
     background: #ffffff;
   }
@@ -6403,9 +7124,9 @@ body {
   .auth-signup-page .auth-signup-main {
     align-items: stretch;
     justify-content: flex-start;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
     overflow: hidden;
     padding-top: calc(4rem + env(safe-area-inset-top, 0px));
     padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
@@ -6417,20 +7138,21 @@ body {
     flex-direction: column;
     width: 100%;
     max-width: none !important;
-    height: 100%;
-    max-height: 100%;
+    flex: 1 1 0%;
+    height: auto;
+    max-height: none;
     min-height: 0;
     margin-inline: 0;
   }
 
   .auth-signup-page .auth-signup-card {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     flex-direction: column;
     width: 100%;
     max-width: 100%;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
     border-radius: 0;
     box-shadow: none;
     overflow: hidden;
@@ -6438,26 +7160,71 @@ body {
 
   .auth-signup-split-form {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     flex-direction: column;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
     width: 100%;
     overflow: hidden;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: 0;
     box-sizing: border-box;
   }
+
   .auth-signup-page .auth-signup-card .auth-signup-card-body {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    display: flex;
+    flex-direction: column;
     padding: 0;
+    padding-bottom: var(--auth-mobile-bottom-dock-h);
     overflow: hidden;
+  }
+
+  .auth-signup-mobile-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    flex-shrink: 0;
+    width: 100%;
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #ffffff;
+    box-shadow: 0 -1px 0 #e8edf5;
+  }
+
+  .auth-signup-mobile-dock .auth-signup-actions {
+    position: static;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0.625rem 1rem 0.5rem;
+    background: #ffffff;
+    border: none;
+    border-top: none;
+    box-shadow: none;
+  }
+
+  .auth-signup-mobile-dock .auth-signup-card-footer {
+    position: static;
+    margin-top: 0;
+    min-height: 0;
+    height: auto;
+    padding: 0.5rem 1rem 0.625rem;
+    border-top: 1px solid #e8edf5;
+    background: #fafbfd;
+    font-size: var(--auth-mobile-footer);
+    line-height: 1.35;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
   }
 
   .auth-signup-page .auth-signup-scroll-block {
     display: flex;
+    flex: 1 1 0%;
     flex-direction: column;
     min-height: 0;
     overflow-x: hidden;
@@ -6465,6 +7232,54 @@ body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 0.625rem 1rem 0.25rem;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--otp-step {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  .auth-signup-page .auth-signup-step-body--otp-step {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding-bottom: 0.5rem;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0.375rem;
+  }
+
+  .auth-signup-page .auth-signup-step-body--plan-step {
+    flex: 0 0 auto;
+    min-height: auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-step-head,
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-progress-block {
+    flex-shrink: 0;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-step-head {
+    margin-bottom: 0.125rem;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-progress-block {
+    margin-bottom: 0.375rem;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block--plan-step .auth-signup-step-meta {
+    margin-bottom: 0.125rem;
   }
 
   .auth-signup-form-alert-banner {
@@ -6510,9 +7325,10 @@ body {
     margin: 0;
     padding: 0;
     text-align: left;
-    font-size: var(--auth-mobile-eyebrow);
-    letter-spacing: 0.12em;
+    font-size: clamp(0.6875rem, 2.65vw, var(--auth-mobile-eyebrow));
+    letter-spacing: 0.08em;
     line-height: 1.35;
+    white-space: nowrap;
   }
 
   .auth-signup-mobile-header-art {
@@ -6606,6 +7422,11 @@ body {
 
     .auth-signup-mobile-header-inner {
       grid-template-columns: minmax(0, 1.14fr) minmax(0, 0.86fr);
+    }
+
+    .auth-signup-mobile-header-copy .landing-section-eyebrow {
+      font-size: 0.6875rem;
+      letter-spacing: 0.06em;
     }
 
     .auth-signup-mobile-header-anim {
@@ -6706,13 +7527,26 @@ body {
     font-size: var(--auth-mobile-helper) !important;
   }
 
+  .auth-signup-page .auth-signup-fields--otp-step .auth-otp-label,
   .auth-signup-page .auth-signup-fields--otp-step .brand-label {
     font-size: var(--auth-mobile-label);
+    font-weight: 700;
+    color: var(--brand-navy, #07111f);
   }
 
-  .auth-signup-page .auth-signup-fields--otp-step .brand-input {
-    height: 2.875rem;
-    font-size: 1.125rem;
+  .auth-signup-page .auth-signup-fields--otp-step .auth-otp-cell {
+    width: 3.375rem;
+    height: 3.625rem;
+    min-width: 3.375rem;
+    max-width: 3.375rem;
+    min-height: 3.625rem;
+    padding: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-width: 1.5px;
+    border-color: #94a3b8;
+    background: #ffffff;
+    color: var(--brand-navy, #07111f);
   }
 
   .auth-signup-page .auth-signup-fields--otp-step .text-sm {
@@ -6742,27 +7576,6 @@ body {
     overflow: visible;
   }
 
-  .auth-signup-page .auth-signup-card .auth-signup-actions {
-    position: relative;
-    z-index: 3;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding: 0.625rem 1rem 0.5rem;
-    flex: 0 0 auto;
-    flex-shrink: 0;
-    width: 100%;
-    max-width: 100%;
-    margin-inline: 0;
-    gap: 0.625rem;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
-    background: #ffffff;
-    border: none;
-    border-top: none;
-    box-shadow: none;
-  }
-
   .auth-signup-page .auth-signup-actions .auth-signup-action-btn {
     border-radius: 9999px !important;
     height: 2.75rem !important;
@@ -6772,24 +7585,8 @@ body {
     padding-inline: 0.75rem !important;
     white-space: nowrap;
   }
-  .auth-signup-page .auth-signup-card .auth-signup-card-footer {
-    flex-shrink: 0;
-    margin-top: 0;
-    height: var(--auth-mobile-footer-h);
-    min-height: var(--auth-mobile-footer-h);
-    max-height: var(--auth-mobile-footer-h);
-    padding: 0 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    text-align: center;
-    font-size: var(--auth-mobile-footer);
-    line-height: 1.35;
-    border-top: 1px solid #e8edf5;
-    background: #fafbfd;
-  }
 }
+
 .auth-signup-brand-illustration-anim {
   position: relative;
   display: flex;

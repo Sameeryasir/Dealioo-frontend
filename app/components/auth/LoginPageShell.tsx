@@ -4,7 +4,6 @@ import { AuthLandingNav } from "@/app/components/auth/AuthLandingNav";
 import { LoginBrandPanel } from "@/app/components/auth/LoginBrandPanel";
 import { SignupBrandIllustration } from "@/app/components/auth/SignupBrandIllustration";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -57,13 +56,6 @@ export function LoginPageShell({ loginHref, signupHref, children }: LoginPageShe
               </header>
 
               <div className="auth-signup-card-body">{children}</div>
-
-              <footer className="auth-signup-card-footer">
-                Don&apos;t have an account?{" "}
-                <Link href={signupHref} className="font-semibold text-brand-primary hover:underline">
-                  Sign up free
-                </Link>
-              </footer>
             </div>
           </div>
         </div>
