@@ -1,4 +1,4 @@
-import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
+import { HomeRoute } from "@/app/components/landing/HomeRoute";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <OwnerLandingPage />;
+  return <HomeRoute />;
 }

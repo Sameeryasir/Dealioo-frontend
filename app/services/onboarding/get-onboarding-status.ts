@@ -3,7 +3,6 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type OnboardingNextStep =
   | "restaurant_creation"
-  | "two_factor"
   | "menu_setup"
   | null;
 

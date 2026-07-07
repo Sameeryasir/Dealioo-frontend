@@ -5,7 +5,6 @@ import SignupForm from "@/app/components/SignupForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
   resolvePostLoginPath,
-  shouldSkipPasswordSetup,
 } from "@/app/lib/onboarding-redirect";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { clearSignupProgress } from "@/app/lib/signup-progress-storage";
@@ -94,11 +93,6 @@ function SignupPageInner() {
         clearSignupProgress();
 
         const status = await getOnboardingStatus();
-
-        if (!shouldSkipPasswordSetup(status)) {
-          router.push("/auth/new-password");
-          return;
-        }
 
         router.push(resolvePostLoginPath(status, returnTo));
       } catch (error) {

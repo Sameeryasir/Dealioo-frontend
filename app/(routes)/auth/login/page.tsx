@@ -5,7 +5,6 @@ import LoginForm from "@/app/components/LoginForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
   resolvePostLoginPath,
-  shouldSkipPasswordSetup,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -47,11 +46,6 @@ function LoginPageInner() {
 
         const status = await getOnboardingStatus();
 
-        if (!shouldSkipPasswordSetup(status)) {
-          router.push("/auth/new-password");
-          return;
-        }
-
         router.push(resolvePostLoginPath(status, returnTo));
       } catch (error) {
         const message =
@@ -90,11 +84,6 @@ function LoginPageInner() {
         rememberCredentials(email, "");
 
         const status = await getOnboardingStatus();
-
-        if (!shouldSkipPasswordSetup(status)) {
-          router.push("/auth/new-password");
-          return;
-        }
 
         router.push(resolvePostLoginPath(status, returnTo));
       } catch (error) {

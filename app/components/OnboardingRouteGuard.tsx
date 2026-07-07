@@ -8,7 +8,7 @@ import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-st
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-type OnboardingStep = "two_factor" | "menu_setup" | "restaurant_creation";
+type OnboardingStep = "menu_setup" | "restaurant_creation";
 
 type OnboardingRouteGuardProps = {
   step: OnboardingStep;
@@ -41,15 +41,9 @@ export function OnboardingRouteGuard({
           return;
         }
 
-        if (status.onboardingCompleted) {
+        if (status.onboardingCompleted && step !== "restaurant_creation") {
           setState("redirecting");
           router.replace(resolvePostLoginPath(status));
-          return;
-        }
-
-        if (step === "two_factor" && status.nextStep !== "two_factor") {
-          setState("redirecting");
-          router.replace(status.redirectPath);
           return;
         }
 

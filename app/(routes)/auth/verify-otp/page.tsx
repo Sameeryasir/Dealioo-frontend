@@ -5,7 +5,6 @@ import AuthPageShell, { AuthPageLoading } from "@/app/components/brand/AuthPageS
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
   resolvePostLoginPath,
-  shouldSkipPasswordSetup,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -39,11 +38,6 @@ function VerifyOtpPageInner() {
       setSetupUser(user);
 
       const status = await getOnboardingStatus();
-
-      if (!shouldSkipPasswordSetup(status)) {
-        router.push("/auth/new-password");
-        return;
-      }
 
       router.push(resolvePostLoginPath(status, returnTo));
     },

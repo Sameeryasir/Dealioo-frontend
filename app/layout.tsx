@@ -1,4 +1,5 @@
 import { AppToaster } from "@/app/components/AppToaster";
+import { AuthProvider } from "@/app/contexts/auth-context";
 import { CredentialProvider } from "@/app/contexts/credential-context";
 import { QueryProvider } from "@/app/providers/QueryProvider";
 import { StoreProvider } from "@/app/store/StoreProvider";
@@ -48,10 +49,12 @@ export default function RootLayout({
       <body className={`${poppins.className} min-h-full flex flex-col antialiased`}>
         <StoreProvider>
           <QueryProvider>
-            <CredentialProvider>
-              {children}
-              <AppToaster />
-            </CredentialProvider>
+            <AuthProvider>
+              <CredentialProvider>
+                {children}
+                <AppToaster />
+              </CredentialProvider>
+            </AuthProvider>
           </QueryProvider>
         </StoreProvider>
       </body>

@@ -23,23 +23,10 @@ export function resolvePostLoginPath(
   return status.redirectPath;
 }
 
-export function shouldSkipPasswordSetup(status: OnboardingStatus): boolean {
-  return (
-    status.twoFactorCompleted ||
-    status.restaurantCreated ||
-    status.menuCreated ||
-    status.onboardingCompleted
-  );
-}
-
 export function resolveCompletedStepRedirect(
   status: OnboardingStatus,
-  step: "two_factor" | "menu_setup" | "restaurant_creation",
+  step: "menu_setup" | "restaurant_creation",
 ): string | null {
-  if (step === "two_factor" && status.twoFactorCompleted) {
-    return resolvePostLoginPath(status);
-  }
-
   if (step === "restaurant_creation" && status.restaurantCreated) {
     if (status.onboardingCompleted) {
       return null;
