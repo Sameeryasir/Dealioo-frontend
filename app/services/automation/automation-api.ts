@@ -46,7 +46,7 @@ function listStatusFromApi(automation: Automation): AutomationStatus {
 }
 
 function formatLastUpdated(iso?: string): string {
-  if (!iso) return "—";
+  if (!iso) return "N/A";
   try {
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();
@@ -58,13 +58,13 @@ function formatLastUpdated(iso?: string): string {
     const days = Math.floor(hours / 24);
     return `${days} day${days === 1 ? "" : "s"} ago`;
   } catch {
-    return "—";
+    return "N/A";
   }
 }
 
 export function mapAutomationToListItem(
   automation: Automation,
-  restaurantLabel = "—",
+  restaurantLabel = "N/A",
 ): AutomationListItem {
   return {
     id: String(automation.id),

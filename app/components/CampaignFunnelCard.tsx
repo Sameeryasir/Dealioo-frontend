@@ -45,12 +45,12 @@ function statusFromFunnel(f: Funnel): string {
   if (raw) return raw;
   if (f.published === true) return "Published";
   if (f.published === false) return "Unpublished";
-  return "—";
+  return "N/A";
 }
 
 function statusBadgeLabel(f: Funnel): string {
   const s = statusFromFunnel(f);
-  if (s === "—") return "";
+  if (s === "N/A") return "";
   return s
     .toLowerCase()
     .replace(/_/g, " ")

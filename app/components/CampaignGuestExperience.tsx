@@ -210,14 +210,14 @@ export default function CampaignGuestExperience({
           <div className="shrink-0">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase leading-none tracking-wide text-emerald-800">
-                Step 1 · Offers
+                Step 1, Offers
               </p>
               <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide text-white">
                 Done
               </span>
             </div>
             <p className="mt-2 text-sm font-normal leading-relaxed text-emerald-900/90">
-              The deal guests redeem in their wallet — your campaign hook.
+              The deal guests redeem in their wallet, your campaign hook.
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -242,7 +242,7 @@ export default function CampaignGuestExperience({
           <div className="shrink-0">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase leading-none tracking-wide text-zinc-500">
-                Step 2 · Ads
+                Step 2, Ads
               </p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide ${
@@ -312,7 +312,7 @@ export default function CampaignGuestExperience({
                     <p className="text-xs font-medium text-zinc-500">
                       Your Meta campaigns (last 30 days)
                       {adStats.adAccountName
-                        ? ` · ${adStats.adAccountName}`
+                        ? `, ${adStats.adAccountName}`
                         : ""}
                     </p>
                     <ul className="space-y-2">
@@ -415,14 +415,14 @@ export default function CampaignGuestExperience({
           <div className="shrink-0">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase leading-none tracking-wide text-amber-900">
-                Step 3 · Funnel
+                Step 3, Funnel
               </p>
               <span className="shrink-0 rounded-full bg-amber-500 px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide text-white">
                 Needs attention
               </span>
             </div>
             <p className="mt-2 text-sm font-normal leading-relaxed text-amber-950/90">
-              Where guests land after tapping an ad — book, buy, or learn more.
+              Where guests land after tapping an ad, book, buy, or learn more.
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col justify-start gap-1">
@@ -451,7 +451,7 @@ export default function CampaignGuestExperience({
           <div className="shrink-0">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase leading-none tracking-wide text-zinc-500">
-                Step 4 · Automations
+                Step 4, Automations
               </p>
               <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[0.65rem] font-semibold uppercase leading-none tracking-wide text-zinc-600">
                 Not started
@@ -463,7 +463,7 @@ export default function CampaignGuestExperience({
           </div>
           <div className="flex min-h-0 flex-1 flex-col justify-start">
             <p className="text-sm font-normal leading-relaxed text-zinc-600">
-              Welcome · reminder · thank you
+              Welcome, reminder, thank you
             </p>
           </div>
           <button

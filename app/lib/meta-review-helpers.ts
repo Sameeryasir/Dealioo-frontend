@@ -28,9 +28,9 @@ export function formatCboBudget(campaign: CampaignStepData): string {
     return "Not enabled (ad set budget)";
   }
   if (campaign.campaignBudgetType === "lifetime") {
-    return `Lifetime: $${campaign.campaignLifetimeBudget?.toFixed(2) ?? "—"}`;
+    return `Lifetime: $${campaign.campaignLifetimeBudget?.toFixed(2) ?? "N/A"}`;
   }
-  return `Daily: $${campaign.campaignDailyBudget?.toFixed(2) ?? "—"}`;
+  return `Daily: $${campaign.campaignDailyBudget?.toFixed(2) ?? "N/A"}`;
 }
 
 export function formatAdSetBudget(
@@ -41,9 +41,9 @@ export function formatAdSetBudget(
     return "Inherited from campaign budget";
   }
   if (adSet.budgetType === "lifetime") {
-    return `Lifetime: $${adSet.lifetimeBudget?.toFixed(2) ?? "—"}`;
+    return `Lifetime: $${adSet.lifetimeBudget?.toFixed(2) ?? "N/A"}`;
   }
-  return `Daily: $${adSet.dailyBudget?.toFixed(2) ?? "—"}`;
+  return `Daily: $${adSet.dailyBudget?.toFixed(2) ?? "N/A"}`;
 }
 
 export function formatSchedule(adSet: AdSetStepData): string {
@@ -81,7 +81,7 @@ export function formatBidStrategy(strategy: string): string {
 }
 
 export function formatCta(cta?: string): string {
-  if (!cta) return "—";
+  if (!cta) return "N/A";
   return CTA_OPTIONS.find((opt) => opt.value === cta)?.label ?? cta;
 }
 

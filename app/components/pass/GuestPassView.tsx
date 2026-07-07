@@ -100,7 +100,7 @@ export function GuestPassView(props: GuestPassViewProps) {
               </div>
               <h1 className="text-xl font-bold tracking-tight">Your QR Code</h1>
               <p className="mt-1 text-sm text-zinc-300">
-                You&apos;re all set — ready to redeem
+                You&apos;re all set, ready to redeem
               </p>
             </header>
 

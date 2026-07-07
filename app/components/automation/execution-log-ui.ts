@@ -84,7 +84,7 @@ function extractRecipientCount(message: string): number | null {
 
 function stepLabelForOrder(order: number | undefined, suffix: string): string {
   const base = order != null ? `Step ${order}` : "Step";
-  return `${base} · ${suffix}`;
+  return `${base}, ${suffix}`;
 }
 
 export function logDisplayForUser(log: AutomationLog): LogDisplay {

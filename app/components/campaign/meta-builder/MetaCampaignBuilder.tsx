@@ -216,7 +216,7 @@ export function MetaCampaignBuilder({
               adsManagerUrl = buildMetaAdsManagerUrl(connection.metaAdAccountId);
             }
           } catch {
-            /* optional — link still shown in review if available */
+            /* optional, link still shown in review if available */
           }
         }
 

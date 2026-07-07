@@ -8,7 +8,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-dvh min-h-0 w-full flex-col bg-zinc-50">
+      <div className="flex min-h-dvh min-h-0 w-full flex-col brand-page-soft">
         <Navbar />
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
       </div>

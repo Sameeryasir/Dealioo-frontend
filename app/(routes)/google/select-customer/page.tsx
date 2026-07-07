@@ -32,7 +32,7 @@ function customerSubtitle(customer: GoogleAdsCustomer): string {
   if (customer.status && customer.status !== "ENABLED") {
     parts.push(customer.status);
   }
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function SelectGoogleCustomerInner() {

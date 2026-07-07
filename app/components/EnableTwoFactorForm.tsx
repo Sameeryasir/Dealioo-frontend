@@ -1,13 +1,14 @@
 "use client";
 
 import OtpForm from "@/app/components/OtpForm";
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { mergeSetupUser } from "@/app/lib/setup-user";
 import { generate2fa } from "@/app/services/auth/generate-2fa";
 import { verify2faSetup } from "@/app/services/auth/verify-2fa-setup";
 import { sendOtp } from "@/app/services/auth/send-otp";
-import { KeyRound, Loader2, Shield } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 type Step = "consent" | "qr" | "otp";
@@ -101,40 +102,34 @@ export default function EnableTwoFactorForm({
   }
 
   return (
-    <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-200/40 ring-1 ring-black/[0.03] backdrop-blur-sm sm:p-10">
+    <div className="brand-auth-card">
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/25">
-          {step === "otp" ? (
-            <KeyRound className="h-6 w-6" strokeWidth={2} aria-hidden />
-          ) : (
-            <Shield className="h-6 w-6" strokeWidth={2} aria-hidden />
-          )}
-        </div>
+        <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
         {step === "consent" ? (
           <>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="brand-heading">
               Enable two-factor authentication
             </h1>
-            <p className="mt-1.5 max-w-[300px] text-sm leading-relaxed text-zinc-500">
+            <p className="brand-subtext mt-1.5 max-w-[300px]">
               Turn on 2FA for an extra layer of security on your account.
             </p>
           </>
         ) : step === "qr" ? (
           <>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="brand-heading">
               Scan QR code
             </h1>
-            <p className="mt-1.5 max-w-[300px] text-sm leading-relaxed text-zinc-500">
+            <p className="brand-subtext mt-1.5 max-w-[300px]">
               {qrMessage ??
                 "Open your authenticator app and scan this code to add your account."}
             </p>
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="brand-heading">
               Enter authenticator code
             </h1>
-            <p className="mt-1.5 max-w-[300px] text-sm leading-relaxed text-zinc-500">
+            <p className="brand-subtext mt-1.5 max-w-[300px]">
               Enter the 6-digit code from your authenticator app to finish setup.
             </p>
           </>
@@ -146,21 +141,21 @@ export default function EnableTwoFactorForm({
           className="flex flex-col gap-6 font-sans"
           onSubmit={(e) => void handleConsentSubmit(e)}
         >
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-brand-border bg-brand-soft/80 p-4 transition-colors hover:border-brand-primary/30 hover:bg-brand-soft">
             <input
               type="checkbox"
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
               disabled={generating}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-zinc-900 bg-white accent-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/25 disabled:opacity-50"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-brand-primary bg-white accent-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/25 disabled:opacity-50"
             />
-            <span className="text-left text-sm leading-snug text-zinc-700">
+            <span className="text-left text-sm leading-snug text-brand-body">
               I want to enable two-factor authentication (2FA) on my account.
             </span>
           </label>
 
           {consentError && (
-            <p className="text-center text-sm text-red-600" role="alert">
+            <p className="text-center text-sm text-brand-error" role="alert">
               {consentError}
             </p>
           )}
@@ -169,7 +164,7 @@ export default function EnableTwoFactorForm({
             type="submit"
             disabled={!enabled || generating}
             aria-busy={generating}
-            className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="brand-btn-primary"
           >
             {generating ? (
               <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
@@ -180,7 +175,7 @@ export default function EnableTwoFactorForm({
       ) : step === "qr" ? (
         <div className="flex flex-col gap-6 font-sans">
           {qrCode ? (
-            <div className="flex justify-center rounded-xl border border-zinc-200 bg-white p-4">
+            <div className="flex justify-center rounded-xl border border-brand-border bg-white p-4">
               <img
                 src={qrCode}
                 alt=""
@@ -195,14 +190,14 @@ export default function EnableTwoFactorForm({
             <button
               type="button"
               onClick={handleBackFromQr}
-              className="flex h-12 w-full cursor-pointer items-center justify-center rounded-full border border-zinc-300 bg-white px-5 text-base font-medium text-zinc-800 transition-colors hover:bg-zinc-50 sm:w-auto sm:min-w-[140px]"
+              className="brand-btn-secondary sm:w-auto sm:min-w-[140px]"
             >
               Back
             </button>
             <button
               type="button"
               onClick={() => setStep("otp")}
-              className="flex h-12 w-full cursor-pointer items-center justify-center rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all hover:bg-zinc-800 sm:w-auto sm:min-w-[140px]"
+              className="brand-btn-primary sm:w-auto sm:min-w-[140px]"
             >
               Continue
             </button>

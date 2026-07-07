@@ -32,7 +32,7 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
   return (
     <OverviewChartShell
       title="Signup breakdown"
-      subtitle={`Month view · last ${OVERVIEW_MONTH_COUNT} months combined`}
+      subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months combined`}
       minHeightClass="min-h-[300px]"
     >
       {hasData ? (

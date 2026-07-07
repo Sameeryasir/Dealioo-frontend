@@ -4,6 +4,7 @@ function isSafeReturnPath(path: string): boolean {
   if (!path.startsWith("/")) return false;
   if (path.startsWith("//")) return false;
   if (path.startsWith("/auth/login")) return false;
+  if (path.startsWith("/auth/signup")) return false;
   return true;
 }
 

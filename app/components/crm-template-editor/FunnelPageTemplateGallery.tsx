@@ -261,7 +261,7 @@ export function FunnelPageTemplateGallery({
                             {template.description}
                           </p>
                           <p className="mt-2 text-[10px] text-zinc-400">
-                            Theme · hero · layout · form · checkout
+                            Theme, hero, layout, form, checkout
                           </p>
                         </button>
                       );

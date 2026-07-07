@@ -337,7 +337,7 @@ export function TemplateEditorSidebar({
     setOpenSection(null);
   }, [page.id]);
 
-  /** Only one section open — tapping another closes the rest. */
+  /** Only one section open, tapping another closes the rest. */
   const toggle = useCallback((id: SectionId) => {
     setOpenSection((prev) => (prev === id ? null : id));
   }, []);
@@ -907,8 +907,8 @@ export function TemplateEditorSidebar({
                       onClick={() => toggleFormField(f.id)}
                       title={
                         on
-                          ? `Included — click to remove (${f.label})`
-                          : `Not included — click to add (${f.label})`
+                          ? `Included, click to remove (${f.label})`
+                          : `Not included, click to add (${f.label})`
                       }
                       className={editorSidebarFormFieldRowClass}
                     >

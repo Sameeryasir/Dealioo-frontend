@@ -377,7 +377,7 @@ export function EditCampaignModal({
                       {isDragging ? "Drop image here" : "Upload offer image"}
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500">
-                      Drag & drop or click to browse · PNG, JPG, WebP
+                      Drag & drop or click to browse, PNG, JPG, WebP
                     </span>
                   </span>
                   <span className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm">

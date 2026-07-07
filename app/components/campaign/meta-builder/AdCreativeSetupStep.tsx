@@ -385,7 +385,7 @@ export function AdCreativeSetupStep({
       <BuilderStepHeader
         step={3}
         title="Ad / Creative setup"
-        description="Build what people see — image, video, copy, and link. Saved as draft until you publish on Step 4."
+        description="Build what people see, image, video, copy, and link. Saved as draft until you publish on Step 4."
         badge="Draft only"
       />
 
@@ -742,7 +742,7 @@ export function AdCreativeSetupStep({
                   label="Website URL"
                   required
                   error={fieldErrors.destinationUrl}
-                  hint="Must be HTTPS — your menu, offer page, or booking link."
+                  hint="Must be HTTPS, your menu, offer page, or booking link."
                 >
                   <div className="flex gap-2">
                     <input
@@ -782,7 +782,7 @@ export function AdCreativeSetupStep({
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3">
                   <p className="text-sm font-semibold text-zinc-800">Browser add-ons</p>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Optional overlays in the in-app browser — not configured for this draft.
+                    Optional overlays in the in-app browser, not configured for this draft.
                   </p>
                 </div>
               </div>
@@ -800,7 +800,7 @@ export function AdCreativeSetupStep({
             <BuilderField label="Meta Pixel ID" hint="Only needed if you track conversions with Meta Pixel.">
               <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
             </BuilderField>
-            <BuilderField label="Conversion event" hint="e.g. Purchase, Lead — matches your pixel setup.">
+            <BuilderField label="Conversion event" hint="e.g. Purchase, Lead, matches your pixel setup.">
               <input value={conversionEvent} onChange={(e) => setConversionEvent(e.target.value)} className={inputClass} />
             </BuilderField>
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import {
   AlertCircle,
-  KeyRound,
   Loader2,
   LogIn,
 } from "lucide-react";
@@ -42,12 +42,10 @@ export type OtpFormProps = {
 };
 
 const cellBase =
-  "h-11 w-full min-w-0 rounded-xl border bg-zinc-50/50 text-center text-lg font-semibold tabular-nums text-zinc-900 outline-none ring-zinc-900/0 transition-all focus:bg-white focus:ring-4 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60";
+  "brand-input h-11 w-full min-w-0 text-center text-lg font-semibold tabular-nums";
 
 function cellRing(hasError: boolean) {
-  return hasError
-    ? "border-red-300 focus:border-red-400 focus:ring-red-900/10"
-    : "border-zinc-200 focus:border-zinc-300";
+  return hasError ? "brand-input-error" : "";
 }
 
 export default function OtpForm({
@@ -226,7 +224,7 @@ export default function OtpForm({
       <input type="hidden" {...register("code")} />
 
       <div className="flex flex-col gap-1.5">
-        <label className="flex items-center justify-center gap-1.5 text-sm font-medium text-zinc-700">
+        <label className="brand-label justify-center">
           <span>
             {authenticatorMode ? "Authenticator code" : "One-time password"}
           </span>
@@ -256,17 +254,14 @@ export default function OtpForm({
           ))}
         </div>
         {errors.code && (
-          <p className="text-center text-sm text-red-600">{errors.code.message}</p>
+          <p className="text-center text-sm text-brand-error">{errors.code.message}</p>
         )}
       </div>
 
       {error && (
-        <div
-          className="flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800"
-          role="alert"
-        >
+        <div className="brand-error-banner" role="alert">
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+            className="mt-0.5 h-4 w-4 shrink-0 text-brand-error"
             aria-hidden
           />
           <span className="leading-snug">{error}</span>
@@ -279,7 +274,7 @@ export default function OtpForm({
             type="button"
             onClick={onBack}
             disabled={loading}
-            className="flex h-12 w-full cursor-pointer items-center justify-center rounded-full border border-zinc-300 bg-white px-5 text-base font-medium text-zinc-800 transition-colors hover:bg-zinc-50 disabled:opacity-50 sm:w-auto sm:min-w-[140px]"
+            className="brand-btn-secondary sm:w-auto sm:min-w-[140px]"
           >
             Back
           </button>
@@ -288,7 +283,7 @@ export default function OtpForm({
             disabled={loading}
             aria-busy={loading}
             aria-label={loading ? "Verifying" : "Verify"}
-            className="group flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all duration-200 ease-out hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]"
+            className="brand-btn-primary group sm:w-auto sm:min-w-[140px]"
           >
             {loading ? (
               <Loader2
@@ -314,7 +309,7 @@ export default function OtpForm({
           disabled={loading}
           aria-busy={loading}
           aria-label={loading ? "Verifying" : "Verify"}
-          className="group mt-1 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all duration-200 ease-out hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          className="brand-btn-primary group mt-1"
         >
           {loading ? (
             <Loader2
@@ -343,7 +338,7 @@ export default function OtpForm({
         <p className="mt-6 text-center text-sm">
           <button
             type="button"
-            className="font-medium text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            className="brand-link disabled:cursor-not-allowed disabled:opacity-50"
             disabled={loading || resendLoading}
             onClick={() => void handleResend()}
           >
@@ -351,7 +346,7 @@ export default function OtpForm({
           </button>
         </p>
 
-        <p className="mt-6 text-center text-xs text-zinc-400">
+        <p className="mt-6 text-center text-xs text-brand-muted">
           Didn&apos;t receive a code? Check spam or request a new one above.
         </p>
       </>
@@ -367,21 +362,24 @@ export default function OtpForm({
   }
 
   return (
-    <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-200/40 ring-1 ring-black/[0.03] backdrop-blur-sm sm:p-10">
+    <div className="brand-auth-card">
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/25">
-          <KeyRound className="h-6 w-6" strokeWidth={2} aria-hidden />
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Verification code
-        </h1>
-        <p className="mt-1.5 max-w-[280px] text-sm leading-relaxed text-zinc-500">
+        <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
+        <h1 className="brand-heading">Verification code</h1>
+        <p className="brand-subtext mt-1.5 max-w-[280px]">
           Enter the {OTP_LENGTH}-digit code we sent you to continue.
         </p>
       </div>
 
       {formInner}
       {resendBlock}
+      {onBack && !embedded ? (
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={onBack} className="brand-link font-medium">
+            ← Back
+          </button>
+        </p>
+      ) : null}
     </div>
   );
 }

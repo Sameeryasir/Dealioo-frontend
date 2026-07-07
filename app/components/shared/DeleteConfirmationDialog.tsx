@@ -34,7 +34,7 @@ export function DeleteConfirmationDialog({
   const resolvedDescription =
     description ?? (
       <>
-        <span className="font-medium text-zinc-800">{itemName}</span> —{" "}
+        <span className="font-medium text-zinc-800">{itemName}</span>,{" "}
         {DEFAULT_DESCRIPTION}
       </>
     );

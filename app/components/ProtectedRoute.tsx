@@ -20,22 +20,22 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
       setStatus("unauthenticated");
       const returnTo = encodeURIComponent(pathname);
-      router.replace(`/auth/login?returnTo=${returnTo}`);
+      router.replace(`/?returnTo=${returnTo}`);
     });
   }, [pathname, router]);
 
   if (status === "unauthenticated") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-500">Redirecting to sign in…</p>
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft">
+        <p className="text-sm text-brand-muted">Redirecting…</p>
       </div>
     );
   }
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-500">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft">
+        <p className="text-sm text-brand-muted">Loading…</p>
       </div>
     );
   }

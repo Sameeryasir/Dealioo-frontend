@@ -3,12 +3,13 @@
 import RegisterRestaurantForm, {
   type RegisterRestaurantFormValues,
 } from "@/app/components/RegisterRestaurantForm";
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { OnboardingRouteGuard } from "@/app/components/OnboardingRouteGuard";
 import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { registerRestaurant } from "@/app/services/restaurant/register-restaurant";
-import { Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -63,32 +64,18 @@ export default function RegisterRestaurantPage() {
   );
 
   if (!tokenReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-500">Loading…</p>
-      </div>
-    );
+    return <AuthPageLoading />;
   }
 
   return (
     <OnboardingRouteGuard step="restaurant_creation">
-      <div className="relative min-h-screen w-full bg-gradient-to-br from-zinc-100 via-white to-zinc-50">
-        <main className="relative z-10 w-full px-4 py-8 sm:px-8 lg:px-12 xl:px-16">
-          <header className="mb-8 flex gap-4">
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-md shadow-zinc-900/20"
-              aria-hidden
-            >
-              <Store className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-                Create Restaurant
-              </h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                Add a new restaurant to the system. Fill in the details below.
-              </p>
-            </div>
+      <div className="brand-onboarding-page min-h-screen px-4 py-8 sm:px-8 lg:px-12 xl:px-16">
+        <header className="mx-auto mb-8 flex max-w-3xl flex-col items-center text-center">
+          <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
+          <h1 className="brand-heading">Create Restaurant</h1>
+            <p className="brand-subtext mt-1">
+              Add a new restaurant to the system. Fill in the details below.
+            </p>
           </header>
 
           <RegisterRestaurantForm
@@ -96,7 +83,6 @@ export default function RegisterRestaurantPage() {
             errorMessage={errorMessage}
             onSubmit={onSubmit}
           />
-        </main>
       </div>
     </OnboardingRouteGuard>
   );

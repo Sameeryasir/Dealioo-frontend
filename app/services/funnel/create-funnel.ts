@@ -47,7 +47,7 @@ export type CreateFunnelLandingPagePayload = {
   /** Hero / media layout (Media). */
   heroImageDesign: string;
   mediaDesign: string;
-  /** Content text colors — hex codes from the Content section. */
+  /** Content text colors, hex codes from the Content section. */
   headlineColor: string;
   subheadlineColor: string;
   bodyColor: string;

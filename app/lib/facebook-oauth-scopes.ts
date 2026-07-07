@@ -5,7 +5,7 @@ export type FacebookScopeDetail = {
   required: boolean;
 };
 
-/** Matches backend FACEBOOK_OAUTH_SCOPES — shown in Settings after connect. */
+/** Matches backend FACEBOOK_OAUTH_SCOPES, shown in Settings after connect. */
 export const FACEBOOK_OAUTH_SCOPE_DETAILS: FacebookScopeDetail[] = [
   {
     id: "ads_management",

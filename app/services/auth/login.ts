@@ -1,7 +1,13 @@
 import axios from "axios";
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
+import type { VerifyOtpResponse, VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
-export type LoginResponse = string;
+export type LoginResponse = {
+  message: string;
+  token: string;
+  refreshToken: string;
+  user: VerifyOtpUser;
+};
 
 export async function login(
   email: string,

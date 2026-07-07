@@ -226,7 +226,7 @@ export function FunnelOrdersPanel({
                         className={`${tdClass} max-w-[280px] truncate font-medium text-zinc-800`}
                         title={payment.customerEmail?.trim() || undefined}
                       >
-                        {payment.customerEmail?.trim() || "—"}
+                        {payment.customerEmail?.trim() || "N/A"}
                       </td>
                       <td
                         className={`${tdClass} whitespace-nowrap text-base font-bold tabular-nums tracking-tight text-zinc-900`}
@@ -246,7 +246,7 @@ export function FunnelOrdersPanel({
                             payment.paidAt ?? payment.createdAt,
                           );
                           if (!paid) {
-                            return <span className="text-zinc-300">—</span>;
+                            return <span className="text-zinc-300">N/A</span>;
                           }
                           return (
                             <span className="inline-flex flex-col gap-0.5">

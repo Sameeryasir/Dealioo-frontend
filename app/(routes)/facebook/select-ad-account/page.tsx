@@ -125,7 +125,7 @@ function SelectAdAccountInner() {
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-500">
                       {account.id}
-                      {account.currency ? ` · ${account.currency}` : ""}
+                      {account.currency ? `, ${account.currency}` : ""}
                     </p>
                   </button>
                 </li>

@@ -34,7 +34,7 @@ export function AnalyticsMetricMiniChart({
   return (
     <OverviewChartShell
       title={title}
-      subtitle={`${subtitle} · last ${OVERVIEW_MONTH_COUNT} months`}
+      subtitle={`${subtitle}, last ${OVERVIEW_MONTH_COUNT} months`}
       minHeightClass="min-h-[200px]"
       className="h-full"
     >

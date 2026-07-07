@@ -134,7 +134,7 @@ function OrderAmountDisplay({ event }: { event: RestaurantFunnelEvent }) {
   const currency = event.currency ?? "USD";
 
   if (event.orderStatus === "not_paid") {
-    return <span className="text-zinc-300">—</span>;
+    return <span className="text-zinc-300">N/A</span>;
   }
 
   if (
@@ -145,7 +145,7 @@ function OrderAmountDisplay({ event }: { event: RestaurantFunnelEvent }) {
       <span className="font-medium text-zinc-900">
         {event.restaurantAmount != null
           ? formatDollars(event.restaurantAmount, currency)
-          : "—"}
+          : "N/A"}
       </span>
     );
   }

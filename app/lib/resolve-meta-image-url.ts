@@ -84,7 +84,7 @@ export function validateMetaImageUrl(url: string): string | null {
 
   const path = parsed.pathname.replace(/\/+$/, "");
   if (isFolderUploadPath(path)) {
-    return "Upload an image below or paste a direct link to a .jpg/.png file — not a folder.";
+    return "Upload an image below or paste a direct link to a .jpg/.png file, not a folder.";
   }
 
   if (!META_IMAGE_EXT.test(path)) {

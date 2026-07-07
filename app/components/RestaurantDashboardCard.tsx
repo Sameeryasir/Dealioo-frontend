@@ -64,7 +64,7 @@ export default function RestaurantDashboardCard({ restaurant }: Props) {
   const branchLabel =
     branchCount != null
       ? `${branchCount} ${branchCount === 1 ? "branch" : "branches"}`
-      : "—";
+      : "N/A";
 
   const descriptionText = description?.trim() ?? "";
 

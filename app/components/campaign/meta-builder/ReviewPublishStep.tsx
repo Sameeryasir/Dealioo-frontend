@@ -207,13 +207,13 @@ export function ReviewPublishStep({
               value: formatCreativeFormat(adCreativeData.creativeFormat),
             },
             { label: "Primary text", value: adCreativeData.primaryText },
-            { label: "Headline", value: adCreativeData.headline ?? "—" },
-            { label: "Description", value: adCreativeData.description ?? "—" },
+            { label: "Headline", value: adCreativeData.headline ?? "N/A" },
+            { label: "Description", value: adCreativeData.description ?? "N/A" },
             { label: "CTA", value: formatCta(adCreativeData.callToAction) },
-            { label: "Landing page", value: adCreativeData.destinationUrl ?? "—" },
+            { label: "Landing page", value: adCreativeData.destinationUrl ?? "N/A" },
             {
               label: "Tracking parameters",
-              value: adCreativeData.urlParameters?.trim() || "—",
+              value: adCreativeData.urlParameters?.trim() || "N/A",
             },
           ]}
         />
@@ -228,9 +228,9 @@ export function ReviewPublishStep({
             {
               label: "On Meta",
               value: publishSuccess
-                ? "Published — campaign created"
+                ? "Published, campaign created"
                 : partialPublish?.metaCampaignId
-                  ? "Incomplete — retry publish to finish"
+                  ? "Incomplete, retry publish to finish"
                   : "Not published yet",
             },
             {
@@ -238,25 +238,25 @@ export function ReviewPublishStep({
               value:
                 publishSuccess?.metaCampaignId ??
                 partialPublish?.metaCampaignId ??
-                "—",
+                "N/A",
             },
             {
               label: "Ad set ID",
               value:
                 publishSuccess?.metaAdsetId ??
                 partialPublish?.metaAdsetId ??
-                "—",
+                "N/A",
             },
             {
               label: "Creative ID",
               value:
                 publishSuccess?.metaCreativeId ??
                 partialPublish?.metaCreativeId ??
-                "—",
+                "N/A",
             },
             {
               label: "Ad ID",
-              value: publishSuccess?.metaAdId ?? "—",
+              value: publishSuccess?.metaAdId ?? "N/A",
             },
           ]}
         />

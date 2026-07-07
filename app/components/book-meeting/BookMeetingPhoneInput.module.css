@@ -1,0 +1,228 @@
+.phoneInputWrap {
+  position: relative;
+  width: 100%;
+}
+
+.phoneInput {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+  width: 100%;
+  border-bottom: 1px solid #dadce0;
+  padding-bottom: 0.55rem;
+  transition: border-color 0.2s ease;
+}
+
+.phoneInput:focus-within {
+  border-bottom-color: var(--brand-primary, #1877f2);
+  border-bottom-width: 2px;
+  padding-bottom: calc(0.55rem - 1px);
+}
+
+.phoneInputBoxed {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.phoneInputBoxed:focus-within {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.phoneInput :global(.PhoneInputCountry) {
+  position: relative;
+  margin: 0;
+}
+
+.phoneInput :global(.PhoneInputCountryIcon) {
+  width: 1.5rem;
+  height: 1rem;
+  box-shadow: none;
+}
+
+.phoneInput :global(.PhoneInputCountrySelectArrow) {
+  display: none;
+}
+
+.phoneNumberInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #202124;
+  outline: none;
+  font-family: inherit;
+}
+
+.phoneNumberInput::placeholder {
+  color: #9aa0a6;
+}
+.countrySelectRoot {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.countryTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.25rem 0.15rem 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.countryTrigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.countryFlag {
+  display: inline-flex;
+  width: 1.55rem;
+  height: 1.05rem;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.countryFlag :global(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.countryChevron {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #80868b;
+}
+
+.countryDropdown {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 40;
+  width: min(21.5625rem, calc(100vw - 2.5rem));
+  overflow: hidden;
+  border-radius: 0.65rem;
+  border: 1px solid #e8eaed;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+.countryDropdownPortal {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.65rem;
+  border: 1px solid #e8eaed;
+  background: #ffffff;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+}
+
+.countrySearchWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.countrySearchIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: #80868b;
+  flex-shrink: 0;
+}
+
+.countrySearch {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #202124;
+  outline: none;
+  font-family: inherit;
+}
+
+.countrySearch::placeholder {
+  color: #9aa0a6;
+}
+
+.countryList {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 18.375rem;
+  margin: 0;
+  padding: 0.3rem 0.35rem 0.65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+}
+
+.countryOption {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.countryOption:hover {
+  background: #f8f9fa;
+}
+
+.countryOptionSelected {
+  background: color-mix(in srgb, var(--brand-primary, #1877f2) 8%, #ffffff);
+  border-color: var(--brand-primary, #1877f2);
+  box-shadow: inset 0 2px 0 0 #ea5a8f;
+}
+
+.countryOptionFlag {
+  display: inline-flex;
+  width: 1.35rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0.15rem;
+}
+
+.countryOptionFlag :global(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.countryOptionName {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3c4043;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.countryOptionCode {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #5f6368;
+}

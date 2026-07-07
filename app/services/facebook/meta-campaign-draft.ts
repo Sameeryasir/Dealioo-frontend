@@ -165,7 +165,7 @@ export async function publishMetaCampaignDraft(
       !data.metaAdId
     ) {
       throw new Error(
-        "Publish did not complete — Meta ad id was not returned.",
+        "Publish did not complete, Meta ad id was not returned.",
       );
     }
 
@@ -180,7 +180,7 @@ export async function publishMetaCampaignDraft(
         return recovered;
       }
       throw new Error(
-        "Publishing timed out. Meta may still be processing — check Ads Manager or use Check status.",
+        "Publishing timed out. Meta may still be processing, check Ads Manager or use Check status.",
       );
     }
     throw error;

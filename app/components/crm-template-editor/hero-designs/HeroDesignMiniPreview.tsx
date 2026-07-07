@@ -23,7 +23,7 @@ const PREVIEW_LAYOUT: Record<
   margin: { inset: true, heroH: "h-[42%]", rounded: true, arch: false },
 };
 
-/** Wireframe thumbnail — driven by style.previewKind from layout presets. */
+/** Wireframe thumbnail, driven by style.previewKind from layout presets. */
 export function HeroDesignMiniPreview({ style }: { style: HeroDesignStyle }) {
   const layout = PREVIEW_LAYOUT[style.previewKind];
   const showFade = style.fade !== "none";

@@ -29,12 +29,12 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
   {
     id: "copy-restaurant-booking",
     name: "Table booking",
-    description: "Reserve a table — warm and direct.",
+    description: "Reserve a table, warm and direct.",
     tags: ["Restaurant"],
     copy: {
       heading: "Your table is almost reserved",
       subheading: "Join guests who book online in under a minute.",
-      body: "See tonight's specials, pick your time, and we'll hold your table. No phone tag — just confirm and arrive.",
+      body: "See tonight's specials, pick your time, and we'll hold your table. No phone tag, just confirm and arrive.",
       buttonText: "Reserve my table",
     },
   },
@@ -56,7 +56,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     description: "Friendly promo for families.",
     tags: ["Restaurant", "Events"],
     copy: {
-      heading: "Family night — kids eat free",
+      heading: "Family night, kids eat free",
       subheading: "Bring everyone this week only.",
       body: "Valid for dine-in when you join our list. One free kids meal per adult entrée. Limited tables each night.",
       buttonText: "Claim the deal",
@@ -68,7 +68,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     description: "Bring back guests who didn't finish paying.",
     tags: ["Abandoned cart", "E‑commerce"],
     copy: {
-      heading: "Complete your order — offer inside",
+      heading: "Complete your order, offer inside",
       subheading: "You left something behind. We saved your spot.",
       body: "Finish checkout in one click and unlock the same price you saw earlier. This reminder expires in 48 hours.",
       buttonText: "Complete my order",
@@ -80,9 +80,9 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     description: "Urgency for retail or flash sales.",
     tags: ["E‑commerce", "Events"],
     copy: {
-      heading: "Limited drop — live now",
+      heading: "Limited drop, live now",
       subheading: "When it's gone, it's gone.",
-      body: "Join the list for early access and checkout before the public sale opens. No code needed — your link is already applied.",
+      body: "Join the list for early access and checkout before the public sale opens. No code needed, your link is already applied.",
       buttonText: "Shop the drop",
     },
   },
@@ -106,7 +106,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     copy: {
       heading: "Find your calm this week",
       subheading: "New guests get their first class on us.",
-      body: "Small groups, experienced instructors, and a space built to help you reset. Sign up once — we'll send your schedule.",
+      body: "Small groups, experienced instructors, and a space built to help you reset. Sign up once, we'll send your schedule.",
       buttonText: "Book a class",
     },
   },
@@ -130,7 +130,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     copy: {
       heading: "Tickets on sale now",
       subheading: "Secure your spot before doors open.",
-      body: "Mobile tickets delivered instantly. Limited capacity — purchase now and skip the line at entry.",
+      body: "Mobile tickets delivered instantly. Limited capacity, purchase now and skip the line at entry.",
       buttonText: "Get tickets",
     },
   },
@@ -141,7 +141,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     tags: ["Events", "Membership"],
     copy: {
       heading: "An invitation reserved for you",
-      subheading: "Private access — limited availability.",
+      subheading: "Private access, limited availability.",
       body: "You're on our short list for early pricing and priority access. Confirm below to hold your place.",
       buttonText: "Accept invitation",
     },
@@ -189,7 +189,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     tags: ["Restaurant"],
     copy: {
       heading: "Free treat on your first order",
-      subheading: "Baked fresh daily — limited batches.",
+      subheading: "Baked fresh daily, limited batches.",
       body: "Sign up once and we'll send a code for a free pastry or scoop on your first pickup or delivery order.",
       buttonText: "Order now",
     },
@@ -202,7 +202,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     copy: {
       heading: "Simple. Clear. Yours.",
       subheading: "Everything you need on one page.",
-      body: "No fluff — just your offer and a fast way to sign up.",
+      body: "No fluff, just your offer and a fast way to sign up.",
       buttonText: "Continue",
     },
   },

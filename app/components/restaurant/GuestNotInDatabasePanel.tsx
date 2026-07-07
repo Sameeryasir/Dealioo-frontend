@@ -11,7 +11,7 @@ type GuestNotInDatabasePanelProps = {
 
 /**
  * Golootlo-inspired empty state when a guest is not saved in the database yet.
- * Shown to restaurant staff during scan / search — not the end customer.
+ * Shown to restaurant staff during scan / search, not the end customer.
  */
 export function GuestNotInDatabasePanel({
   searchQuery,

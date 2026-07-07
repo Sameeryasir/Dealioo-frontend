@@ -24,7 +24,7 @@ export function DeleteExecutionDialog({
         <>
           You are about to remove{" "}
           <span className="font-medium text-zinc-900">{itemName}</span> from your
-          runs list. This cannot be undone — the run record and its activity
+          runs list. This cannot be undone, the run record and its activity
           logs will be permanently deleted.
         </>
       }

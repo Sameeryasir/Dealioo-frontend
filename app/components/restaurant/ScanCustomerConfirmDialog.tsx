@@ -268,7 +268,7 @@ export function ScanCustomerConfirmDialog({
                 <span className="mt-1.5 size-2 shrink-0 rounded-full bg-amber-500" />
                 <p>
                   {preview.redeemBlockedReason ??
-                    "Guest has not paid online — you will enter the order amount on the next step."}
+                    "Guest has not paid online, you will enter the order amount on the next step."}
                 </p>
               </div>
             ) : preview.redeemBlockedReason ? (

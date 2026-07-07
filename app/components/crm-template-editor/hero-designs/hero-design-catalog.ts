@@ -6,7 +6,7 @@ import type {
 } from "@/app/components/crm-template-editor/hero-designs/types";
 
 /**
- * Single source of truth — add a hero layout: pick a preset + label/description.
+ * Single source of truth, add a hero layout: pick a preset + label/description.
  * Layout CSS lives in hero-layout-presets.ts (reusable).
  */
 export const HERO_DESIGN_CATALOG = [
@@ -20,19 +20,19 @@ export const HERO_DESIGN_CATALOG = [
     id: "rounded_card",
     preset: "inset_rounded",
     label: "Rounded card",
-    description: "Inset hero with rounded corners — polished app feel.",
+    description: "Inset hero with rounded corners, polished app feel.",
   },
   {
     id: "premium_inset",
     preset: "inset_premium",
     label: "Premium inset",
-    description: "Elevated card with shadow — luxury and SaaS landing pages.",
+    description: "Elevated card with shadow, luxury and SaaS landing pages.",
   },
   {
     id: "wide_banner",
     preset: "cinema_wide",
     label: "Cinematic wide",
-    description: "Letterbox strip — logos, panoramas, and restaurant interiors.",
+    description: "Letterbox strip, logos, panoramas, and restaurant interiors.",
   },
   {
     id: "tall_focus",
@@ -44,55 +44,55 @@ export const HERO_DESIGN_CATALOG = [
     id: "clean_edge",
     preset: "sharp_cut",
     label: "Clean cut",
-    description: "Full width, no fade — crisp transition into your copy.",
+    description: "Full width, no fade, crisp transition into your copy.",
   },
   {
     id: "soft_frame",
     preset: "editorial_frame",
     label: "Editorial frame",
-    description: "Bordered inset — magazine and hospitality editorial style.",
+    description: "Bordered inset, magazine and hospitality editorial style.",
   },
   {
     id: "floating_hero",
     preset: "floating_card",
     label: "Floating hero",
-    description: "Deep shadow floating card — modern DTC and app launches.",
+    description: "Deep shadow floating card, modern DTC and app launches.",
   },
   {
     id: "arch_curve",
     preset: "arch_hero",
     label: "Arch curve",
-    description: "Rounded bottom arc — boutique brands and events.",
+    description: "Rounded bottom arc, boutique brands and events.",
   },
   {
     id: "immersive_story",
     preset: "immersive_tall",
     label: "Immersive story",
-    description: "Tall immersive block — storytelling and brand campaigns.",
+    description: "Tall immersive block, storytelling and brand campaigns.",
   },
   {
     id: "product_square",
     preset: "product_square",
     label: "Product square",
-    description: "Centered square crop — ecommerce and menu highlights.",
+    description: "Centered square crop, ecommerce and menu highlights.",
   },
   {
     id: "magazine_band",
     preset: "magazine_band",
     label: "Magazine band",
-    description: "Wide editorial band — headlines over atmospheric photos.",
+    description: "Wide editorial band, headlines over atmospheric photos.",
   },
   {
     id: "glass_fade",
     preset: "glass_fade",
     label: "Glass fade",
-    description: "Soft light fade — text-friendly overlay on busy images.",
+    description: "Soft light fade, text-friendly overlay on busy images.",
   },
   {
     id: "split_margin",
     preset: "split_margin",
     label: "Split margin",
-    description: "Framed with side margins — professional services and B2B.",
+    description: "Framed with side margins, professional services and B2B.",
   },
 ] as const satisfies readonly HeroDesignCatalogEntry[];
 

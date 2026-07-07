@@ -64,7 +64,7 @@ export function FacebookPermissionsPanel({
             <span className="font-semibold">
               {missingRequiredScopes.join(", ")}
             </span>
-            . Remove Facebook and connect again — approve every ad permission
+            . Remove Facebook and connect again, approve every ad permission
             Meta shows.
           </p>
         </div>

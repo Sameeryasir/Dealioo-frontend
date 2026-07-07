@@ -190,7 +190,7 @@ export function CampaignSetupStep({
       <BuilderStepHeader
         step={1}
         title="Campaign setup"
-        description="Define your campaign goal and budget strategy. Everything here is saved as a draft — Meta is only contacted when you publish on Step 4."
+        description="Define your campaign goal and budget strategy. Everything here is saved as a draft, Meta is only contacted when you publish on Step 4."
         badge="Draft only"
       />
 

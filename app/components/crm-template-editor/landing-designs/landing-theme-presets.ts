@@ -1,4 +1,4 @@
-/** Reusable Tailwind class bundles — add a design by picking a preset + colors. */
+/** Reusable Tailwind class bundles, add a design by picking a preset + colors. */
 export type LightAccent =
   | "violet"
   | "orange"
@@ -261,7 +261,7 @@ export const DARK_THEME_PRESETS: Record<DarkAccent, LandingThemePreset> = {
   },
 };
 
-/** Mono light preset — used only for minimal_mono. */
+/** Mono light preset, used only for minimal_mono. */
 export const MONO_LIGHT_PRESET: LandingThemePreset = {
   badgeClass: "border border-zinc-300 bg-zinc-100 text-zinc-800",
   headingClass: "text-zinc-900 tracking-tight",

@@ -2,7 +2,7 @@
 
 import type { LandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/types";
 
-/** Tiny landing-page mock — reuses design tokens (colors, CTA gradient). */
+/** Tiny landing-page mock, reuses design tokens (colors, CTA gradient). */
 export function LandingDesignMiniPreview({
   style,
 }: {
