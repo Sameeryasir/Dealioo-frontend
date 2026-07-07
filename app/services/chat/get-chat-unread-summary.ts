@@ -24,7 +24,9 @@ export async function getChatUnreadSummary(
   );
 
   if (!res.ok) {
-    throw new Error(await parseApiErrorMessage(res));
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load chat unread summary."),
+    );
   }
 
   return (await res.json()) as ChatUnreadSummary;

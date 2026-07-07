@@ -293,7 +293,15 @@ export async function fetchMyRestaurants(
     console.error("Fetch my restaurant error:", error);
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 404) {
-        return [];
+        return {
+          data: [],
+          meta: {
+            page: options.page ?? 1,
+            limit: options.limit ?? MY_RESTAURANTS_PAGE_SIZE,
+            total: 0,
+            totalPages: 0,
+          },
+        };
       }
       if (error.response?.data?.message != null) {
         throw new Error(

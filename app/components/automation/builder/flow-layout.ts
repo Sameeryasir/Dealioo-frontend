@@ -111,6 +111,8 @@ export function parseSplitFlowLayout(
   const branches: Record<FlowBranchId, IndexedWorkflowNode[]> = {
     [FLOW_BRANCH_PASS]: [],
     [FLOW_BRANCH_PAYMENT]: [],
+    [FLOW_BRANCH_VISITED_YES]: [],
+    [FLOW_BRANCH_VISITED_NO]: [],
   };
 
   flowNodes.forEach((node, offset) => {

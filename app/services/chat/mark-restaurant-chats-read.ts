@@ -19,7 +19,9 @@ export async function markRestaurantChatsRead(
   );
 
   if (!res.ok) {
-    throw new Error(await parseApiErrorMessage(res));
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not mark chats as read."),
+    );
   }
 
   return (await res.json()) as { chatsLastViewedAt: string };
