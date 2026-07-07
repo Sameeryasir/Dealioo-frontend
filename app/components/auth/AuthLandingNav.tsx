@@ -1,4 +1,5 @@
 "use client";
+
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,14 +17,21 @@ const NAV_LINKS = [
   ["About", "/#about"],
 ] as const;
 
-export type BookMeetingNavProps = {
+export type AuthLandingNavProps = {
+  loginHref?: string;
+  signupHref?: string;
   onMenuOpenChange?: (open: boolean) => void;
 };
 
-export function BookMeetingNav({ onMenuOpenChange }: BookMeetingNavProps) {
-  const signupHref = landingSignupHref(null);
-  const loginHref = landingLoginHref(null);
+export function AuthLandingNav({
+  loginHref: loginHrefProp,
+  signupHref: signupHrefProp,
+  onMenuOpenChange,
+}: AuthLandingNavProps) {
+  const signupHref = signupHrefProp ?? landingSignupHref(null);
+  const loginHref = loginHrefProp ?? landingLoginHref(null);
   const navLinks = [...NAV_LINKS, ["Login", loginHref] as const] as const;
+
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
 

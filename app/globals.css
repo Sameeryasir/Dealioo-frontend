@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
-/* Dealioo brand design tokens — official style guide palette */
 :root {
-  /* Primary palette — Google/Meta-inspired Dealioo roles */
+  
   --brand-primary: #1877f2;
   --brand-primary-hover: #0f5ed7;
   --brand-violet: #833aba;
@@ -17,7 +16,6 @@
   --brand-muted: #64748b;
   --brand-border: #e5eaf5;
 
-  /* Semantic color roles */
   --brand-acquire: #1877f2;
   --brand-convert: #e1306c;
   --brand-retain: #34a853;
@@ -25,7 +23,6 @@
   --brand-funnel: #833aba;
   --brand-error: #ea4335;
 
-  /* Legacy aliases */
   --brand-instagram-pink: var(--brand-coral);
   --brand-instagram-purple: var(--brand-violet);
   --brand-instagram-orange: var(--brand-amber);
@@ -173,7 +170,6 @@ body {
     @apply relative min-h-screen w-full bg-brand-soft;
   }
 
-  /* --- Owner landing (public marketing page) — light brand (matches hero) --- */
   .landing-page {
     --landing-bg: #ffffff;
     --landing-bg-subtle: #f8faff;
@@ -246,7 +242,6 @@ body {
     --landing-btn-primary-shadow: 0 4px 20px rgba(24, 119, 242, 0.22);
     --landing-hero-simulator-border: rgba(24, 119, 242, 0.35);
 
-    /* Per-section heading accent — eyebrows only */
     --landing-section-accent: var(--brand-primary);
 
     background: var(--landing-bg);
@@ -254,13 +249,11 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Fixed nav — content starts below h-20 bar */
   .landing-page > main,
   .landing-page-content > main {
     padding-top: 5rem;
   }
 
-  /* --- Editorial shell: dot texture + scroll progress --- */
   .landing-page-shell {
     position: relative;
     isolation: isolate;
@@ -281,7 +274,6 @@ body {
     transform-origin: 0% 50%;
   }
 
-  /* --- Light surface cards — clean depth on white/soft gray --- */
   .landing-glass-card {
     background: var(--landing-bg-card);
     border: 1px solid var(--landing-border);
@@ -315,7 +307,6 @@ body {
     color: var(--landing-section-accent, var(--brand-primary));
   }
 
-  /* Shared section typography — same scale & colors on every band */
   .landing-section-heading {
     @apply mt-3 text-xl font-semibold sm:mt-4 sm:text-2xl md:text-3xl;
   }
@@ -325,7 +316,6 @@ body {
     color: var(--landing-text-muted);
   }
 
-  /* How it works — match hero subline color; slightly larger on desktop */
   .landing-how-section-intro {
     color: #334155;
   }
@@ -355,7 +345,6 @@ body {
     }
   }
 
-  /* Built for growth — same rhythm as How it works (headline + intro) */
   .landing-growth-section-intro {
     color: #334155;
   }
@@ -398,7 +387,6 @@ body {
     color: #ffffff;
   }
 
-  /* Headline accents — brand colors on white (normal, not pastel) */
   .landing-hero-accent-blue {
     color: var(--brand-primary);
   }
@@ -411,7 +399,6 @@ body {
     color: var(--brand-teal);
   }
 
-  /* Hero — light (original), dark demo card pops on white */
   .landing-hero-block {
     position: relative;
     overflow: hidden;
@@ -426,7 +413,6 @@ body {
     z-index: 1;
   }
 
-  /* Integrations — flush with hero (no gap above marquee) */
   .landing-page .landing-integrations-section {
     position: relative;
     margin-top: 0;
@@ -438,7 +424,7 @@ body {
 
   @media (min-width: 1024px) {
     .landing-page .landing-integrations-section {
-      /* Flush with hero block — no gap below hero border */
+      
       margin-top: 0;
       border-top: none;
     }
@@ -600,7 +586,6 @@ body {
     color: #334155;
   }
 
-  /* Hero secondary CTA — outline so primary "View Plans" stays dominant */
   .landing-hero-block .landing-btn-secondary,
   .landing-hero-block .landing-hero-btn-outline {
     background: #ffffff;
@@ -720,12 +705,12 @@ body {
   }
 
   .landing-hero-editorial {
-    /* Fixed minimum height — section size does not shrink when copy changes */
+    
   }
 
   .landing-hero-editorial .landing-hero-main {
     @apply pb-5 pt-8 sm:pb-6 sm:pt-10 lg:pb-9 lg:pt-13 xl:pb-10 xl:pt-14;
-    /* Taller hero — extra vertical breathing room above/below copy + simulator */
+    
     padding-top: calc(3.25rem + 1.5px);
     padding-bottom: calc(2.5rem + 1.5px);
   }
@@ -739,7 +724,7 @@ body {
 
   @media (min-width: 1024px) {
     .landing-hero-editorial .landing-hero-main {
-      /* Nav (5rem) + 1rem clearance */
+      
       padding-top: calc(6rem + 1.5px);
       padding-bottom: calc(3rem + 1.5px);
     }
@@ -763,7 +748,6 @@ body {
     min-width: 0;
   }
 
-  /* Mobile — preserve hero stack height (replaces removed proof-card block) */
   @media (max-width: 639px) {
     .landing-hero-editorial-grid.landing-hero-mobile-stack {
       min-height: 32.5rem;
@@ -780,7 +764,6 @@ body {
     }
   }
 
-  /* Tablet stack — same fixed height as before proof cards removed */
   @media (min-width: 640px) and (max-width: 1023px) {
     .landing-hero-editorial-grid.landing-hero-mobile-stack {
       min-height: 34rem;
@@ -802,7 +785,7 @@ body {
       grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
       gap: 4rem;
       align-items: center;
-      /* Match simulator card — hero height stays fixed, not content-driven */
+      
       min-height: 25.5rem;
     }
 
@@ -905,7 +888,6 @@ body {
       color: #334155;
     }
 
-    /* Proof cards — isolated from legacy .landing-hero-proof-row grid */
     .landing-hero-editorial .landing-hero-proof-cards {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -984,7 +966,6 @@ body {
     }
   }
 
-  /* --- Hero proof cards (mobile base) --- */
   .landing-hero-proof-cards {
     list-style: none;
   }
@@ -1001,7 +982,6 @@ body {
     box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
   }
 
-  /* --- Hero proof chips (subline → buttons bridge) --- */
   .landing-hero-proof-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1134,7 +1114,6 @@ body {
     }
   }
 
-  /* --- Hero keyword pills — one row, brand-colored (Meta / AI / Stripe) --- */
   .landing-hero-keyword-pills {
     display: flex;
     flex-wrap: wrap;
@@ -1343,7 +1322,6 @@ body {
     }
   }
 
-  /* --- Pillar bento — asymmetrical magazine grid --- */
   .landing-pillar-bento {
     display: grid;
     gap: 1rem;
@@ -1385,7 +1363,6 @@ body {
     opacity: 0.85;
   }
 
-  /* --- Editorial stats --- */
   .landing-stat-editorial-grid {
     display: grid;
     gap: 1rem;
@@ -1435,7 +1412,6 @@ body {
       -webkit-backdrop-filter 0.4s ease;
   }
 
-  /* Light nav — cool slate band so it clearly separates from pure white hero */
   .landing-page .brand-landing-nav {
     background: var(--landing-nav-bg);
     backdrop-filter: none;
@@ -1455,7 +1431,6 @@ body {
       0 10px 32px rgba(15, 23, 42, 0.09);
   }
 
-  /* Top mirror shine line */
   .brand-landing-nav::before {
     content: "";
     position: absolute;
@@ -1475,7 +1450,6 @@ body {
     transition: opacity 0.4s ease, background 0.4s ease;
   }
 
-  /* Soft inner mirror reflection — glass depth */
   .brand-landing-nav::after {
     content: "";
     position: absolute;
@@ -1491,7 +1465,6 @@ body {
     transition: background 0.4s ease, opacity 0.4s ease;
   }
 
-  /* Light nav — subtle top accent line */
   .landing-page .brand-landing-nav::before {
     height: 1px;
     background: linear-gradient(
@@ -1579,7 +1552,6 @@ body {
     display: none;
   }
 
-  /* All sections white — footer only gets a soft band */
   .landing-page .landing-story-section,
   .landing-page .landing-features-section,
   .landing-page .landing-stat-section,
@@ -1588,12 +1560,11 @@ body {
   .landing-page .landing-pricing-section,
   .landing-page .landing-compact-section,
   .landing-page .landing-compact-alt,
-  /* Soft band — breaks long white run between hero and pricing */
+  
   .landing-page #growth.landing-story-section {
     background: #f8faff;
   }
 
-  /* Why Dealioo — existing section, dark canvas so white 3D cards pop */
   .landing-page #why.landing-why-section-dark,
   .landing-page .landing-why-section-dark {
     position: relative;
@@ -1671,7 +1642,6 @@ body {
       0 10px 24px color-mix(in srgb, var(--why-accent) 32%, transparent);
   }
 
-  /* About us — crisp card (no blur overlays) */
   .landing-page #about .landing-about-panel {
     background: #ffffff;
   }
@@ -1693,7 +1663,6 @@ body {
     border-top: 1px solid var(--landing-border);
   }
 
-  /* 3D black quote band — SuperBuzz rhythm */
   .landing-page .landing-spotlight-band {
     position: relative;
     overflow: hidden;
@@ -1939,7 +1908,6 @@ body {
     }
   }
 
-  /* Final CTA — compact navy band, last section before footer */
   .landing-page .landing-final-cta-band {
     position: relative;
     overflow: hidden;
@@ -2315,7 +2283,7 @@ body {
 
   @media (max-width: 639px) {
     .landing-simulator-hero .landing-simulator-inner {
-      /* Fixed height — step copy changes must not push brands strip up/down */
+      
       min-height: 15.5rem;
     }
 
@@ -2515,7 +2483,6 @@ body {
     color: var(--landing-text);
   }
 
-  /* Final signup CTA — white section, dark gradient card */
   .landing-page .landing-auth-cta-section {
     position: relative;
     overflow: hidden;
@@ -2535,7 +2502,6 @@ body {
     z-index: 1;
   }
 
-  /* Dark gradient card — same shell shape as landing-section-card-shell */
   .landing-page .landing-auth-cta-card {
     margin-top: 0;
     overflow: hidden;
@@ -2597,7 +2563,6 @@ body {
     @apply border-t border-[#e8edf5] bg-[#fafbfd] px-5 py-4 sm:px-6 sm:py-5;
   }
 
-  /* Why Dealioo — compact premium cards on dark band */
   .landing-why-section {
     @apply relative overflow-hidden py-10 sm:py-12;
   }
@@ -2696,7 +2661,6 @@ body {
     color: var(--landing-text);
   }
 
-  /* SuperBuzz-style editorial bands — narrative rhythm after deal builder */
   .landing-editorial-section {
     @apply relative overflow-hidden py-14 sm:py-20;
     background: #ffffff;
@@ -2815,7 +2779,6 @@ body {
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
   }
 
-  /* How-it-works — interactive journey rail */
   .landing-how-rail {
     background: #f8faff;
     max-width: 100%;
@@ -2833,7 +2796,7 @@ body {
 
   @media (min-width: 640px) {
     .landing-how-track {
-      /* Icon + label + hint slot + vertical padding — fixed so hover never grows the rail */
+      
       height: calc(7.25rem + 2.5rem);
       min-height: calc(7.25rem + 2.5rem);
       max-height: calc(7.25rem + 2.5rem);
@@ -2917,13 +2880,11 @@ body {
       box-shadow: 0 0 0 3px #f8faff;
     }
 
-    /* Top row — label above icon so the ⌐ line does not cross headings */
     .landing-how-mobile-layout .landing-how-step--label-above .landing-how-step-label {
       margin-bottom: 0.5rem;
     }
   }
 
-  /* Connector through icon centers — desktop straight line */
   .landing-how-connector-line {
     top: 2.875rem;
     left: 2rem;
@@ -2980,7 +2941,6 @@ body {
     backdrop-filter: blur(12px);
   }
 
-  /* Deal builder — preview card + metrics (aligned with hero simulator) */
   .landing-playground-preview-shell {
     border: 1px solid var(--landing-border);
     background: #ffffff;
@@ -3271,7 +3231,6 @@ body {
     @apply inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-brand-primary px-6 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-all duration-200 hover:bg-brand-primary-hover active:scale-[0.98];
   }
 
-  /* Primary / secondary CTAs — colors follow active theme tokens */
   .landing-btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full font-bold transition active:scale-[0.98];
     background: var(--landing-btn-primary-bg);
@@ -3306,7 +3265,6 @@ body {
     background: var(--landing-btn-convert-hover);
   }
 
-  /* Theme-aware text buttons */
   .landing-btn-ghost {
     color: var(--landing-btn-ghost-text);
     transition: color 0.2s ease;
@@ -3370,7 +3328,6 @@ body {
     }
   }
 
-  /* --- Landing mobile: touch targets, safe areas, small screens --- */
   .brand-landing-nav {
     padding-top: env(safe-area-inset-top, 0px);
   }
@@ -3393,7 +3350,6 @@ body {
     min-height: 2.75rem;
   }
 
-  /* Nav logo — no hover ring; logo should stay clean on light nav */
   .landing-nav-logo {
     display: inline-flex;
     background: transparent;
@@ -3415,7 +3371,6 @@ body {
       @apply h-16 gap-2;
     }
 
-    /* --- Hero — keep demo card inside screen (no rotate/parallax overflow) --- */
     .landing-hero-block,
     .landing-hero-editorial,
     .landing-hero-vivid {
@@ -3432,7 +3387,6 @@ body {
       min-width: 0;
     }
 
-    /* --- Hero mobile stack — centered copy, demo neeche --- */
     .landing-hero-mobile-stack {
       gap: 1.35rem;
     }
@@ -3488,7 +3442,6 @@ body {
       font-size: 0.75rem;
     }
 
-    /* Keyword pills — single compact row on phones */
     .landing-hero-keyword-pills {
       flex-wrap: nowrap;
       justify-content: center;
@@ -3528,7 +3481,7 @@ body {
     }
 
     .landing-hero-editorial .landing-hero-main {
-      /* Taller top, zero bottom — brands strip starts flush after simulator */
+      
       padding-top: 3.75rem;
       padding-bottom: 0;
     }
@@ -3569,7 +3522,6 @@ body {
       min-height: 15.5rem;
     }
 
-    /* --- Shared section rhythm on mobile --- */
     .landing-section-heading {
       font-size: 1.375rem;
       line-height: 1.22;
@@ -3631,7 +3583,6 @@ body {
       @apply py-10;
     }
 
-    /* --- How it works — 3×2 grid + zigzag path on mobile --- */
     .landing-how-rail {
       margin-top: 1.5rem;
       overflow-x: clip;
@@ -3655,7 +3606,6 @@ body {
       max-width: 4.75rem;
     }
 
-    /* --- Pricing — stacked cards with dividers --- */
     .landing-pricing-section .landing-section-card-shell {
       margin-top: 1.25rem;
     }
@@ -3664,7 +3614,6 @@ body {
       border-top: 1px solid #e8edf5;
     }
 
-    /* --- Why Dealioo — compact cards --- */
     .landing-why-premium-card {
       padding: 1rem 1rem 1.125rem;
     }
@@ -3715,7 +3664,6 @@ body {
     box-shadow: 0 8px 32px -12px color-mix(in srgb, var(--brand-navy) 10%, transparent);
   }
 
-  /* Clean flat hero */
   .landing-hero-feast {
     @apply bg-white;
   }
@@ -3983,7 +3931,6 @@ body {
     @apply -translate-y-0.5 border-brand-primary/30 shadow-md;
   }
 
-  /* Why Dealioo dark — last in layer so it wins over base card styles */
   .landing-page #why.landing-why-section-dark {
     background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%) !important;
     color: #ffffff;
@@ -3997,14 +3944,12 @@ body {
     color: rgba(255, 255, 255, 0.68);
   }
 
-  /* Get Started — white section; dark gradient lives on the button card only */
   .landing-page #account.landing-auth-cta-section,
   .landing-page .landing-auth-cta-section {
     background: #ffffff !important;
     border-top: 1px solid var(--landing-border) !important;
   }
 
-  /* Why Dealioo — section header only (not the white feature cards below) */
   .landing-page .landing-why-section-header .landing-section-eyebrow {
     color: #ffffff !important;
   }
@@ -4175,7 +4120,6 @@ body {
   }
 }
 
-/* Integrations strip — stronger gradient outside @layer */
 .landing-page .landing-integrations-marquee-dark {
   background: linear-gradient(
     105deg,
@@ -4221,7 +4165,6 @@ body {
   }
 }
 
-/* Hero headline accents — brand normal (override stale soft tints) */
 .landing-page .landing-hero-accent-blue {
   color: #1877f2 !important;
 }
@@ -4254,7 +4197,6 @@ body {
   font-weight: 600 !important;
 }
 
-/* Section typography — consistent colors on live page */
 .landing-page .landing-section-intro {
   color: #475569 !important;
 }
@@ -4315,7 +4257,6 @@ body {
   text-align: center !important;
 }
 
-/* Mobile headline */
 .landing-page #why .landing-why-headline-mobile {
   display: flex !important;
   flex-direction: column !important;
@@ -4352,7 +4293,6 @@ body {
   font-weight: 700 !important;
 }
 
-/* Mobile subheading — natural wrap */
 .landing-page #why .landing-why-intro-mobile {
   display: block !important;
 }
@@ -4407,7 +4347,6 @@ body {
   }
 }
 
-/* Nav — cool slate band above white hero (outside @layer so change always applies) */
 .landing-page .brand-landing-nav {
   background: #e4ecf6 !important;
   border-bottom-color: #b4c5dc !important;
@@ -4440,13 +4379,11 @@ body {
   background: #ffffff !important;
 }
 
-/* Dark-section eyebrows — outside @layer so old cached blue rules cannot win */
 .landing-page #why .landing-why-section-header .landing-section-eyebrow,
 .landing-page .landing-why-section-dark .landing-why-section-header .landing-section-eyebrow {
   color: #ffffff !important;
 }
 
-/* Brands patti — desktop height (outside @layer so change always applies) */
 @media (min-width: 1024px) {
   .landing-page .landing-integrations-marquee-dark .landing-integrations-group {
     padding-top: calc(2.5rem + 1px) !important;
@@ -4454,7 +4391,6 @@ body {
   }
 }
 
-/* Desktop hero — fixed min-height, buttons align with card bottom (outside @layer) */
 @media (min-width: 1024px) {
   .landing-page .landing-hero-editorial-grid {
     align-items: center !important;
@@ -4617,7 +4553,6 @@ body {
   }
 }
 
-/* Mobile landing polish — outside @layer so overrides always win */
 @media (max-width: 639px) {
   .landing-page {
     overflow-x: clip;
@@ -4630,14 +4565,13 @@ body {
     width: 100% !important;
   }
 
-  /* Hero — mobile stack layout (desktop unchanged at sm+) */
   .landing-page .landing-hero-block {
-    /* No white band between hero content and dark brands strip */
+    
     border-bottom: none !important;
   }
 
   .landing-page .landing-integrations-section {
-    /* Small breathing room below simulator before dark brands strip */
+    
     margin-top: 1.5rem !important;
     padding-top: 0 !important;
     border-top: none !important;
@@ -4788,13 +4722,11 @@ body {
     max-width: 100% !important;
   }
 
-  /* How-it-works — no hint copy on mobile grid; desktop keeps hover hints */
   .landing-page .landing-how-mobile-layout .landing-how-step-hint {
     display: none !important;
   }
 }
 
-/* How it works — tighter section + locked rail height */
 .landing-page #how-it-works.landing-story-section {
   padding-top: 2rem !important;
   padding-bottom: 2rem !important;
@@ -4863,7 +4795,6 @@ body {
   }
 }
 
-/* Tablet — small gap before brands strip (below desktop lg) */
 @media (min-width: 640px) and (max-width: 1023px) {
   .landing-page .landing-hero-block {
     border-bottom: none !important;
@@ -4893,7 +4824,6 @@ body {
   }
 }
 
-/* Built for growth — phones & small tablets (below 768px) */
 @media (max-width: 767px) {
   .landing-page #growth .brand-landing-section {
     padding-left: 0.75rem !important;
@@ -4969,7 +4899,6 @@ body {
     text-align: center !important;
   }
 
-  /* Compact inner preview UI — less vertical padding inside white panels */
   .landing-page #growth .landing-growth-preview-inner [class*="p-2"] {
     padding: 0.2rem !important;
   }
@@ -5063,7 +4992,6 @@ body {
     padding-bottom: 0.15rem !important;
   }
 
-  /* Stripe + QR — white inner cards full width like Funnel / Meta cards */
   .landing-page #growth .landing-growth-card--stripe-payments .landing-growth-preview-inner > div > div,
   .landing-page #growth .landing-growth-card--qr-redemption .landing-growth-preview-inner > div > div {
     display: flex !important;
@@ -5137,7 +5065,6 @@ body {
     width: 100% !important;
   }
 
-  /* Desktop — uniform card sizes; bottom row 3 cards centered */
   .landing-page #growth .landing-growth-bottom-grid {
     max-width: none !important;
     margin-inline: 0 !important;
@@ -5204,7 +5131,6 @@ body {
     text-align: left !important;
   }
 
-  /* Stripe + QR — full-width white inner cards on desktop */
   .landing-page #growth .landing-growth-card--stripe-payments .landing-growth-preview-inner > div > div,
   .landing-page #growth .landing-growth-card--qr-redemption .landing-growth-preview-inner > div > div {
     display: flex !important;
@@ -5247,7 +5173,6 @@ body {
   }
 }
 
-/* About us — phones & small tablets (below 768px) */
 @media (max-width: 767px) {
   .landing-page #about.landing-about-section {
     padding-top: 2rem !important;
@@ -5393,7 +5318,6 @@ body {
   }
 }
 
-/* Spotlight — mobile layout (quote frame + pointing figure) */
 @media (max-width: 767px) {
   .landing-page .landing-spotlight-band {
     padding-top: 1.75rem !important;
@@ -5425,13 +5349,11 @@ body {
     font-weight: 700 !important;
   }
 
-  /* Pink glow — visible but not harsh on small screens */
   .landing-page .landing-spotlight-orb-b {
     background: rgba(225, 48, 108, 0.19) !important;
     filter: blur(52px) !important;
   }
 
-  /* Align with quote card left edge; keep text left of 3D character */
   .landing-page .landing-spotlight-captions {
     width: 100% !important;
     max-width: 16.75rem !important;
@@ -5467,7 +5389,6 @@ body {
     display: block;
   }
 
-  /* Slightly below quote card — avoids overlapping headline */
   .landing-page .landing-spotlight-pointing-wrap {
     top: 6.25rem !important;
     bottom: auto !important;
@@ -5484,6 +5405,1484 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .landing-spotlight-pointing-float {
     transform: none !important;
+  }
+}
+
+.auth-signup-page {
+  background: var(--landing-bg-subtle, #f8faff);
+  height: 100svh;
+  max-height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.auth-signup-page > .auth-signup-main {
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  padding-top: calc(5rem + 1.5rem);
+}
+
+.auth-signup-brand-panel {
+  display: none;
+}
+
+.auth-signup-split-form {
+  width: 100%;
+}
+
+.auth-signup-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: calc(5rem + 1.5rem) clamp(0.625rem, 2.5vw, 1rem) 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  min-height: 0;
+}
+
+.auth-signup-inner {
+  width: 100%;
+  max-width: min(36rem, calc(100vw - clamp(1.25rem, 5vw, 2rem)));
+  margin-inline: auto;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+@media (max-width: 1023px) {
+  .auth-signup-page .auth-signup-main {
+    padding-inline: clamp(0.625rem, 2.5vw, 1rem);
+  }
+
+  .auth-signup-page .auth-signup-inner {
+    width: 100%;
+    max-width: min(36rem, calc(100vw - clamp(1.25rem, 5vw, 2rem)));
+  }
+
+  .auth-signup-page .auth-signup-actions {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-page {
+    background: linear-gradient(165deg, #f8faff 0%, #eef3ff 48%, #f5f8ff 100%);
+  }
+  .auth-signup-page > .auth-signup-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    overflow: hidden;
+    padding: calc(5rem + 0.5rem) clamp(0.5rem, 1.25vw, 1rem)
+      calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-signup-page .auth-signup-main {
+    justify-content: flex-start;
+  }
+
+  .auth-signup-inner {
+    width: 100%;
+    max-width: min(88rem, calc(100vw - 1rem));
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    margin-inline: auto;
+    padding-top: 0;
+  }
+
+  .auth-signup-page .auth-signup-card {
+    --auth-signup-card-pad-top: clamp(1.375rem, 2.25vw, 1.75rem);
+    --auth-signup-card-pad-bottom: clamp(0.625rem, 1.25vw, 0.875rem);
+    --auth-signup-form-offset-top: clamp(1rem, 4vh, 2rem);
+    display: grid;
+    grid-template-columns: 45% 55%;
+    align-items: stretch;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    background: #ffffff;
+    box-shadow:
+      0 28px 64px rgba(15, 23, 42, 0.11),
+      0 0 0 1px rgba(232, 237, 245, 0.95);
+  }
+
+  .auth-signup-brand-panel {
+    --auth-signup-brand-bg: linear-gradient(165deg, #05070d 0%, #0a1628 46%, #102347 100%);
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    isolation: isolate;
+    min-height: 100%;
+    width: 100%;
+    background: var(--auth-signup-brand-bg);
+    border-radius: 1.75rem 6.5rem 6.5rem 1.75rem / 1.75rem 50% 50% 1.75rem;
+  }
+
+  .auth-signup-brand-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 72% 62% at 100% 0%, rgba(24, 119, 242, 0.32) 0%, transparent 58%),
+      radial-gradient(ellipse 78% 68% at 0% 100%, rgba(225, 48, 108, 0.28) 0%, transparent 62%);
+  }
+
+  .auth-signup-brand-panel-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin-inline: auto;
+    padding: calc(var(--auth-signup-card-pad-top) + clamp(0.75rem, 1.75vh, 1.125rem))
+      clamp(1.25rem, 2.5vw, 2rem) var(--auth-signup-card-pad-bottom);
+    text-align: center;
+  }
+
+  .auth-signup-brand-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex-shrink: 0;
+    margin-top: clamp(0.625rem, 1.5vh, 1rem);
+    margin-bottom: 0.625rem;
+  }
+
+  .auth-signup-brand-eyebrow {
+    color: #ffffff;
+    font-size: clamp(0.9375rem, 1.1vw, 1.0625rem);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    margin-bottom: 0;
+  }
+
+  .auth-signup-brand-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    max-width: 100%;
+    font-family: var(--font-poppins), system-ui, sans-serif;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    transform: translateX(clamp(-0.75rem, -1.5vw, -1rem));
+  }
+
+  .auth-signup-brand-panel .auth-signup-brand-title-lead {
+    display: block;
+    font-size: clamp(1.875rem, 2.85vw, 2.375rem) !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    color: #ffffff !important;
+  }
+
+  .auth-signup-brand-title-logo {
+    display: block;
+    height: clamp(1.875rem, 2.85vw, 2.375rem);
+    width: auto;
+  }
+
+  .auth-signup-brand-illustration {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    padding-top: clamp(0.5rem, 1.1vh, 0.75rem);
+    margin-top: clamp(-0.25rem, -0.75vh, -0.5rem);
+    margin-bottom: clamp(-2.5rem, -6vh, -3.5rem);
+  }
+
+  .auth-signup-brand-illustration-stage {
+    position: relative;
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    background: transparent;
+    transform: translateY(clamp(-1.375rem, -3vh, -1.875rem));
+  }
+
+  .auth-signup-brand-illustration-anim {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .auth-signup-brand-illustration-image {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 84%;
+    max-width: 84%;
+    height: auto;
+    max-height: clamp(16.5rem, 40vh, 26rem);
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .auth-signup-brand-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0;
+    margin-bottom: clamp(1.25rem, 2.5vh, 2rem);
+    padding-top: 0;
+    flex-shrink: 0;
+    transform: translateY(clamp(-0.75rem, -1.75vh, -1.25rem));
+  }
+
+  .auth-signup-brand-login {
+    margin: 0 0 1.125rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .auth-signup-brand-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 11rem;
+    padding: 0.875rem 1.875rem;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: 9999px;
+    background: transparent;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .auth-signup-brand-cta:hover {
+    border-color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .auth-signup-split-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
+    padding: clamp(1.25rem, 2.5vh, 1.75rem)
+      clamp(2.25rem, 3.5vw, 3.25rem) var(--auth-signup-card-pad-bottom);
+    background: #ffffff;
+    border-radius: 0 1.75rem 1.75rem 0;
+  }
+
+  .auth-signup-split-form .auth-signup-card-body,
+  .auth-signup-split-form .auth-signup-form {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .auth-signup-card-header,
+  .auth-signup-card-footer {
+    display: none;
+  }
+
+  .auth-signup-page .auth-signup-card-body {
+    padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+
+  .auth-signup-card-body > form,
+  .auth-signup-form {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .auth-signup-progress-block,
+  .auth-signup-step-head {
+    flex-shrink: 0;
+  }
+
+  .auth-signup-card-body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
+.auth-signup-card {
+  --auth-signup-card-pad-top: 0.875rem;
+  --auth-signup-card-pad-bottom: 0.5rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.09),
+    0 0 0 1px #e8edf5;
+}
+
+.auth-signup-card-header {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: var(--auth-signup-card-pad-top) 1.5rem var(--auth-signup-card-pad-bottom);
+  text-align: center;
+  background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.auth-signup-card-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 72% 62% at 100% 0%, rgba(24, 119, 242, 0.28) 0%, transparent 58%),
+    radial-gradient(ellipse 78% 68% at 0% 0%, rgba(225, 48, 108, 0.38) 0%, transparent 62%);
+}
+
+.auth-signup-card-header-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-signup-card-header .landing-section-eyebrow {
+  letter-spacing: 0.22em;
+  color: #ffffff;
+  font-size: 0.6875rem;
+}
+
+.auth-signup-card-header .auth-signup-title {
+  color: #ffffff;
+}
+
+.auth-signup-title {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0;
+  font-size: 1.5rem !important;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.auth-signup-title-logo {
+  margin-left: 0.125rem;
+  vertical-align: middle;
+}
+
+@media (min-width: 640px) {
+  .auth-signup-card {
+    --auth-signup-card-pad-top: 1rem;
+    --auth-signup-card-pad-bottom: 0.625rem;
+  }
+
+  .auth-signup-card-header {
+    padding: var(--auth-signup-card-pad-top) 1.75rem var(--auth-signup-card-pad-bottom);
+  }
+
+  .auth-signup-card-header::before {
+    background:
+      radial-gradient(ellipse 72% 62% at 100% 0%, rgba(24, 119, 242, 0.28) 0%, transparent 58%),
+      radial-gradient(ellipse 74% 64% at 0% 0%, rgba(225, 48, 108, 0.32) 0%, transparent 60%);
+  }
+
+  .auth-signup-title {
+    font-size: 1.75rem !important;
+  }
+
+  .auth-signup-card-header .landing-section-eyebrow {
+    font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-card-header {
+    padding: 1.125rem 1.625rem 0.875rem;
+  }
+
+  .auth-signup-card-header .landing-section-eyebrow {
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+  }
+
+  .auth-signup-title {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    font-size: 1.375rem !important;
+    line-height: 1.2;
+    margin-top: 0.25rem !important;
+  }
+
+  .auth-signup-title-lead {
+    display: inline;
+  }
+
+  .auth-signup-title-logo {
+    display: inline-block;
+    height: 1.375rem;
+    width: auto;
+    margin-left: 0;
+    vertical-align: middle;
+  }
+}
+
+.auth-signup-progress-block {
+  margin-bottom: 1.125rem;
+  flex-shrink: 0;
+}
+
+.auth-signup-progress-track {
+  margin-top: 0.5rem;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #e8edf5;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-progress-block {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-signup-progress-track {
+    margin-top: 0.375rem;
+    height: 0.4rem;
+  }
+
+  .auth-signup-step-meta {
+    font-size: 0.9375rem;
+  }
+
+  .auth-signup-step-head {
+    margin-bottom: 1rem;
+    min-height: 2.75rem;
+  }
+
+  .auth-signup-step-title {
+    font-size: 1.75rem;
+  }
+
+  .auth-signup-step-sub {
+    font-size: 1rem;
+  }
+}
+
+.auth-signup-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--brand-primary, #1877f2) 0%,
+    var(--brand-violet, #833aba) 55%,
+    #ea5a8f 100%
+  );
+  box-shadow: 0 0 12px rgba(24, 119, 242, 0.35);
+}
+
+.auth-signup-step-head {
+  margin-bottom: 1.125rem;
+  min-height: 3rem;
+}
+
+@media (min-width: 640px) {
+  .auth-signup-step-head {
+    min-height: 2.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-step-head {
+    margin-bottom: 0.75rem;
+    min-height: 2.375rem;
+  }
+
+  .auth-signup-step-title {
+    font-size: 1.375rem;
+  }
+
+  .auth-signup-step-sub {
+    font-size: 0.9375rem;
+  }
+}
+
+.auth-signup-step-meta {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--landing-text, #07111f);
+}
+
+.auth-signup-step-title {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+@media (min-width: 640px) {
+  .auth-signup-step-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-step-title {
+    font-size: 1.375rem;
+  }
+}
+
+.auth-signup-step-sub {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--landing-text-muted, #64748b);
+}
+
+.auth-signup-card-body {
+  margin-top: 0;
+  padding: var(--auth-signup-card-pad-top) 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .auth-signup-card-body {
+    padding: var(--auth-signup-card-pad-top) 1.5rem 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-page .auth-signup-split-form {
+    justify-content: flex-start;
+    padding: clamp(1.25rem, 2.5vh, 1.75rem)
+      clamp(2.25rem, 3.5vw, 3.25rem) var(--auth-signup-card-pad-bottom);
+  }
+
+  .auth-signup-form-alert-banner {
+    bottom: calc(100% + 0.125rem);
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-form-alert {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .auth-signup-page .auth-signup-split-form .auth-signup-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    padding: 0;
+    margin-top: 0;
+    overflow: hidden;
+    gap: 0;
+  }
+  .auth-signup-page .auth-signup-scroll-block {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    padding-top: clamp(2.5rem, 6vh, 3.25rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .auth-signup-fields--profile-step,
+  .auth-signup-fields--otp-step {
+    min-height: 0;
+  }
+
+  .auth-signup-fields--password-step {
+    min-height: 0;
+  }
+}
+
+.auth-signup-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.auth-login-page .auth-signup-fields--profile-step {
+  margin-top: 1.25rem;
+}
+
+.auth-signup-fields {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.auth-signup-fields--profile-step,
+.auth-signup-fields--password-step,
+.auth-signup-fields--otp-step {
+  min-height: 14rem;
+}
+
+.auth-signup-field-error {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--brand-error, #ef4444);
+}
+
+.auth-signup-password-meta {
+  margin-top: 0.25rem;
+}
+
+.auth-signup-scroll-block {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.auth-signup-step-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.auth-signup-form-alert-banner {
+  position: absolute;
+  bottom: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.auth-signup-form-alert-banner .auth-signup-form-alert {
+  pointer-events: auto;
+}
+
+.auth-signup-form-alert {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  line-height: 1.35;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-page .auth-signup-step-body {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+    margin-top: clamp(1.75rem, 5vh, 3rem);
+    margin-bottom: auto;
+  }
+  .auth-login-page .auth-signup-step-body {
+    margin-top: clamp(3rem, 7.5vh, 4.5rem);
+  }
+
+  .auth-signup-fields--profile-step .auth-signup-field-stack,
+  .auth-signup-fields--login-step .auth-signup-field-stack {
+    gap: 2.25rem;
+  }
+
+  .auth-signup-fields--password-step .auth-signup-field-stack {
+    gap: 1.625rem;
+  }
+
+  .auth-signup-fields--password-step .auth-signup-password-meta {
+    margin-top: 0;
+  }
+
+  .auth-signup-progress-block {
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-signup-progress-track {
+    margin-top: 0.375rem;
+    height: 0.35rem;
+  }
+
+  .auth-signup-fields--profile-step,
+  .auth-signup-fields--otp-step {
+    min-height: 0;
+  }
+
+  .auth-signup-fields--password-step {
+    min-height: 0;
+  }
+
+  .auth-signup-password-meta {
+    margin-top: 0.125rem;
+  }
+
+  .auth-signup-form-alert-banner {
+    bottom: calc(100% + 0.125rem);
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-form-alert {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .auth-signup-page .auth-signup-form {
+    justify-content: flex-start;
+    flex: 0 1 auto;
+    padding-bottom: 0;
+    overflow: visible;
+  }
+
+  .auth-signup-page .auth-signup-fields {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .auth-signup-page .auth-signup-step-meta {
+    font-size: 0.875rem;
+  }
+
+  .auth-signup-page .auth-signup-step-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .auth-signup-page .auth-signup-step-sub {
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .auth-signup-step-head {
+    margin-bottom: 0.75rem;
+    min-height: 2.375rem;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-label {
+    font-size: 1rem;
+    gap: 0.4375rem;
+    margin-bottom: 0.375rem !important;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-label svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-input {
+    height: 2.875rem;
+    font-size: 0.9375rem;
+    padding-inline: 0.875rem;
+  }
+
+  .auth-signup-page .auth-signup-card .text-xs {
+    font-size: 0.8125rem;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-field-error {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-password-meta p {
+    font-size: 0.8125rem !important;
+  }
+
+  .auth-signup-page .auth-signup-actions .auth-signup-action-btn {
+    width: min(100%, 10.75rem);
+    max-width: 10.75rem;
+    min-width: 8.75rem;
+    flex: 0 0 auto;
+    height: 2.875rem !important;
+    min-height: 2.875rem !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    padding-inline: 1rem !important;
+  }
+
+  .auth-signup-page .auth-signup-phone-field [data-phone-input-row] input {
+    font-size: 0.9375rem;
+  }
+
+  .auth-signup-page .auth-signup-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    margin-top: auto;
+    padding-top: 1.25rem;
+    padding-bottom: 0.25rem;
+    gap: 1.5rem;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+  }
+}
+
+.auth-signup-card-footer {
+  border-top: 1px solid #e8edf5;
+  background: #fafbfd;
+  padding: var(--auth-signup-card-pad-bottom) 1.5rem;
+  text-align: center;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--brand-body, #334155);
+}
+
+@media (min-width: 640px) {
+  .auth-signup-card-footer {
+    padding: var(--auth-signup-card-pad-bottom) 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-card-footer {
+    padding: 0.75rem 1.625rem;
+    font-size: 0.8125rem;
+  }
+}
+
+.auth-signup-actions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.625rem;
+  align-items: stretch;
+  flex-shrink: 0;
+  width: min(100%, 19.5rem);
+  margin-inline: auto;
+  margin-top: 1rem;
+}
+
+.auth-signup-actions .auth-signup-action-btn {
+  width: 100%;
+  min-width: 0;
+  border-radius: 9999px !important;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.auth-signup-page .auth-signup-actions .landing-btn-outline.auth-signup-action-btn {
+  background: var(--landing-nav-bg, #e4ecf6);
+  border: 1px solid var(--landing-nav-border, #b4c5dc);
+  color: var(--landing-nav-link-text, #334155);
+}
+
+.auth-signup-page .auth-signup-actions .landing-btn-outline.auth-signup-action-btn:hover {
+  background: color-mix(in srgb, var(--brand-primary) 8%, var(--landing-nav-bg, #e4ecf6));
+  border-color: var(--landing-nav-border-scrolled, #a3b8d4);
+  color: var(--landing-nav-text, #07111f);
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .auth-signup-actions {
+    width: 100%;
+    max-width: 100%;
+    gap: 0.75rem;
+  }
+
+  .auth-signup-mobile-header-art {
+    display: none;
+  }
+
+  .auth-signup-mobile-header-inner {
+    justify-content: center;
+  }
+
+  .auth-signup-mobile-header-copy {
+    flex: 1 1 auto;
+    align-items: center;
+    text-align: center;
+  }
+
+  .auth-signup-mobile-header-copy .landing-section-eyebrow,
+  .auth-signup-mobile-header-copy .auth-signup-title {
+    align-items: center;
+    text-align: center;
+  }
+}
+@media (max-width: 639px) {
+  .auth-signup-page {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    --auth-mobile-eyebrow: 0.8125rem;
+    --auth-mobile-title: 1.1875rem;
+    --auth-mobile-logo-h: 1.375rem;
+    --auth-mobile-step-meta: 0.9375rem;
+    --auth-mobile-step-title: 1.1875rem;
+    --auth-mobile-step-sub: 0.9375rem;
+    --auth-mobile-label: 0.9375rem;
+    --auth-mobile-input: 1.0625rem;
+    --auth-mobile-btn: 0.9375rem;
+    --auth-mobile-footer: 0.9375rem;
+    --auth-mobile-helper: 0.8125rem;
+    --auth-mobile-header-h: 11.75rem;
+    --auth-mobile-footer-h: 3.25rem;
+  }
+
+  .landing-page.auth-signup-page {
+    min-height: 100svh;
+    height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .auth-signup-page > .auth-signup-main,
+  .auth-signup-page .auth-signup-main {
+    align-items: stretch;
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+    padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+    padding-bottom: 0;
+  }
+
+  .auth-signup-page .auth-signup-inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none !important;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    margin-inline: 0;
+  }
+
+  .auth-signup-page .auth-signup-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    max-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .auth-signup-split-form {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+    width: 100%;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  .auth-signup-page .auth-signup-card .auth-signup-card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .auth-signup-page .auth-signup-scroll-block {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0.625rem 1rem 0.25rem;
+  }
+
+  .auth-signup-form-alert-banner {
+    bottom: calc(100% + 0.125rem);
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-card-header {
+    flex-shrink: 0;
+    width: 100%;
+    height: var(--auth-mobile-header-h);
+    min-height: var(--auth-mobile-header-h);
+    max-height: var(--auth-mobile-header-h);
+    padding: 0.875rem 0.625rem 1rem env(safe-area-inset-left, 0px);
+    text-align: left;
+    overflow: visible;
+    border-bottom: none;
+    border-radius: 0 0 1.5rem 1.5rem;
+  }
+  .auth-signup-mobile-header-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    align-items: center;
+    column-gap: 0.25rem;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .auth-signup-mobile-header-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: 0.25rem;
+  }
+
+  .auth-signup-mobile-header-copy .landing-section-eyebrow {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    font-size: var(--auth-mobile-eyebrow);
+    letter-spacing: 0.12em;
+    line-height: 1.35;
+  }
+
+  .auth-signup-mobile-header-art {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: visible;
+    padding-right: 0.125rem;
+  }
+
+  .auth-signup-mobile-header-anim {
+    justify-content: flex-end;
+    width: 100%;
+    max-width: 100%;
+    transform: scale(1.08);
+    transform-origin: center right;
+  }
+
+  .auth-signup-mobile-header-image {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: auto;
+    max-width: 112%;
+    height: auto;
+    max-height: clamp(9rem, 38vw, 10.5rem);
+    object-fit: contain;
+    object-position: center right;
+  }
+
+  .auth-signup-card-header {
+    flex-shrink: 0;
+  }
+
+  .auth-signup-mobile-header-copy .auth-signup-title.brand-landing-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 0.375rem;
+    margin: 0.4375rem 0 0 !important;
+    padding: 0;
+    font-size: inherit !important;
+    line-height: 1.15;
+    letter-spacing: 0;
+    text-align: left;
+    color: #ffffff;
+  }
+
+  .auth-signup-page .auth-signup-card-header .auth-signup-mobile-header-copy .auth-signup-title-lead {
+    display: block;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--auth-mobile-title) !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.01em;
+    color: #ffffff !important;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .auth-signup-title-lead {
+    display: block;
+  }
+
+  .auth-signup-mobile-header-copy .auth-signup-title-logo {
+    display: block !important;
+    flex: 0 0 auto;
+    align-self: flex-start;
+    height: var(--auth-mobile-logo-h) !important;
+    width: auto !important;
+    max-width: 100%;
+    margin: 0 !important;
+    padding: 0;
+    transform: none;
+    object-fit: contain;
+    object-position: left center;
+  }
+  @media (max-width: 360px) {
+    .auth-signup-page {
+      --auth-mobile-title: 1.0625rem;
+      --auth-mobile-logo-h: 1.25rem;
+      --auth-mobile-header-h: 11.25rem;
+    }
+
+    .auth-signup-mobile-header-inner {
+      grid-template-columns: minmax(0, 1.14fr) minmax(0, 0.86fr);
+    }
+
+    .auth-signup-mobile-header-anim {
+      transform: scale(1.02);
+    }
+
+    .auth-signup-mobile-header-image {
+      max-height: 8.75rem;
+    }
+  }
+
+  .auth-signup-progress-block,
+  .auth-signup-step-head {
+    flex-shrink: 0;
+  }
+
+  .auth-signup-progress-block {
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-signup-step-head {
+    margin-bottom: 0.375rem;
+    min-height: 0;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-step-meta {
+    font-size: var(--auth-mobile-step-meta);
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-step-title {
+    font-size: var(--auth-mobile-step-title) !important;
+    line-height: 1.25;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-step-sub {
+    font-size: var(--auth-mobile-step-sub);
+    margin-top: 0.25rem !important;
+  }
+
+  .auth-signup-fields--profile-step .auth-signup-field-stack {
+    gap: 1.375rem;
+  }
+
+  .auth-signup-fields--password-step .auth-signup-field-stack {
+    gap: 1.125rem;
+  }
+
+  .auth-signup-password-meta {
+    margin-top: 0.125rem;
+  }
+
+  .auth-signup-password-meta .space-y-2 {
+    gap: 0.25rem;
+  }
+
+  .auth-signup-fields {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  .auth-signup-fields--profile-step {
+    margin-top: 0.375rem;
+  }
+
+  .auth-signup-fields--password-step {
+    margin-top: 0.25rem;
+  }
+
+  .auth-signup-fields--profile-step,
+  .auth-signup-fields--password-step,
+  .auth-signup-fields--otp-step {
+    min-height: 0;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-label {
+    font-size: var(--auth-mobile-label);
+    gap: 0.4375rem;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-label svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+
+  .auth-signup-page .auth-signup-card .brand-input {
+    height: 2.875rem;
+    padding-block: 0.5625rem;
+    font-size: var(--auth-mobile-input);
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-field-error {
+    font-size: var(--auth-mobile-helper);
+    line-height: 1.25;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-password-meta p {
+    font-size: var(--auth-mobile-helper) !important;
+  }
+
+  .auth-signup-page .auth-signup-fields--otp-step .brand-label {
+    font-size: var(--auth-mobile-label);
+  }
+
+  .auth-signup-page .auth-signup-fields--otp-step .brand-input {
+    height: 2.875rem;
+    font-size: 1.125rem;
+  }
+
+  .auth-signup-page .auth-signup-fields--otp-step .text-sm {
+    font-size: var(--auth-mobile-helper);
+  }
+
+  .auth-signup-page .auth-signup-fields--otp-step .text-xs {
+    font-size: var(--auth-mobile-helper);
+  }
+
+  .auth-signup-page .auth-signup-phone-field input {
+    font-size: var(--auth-mobile-input) !important;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-form-alert {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--auth-mobile-helper);
+    line-height: 1.25;
+  }
+
+  .auth-signup-card-body > form,
+  .auth-signup-form {
+    flex: 0 0 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .auth-signup-page .auth-signup-card .auth-signup-actions {
+    position: relative;
+    z-index: 3;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0.625rem 1rem 0.5rem;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    gap: 0.625rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    background: #ffffff;
+    border: none;
+    border-top: none;
+    box-shadow: none;
+  }
+
+  .auth-signup-page .auth-signup-actions .auth-signup-action-btn {
+    border-radius: 9999px !important;
+    height: 2.75rem !important;
+    min-height: 2.75rem !important;
+    font-size: var(--auth-mobile-btn) !important;
+    font-weight: 600 !important;
+    padding-inline: 0.75rem !important;
+    white-space: nowrap;
+  }
+  .auth-signup-page .auth-signup-card .auth-signup-card-footer {
+    flex-shrink: 0;
+    margin-top: 0;
+    height: var(--auth-mobile-footer-h);
+    min-height: var(--auth-mobile-footer-h);
+    max-height: var(--auth-mobile-footer-h);
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: var(--auth-mobile-footer);
+    line-height: 1.35;
+    border-top: 1px solid #e8edf5;
+    background: #fafbfd;
+  }
+}
+.auth-signup-brand-illustration-anim {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: auth-signup-brand-illustration-glow 3.6s ease-in-out infinite;
+  will-change: filter, transform;
+}
+
+.auth-signup-brand-illustration-anim::before {
+  content: "";
+  position: absolute;
+  inset: 10% 6% 4%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(ellipse 42% 38% at 18% 65%, rgba(24, 119, 242, 0.13) 0%, transparent 72%),
+    radial-gradient(ellipse 42% 38% at 82% 60%, rgba(225, 48, 108, 0.11) 0%, transparent 72%),
+    radial-gradient(ellipse 38% 34% at 50% 78%, rgba(52, 168, 83, 0.1) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 26% at 32% 38%, rgba(251, 188, 5, 0.09) 0%, transparent 68%),
+    radial-gradient(ellipse 30% 26% at 68% 35%, rgba(234, 67, 53, 0.09) 0%, transparent 68%);
+  filter: blur(14px);
+  opacity: 0.3;
+  z-index: 0;
+  pointer-events: none;
+  animation: auth-signup-brand-illustration-halo 3.6s ease-in-out infinite;
+}
+
+@keyframes auth-signup-brand-illustration-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    filter:
+      drop-shadow(0 10px 24px rgba(24, 119, 242, 0.2))
+      drop-shadow(0 0 16px rgba(52, 168, 83, 0.1));
+  }
+  25% {
+    transform: scale(1.03);
+    filter:
+      drop-shadow(0 12px 26px rgba(225, 48, 108, 0.22))
+      drop-shadow(0 0 16px rgba(251, 188, 5, 0.1));
+  }
+  50% {
+    transform: scale(1.06);
+    filter:
+      drop-shadow(0 14px 30px rgba(52, 168, 83, 0.24))
+      drop-shadow(0 0 18px rgba(234, 67, 53, 0.12));
+  }
+  75% {
+    transform: scale(1.03);
+    filter:
+      drop-shadow(0 12px 26px rgba(251, 188, 5, 0.2))
+      drop-shadow(0 0 16px rgba(24, 119, 242, 0.1));
+  }
+}
+
+@keyframes auth-signup-brand-illustration-halo {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 0.38;
+    transform: scale(1.04);
+  }
+}
+.auth-signup-phone-field {
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.auth-signup-phone-field--error[data-phone-input-row] > div {
+  border-bottom-color: #ef4444 !important;
+}
+
+@media (min-width: 1024px) {
+  .auth-signup-page .auth-signup-phone-field [data-phone-input-row] input {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-signup-brand-illustration-anim {
+    animation: none !important;
+    filter:
+      drop-shadow(0 10px 24px rgba(24, 119, 242, 0.2))
+      drop-shadow(0 0 16px rgba(52, 168, 83, 0.1));
+  }
+
+  .auth-signup-brand-illustration-anim::before {
+    animation: none !important;
+    opacity: 0.24;
   }
 }
 

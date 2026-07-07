@@ -13,7 +13,7 @@ import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-st
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback } from "react";
+import { Suspense, useCallback, useEffect } from "react";
 
 function VerifyOtpPageInner() {
   const router = useRouter();
@@ -21,6 +21,16 @@ function VerifyOtpPageInner() {
   const { email } = useCredentialContext();
   const returnTo = searchParams.get("returnTo");
   const isSignupFlow = searchParams.get("flow") === "signup";
+
+  useEffect(() => {
+    if (isSignupFlow) {
+      router.replace(
+        returnTo
+          ? `/auth/signup?returnTo=${encodeURIComponent(returnTo)}`
+          : "/auth/signup",
+      );
+    }
+  }, [isSignupFlow, returnTo, router]);
 
   const onVerifyOtp = useCallback(
     async (otp: number) => {
@@ -52,13 +62,21 @@ function VerifyOtpPageInner() {
     await sendOtp(email);
   }, [email, isSignupFlow]);
 
+  if (isSignupFlow) {
+    return (
+      <AuthPageShell>
+        <p className="text-center text-sm text-brand-muted">Returning to sign up…</p>
+      </AuthPageShell>
+    );
+  }
+
   return (
     <AuthPageShell>
       <OtpForm
         email={email}
         onVerifyOtp={onVerifyOtp}
         onResendOtp={onResendOtp}
-        onBack={isSignupFlow ? () => router.push("/auth/signup") : () => router.push("/auth/login")}
+        onBack={() => router.push("/auth/login")}
       />
     </AuthPageShell>
   );

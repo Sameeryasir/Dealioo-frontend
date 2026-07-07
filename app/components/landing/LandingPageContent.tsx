@@ -15,7 +15,7 @@ import {
   LandingWhyDealioo,
 } from "@/app/components/landing/LandingStorySections";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import { landingSignupHref } from "@/app/components/landing/landing-auth";
+import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
 import { useLandingPageEntry } from "@/app/components/landing/useLandingPageEntry";
 
 const LANDING_LOGO_SRC = "/black-logo.png";
@@ -32,6 +32,7 @@ export function LandingPageContent() {
   const returnTo = searchParams.get("returnTo");
   const entryKey = useLandingPageEntry();
   const signupHref = landingSignupHref(returnTo);
+  const loginHref = landingLoginHref(returnTo);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
 
@@ -68,7 +69,7 @@ export function LandingPageContent() {
     ["How it works", "#how-it-works"],
     ["Pricing", "#pricing"],
     ["About", "#about"],
-    ["Login", "/auth/login"],
+    ["Login", loginHref],
   ] as const;
 
   return (
@@ -110,11 +111,19 @@ export function LandingPageContent() {
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
-            {navLinks.map(([label, href]) => (
-              <a key={href} href={href} className="landing-nav-link text-sm font-medium transition-colors">
-                {label}
-              </a>
-            ))}
+            {navLinks.map(([label, href]) => {
+              const isInternal = href.startsWith("/");
+              const LinkTag = isInternal ? Link : "a";
+              return (
+                <LinkTag
+                  key={href}
+                  href={href}
+                  className="landing-nav-link text-sm font-medium transition-colors"
+                >
+                  {label}
+                </LinkTag>
+              );
+            })}
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -250,7 +259,7 @@ export function LandingPageContent() {
             <FooterCol
               title="Account"
               links={[
-                ["Login", "/auth/login"],
+                ["Login", loginHref],
                 ["Get Started", signupHref],
               ]}
             />

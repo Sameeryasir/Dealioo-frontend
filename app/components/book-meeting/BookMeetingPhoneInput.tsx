@@ -13,15 +13,20 @@ export type BookMeetingPhoneInputProps = {
   value: string;
   onChange: (value: string) => void;
   variant?: "default" | "boxed";
+  wrapClassName?: string;
 };
 
 export function BookMeetingPhoneInput({
   value,
   onChange,
   variant = "default",
+  wrapClassName,
 }: BookMeetingPhoneInputProps) {
   return (
-    <div className={styles.phoneInputWrap} data-phone-input-row>
+    <div
+      className={`${styles.phoneInputWrap}${wrapClassName ? ` ${wrapClassName}` : ""}`}
+      data-phone-input-row
+    >
       <PhoneInput
         international
         defaultCountry={BOOK_MEETING_DEFAULT_COUNTRY}
