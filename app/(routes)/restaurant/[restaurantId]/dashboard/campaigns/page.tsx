@@ -36,6 +36,7 @@ export default function RestaurantCampaignsPage() {
   const queryClient = useQueryClient();
   const params = useParams();
   const skipPostCreateNavRef = useRef(false);
+  const keepCreateFlowOpenRef = useRef(false);
   const restaurantId = useMemo(
     () => parseRoutePositiveInt(params.restaurantId),
     [params.restaurantId],
@@ -73,8 +74,9 @@ export default function RestaurantCampaignsPage() {
 
   useEffect(() => {
     if (funnelsLoading || funnelsError) return;
+    if (keepCreateFlowOpenRef.current || submitting) return;
     setShowCreateCampaign(!hasAnyCampaigns && !searchQuery.trim());
-  }, [hasAnyCampaigns, funnelsLoading, funnelsError, searchQuery]);
+  }, [hasAnyCampaigns, funnelsLoading, funnelsError, searchQuery, submitting]);
 
   useEffect(() => {
     setSearchQuery("");
@@ -266,19 +268,21 @@ export default function RestaurantCampaignsPage() {
             onOpenChange={(next) => {
               setOpen(next);
               if (!next) {
-                if (skipPostCreateNavRef.current) {
+                keepCreateFlowOpenRef.current = false;
+                const skipDashboardNav = skipPostCreateNavRef.current;
+                if (skipDashboardNav) {
                   skipPostCreateNavRef.current = false;
-                  return;
                 }
+                setShowCreateCampaign(false);
+                if (skipDashboardNav) return;
                 if (!hasAnyCampaigns) {
                   router.push(dashboardHref);
-                } else {
-                  setShowCreateCampaign(false);
                 }
               }
             }}
             onComplete={async (payload) => {
               setSubmitError(null);
+              keepCreateFlowOpenRef.current = true;
               setSubmitting(true);
               try {
                 const createdBody = await createCampaign({
@@ -293,34 +297,32 @@ export default function RestaurantCampaignsPage() {
                 await queryClient.invalidateQueries({
                   queryKey: [...funnelQueryKeys.campaigns(), restaurantId],
                 });
-                setShowCreateCampaign(false);
-                const fromApi =
+                const campaignId =
                   extractCampaignIdFromCreateResponse(createdBody);
-                const campaignId = fromApi;
                 if (campaignId != null) {
-                  try {
-                    await provisionCampaignDefaultAutomations(
-                      restaurantId,
-                      campaignId,
-                    );
-                    await queryClient.invalidateQueries({
-                      queryKey: automationQueryKeys.list(restaurantId),
+                  void provisionCampaignDefaultAutomations(
+                    restaurantId,
+                    campaignId,
+                  )
+                    .then(async () => {
+                      await queryClient.invalidateQueries({
+                        queryKey: automationQueryKeys.list(restaurantId),
+                      });
+                    })
+                    .catch((automationError) => {
+                      const message = getApiErrorMessage(
+                        automationError,
+                        "Could not set up default automations for this campaign.",
+                      );
+                      toast.error(message);
+                      setSubmitError(
+                        `Campaign was created, but automations could not be set up: ${message}`,
+                      );
                     });
-                  } catch (automationError) {
-                    const message = getApiErrorMessage(
-                      automationError,
-                      "Could not set up default automations for this campaign.",
-                    );
-                    toast.error(message);
-                    setSubmitError(
-                      `Campaign was created, but automations could not be set up: ${message}`,
-                    );
-                  }
-                } else {
-                  setShowCreateCampaign(false);
                 }
                 return campaignId ?? undefined;
               } catch (e) {
+                keepCreateFlowOpenRef.current = false;
                 setSubmitError(
                   e instanceof Error ? e.message : "Could not create campaign.",
                 );
@@ -333,18 +335,6 @@ export default function RestaurantCampaignsPage() {
         </div>
       ) : null}
 
-      {submitting ? (
-        <p
-          className={`text-sm text-zinc-600 ${
-            centerEmptyCreateFlow || centerCreateWithExistingFunnels
-              ? "mx-auto mt-4 text-center"
-              : "mt-4"
-          }`}
-          aria-live="polite"
-        >
-          Creating campaign…
-        </p>
-      ) : null}
       </div>
     </div>
   );

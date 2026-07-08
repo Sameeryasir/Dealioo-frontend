@@ -10,9 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import QRCode from "qrcode";
 import { createPortal } from "react-dom";
-import { getSetupUser } from "@/app/lib/setup-user";
 import { setOffer, setOkayimageUrl, setPrice } from "@/app/store/campaignSlice";
 import { useAppDispatch } from "@/app/store/hooks";
 
@@ -31,16 +29,6 @@ export type MakeYourOfferProps = {
   variant?: "modal" | "inline";
   isSaving?: boolean;
 };
-
-function formatExpiryDate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export default function MakeYourOffer({
   open,
@@ -65,8 +53,6 @@ export default function MakeYourOffer({
   const [nameErr, setNameErr] = useState(false);
   const [priceErr, setPriceErr] = useState(false);
   const [imageErr, setImageErr] = useState(false);
-  const [previewCustomerName, setPreviewCustomerName] = useState("Guest customer");
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isModal) setMounted(true);
@@ -84,8 +70,6 @@ export default function MakeYourOffer({
     dispatch(setOffer(""));
     dispatch(setPrice(""));
     dispatch(setOkayimageUrl(""));
-    const user = getSetupUser();
-    setPreviewCustomerName(user?.name?.trim() || "Guest customer");
   }, [open, dispatch]);
 
   useEffect(() => {
@@ -107,39 +91,6 @@ export default function MakeYourOffer({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, isModal, onOpenChange]);
-
-  useEffect(() => {
-    if (!open) {
-      setQrDataUrl(null);
-      return;
-    }
-    let cancelled = false;
-    const expires = formatExpiryDate();
-    const payload = [
-      "retention:offer-preview",
-      `customer=${previewCustomerName}`,
-      `offer=${offerName.trim() || "-"}`,
-      `price=${offerPrice.trim() || "-"}`,
-      `expires=${expires}`,
-    ].join("|");
-
-    void QRCode.toDataURL(payload, {
-      width: 112,
-      margin: 2,
-      color: { dark: "#18181b", light: "#ffffff" },
-      errorCorrectionLevel: "M",
-    })
-      .then((url) => {
-        if (!cancelled) setQrDataUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setQrDataUrl(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, offerName, offerPrice, previewCustomerName]);
 
   if (!open) return null;
   if (isModal && !mounted) return null;
@@ -207,105 +158,24 @@ export default function MakeYourOffer({
     });
   };
 
-  const offerLine =
-    offerName.trim() || offerPrice.trim()
-      ? [offerName.trim(), offerPrice.trim() ? `$${offerPrice.trim()}` : ""]
-          .filter(Boolean)
-          .join(", ") || "Your offer"
-      : "Your offer name";
-
-  const previewCard = (
-    <div
-      className="rounded-2xl border border-black/15 p-5 shadow-md ring-1 ring-white/10"
-      style={{ backgroundColor: "#CC6E52" }}
-    >
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-xl border border-black/20 bg-black/20 shadow-inner ring-1 ring-white/10">
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt=""
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full min-h-[120px] items-center justify-center px-4 text-center text-xs font-medium text-white/55">
-            Your offer image appears here
-          </div>
-        )}
-      </div>
-      <dl className="mt-4 space-y-2.5 text-[11px] leading-tight text-white">
-        <div className="border-b border-white/20 pb-2.5">
-          <div className="min-w-0">
-            <dt className="font-semibold uppercase tracking-wide text-white/65">
-              Name
-            </dt>
-            <dd className="mt-0.5 truncate text-sm font-semibold text-white">
-              {previewCustomerName}
-            </dd>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 border-b border-white/20 pb-2.5">
-          <div className="min-w-0">
-            <dt className="font-semibold uppercase tracking-wide text-white/65">
-              Offer
-            </dt>
-            <dd className="mt-0.5 truncate text-sm font-semibold text-white">
-              {offerLine}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="font-semibold uppercase tracking-wide text-white/65">
-              Expires
-            </dt>
-            <dd className="mt-0.5 text-sm font-semibold text-white">
-              {formatExpiryDate()}
-            </dd>
-          </div>
-        </div>
-      </dl>
-      <div
-        className="mt-4 flex justify-center p-3 "
-        style={{ backgroundColor: "#CC6E52" }}
-      >
-        {qrDataUrl ? (
-          <img
-            src={qrDataUrl}
-            alt="QR code for offer preview"
-            width={168}
-            height={168}
-            className="h-[168px] w-[168px]"
-          />
-        ) : (
-          <div
-            className="flex h-[168px] w-[168px] items-center justify-center rounded-lg bg-black/10 text-xs text-white/80"
-            aria-hidden
-          >
-            Generating…
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   const offerPanel = (
     <div
       className={`relative w-full max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 ${
-        isModal ? "max-w-4xl shadow-xl" : "max-w-5xl shadow-sm"
+        isModal ? "max-w-2xl shadow-xl" : "max-w-2xl shadow-sm"
       }`}
       role={isModal ? "dialog" : "region"}
       aria-modal={isModal ? true : undefined}
       aria-labelledby={titleId}
       onClick={(ev) => ev.stopPropagation()}
     >
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
-        <div className="order-2 min-w-0 flex-1 lg:order-1">
-          <h2
-            id={titleId}
-            className="text-lg font-semibold text-zinc-900 sm:text-xl"
-          >
-            Make your offer
-          </h2>
+      <h2
+        id={titleId}
+        className="text-lg font-semibold text-zinc-900 sm:text-xl"
+      >
+        Make your offer
+      </h2>
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
             <div>
               <input
                 ref={fileInputRef}
@@ -467,15 +337,6 @@ export default function MakeYourOffer({
               </button>
             </div>
           </form>
-        </div>
-
-        <aside
-          className="order-1 mx-auto w-full max-w-[320px] shrink-0 lg:order-2 lg:mx-0 lg:max-w-[300px] xl:max-w-[320px]"
-          aria-label="Campaign preview"
-        >
-          {previewCard}
-        </aside>
-      </div>
     </div>
   );
 

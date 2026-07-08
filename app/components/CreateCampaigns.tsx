@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import CampaignOfferPreviewCard from "@/app/components/CampaignOfferPreviewCard";
 import MakeYourOffer from "@/app/components/MakeYourOffer";
 import {
   resetCampaignDraft,
@@ -56,10 +57,24 @@ export default function CreateCampaigns({
     null,
   );
   const [isCompletingOffer, setIsCompletingOffer] = useState(false);
+  const [createdOffer, setCreatedOffer] = useState<{
+    offerName: string;
+    offerPrice: string;
+    imagePreviewUrl: string;
+    campaignId?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (isModal) setMounted(true);
   }, [isModal]);
+
+  useEffect(() => {
+    return () => {
+      if (createdOffer?.imagePreviewUrl) {
+        URL.revokeObjectURL(createdOffer.imagePreviewUrl);
+      }
+    };
+  }, [createdOffer?.imagePreviewUrl]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,6 +87,7 @@ export default function CreateCampaigns({
     setShowOfferStep(false);
     setPendingWebsiteUrl(null);
     setIsCompletingOffer(false);
+    setCreatedOffer(null);
     queueMicrotask(() => nameInputRef.current?.focus());
   }, [open, dispatch]);
 
@@ -84,6 +100,7 @@ export default function CreateCampaigns({
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (createdOffer) return;
       if (showOfferStep) {
         setShowOfferStep(false);
         setPendingWebsiteUrl(null);
@@ -93,7 +110,7 @@ export default function CreateCampaigns({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, isModal, onOpenChange, showOfferStep]);
+  }, [open, isModal, onOpenChange, showOfferStep, createdOffer]);
 
   if (!open) return null;
   if (isModal && !mounted) return null;
@@ -300,18 +317,61 @@ export default function CreateCampaigns({
         };
         setIsCompletingOffer(true);
         try {
-          await onComplete?.(completePayload);
+          const campaignId = await onComplete?.(completePayload);
+          if (campaignId == null) {
+            throw new Error("Could not create campaign.");
+          }
+          setCreatedOffer({
+            offerName: payload.offerName,
+            offerPrice: payload.offerPrice,
+            imagePreviewUrl: URL.createObjectURL(payload.imageFile),
+            campaignId,
+          });
+          setShowOfferStep(false);
+          setPendingWebsiteUrl(null);
         } catch {
           setIsCompletingOffer(false);
           return;
         }
         setIsCompletingOffer(false);
-        setShowOfferStep(false);
-        setPendingWebsiteUrl(null);
-        onOpenChange(false);
       }}
     />
   );
+
+  const successPanel = createdOffer ? (
+    <div
+      className="flex w-full flex-col items-center justify-center py-4"
+      role={isModal ? "dialog" : "region"}
+      aria-modal={isModal ? true : undefined}
+      aria-label="Campaign created"
+    >
+      <CampaignOfferPreviewCard
+        offerName={createdOffer.offerName}
+        offerPrice={createdOffer.offerPrice}
+        imageUrl={createdOffer.imagePreviewUrl}
+        campaignId={createdOffer.campaignId}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          if (createdOffer.imagePreviewUrl) {
+            URL.revokeObjectURL(createdOffer.imagePreviewUrl);
+          }
+          setCreatedOffer(null);
+          onOpenChange(false);
+        }}
+        className="mt-8 min-w-56 rounded-xl bg-black px-10 py-3 text-sm font-semibold tracking-wide text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
+      >
+        View campaigns
+      </button>
+    </div>
+  ) : null;
+
+  const activePanel = createdOffer
+    ? successPanel
+    : showOfferStep
+      ? offerForm
+      : panel;
 
   if (isModal) {
     return createPortal(
@@ -319,6 +379,7 @@ export default function CreateCampaigns({
         className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
         role="presentation"
         onClick={() => {
+          if (createdOffer) return;
           if (showOfferStep) {
             setShowOfferStep(false);
             setPendingWebsiteUrl(null);
@@ -329,11 +390,11 @@ export default function CreateCampaigns({
       >
         <div
           className={`flex w-full justify-center ${
-            showOfferStep ? "max-w-5xl" : "max-w-2xl"
+            showOfferStep ? "max-w-2xl" : createdOffer ? "max-w-sm" : "max-w-2xl"
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {showOfferStep ? offerForm : panel}
+          {activePanel}
         </div>
       </div>,
       document.body,
@@ -343,10 +404,10 @@ export default function CreateCampaigns({
   return (
     <div
       className={`flex w-full justify-center px-4 py-8 md:px-6 md:py-10 ${
-        showOfferStep ? "max-w-5xl mx-auto" : ""
+        showOfferStep ? "max-w-2xl mx-auto" : createdOffer ? "max-w-sm mx-auto" : ""
       }`}
     >
-      {showOfferStep ? offerForm : panel}
+      {activePanel}
     </div>
   );
 }

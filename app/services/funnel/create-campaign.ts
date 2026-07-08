@@ -1,6 +1,13 @@
-import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
+import {
+  API_REQUEST_TIMEOUT_MS,
+  getApiBaseUrl,
+  parseApiErrorMessage,
+} from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+
+/** Image uploads can exceed the default 5s API timeout. */
+const CREATE_CAMPAIGN_TIMEOUT_MS = Math.max(API_REQUEST_TIMEOUT_MS, 120_000);
 
 export type CreateCampaignPayload = {
   restaurantId: number;
@@ -61,10 +68,14 @@ export async function createCampaign(
   form.append("offer", payload.offer.trim());
   form.append("price", String(payload.price));
 
-  const res = await authenticatedFetch(`${getApiBaseUrl()}/campaign/create`, {
-    method: "POST",
-    body: form,
-  });
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/campaign/create`,
+    {
+      method: "POST",
+      body: form,
+    },
+    CREATE_CAMPAIGN_TIMEOUT_MS,
+  );
 
   if (!res.ok) {
     throw new Error(await parseApiErrorMessage(res, "Could not create campaign."));
