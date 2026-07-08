@@ -39,7 +39,7 @@ export function getMetaLandingUrl(websiteUrl?: string | null): string {
   return "http://localhost:3002";
 }
 
-/** Match Meta ad stats to the live app URL (ngrok in dev, production domain in prod). */
+/** Match Meta ad stats to the live app URL from NEXT_PUBLIC_FRONTEND_URL. */
 export function getMetaAdsFilterUrl(campaignWebsiteUrl?: string | null): string {
   const fromEnv = process.env.NEXT_PUBLIC_FRONTEND_URL?.trim();
   if (fromEnv) {

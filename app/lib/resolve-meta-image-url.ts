@@ -14,8 +14,8 @@ export function resolveMetaImageUrl(raw: string | undefined | null): string {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return "";
 
-  const ngrokBase = getPublicAppUrl().replace(/\/$/, "");
-  const campaignBase = `${ngrokBase}/backend/uploads/campaigns`;
+  const publicAppBase = getPublicAppUrl().replace(/\/$/, "");
+  const campaignBase = `${publicAppBase}/backend/uploads/campaigns`;
 
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     try {
@@ -40,7 +40,7 @@ export function resolveMetaImageUrl(raw: string | undefined | null): string {
   }
 
   if (trimmed.startsWith("/backend/uploads/campaigns/")) {
-    return `${ngrokBase}${trimmed}`;
+    return `${publicAppBase}${trimmed}`;
   }
 
   if (trimmed.startsWith("/uploads/campaigns/")) {
@@ -53,10 +53,10 @@ export function resolveMetaImageUrl(raw: string | undefined | null): string {
   }
 
   if (trimmed.startsWith("/backend/uploads/")) {
-    return `${ngrokBase}${trimmed}`;
+    return `${publicAppBase}${trimmed}`;
   }
   if (trimmed.startsWith("/uploads/")) {
-    return `${ngrokBase}/backend${trimmed}`;
+    return `${publicAppBase}/backend${trimmed}`;
   }
 
   return trimmed;
@@ -103,7 +103,7 @@ export function validateHttpsUrl(url: string, label = "URL"): string | null {
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol !== "https:") {
-      return `${label} must use HTTPS (required by Meta). Set NEXT_PUBLIC_FRONTEND_URL to your ngrok URL.`;
+      return `${label} must use HTTPS (required by Meta). Set NEXT_PUBLIC_FRONTEND_URL to your public site URL.`;
     }
   } catch {
     return `${label} is not valid.`;
