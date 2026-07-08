@@ -4,21 +4,12 @@ import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
+import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import RestaurantSettingsDialog from "@/app/components/RestaurantSettingsDialog";
 import { ArrowBigLeft, Bell, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-function initialsFromUser(user: VerifyOtpUser | null): string {
-  if (!user?.name?.trim()) return "?";
-  const parts = user.name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  const a = parts[0][0];
-  const b = parts[parts.length - 1][0];
-  return `${a}${b}`.toUpperCase();
-}
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function RestaurantNavbar() {
   const router = useRouter();
@@ -34,8 +25,6 @@ export default function RestaurantNavbar() {
       setUser(getSetupUser());
     });
   }, []);
-
-  const initials = useMemo(() => initialsFromUser(user), [user]);
 
   const restaurantIdParam = params?.restaurantId;
   const restaurantId =
@@ -134,7 +123,7 @@ export default function RestaurantNavbar() {
               aria-haspopup="menu"
               aria-label="Account menu"
             >
-              {initials}
+              <UserAccountAvatar user={user} />
             </button>
 
             {menuOpen ? (

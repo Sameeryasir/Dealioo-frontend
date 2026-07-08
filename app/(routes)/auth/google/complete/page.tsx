@@ -79,6 +79,7 @@ function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
       name: string;
       email: string;
       phone: string | null;
+      avatar?: string | null;
       emailVerified: boolean;
       phoneVerified: boolean;
       isActive: boolean;
@@ -92,6 +93,7 @@ function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
       name: parsed.name,
       email: parsed.email,
       phone: parsed.phone ?? "",
+      avatar: parsed.avatar?.trim() || null,
       emailVerified: Boolean(parsed.emailVerified),
       phoneVerified: Boolean(parsed.phoneVerified),
       isActive: Boolean(parsed.isActive),

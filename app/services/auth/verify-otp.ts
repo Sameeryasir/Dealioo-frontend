@@ -11,6 +11,7 @@ export type VerifyOtpUser = {
   name: string;
   email: string;
   phone: string;
+  avatar?: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   isActive: boolean;

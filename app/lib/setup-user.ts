@@ -17,6 +17,7 @@ function isVerifyOtpUser(value: unknown): value is VerifyOtpUser {
     typeof o.name === "string" &&
     typeof o.email === "string" &&
     (typeof o.phone === "string" || o.phone == null) &&
+    (typeof o.avatar === "string" || o.avatar == null || o.avatar === undefined) &&
     typeof o.emailVerified === "boolean" &&
     typeof o.phoneVerified === "boolean" &&
     typeof o.isActive === "boolean" &&
