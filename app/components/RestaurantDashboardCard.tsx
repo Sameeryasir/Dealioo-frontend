@@ -8,42 +8,42 @@ import {
   Building2,
   MapPin,
   Store,
-  UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
-
-const CARD_HEIGHT_CLASS = "h-[23.75rem]";
+import type { CSSProperties } from "react";
 
 type Props = {
   restaurant: AdminRestaurant;
+  layout?: "grid" | "list";
+  accentIndex?: number;
 };
 
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof MapPin;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex h-[3.75rem] flex-col rounded-xl bg-zinc-50/90 p-2.5 ring-1 ring-zinc-950/[0.04]">
-      <div className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-        <Icon className="size-3 shrink-0" strokeWidth={2.25} aria-hidden />
-        {label}
-      </div>
-      <p className="mt-1 line-clamp-2 min-h-0 flex-1 text-xs font-medium leading-snug text-zinc-800">
-        {value}
-      </p>
-    </div>
-  );
+const ACCENT_VARS = [
+  "var(--brand-primary)",
+  "var(--brand-teal)",
+  "var(--brand-coral)",
+  "var(--brand-violet)",
+] as const;
+
+function setupProgress(restaurant: AdminRestaurant): number {
+  let score = 0;
+  if (restaurant.city?.trim()) score += 34;
+  if ((restaurant.branchCount ?? 0) > 0) score += 33;
+  if (restaurant.description?.trim() || restaurant.cuisineType?.trim()) score += 33;
+  return Math.min(100, score);
 }
 
-export default function RestaurantDashboardCard({ restaurant }: Props) {
+function businessCategory(restaurant: AdminRestaurant): string {
+  return restaurant.cuisineType?.trim() || "Business";
+}
+
+export default function RestaurantDashboardCard({
+  restaurant,
+  layout = "grid",
+  accentIndex = 0,
+}: Props) {
   const {
     name,
-    description,
     branchCount,
     city,
     state,
@@ -61,87 +61,136 @@ export default function RestaurantDashboardCard({ restaurant }: Props) {
         : `/restaurant/${restaurant.id}/dashboard`
       : "/dashboard";
 
-  const cuisine = cuisineType?.trim();
   const branchLabel =
     branchCount != null
       ? `${branchCount} ${branchCount === 1 ? "branch" : "branches"}`
-      : "N/A";
+      : "No branches yet";
 
-  const descriptionText = description?.trim() ?? "";
+  const progress = setupProgress(restaurant);
+  const accent = ACCENT_VARS[accentIndex % ACCENT_VARS.length];
+  const category = businessCategory(restaurant);
+  const statusLabel = progress >= 100 ? "Ready" : "In setup";
+
+  if (layout === "list") {
+    return (
+      <Link
+        href={dashboardHref}
+        className="org-biz-card org-biz-card--list group outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 focus-visible:ring-offset-2"
+        style={{ "--org-card-accent": accent } as CSSProperties}
+      >
+        <span className="org-biz-card-thumb">
+          {logoSrc ? (
+            <img src={logoSrc} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <Store className="size-6 text-brand-primary/50" strokeWidth={1.5} aria-hidden />
+          )}
+        </span>
+
+        <span className="org-biz-card-list-main">
+          <span className="org-biz-card-list-top">
+            <span className="org-biz-card-title">{name}</span>
+            <span
+              className={`org-biz-card-status ${
+                progress >= 100 ? "org-biz-card-status--ready" : ""
+              }`}
+            >
+              {statusLabel}
+            </span>
+          </span>
+          <span className="org-biz-card-category">{category}</span>
+          <span className="org-biz-card-meta-inline">
+            <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            {location || "Location not set"}
+            <span aria-hidden>·</span>
+            <Building2 className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            {branchLabel}
+          </span>
+        </span>
+
+        <span className="org-biz-card-list-cta">
+          Open dashboard
+          <ArrowUpRight className="size-4" strokeWidth={2.25} aria-hidden />
+        </span>
+      </Link>
+    );
+  }
 
   return (
     <Link
       href={dashboardHref}
-      className={`group block ${CARD_HEIGHT_CLASS} outline-none focus-visible:rounded-[1.25rem] focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2`}
+      className="org-biz-card org-biz-card--grid group outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 focus-visible:ring-offset-2"
+      style={{ "--org-card-accent": accent } as CSSProperties}
     >
-      <article
-        className={`relative flex ${CARD_HEIGHT_CLASS} flex-col overflow-hidden rounded-[1.25rem] bg-zinc-100 shadow-[0_8px_30px_rgba(15,23,42,0.08)] ring-1 ring-zinc-950/[0.06] transition duration-500 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.14)]`}
-      >
-        <div className="relative h-36 shrink-0 overflow-hidden sm:h-40">
+      <div className="org-biz-card-inner">
+        <div className="org-biz-card-hero">
           {logoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element -- remote restaurant logos vary by host
-            <img
-              src={logoSrc}
-              alt=""
-              className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105"
-            />
+            <img src={logoSrc} alt="" className="org-biz-card-hero-img" />
           ) : (
-            <div
-              className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-zinc-300"
-              aria-hidden
-            >
-              <Store className="size-11 text-zinc-400/80" strokeWidth={1.25} />
-            </div>
-          )}
-
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/50 via-transparent to-transparent"
-            aria-hidden
-          />
-
-          {cuisine ? (
-            <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-yellow-300/80 bg-yellow-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-950 shadow-sm shadow-yellow-900/15">
-              <UtensilsCrossed className="size-3 text-yellow-900/80" strokeWidth={2.25} aria-hidden />
-              {cuisine}
+            <span className="org-biz-card-hero-fallback" aria-hidden>
+              <Store className="size-8 text-[#93c5fd]" strokeWidth={1.75} />
             </span>
-          ) : null}
+          )}
+          <span className="org-biz-card-hero-overlay" aria-hidden />
+          <span
+            className={`org-biz-card-status org-biz-card-status--hero ${
+              progress >= 100 ? "org-biz-card-status--ready" : ""
+            }`}
+          >
+            {statusLabel}
+          </span>
         </div>
 
-        <div className="relative z-10 -mt-5 flex min-h-0 flex-1 flex-col px-3 pb-3">
-          <div className="flex h-full min-h-0 flex-1 flex-col rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-[0_4px_20px_rgba(15,23,42,0.08)] ring-1 ring-zinc-950/[0.04]">
-            <div className="h-[4.25rem] shrink-0">
-              <h2 className="line-clamp-2 text-base font-bold leading-tight tracking-tight text-zinc-900">
-                {name}
-              </h2>
-              <p
-                className={`mt-1.5 line-clamp-1 text-xs leading-relaxed ${
-                  descriptionText ? "text-zinc-500" : "text-transparent"
-                }`}
-              >
-                {descriptionText || "No description"}
-              </p>
+        <div className="org-biz-card-content">
+          <div className="org-biz-card-main">
+            <div className="org-biz-card-title-row">
+              <h2 className="org-biz-card-title">{name}</h2>
+              <span className="org-biz-card-category">{category}</span>
+            </div>
+          </div>
+
+          <div className="org-biz-card-bento">
+            <div className="org-biz-card-bento-cell org-biz-card-progress-wrap">
+              <div className="org-biz-card-progress-copy">
+                <span className="org-biz-card-bento-eyebrow">Profile setup</span>
+                <p className="org-biz-card-setup-status">
+                  {progress >= 100 ? "Complete" : `${progress}% done`}
+                </p>
+              </div>
+              <div className="org-biz-card-progress-track" aria-hidden>
+                <span
+                  className="org-biz-card-progress-fill"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
 
-            <div className="mt-3 grid h-[3.75rem] shrink-0 grid-cols-2 gap-2">
-              <StatTile
-                icon={MapPin}
-                label="Location"
-                value={location || "Not set"}
-              />
-              <StatTile icon={Building2} label="Branches" value={branchLabel} />
+            <div className="org-biz-card-bento-cell org-biz-card-location-tile">
+              <div className="org-biz-card-location-copy">
+                <span className="org-biz-card-bento-eyebrow">Location</span>
+                <p className="org-biz-card-location-value">
+                  {location || "Add location"}
+                </p>
+              </div>
+              <span className="org-biz-card-location-meta">{branchLabel}</span>
             </div>
+          </div>
 
-            <span className="mt-auto flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition duration-300 group-hover:bg-zinc-800 group-hover:shadow-lg">
+          <div className="org-biz-card-footer org-biz-card-footer--bento">
+            <span className="org-biz-card-cta">
               Open dashboard
               <ArrowUpRight
-                className="size-4 opacity-90 transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                className="size-4 transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                 strokeWidth={2.25}
                 aria-hidden
               />
             </span>
           </div>
         </div>
-      </article>
+      </div>
+
+      {cuisineType?.trim() ? (
+        <span className="sr-only">Cuisine: {cuisineType}</span>
+      ) : null}
     </Link>
   );
 }

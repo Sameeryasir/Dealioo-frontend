@@ -36,24 +36,34 @@ export function SkeletonGrid({
 }
 
 const restaurantCardShell =
-  "relative flex h-[23.75rem] flex-col overflow-hidden rounded-[1.25rem] bg-zinc-100 shadow-sm ring-1 ring-zinc-950/[0.06]";
+  "org-biz-card org-biz-card--grid min-h-[18.5rem] rounded-2xl p-4 sm:p-5";
 
 export function RestaurantCardSkeleton() {
   return (
     <article className={restaurantCardShell} aria-hidden>
-      <Skeleton className="h-36 w-full shrink-0 rounded-none bg-zinc-300 sm:h-40" />
-      <div className="relative z-10 -mt-5 flex min-h-0 flex-1 flex-col px-3 pb-3">
-        <div className="flex h-full min-h-0 flex-1 flex-col rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-sm">
-          <div className="h-[4.25rem] shrink-0 space-y-2">
-            <Skeleton className="h-5 w-4/5 bg-zinc-200" />
-            <Skeleton className="h-3 w-full bg-zinc-100" />
-          </div>
-          <div className="mt-3 grid h-[3.75rem] shrink-0 grid-cols-2 gap-2">
-            <Skeleton className="h-full rounded-xl bg-zinc-100" />
-            <Skeleton className="h-full rounded-xl bg-zinc-100" />
-          </div>
-          <Skeleton className="mt-auto h-10 w-full shrink-0 rounded-xl bg-zinc-200" />
+      <div className="flex items-start justify-between gap-3">
+        <Skeleton className="size-11 rounded-xl bg-brand-soft" />
+        <Skeleton className="h-6 w-16 rounded-full bg-[#fff7ed]" />
+      </div>
+      <Skeleton className="mt-4 h-5 w-4/5 bg-[#eef3ff]" />
+      <Skeleton className="mt-2 h-3.5 w-1/3 bg-brand-soft" />
+      <Skeleton className="mt-3 h-14 w-full bg-brand-soft/80" />
+      <div className="mt-4 space-y-2">
+        <div className="flex justify-between">
+          <Skeleton className="h-3 w-20 bg-brand-soft" />
+          <Skeleton className="h-3 w-8 bg-brand-soft" />
         </div>
+        <Skeleton className="h-1.5 w-full rounded-full bg-[#edf2f8]" />
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-[#edf2f8] pt-4">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-8 rounded-full bg-brand-soft" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-24 bg-brand-soft" />
+            <Skeleton className="h-2.5 w-16 bg-brand-soft" />
+          </div>
+        </div>
+        <Skeleton className="h-4 w-12 bg-[#dbeafe]" />
       </div>
     </article>
   );
