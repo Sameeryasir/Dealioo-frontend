@@ -1,6 +1,7 @@
 "use client";
 
 import OtpForm from "@/app/components/OtpForm";
+import GoogleAuthButton from "@/app/components/auth/GoogleAuthButton";
 import {
   AlertCircle,
   Eye,
@@ -255,29 +256,41 @@ export default function LoginForm({
 
       <div className="auth-signup-mobile-dock">
         {view === "credentials" ? (
-          <div className="auth-signup-actions">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
+          <div className="flex w-full flex-col gap-3">
+            <GoogleAuthButton
               disabled={submitting || forgotSubmitting}
-              className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
-            >
-              Back to Home
-            </button>
+              mode="login"
+              label="Continue with Google"
+            />
+            <div className="flex items-center gap-3 px-1">
+              <div className="h-px flex-1 bg-[#e8edf5]" />
+              <span className="text-xs font-medium text-brand-muted">or</span>
+              <div className="h-px flex-1 bg-[#e8edf5]" />
+            </div>
+            <div className="auth-signup-actions">
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                disabled={submitting || forgotSubmitting}
+                className="landing-btn-outline auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-semibold disabled:opacity-50"
+              >
+                Back to Home
+              </button>
 
-            <button
-              type="submit"
-              form="auth-login-form"
-              disabled={submitting || forgotSubmitting}
-              aria-busy={submitting}
-              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-              ) : (
-                "Sign In"
-              )}
-            </button>
+              <button
+                type="submit"
+                form="auth-login-form"
+                disabled={submitting || forgotSubmitting}
+                aria-busy={submitting}
+                className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </div>
           </div>
         ) : null}
 

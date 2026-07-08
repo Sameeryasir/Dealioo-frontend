@@ -4,6 +4,7 @@ import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import GoogleAuthButton from "@/app/components/auth/GoogleAuthButton";
 import {
   getSignupPlanCta,
   SignupPlanStep,
@@ -618,6 +619,20 @@ export default function SignupForm({
       </div>
 
       <div className="auth-signup-mobile-dock">
+        {step === 0 ? (
+          <div className="mb-3 flex w-full flex-col gap-3">
+            <GoogleAuthButton
+              disabled={submitting}
+              mode="signup"
+              label="Sign up with Google"
+            />
+            <div className="flex items-center gap-3 px-1">
+              <div className="h-px flex-1 bg-[#e8edf5]" />
+              <span className="text-xs font-medium text-brand-muted">or</span>
+              <div className="h-px flex-1 bg-[#e8edf5]" />
+            </div>
+          </div>
+        ) : null}
         <div className="auth-signup-actions">
           {step > 0 ? (
             <button

@@ -13,7 +13,7 @@ import { login } from "@/app/services/auth/login";
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function buildAuthHref(base: string, returnTo: string | null) {
   if (returnTo != null && returnTo.trim() !== "") {
@@ -31,8 +31,15 @@ function LoginPageInner() {
   const recoveryEmailRef = useRef("");
 
   const returnTo = searchParams.get("returnTo");
+  const oauthError = searchParams.get("error");
   const loginHref = useMemo(() => buildAuthHref("/auth/login", returnTo), [returnTo]);
   const signupHref = useMemo(() => buildAuthHref("/auth/signup", returnTo), [returnTo]);
+
+  useEffect(() => {
+    if (oauthError?.trim()) {
+      setErrorMessage(oauthError.trim());
+    }
+  }, [oauthError]);
 
   const onCredentialsSubmit = useCallback(
     async (email: string, password: string) => {
