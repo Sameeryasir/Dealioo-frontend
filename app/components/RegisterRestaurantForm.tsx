@@ -34,7 +34,7 @@ export type RegisterRestaurantFormValues = {
   postalCode: string;
   country: string;
   branchCount: number;
-  logoUrl?: string;
+  logoFile?: File | null;
 };
 
 export type RegisterRestaurantFormProps = {
@@ -84,15 +84,6 @@ const CUISINE_OPTIONS = [
   { value: "thai", label: "Thai" },
   { value: "other", label: "Other" },
 ];
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Could not read file."));
-    reader.readAsDataURL(file);
-  });
-}
 
 function RequiredStar() {
   return <span className="text-red-500">*</span>;
@@ -323,21 +314,10 @@ export default function RegisterRestaurantForm({
   const submit = handleSubmit(async (data) => {
     setLogoFileError(undefined);
 
-    let logoUrl: string | undefined;
-
-    if (logoFile) {
-      try {
-        logoUrl = await fileToDataUrl(logoFile);
-      } catch {
-        setLogoFileError("Could not read logo file.");
-        return;
-      }
-    }
-
     await onSubmit({
       ...data,
       branchCount: 1,
-      logoUrl,
+      logoFile,
     });
   });
 

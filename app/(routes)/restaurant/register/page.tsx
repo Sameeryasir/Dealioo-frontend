@@ -36,7 +36,7 @@ export default function RegisterRestaurantPage() {
           cuisineType: data.cuisineType || undefined,
           description: data.description.trim() || undefined,
           websiteUrl: data.websiteUrl || undefined,
-          logoUrl: data.logoUrl,
+          logoFile: data.logoFile ?? null,
           city: data.city,
           state: data.state,
           postalCode: data.postalCode,

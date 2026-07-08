@@ -17,6 +17,7 @@ import {
   imageScaleStyle,
   normalizeImageScale,
 } from "@/app/components/crm-template-editor/template-image";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type { CampaignPricing } from "@/app/lib/campaign-price";
 import type {
   LandingTemplatePage,
@@ -169,7 +170,9 @@ export function TemplatePreview({
   const isMobile = true;
   const fromLanding = page.id === "signup";
   const layoutType = page.layoutType;
-  const heroImageUrl = fromLanding ? landingPage.imageUrl : page.imageUrl;
+  const heroImageUrl = resolveUploadImageUrl(
+    fromLanding ? landingPage.imageUrl : page.imageUrl,
+  );
   const heroImageScale = fromLanding
     ? landingPage.imageScale
     : page.imageScale;

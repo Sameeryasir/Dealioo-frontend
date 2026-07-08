@@ -1,6 +1,7 @@
 "use client";
 
 import type { AdminRestaurant } from "@/app/services/restaurant/get-my-restaurant";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import {
   ArrowUpRight,
@@ -52,7 +53,7 @@ export default function RestaurantDashboardCard({ restaurant }: Props) {
   } = restaurant;
 
   const location = [city, state, country].filter(Boolean).join(", ");
-  const logoSrc = logoUrl?.trim() ?? "";
+  const logoSrc = resolveUploadImageUrl(logoUrl);
   const dashboardHref =
     typeof restaurant.id === "number" && restaurant.id >= 1
       ? isScannerUser()

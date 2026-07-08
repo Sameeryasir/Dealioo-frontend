@@ -9,7 +9,7 @@ export type RegisterRestaurantPayload = {
   cuisineType?: string;
   description?: string;
   websiteUrl?: string;
-  logoUrl?: string;
+  logoFile?: File | null;
   city?: string;
   state?: string;
   postalCode?: string;
@@ -51,48 +51,43 @@ export async function registerRestaurant(
     throw new Error("Branch count must be at least 1.");
   }
 
-  const body: Record<string, string | number> = {
-    name: payload.name.trim(),
-    phoneNumber: payload.phoneNumber.trim(),
-    branchCount: payload.branchCount,
-  };
+  const form = new FormData();
+  form.append("name", payload.name.trim());
+  form.append("phoneNumber", payload.phoneNumber.trim());
+  form.append("branchCount", String(payload.branchCount));
 
   const email = optionalString(payload.email);
-  if (email !== undefined) body.email = email;
+  if (email !== undefined) form.append("email", email);
 
   const cuisineType = optionalString(payload.cuisineType);
-  if (cuisineType !== undefined) body.cuisineType = cuisineType;
+  if (cuisineType !== undefined) form.append("cuisineType", cuisineType);
 
   const description = optionalString(payload.description);
-  if (description !== undefined) body.description = description;
+  if (description !== undefined) form.append("description", description);
 
   const websiteUrl = optionalUrl(payload.websiteUrl ?? "");
-  if (websiteUrl !== undefined) body.websiteUrl = websiteUrl;
-
-  const logoUrl = optionalString(payload.logoUrl);
-  if (logoUrl !== undefined) body.logoUrl = logoUrl;
+  if (websiteUrl !== undefined) form.append("websiteUrl", websiteUrl);
 
   const city = optionalString(payload.city);
-  if (city !== undefined) body.city = city;
+  if (city !== undefined) form.append("city", city);
 
   const state = optionalString(payload.state);
-  if (state !== undefined) body.state = state;
+  if (state !== undefined) form.append("state", state);
 
   const postalCode = optionalString(payload.postalCode);
-  if (postalCode !== undefined) body.postalCode = postalCode;
+  if (postalCode !== undefined) form.append("postalCode", postalCode);
 
   const country = optionalString(payload.country);
-  if (country !== undefined) body.country = country;
+  if (country !== undefined) form.append("country", country);
+
+  if (payload.logoFile instanceof File) {
+    form.append("file", payload.logoFile, payload.logoFile.name);
+  }
 
   try {
     const response = await authAxios.post<RegisterRestaurantResponse>(
       "/restaurant/create",
-      body,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+      form,
     );
     return response.data;
   } catch (error) {

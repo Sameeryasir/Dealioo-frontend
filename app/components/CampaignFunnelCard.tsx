@@ -1,6 +1,7 @@
 "use client";
 
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -33,11 +34,7 @@ function formatCreatedDate(iso: string | undefined): string | null {
 }
 
 function normalizeImgSrc(raw: string): string {
-  const t = raw.trim();
-  if (!t.startsWith("data:")) return t;
-  const comma = t.indexOf(",");
-  if (comma === -1) return t;
-  return t.slice(0, comma + 1) + t.slice(comma + 1).replace(/\s+/g, "");
+  return resolveUploadImageUrl(raw);
 }
 
 function statusFromFunnel(f: Funnel): string {

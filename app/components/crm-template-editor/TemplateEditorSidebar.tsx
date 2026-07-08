@@ -78,6 +78,8 @@ import {
   landingSectionOrder,
 } from "@/app/components/crm-template-editor/landing-sections";
 import { SortableSectionList } from "@/app/components/crm-template-editor/SortableSectionList";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import { uploadCampaignImage } from "@/app/services/campaign/upload-campaign-image";
 import {
   FORM_DESIGN_OPTIONS,
   FORM_FIELD_OPTIONS,
@@ -332,6 +334,9 @@ export function TemplateEditorSidebar({
 }) {
   const mediaFileId = useId();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const heroImageSrc = resolveUploadImageUrl(page.imageUrl);
 
   useEffect(() => {
     setOpenSection(null);
@@ -354,16 +359,23 @@ export function TemplateEditorSidebar({
     page.id === "landing" ? (page as LandingTemplatePage) : null;
   const activeHeroDesign = normalizeHeroDesign(landingPage?.heroDesign);
 
-  const onImageFile = (e: ChangeEvent<HTMLInputElement>) => {
+  const onImageFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const out = reader.result;
-      if (typeof out === "string") onChange({ imageUrl: out });
-    };
-    reader.readAsDataURL(file);
+
+    setImageUploadError(null);
+    setImageUploading(true);
+    try {
+      const { imageUrl } = await uploadCampaignImage(file);
+      onChange({ imageUrl });
+    } catch (err) {
+      setImageUploadError(
+        err instanceof Error ? err.message : "Could not upload image.",
+      );
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const toggleFormField = (fieldId: FormFieldId) => {
@@ -536,10 +548,10 @@ export function TemplateEditorSidebar({
                   icon={<ImageIcon className="size-4 shrink-0" strokeWidth={2} />}
                 >
                   <div className={editorSidebarMediaFrameClass}>
-                    {page.imageUrl.trim() ? (
+                    {heroImageSrc ? (
                       <div className="aspect-video w-full overflow-hidden">
                         <img
-                          src={page.imageUrl}
+                          src={heroImageSrc}
                           alt=""
                           className="h-full w-full object-cover"
                           style={imageScaleStyle(page.imageScale)}
@@ -563,14 +575,14 @@ export function TemplateEditorSidebar({
                     />
                     <label
                       htmlFor={mediaFileId}
-                      className={editorSidebarUploadButtonClass}
+                      className={`${editorSidebarUploadButtonClass}${imageUploading ? " pointer-events-none opacity-60" : ""}`}
                     >
                       <Upload
                         className="size-3.5 shrink-0 text-white"
                         strokeWidth={2}
                         aria-hidden
                       />
-                      Upload image
+                      {imageUploading ? "Uploading…" : "Upload image"}
                     </label>
                     {page.imageUrl.trim() ? (
                       <button
@@ -587,6 +599,9 @@ export function TemplateEditorSidebar({
                       </button>
                     ) : null}
                   </div>
+                  {imageUploadError ? (
+                    <p className="mt-2 text-xs text-red-600">{imageUploadError}</p>
+                  ) : null}
                 </Field>
 
                 {page.imageUrl.trim() ? (
