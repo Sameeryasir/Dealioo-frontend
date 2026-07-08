@@ -253,6 +253,26 @@ export default function OtpForm({
     </div>
   ) : null;
 
+  const resendBlock =
+    showEmailResend ? (
+      <>
+        <p className="mt-6 text-center text-sm">
+          <button
+            type="button"
+            className="brand-link disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={loading || resendLoading}
+            onClick={() => void handleResend()}
+          >
+            {resendLoading ? "Sending…" : "Resend code"}
+          </button>
+        </p>
+
+        <p className="mt-6 text-center text-xs text-brand-muted">
+          Didn&apos;t receive a code? Check spam or request a new one above.
+        </p>
+      </>
+    ) : null;
+
   const formInner = (
     <form
       id={formId}
@@ -311,6 +331,8 @@ export default function OtpForm({
         </div>
       )}
 
+      {embedded && showInlineEmbeddedActions ? resendBlock : null}
+
       {!embedded ? (
         <button
           type="submit"
@@ -336,36 +358,17 @@ export default function OtpForm({
             </>
           )}
         </button>
-      ) : null}
+      ) : (
+        embeddedActionButtons
+      )}
     </form>
   );
-
-  const resendBlock =
-    showEmailResend ? (
-      <>
-        <p className="mt-6 text-center text-sm">
-          <button
-            type="button"
-            className="brand-link disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading || resendLoading}
-            onClick={() => void handleResend()}
-          >
-            {resendLoading ? "Sending…" : "Resend code"}
-          </button>
-        </p>
-
-        <p className="mt-6 text-center text-xs text-brand-muted">
-          Didn&apos;t receive a code? Check spam or request a new one above.
-        </p>
-      </>
-    ) : null;
 
   if (embedded) {
     return (
       <div className="auth-signup-otp-embedded flex flex-col font-sans">
         {formInner}
-        {resendBlock}
-        {embeddedActionButtons}
+        {!showInlineEmbeddedActions ? resendBlock : null}
       </div>
     );
   }

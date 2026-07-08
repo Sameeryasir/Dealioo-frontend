@@ -11,7 +11,8 @@ import { setSetupUser } from "@/app/lib/setup-user";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { login } from "@/app/services/auth/login";
 import { sendOtp } from "@/app/services/auth/send-otp";
-import { verifyOtp } from "@/app/services/auth/verify-otp";
+import { resetPassword } from "@/app/services/auth/reset-password";
+import { validateOtp } from "@/app/services/auth/validate-otp";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -75,27 +76,32 @@ function LoginPageInner() {
     [setCredentials],
   );
 
-  const onVerifyOtp = useCallback(
-    async (otp: number) => {
-      const email = recoveryEmailRef.current;
-      if (!email) {
-        throw new Error("Missing email. Go back and try again.");
-      }
+  const onVerifyRecoveryOtp = useCallback(async (email: string, otp: number) => {
+    setErrorMessage(null);
+    await validateOtp(email.trim(), otp);
+  }, []);
 
+  const onResetPassword = useCallback(
+    async (email: string, otp: number, password: string) => {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        const { token, refreshToken, user } = await verifyOtp(email, otp);
+        const { token, refreshToken, user } = await resetPassword(
+          email,
+          otp,
+          password,
+        );
         setAuthTokens(token, refreshToken);
         setSetupUser(user);
-        rememberCredentials(email, "");
+        rememberCredentials(email, password);
 
         const status = await getOnboardingStatus();
 
         router.push(resolvePostLoginPath(status, returnTo));
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Could not verify code. Try again.";
+          error instanceof Error ? error.message : "Could not reset password.";
+        setErrorMessage(message);
         throw new Error(message);
       } finally {
         setSubmitting(false);
@@ -121,7 +127,8 @@ function LoginPageInner() {
         signupHref={signupHref}
         onCredentialsSubmit={onCredentialsSubmit}
         onForgotPassword={onForgotPassword}
-        onVerifyOtp={onVerifyOtp}
+        onVerifyRecoveryOtp={onVerifyRecoveryOtp}
+        onResetPassword={onResetPassword}
         onResendOtp={onResendOtp}
       />
     </LoginPageShell>
