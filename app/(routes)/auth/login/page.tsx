@@ -138,7 +138,7 @@ function LoginPageInner() {
 function LoginPageLoading() {
   return (
     <div className="landing-page auth-signup-page flex min-h-screen items-center justify-center bg-white">
-      <p className="text-sm text-brand-muted">Loading login…</p>
+      <p className="text-sm text-brand-muted">Loading…</p>
     </div>
   );
 }

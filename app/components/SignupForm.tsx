@@ -308,7 +308,7 @@ export default function SignupForm({
     return (
       <div className="auth-signup-scroll-block flex min-h-[14rem] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-brand-primary" aria-hidden />
-        <span className="sr-only">Loading signup progress…</span>
+        <span className="sr-only">Loading…</span>
       </div>
     );
   }

@@ -140,7 +140,7 @@ function SignupPageInner() {
 function SignupPageLoading() {
   return (
     <div className="landing-page flex min-h-screen items-center justify-center bg-white">
-      <p className="text-sm text-brand-muted">Loading signup…</p>
+      <p className="text-sm text-brand-muted">Loading…</p>
     </div>
   );
 }

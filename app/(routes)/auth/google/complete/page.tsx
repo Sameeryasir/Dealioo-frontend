@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -8,13 +8,8 @@ import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
-/**
- * Receives Google OAuth tokens + user from the URL hash (set by Nest redirect),
- * stores the session, then routes into onboarding/home.
- */
 function GoogleAuthCompleteInner() {
   const router = useRouter();
-  const [message, setMessage] = useState("Finishing Google sign-in…");
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +24,6 @@ function GoogleAuthCompleteInner() {
       window.history.replaceState(null, "", window.location.pathname);
 
       if (!accessToken || !refreshToken) {
-        setMessage("Google sign-in failed — missing tokens. Try again.");
         router.replace("/auth/login?error=Google+sign-in+failed.");
         return;
       }
@@ -52,7 +46,6 @@ function GoogleAuthCompleteInner() {
           error instanceof Error
             ? error.message
             : "Could not finish Google sign-in.";
-        setMessage(msg);
         router.replace(`/auth/login?error=${encodeURIComponent(msg)}`);
       }
     }
@@ -65,7 +58,7 @@ function GoogleAuthCompleteInner() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-brand-soft">
-      <p className="text-sm text-brand-muted">{message}</p>
+      <p className="text-sm text-brand-muted">Loading…</p>
     </main>
   );
 }

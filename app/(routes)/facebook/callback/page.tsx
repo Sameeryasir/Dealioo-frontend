@@ -4,9 +4,6 @@ import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getApiBaseUrl } from "@/app/lib/api";
 
-/**
- * Public OAuth redirect (e.g. ngrok). Forwards ?code= to backend /facebook/callback/oauth.
- */
 function FacebookCallbackRedirectInner() {
   const searchParams = useSearchParams();
 
