@@ -1,6 +1,10 @@
-import axios from "axios";
-import { parseApiMessage } from "@/app/lib/api";
-import { authAxios } from "@/app/lib/auth-axios";
+import {
+  getApiBaseUrl,
+  parseApiErrorMessage,
+  parseApiMessage,
+} from "@/app/lib/api";
+import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import { compressImageForUpload } from "@/app/lib/compress-image-file";
 
 export type RegisterRestaurantPayload = {
   name: string;
@@ -51,55 +55,75 @@ export async function registerRestaurant(
     throw new Error("Branch count must be at least 1.");
   }
 
-  const form = new FormData();
-  form.append("name", payload.name.trim());
-  form.append("phoneNumber", payload.phoneNumber.trim());
-  form.append("branchCount", String(payload.branchCount));
+  const formData = new FormData();
+  formData.append("name", payload.name.trim());
+  formData.append("phoneNumber", payload.phoneNumber.trim());
+  formData.append("branchCount", String(payload.branchCount));
 
   const email = optionalString(payload.email);
-  if (email !== undefined) form.append("email", email);
+  if (email !== undefined) formData.append("email", email);
 
   const cuisineType = optionalString(payload.cuisineType);
-  if (cuisineType !== undefined) form.append("cuisineType", cuisineType);
+  if (cuisineType !== undefined) formData.append("cuisineType", cuisineType);
 
   const description = optionalString(payload.description);
-  if (description !== undefined) form.append("description", description);
+  if (description !== undefined) formData.append("description", description);
 
   const websiteUrl = optionalUrl(payload.websiteUrl ?? "");
-  if (websiteUrl !== undefined) form.append("websiteUrl", websiteUrl);
+  if (websiteUrl !== undefined) formData.append("websiteUrl", websiteUrl);
 
   const city = optionalString(payload.city);
-  if (city !== undefined) form.append("city", city);
+  if (city !== undefined) formData.append("city", city);
 
   const state = optionalString(payload.state);
-  if (state !== undefined) form.append("state", state);
+  if (state !== undefined) formData.append("state", state);
 
   const postalCode = optionalString(payload.postalCode);
-  if (postalCode !== undefined) form.append("postalCode", postalCode);
+  if (postalCode !== undefined) formData.append("postalCode", postalCode);
 
   const country = optionalString(payload.country);
-  if (country !== undefined) form.append("country", country);
+  if (country !== undefined) formData.append("country", country);
 
   if (payload.logoFile instanceof File) {
-    form.append("file", payload.logoFile, payload.logoFile.name);
+    const logoFile = await compressImageForUpload(payload.logoFile);
+    formData.append("file", logoFile, logoFile.name);
   }
 
   try {
-    const response = await authAxios.post<RegisterRestaurantResponse>(
-      "/restaurant/create",
-      form,
+    const response = await authenticatedFetch(
+      `${getApiBaseUrl()}/restaurant/create`,
+      {
+        method: "POST",
+        body: formData,
+      },
     );
-    return response.data;
-  } catch (error) {
-    console.error("Register restaurant error:", error);
-    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
+
+    if (!response.ok) {
+      if (response.status === 413) {
+        throw new Error(
+          "Upload is too large for the server. Try a smaller logo, or ask your host to set nginx client_max_body_size 20M.",
+        );
+      }
       throw new Error(
-        parseApiMessage(
-          error.response.data.message,
-          "Could not register restaurant.",
-        ),
+        await parseApiErrorMessage(response, "Could not register restaurant."),
       );
     }
+
+    const data = (await response.json()) as RegisterRestaurantResponse & {
+      message?: unknown;
+    };
+
+    return {
+      ...data,
+      restaurantId: data.restaurantId ?? data.id,
+      id: data.id ?? data.restaurantId,
+      message:
+        typeof data.message === "string"
+          ? data.message
+          : parseApiMessage(data.message, "Restaurant created."),
+    };
+  } catch (error) {
+    console.error("Register restaurant error:", error);
     throw error;
   }
 }

@@ -18,6 +18,9 @@ authAxios.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.data instanceof FormData) {
+    config.headers.delete("Content-Type");
+  }
   return config;
 });
 
