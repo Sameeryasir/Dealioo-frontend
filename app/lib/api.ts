@@ -1,12 +1,35 @@
 export const API_REQUEST_TIMEOUT_MS = 5_000;
 export const API_MIN_LOADING_MS = 500;
 
-function configuredApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:4001/api";
+const LOCAL_API_DEFAULT = "http://localhost:4001/api";
+
+function isLocalHostname(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]"
+  );
+}
+
+function normalizeApiBaseUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function envApiUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  return fromEnv ? normalizeApiBaseUrl(fromEnv) : LOCAL_API_DEFAULT;
 }
 
 export function getApiBaseUrl(): string {
-  return configuredApiUrl();
+  if (typeof window !== "undefined") {
+    const { hostname, origin } = window.location;
+    if (!isLocalHostname(hostname)) {
+      return normalizeApiBaseUrl(origin);
+    }
+  }
+
+  return envApiUrl();
 }
 
 export function delay(ms: number): Promise<void> {
