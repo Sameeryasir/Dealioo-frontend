@@ -1,10 +1,7 @@
 "use client";
 
-import AddBusinessCard from "@/app/components/AddBusinessCard";
 import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
 import RestaurantDashboardCard from "@/app/components/RestaurantDashboardCard";
-import SearchBar from "@/app/components/SearchBar";
-import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
@@ -14,7 +11,8 @@ import {
 import { useMyRestaurantsQuery } from "@/app/hooks/use-my-restaurants-query";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { MY_RESTAURANTS_PAGE_SIZE } from "@/app/services/restaurant/get-my-restaurant";
-import { Filter, Megaphone, Users } from "lucide-react";
+import { Filter, Megaphone, Plus, Users } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const WORKSPACE_FEATURES = [
@@ -22,17 +20,6 @@ const WORKSPACE_FEATURES = [
   { label: "Funnels", icon: Filter, tone: "pink" },
   { label: "Customers", icon: Users, tone: "green" },
 ] as const;
-
-function useDebouncedValue<T>(value: T, delayMs = 300): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
 
 function firstName(fullName: string | null | undefined): string {
   const trimmed = fullName?.trim();
@@ -42,8 +29,6 @@ function firstName(fullName: string | null | undefined): string {
 }
 
 export default function DashboardPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const [page, setPage] = useState(1);
   const [userName, setUserName] = useState<string | null>(null);
 
@@ -53,10 +38,6 @@ export default function DashboardPage() {
     });
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch]);
-
   const {
     data: restaurants,
     meta,
@@ -64,7 +45,7 @@ export default function DashboardPage() {
     isFetching,
     error: errorMessage,
     refetch: loadRestaurants,
-  } = useMyRestaurantsQuery({ page, search: debouncedSearch });
+  } = useMyRestaurantsQuery({ page });
 
   const sortedRestaurants = useMemo(() => {
     const copy = [...restaurants];
@@ -75,11 +56,8 @@ export default function DashboardPage() {
   }, [restaurants]);
 
   const showSkeleton = isPending && restaurants.length === 0;
-  const hasAnyRestaurants = meta.total > 0 || debouncedSearch.length > 0;
+  const hasAnyRestaurants = meta.total > 0;
   const showToolbar = !showSkeleton && !errorMessage;
-
-  const businessCountLabel =
-    meta.total === 1 ? "1 business" : `${meta.total} businesses`;
 
   return (
     <section className="org-dashboard-section" aria-label="Your businesses">
@@ -135,22 +113,17 @@ export default function DashboardPage() {
                 <div className="org-dashboard-panel-heading">
                   <div className="org-dashboard-panel-title-row">
                     <h2 className="org-dashboard-panel-title">My businesses</h2>
-                    <span className="org-dashboard-panel-count">
-                      <span className="org-dashboard-panel-count-dot" aria-hidden />
-                      {businessCountLabel}
-                    </span>
                   </div>
                 </div>
 
                 <div className="org-dashboard-panel-controls">
-                  <SearchBar
-                    id="dashboard-search"
-                    variant="dashboard"
-                    className="org-dashboard-search"
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder="Search businesses…"
-                  />
+                  <Link
+                    href="/restaurant/register"
+                    className="org-dashboard-add-btn"
+                  >
+                    <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+                    Add business
+                  </Link>
                 </div>
               </div>
             ) : null}
@@ -168,20 +141,15 @@ export default function DashboardPage() {
                   message={errorMessage}
                   onRetry={() => loadRestaurants()}
                 />
-              ) : !hasAnyRestaurants && !debouncedSearch.trim() ? (
+              ) : !hasAnyRestaurants ? (
                 <div className="org-dashboard-first-run">
-                  <AddBusinessCard layout="grid" />
-                  <div className="org-dashboard-first-run-copy">
+                  <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
                     <p className="org-dashboard-first-run-title">Start with your first business</p>
                     <p className="org-dashboard-first-run-text">
-                      Add your first business or location to unlock campaigns,
-                      deal funnels, QR tracking, and customer growth tools.
+                      Use Add business above to register your first location and unlock
+                      campaigns, deal funnels, QR tracking, and customer growth tools.
                     </p>
                   </div>
-                </div>
-              ) : restaurants.length === 0 ? (
-                <div className="org-dashboard-empty org-dashboard-empty--compact">
-                  <SearchNoMatchFound className="py-6" />
                 </div>
               ) : (
                 <>
@@ -194,7 +162,6 @@ export default function DashboardPage() {
                         accentIndex={index}
                       />
                     ))}
-                    <AddBusinessCard layout="grid" />
                   </div>
 
                   {meta.totalPages > 1 ? (
