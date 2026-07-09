@@ -8,7 +8,7 @@ import { createCustomer } from "@/app/services/customer/create-customer";
 import {
   fetchFunnelsByRestaurant,
   type RestaurantFunnelDeal,
-} from "@/app/services/funnel/get-funnels-by-restaurant";
+} from "@/app/services/funnel/get-funnels-by-business";
 import {
   purchaseScannerDeals,
   type ScannerPurchasedDeal,

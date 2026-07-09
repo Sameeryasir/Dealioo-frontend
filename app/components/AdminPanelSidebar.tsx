@@ -1,7 +1,7 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import RestaurantSettingsDialog from "@/app/components/RestaurantSettingsDialog";
+import BusinessSettingsDialog from "@/app/components/BusinessSettingsDialog";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
@@ -321,7 +321,7 @@ export default function AdminPanelSidebar() {
         </div>
       </aside>
 
-      <RestaurantSettingsDialog
+      <BusinessSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         onSignOut={handleLogout}

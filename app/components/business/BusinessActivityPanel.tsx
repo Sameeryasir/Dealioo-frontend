@@ -41,7 +41,7 @@ import {
   type ActivityEventType,
   type ActivitySummary,
   type RestaurantActivityEvent,
-} from "@/app/services/activity/get-restaurant-activity";
+} from "@/app/services/activity/get-business-activity";
 
 const activityCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
