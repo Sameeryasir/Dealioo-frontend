@@ -37,7 +37,10 @@ export function parseAuthUser(value: unknown): VerifyOtpUser | null {
         : row.phone == null
           ? ""
           : String(row.phone),
-    avatar: typeof row.avatar === "string" ? row.avatar : row.avatar ?? null,
+    avatar:
+      typeof row.avatar === "string"
+        ? row.avatar.trim() || null
+        : null,
     firstName:
       typeof row.firstName === "string"
         ? row.firstName
