@@ -46,7 +46,7 @@ export async function registerRestaurant(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!payload.name.trim()) {
-    throw new Error("Restaurant name is required.");
+    throw new Error("Business name is required.");
   }
   if (!payload.phoneNumber.trim()) {
     throw new Error("Phone number is required.");
@@ -105,7 +105,7 @@ export async function registerRestaurant(
         );
       }
       throw new Error(
-        await parseApiErrorMessage(response, "Could not register restaurant."),
+        await parseApiErrorMessage(response, "Could not add business."),
       );
     }
 
@@ -120,7 +120,7 @@ export async function registerRestaurant(
       message:
         typeof data.message === "string"
           ? data.message
-          : parseApiMessage(data.message, "Restaurant created."),
+          : parseApiMessage(data.message, "Business added."),
     };
   } catch (error) {
     console.error("Register restaurant error:", error);

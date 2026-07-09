@@ -29,11 +29,11 @@ export default function RegisterRestaurantPage() {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        const created = await registerRestaurant(accessToken, {
+        await registerRestaurant(accessToken, {
           name: data.name,
           phoneNumber: data.phoneNumber,
           email: data.email.trim() || undefined,
-          cuisineType: data.cuisineType || undefined,
+          cuisineType: undefined,
           description: data.description.trim() || undefined,
           websiteUrl: data.websiteUrl || undefined,
           logoFile: data.logoFile ?? null,
@@ -43,18 +43,12 @@ export default function RegisterRestaurantPage() {
           country: data.country,
           branchCount: data.branchCount,
         });
-        const rid = created.restaurantId ?? created.id;
-
-        if (rid != null && Number.isFinite(rid)) {
-          router.push(`/restaurant/upload-menu?restaurantId=${rid}`);
-        } else {
-          router.push("/restaurant/upload-menu");
-        }
+        router.push("/dashboard");
       } catch (error) {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "Could not register restaurant. Try again.",
+            : "Could not add business. Try again.",
         );
         setSubmitting(false);
       }
@@ -70,17 +64,17 @@ export default function RegisterRestaurantPage() {
     <div className="brand-onboarding-page min-h-screen px-4 py-8 sm:px-8 lg:px-12 xl:px-16">
       <header className="mx-auto mb-8 flex max-w-3xl flex-col items-center text-center">
         <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
-        <h1 className="brand-heading">Create Restaurant</h1>
-          <p className="brand-subtext mt-1">
-            Add a new restaurant to the system. Fill in the details below.
-          </p>
-        </header>
+        <h1 className="brand-heading">Add business</h1>
+        <p className="brand-subtext mt-1">
+          Set up a new business in a few quick steps.
+        </p>
+      </header>
 
-        <RegisterRestaurantForm
-          submitting={submitting}
-          errorMessage={errorMessage}
-          onSubmit={onSubmit}
-        />
+      <RegisterRestaurantForm
+        submitting={submitting}
+        errorMessage={errorMessage}
+        onSubmit={onSubmit}
+      />
     </div>
   );
 }

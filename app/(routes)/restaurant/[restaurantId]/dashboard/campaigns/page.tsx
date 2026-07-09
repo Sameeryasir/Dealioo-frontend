@@ -86,8 +86,8 @@ export default function RestaurantCampaignsPage() {
   if (restaurantId == null) {
     return (
       <InvalidRouteMessage
-        message="Invalid restaurant link."
-        backLabel="Back to your restaurants"
+        message="Invalid business link."
+        backLabel="Back to your businesses"
       />
     );
   }

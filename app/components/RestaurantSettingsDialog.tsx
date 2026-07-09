@@ -299,7 +299,7 @@ export default function RestaurantSettingsDialog({
       }
       if (restaurantId == null) {
         throw new Error(
-          "Open this from a restaurant page so we know which one to connect.",
+          "Open this from a business page so we know which one to connect.",
         );
       }
       const { url } = await connectStripe(token, restaurantId);
@@ -323,7 +323,7 @@ export default function RestaurantSettingsDialog({
       }
       if (restaurantId == null) {
         throw new Error(
-          "Open this from a restaurant page so we know which one to connect.",
+          "Open this from a business page so we know which one to connect.",
         );
       }
       const result = await connectFacebookInPopup(token, restaurantId);
@@ -378,7 +378,7 @@ export default function RestaurantSettingsDialog({
       }
       if (restaurantId == null) {
         throw new Error(
-          "Open this from a restaurant page so we know which one to connect.",
+          "Open this from a business page so we know which one to connect.",
         );
       }
       const result = await connectGoogleAdsInPopup(token, restaurantId);

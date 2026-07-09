@@ -29,12 +29,8 @@ function setupProgress(restaurant: AdminRestaurant): number {
   let score = 0;
   if (restaurant.city?.trim()) score += 34;
   if ((restaurant.branchCount ?? 0) > 0) score += 33;
-  if (restaurant.description?.trim() || restaurant.cuisineType?.trim()) score += 33;
+  if (restaurant.description?.trim()) score += 33;
   return Math.min(100, score);
-}
-
-function businessCategory(restaurant: AdminRestaurant): string {
-  return restaurant.cuisineType?.trim() || "Business";
 }
 
 export default function RestaurantDashboardCard({
@@ -49,7 +45,6 @@ export default function RestaurantDashboardCard({
     state,
     country,
     logoUrl,
-    cuisineType,
   } = restaurant;
 
   const location = [city, state, country].filter(Boolean).join(", ");
@@ -68,7 +63,6 @@ export default function RestaurantDashboardCard({
 
   const progress = setupProgress(restaurant);
   const accent = ACCENT_VARS[accentIndex % ACCENT_VARS.length];
-  const category = businessCategory(restaurant);
   const statusLabel = progress >= 100 ? "Ready" : "In setup";
 
   if (layout === "list") {
@@ -97,7 +91,6 @@ export default function RestaurantDashboardCard({
               {statusLabel}
             </span>
           </span>
-          <span className="org-biz-card-category">{category}</span>
           <span className="org-biz-card-meta-inline">
             <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
             {location || "Location not set"}
@@ -144,7 +137,6 @@ export default function RestaurantDashboardCard({
           <div className="org-biz-card-main">
             <div className="org-biz-card-title-row">
               <h2 className="org-biz-card-title">{name}</h2>
-              <span className="org-biz-card-category">{category}</span>
             </div>
           </div>
 
@@ -187,10 +179,6 @@ export default function RestaurantDashboardCard({
           </div>
         </div>
       </div>
-
-      {cuisineType?.trim() ? (
-        <span className="sr-only">Cuisine: {cuisineType}</span>
-      ) : null}
     </Link>
   );
 }

@@ -73,7 +73,7 @@ export default function RestaurantNavbar() {
     <>
     <nav
       className="sticky top-0 z-40 w-full shrink-0 border-b border-white/10 bg-[#0c152f] px-4 py-3 sm:px-6"
-      aria-label="Restaurant dashboard"
+      aria-label="Business dashboard"
     >
       <div className="flex w-full items-center justify-between gap-3 bg-[#0c152f] sm:gap-4">
         <Link

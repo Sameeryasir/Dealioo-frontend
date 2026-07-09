@@ -222,7 +222,7 @@ function MenuFileDropField({ id, disabled, file, error, onFile }: MenuDropProps)
       ) : (
         <label
           htmlFor={id}
-          aria-label="Upload menu file"
+          aria-label="Upload catalog or menu file"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={onDrop}
@@ -251,7 +251,7 @@ function MenuFileDropField({ id, disabled, file, error, onFile }: MenuDropProps)
           </span>
           <span className="max-w-[260px]">
             <span className="block text-sm font-semibold text-zinc-900">
-              {isDragging ? "Drop file here" : "Choose a menu file"}
+              {isDragging ? "Drop file here" : "Choose a catalog or menu file"}
             </span>
             <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
               Drag a file here or click to choose from your computer. PDF, PNG,
@@ -318,7 +318,7 @@ export default function UploadMenuForm({
             className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
           >
             <Type className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
-            Menu name <RequiredStar />
+            Menu or catalog name <RequiredStar />
           </label>
           <input
             id="menu-name"
@@ -328,8 +328,8 @@ export default function UploadMenuForm({
             aria-invalid={!!errors.name}
             className={`${inputBase} py-2 ${fieldRing(!!errors.name)}`}
             {...register("name", {
-              required: "Menu name is required.",
-              maxLength: { value: 200, message: "Menu name must be 200 characters or less." },
+              required: "Name is required.",
+              maxLength: { value: 200, message: "Name must be 200 characters or less." },
             })}
           />
           {errors.name ? <p className="text-sm text-red-600">{errors.name.message}</p> : null}
@@ -387,7 +387,7 @@ export default function UploadMenuForm({
         <section className="flex flex-col gap-3 border-t border-zinc-100 pt-6">
           <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold text-zinc-900">
             <FilePlus className="h-5 w-5 shrink-0 text-zinc-500" strokeWidth={2} aria-hidden />
-            Upload menu file
+            Upload catalog or menu file
             <RequiredStar />
           </h2>
           <MenuFileDropField
@@ -414,7 +414,7 @@ export default function UploadMenuForm({
             type="submit"
             disabled={submitting}
             aria-busy={submitting}
-            aria-label={submitting ? "Saving menu" : "Save menu"}
+            aria-label={submitting ? "Saving" : "Save and continue"}
             className="group relative inline-flex h-12 min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-zinc-900 px-6 text-base font-medium text-white shadow-lg shadow-zinc-900/25 transition-all duration-200 ease-out hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span
@@ -423,7 +423,7 @@ export default function UploadMenuForm({
               }`}
               aria-hidden={submitting}
             >
-              <span>Save menu</span>
+              <span>Save and continue</span>
               <Upload
                 className="h-5 w-5 opacity-90 transition-transform group-hover:-translate-y-0.5"
                 strokeWidth={2}

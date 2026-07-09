@@ -45,7 +45,7 @@ function UploadMenuPageInner() {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "Could not upload menu. Try again.",
+            : "Could not upload file. Try again.",
         );
         setSubmitting(false);
       }
@@ -61,9 +61,9 @@ function UploadMenuPageInner() {
     <div className="min-h-screen brand-page-soft px-4 py-10 sm:px-8">
       <header className="mx-auto mb-8 flex max-w-2xl flex-col items-center text-center">
         <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
-        <h1 className="brand-heading">Upload menu</h1>
+        <h1 className="brand-heading">Upload catalog or menu</h1>
           <p className="brand-subtext mt-1">
-            Add your menu items here after creating your restaurant.
+            Add a menu, price list, or brochure after creating your business.
           </p>
         </header>
 
@@ -76,9 +76,9 @@ function UploadMenuPageInner() {
         />
       ) : (
         <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-offer/30 bg-brand-offer/10 px-4 py-3 text-sm text-brand-navy">
-          This step needs a restaurant. Finish{" "}
+          This step needs a business. Finish{" "}
           <a href="/restaurant/register" className="brand-link">
-            create restaurant
+            add business
           </a>{" "}
           first (you will be sent here automatically), or open this page with{" "}
           <span className="font-mono text-xs">?restaurantId=</span> in the URL.

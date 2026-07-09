@@ -4,7 +4,7 @@ export default function DashboardOrdersPage() {
   return (
     <ComingSoonRoutePage
       title="Orders"
-      description="Track and manage orders across your restaurants."
+      description="Track and manage orders across your businesses."
     />
   );
 }
