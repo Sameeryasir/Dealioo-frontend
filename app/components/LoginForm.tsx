@@ -486,11 +486,6 @@ export default function LoginForm({
               mode="login"
               label="Continue with Google"
             />
-            <div className="flex items-center gap-3 px-1">
-              <div className="h-px flex-1 bg-[#e8edf5]" />
-              <span className="text-xs font-medium text-brand-muted">or</span>
-              <div className="h-px flex-1 bg-[#e8edf5]" />
-            </div>
             <div className="auth-signup-actions">
               <button
                 type="button"
