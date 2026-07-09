@@ -61,7 +61,7 @@ export async function createCampaign(
   }
 
   const form = new FormData();
-  form.append("restaurantId", String(payload.restaurantId));
+  form.append("businessId", String(payload.restaurantId));
   form.append("campaignName", payload.campaignName.trim());
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);

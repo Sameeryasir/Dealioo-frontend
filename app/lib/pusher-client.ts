@@ -13,7 +13,7 @@ import {
 import {
   PUSHER_CHAT_EVENT,
   parseChatMessagePusherPayload,
-  pusherRestaurantChatChannel,
+  pusherBusinessChatChannel,
   type ChatMessagePusherPayload,
 } from "@/app/lib/pusher-chat";
 
@@ -366,18 +366,21 @@ function subscribeChannelEvent<T>(
   };
 }
 
-export function subscribeRestaurantChatMessages(
-  restaurantId: number,
+export function subscribeBusinessChatMessages(
+  businessId: number,
   onMessage: (payload: ChatMessagePusherPayload) => void,
 ): () => void {
   return subscribeChannelEvent(
-    pusherRestaurantChatChannel(restaurantId),
+    pusherBusinessChatChannel(businessId),
     PUSHER_CHAT_EVENT.MESSAGE_SENT,
     onMessage,
     parseChatMessagePusherPayload,
-    `restaurant-${restaurantId}`,
+    `business-${businessId}`,
   );
 }
+
+/** @deprecated Use subscribeBusinessChatMessages */
+export const subscribeRestaurantChatMessages = subscribeBusinessChatMessages;
 
 /**
  * Subscribes each automation channel once for the session (list view).

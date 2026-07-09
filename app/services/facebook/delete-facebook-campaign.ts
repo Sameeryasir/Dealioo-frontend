@@ -6,7 +6,7 @@ export async function deleteFacebookCampaign(
   metaCampaignId: string,
 ): Promise<{ deleted: true; metaCampaignId: string }> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/meta/${encodeURIComponent(metaCampaignId)}`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/meta/${encodeURIComponent(metaCampaignId)}`,
     { method: "DELETE" },
   );
 

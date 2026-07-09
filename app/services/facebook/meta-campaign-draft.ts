@@ -121,7 +121,7 @@ export async function publishMetaCampaignDraft(
     facebookPageId?: string | null;
   },
 ): Promise<PublishMetaCampaignResult> {
-  const url = `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish`;
+  const url = `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish`;
 
   console.group("[MetaPublish] Frontend publish trigger");
   console.log("Request URL:", url);
@@ -192,7 +192,7 @@ export async function saveCampaignStep(
   payload: SaveCampaignStepPayload,
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/campaign-step`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/campaign-step`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -215,7 +215,7 @@ export async function getMetaCampaignDraft(
   timeoutMs?: number,
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}`,
     { method: "GET" },
     timeoutMs,
   );
@@ -233,7 +233,7 @@ export async function listMetaCampaignDrafts(
   restaurantId: number,
 ): Promise<MetaCampaignDraft[]> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts`,
     { method: "GET" },
   );
 
@@ -251,7 +251,7 @@ export async function saveAdSetStep(
   payload: SaveAdSetStepPayload,
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/adset-step`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/adset-step`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -273,7 +273,7 @@ export async function saveAdCreativeStep(
   payload: AdCreativeStepData,
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/drafts/ad-creative-step`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/ad-creative-step`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

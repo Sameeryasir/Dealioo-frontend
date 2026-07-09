@@ -14,7 +14,7 @@ export async function markRestaurantChatsRead(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/mark-read`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/mark-read`,
     { method: "POST" },
   );
 

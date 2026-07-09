@@ -11,7 +11,7 @@ export async function uploadFacebookCampaignVideo(
   formData.append("file", file);
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/ad-video`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/ad-video`,
     {
       method: "POST",
       body: formData,

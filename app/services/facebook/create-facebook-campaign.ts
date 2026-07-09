@@ -76,7 +76,7 @@ export async function createFacebookCampaign(
   payload: CreateFacebookCampaignPayload,
 ): Promise<CreateFacebookCampaignResult> {
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

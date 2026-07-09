@@ -11,7 +11,7 @@ export async function uploadFacebookCampaignImage(
   formData.append("file", file);
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/restaurant/${encodeURIComponent(String(restaurantId))}/ad-image`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/ad-image`,
     {
       method: "POST",
       body: formData,

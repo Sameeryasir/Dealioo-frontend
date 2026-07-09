@@ -224,7 +224,7 @@ export async function fetchMyBusinesses(
 
   try {
     const response = await authAxios.get<unknown>(
-      `/restaurant/all?${params.toString()}`,
+      `/business/all?${params.toString()}`,
     );
     const payload = response.data;
 

@@ -65,7 +65,7 @@ export async function getBusinessFunnelEvents(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/funnel-event/restaurant/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
+    `${getApiBaseUrl()}/funnel-event/business/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

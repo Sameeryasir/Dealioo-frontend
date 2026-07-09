@@ -20,7 +20,7 @@ export async function getChatUnreadSummary(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/unread-summary`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/unread-summary`,
   );
 
   if (!res.ok) {

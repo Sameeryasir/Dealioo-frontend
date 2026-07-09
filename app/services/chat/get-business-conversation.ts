@@ -69,7 +69,7 @@ export async function getRestaurantConversation(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/conversations/${encodeURIComponent(String(executionId))}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/conversations/${encodeURIComponent(String(executionId))}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -100,7 +100,7 @@ export async function getCustomerConversation(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -139,7 +139,7 @@ export async function syncCustomerConversationMessages(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages/sync?${query.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages/sync?${query.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

@@ -18,7 +18,7 @@ export async function purchaseScannerDeals(params: {
   }
 
   const response = await authAxios.post<ScannerPurchasedDeal[]>(
-    `/funnel-event/restaurant/${params.restaurantId}/guest/${params.customerId}/purchase-deals`,
+    `/funnel-event/business/${params.restaurantId}/guest/${params.customerId}/purchase-deals`,
     {
       funnelIds: params.funnelIds,
       orderSubtotal: params.orderSubtotal,

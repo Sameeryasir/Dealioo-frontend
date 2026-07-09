@@ -71,7 +71,7 @@ export async function getRestaurantActivityEvents(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/activity/restaurant/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
+    `${getApiBaseUrl()}/activity/business/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -104,7 +104,7 @@ export async function getRestaurantActivitySummary(
 
   const query = q.toString();
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/activity/restaurant/${encodeURIComponent(String(restaurantId))}/summary${query ? `?${query}` : ""}`,
+    `${getApiBaseUrl()}/activity/business/${encodeURIComponent(String(restaurantId))}/summary${query ? `?${query}` : ""}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

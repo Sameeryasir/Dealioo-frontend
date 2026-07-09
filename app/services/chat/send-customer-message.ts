@@ -25,7 +25,7 @@ export async function sendCustomerMessage(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
     {
       method: "POST",
       headers: {

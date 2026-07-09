@@ -49,7 +49,7 @@ export async function getRestaurantChatCustomers(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers?${q.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -89,7 +89,7 @@ export async function syncRestaurantChatCustomers(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/customers/sync?${q.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/sync?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

@@ -21,7 +21,7 @@ export async function getOnboardingStatus(
 ): Promise<OnboardingStatus> {
   const params = new URLSearchParams();
   if (restaurantId != null && Number.isFinite(restaurantId) && restaurantId >= 1) {
-    params.set("restaurantId", String(restaurantId));
+    params.set("businessId", String(restaurantId));
   }
 
   const query = params.toString();

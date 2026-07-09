@@ -12,8 +12,8 @@ export const PUSHER_CHAT_EVENT = {
 
 export const PUSHER_PRIVATE_CHANNEL_PREFIX = "private-";
 
-export function pusherRestaurantChatChannel(restaurantId: number): string {
-  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}restaurant-chat-${restaurantId}`;
+export function pusherBusinessChatChannel(restaurantId: number): string {
+  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-chat-${restaurantId}`;
 }
 
 export type ChatMessagePusherPayload = {

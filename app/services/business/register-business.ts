@@ -95,7 +95,7 @@ export async function registerBusiness(
 
   try {
     const response = await authenticatedFetch(
-      `${getApiBaseUrl()}/restaurant/create`,
+      `${getApiBaseUrl()}/business/create`,
       {
         method: "POST",
         body: formData,

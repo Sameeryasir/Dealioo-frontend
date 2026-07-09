@@ -178,7 +178,7 @@ export async function getRedemptionStats(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/redemption/restaurant/${encodeURIComponent(String(restaurantId))}/stats`,
+    `${getApiBaseUrl()}/redemption/business/${encodeURIComponent(String(restaurantId))}/stats`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -233,7 +233,7 @@ export async function getGuestProfile(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/redemption/restaurant/${encodeURIComponent(String(restaurantId))}/guests/${encodeURIComponent(String(customerId))}/profile`,
+    `${getApiBaseUrl()}/redemption/business/${encodeURIComponent(String(restaurantId))}/guests/${encodeURIComponent(String(customerId))}/profile`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

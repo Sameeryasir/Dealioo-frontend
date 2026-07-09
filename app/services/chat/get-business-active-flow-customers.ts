@@ -47,7 +47,7 @@ export async function getRestaurantActiveFlowCustomers(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/restaurant/${encodeURIComponent(String(restaurantId))}/active-flows?${q.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/active-flows?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

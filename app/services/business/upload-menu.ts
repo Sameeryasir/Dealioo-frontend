@@ -32,7 +32,7 @@ export async function uploadBusinessMenu(
   }
 
   const formData = new FormData();
-  formData.append("restaurantId", String(payload.restaurantId));
+  formData.append("businessId", String(payload.restaurantId));
   formData.append("name", payload.name.trim());
   const description = payload.description.trim();
   if (description.length > 0) {
