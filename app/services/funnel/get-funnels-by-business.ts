@@ -34,7 +34,7 @@ export async function fetchFunnelsByRestaurant(
   }
 
   const response = await authAxios.get<unknown>(
-    `/funnel/restaurant/${restaurantId}`,
+    `/funnel/business/${restaurantId}`,
   );
 
   const rows = Array.isArray(response.data) ? response.data : [];

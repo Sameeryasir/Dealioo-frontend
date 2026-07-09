@@ -331,7 +331,7 @@ export async function fetchBusinessById(
 
   try {
     const response = await authAxios.get<unknown>(
-      `/restaurant/${restaurantId}`,
+      `/business/${restaurantId}`,
     );
     const one = coerceRestaurantDetail(response.data);
     if (!one) {

@@ -192,7 +192,7 @@ export async function fetchCampaignsByRestaurant(
   }
 
   const response = await authAxios.get<unknown>(
-    `/campaign/restaurant/${restaurantId}?${params.toString()}`,
+    `/campaign/business/${restaurantId}?${params.toString()}`,
   );
 
   return campaignsFromResponseBody(response.data, page, limit);
