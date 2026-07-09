@@ -12,11 +12,15 @@ export type VerifyOtpUser = {
   email: string;
   phone: string;
   avatar?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  provider?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  lastLoginAt?: string | null;
   role: VerifyOtpUserRole;
   twoFactorEnabled?: boolean;
   isTwoFactorVerified?: boolean;

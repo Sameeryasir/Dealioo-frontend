@@ -6,7 +6,7 @@ import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
-import { LogOut } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -99,6 +99,15 @@ export default function Navbar() {
               aria-label="Account actions"
               className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
             >
+              <Link
+                href="/dashboard/profile"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-brand-body transition-colors hover:bg-brand-soft hover:text-brand-navy"
+              >
+                <UserRound className="size-4 shrink-0 text-brand-muted" aria-hidden strokeWidth={2} />
+                Profile
+              </Link>
               <button
                 type="button"
                 role="menuitem"

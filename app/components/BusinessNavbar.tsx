@@ -6,7 +6,7 @@ import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import BusinessSettingsDialog from "@/app/components/BusinessSettingsDialog";
-import { ArrowBigLeft, Bell, LogOut, Settings } from "lucide-react";
+import { ArrowBigLeft, Bell, LogOut, Settings, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +17,9 @@ export default function BusinessNavbar() {
   const { clearPassword } = useCredentialContext();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<"account" | "integrations">(
+    "account",
+  );
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
   const menuRootRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +69,7 @@ export default function BusinessNavbar() {
 
   const openSettingsDialog = useCallback(() => {
     setMenuOpen(false);
+    setSettingsSection("integrations");
     setSettingsOpen(true);
   }, []);
 
@@ -132,6 +136,19 @@ export default function BusinessNavbar() {
                 aria-label="Account actions"
                 className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-zinc-200/80 bg-white py-1 shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-900/[0.04]"
               >
+                <Link
+                  href="/dashboard/profile"
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-black"
+                >
+                  <UserRound
+                    className="size-4 shrink-0 text-zinc-500"
+                    aria-hidden
+                    strokeWidth={2}
+                  />
+                  Profile
+                </Link>
                 <button
                   type="button"
                   role="menuitem"
@@ -156,6 +173,7 @@ export default function BusinessNavbar() {
       open={settingsOpen}
       onOpenChange={setSettingsOpen}
       onSignOut={handleLogout}
+      initialSection={settingsSection}
     />
     </>
   );

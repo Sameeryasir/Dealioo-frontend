@@ -28,6 +28,7 @@ import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google
 import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsCampaignsDialog";
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
+import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 
 function parseRestaurantIdFromParams(raw: unknown): number | undefined {
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
@@ -161,17 +162,25 @@ type BusinessSettingsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSignOut: () => void;
+  initialSection?: SectionId;
 };
 
 export default function BusinessSettingsDialog({
   open,
   onOpenChange,
   onSignOut,
+  initialSection = "account",
 }: BusinessSettingsDialogProps) {
   const router = useRouter();
   const params = useParams();
   const titleId = useId();
-  const [section, setSection] = useState<SectionId>("account");
+  const [section, setSection] = useState<SectionId>(initialSection);
+
+  useEffect(() => {
+    if (open) {
+      setSection(initialSection);
+    }
+  }, [open, initialSection]);
 
   const restaurantId = useMemo(
     () => parseRestaurantIdFromParams(params?.restaurantId),
@@ -501,7 +510,9 @@ export default function BusinessSettingsDialog({
             <h3 className="text-lg font-semibold text-white">{sectionTitles[section]}</h3>
 
             {section === "account" ? (
-              <div className="mt-8 flex max-w-md flex-col gap-3">
+              <div className="mt-6 flex max-w-md flex-col gap-8">
+                <OwnerProfileForm variant="dark" layout="compact" />
+                <div className="flex flex-col gap-3 border-t border-zinc-800 pt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -523,6 +534,7 @@ export default function BusinessSettingsDialog({
                 >
                   Sign Out
                 </button>
+                </div>
               </div>
             ) : section === "integrations" ? (
               <div className="mt-6 max-w-2xl">
