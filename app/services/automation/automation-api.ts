@@ -64,7 +64,7 @@ function formatLastUpdated(iso?: string): string {
 
 export function mapAutomationToListItem(
   automation: Automation,
-  restaurantLabel = "N/A",
+  businessLabel = "N/A",
 ): AutomationListItem {
   return {
     id: String(automation.id),
@@ -73,17 +73,17 @@ export function mapAutomationToListItem(
     description: automation.description?.trim() ?? "",
     trigger: triggerToUi(automation.trigger),
     status: listStatusFromApi(automation),
-    restaurant: restaurantLabel,
+    business: businessLabel,
     lastUpdated: formatLastUpdated(automation.updatedAt ?? automation.createdAt),
     customersEntered: 0,
   };
 }
 
 export async function getAutomations(
-  restaurantId?: number,
+  businessId?: number,
 ): Promise<Automation[]> {
   const query =
-    restaurantId != null ? `?restaurantId=${encodeURIComponent(String(restaurantId))}` : "";
+    businessId != null ? `?businessId=${encodeURIComponent(String(businessId))}` : "";
   return automationFetch<Automation[]>(query);
 }
 

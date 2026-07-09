@@ -30,6 +30,8 @@ export interface Automation {
   purpose?: AutomationPurpose | string;
   isActive: boolean;
   published: boolean;
+  businessId?: number;
+  /** @deprecated Use businessId */
   restaurantId?: number;
   campaignId?: number;
   funnelId?: number;
@@ -44,7 +46,9 @@ export interface CreateAutomationBody {
   description?: string;
   trigger: string;
   purpose: AutomationPurpose;
-  restaurantId: number;
+  businessId: number;
+  /** @deprecated Use businessId */
+  restaurantId?: number;
   campaignId: number;
 }
 

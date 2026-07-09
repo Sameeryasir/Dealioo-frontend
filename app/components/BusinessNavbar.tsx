@@ -29,13 +29,13 @@ export default function BusinessNavbar() {
     });
   }, []);
 
-  const restaurantIdParam = params?.restaurantId;
-  const restaurantId =
-    typeof restaurantIdParam === "string" && /^\d+$/.test(restaurantIdParam)
-      ? restaurantIdParam
+  const businessIdParam = params?.businessId;
+  const businessId =
+    typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
+      ? businessIdParam
       : null;
-  const notificationsHref = restaurantId
-    ? `/restaurant/${restaurantId}/dashboard/activity`
+  const notificationsHref = businessId
+    ? `/business/${businessId}/dashboard/activity`
     : "/dashboard/activity";
 
   const iconButtonClass =

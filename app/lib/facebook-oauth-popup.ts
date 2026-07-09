@@ -4,7 +4,7 @@ import { connectFacebook } from "@/app/services/facebook/connect-facebook";
 export const FACEBOOK_OAUTH_COMPLETE_MESSAGE = "facebook-oauth-complete" as const;
 
 export type FacebookOAuthResult =
-  | { status: "connected"; restaurantId: number }
+  | { status: "connected"; businessId: number }
   | { status: "cancelled" };
 
 function openFacebookConnectPopup(oauthUrl: string): Window | null {
@@ -25,6 +25,13 @@ function openFacebookConnectPopup(oauthUrl: string): Window | null {
     "dealioo_facebook_oauth",
     `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
   );
+}
+
+function readBusinessIdFromMessage(data: object): number | null {
+  const record = data as { businessId?: unknown; restaurantId?: unknown };
+  const raw = record.businessId ?? record.restaurantId;
+  if (typeof raw !== "number" || raw < 1) return null;
+  return raw;
 }
 
 function waitForFacebookOAuthPopup(
@@ -51,15 +58,15 @@ function waitForFacebookOAuthPopup(
         return;
       }
 
-      const restaurantId = (data as { restaurantId?: unknown }).restaurantId;
-      if (typeof restaurantId !== "number" || restaurantId < 1) return;
+      const businessId = readBusinessIdFromMessage(data);
+      if (businessId == null) return;
 
       try {
         popup.close();
       } catch {
         /* popup may already be closed */
       }
-      finish({ status: "connected", restaurantId });
+      finish({ status: "connected", businessId });
     };
 
     window.addEventListener("message", onMessage);
@@ -84,9 +91,9 @@ function waitForFacebookOAuthPopup(
 /** Opens Facebook OAuth in a popup so the dashboard stays open. */
 export async function connectFacebookInPopup(
   accessToken: string,
-  restaurantId: number,
+  businessId: number,
 ): Promise<FacebookOAuthResult> {
-  const { url } = await connectFacebook(accessToken, restaurantId);
+  const { url } = await connectFacebook(accessToken, businessId);
   const popup = openFacebookConnectPopup(url);
 
   if (!popup) {
@@ -99,13 +106,13 @@ export async function connectFacebookInPopup(
 }
 
 /** Notify the opener window and close when OAuth finished inside a popup. */
-export function notifyFacebookOAuthComplete(restaurantId: number): boolean {
+export function notifyFacebookOAuthComplete(businessId: number): boolean {
   if (typeof window === "undefined") return false;
   const opener = window.opener;
   if (!opener || opener.closed) return false;
 
   opener.postMessage(
-    { type: FACEBOOK_OAUTH_COMPLETE_MESSAGE, restaurantId },
+    { type: FACEBOOK_OAUTH_COMPLETE_MESSAGE, businessId },
     window.location.origin,
   );
   window.close();

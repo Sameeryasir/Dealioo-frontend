@@ -23,7 +23,7 @@ import {
 } from "@/app/services/chat/get-business-chat-customers";
 import { useGuestChatCatchUpRegistration } from "@/app/hooks/use-business-chat-catch-up-sync";
 
-export function useBusinessChatCustomersQuery(restaurantId: number) {
+export function useBusinessChatCustomersQuery(businessId: number) {
   const [page, setPageState] = useState(1);
   const [data, setData] = useState<PaginatedChatCustomersResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,18 +33,18 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
 
   useEffect(() => {
     setPageState(1);
-  }, [restaurantId]);
+  }, [businessId]);
 
   const fetchAndStoreCustomers = useCallback(async () => {
-    const fresh = await getRestaurantChatCustomers(restaurantId, {
+    const fresh = await getRestaurantChatCustomers(businessId, {
       page,
       limit: RESTAURANT_CHAT_PAGE_SIZE,
     });
-    await saveChatCustomers(restaurantId, page, fresh);
+    await saveChatCustomers(businessId, page, fresh);
     setData(fresh);
     setError(null);
     return fresh;
-  }, [page, restaurantId]);
+  }, [page, businessId]);
 
   const syncCustomersFromApi = useCallback(
     async (cached: PaginatedChatCustomersResponse) => {
@@ -60,7 +60,7 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
       }
 
       const delta = await syncRestaurantChatCustomers(
-        restaurantId,
+        businessId,
         afterCustomerId,
         { limit: RESTAURANT_CHAT_PAGE_SIZE },
       );
@@ -70,15 +70,15 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
       }
 
       const merged = mergeCustomersAfterSync(cached, delta.data);
-      await saveChatCustomers(restaurantId, page, merged);
+      await saveChatCustomers(businessId, page, merged);
       setData(merged);
       setError(null);
     },
-    [fetchAndStoreCustomers, page, restaurantId],
+    [fetchAndStoreCustomers, page, businessId],
   );
 
   useEffect(() => {
-    if (restaurantId < 1) {
+    if (businessId < 1) {
       setData(null);
       setLoading(false);
       return;
@@ -90,7 +90,7 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
       setSyncing(false);
       setError(null);
 
-      const cached = await getStoredChatCustomers(restaurantId, page);
+      const cached = await getStoredChatCustomers(businessId, page);
       if (cancelled) {
         return;
       }
@@ -133,20 +133,20 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
     return () => {
       cancelled = true;
     };
-  }, [fetchAndStoreCustomers, page, restaurantId, syncCustomersFromApi]);
+  }, [fetchAndStoreCustomers, page, businessId, syncCustomersFromApi]);
 
   useEffect(() => {
     return subscribeChatCustomers((storedRestaurantId, storedPage, customers) => {
-      if (storedRestaurantId !== restaurantId || storedPage !== page) {
+      if (storedRestaurantId !== businessId || storedPage !== page) {
         return;
       }
 
       setData(customers);
     });
-  }, [page, restaurantId]);
+  }, [page, businessId]);
 
   const refetch = useCallback(async () => {
-    if (restaurantId < 1) {
+    if (businessId < 1) {
       return;
     }
 
@@ -161,10 +161,10 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAndStoreCustomers, restaurantId]);
+  }, [fetchAndStoreCustomers, businessId]);
 
   const catchUpSync = useCallback(async () => {
-    if (restaurantId < 1) {
+    if (businessId < 1) {
       return;
     }
 
@@ -172,7 +172,7 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
       await fetchAndStoreCustomers();
     } catch {
     }
-  }, [fetchAndStoreCustomers, restaurantId]);
+  }, [fetchAndStoreCustomers, businessId]);
 
   useGuestChatCatchUpRegistration(catchUpSync);
 
@@ -182,17 +182,17 @@ export function useBusinessChatCustomersQuery(restaurantId: number) {
 
   const applyPusherMessage = useCallback(
     (payload: ChatMessagePusherPayload) => {
-      if (payload.restaurantId !== restaurantId) {
+      if (payload.businessId !== businessId) {
         return;
       }
 
       setData((prev) => patchChatCustomersFromPusher(prev ?? undefined, payload, page) ?? prev);
-      void patchChatCustomersFromPusherInIndexedDb(restaurantId, payload);
+      void patchChatCustomersFromPusherInIndexedDb(businessId, payload);
     },
-    [page, restaurantId],
+    [page, businessId],
   );
 
-  useBusinessChatPusher(restaurantId, applyPusherMessage);
+  useBusinessChatPusher(businessId, applyPusherMessage);
 
   return {
     rows: data?.data ?? [],

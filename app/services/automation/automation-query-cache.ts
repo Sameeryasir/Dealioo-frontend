@@ -18,14 +18,15 @@ export function syncAutomationQueryCache(
     automation,
   );
 
-  if (!isPositiveInt(automation.restaurantId)) {
+  const scopeBusinessId = automation.businessId ?? automation.restaurantId;
+  if (!isPositiveInt(scopeBusinessId)) {
     return;
   }
 
   const listItem = mapAutomationToListItem(automation);
 
   queryClient.setQueryData<AutomationListItem[]>(
-    automationQueryKeys.list(automation.restaurantId),
+    automationQueryKeys.list(scopeBusinessId),
     (prev) => {
       if (!prev?.length) {
         return prev;

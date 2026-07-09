@@ -15,13 +15,13 @@ import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-busine
 
 export function useCampaignPricing(
   campaignId: number | null | undefined,
-  restaurantId: number | null | undefined,
+  businessId: number | null | undefined,
   override?: CampaignPricing | null,
 ): CampaignPricing {
   const searchParams = useSearchParams();
 
   const { data: campaigns } = useCampaignsByBusinessQuery(
-    override ? null : restaurantId,
+    override ? null : businessId,
   );
 
   const fromUrl = useMemo(
@@ -76,10 +76,10 @@ export function useCampaignPricing(
 
 export function useCampaignPricingWithTotal(
   campaignId: number | null | undefined,
-  restaurantId: number | null | undefined,
+  businessId: number | null | undefined,
   override?: CampaignPricing | null,
 ) {
-  const pricing = useCampaignPricing(campaignId, restaurantId, override);
+  const pricing = useCampaignPricing(campaignId, businessId, override);
   return {
     pricing,
     total: campaignPricingTotal(pricing),

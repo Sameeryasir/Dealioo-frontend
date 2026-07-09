@@ -8,7 +8,7 @@ import {
 import { subscribeRestaurantChatMessages } from "@/app/lib/pusher-client";
 
 export function useBusinessChatPusher(
-  restaurantId: number,
+  businessId: number,
   onMessage: (payload: ChatMessagePusherPayload) => void,
 ): void {
   const onMessageRef = useRef(onMessage);
@@ -20,29 +20,29 @@ export function useBusinessChatPusher(
       return;
     }
 
-    if (restaurantId < 1) {
+    if (businessId < 1) {
       return;
     }
 
-    console.log("[Chat Pusher] Hook listening for messages", { restaurantId });
+    console.log("[Chat Pusher] Hook listening for messages", { businessId });
 
-    return subscribeRestaurantChatMessages(restaurantId, (payload) => {
-      if (payload.restaurantId !== restaurantId) {
-        console.warn("[Chat Pusher] Ignored message for different restaurant", {
-          expectedRestaurantId: restaurantId,
-          payloadRestaurantId: payload.restaurantId,
+    return subscribeRestaurantChatMessages(businessId, (payload) => {
+      if (payload.businessId !== businessId) {
+        console.warn("[Chat Pusher] Ignored message for different business", {
+          expectedBusinessId: businessId,
+          payloadBusinessId: payload.businessId,
           customerId: payload.customerId,
         });
         return;
       }
 
       console.log("[Chat Pusher] Delivering message to UI handler", {
-        restaurantId,
+        businessId,
         customerId: payload.customerId,
         messageId: payload.message.id,
         preview: payload.lastMessagePreview,
       });
       onMessageRef.current(payload);
     });
-  }, [restaurantId]);
+  }, [businessId]);
 }

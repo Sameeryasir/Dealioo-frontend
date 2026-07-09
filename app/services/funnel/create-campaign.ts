@@ -10,7 +10,7 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 const CREATE_CAMPAIGN_TIMEOUT_MS = Math.max(API_REQUEST_TIMEOUT_MS, 120_000);
 
 export type CreateCampaignPayload = {
-  restaurantId: number;
+  businessId: number;
   campaignName: string;
   websiteUrl: string;
   image: File;
@@ -41,7 +41,8 @@ export async function createCampaign(
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!Number.isFinite(payload.restaurantId) || payload.restaurantId < 1) {
+  const id = payload.businessId;
+  if (!Number.isFinite(id) || id == null || id < 1) {
     throw new Error("Business is required.");
   }
   if (!payload.campaignName.trim()) {
@@ -61,7 +62,7 @@ export async function createCampaign(
   }
 
   const form = new FormData();
-  form.append("businessId", String(payload.restaurantId));
+  form.append("businessId", String(id));
   form.append("campaignName", payload.campaignName.trim());
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);

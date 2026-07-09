@@ -25,7 +25,7 @@ import {
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 
 export type CampaignGuestExperienceProps = {
-  restaurantId: number;
+  businessId: number;
   campaignsHref: string;
   /** `undefined` while loading; `null` if not found after load. */
   funnel: Funnel | null | undefined;
@@ -39,7 +39,7 @@ const CARD_PRIMARY_ACTION_CLASS =
   "w-full shrink-0 cursor-pointer rounded-xl border border-zinc-800/90 bg-zinc-950 py-3 text-sm font-semibold leading-snug text-white shadow-md shadow-zinc-950/30 ring-1 ring-inset ring-white/[0.08] transition hover:border-zinc-700 hover:bg-zinc-800 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 active:bg-zinc-900";
 
 export default function CampaignGuestExperience({
-  restaurantId,
+  businessId,
   campaignsHref,
   funnel,
   loadError,
@@ -63,7 +63,7 @@ export default function CampaignGuestExperience({
         setMetaConnected(false);
         return;
       }
-      const status = await getFacebookConnectionStatus(token, restaurantId);
+      const status = await getFacebookConnectionStatus(token, businessId);
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
       return status;
@@ -74,13 +74,13 @@ export default function CampaignGuestExperience({
     } finally {
       setMetaLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   const loadAdCampaignStats = useCallback(async () => {
     setAdStatsLoading(true);
     setAdStatsError(null);
     try {
-      const stats = await getFacebookAdCampaignStats(restaurantId);
+      const stats = await getFacebookAdCampaignStats(businessId);
       setAdStats(stats);
     } catch (e) {
       setAdStats(null);
@@ -90,7 +90,7 @@ export default function CampaignGuestExperience({
     } finally {
       setAdStatsLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     void (async () => {
@@ -109,7 +109,7 @@ export default function CampaignGuestExperience({
       if (!token) {
         throw new Error("You're signed out. Sign in again.");
       }
-      const result = await connectFacebookInPopup(token, restaurantId);
+      const result = await connectFacebookInPopup(token, businessId);
       if (result.status === "connected") {
         const status = await refreshMetaStatus();
         if (status?.connected && status.metaAdAccountId) {
@@ -283,7 +283,7 @@ export default function CampaignGuestExperience({
                   Choose which Meta ad account belongs to this business.
                 </p>
                 <Link
-                  href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                  href={`/facebook/select-ad-account?businessId=${businessId}`}
                   className="inline-flex rounded-xl bg-[#1877F2] px-4 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#166fe5]"
                 >
                   Choose ad account

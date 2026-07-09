@@ -23,7 +23,7 @@ export type CreateCampaignsProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   variant?: "modal" | "inline";
-  restaurantId?: number;
+  businessId: number;
   onComplete?: (
     payload: CreateCampaignCompletePayload,
   ) =>
@@ -37,7 +37,7 @@ export default function CreateCampaigns({
   open,
   onOpenChange,
   variant = "modal",
-  restaurantId,
+  businessId,
   onComplete,
 }: CreateCampaignsProps) {
   const dispatch = useAppDispatch();

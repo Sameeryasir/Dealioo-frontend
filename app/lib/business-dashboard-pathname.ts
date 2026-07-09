@@ -1,16 +1,16 @@
 import { isPositiveInt } from "@/app/lib/numbers";
 
-const RESTAURANT_CAMPAIGNS_INDEX = /^\/restaurant\/\d+\/dashboard\/campaigns$/;
+const BUSINESS_CAMPAIGNS_INDEX = /^\/business\/\d+\/dashboard\/campaigns$/;
 
-const RESTAURANT_CAMPAIGN_WORKSPACE =
-  /^\/restaurant\/\d+\/dashboard\/campaigns\/\d+(?:\/.*)?$/;
+const BUSINESS_CAMPAIGN_WORKSPACE =
+  /^\/business\/\d+\/dashboard\/campaigns\/\d+(?:\/.*)?$/;
 
-/** e.g. /restaurant/14/dashboard/campaigns/14 */
-const RESTAURANT_CAMPAIGN_IDS =
-  /^\/restaurant\/(\d+)\/dashboard\/campaigns\/(\d+)(?:\/|$)/;
+/** e.g. /business/14/dashboard/campaigns/14 */
+const BUSINESS_CAMPAIGN_IDS =
+  /^\/business\/(\d+)\/dashboard\/campaigns\/(\d+)(?:\/|$)/;
 
-/** e.g. /restaurant/14/dashboard/automations */
-const RESTAURANT_DASHBOARD_IDS = /^\/restaurant\/(\d+)\/dashboard(?:\/|$)/;
+/** e.g. /business/14/dashboard/automations */
+const BUSINESS_DASHBOARD_IDS = /^\/business\/(\d+)\/dashboard(?:\/|$)/;
 
 function parsePathSegmentId(value: string | undefined): number | undefined {
   if (value == null || !/^\d+$/.test(value)) return undefined;
@@ -18,49 +18,69 @@ function parsePathSegmentId(value: string | undefined): number | undefined {
   return isPositiveInt(n) ? n : undefined;
 }
 
-export type RestaurantDashboardPathIds = {
-  restaurantId?: number;
+export type BusinessDashboardPathIds = {
+  businessId?: number;
   campaignId?: number;
 };
 
+/** @deprecated Use BusinessDashboardPathIds */
+export type RestaurantDashboardPathIds = BusinessDashboardPathIds;
+
 export function parseBusinessDashboardPathIds(
   pathname: string,
-): RestaurantDashboardPathIds {
-  const campaignMatch = pathname.match(RESTAURANT_CAMPAIGN_IDS);
+): BusinessDashboardPathIds {
+  const normalized = pathname.replace(/^\/restaurant\//, "/business/");
+
+  const campaignMatch = normalized.match(BUSINESS_CAMPAIGN_IDS);
   if (campaignMatch) {
     return {
-      restaurantId: parsePathSegmentId(campaignMatch[1]),
+      businessId: parsePathSegmentId(campaignMatch[1]),
       campaignId: parsePathSegmentId(campaignMatch[2]),
     };
   }
 
-  const dashboardMatch = pathname.match(RESTAURANT_DASHBOARD_IDS);
+  const dashboardMatch = normalized.match(BUSINESS_DASHBOARD_IDS);
   if (dashboardMatch) {
-    return { restaurantId: parsePathSegmentId(dashboardMatch[1]) };
+    return { businessId: parsePathSegmentId(dashboardMatch[1]) };
   }
 
   return {};
 }
 
-const RESTAURANT_AUTOMATION_BUILDER =
-  /^\/restaurant\/\d+\/dashboard\/automations\/[^/]+$/;
+const BUSINESS_AUTOMATION_BUILDER =
+  /^\/business\/\d+\/dashboard\/automations\/[^/]+$/;
 
-export function isRestaurantCampaignsIndex(pathname: string): boolean {
-  return RESTAURANT_CAMPAIGNS_INDEX.test(pathname);
+export function isBusinessCampaignsIndex(pathname: string): boolean {
+  const normalized = pathname.replace(/^\/restaurant\//, "/business/");
+  return BUSINESS_CAMPAIGNS_INDEX.test(normalized);
 }
 
-export function isRestaurantCampaignWorkspace(pathname: string): boolean {
-  return RESTAURANT_CAMPAIGN_WORKSPACE.test(pathname);
+/** @deprecated Use isBusinessCampaignsIndex */
+export const isRestaurantCampaignsIndex = isBusinessCampaignsIndex;
+
+export function isBusinessCampaignWorkspace(pathname: string): boolean {
+  const normalized = pathname.replace(/^\/restaurant\//, "/business/");
+  return BUSINESS_CAMPAIGN_WORKSPACE.test(normalized);
 }
 
-export function isRestaurantAutomationBuilder(pathname: string): boolean {
-  return RESTAURANT_AUTOMATION_BUILDER.test(pathname);
+/** @deprecated Use isBusinessCampaignWorkspace */
+export const isRestaurantCampaignWorkspace = isBusinessCampaignWorkspace;
+
+export function isBusinessAutomationBuilder(pathname: string): boolean {
+  const normalized = pathname.replace(/^\/restaurant\//, "/business/");
+  return BUSINESS_AUTOMATION_BUILDER.test(normalized);
 }
 
-export function isRestaurantSidebarChromeMinimal(pathname: string): boolean {
+/** @deprecated Use isBusinessAutomationBuilder */
+export const isRestaurantAutomationBuilder = isBusinessAutomationBuilder;
+
+export function isBusinessSidebarChromeMinimal(pathname: string): boolean {
   return (
-    isRestaurantCampaignsIndex(pathname) ||
-    isRestaurantCampaignWorkspace(pathname) ||
-    isRestaurantAutomationBuilder(pathname)
+    isBusinessCampaignsIndex(pathname) ||
+    isBusinessCampaignWorkspace(pathname) ||
+    isBusinessAutomationBuilder(pathname)
   );
 }
+
+/** @deprecated Use isBusinessSidebarChromeMinimal */
+export const isRestaurantSidebarChromeMinimal = isBusinessSidebarChromeMinimal;

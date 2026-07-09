@@ -141,8 +141,10 @@ export function TemplatePreview({
   fullPageShellChrome = false,
   paymentStripeCheckout = null,
   trackingFunnelId = null,
-  checkoutRestaurantId = null,
+  checkoutBusinessId = null,
   checkoutCampaignId = null,
+  /** @deprecated Use checkoutBusinessId */
+  checkoutRestaurantId = null,
   campaignPricing,
 }: {
   page: TemplatePage;
@@ -156,10 +158,14 @@ export function TemplatePreview({
   fullPageShellChrome?: boolean;
   paymentStripeCheckout?: FunnelStripePaymentContext | null;
   trackingFunnelId?: number | null;
-  checkoutRestaurantId?: number | null;
+  checkoutBusinessId?: number | null;
   checkoutCampaignId?: number | null;
+  /** @deprecated Use checkoutBusinessId */
+  checkoutRestaurantId?: number | null;
   campaignPricing?: CampaignPricing | null;
 }) {
+  const resolvedCheckoutBusinessId =
+    checkoutBusinessId ?? checkoutRestaurantId;
   const router = useRouter();
   const [signupSubmitting, setSignupSubmitting] = useState(false);
   const { trackButtonClick } = useFunnelAnalyticsTracking(
@@ -251,14 +257,14 @@ export function TemplatePreview({
 
         if (
           signupSubmitFlow &&
-          checkoutRestaurantId != null &&
-          checkoutRestaurantId >= 1 &&
+          resolvedCheckoutBusinessId != null &&
+          resolvedCheckoutBusinessId >= 1 &&
           trackingFunnelId != null
         ) {
           const checkout = await createCheckoutSession({
             customerId: customer.id,
             funnelId: trackingFunnelId,
-            restaurantId: checkoutRestaurantId,
+            businessId: resolvedCheckoutBusinessId,
             campaignId: checkoutCampaignId,
           });
           toast.success("You're all set — continuing to payment.", {
@@ -288,7 +294,7 @@ export function TemplatePreview({
         setSignupSubmitting(false);
       }
     },
-    [signupSubmitFlow, signupNextAsLink, router, trackingFunnelId, checkoutRestaurantId, checkoutCampaignId],
+    [signupSubmitFlow, signupNextAsLink, router, trackingFunnelId, resolvedCheckoutBusinessId, checkoutCampaignId],
   );
 
   const withSurface = (alignClass: string, children: React.ReactNode) => (

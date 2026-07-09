@@ -1,6 +1,35 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/restaurant/register",
+        destination: "/business/register",
+        permanent: false,
+      },
+      {
+        source: "/restaurant/upload-menu",
+        destination: "/dashboard",
+        permanent: false,
+      },
+      {
+        source: "/business/upload-menu",
+        destination: "/dashboard",
+        permanent: false,
+      },
+      {
+        source: "/setup/menu",
+        destination: "/dashboard",
+        permanent: false,
+      },
+      {
+        source: "/restaurant/:businessId/dashboard/:path*",
+        destination: "/business/:businessId/dashboard/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     const backendUrl =
       process.env.BACKEND_URL?.trim() ||

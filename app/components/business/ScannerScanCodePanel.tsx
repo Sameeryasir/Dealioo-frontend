@@ -45,10 +45,10 @@ async function resolveCameraConfig(): Promise<string | MediaTrackConstraints> {
 }
 
 export function ScannerScanCodePanel({
-  restaurantId,
+  businessId,
   onCreateGuest,
 }: {
-  restaurantId: number;
+  businessId: number;
   onCreateGuest?: () => void;
 }) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -103,7 +103,7 @@ export function ScannerScanCodePanel({
       await stopScanner();
 
       try {
-        const result = await previewRedemptionQr(restaurantId, rawToken);
+        const result = await previewRedemptionQr(businessId, rawToken);
         if (result.success) {
           setPreviewResult(result);
           setScanState("preview");
@@ -120,7 +120,7 @@ export function ScannerScanCodePanel({
         scannedRef.current = false;
       }
     },
-    [restaurantId, stopScanner],
+    [businessId, stopScanner],
   );
 
   const handleConfirmRedeem = useCallback(
@@ -141,7 +141,7 @@ export function ScannerScanCodePanel({
 
       try {
         const result = await scanRedemptionQr(
-          restaurantId,
+          businessId,
           pendingTokenRef.current,
           couponIds,
           orderSubtotal,
@@ -171,7 +171,7 @@ export function ScannerScanCodePanel({
         setConfirmingRedemption(false);
       }
     },
-    [previewResult, restaurantId],
+    [previewResult, businessId],
   );
 
   useEffect(() => {

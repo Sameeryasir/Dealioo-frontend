@@ -10,12 +10,12 @@ import { guestDisplayName, listItemPreview } from "./guest-chats-utils";
 
 export function GuestChatCard({
   row,
-  restaurantId,
+  businessId,
   selected,
   onSelect,
 }: {
   row: ChatCustomer;
-  restaurantId: number;
+  businessId: number;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -26,11 +26,11 @@ export function GuestChatCard({
     <motion.button
       type="button"
       onMouseDown={() =>
-        prefetchConversationMessageCache(restaurantId, row.customerId)
+        prefetchConversationMessageCache(businessId, row.customerId)
       }
       onClick={onSelect}
       onMouseEnter={() =>
-        prefetchConversationMessageCache(restaurantId, row.customerId)
+        prefetchConversationMessageCache(businessId, row.customerId)
       }
       variants={guestChatHoverLift}
       initial="rest"

@@ -8,7 +8,7 @@ import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEm
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
 import { matchesSearch } from "./guest-chats/guest-chats-utils";
 
-export function BusinessChatsPanel({ restaurantId }: { restaurantId: number }) {
+export function BusinessChatsPanel({ businessId }: { businessId: number }) {
   const [search, setSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [mobileShowList, setMobileShowList] = useState(true);
@@ -21,15 +21,15 @@ export function BusinessChatsPanel({ restaurantId }: { restaurantId: number }) {
     error,
     page,
     setPage,
-  } = useBusinessChatCustomersQuery(restaurantId);
+  } = useBusinessChatCustomersQuery(businessId);
 
   useEffect(() => {
-    if (restaurantId < 1) {
+    if (businessId < 1) {
       return;
     }
 
-    void warmRestaurantConversationMessageCache(restaurantId);
-  }, [restaurantId, rows]);
+    void warmRestaurantConversationMessageCache(businessId);
+  }, [businessId, rows]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => matchesSearch(row, search)),
@@ -44,7 +44,7 @@ export function BusinessChatsPanel({ restaurantId }: { restaurantId: number }) {
   }, [filteredRows, selectedCustomerId]);
 
   function handleSelectGuest(customerId: number) {
-    prefetchConversationMessageCache(restaurantId, customerId);
+    prefetchConversationMessageCache(businessId, customerId);
     setSelectedCustomerId(customerId);
     setMobileShowList(false);
   }
@@ -66,7 +66,7 @@ export function BusinessChatsPanel({ restaurantId }: { restaurantId: number }) {
             search={search}
             onSearchChange={setSearch}
             onSelect={handleSelectGuest}
-            restaurantId={restaurantId}
+            businessId={businessId}
             loading={loading}
             error={error}
             page={page}
@@ -83,7 +83,7 @@ export function BusinessChatsPanel({ restaurantId }: { restaurantId: number }) {
         >
           {selectedRow ? (
             <GuestChatConversationPanel
-              restaurantId={restaurantId}
+              businessId={businessId}
               row={selectedRow}
               onBack={() => setMobileShowList(true)}
             />

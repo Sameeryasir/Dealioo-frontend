@@ -23,7 +23,7 @@ function resolveUserId(): number | null {
 }
 
 export function useChatSidebarUnread(
-  restaurantId: number | null,
+  businessId: number | null,
   chatsPathPrefix: string | null,
 ): boolean {
   const pathname = usePathname();
@@ -31,12 +31,12 @@ export function useChatSidebarUnread(
   const [hasUnread, setHasUnread] = useState(false);
   const pathnameRef = useRef(pathname);
   const chatsPrefixRef = useRef(chatsPathPrefix);
-  const restaurantIdRef = useRef(restaurantId);
+  const businessIdRef = useRef(businessId);
   const userIdRef = useRef(userId);
 
   pathnameRef.current = pathname;
   chatsPrefixRef.current = chatsPathPrefix;
-  restaurantIdRef.current = restaurantId;
+  businessIdRef.current = businessId;
   userIdRef.current = userId;
 
   const onChatsPage = isOnChatsRoute(pathname, chatsPathPrefix);
@@ -69,7 +69,7 @@ export function useChatSidebarUnread(
   );
 
   useEffect(() => {
-    if (restaurantId == null || restaurantId < 1 || userId == null) {
+    if (businessId == null || businessId < 1 || userId == null) {
       setHasUnread(false);
       return;
     }
@@ -79,21 +79,21 @@ export function useChatSidebarUnread(
     }
 
     if (onChatsPage) {
-      persistUnread(userId, restaurantId, false);
-      void markRestaurantChatsRead(restaurantId)
-        .then(() => writeChatHasUnread(userId, restaurantId, false))
+      persistUnread(userId, businessId, false);
+      void markRestaurantChatsRead(businessId)
+        .then(() => writeChatHasUnread(userId, businessId, false))
         .catch(() => {});
       return;
     }
 
-    const cachedUnread = readChatHasUnread(userId, restaurantId);
+    const cachedUnread = readChatHasUnread(userId, businessId);
     if (cachedUnread) {
       setHasUnread(true);
     }
 
-    void refreshUnreadFromServer(restaurantId, userId);
+    void refreshUnreadFromServer(businessId, userId);
   }, [
-    restaurantId,
+    businessId,
     userId,
     onChatsPage,
     persistUnread,
@@ -102,8 +102,8 @@ export function useChatSidebarUnread(
 
   useEffect(() => {
     if (
-      restaurantId == null ||
-      restaurantId < 1 ||
+      businessId == null ||
+      businessId < 1 ||
       userId == null ||
       onChatsPage ||
       !hasAuthSession()
@@ -112,25 +112,25 @@ export function useChatSidebarUnread(
     }
 
     const onFocus = () => {
-      void refreshUnreadFromServer(restaurantId, userId);
+      void refreshUnreadFromServer(businessId, userId);
     };
 
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [restaurantId, userId, onChatsPage, refreshUnreadFromServer]);
+  }, [businessId, userId, onChatsPage, refreshUnreadFromServer]);
 
-  useBusinessChatPusher(restaurantId ?? 0, (payload) => {
-    const restaurant = restaurantIdRef.current;
+  useBusinessChatPusher(businessId ?? 0, (payload) => {
+    const business = businessIdRef.current;
     const user = userIdRef.current;
-    if (restaurant == null || restaurant < 1 || user == null) return;
+    if (business == null || business < 1 || user == null) return;
     if (payload.message.direction !== "inbound") return;
 
     const prefix = chatsPrefixRef.current;
     const path = pathnameRef.current;
     if (isOnChatsRoute(path, prefix)) return;
 
-    persistUnread(user, restaurant, true);
-    void refreshUnreadFromServer(restaurant, user);
+    persistUnread(user, business, true);
+    void refreshUnreadFromServer(business, user);
   });
 
   return hasUnread && !onChatsPage;

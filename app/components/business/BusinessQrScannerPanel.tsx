@@ -19,9 +19,9 @@ const SCANNER_TABS: Array<{
 ];
 
 export function BusinessQrScannerPanel({
-  restaurantId,
+  businessId,
 }: {
-  restaurantId: number;
+  businessId: number;
 }) {
   const [activeTab, setActiveTab] = useState<ScannerTabId>("scan");
 
@@ -74,20 +74,20 @@ export function BusinessQrScannerPanel({
         <div className="bg-gradient-to-b from-zinc-50/30 to-white p-4 sm:p-5" role="tabpanel">
           {activeTab === "scan" ? (
             <ScannerScanCodePanel
-              restaurantId={restaurantId}
+              businessId={businessId}
               onCreateGuest={() => setActiveTab("create")}
             />
           ) : null}
 
           {activeTab === "search" ? (
             <ScannerSearchGuestPanel
-              restaurantId={restaurantId}
+              businessId={businessId}
               onCreateGuest={() => setActiveTab("create")}
             />
           ) : null}
 
           {activeTab === "create" ? (
-            <ScannerCreateGuestPanel restaurantId={restaurantId} />
+            <ScannerCreateGuestPanel businessId={businessId} />
           ) : null}
         </div>
       </nav>

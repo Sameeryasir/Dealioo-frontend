@@ -31,90 +31,90 @@ export default function AdminPanelSidebar() {
   const params = useParams();
   const scannerUser = isScannerUser();
 
-  const restaurantIdParam = params?.restaurantId;
-  const restaurantId =
-    typeof restaurantIdParam === "string" && /^\d+$/.test(restaurantIdParam)
-      ? restaurantIdParam
+  const businessIdParam = params?.businessId;
+  const businessId =
+    typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
+      ? businessIdParam
       : null;
 
-  const restaurantHomeHref = restaurantId
-    ? `/restaurant/${restaurantId}/dashboard`
+  const businessHomeHref = businessId
+    ? `/business/${businessId}/dashboard`
     : "/dashboard";
 
-  const chatsHref = restaurantId
-    ? `${restaurantHomeHref}/chats`
+  const chatsHref = businessId
+    ? `${businessHomeHref}/chats`
     : "/dashboard/chats";
 
   const hasUnreadChats = useChatSidebarUnread(
-    restaurantId != null ? Number(restaurantId) : null,
-    restaurantId != null ? chatsHref : null,
+    businessId != null ? Number(businessId) : null,
+    businessId != null ? chatsHref : null,
   );
 
   const nav = useMemo<NavItem[]>(
     () => [
       {
-        href: restaurantHomeHref,
+        href: businessHomeHref,
         label: "Home",
         icon: Home,
         activeMatch: "exact",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/orders`
+        href: businessId
+          ? `${businessHomeHref}/orders`
           : "/dashboard/orders",
         label: "Orders",
         icon: ShoppingBag,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/activity`
+        href: businessId
+          ? `${businessHomeHref}/activity`
           : "/dashboard/activity",
         label: "Activity",
         icon: Activity,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/website-builder`
+        href: businessId
+          ? `${businessHomeHref}/website-builder`
           : "/dashboard/website-builder",
         label: "Website builder",
         icon: LayoutTemplate,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/scanning`
+        href: businessId
+          ? `${businessHomeHref}/scanning`
           : "/dashboard/scanning",
         label: "Scanning",
         icon: ScanLine,
         activeMatch: "prefix",
       },
       {
-        href: `${restaurantHomeHref}/campaigns`,
+        href: `${businessHomeHref}/campaigns`,
         label: "Campaigns",
         icon: Megaphone,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/ad-library`
+        href: businessId
+          ? `${businessHomeHref}/ad-library`
           : "/dashboard/ad-library",
         label: "Ad library",
         icon: Library,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/members`
+        href: businessId
+          ? `${businessHomeHref}/members`
           : "/dashboard/members",
         label: "Members",
         icon: Users,
         activeMatch: "prefix",
       },
       {
-        href: restaurantId
-          ? `${restaurantHomeHref}/program`
+        href: businessId
+          ? `${businessHomeHref}/program`
           : "/dashboard/program",
         label: "Program",
         icon: Gift,
@@ -127,7 +127,7 @@ export default function AdminPanelSidebar() {
         activeMatch: "prefix",
       },
     ],
-    [restaurantHomeHref, restaurantId, chatsHref],
+    [businessHomeHref, businessId, chatsHref],
   );
 
   return (

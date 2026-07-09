@@ -12,12 +12,12 @@ export const PUSHER_CHAT_EVENT = {
 
 export const PUSHER_PRIVATE_CHANNEL_PREFIX = "private-";
 
-export function pusherBusinessChatChannel(restaurantId: number): string {
-  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-chat-${restaurantId}`;
+export function pusherBusinessChatChannel(businessId: number): string {
+  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-chat-${businessId}`;
 }
 
 export type ChatMessagePusherPayload = {
-  restaurantId: number;
+  businessId: number;
   customerId: number;
   customerName: string | null;
   customerEmail: string | null;
@@ -76,9 +76,9 @@ export function parseChatMessagePusherPayload(
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
 
-  const restaurantId = Number(row.restaurantId);
+  const businessId = Number(row.businessId ?? row.restaurantId);
   const customerId = Number(row.customerId);
-  if (!Number.isFinite(restaurantId) || restaurantId < 1) return null;
+  if (!Number.isFinite(businessId) || businessId < 1) return null;
   if (!Number.isFinite(customerId) || customerId < 1) return null;
 
   const messageRaw = row.message;
@@ -96,7 +96,7 @@ export function parseChatMessagePusherPayload(
   if (!lastMessageAt) return null;
 
   return {
-    restaurantId,
+    businessId,
     customerId,
     customerName: row.customerName == null ? null : String(row.customerName),
     customerEmail: row.customerEmail == null ? null : String(row.customerEmail),

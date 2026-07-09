@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Props = {
   funnel: Funnel;
-  restaurantId: number;
+  businessId: number;
 };
 
 function formatPrice(amount: number): string {
@@ -54,7 +54,7 @@ function statusBadgeLabel(f: Funnel): string {
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
-export default function CampaignFunnelCard({ funnel, restaurantId }: Props) {
+export default function CampaignFunnelCard({ funnel, businessId }: Props) {
   const imageSrc = useMemo(
     () => normalizeImgSrc(funnel.imageUrl?.trim() ?? ""),
     [funnel.imageUrl],
@@ -70,7 +70,7 @@ export default function CampaignFunnelCard({ funnel, restaurantId }: Props) {
   const badgeLabel = statusBadgeLabel(funnel);
   const isPublished = funnel.published === true;
 
-  const campaignHref = `/restaurant/${restaurantId}/dashboard/campaigns/${funnel.id}`;
+  const campaignHref = `/business/${businessId}/dashboard/campaigns/${funnel.id}`;
   const openLabel =
     funnel.campaignName?.trim() ||
     `Campaign ${funnel.id}`;

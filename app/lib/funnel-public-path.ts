@@ -4,7 +4,7 @@ export type FunnelPublicStep = "landing" | "signup" | "payment" | "confirmation"
 
 export type FunnelPublicPathQuery = {
   campaignId?: number | null;
-  restaurantId?: number | null;
+  businessId?: number | null;
   price?: number | string | null;
   checkoutToken?: string | null;
 };
@@ -26,8 +26,9 @@ export function buildFunnelPublicPath({
   if (isPositiveInt(query?.campaignId)) {
     params.set("campaignId", String(query.campaignId));
   }
-  if (isPositiveInt(query?.restaurantId)) {
-    params.set("restaurantId", String(query.restaurantId));
+  const businessId = query?.businessId;
+  if (isPositiveInt(businessId)) {
+    params.set("businessId", String(businessId));
   }
   if (query?.checkoutToken?.trim()) {
     params.set("checkoutToken", query.checkoutToken.trim());

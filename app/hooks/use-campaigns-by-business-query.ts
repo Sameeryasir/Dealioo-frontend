@@ -7,7 +7,7 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   CAMPAIGNS_PAGE_SIZE,
   fetchCampaignById,
-  fetchCampaignsByRestaurant,
+  fetchCampaignsByBusiness,
   type Funnel,
   type PaginatedCampaignsResponse,
 } from "@/app/services/funnel/get-campaigns-by-business";
@@ -22,7 +22,7 @@ type UseCampaignsByRestaurantQueryOptions = {
 };
 
 export function useCampaignsByBusinessQuery(
-  restaurantId: number | null | undefined,
+  businessId: number | null | undefined,
   options: UseCampaignsByRestaurantQueryOptions = {},
 ) {
   const page = options.page ?? 1;
@@ -31,16 +31,16 @@ export function useCampaignsByBusinessQuery(
 
   const query = useQuery({
     queryKey:
-      restaurantId != null
-        ? funnelQueryKeys.campaignsByRestaurant(restaurantId, page, search)
+      businessId != null
+        ? funnelQueryKeys.campaignsByRestaurant(businessId, page, search)
         : funnelQueryKeys.campaigns(),
     queryFn: async () => {
-      if (!isPositiveInt(restaurantId)) {
+      if (!isPositiveInt(businessId)) {
         throw new Error("Invalid business.");
       }
-      return fetchCampaignsByRestaurant(restaurantId, { page, search, limit });
+      return fetchCampaignsByBusiness(businessId, { page, search, limit });
     },
-    enabled: isPositiveInt(restaurantId) && hasAuthSession(),
+    enabled: isPositiveInt(businessId) && hasAuthSession(),
   });
 
   const emptyMeta: PaginatedCampaignsResponse["meta"] = {

@@ -3,7 +3,7 @@ import { connectGoogleAds } from "@/app/services/google-ads/connect-google-ads";
 export const GOOGLE_OAUTH_COMPLETE_MESSAGE = "google-oauth-complete" as const;
 
 export type GoogleOAuthResult =
-  | { status: "connected"; restaurantId: number }
+  | { status: "connected"; businessId: number }
   | { status: "cancelled" };
 
 function openGoogleConnectPopup(oauthUrl: string): Window | null {
@@ -17,6 +17,13 @@ function openGoogleConnectPopup(oauthUrl: string): Window | null {
     "dealioo_google_oauth",
     `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
   );
+}
+
+function readBusinessIdFromMessage(data: object): number | null {
+  const record = data as { businessId?: unknown; restaurantId?: unknown };
+  const raw = record.businessId ?? record.restaurantId;
+  if (typeof raw !== "number" || raw < 1) return null;
+  return raw;
 }
 
 function waitForGoogleOAuthPopup(
@@ -43,15 +50,15 @@ function waitForGoogleOAuthPopup(
         return;
       }
 
-      const restaurantId = (data as { restaurantId?: unknown }).restaurantId;
-      if (typeof restaurantId !== "number" || restaurantId < 1) return;
+      const businessId = readBusinessIdFromMessage(data);
+      if (businessId == null) return;
 
       try {
         popup.close();
       } catch {
         /* popup may already be closed */
       }
-      finish({ status: "connected", restaurantId });
+      finish({ status: "connected", businessId });
     };
 
     window.addEventListener("message", onMessage);
@@ -75,9 +82,9 @@ function waitForGoogleOAuthPopup(
 
 export async function connectGoogleAdsInPopup(
   accessToken: string,
-  restaurantId: number,
+  businessId: number,
 ): Promise<GoogleOAuthResult> {
-  const { url } = await connectGoogleAds(accessToken, restaurantId);
+  const { url } = await connectGoogleAds(accessToken, businessId);
   const popup = openGoogleConnectPopup(url);
 
   if (!popup) {
@@ -89,13 +96,13 @@ export async function connectGoogleAdsInPopup(
   return waitForGoogleOAuthPopup(popup);
 }
 
-export function notifyGoogleOAuthComplete(restaurantId: number): boolean {
+export function notifyGoogleOAuthComplete(businessId: number): boolean {
   if (typeof window === "undefined") return false;
   const opener = window.opener;
   if (!opener || opener.closed) return false;
 
   opener.postMessage(
-    { type: GOOGLE_OAUTH_COMPLETE_MESSAGE, restaurantId },
+    { type: GOOGLE_OAUTH_COMPLETE_MESSAGE, businessId },
     window.location.origin,
   );
   window.close();

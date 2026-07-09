@@ -3,6 +3,7 @@
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function parsePositiveIntParam(raw: string | null): number | undefined {
   if (raw == null || raw.trim() === "") return undefined;
@@ -12,8 +13,10 @@ function parsePositiveIntParam(raw: string | null): number | undefined {
 
 function FunnelPaymentPreviewInner() {
   const searchParams = useSearchParams();
-  const restaurantId = useMemo(
-    () => parsePositiveIntParam(searchParams.get("restaurantId")),
+  const businessId = useMemo(
+    () => parsePositiveIntParam(
+      readBusinessIdFromSearchParams(searchParams)?.toString() ?? null,
+    ),
     [searchParams],
   );
   const campaignId = useMemo(
@@ -26,7 +29,7 @@ function FunnelPaymentPreviewInner() {
       <CrmTemplateEditor
         initialPageId="payment"
         interactivePreview
-        restaurantId={restaurantId}
+        businessId={businessId}
         campaignId={campaignId}
       />
     </div>

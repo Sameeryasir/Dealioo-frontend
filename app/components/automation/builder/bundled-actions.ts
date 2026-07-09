@@ -106,6 +106,7 @@ export function resolvePrepaidFalseLoopTargetNode(
       .toLowerCase();
     return (
       conditionType.includes("customer visited") ||
+      conditionType.includes("visited business") ||
       conditionType.includes("visited restaurant") ||
       conditionType === "visit_completed"
     );

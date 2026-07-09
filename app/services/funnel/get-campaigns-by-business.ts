@@ -3,7 +3,7 @@ import { authAxios } from "@/app/lib/auth-axios";
 
 export type Funnel = {
   id: number;
-  restaurantId: number;
+  businessId: number;
   campaignName: string;
   websiteUrl: string;
   imageUrl?: string;
@@ -42,12 +42,14 @@ function coerceCampaign(value: unknown): Funnel | null {
       : typeof o.campaign_name === "string"
         ? o.campaign_name
         : null;
-  const restaurantId =
-    typeof o.restaurantId === "number" && Number.isFinite(o.restaurantId)
-      ? o.restaurantId
-      : typeof o.restaurant_id === "number" && Number.isFinite(o.restaurant_id)
-        ? o.restaurant_id
-        : null;
+  const businessId =
+    typeof o.businessId === "number" && Number.isFinite(o.businessId)
+      ? o.businessId
+      : typeof o.restaurantId === "number" && Number.isFinite(o.restaurantId)
+        ? o.restaurantId
+        : typeof o.restaurant_id === "number" && Number.isFinite(o.restaurant_id)
+          ? o.restaurant_id
+          : null;
   const websiteUrl =
     typeof o.websiteUrl === "string"
       ? o.websiteUrl
@@ -55,7 +57,7 @@ function coerceCampaign(value: unknown): Funnel | null {
         ? o.website_url
         : null;
 
-  if (id == null || !campaignName?.trim() || restaurantId == null || !websiteUrl) {
+  if (id == null || !campaignName?.trim() || businessId == null || !websiteUrl) {
     return null;
   }
 
@@ -93,7 +95,7 @@ function coerceCampaign(value: unknown): Funnel | null {
 
   return {
     id,
-    restaurantId,
+    businessId,
     campaignName: campaignName.trim(),
     websiteUrl,
     imageUrl,
@@ -172,8 +174,8 @@ function campaignsFromResponseBody(
   };
 }
 
-export async function fetchCampaignsByRestaurant(
-  restaurantId: number,
+export async function fetchCampaignsByBusiness(
+  businessId: number,
   options: { page?: number; limit?: number; search?: string } = {},
 ): Promise<PaginatedCampaignsResponse> {
   if (!hasAuthSession()) {
@@ -192,7 +194,7 @@ export async function fetchCampaignsByRestaurant(
   }
 
   const response = await authAxios.get<unknown>(
-    `/campaign/business/${restaurantId}?${params.toString()}`,
+    `/campaign/business/${businessId}?${params.toString()}`,
   );
 
   return campaignsFromResponseBody(response.data, page, limit);

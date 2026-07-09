@@ -25,17 +25,13 @@ export function resolvePostLoginPath(
 
 export function resolveCompletedStepRedirect(
   status: OnboardingStatus,
-  step: "menu_setup" | "restaurant_creation",
+  step: "business_creation",
 ): string | null {
-  if (step === "restaurant_creation" && status.restaurantCreated) {
+  if (step === "business_creation" && status.businessCreated) {
     if (status.onboardingCompleted) {
       return null;
     }
     return resolvePostLoginPath(status);
-  }
-
-  if (step === "menu_setup" && status.menuCreated) {
-    return status.redirectPath;
   }
 
   return null;

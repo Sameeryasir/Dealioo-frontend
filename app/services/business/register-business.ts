@@ -7,7 +7,7 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { compressImageForUpload } from "@/app/lib/compress-image-file";
 import {
   parseBusinessFromApi,
-  type AdminRestaurant,
+  type AdminBusiness,
 } from "@/app/services/business/get-my-business";
 
 export type RegisterBusinessPayload = {
@@ -28,20 +28,59 @@ export type RegisterBusinessPayload = {
 
 export type RegisterBusinessResponse = {
   message: string;
-  restaurantId?: number;
+  businessId?: number;
   id?: number;
-  business: AdminRestaurant | null;
+  business: AdminBusiness | null;
 };
 
 function optionalString(value: string | undefined): string | undefined {
   if (value == null) return undefined;
-  const t = value.trim();
-  return t.length > 0 ? t : undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function optionalUrl(value: string): string | undefined {
-  const t = value.trim();
-  return t.length > 0 ? t : undefined;
+function optionalUrl(value: string | undefined): string | undefined {
+  if (value == null) return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  try {
+    const normalized = trimmed.includes("://") ? trimmed : `https://${trimmed}`;
+    new URL(normalized);
+    return normalized;
+  } catch {
+    return undefined;
+  }
+}
+
+function extractBusinessPayload(data: unknown): unknown {
+  if (!data || typeof data !== "object") {
+    return data;
+  }
+
+  const record = data as Record<string, unknown>;
+  if (record.business && typeof record.business === "object") {
+    return record.business;
+  }
+  if (record.data && typeof record.data === "object") {
+    return record.data;
+  }
+
+  return data;
+}
+
+function parseIdFromResponse(data: Record<string, unknown>): number | undefined {
+  const direct =
+    typeof data.id === "number"
+      ? data.id
+      : typeof data.businessId === "number"
+        ? data.businessId
+        : undefined;
+
+  if (direct != null && Number.isFinite(direct) && direct >= 1) {
+    return direct;
+  }
+
+  return undefined;
 }
 
 export async function registerBusiness(
@@ -105,6 +144,7 @@ export async function registerBusiness(
         method: "POST",
         body: formData,
       },
+      60_000,
     );
 
     if (!response.ok) {
@@ -119,17 +159,30 @@ export async function registerBusiness(
     }
 
     const data = (await response.json()) as Record<string, unknown>;
-    const business = parseBusinessFromApi(data);
-    const id = business?.id;
+    const businessPayload = extractBusinessPayload(data);
+    const business = parseBusinessFromApi(businessPayload);
+    const id =
+      business?.id ??
+      parseIdFromResponse(data) ??
+      (businessPayload &&
+      typeof businessPayload === "object" &&
+      businessPayload !== null
+        ? parseIdFromResponse(businessPayload as Record<string, unknown>)
+        : undefined);
+
+    const businessWithId =
+      business && id != null && business.id == null
+        ? { ...business, id }
+        : business;
 
     return {
-      restaurantId: id,
+      businessId: id,
       id,
-      business,
+      business: businessWithId,
       message: parseApiMessage(data.message, "Business added."),
     };
   } catch (error) {
-    console.error("Register restaurant error:", error);
+    console.error("Register business error:", error);
     throw error;
   }
 }

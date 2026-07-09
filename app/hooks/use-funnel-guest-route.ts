@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { parsePositiveInt } from "@/app/lib/numbers";
+import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function readRouteSegment(raw: string | string[] | undefined): string {
   if (typeof raw === "string" && raw.length > 0) return raw;
@@ -34,11 +35,13 @@ export function useFunnelGuestRoute() {
     [searchParams],
   );
 
-  const restaurantId = useMemo(() => {
-    const fromQuery = parsePositiveInt(searchParams.get("restaurantId"));
+  const businessId = useMemo(() => {
+    const fromQuery = readBusinessIdFromSearchParams(searchParams);
     if (fromQuery != null) return fromQuery;
     return parsePositiveInt(
-      process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID ?? null,
+      process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_BUSINESS_ID ??
+        process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID ??
+        null,
     );
   }, [searchParams]);
 
@@ -50,6 +53,6 @@ export function useFunnelGuestRoute() {
     funnelIdSegment,
     funnelId,
     campaignId,
-    restaurantId,
+    businessId,
   };
 }

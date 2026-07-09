@@ -9,20 +9,20 @@ import { automationQueryKeys } from "@/app/services/automation/automation-query-
 import type { AutomationListItem } from "@/app/components/automation/types";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 
-export function useAutomationsQuery(restaurantId: number | null | undefined) {
+export function useAutomationsQuery(businessId: number | null | undefined) {
   const query = useQuery({
     queryKey:
-      restaurantId != null
-        ? automationQueryKeys.list(restaurantId)
+      businessId != null
+        ? automationQueryKeys.list(businessId)
         : automationQueryKeys.lists(),
     queryFn: async () => {
-      if (restaurantId == null) {
+      if (businessId == null) {
         throw new Error("Business id is missing from the URL.");
       }
-      const list = await getAutomations(restaurantId);
+      const list = await getAutomations(businessId);
       return list.map((automation) => mapAutomationToListItem(automation));
     },
-    enabled: restaurantId != null,
+    enabled: businessId != null,
   });
 
   return {

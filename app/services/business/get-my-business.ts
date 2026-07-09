@@ -3,7 +3,7 @@ import { parseApiMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
 
-export type AdminRestaurant = {
+export type AdminBusiness = {
   id?: number;
   name: string;
   slug?: string | null;
@@ -21,7 +21,10 @@ export type AdminRestaurant = {
   stripeAccountId?: string | null;
 };
 
-export type RestaurantOwner = {
+/** @deprecated Use AdminBusiness */
+export type AdminRestaurant = AdminBusiness;
+
+export type BusinessOwner = {
   id?: number;
   name?: string | null;
   email?: string | null;
@@ -35,23 +38,15 @@ export type RestaurantOwner = {
   updatedAt?: string | null;
 };
 
-export type RestaurantMenuItem = {
-  id?: number;
-  name: string;
-  description?: string | null;
-  menuType?: string | null;
-  fileUrl?: string | null;
-  fileName?: string | null;
-  fileSize?: number | null;
-  isActive?: boolean;
-  createdAt?: string | null;
-  updatedAt?: string | null;
+/** @deprecated Use BusinessOwner */
+export type RestaurantOwner = BusinessOwner;
+
+export type BusinessDetail = AdminBusiness & {
+  owner?: BusinessOwner | null;
 };
 
-export type RestaurantDetail = AdminRestaurant & {
-  owner?: RestaurantOwner | null;
-  menu?: RestaurantMenuItem[];
-};
+/** @deprecated Use BusinessDetail */
+export type RestaurantDetail = BusinessDetail;
 
 function pickString(
   o: Record<string, unknown>,
@@ -99,7 +94,7 @@ function parseId(value: unknown): number | undefined {
   return undefined;
 }
 
-function coerceOwner(o: Record<string, unknown>): RestaurantOwner | null {
+function coerceOwner(o: Record<string, unknown>): BusinessOwner | null {
   const id = parseId(o.id);
   const name = pickString(o, "name", "name");
   if (id == null && (name == null || !String(name).trim())) {
@@ -121,56 +116,33 @@ function coerceOwner(o: Record<string, unknown>): RestaurantOwner | null {
   };
 }
 
-function coerceMenuItem(value: unknown): RestaurantMenuItem | null {
-  if (!value || typeof value !== "object") return null;
-  const o = value as Record<string, unknown>;
-  const name = o.name;
-  if (typeof name !== "string" || !name.trim()) return null;
-  return {
-    id: parseId(o.id),
-    name: name.trim(),
-    description: pickString(o, "description", "description") ?? null,
-    menuType: pickString(o, "menuType", "menu_type") ?? null,
-    fileUrl: pickString(o, "fileUrl", "file_url") ?? null,
-    fileName: pickString(o, "fileName", "file_name") ?? null,
-    fileSize: pickNumber(o, "fileSize", "file_size") ?? null,
-    isActive: pickBoolean(o, "isActive", "is_active"),
-    createdAt: pickString(o, "createdAt", "created_at") ?? null,
-    updatedAt: pickString(o, "updatedAt", "updated_at") ?? null,
-  };
-}
-
-function coerceRestaurantDetail(value: unknown): RestaurantDetail | null {
-  const base = coerceRestaurant(value);
+function coerceBusinessDetail(value: unknown): BusinessDetail | null {
+  const base = coerceBusiness(value);
   if (!base) return null;
   if (typeof value !== "object" || value === null) return base;
   const o = value as Record<string, unknown>;
 
-  let owner: RestaurantOwner | null | undefined;
+  let owner: BusinessOwner | null | undefined;
   if (o.owner != null && typeof o.owner === "object") {
     owner = coerceOwner(o.owner as Record<string, unknown>);
-  }
-
-  let menu: RestaurantMenuItem[] | undefined;
-  if (Array.isArray(o.menu)) {
-    const items = o.menu
-      .map((item) => coerceMenuItem(item))
-      .filter((m): m is RestaurantMenuItem => m != null);
-    menu = items;
   }
 
   return {
     ...base,
     ...(owner != null ? { owner } : {}),
-    ...(menu != null ? { menu } : {}),
   };
 }
 
-export function parseBusinessFromApi(value: unknown): AdminRestaurant | null {
-  return coerceRestaurant(value);
+/** @deprecated Use coerceBusinessDetail */
+function coerceRestaurantDetail(value: unknown): BusinessDetail | null {
+  return coerceBusinessDetail(value);
 }
 
-function coerceRestaurant(value: unknown): AdminRestaurant | null {
+export function parseBusinessFromApi(value: unknown): AdminBusiness | null {
+  return coerceBusiness(value);
+}
+
+function coerceBusiness(value: unknown): AdminBusiness | null {
   if (!value || typeof value !== "object") return null;
   const o = value as Record<string, unknown>;
   const name = o.name;
@@ -198,10 +170,17 @@ function coerceRestaurant(value: unknown): AdminRestaurant | null {
   };
 }
 
-export const MY_RESTAURANTS_PAGE_SIZE = 6;
+/** @deprecated Use coerceBusiness */
+function coerceRestaurant(value: unknown): AdminBusiness | null {
+  return coerceBusiness(value);
+}
 
-export type PaginatedMyRestaurantsResponse = {
-  data: AdminRestaurant[];
+export const MY_BUSINESSES_PAGE_SIZE = 6;
+/** @deprecated Use MY_BUSINESSES_PAGE_SIZE */
+export const MY_RESTAURANTS_PAGE_SIZE = MY_BUSINESSES_PAGE_SIZE;
+
+export type PaginatedMyBusinessesResponse = {
+  data: AdminBusiness[];
   meta: {
     page: number;
     limit: number;
@@ -210,16 +189,19 @@ export type PaginatedMyRestaurantsResponse = {
   };
 };
 
+/** @deprecated Use PaginatedMyBusinessesResponse */
+export type PaginatedMyRestaurantsResponse = PaginatedMyBusinessesResponse;
+
 export async function fetchMyBusinesses(
   options: { page?: number; limit?: number; search?: string } = {},
-): Promise<PaginatedMyRestaurantsResponse> {
+): Promise<PaginatedMyBusinessesResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
 
   const params = new URLSearchParams({
     page: String(options.page ?? 1),
-    limit: String(options.limit ?? MY_RESTAURANTS_PAGE_SIZE),
+    limit: String(options.limit ?? MY_BUSINESSES_PAGE_SIZE),
   });
   const search = options.search?.trim();
   if (search) {
@@ -242,7 +224,7 @@ export async function fetchMyBusinesses(
 
       const data = rawItems
         .map((item) => coerceRestaurant(item))
-        .filter((r): r is AdminRestaurant => r != null);
+        .filter((r): r is AdminBusiness => r != null);
 
       const page =
         typeof rawMeta?.page === "number" && Number.isFinite(rawMeta.page)
@@ -251,7 +233,7 @@ export async function fetchMyBusinesses(
       const limit =
         typeof rawMeta?.limit === "number" && Number.isFinite(rawMeta.limit)
           ? rawMeta.limit
-          : (options.limit ?? MY_RESTAURANTS_PAGE_SIZE);
+          : (options.limit ?? MY_BUSINESSES_PAGE_SIZE);
       const total =
         typeof rawMeta?.total === "number" && Number.isFinite(rawMeta.total)
           ? rawMeta.total
@@ -273,12 +255,12 @@ export async function fetchMyBusinesses(
     if (Array.isArray(payload)) {
       const data = payload
         .map((item) => coerceRestaurant(item))
-        .filter((r): r is AdminRestaurant => r != null);
+        .filter((r): r is AdminBusiness => r != null);
       return {
         data,
         meta: {
           page: 1,
-          limit: data.length || MY_RESTAURANTS_PAGE_SIZE,
+          limit: data.length || MY_BUSINESSES_PAGE_SIZE,
           total: data.length,
           totalPages: data.length === 0 ? 0 : 1,
         },
@@ -290,20 +272,20 @@ export async function fetchMyBusinesses(
       data: one ? [one] : [],
       meta: {
         page: 1,
-        limit: MY_RESTAURANTS_PAGE_SIZE,
+        limit: MY_BUSINESSES_PAGE_SIZE,
         total: one ? 1 : 0,
         totalPages: one ? 1 : 0,
       },
     };
   } catch (error) {
-    console.error("Fetch my restaurant error:", error);
+    console.error("Fetch my businesses error:", error);
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 404) {
         return {
           data: [],
           meta: {
             page: options.page ?? 1,
-            limit: options.limit ?? MY_RESTAURANTS_PAGE_SIZE,
+            limit: options.limit ?? MY_BUSINESSES_PAGE_SIZE,
             total: 0,
             totalPages: 0,
           },
@@ -324,26 +306,26 @@ export async function fetchMyBusinesses(
 
 export async function fetchBusinessById(
   accessToken: string,
-  restaurantId: number,
-): Promise<RestaurantDetail> {
+  businessId: number,
+): Promise<BusinessDetail> {
   if (!accessToken.trim()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!Number.isFinite(restaurantId) || restaurantId < 1) {
+  if (!Number.isFinite(businessId) || businessId < 1) {
     throw new Error("Invalid business.");
   }
 
   try {
     const response = await authAxios.get<unknown>(
-      `/business/${restaurantId}`,
+      `/business/${businessId}`,
     );
-    const one = coerceRestaurantDetail(response.data);
+    const one = coerceBusinessDetail(response.data);
     if (!one) {
       throw new Error("Invalid business data from server.");
     }
-    return { ...one, id: one.id ?? restaurantId };
+    return { ...one, id: one.id ?? businessId };
   } catch (error) {
-    console.error("Fetch restaurant by id error:", error);
+    console.error("Fetch business by id error:", error);
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 404) {
         throw new Error("Business not found.");

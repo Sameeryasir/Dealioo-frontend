@@ -145,9 +145,9 @@ function CampaignMetric({
 }
 
 export function CampaignGoogleAdsPanel({
-  restaurantId,
+  businessId,
 }: {
-  restaurantId: number;
+  businessId: number;
 }) {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
@@ -161,7 +161,7 @@ export function CampaignGoogleAdsPanel({
     setAdStatsLoading(true);
     setAdStatsError(null);
     try {
-      const stats = await getGoogleAdsCampaignStats(restaurantId);
+      const stats = await getGoogleAdsCampaignStats(businessId);
       setAdStats(stats);
     } catch (e) {
       setAdStats(null);
@@ -171,7 +171,7 @@ export function CampaignGoogleAdsPanel({
     } finally {
       setAdStatsLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   const refreshConnection = useCallback(async () => {
     setGoogleLoading(true);
@@ -183,7 +183,7 @@ export function CampaignGoogleAdsPanel({
         setGoogleCustomerId(null);
         return { connected: false, googleCustomerId: null as string | null };
       }
-      const status = await getGoogleAdsConnectionStatus(token, restaurantId);
+      const status = await getGoogleAdsConnectionStatus(token, businessId);
       setGoogleConnected(status.connected);
       setGoogleCustomerId(status.googleCustomerId);
       return {
@@ -200,7 +200,7 @@ export function CampaignGoogleAdsPanel({
     } finally {
       setGoogleLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     void (async () => {
@@ -334,7 +334,7 @@ export function CampaignGoogleAdsPanel({
                 </div>
               </div>
               <Link
-                href={`/google/select-customer?restaurantId=${restaurantId}`}
+                href={`/google/select-customer?businessId=${businessId}`}
                 className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#4285F4] to-[#3367D6] px-6 py-3 text-sm font-semibold text-white no-underline shadow-lg shadow-blue-500/20 hover:from-[#3367D6] hover:to-[#2a56c6]"
               >
                 Choose Ads account
@@ -371,7 +371,7 @@ export function CampaignGoogleAdsPanel({
                   </div>
                 </div>
                 <Link
-                  href={`/google/select-customer?restaurantId=${restaurantId}`}
+                  href={`/google/select-customer?businessId=${businessId}`}
                   className="inline-flex shrink-0 items-center rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-white/25"
                 >
                   Change account

@@ -31,7 +31,7 @@ import {
 } from "@/app/lib/meta-review-helpers";
 
 type ReviewPublishStepProps = {
-  restaurantId: number;
+  businessId: number;
   draftId: string;
   campaignData: CampaignStepData;
   adSetData: AdSetStepData;
@@ -60,7 +60,7 @@ type ReviewPublishStepProps = {
 };
 
 export function ReviewPublishStep({
-  restaurantId,
+  businessId,
   draftId,
   campaignData,
   adSetData,
@@ -78,7 +78,7 @@ export function ReviewPublishStep({
   const [facebookPageName, setFacebookPageName] = useState<string | null>(null);
 
   useEffect(() => {
-    void getFacebookPages(restaurantId)
+    void getFacebookPages(businessId)
       .then((pages) => {
         const match = pages.find((p) => p.id === adCreativeData.facebookPageId);
         setFacebookPageName(match?.name ?? adCreativeData.facebookPageId);
@@ -86,7 +86,7 @@ export function ReviewPublishStep({
       .catch(() => {
         setFacebookPageName(adCreativeData.facebookPageId);
       });
-  }, [adCreativeData.facebookPageId, restaurantId]);
+  }, [adCreativeData.facebookPageId, businessId]);
 
   const previewUrl = getCreativePreviewUrl(adCreativeData);
   const specialCategories =

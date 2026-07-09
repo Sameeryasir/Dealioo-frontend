@@ -3,8 +3,8 @@ import type { AutomationExecutionStatus } from "@/app/services/automation/types"
 export const automationQueryKeys = {
   all: ["automation"] as const,
   lists: () => [...automationQueryKeys.all, "list"] as const,
-  list: (restaurantId: number) =>
-    [...automationQueryKeys.lists(), restaurantId] as const,
+  list: (businessId: number) =>
+    [...automationQueryKeys.lists(), businessId] as const,
   details: () => [...automationQueryKeys.all, "detail"] as const,
   detail: (automationId: number) =>
     [...automationQueryKeys.details(), automationId] as const,

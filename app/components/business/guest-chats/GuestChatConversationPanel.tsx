@@ -20,11 +20,11 @@ import {
 } from "./GuestChatSkeletons";
 
 export function GuestChatConversationPanel({
-  restaurantId,
+  businessId,
   row,
   onBack,
 }: {
-  restaurantId: number;
+  businessId: number;
   row: ChatCustomer;
   onBack?: () => void;
 }) {
@@ -37,15 +37,15 @@ export function GuestChatConversationPanel({
     hasOlderMessages,
     loadOlderMessages,
     error,
-  } = useCustomerConversationQuery(restaurantId, row.customerId);
-  const sendMessage = useSendCustomerMessage(restaurantId, row);
+  } = useCustomerConversationQuery(businessId, row.customerId);
+  const sendMessage = useSendCustomerMessage(businessId, row);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const loadingOlderRef = useRef(false);
   const openedCustomerRef = useRef<number | null>(null);
 
-  const memoryPage = peekStoredChatMessagesLatestPage(restaurantId, row.customerId);
+  const memoryPage = peekStoredChatMessagesLatestPage(businessId, row.customerId);
   const messages =
     conversation?.customerId === row.customerId
       ? conversation.messages

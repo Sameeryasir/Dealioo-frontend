@@ -23,7 +23,7 @@ import { uploadFacebookCampaignVideo } from "@/app/services/facebook/upload-face
 type CreateFacebookCampaignDialogProps = {
   open: boolean;
   onClose: () => void;
-  restaurantId: number;
+  businessId: number;
   defaultName?: string;
   defaultImageUrl?: string;
   defaultDestinationUrl?: string;
@@ -87,7 +87,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function CreateFacebookCampaignDialog({
   open,
   onClose,
-  restaurantId,
+  businessId,
   defaultName = "",
   defaultImageUrl = "",
   defaultDestinationUrl,
@@ -177,7 +177,7 @@ export function CreateFacebookCampaignDialog({
     setSuccessUrl(null);
 
     setPagesLoading(true);
-    void getFacebookPages(restaurantId)
+    void getFacebookPages(businessId)
       .then((loaded) => {
         setPages(loaded);
         if (loaded[0]?.id) {
@@ -188,7 +188,7 @@ export function CreateFacebookCampaignDialog({
         setPages([]);
       })
       .finally(() => setPagesLoading(false));
-  }, [open, defaultName, defaultImageUrl, defaultDestinationUrl, restaurantId]);
+  }, [open, defaultName, defaultImageUrl, defaultDestinationUrl, businessId]);
 
   if (!open) return null;
 
@@ -202,7 +202,7 @@ export function CreateFacebookCampaignDialog({
     setError(null);
     try {
       const { imageUrl: uploadedUrl } = await uploadFacebookCampaignImage(
-        restaurantId,
+        businessId,
         file,
       );
       setMediaType("image");
@@ -223,7 +223,7 @@ export function CreateFacebookCampaignDialog({
     setError(null);
     try {
       const { videoUrl: uploadedUrl } = await uploadFacebookCampaignVideo(
-        restaurantId,
+        businessId,
         file,
       );
       setMediaType("video");
@@ -285,7 +285,7 @@ export function CreateFacebookCampaignDialog({
         ? Number.parseFloat(radius)
         : undefined;
 
-      const result = await createFacebookCampaign(restaurantId, {
+      const result = await createFacebookCampaign(businessId, {
         name: name.trim(),
         objective,
         dailyBudget: budget,

@@ -11,15 +11,15 @@ import type { ChatCustomer } from "@/app/services/chat/get-business-chat-custome
 import { sendCustomerMessage } from "@/app/services/chat/send-customer-message";
 
 export function useSendCustomerMessage(
-  restaurantId: number,
+  businessId: number,
   guest: ChatCustomer,
 ) {
   return useMutation({
     mutationFn: (body: string) =>
-      sendCustomerMessage(restaurantId, guest.customerId, body),
+      sendCustomerMessage(businessId, guest.customerId, body),
     onSuccess: async (message) => {
-      await appendChatConversationMessage(restaurantId, guest, message);
-      await patchChatCustomersAfterSendInIndexedDb(restaurantId, guest, message);
+      await appendChatConversationMessage(businessId, guest, message);
+      await patchChatCustomersAfterSendInIndexedDb(businessId, guest, message);
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, "Could not send this message."));

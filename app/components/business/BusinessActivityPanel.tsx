@@ -128,9 +128,9 @@ function groupByDay(events: RestaurantActivityEvent[]): Array<{
 }
 
 export function BusinessActivityPanel({
-  restaurantId,
+  businessId,
 }: {
-  restaurantId: number;
+  businessId: number;
 }) {
   const [page, setPage] = useState(1);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
@@ -163,14 +163,14 @@ export function BusinessActivityPanel({
 
     try {
       const [eventsResponse, summaryResponse] = await Promise.all([
-        getRestaurantActivityEvents(restaurantId, {
+        getRestaurantActivityEvents(businessId, {
           page,
           limit: RESTAURANT_ACTIVITY_PAGE_SIZE,
           eventType: eventFilter,
           from: range.from,
           to: range.to,
         }),
-        getRestaurantActivitySummary(restaurantId, {
+        getRestaurantActivitySummary(businessId, {
           from: range.from,
           to: range.to,
         }),
@@ -189,7 +189,7 @@ export function BusinessActivityPanel({
     } finally {
       setLoading(false);
     }
-  }, [eventFilter, page, range.from, range.to, restaurantId]);
+  }, [eventFilter, page, range.from, range.to, businessId]);
 
   useEffect(() => {
     void loadActivity();

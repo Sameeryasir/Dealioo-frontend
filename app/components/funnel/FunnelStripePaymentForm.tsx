@@ -15,7 +15,7 @@ import { isPositiveInt } from "@/app/lib/numbers";
 
 export type FunnelStripePaymentContext = {
   funnelId: number;
-  restaurantId: number;
+  businessId: number;
   currency: string;
   customerEmail: string;
   customerId?: number;
@@ -23,6 +23,14 @@ export type FunnelStripePaymentContext = {
   checkoutToken?: string | null;
   funnelPaymentId?: number | null;
 };
+
+function resolveBusinessId(context: FunnelStripePaymentContext): number {
+  const id = context.businessId;
+  if (id == null || !isPositiveInt(id)) {
+    throw new Error("Business is required for checkout.");
+  }
+  return id;
+}
 
 export function FunnelStripePaymentForm({
   context,
@@ -33,6 +41,7 @@ export function FunnelStripePaymentForm({
   page: PaymentTemplatePage;
   formStyles: CheckoutFormStyles;
 }) {
+  const businessId = resolveBusinessId(context);
   const { refreshSession } = useCheckoutContext();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
@@ -65,7 +74,7 @@ export function FunnelStripePaymentForm({
     setPaymentId(context.funnelPaymentId ?? null);
   }, [
     context.funnelId,
-    context.restaurantId,
+    businessId,
     context.currency,
     context.customerEmail,
     context.checkoutToken,
@@ -85,7 +94,7 @@ export function FunnelStripePaymentForm({
       const res = await createPaymentIntent(
         {
           funnelId: context.funnelId,
-          restaurantId: context.restaurantId,
+          businessId,
           currency: context.currency,
           customerEmail: context.customerEmail,
           ...(isPositiveInt(context.customerId)
@@ -104,11 +113,11 @@ export function FunnelStripePaymentForm({
         }
       }
       if (res.alreadyCompleted) {
-        const confirmationPath = buildFunnelPaymentConfirmationPath(
+          const confirmationPath = buildFunnelPaymentConfirmationPath(
           context.funnelId,
           {
             campaignId: context.campaignId,
-            restaurantId: context.restaurantId,
+            businessId,
             checkoutToken: context.checkoutToken,
           },
           { redirectStatus: "succeeded", paymentConfirmed: true },
@@ -139,7 +148,7 @@ export function FunnelStripePaymentForm({
     if (!publishableKey || clientSecret || creating) return;
     void startPaymentIntent();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load intent once per context
-  }, [publishableKey, context.funnelId, context.restaurantId]);
+  }, [publishableKey, context.funnelId, businessId]);
 
   if (configError) {
     return (
@@ -206,7 +215,7 @@ export function FunnelStripePaymentForm({
         clientSecret={clientSecret}
         funnelId={context.funnelId}
         campaignId={context.campaignId}
-        restaurantId={context.restaurantId}
+        businessId={businessId}
         customerEmail={context.customerEmail}
         customerId={context.customerId}
         checkoutToken={context.checkoutToken}

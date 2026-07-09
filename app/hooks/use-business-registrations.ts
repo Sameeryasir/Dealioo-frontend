@@ -10,28 +10,28 @@ import {
 } from "@/app/services/funnel-event/get-business-registrations";
 
 export function useBusinessFunnelEvents(
-  restaurantId: number | null | undefined,
+  businessId: number | null | undefined,
 ) {
-  const enabled = restaurantId != null;
+  const enabled = businessId != null;
 
   const fetchPage = useCallback(
     (page: number) => {
-      if (restaurantId == null) {
+      if (businessId == null) {
         return Promise.reject(new Error("Valid business id is required."));
       }
       return getBusinessFunnelEvents(
-        restaurantId,
+        businessId,
         page,
         RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
       );
     },
-    [restaurantId],
+    [businessId],
   );
 
   return usePaginatedAsyncResource<
     BusinessFunnelEvent,
     PaginatedBusinessFunnelEventsResponse["meta"]
-  >(enabled, fetchPage, [restaurantId, enabled], {
+  >(enabled, fetchPage, [businessId, enabled], {
     fallbackError: "Could not load funnel events.",
   });
 }

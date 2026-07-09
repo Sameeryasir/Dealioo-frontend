@@ -15,7 +15,7 @@ import {
 type GoogleAdsCampaignsDialogProps = {
   open: boolean;
   onClose: () => void;
-  restaurantId: number;
+  businessId: number;
   customerId: string | null;
 };
 
@@ -33,7 +33,7 @@ function statusClass(status: string | null | undefined): string {
 export function GoogleAdsCampaignsDialog({
   open,
   onClose,
-  restaurantId,
+  businessId,
   customerId,
 }: GoogleAdsCampaignsDialogProps) {
   const titleId = useId();
@@ -45,7 +45,7 @@ export function GoogleAdsCampaignsDialog({
     setLoading(true);
     setError(null);
     try {
-      const data = await getGoogleAdsCampaignStats(restaurantId);
+      const data = await getGoogleAdsCampaignStats(businessId);
       setStats(data);
     } catch (e) {
       setStats(null);
@@ -57,7 +57,7 @@ export function GoogleAdsCampaignsDialog({
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     if (!open) return;

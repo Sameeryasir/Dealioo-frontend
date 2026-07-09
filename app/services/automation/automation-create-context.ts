@@ -7,12 +7,12 @@ import type {
 
 /** IDs sent on POST /automation (from route pathname). */
 export type AutomationCreateContextIds = {
-  restaurantId: number;
+  businessId: number;
   campaignId: number;
 };
 
 export type ValidateAutomationCreateContextInput = {
-  restaurantId: unknown;
+  businessId: unknown;
   campaignId?: unknown;
 };
 
@@ -23,7 +23,7 @@ export type ValidateAutomationCreateContextResult =
 export function validateAutomationCreateContext(
   input: ValidateAutomationCreateContextInput,
 ): ValidateAutomationCreateContextResult {
-  if (!isPositiveInt(input.restaurantId)) {
+  if (!isPositiveInt(input.businessId)) {
     return {
       ok: false,
       message: "Business is required to create an automation.",
@@ -40,7 +40,7 @@ export function validateAutomationCreateContext(
   return {
     ok: true,
     ids: {
-      restaurantId: input.restaurantId,
+      businessId: input.businessId,
       campaignId: input.campaignId,
     },
   };
@@ -68,7 +68,7 @@ export function buildCreateAutomationBody(
     description: input.description?.trim() || undefined,
     trigger: triggerToApi(input.trigger),
     purpose: input.purpose,
-    restaurantId: input.ids.restaurantId,
+    businessId: input.ids.businessId,
     campaignId: input.ids.campaignId,
   };
 }

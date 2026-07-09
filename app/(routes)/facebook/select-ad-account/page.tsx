@@ -9,15 +9,12 @@ import {
 } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-account";
 import { notifyFacebookOAuthComplete } from "@/app/lib/facebook-oauth-popup";
+import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function SelectAdAccountInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantIdRaw = searchParams.get("restaurantId");
-  const restaurantId =
-    restaurantIdRaw && /^\d+$/.test(restaurantIdRaw)
-      ? Number.parseInt(restaurantIdRaw, 10)
-      : null;
+  const businessId = readBusinessIdFromSearchParams(searchParams) ?? null;
 
   const [accounts, setAccounts] = useState<FacebookAdAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,16 +23,16 @@ function SelectAdAccountInner() {
   const [error, setError] = useState<string | null>(null);
 
   const campaignsHref =
-    restaurantId != null
-      ? `/restaurant/${restaurantId}/dashboard/campaigns`
+    businessId != null
+      ? `/business/${businessId}/dashboard/campaigns`
       : "/dashboard";
 
   const loadAccounts = useCallback(async () => {
-    if (restaurantId == null) return;
+    if (businessId == null) return;
     setLoading(true);
     setError(null);
     try {
-      const list = await getFacebookAdAccounts(restaurantId);
+      const list = await getFacebookAdAccounts(businessId);
       setAccounts(list);
       if (list.length === 1) {
         setSelectedId(list[0].id);
@@ -47,26 +44,26 @@ function SelectAdAccountInner() {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     void loadAccounts();
   }, [loadAccounts]);
 
   const handleSkip = () => {
-    if (restaurantId != null && notifyFacebookOAuthComplete(restaurantId)) {
+    if (businessId != null && notifyFacebookOAuthComplete(businessId)) {
       return;
     }
     router.push(campaignsHref);
   };
 
   const handleSave = async () => {
-    if (restaurantId == null || !selectedId) return;
+    if (businessId == null || !selectedId) return;
     setSaving(true);
     setError(null);
     try {
-      await setFacebookAdAccount(restaurantId, selectedId);
-      if (notifyFacebookOAuthComplete(restaurantId)) {
+      await setFacebookAdAccount(businessId, selectedId);
+      if (notifyFacebookOAuthComplete(businessId)) {
         return;
       }
       router.push(campaignsHref);
@@ -76,7 +73,7 @@ function SelectAdAccountInner() {
     }
   };
 
-  if (restaurantId == null) {
+  if (businessId == null) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-4">
         <p className="text-sm text-red-700">Missing business. Go back and try again.</p>

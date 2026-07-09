@@ -13,7 +13,7 @@ const DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
 ];
 
 export async function provisionCampaignDefaultAutomations(
-  restaurantId: number,
+  businessId: number,
   campaignId: number,
 ): Promise<void> {
   for (const template of DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES) {
@@ -23,7 +23,7 @@ export async function provisionCampaignDefaultAutomations(
         description: template.description,
         trigger: template.trigger,
         purpose: template.purpose,
-        ids: { restaurantId, campaignId },
+        ids: { businessId, campaignId },
       }),
     );
     await applyAutomationTemplate(created.id, template);

@@ -11,7 +11,7 @@ export default function AddBusinessCard({ layout = "grid" }: Props) {
   if (layout === "list") {
     return (
       <Link
-        href="/restaurant/register"
+        href="/business/register"
         className="org-add-card org-add-card--list group outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 focus-visible:ring-offset-2"
       >
         <span className="org-add-card-icon" aria-hidden>
@@ -30,7 +30,7 @@ export default function AddBusinessCard({ layout = "grid" }: Props) {
 
   return (
     <Link
-      href="/restaurant/register"
+      href="/business/register"
       className="org-add-card org-add-card--grid group outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 focus-visible:ring-offset-2"
     >
       <span className="org-add-card-icon org-add-card-icon--large" aria-hidden>

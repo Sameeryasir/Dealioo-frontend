@@ -10,13 +10,13 @@ import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { buildFunnelPublicPath } from "@/app/lib/funnel-public-path";
 
 function FunnelCampaignSignupInner() {
-  const { funnelIdSegment, funnelId, campaignId, restaurantId } =
+  const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
 
-  const campaignPricing = useCampaignPricing(campaignId, restaurantId);
+  const campaignPricing = useCampaignPricing(campaignId, businessId);
   const funnelLinkQuery = {
     campaignId,
-    restaurantId,
+    businessId,
     price: campaignPricing.subtotal ?? undefined,
   };
 
@@ -56,7 +56,7 @@ function FunnelCampaignSignupInner() {
       submitCustomerOnSignupNext
       fullPageShellChrome
       trackingFunnelId={funnelId}
-      checkoutRestaurantId={restaurantId}
+      checkoutBusinessId={businessId}
       checkoutCampaignId={campaignId}
     />
   );

@@ -6,7 +6,7 @@ export type CheckoutSessionDetails = {
   customerName: string;
   customerPhone: string | null;
   funnelId: number;
-  restaurantId: number;
+  businessId: number;
   campaignId: number | null;
   funnelPaymentId: number | null;
 };
@@ -40,22 +40,34 @@ export async function getCheckoutSession(
     );
   }
 
-  return (await res.json()) as CheckoutSessionDetails;
+  const raw = (await res.json()) as CheckoutSessionDetails & {
+    restaurantId?: number;
+  };
+
+  return {
+    ...raw,
+    businessId: raw.businessId ?? raw.restaurantId ?? 0,
+  };
 }
 
 export async function createCheckoutSession(input: {
   customerId: number;
   funnelId: number;
-  restaurantId: number;
+  businessId: number;
   campaignId?: number | null;
 }): Promise<CreateCheckoutSessionResponse> {
+  const businessId = input.businessId;
+  if (businessId == null || businessId < 1) {
+    throw new Error("Business is required for checkout.");
+  }
+
   const res = await fetch(`${getApiBaseUrl()}/payment/checkout/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       customerId: input.customerId,
       funnelId: input.funnelId,
-      restaurantId: input.restaurantId,
+      businessId,
       ...(input.campaignId != null ? { campaignId: input.campaignId } : {}),
     }),
   });

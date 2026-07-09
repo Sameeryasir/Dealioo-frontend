@@ -30,7 +30,7 @@ import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 
-function parseRestaurantIdFromParams(raw: unknown): number | undefined {
+function parseBusinessIdFromParams(raw: unknown): number | undefined {
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
   const n = Number.parseInt(raw, 10);
   return n >= 1 ? n : undefined;
@@ -182,9 +182,9 @@ export default function BusinessSettingsDialog({
     }
   }, [open, initialSection]);
 
-  const restaurantId = useMemo(
-    () => parseRestaurantIdFromParams(params?.restaurantId),
-    [params?.restaurantId],
+  const businessId = useMemo(
+    () => parseBusinessIdFromParams(params?.businessId),
+    [params?.businessId],
   );
 
   type ConnectStatus = "idle" | "loading" | "error";
@@ -213,7 +213,7 @@ export default function BusinessSettingsDialog({
   const [googleCampaignsOpen, setGoogleCampaignsOpen] = useState(false);
 
   const refreshStripeStatus = useCallback(async () => {
-    if (restaurantId == null) {
+    if (businessId == null) {
       setStripeConnected(false);
       setStripeStatusLoading(false);
       return;
@@ -226,8 +226,8 @@ export default function BusinessSettingsDialog({
         setStripeConnected(false);
         return;
       }
-      const restaurant = await fetchBusinessById(token, restaurantId);
-      setStripeConnected(Boolean(restaurant.stripeAccountId?.trim()));
+      const business = await fetchBusinessById(token, businessId);
+      setStripeConnected(Boolean(business.stripeAccountId?.trim()));
     } catch (e) {
       setStripeError(
         e instanceof Error ? e.message : "Could not check Stripe connection.",
@@ -235,10 +235,10 @@ export default function BusinessSettingsDialog({
     } finally {
       setStripeStatusLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   const refreshMetaStatus = useCallback(async () => {
-    if (restaurantId == null) {
+    if (businessId == null) {
       setMetaConnected(false);
       setMetaStatusLoading(false);
       return;
@@ -251,7 +251,7 @@ export default function BusinessSettingsDialog({
         setMetaConnected(false);
         return;
       }
-      const status = await getFacebookConnectionStatus(token, restaurantId);
+      const status = await getFacebookConnectionStatus(token, businessId);
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
       setMetaOauthScopes(status.metaOauthScopes ?? []);
@@ -263,10 +263,10 @@ export default function BusinessSettingsDialog({
     } finally {
       setMetaStatusLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   const refreshGoogleStatus = useCallback(async () => {
-    if (restaurantId == null) {
+    if (businessId == null) {
       setGoogleConnected(false);
       setGoogleStatusLoading(false);
       return;
@@ -279,7 +279,7 @@ export default function BusinessSettingsDialog({
         setGoogleConnected(false);
         return;
       }
-      const status = await getGoogleAdsConnectionStatus(token, restaurantId);
+      const status = await getGoogleAdsConnectionStatus(token, businessId);
       setGoogleConnected(status.connected);
       setGoogleCustomerId(status.googleCustomerId);
     } catch (e) {
@@ -289,14 +289,14 @@ export default function BusinessSettingsDialog({
     } finally {
       setGoogleStatusLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
-    if (!open || restaurantId == null) return;
+    if (!open || businessId == null) return;
     void refreshStripeStatus();
     void refreshMetaStatus();
     void refreshGoogleStatus();
-  }, [open, restaurantId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
+  }, [open, businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
 
   const handleConnectStripe = async () => {
     setStripeStatus("loading");
@@ -306,12 +306,12 @@ export default function BusinessSettingsDialog({
       if (!token) {
         throw new Error("You're signed out. Sign in again to connect Stripe.");
       }
-      if (restaurantId == null) {
+      if (businessId == null) {
         throw new Error(
           "Open this from a business page so we know which one to connect.",
         );
       }
-      const { url } = await connectStripe(token, restaurantId);
+      const { url } = await connectStripe(token, businessId);
       window.open(url, "_blank", "noopener,noreferrer");
       setStripeStatus("idle");
     } catch (e) {
@@ -330,12 +330,12 @@ export default function BusinessSettingsDialog({
       if (!token) {
         throw new Error("You're signed out. Sign in again to connect Facebook.");
       }
-      if (restaurantId == null) {
+      if (businessId == null) {
         throw new Error(
           "Open this from a business page so we know which one to connect.",
         );
       }
-      const result = await connectFacebookInPopup(token, restaurantId);
+      const result = await connectFacebookInPopup(token, businessId);
       if (result.status === "connected") {
         await refreshMetaStatus();
       }
@@ -349,7 +349,7 @@ export default function BusinessSettingsDialog({
   };
 
   const handleDisconnectFacebook = async () => {
-    if (restaurantId == null) return;
+    if (businessId == null) return;
 
     const confirmed = window.confirm(
       "Remove this Facebook account from Dealioo? Your linked ad account and login will be cleared. You can connect again anytime.",
@@ -363,7 +363,7 @@ export default function BusinessSettingsDialog({
       if (!token) {
         throw new Error("You're signed out. Sign in again to remove Facebook.");
       }
-      await disconnectFacebook(token, restaurantId);
+      await disconnectFacebook(token, businessId);
       setMetaConnected(false);
       setMetaAdAccountId(null);
       setMetaOauthScopes([]);
@@ -385,16 +385,16 @@ export default function BusinessSettingsDialog({
       if (!token) {
         throw new Error("You're signed out. Sign in again to connect Google Ads.");
       }
-      if (restaurantId == null) {
+      if (businessId == null) {
         throw new Error(
           "Open this from a business page so we know which one to connect.",
         );
       }
-      const result = await connectGoogleAdsInPopup(token, restaurantId);
+      const result = await connectGoogleAdsInPopup(token, businessId);
       if (result.status === "connected") {
         await refreshGoogleStatus();
       } else {
-        await abortGoogleAdsConnect(restaurantId);
+        await abortGoogleAdsConnect(businessId);
         await refreshGoogleStatus();
       }
       setGoogleConnectStatus("idle");
@@ -407,7 +407,7 @@ export default function BusinessSettingsDialog({
   };
 
   const handleDisconnectGoogle = async () => {
-    if (restaurantId == null) return;
+    if (businessId == null) return;
 
     const confirmed = window.confirm(
       "Remove this Google Ads account from Dealioo? Your linked customer account and login will be cleared. You can connect again anytime.",
@@ -421,7 +421,7 @@ export default function BusinessSettingsDialog({
       if (!token) {
         throw new Error("You're signed out. Sign in again to remove Google Ads.");
       }
-      await disconnectGoogleAds(token, restaurantId);
+      await disconnectGoogleAds(token, businessId);
       setGoogleConnected(false);
       setGoogleCustomerId(null);
       setGoogleDisconnectStatus("idle");
@@ -647,16 +647,16 @@ export default function BusinessSettingsDialog({
 
                       {metaStatusLoading ? null : metaConnected ? (
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-                          {metaAdAccountId && restaurantId != null ? (
+                          {metaAdAccountId && businessId != null ? (
                             <a
-                              href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                              href={`/facebook/select-ad-account?businessId=${businessId}`}
                               className={integrationSecondaryBtnClass}
                             >
                               Change ad account
                             </a>
-                          ) : restaurantId != null ? (
+                          ) : businessId != null ? (
                             <a
-                              href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                              href={`/facebook/select-ad-account?businessId=${businessId}`}
                               className={integrationSecondaryBtnClass}
                             >
                               Choose ad account
@@ -750,7 +750,7 @@ export default function BusinessSettingsDialog({
                           if (
                             googleConnected &&
                             googleCustomerId &&
-                            restaurantId != null
+                            businessId != null
                           ) {
                             setGoogleCampaignsOpen(true);
                           }
@@ -795,9 +795,9 @@ export default function BusinessSettingsDialog({
 
                       {googleStatusLoading ? null : googleConnected ? (
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-                          {restaurantId != null ? (
+                          {businessId != null ? (
                             <a
-                              href={`/google/select-customer?restaurantId=${restaurantId}`}
+                              href={`/google/select-customer?businessId=${businessId}`}
                               className={integrationSecondaryBtnClass}
                             >
                               {googleCustomerId ? "Change Ads account" : "Choose Ads account"}
@@ -886,11 +886,11 @@ export default function BusinessSettingsDialog({
         </div>
       </div>
 
-      {restaurantId != null ? (
+      {businessId != null ? (
         <GoogleAdsCampaignsDialog
           open={googleCampaignsOpen}
           onClose={() => setGoogleCampaignsOpen(false)}
-          restaurantId={restaurantId}
+          businessId={businessId}
           customerId={googleCustomerId}
         />
       ) : null}

@@ -13,12 +13,12 @@ import { useCheckoutContext } from "@/app/contexts/checkout-context";
 
 function FunnelCampaignPaymentPageInner() {
   const searchParams = useSearchParams();
-  const { funnelIdSegment, funnelId, campaignId, restaurantId } =
+  const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
   const { checkoutToken, session, ready, error: checkoutError } =
     useCheckoutContext();
 
-  const campaignPricing = useCampaignPricing(campaignId, restaurantId);
+  const campaignPricing = useCampaignPricing(campaignId, businessId);
 
   const { pages, isLoading } = useFunnelTemplatePagesFromStorage(funnelIdSegment);
   const payment = pages.payment;
@@ -27,7 +27,7 @@ function FunnelCampaignPaymentPageInner() {
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
     if (!session) return null;
     const email = session.customerEmail?.trim();
-    if (!email || !checkoutToken || funnelId == null || restaurantId == null) {
+    if (!email || !checkoutToken || funnelId == null || businessId == null) {
       return null;
     }
 
@@ -36,7 +36,7 @@ function FunnelCampaignPaymentPageInner() {
 
     return {
       funnelId,
-      restaurantId,
+      businessId,
       currency,
       customerEmail: email,
       customerId: session.customerId,
@@ -48,7 +48,7 @@ function FunnelCampaignPaymentPageInner() {
     session,
     checkoutToken,
     funnelId,
-    restaurantId,
+    businessId,
     campaignId,
     searchParams,
   ]);
@@ -74,7 +74,7 @@ function FunnelCampaignPaymentPageInner() {
             ? checkoutError
             : !checkoutToken
               ? "Complete signup first to get your checkout link."
-              : "Add ?businessId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID."}
+              : "Add ?businessId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_BUSINESS_ID."}
         </div>
       ) : null}
       <TemplatePreview

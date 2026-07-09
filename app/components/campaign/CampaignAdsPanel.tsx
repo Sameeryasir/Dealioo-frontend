@@ -37,7 +37,7 @@ import { getFacebookConnectionStatus } from "@/app/services/facebook/get-faceboo
 import { deleteFacebookCampaign } from "@/app/services/facebook/delete-facebook-campaign";
 
 type CampaignAdsPanelProps = {
-  restaurantId: number;
+  businessId: number;
   campaignName?: string;
   campaignImageUrl?: string;
   campaignWebsiteUrl?: string;
@@ -96,7 +96,7 @@ function CampaignMetric({
 }
 
 export function CampaignAdsPanel({
-  restaurantId,
+  businessId,
   campaignName = "",
   campaignImageUrl = "",
   campaignWebsiteUrl = "",
@@ -131,7 +131,7 @@ export function CampaignAdsPanel({
       setDeletingCampaignId(campaign.id);
       setAdStatsError(null);
       try {
-        await deleteFacebookCampaign(restaurantId, campaign.id);
+        await deleteFacebookCampaign(businessId, campaign.id);
         setAdStats((prev) =>
           prev
             ? {
@@ -148,7 +148,7 @@ export function CampaignAdsPanel({
         setDeletingCampaignId(null);
       }
     },
-    [restaurantId],
+    [businessId],
   );
 
   const landingUrlFilter = useMemo(
@@ -161,7 +161,7 @@ export function CampaignAdsPanel({
     setAdStatsError(null);
     try {
       const stats = await getFacebookAdCampaignStats(
-        restaurantId,
+        businessId,
         landingUrlFilter,
       );
       setAdStats(stats);
@@ -173,7 +173,7 @@ export function CampaignAdsPanel({
     } finally {
       setAdStatsLoading(false);
     }
-  }, [landingUrlFilter, restaurantId]);
+  }, [landingUrlFilter, businessId]);
 
   const refreshConnection = useCallback(async () => {
     setMetaLoading(true);
@@ -185,7 +185,7 @@ export function CampaignAdsPanel({
         setMetaAdAccountId(null);
         return { connected: false, metaAdAccountId: null as string | null };
       }
-      const status = await getFacebookConnectionStatus(token, restaurantId);
+      const status = await getFacebookConnectionStatus(token, businessId);
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
       return {
@@ -202,7 +202,7 @@ export function CampaignAdsPanel({
     } finally {
       setMetaLoading(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     void (async () => {
@@ -322,7 +322,7 @@ export function CampaignAdsPanel({
                   </p>
                 </div>
                 <Link
-                  href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                  href={`/facebook/select-ad-account?businessId=${businessId}`}
                   className="mt-4 inline-flex shrink-0 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white no-underline shadow-sm hover:bg-zinc-800 sm:mt-0"
                 >
                   Select ad account
@@ -345,7 +345,7 @@ export function CampaignAdsPanel({
                     </p>
                   </div>
                   <Link
-                    href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}
+                    href={`/facebook/select-ad-account?businessId=${businessId}`}
                     className="text-sm font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
                   >
                     Change account
@@ -540,7 +540,7 @@ export function CampaignAdsPanel({
       <MetaCampaignBuilder
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        restaurantId={restaurantId}
+        businessId={businessId}
         defaultName={campaignName}
         defaultWebsiteUrl={campaignWebsiteUrl}
         onDraftSaved={(draft) => {

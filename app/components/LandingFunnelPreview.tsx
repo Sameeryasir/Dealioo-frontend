@@ -8,10 +8,10 @@ import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { buildFunnelPublicPath } from "@/app/lib/funnel-public-path";
 
 export function LandingFunnelPreview() {
-  const { funnelIdSegment, funnelId, campaignId, restaurantId } =
+  const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
 
-  const campaignPricing = useCampaignPricing(campaignId, restaurantId);
+  const campaignPricing = useCampaignPricing(campaignId, businessId);
 
   const { pages, isLoading } = useFunnelTemplatePagesFromStorage(funnelIdSegment);
   const landing = pages.landing;
@@ -23,7 +23,7 @@ export function LandingFunnelPreview() {
           step: "signup",
           query: {
             campaignId,
-            restaurantId,
+            businessId,
             price: campaignPricing.subtotal ?? undefined,
           },
         })

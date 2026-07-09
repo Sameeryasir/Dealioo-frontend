@@ -34,7 +34,7 @@ function formatPrice(amount: number): string {
 }
 
 export type CampaignHeaderProps = {
-  restaurantId: number;
+  businessId: number;
   campaignId?: number;
   funnelId?: number | null;
   offer?: string;
@@ -60,7 +60,7 @@ const TABS: { id: string; label: string; icon?: typeof Circle }[] = [
 ];
 
 export default function CampaignHeader({
-  restaurantId,
+  businessId,
   campaignId,
   funnelId,
   offer,
@@ -72,7 +72,7 @@ export default function CampaignHeader({
   onGenerateTrackingLink,
   onCampaignUpdated,
 }: CampaignHeaderProps) {
-  const campaignsHref = `/restaurant/${restaurantId}/dashboard/campaigns`;
+  const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
   const offerLine = offer?.trim() ?? "";
   const priceText = useMemo(() => {
     const n = parsePrice(price);
@@ -113,12 +113,12 @@ export default function CampaignHeader({
       funnelId: routeId,
       step: "landing",
       query: {
-        restaurantId,
+        businessId,
         campaignId,
         price: parsePrice(price) ?? price,
       },
     });
-  }, [campaignId, funnelId, restaurantId, price]);
+  }, [campaignId, funnelId, businessId, price]);
 
   const landingTrackingUrl = useMemo(() => {
     if (!landingTrackingPath || !trackingOrigin) return "";

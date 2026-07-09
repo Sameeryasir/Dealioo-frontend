@@ -11,7 +11,7 @@ export type AutomationListItem = {
   description: string;
   trigger: string;
   status: AutomationStatus;
-  restaurant: string;
+  business: string;
   lastUpdated: string;
   customersEntered: number;
 };

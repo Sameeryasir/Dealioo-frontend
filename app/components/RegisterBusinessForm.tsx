@@ -112,7 +112,7 @@ type LogoDropProps = {
   onFile: (file: File | null) => void;
 };
 
-function RestaurantLogoDropField({
+function BusinessLogoDropField({
   id,
   disabled,
   file,
@@ -451,14 +451,14 @@ export default function RegisterBusinessForm({
           <section className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-name"
+                htmlFor="business-name"
                 className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <Building2 className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Business name <RequiredStar />
               </label>
               <input
-                id="restaurant-name"
+                id="business-name"
                 type="text"
                 autoComplete="organization"
                 disabled={submitting}
@@ -474,14 +474,14 @@ export default function RegisterBusinessForm({
 
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-slug"
+                htmlFor="business-slug"
                 className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <Link2 className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Business slug
               </label>
               <input
-                id="restaurant-slug"
+                id="business-slug"
                 type="text"
                 readOnly
                 tabIndex={-1}
@@ -495,14 +495,14 @@ export default function RegisterBusinessForm({
 
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-phone"
+                htmlFor="business-phone"
                 className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <Phone className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Contact number <RequiredStar />
               </label>
               <input
-                id="restaurant-phone"
+                id="business-phone"
                 type="tel"
                 autoComplete="tel"
                 disabled={submitting}
@@ -524,14 +524,14 @@ export default function RegisterBusinessForm({
           <section className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-email"
+                htmlFor="business-email"
                 className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <Mail className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Email address
               </label>
               <input
-                id="restaurant-email"
+                id="business-email"
                 type="email"
                 autoComplete="email"
                 disabled={submitting}
@@ -555,14 +555,14 @@ export default function RegisterBusinessForm({
 
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-description"
+                htmlFor="business-description"
                 className="flex w-fit max-w-full items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <FileText className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Description
               </label>
               <textarea
-                id="restaurant-description"
+                id="business-description"
                 disabled={submitting}
                 placeholder="Enter description"
                 aria-invalid={!!errors.description}
@@ -573,14 +573,14 @@ export default function RegisterBusinessForm({
 
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="restaurant-website"
+                htmlFor="business-website"
                 className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
               >
                 <Globe className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Website
               </label>
               <input
-                id="restaurant-website"
+                id="business-website"
                 type="text"
                 inputMode="url"
                 disabled={submitting}
@@ -719,8 +719,8 @@ export default function RegisterBusinessForm({
                 <ImagePlus className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
                 Logo
               </h3>
-              <RestaurantLogoDropField
-                id="restaurant-logo-file"
+              <BusinessLogoDropField
+                id="business-logo-file"
                 disabled={submitting}
                 file={logoFile}
                 error={logoFileError}

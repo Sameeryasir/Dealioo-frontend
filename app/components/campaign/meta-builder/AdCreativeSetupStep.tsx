@@ -59,7 +59,7 @@ function adAccountLabel(account: FacebookAdAccount): string {
 }
 
 type AdCreativeSetupStepProps = {
-  restaurantId: number;
+  businessId: number;
   draftId: string;
   campaignData: CampaignStepData;
   adSetData: AdSetStepData;
@@ -73,7 +73,7 @@ type AdCreativeSetupStepProps = {
 };
 
 export function AdCreativeSetupStep({
-  restaurantId,
+  businessId,
   draftId,
   campaignData,
   adSetData,
@@ -158,7 +158,7 @@ export function AdCreativeSetupStep({
 
   useEffect(() => {
     setPagesLoading(true);
-    void getFacebookPages(restaurantId)
+    void getFacebookPages(businessId)
       .then((loaded) => {
         setPages(loaded);
         if (!initialData?.facebookPageId && loaded[0]?.id) {
@@ -167,17 +167,17 @@ export function AdCreativeSetupStep({
       })
       .catch(() => setPages([]))
       .finally(() => setPagesLoading(false));
-  }, [restaurantId, initialData?.facebookPageId]);
+  }, [businessId, initialData?.facebookPageId]);
 
   useEffect(() => {
     setAdAccountsLoading(true);
     const token = getSetupAccessToken().trim();
     void (async () => {
       try {
-        const accounts = await getFacebookAdAccounts(restaurantId);
+        const accounts = await getFacebookAdAccounts(businessId);
         setAdAccounts(accounts);
         if (token) {
-          const status = await getFacebookConnectionStatus(token, restaurantId);
+          const status = await getFacebookConnectionStatus(token, businessId);
           if (status.metaAdAccountId) {
             setSelectedAdAccountId(status.metaAdAccountId);
             return;
@@ -192,7 +192,7 @@ export function AdCreativeSetupStep({
         setAdAccountsLoading(false);
       }
     })();
-  }, [restaurantId]);
+  }, [businessId]);
 
   const selectedAdAccount = adAccounts.find((a) => a.id === selectedAdAccountId);
 
@@ -201,7 +201,7 @@ export function AdCreativeSetupStep({
     setSwitchingAccount(true);
     setLocalError(null);
     try {
-      await setFacebookAdAccount(restaurantId, nextId);
+      await setFacebookAdAccount(businessId, nextId);
       setSelectedAdAccountId(nextId);
     } catch (err) {
       setLocalError(
@@ -231,7 +231,7 @@ export function AdCreativeSetupStep({
     setUploading(true);
     setLocalError(null);
     try {
-      const { imageUrl: url } = await uploadFacebookCampaignImage(restaurantId, file);
+      const { imageUrl: url } = await uploadFacebookCampaignImage(businessId, file);
       const resolved = resolveMetaImageUrl(url);
       if (target === "main") setImageUrl(resolved);
       else if (target === "thumb") setThumbnailUrl(resolved);
@@ -252,7 +252,7 @@ export function AdCreativeSetupStep({
     setUploading(true);
     setLocalError(null);
     try {
-      const { videoUrl: url } = await uploadFacebookCampaignVideo(restaurantId, file);
+      const { videoUrl: url } = await uploadFacebookCampaignVideo(businessId, file);
       setVideoUrl(url);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not upload video.");

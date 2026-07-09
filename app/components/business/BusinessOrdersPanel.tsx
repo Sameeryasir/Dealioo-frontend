@@ -169,12 +169,12 @@ function guestAvatarColor(seed: number): string {
 }
 
 export function BusinessOrdersPanel({
-  restaurantId,
+  businessId,
 }: {
-  restaurantId: number;
+  businessId: number;
 }) {
   const { data: events, meta, page, setPage, loading, error } =
-    useBusinessFunnelEvents(restaurantId);
+    useBusinessFunnelEvents(businessId);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);

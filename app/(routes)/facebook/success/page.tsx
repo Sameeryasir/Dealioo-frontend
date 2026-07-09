@@ -4,14 +4,15 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
+import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function FacebookConnectSuccessInner() {
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get("restaurantId");
+  const businessId = readBusinessIdFromSearchParams(searchParams);
 
   const campaignsHref =
-    restaurantId && /^\d+$/.test(restaurantId)
-      ? `/restaurant/${restaurantId}/dashboard/campaigns`
+    businessId != null
+      ? `/business/${businessId}/dashboard/campaigns`
       : "/dashboard";
 
   return (

@@ -72,9 +72,9 @@ function DealCheckboxRow({
 }
 
 export function ScannerCreateGuestPanel({
-  restaurantId,
+  businessId,
 }: {
-  restaurantId: number;
+  businessId: number;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -110,7 +110,7 @@ export function ScannerCreateGuestPanel({
     setErrorMessage(null);
 
     try {
-      const rows = await fetchFunnelsByRestaurant(restaurantId);
+      const rows = await fetchFunnelsByRestaurant(businessId);
       setDeals(rows);
       if (rows.length === 0) {
         setErrorMessage("No deals are set up for this business yet.");
@@ -123,7 +123,7 @@ export function ScannerCreateGuestPanel({
     } finally {
       setLoadingDeals(false);
     }
-  }, [restaurantId]);
+  }, [businessId]);
 
   useEffect(() => {
     if (createdGuestId == null) return;
@@ -170,7 +170,7 @@ export function ScannerCreateGuestPanel({
 
     try {
       const purchased = await purchaseScannerDeals({
-        restaurantId,
+        businessId,
         customerId: createdGuestId,
         funnelIds: selectedFunnelIds,
         orderSubtotal,

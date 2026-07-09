@@ -10,7 +10,7 @@ import {
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { getSetupUser } from "@/app/lib/setup-user";
-import { MY_RESTAURANTS_PAGE_SIZE } from "@/app/services/business/get-my-business";
+import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
 import { Filter, Megaphone, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -39,24 +39,24 @@ export default function DashboardPage() {
   }, []);
 
   const {
-    data: restaurants,
+    data: businesses,
     meta,
     isPending,
     isFetching,
     error: errorMessage,
-    refetch: loadRestaurants,
+    refetch: loadBusinesses,
   } = useMyBusinessesQuery({ page });
 
-  const sortedRestaurants = useMemo(() => {
-    const copy = [...restaurants];
+  const sortedBusinesses = useMemo(() => {
+    const copy = [...businesses];
     copy.sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
     return copy;
-  }, [restaurants]);
+  }, [businesses]);
 
-  const showSkeleton = isPending && restaurants.length === 0;
-  const hasAnyRestaurants = meta.total > 0;
+  const showSkeleton = isPending && businesses.length === 0;
+  const hasAnyBusinesses = meta.total > 0;
   const showToolbar = !showSkeleton && !errorMessage;
 
   return (
@@ -118,7 +118,7 @@ export default function DashboardPage() {
 
                 <div className="org-dashboard-panel-controls">
                   <Link
-                    href="/restaurant/register"
+                    href="/business/register"
                     className="org-dashboard-add-btn"
                   >
                     <Plus className="size-4" strokeWidth={2.25} aria-hidden />
@@ -139,9 +139,9 @@ export default function DashboardPage() {
                   layout="inline"
                   title="Something went wrong"
                   message={errorMessage}
-                  onRetry={() => loadRestaurants()}
+                  onRetry={() => loadBusinesses()}
                 />
-              ) : !hasAnyRestaurants ? (
+              ) : !hasAnyBusinesses ? (
                 <div className="org-dashboard-first-run">
                   <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
                     <p className="org-dashboard-first-run-title">Start with your first business</p>
@@ -154,10 +154,10 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="org-dashboard-grid org-dashboard-grid--cards grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    {sortedRestaurants.map((r, index) => (
+                    {sortedBusinesses.map((business, index) => (
                       <BusinessDashboardCard
-                        key={r.id ?? `restaurant-${index}`}
-                        restaurant={r}
+                        key={business.id ?? `business-${index}`}
+                        business={business}
                         layout="grid"
                         accentIndex={index}
                       />
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                         page={meta.page}
                         totalPages={meta.totalPages}
                         total={meta.total}
-                        limit={MY_RESTAURANTS_PAGE_SIZE}
+                        limit={MY_BUSINESSES_PAGE_SIZE}
                         loading={isFetching}
                         onPageChange={setPage}
                         itemLabel="businesses"

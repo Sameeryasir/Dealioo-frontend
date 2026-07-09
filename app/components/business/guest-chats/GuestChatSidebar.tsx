@@ -21,7 +21,7 @@ export function GuestChatSidebar({
   search,
   onSearchChange,
   onSelect,
-  restaurantId,
+  businessId,
   loading,
   error,
   page,
@@ -35,7 +35,7 @@ export function GuestChatSidebar({
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (customerId: number) => void;
-  restaurantId: number;
+  businessId: number;
   loading: boolean;
   error: string | null;
   page: number;
@@ -75,7 +75,7 @@ export function GuestChatSidebar({
               <motion.div key={row.customerId} variants={guestChatCardReveal}>
                 <GuestChatCard
                   row={row}
-                  restaurantId={restaurantId}
+                  businessId={businessId}
                   selected={selectedCustomerId === row.customerId}
                   onSelect={() => onSelect(row.customerId)}
                 />

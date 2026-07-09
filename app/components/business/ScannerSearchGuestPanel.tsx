@@ -164,10 +164,10 @@ function DealSelectRow({
 }
 
 export function ScannerSearchGuestPanel({
-  restaurantId,
+  businessId,
   onCreateGuest,
 }: {
-  restaurantId: number;
+  businessId: number;
   onCreateGuest?: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -263,7 +263,7 @@ export function ScannerSearchGuestPanel({
       idempotencyKeyRef.current = "";
 
       try {
-        const profile = await getGuestProfile(restaurantId, guest.id);
+        const profile = await getGuestProfile(businessId, guest.id);
         if (!profile) {
           setSelectedProfile(null);
           setGuestNotInDatabaseQuery(
@@ -281,7 +281,7 @@ export function ScannerSearchGuestPanel({
         setLoadingProfile(false);
       }
     },
-    [restaurantId, activeQuery],
+    [businessId, activeQuery],
   );
 
   const handleDeleteGuest = useCallback(async () => {
@@ -364,7 +364,7 @@ export function ScannerSearchGuestPanel({
 
       try {
         const result = await scanRedemptionQr(
-          restaurantId,
+          businessId,
           anchorDeal.qrToken,
           couponIds,
           orderSubtotal,
@@ -378,7 +378,7 @@ export function ScannerSearchGuestPanel({
           setRedeemSuccess(result);
 
           const profile = await getGuestProfile(
-            restaurantId,
+            businessId,
             selectedProfile.customerId,
           );
           if (profile) {
@@ -397,7 +397,7 @@ export function ScannerSearchGuestPanel({
         setConfirmingRedemption(false);
       }
     },
-    [activeDeals, restaurantId, selectedProfile],
+    [activeDeals, businessId, selectedProfile],
   );
 
   const showGuestNotFound =

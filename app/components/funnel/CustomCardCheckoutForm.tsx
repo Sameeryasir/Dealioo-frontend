@@ -27,7 +27,7 @@ export type CustomCardCheckoutFormProps = {
   clientSecret: string;
   funnelId: number;
   campaignId?: number | null;
-  restaurantId?: number | null;
+  businessId: number;
   customerEmail: string;
   customerId?: number;
   checkoutToken?: string | null;
@@ -59,7 +59,7 @@ export function CustomCardCheckoutForm({
   clientSecret,
   funnelId,
   campaignId,
-  restaurantId,
+  businessId,
   customerEmail,
   customerId,
   checkoutToken,
@@ -103,7 +103,7 @@ export function CustomCardCheckoutForm({
     try {
       const confirmationPath = buildFunnelPaymentConfirmationPath(
         funnelId,
-        { campaignId, restaurantId, checkoutToken },
+        { campaignId, businessId, checkoutToken },
         { redirectStatus: "succeeded", paymentConfirmed: true },
       );
       const returnUrl = new URL(confirmationPath, window.location.origin);

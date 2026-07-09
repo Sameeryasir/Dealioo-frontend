@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminRestaurant } from "@/app/services/business/get-my-business";
+import type { AdminBusiness } from "@/app/services/business/get-my-business";
 import { resolveUploadImageUrl, spacesImageLoadProps } from "@/app/lib/resolve-upload-image-url";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import {
@@ -13,7 +13,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 
 type Props = {
-  restaurant: AdminRestaurant;
+  business: AdminBusiness;
   layout?: "grid" | "list";
   accentIndex?: number;
 };
@@ -25,16 +25,16 @@ const ACCENT_VARS = [
   "var(--brand-violet)",
 ] as const;
 
-function setupProgress(restaurant: AdminRestaurant): number {
+function setupProgress(business: AdminBusiness): number {
   let score = 0;
-  if (restaurant.city?.trim()) score += 34;
-  if ((restaurant.branchCount ?? 0) > 0) score += 33;
-  if (restaurant.description?.trim()) score += 33;
+  if (business.city?.trim()) score += 34;
+  if ((business.branchCount ?? 0) > 0) score += 33;
+  if (business.description?.trim()) score += 33;
   return Math.min(100, score);
 }
 
 export default function BusinessDashboardCard({
-  restaurant,
+  business,
   layout = "grid",
   accentIndex = 0,
 }: Props) {
@@ -45,15 +45,15 @@ export default function BusinessDashboardCard({
     state,
     country,
     logoUrl,
-  } = restaurant;
+  } = business;
 
   const location = [city, state, country].filter(Boolean).join(", ");
   const logoSrc = resolveUploadImageUrl(logoUrl);
   const dashboardHref =
-    typeof restaurant.id === "number" && restaurant.id >= 1
+    typeof business.id === "number" && business.id >= 1
       ? isScannerUser()
-        ? `/restaurant/${restaurant.id}/dashboard/scanning`
-        : `/restaurant/${restaurant.id}/dashboard`
+        ? `/business/${business.id}/dashboard/scanning`
+        : `/business/${business.id}/dashboard`
       : "/dashboard";
 
   const branchLabel =
@@ -61,7 +61,7 @@ export default function BusinessDashboardCard({
       ? `${branchCount} ${branchCount === 1 ? "branch" : "branches"}`
       : "No branches yet";
 
-  const progress = setupProgress(restaurant);
+  const progress = setupProgress(business);
   const accent = ACCENT_VARS[accentIndex % ACCENT_VARS.length];
   const statusLabel = progress >= 100 ? "Ready" : "In setup";
 

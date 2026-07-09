@@ -118,13 +118,13 @@ function BuilderTabToggle({
 }
 
 export function AutomationBuilderPage({
-  restaurantId,
+  businessId,
   automationId,
   automationNumericId,
   funnelId,
   listHref,
 }: {
-  restaurantId: number;
+  businessId: number;
   automationId: string;
   automationNumericId: number | null;
   funnelId?: number | null;
@@ -217,7 +217,7 @@ export function AutomationBuilderPage({
   }, [tabFromUrl]);
 
   const automationsListHref =
-    listHref ?? `/restaurant/${restaurantId}/dashboard/automations`;
+    listHref ?? `/business/${businessId}/dashboard/automations`;
 
   const automationActive = automationIsActive;
 

@@ -290,7 +290,7 @@ export function patchChatCustomersAfterSend(
   }
 
   const payload: ChatMessagePusherPayload = {
-    restaurantId: 0,
+    businessId: 0,
     customerId: guest.customerId,
     customerName: guest.customerName,
     customerEmail: guest.customerEmail,

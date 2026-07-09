@@ -33,7 +33,7 @@ import {
 
 type MetaCampaignBuilderProps = {
   open: boolean;
-  restaurantId: number;
+  businessId: number;
   defaultName?: string;
   defaultWebsiteUrl?: string;
   draftId?: string | null;
@@ -44,7 +44,7 @@ type MetaCampaignBuilderProps = {
 
 export function MetaCampaignBuilder({
   open,
-  restaurantId,
+  businessId,
   defaultName = "",
   defaultWebsiteUrl,
   draftId: initialDraftId = null,
@@ -116,7 +116,7 @@ export function MetaCampaignBuilder({
       setSaving(true);
       setError(null);
       try {
-        const draft = await saveCampaignStep(restaurantId, {
+        const draft = await saveCampaignStep(businessId, {
           ...data,
           draftId: draftId ?? undefined,
         });
@@ -132,7 +132,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, restaurantId],
+    [draftId, onDraftSaved, businessId],
   );
 
   const handleSaveAdSetStep = useCallback(
@@ -150,7 +150,7 @@ export function MetaCampaignBuilder({
       setSaving(true);
       setError(null);
       try {
-        const draft = await saveAdSetStep(restaurantId, data);
+        const draft = await saveAdSetStep(businessId, data);
         setAdSetData(draft.adSetData);
         setCurrentStep(3);
         onDraftSaved?.(draft);
@@ -162,7 +162,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, restaurantId],
+    [draftId, onDraftSaved, businessId],
   );
 
   const handleSaveAdCreativeStep = useCallback(
@@ -175,7 +175,7 @@ export function MetaCampaignBuilder({
       setSaving(true);
       setError(null);
       try {
-        const draft = await saveAdCreativeStep(restaurantId, data);
+        const draft = await saveAdCreativeStep(businessId, data);
         setAdCreativeData(draft.adCreativeData);
         setCurrentStep(4);
         onDraftSaved?.(draft);
@@ -187,7 +187,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, restaurantId],
+    [draftId, onDraftSaved, businessId],
   );
 
   const handleRefreshPublishStatus = useCallback(async () => {
@@ -196,7 +196,7 @@ export function MetaCampaignBuilder({
     setRefreshingPublishStatus(true);
     setError(null);
     try {
-      const refreshed = await getMetaCampaignDraft(restaurantId, draftId, 15_000);
+      const refreshed = await getMetaCampaignDraft(businessId, draftId, 15_000);
       if (
         refreshed.status === "published" &&
         refreshed.metaCampaignId &&
@@ -210,7 +210,7 @@ export function MetaCampaignBuilder({
           try {
             const connection = await getFacebookConnectionStatus(
               token,
-              restaurantId,
+              businessId,
             );
             if (connection.metaAdAccountId) {
               adsManagerUrl = buildMetaAdsManagerUrl(connection.metaAdAccountId);
@@ -266,7 +266,7 @@ export function MetaCampaignBuilder({
     } finally {
       setRefreshingPublishStatus(false);
     }
-  }, [campaignData, draftId, onDraftSaved, restaurantId]);
+  }, [campaignData, draftId, onDraftSaved, businessId]);
 
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
@@ -283,7 +283,7 @@ export function MetaCampaignBuilder({
     setError(null);
 
     try {
-      const result = await publishMetaCampaignDraft(restaurantId, draftId, {
+      const result = await publishMetaCampaignDraft(businessId, draftId, {
         campaignName: campaignData.name,
         adSetName: adSetData.name,
         creativeName: adCreativeData.name,
@@ -300,7 +300,7 @@ export function MetaCampaignBuilder({
       }
       onDraftSaved?.({
         id: draftId,
-        restaurantId,
+        businessId,
         currentStep: 4,
         status: "published",
         campaignData,
@@ -321,7 +321,7 @@ export function MetaCampaignBuilder({
 
       if (draftId) {
         try {
-          const refreshed = await getMetaCampaignDraft(restaurantId, draftId);
+          const refreshed = await getMetaCampaignDraft(businessId, draftId);
           if (refreshed.metaCampaignId && !refreshed.metaAdId) {
             setPartialMeta({
               metaCampaignId: refreshed.metaCampaignId,
@@ -343,7 +343,7 @@ export function MetaCampaignBuilder({
     campaignData,
     draftId,
     onDraftSaved,
-    restaurantId,
+    businessId,
   ]);
 
   if (!open) return null;
@@ -412,7 +412,7 @@ export function MetaCampaignBuilder({
 
           {currentStep === 3 && draftId && campaignData && adSetData ? (
             <AdCreativeSetupStep
-              restaurantId={restaurantId}
+              businessId={businessId}
               draftId={draftId}
               campaignData={campaignData}
               adSetData={adSetData}
@@ -437,7 +437,7 @@ export function MetaCampaignBuilder({
 
           {currentStep === 4 && draftId && campaignData && adSetData && adCreativeData ? (
             <ReviewPublishStep
-              restaurantId={restaurantId}
+              businessId={businessId}
               draftId={draftId}
               campaignData={campaignData}
               adSetData={adSetData}

@@ -3,7 +3,7 @@ import { isPositiveInt } from "@/app/lib/numbers";
 
 export type CreatePaymentIntentPayload = {
   funnelId: number;
-  restaurantId: number;
+  businessId: number;
   currency: string;
   customerEmail: string;
   customerId?: number;
@@ -24,7 +24,7 @@ export type CreatePaymentIntentResponse = {
 
 type CreatePaymentIntentRequestBody = {
   funnelId: number;
-  restaurantId: number;
+  businessId: number;
   currency: string;
   customerEmail: string;
   customerId?: number;
@@ -47,7 +47,8 @@ function assertPayload(
   if (!isPositiveInt(payload.funnelId)) {
     throw new Error("Funnel id is required.");
   }
-  if (!isPositiveInt(payload.restaurantId)) {
+  const businessId = payload.businessId;
+  if (!isPositiveInt(businessId)) {
     throw new Error("Business is required.");
   }
   const currency = payload.currency?.trim().toLowerCase();
@@ -61,7 +62,7 @@ function assertPayload(
 
   return {
     funnelId: payload.funnelId,
-    restaurantId: payload.restaurantId,
+    businessId,
     currency,
     customerEmail,
     ...(isPositiveInt(payload.customerId)

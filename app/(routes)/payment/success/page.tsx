@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 import { parsePositiveInt } from "@/app/lib/numbers";
+import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function PaymentSuccessRedirectInner() {
   const router = useRouter();
@@ -14,13 +15,13 @@ function PaymentSuccessRedirectInner() {
     if (funnelId == null) return;
 
     const campaignId = parsePositiveInt(searchParams.get("campaignId"));
-    const restaurantId = parsePositiveInt(searchParams.get("restaurantId"));
+    const businessId = readBusinessIdFromSearchParams(searchParams);
     const checkoutToken = searchParams.get("checkoutToken")?.trim() || null;
     const redirectStatus = searchParams.get("redirect_status") ?? "succeeded";
 
     const path = buildFunnelPaymentConfirmationPath(
       funnelId,
-      { campaignId, restaurantId, checkoutToken },
+      { campaignId, businessId, checkoutToken },
       {
         redirectStatus,
         paymentConfirmed: redirectStatus === "succeeded",

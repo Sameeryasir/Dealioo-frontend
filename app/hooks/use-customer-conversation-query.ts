@@ -30,7 +30,7 @@ import {
 import { useConversationCatchUpRegistration } from "@/app/hooks/use-business-chat-catch-up-sync";
 
 export function useCustomerConversationQuery(
-  restaurantId: number,
+  businessId: number,
   customerId: number,
 ) {
   const [conversation, setConversation] = useState<CustomerConversationDetail | null>(
@@ -38,7 +38,7 @@ export function useCustomerConversationQuery(
   );
   const [loading, setLoading] = useState(false);
   const [awaitingCache, setAwaitingCache] = useState(
-    () => !peekStoredChatMessagesLatestPage(restaurantId, customerId),
+    () => !peekStoredChatMessagesLatestPage(businessId, customerId),
   );
   const [syncing, setSyncing] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -81,18 +81,18 @@ export function useCustomerConversationQuery(
   );
 
   const fetchAndStoreConversation = useCallback(async () => {
-    const fresh = await getCustomerConversation(restaurantId, customerId);
-    await saveChatConversation(restaurantId, customerId, fresh);
+    const fresh = await getCustomerConversation(businessId, customerId);
+    await saveChatConversation(businessId, customerId, fresh);
     applyLatestWindow(fresh);
     setError(null);
     return fresh;
-  }, [applyLatestWindow, customerId, restaurantId]);
+  }, [applyLatestWindow, customerId, businessId]);
 
   const syncConversationFromApi = useCallback(
     async (cachedLastMessageId: number | null) => {
       if (cachedLastMessageId) {
         const delta = await syncCustomerConversationMessages(
-          restaurantId,
+          businessId,
           customerId,
           cachedLastMessageId,
         );
@@ -101,36 +101,36 @@ export function useCustomerConversationQuery(
           return;
         }
 
-        const cached = await getStoredChatConversation(restaurantId, customerId);
+        const cached = await getStoredChatConversation(businessId, customerId);
         const merged = mergeConversationAfterSync(cached, delta);
-        await saveChatConversation(restaurantId, customerId, merged);
+        await saveChatConversation(businessId, customerId, merged);
         applyLatestWindow(merged);
         return;
       }
 
-      const fresh = await getCustomerConversation(restaurantId, customerId);
-      await saveChatConversation(restaurantId, customerId, fresh);
+      const fresh = await getCustomerConversation(businessId, customerId);
+      await saveChatConversation(businessId, customerId, fresh);
       applyLatestWindow(fresh);
     },
-    [applyLatestWindow, customerId, restaurantId],
+    [applyLatestWindow, customerId, businessId],
   );
 
   useLayoutEffect(() => {
-    if (restaurantId < 1 || customerId < 1) {
+    if (businessId < 1 || customerId < 1) {
       return;
     }
 
-    const memoryPage = peekStoredChatMessagesLatestPage(restaurantId, customerId);
+    const memoryPage = peekStoredChatMessagesLatestPage(businessId, customerId);
     if (memoryPage) {
       applyMessagePage(memoryPage);
       setAwaitingCache(false);
     } else {
       setAwaitingCache(true);
     }
-  }, [applyMessagePage, customerId, restaurantId]);
+  }, [applyMessagePage, customerId, businessId]);
 
   useEffect(() => {
-    if (restaurantId < 1 || customerId < 1) {
+    if (businessId < 1 || customerId < 1) {
       setConversation(null);
       setHasOlderMessages(false);
       messageStartIndexRef.current = 0;
@@ -146,11 +146,11 @@ export function useCustomerConversationQuery(
       setError(null);
       messageStartIndexRef.current = 0;
 
-      const memoryPage = peekStoredChatMessagesLatestPage(restaurantId, customerId);
+      const memoryPage = peekStoredChatMessagesLatestPage(businessId, customerId);
 
       const page =
         memoryPage ??
-        (await getStoredChatMessagesLatestPage(restaurantId, customerId));
+        (await getStoredChatMessagesLatestPage(businessId, customerId));
 
       if (cancelled) {
         return;
@@ -222,14 +222,14 @@ export function useCustomerConversationQuery(
   }, [
     applyMessagePage,
     customerId,
-    restaurantId,
+    businessId,
     syncConversationFromApi,
   ]);
 
   useEffect(() => {
     return subscribeChatConversation((storedRestaurantId, storedCustomerId, data) => {
       if (
-        storedRestaurantId !== restaurantId ||
+        storedRestaurantId !== businessId ||
         storedCustomerId !== customerId
       ) {
         return;
@@ -245,11 +245,11 @@ export function useCustomerConversationQuery(
       });
       setHasOlderMessages(startIndex > 0);
     });
-  }, [customerId, restaurantId]);
+  }, [customerId, businessId]);
 
   const loadOlderMessages = useCallback(async () => {
     if (
-      restaurantId < 1 ||
+      businessId < 1 ||
       customerId < 1 ||
       loadingOlder ||
       !hasOlderMessages
@@ -261,7 +261,7 @@ export function useCustomerConversationQuery(
 
     try {
       const page = await getStoredChatMessagesOlderPage(
-        restaurantId,
+        businessId,
         customerId,
         messageStartIndexRef.current,
       );
@@ -281,11 +281,11 @@ export function useCustomerConversationQuery(
     customerId,
     hasOlderMessages,
     loadingOlder,
-    restaurantId,
+    businessId,
   ]);
 
   const refetch = useCallback(async () => {
-    if (restaurantId < 1 || customerId < 1) {
+    if (businessId < 1 || customerId < 1) {
       return;
     }
 
@@ -300,28 +300,28 @@ export function useCustomerConversationQuery(
     } finally {
       setRefreshing(false);
     }
-  }, [customerId, fetchAndStoreConversation, restaurantId]);
+  }, [customerId, fetchAndStoreConversation, businessId]);
 
   const catchUpSync = useCallback(async () => {
-    if (restaurantId < 1 || customerId < 1) {
+    if (businessId < 1 || customerId < 1) {
       return;
     }
 
     try {
-      const cached = await getStoredChatConversation(restaurantId, customerId);
+      const cached = await getStoredChatConversation(businessId, customerId);
       const lastMessageId =
         cached != null ? getLatestMessageId(cached.messages) : null;
       await syncConversationFromApi(lastMessageId);
     } catch {
     }
-  }, [customerId, restaurantId, syncConversationFromApi]);
+  }, [customerId, businessId, syncConversationFromApi]);
 
   useConversationCatchUpRegistration(catchUpSync);
 
   const applyPusherMessage = useCallback(
     (payload: ChatMessagePusherPayload) => {
       if (
-        payload.restaurantId !== restaurantId ||
+        payload.businessId !== businessId ||
         payload.customerId !== customerId
       ) {
         return;
@@ -349,12 +349,12 @@ export function useCustomerConversationQuery(
         };
       });
 
-      void patchChatConversationFromPusher(restaurantId, customerId, payload);
+      void patchChatConversationFromPusher(businessId, customerId, payload);
     },
-    [customerId, restaurantId],
+    [customerId, businessId],
   );
 
-  useBusinessChatPusher(restaurantId, applyPusherMessage);
+  useBusinessChatPusher(businessId, applyPusherMessage);
 
   return {
     conversation,

@@ -8,7 +8,9 @@ export type ScannerPurchasedDeal = {
 };
 
 export async function purchaseScannerDeals(params: {
-  restaurantId: number;
+  businessId: number;
+  /** @deprecated Use businessId */
+  restaurantId?: number;
   customerId: number;
   funnelIds: number[];
   orderSubtotal: number;
@@ -17,8 +19,13 @@ export async function purchaseScannerDeals(params: {
     throw new Error("Missing access token. Sign in again.");
   }
 
+  const businessId = params.businessId ?? params.restaurantId;
+  if (businessId == null || businessId < 1) {
+    throw new Error("Business is required.");
+  }
+
   const response = await authAxios.post<ScannerPurchasedDeal[]>(
-    `/funnel-event/business/${params.restaurantId}/guest/${params.customerId}/purchase-deals`,
+    `/funnel-event/business/${businessId}/guest/${params.customerId}/purchase-deals`,
     {
       funnelIds: params.funnelIds,
       orderSubtotal: params.orderSubtotal,

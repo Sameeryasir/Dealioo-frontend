@@ -125,18 +125,18 @@ const FILTERS: { id: AutomationFilter; label: string }[] = [
 ];
 
 export function AutomationListPage({
-  restaurantId: restaurantIdProp,
+  businessId: businessIdProp,
   campaignId: campaignIdProp,
   funnelId: funnelIdProp,
   onOpenBuilder,
 }: {
-  restaurantId?: number;
+  businessId?: number;
   campaignId?: number;
   funnelId?: number | null;
   onOpenBuilder?: (automationId: string) => void;
 } = {}) {
   const route = useAutomationRouteContext();
-  const restaurantId = route.restaurantId ?? restaurantIdProp;
+  const businessId = route.businessId ?? businessIdProp;
   const campaignId = route.campaignId ?? campaignIdProp;
   const funnelId = funnelIdProp ?? route.funnelId;
 
@@ -155,7 +155,7 @@ export function AutomationListPage({
     isLoading: loading,
     error: loadError,
     refetch: loadAutomations,
-  } = useAutomationsQuery(restaurantId);
+  } = useAutomationsQuery(businessId);
 
   const automationNumericIds = useMemo(
     () =>
@@ -166,11 +166,11 @@ export function AutomationListPage({
   );
 
   const handleListPusherTerminal = useCallback(() => {
-    if (restaurantId == null) return;
+    if (businessId == null) return;
     void queryClient.invalidateQueries({
-      queryKey: automationQueryKeys.list(restaurantId),
+      queryKey: automationQueryKeys.list(businessId),
     });
-  }, [queryClient, restaurantId]);
+  }, [queryClient, businessId]);
 
   useEffect(() => {
     if (!isPusherConfigured() || loading || automationNumericIds.length === 0) {
@@ -183,8 +183,8 @@ export function AutomationListPage({
   }, [automationNumericIds, handleListPusherTerminal, loading]);
 
   const createContextInput = useMemo(
-    () => ({ restaurantId, campaignId }),
-    [restaurantId, campaignId],
+    () => ({ businessId, campaignId }),
+    [businessId, campaignId],
   );
 
   const createBlockedMessage = useMemo(() => {
@@ -205,7 +205,7 @@ export function AutomationListPage({
   }, [items, query, filter]);
 
   const builderHref = (row: AutomationListItem) => {
-    const base = `/restaurant/${restaurantId}/dashboard/automations/${
+    const base = `/business/${businessId}/dashboard/automations/${
       row.numericId != null ? String(row.numericId) : row.id
     }`;
     if (funnelId != null && funnelId >= 1) {
@@ -214,7 +214,7 @@ export function AutomationListPage({
     return base;
   };
 
-  if (restaurantId == null) {
+  if (businessId == null) {
     return (
       <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-zinc-700">
         <p>Invalid link, business id not found in the URL.</p>
@@ -403,9 +403,9 @@ export function AutomationListPage({
               syncAutomationQueryCache(queryClient, created);
             }
             const next = mapAutomationToListItem(created);
-            if (restaurantId != null) {
+            if (businessId != null) {
               queryClient.setQueryData<AutomationListItem[]>(
-                automationQueryKeys.list(restaurantId),
+                automationQueryKeys.list(businessId),
                 (prev) => [next, ...(prev ?? [])],
               );
             }
@@ -441,9 +441,9 @@ export function AutomationListPage({
           setDeleting(true);
           try {
             await deleteAutomation(id);
-            if (restaurantId != null) {
+            if (businessId != null) {
               queryClient.setQueryData<AutomationListItem[]>(
-                automationQueryKeys.list(restaurantId),
+                automationQueryKeys.list(businessId),
                 (prev) => (prev ?? []).filter((row) => row.numericId !== id),
               );
             }

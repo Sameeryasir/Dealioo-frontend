@@ -46,7 +46,7 @@ import type {
 } from "@/app/components/crm-template-editor/template-types";
 
 export type CrmTemplateEditorProps = {
-  restaurantId?: number;
+  businessId?: number;
   campaignId?: number;
   campaignName?: string;
   campaignPrice?: number | string;
@@ -56,7 +56,7 @@ export type CrmTemplateEditorProps = {
 };
 
 export function CrmTemplateEditor({
-  restaurantId,
+  businessId,
   campaignId,
   campaignName,
   campaignPrice,
@@ -145,11 +145,12 @@ export function CrmTemplateEditor({
     onRedo: redo,
   });
 
-  const previewRestaurantId = useMemo(
+  const previewBusinessId = useMemo(
     () =>
-      restaurantId ??
-      parsePositiveInt(process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID),
-    [restaurantId],
+      businessId ??
+      parsePositiveInt(process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID) ??
+      parsePositiveInt(process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_BUSINESS_ID),
+    [businessId],
   );
   const previewCampaignId = useMemo(
     () => (campaignId != null && campaignId >= 1 ? campaignId : null),
@@ -171,12 +172,12 @@ export function CrmTemplateEditor({
 
   const funnelLinkQuery = useMemo(
     () => ({
-      restaurantId: previewRestaurantId,
+      businessId: previewBusinessId,
       campaignId: previewCampaignId,
       price: campaignPricing.subtotal ?? campaignPrice ?? undefined,
     }),
     [
-      previewRestaurantId,
+      previewBusinessId,
       previewCampaignId,
       campaignPricing.subtotal,
       campaignPrice,
@@ -202,19 +203,19 @@ export function CrmTemplateEditor({
 
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
     if (!interactivePreview || activeId !== "payment") return null;
-    if (previewRestaurantId == null) return null;
+    if (previewBusinessId == null) return null;
     const email =
       process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_PREVIEW_EMAIL?.trim() || null;
     if (!email || funnelId == null || funnelId < 1) return null;
     return {
       funnelId,
-      restaurantId: previewRestaurantId,
+      businessId: previewBusinessId,
       currency:
         process.env.NEXT_PUBLIC_FUNNEL_PAYMENT_CURRENCY?.trim().toLowerCase() ||
         "usd",
       customerEmail: email,
     };
-  }, [interactivePreview, previewRestaurantId, funnelId, activeId]);
+  }, [interactivePreview, previewBusinessId, funnelId, activeId]);
 
   const patchPage = useCallback(
     (patch: TemplatePagePatch) => {

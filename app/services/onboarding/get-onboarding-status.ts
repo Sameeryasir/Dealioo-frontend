@@ -1,27 +1,75 @@
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
-export type OnboardingNextStep =
-  | "restaurant_creation"
-  | "menu_setup"
-  | null;
+export type OnboardingNextStep = "business_creation" | null;
 
 export type OnboardingStatus = {
-  restaurantId: number | null;
+  businessId: number | null;
   twoFactorCompleted: boolean;
-  restaurantCreated: boolean;
-  menuCreated: boolean;
+  businessCreated: boolean;
   onboardingCompleted: boolean;
   nextStep: OnboardingNextStep;
   redirectPath: string;
 };
 
+function normalizeNextStep(value: unknown): OnboardingNextStep {
+  if (value === "business_creation") {
+    return "business_creation";
+  }
+  return null;
+}
+
+function normalizeRedirectPath(
+  value: unknown,
+  businessCreated: boolean,
+): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return businessCreated ? "/dashboard" : "/business/register";
+  }
+
+  return value
+    .replace(/^\/restaurant\/register\b/, "/business/register")
+    .replace(/^\/restaurant\/upload-menu\b/, "/dashboard")
+    .replace(/^\/business\/upload-menu\b/, "/dashboard")
+    .replace(/^\/setup\/menu\b/, "/dashboard");
+}
+
+function parseOptionalId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 1) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function normalizeOnboardingStatus(raw: unknown): OnboardingStatus {
+  const record =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+
+  const businessId = parseOptionalId(record.businessId);
+  const businessCreated = Boolean(record.businessCreated);
+
+  return {
+    businessId,
+    twoFactorCompleted: Boolean(record.twoFactorCompleted ?? true),
+    businessCreated,
+    onboardingCompleted: Boolean(record.onboardingCompleted),
+    nextStep: normalizeNextStep(record.nextStep),
+    redirectPath: normalizeRedirectPath(record.redirectPath, businessCreated),
+  };
+}
+
 export async function getOnboardingStatus(
-  restaurantId?: number,
+  businessId?: number,
 ): Promise<OnboardingStatus> {
   const params = new URLSearchParams();
-  if (restaurantId != null && Number.isFinite(restaurantId) && restaurantId >= 1) {
-    params.set("businessId", String(restaurantId));
+  if (businessId != null && Number.isFinite(businessId) && businessId >= 1) {
+    params.set("businessId", String(businessId));
   }
 
   const query = params.toString();
@@ -41,7 +89,8 @@ export async function getOnboardingStatus(
     );
   }
 
-  return (await res.json()) as OnboardingStatus;
+  const data: unknown = await res.json();
+  return normalizeOnboardingStatus(data);
 }
 
 async function parseApiMessageFromResponse(

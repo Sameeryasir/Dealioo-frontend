@@ -18,20 +18,20 @@ export function ComingSoonRoutePage({
   backLabel?: string;
 }) {
   const params = useParams();
-  const restaurantId = useMemo(
-    () => parseRoutePositiveInt(params.restaurantId),
-    [params.restaurantId],
+  const businessId = useMemo(
+    () => parseRoutePositiveInt(params.businessId),
+    [params.businessId],
   );
 
-  const hasRestaurantParam = params?.restaurantId != null;
-  if (hasRestaurantParam && restaurantId == null) {
+  const hasBusinessParam = params?.businessId != null;
+  if (hasBusinessParam && businessId == null) {
     return <InvalidRouteMessage />;
   }
 
   const resolvedBackHref =
     backHref ??
-    (restaurantId != null
-      ? `/restaurant/${restaurantId}/dashboard`
+    (businessId != null
+      ? `/business/${businessId}/dashboard`
       : "/dashboard");
 
   return (

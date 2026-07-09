@@ -5,14 +5,14 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 export type DeleteBusinessDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  restaurantName: string;
+  businessName: string;
   onConfirm: () => void | Promise<void>;
 };
 
 export default function DeleteBusinessDialog({
   open,
   onOpenChange,
-  restaurantName,
+  businessName,
   onConfirm,
 }: DeleteBusinessDialogProps) {
   return (
@@ -22,7 +22,7 @@ export default function DeleteBusinessDialog({
       description={
         <>
           This will permanently delete{" "}
-          <span className="font-semibold text-zinc-900">{restaurantName}</span>.
+          <span className="font-semibold text-zinc-900">{businessName}</span>.
           Make sure this is the business you intend to remove. You cannot undo
           this action.
         </>
