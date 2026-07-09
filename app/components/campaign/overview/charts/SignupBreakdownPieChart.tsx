@@ -18,7 +18,7 @@ import {
   type ChartNameValue,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 
-const SLICE_COLORS = [OVERVIEW_CHART_COLORS.amber, OVERVIEW_CHART_COLORS.emerald];
+const SLICE_COLORS = [OVERVIEW_CHART_COLORS.orange, OVERVIEW_CHART_COLORS.green];
 
 const PIE_CHART_MARGIN = { top: 8, right: 16, bottom: 36, left: 16 };
 
@@ -71,9 +71,9 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
                       : "0";
 
                   return (
-                    <span className="text-zinc-600">
+                    <span className="text-slate-600">
                       {value}{" "}
-                      <span className="font-medium text-zinc-800">{percent}%</span>
+                      <span className="font-medium text-[#07111f]">{percent}%</span>
                     </span>
                   );
                 }}
@@ -82,7 +82,7 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
           </ResponsiveContainer>
         </div>
       ) : (
-        <p className="flex flex-1 items-center justify-center text-sm text-zinc-500">
+        <p className="flex flex-1 items-center justify-center text-sm text-slate-500">
           No signup breakdown in this period.
         </p>
       )}

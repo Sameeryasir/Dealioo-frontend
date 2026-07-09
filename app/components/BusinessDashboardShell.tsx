@@ -10,11 +10,16 @@ export function BusinessDashboardShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh min-h-0 w-full flex-col bg-zinc-50">
-      <BusinessNavbar />
-      <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="rd-shell rd-shell--app">
+      {/* Rounded workspace card — matches org-dashboard-workspace gaps/radius. */}
+      <div className="rd-shell-frame">
         <AdminPanelSidebar />
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+        <div className="rd-shell-column">
+          <BusinessNavbar />
+          <main className="rd-main-scroll">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -6,9 +6,9 @@ export function TableColumnHeader({
   icon: Icon,
   label,
   variant = "inline",
-  iconClassName = "text-zinc-400",
+  iconClassName = "text-slate-600",
   iconBoxClassName = "border-zinc-200/80 bg-white",
-  labelClassName = "text-zinc-900",
+  labelClassName = "text-slate-800",
 }: {
   icon?: LucideIcon;
   label: string;
@@ -49,7 +49,11 @@ export function TableColumnHeader({
           strokeWidth={ICON_STROKE}
         />
       ) : null}
-      {label}
+      <span
+        className={`text-[0.65rem] font-bold uppercase tracking-[0.12em] ${labelClassName}`}
+      >
+        {label}
+      </span>
     </span>
   );
 }

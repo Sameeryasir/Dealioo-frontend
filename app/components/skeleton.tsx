@@ -70,15 +70,16 @@ export function BusinessCardSkeleton() {
 }
 
 const campaignCardShell =
-  "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm";
+  "flex w-full flex-col overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]";
 
 export function CampaignFunnelCardSkeleton() {
   return (
     <article className={campaignCardShell} aria-hidden>
-      <Skeleton className="h-44 w-full shrink-0 rounded-none bg-zinc-200" />
+      <Skeleton className="h-40 w-full shrink-0 rounded-none bg-[#f1f5f9]" />
       <div className="flex flex-col gap-2 p-4">
-        <Skeleton className="h-4 w-2/3 bg-zinc-100" />
-        <Skeleton className="h-3 w-1/2 bg-zinc-100" />
+        <Skeleton className="h-4 w-2/3 bg-[#f8fafc]" />
+        <Skeleton className="h-3 w-1/2 bg-[#f8fafc]" />
+        <Skeleton className="mt-2 h-3 w-1/3 bg-[#f8fafc]" />
       </div>
     </article>
   );

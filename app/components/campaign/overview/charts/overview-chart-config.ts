@@ -23,11 +23,11 @@ export type MonthlyMetricPoint = {
 };
 
 export const OVERVIEW_CHART_COLORS = {
-  emerald: "#10b981",
-  blue: "#3b82f6",
-  amber: "#f59e0b",
-  violet: "#8b5cf6",
-  zinc: "#52525b",
+  green: "#34a853",
+  blue: "#1877f2",
+  orange: "#f77737",
+  pink: "#e1306c",
+  slate: "#64748b",
 } as const;
 
 export const OVERVIEW_MINI_LINE_CHART_MARGIN = {

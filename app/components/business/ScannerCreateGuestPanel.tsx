@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Gift, Loader2, UserPlus } from "lucide-react";
+import { CheckCircle2, Gift, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
 import { formatDollars } from "@/app/lib/money";
@@ -8,7 +8,7 @@ import { createCustomer } from "@/app/services/customer/create-customer";
 import {
   fetchFunnelsByRestaurant,
   type RestaurantFunnelDeal,
-} from "@/app/services/funnel/get-funnels-by-business";
+} from "@/app/services/funnel/get-funnels-by-restaurant";
 import {
   purchaseScannerDeals,
   type ScannerPurchasedDeal,
@@ -59,7 +59,7 @@ function DealCheckboxRow({
           {checked ? "✓" : ""}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-medium text-zinc-900">{deal.campaignName}</span>
+          <span className="block font-medium text-slate-800">{deal.campaignName}</span>
           {priceLabel ? (
             <span className="mt-1 block text-xs font-medium text-emerald-700">
               {priceLabel}
@@ -113,7 +113,7 @@ export function ScannerCreateGuestPanel({
       const rows = await fetchFunnelsByRestaurant(businessId);
       setDeals(rows);
       if (rows.length === 0) {
-        setErrorMessage("No deals are set up for this business yet.");
+        setErrorMessage("No deals are set up for this restaurant yet.");
       }
     } catch (err) {
       setDeals([]);
@@ -200,19 +200,11 @@ export function ScannerCreateGuestPanel({
         />
       ) : null}
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-zinc-100">
-            <UserPlus className="size-5 text-zinc-700" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Create new guest</h2>
-            <p className="text-sm text-zinc-500">
-              Add a guest, then select deals they want to buy.
-            </p>
-          </div>
-        </div>
-
+      <div
+        className={`flex min-h-0 w-full flex-1 flex-col ${
+          !createdGuestId && !purchaseSuccess ? "mx-auto max-w-lg" : "max-w-xl"
+        }`}
+      >
         {purchaseSuccess ? (
           <div className="mb-6 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5">
             <div className="flex items-start gap-3">
@@ -231,7 +223,7 @@ export function ScannerCreateGuestPanel({
             <button
               type="button"
               onClick={resetForm}
-              className="self-start rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="self-start cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.82rem] font-bold text-white transition hover:bg-[#166fe5]"
             >
               Create another guest
             </button>
@@ -240,19 +232,22 @@ export function ScannerCreateGuestPanel({
 
         {createdGuestId && !purchaseSuccess ? (
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-            <p className="font-semibold text-zinc-900">Guest created</p>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="font-semibold text-slate-800">Guest created</p>
+            <p className="mt-1 text-sm text-slate-700">
               {createdGuestName || "Guest"}, ID #{createdGuestId}
             </p>
           </div>
         ) : null}
 
         {!createdGuestId && !purchaseSuccess ? (
-          <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
+          <form
+            onSubmit={(event) => void handleSubmit(event)}
+            className="space-y-4 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/60 p-5 sm:p-6"
+          >
             <div>
               <label
                 htmlFor="guest-name"
-                className="mb-1.5 block text-sm font-medium text-zinc-700"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
               >
                 Name
               </label>
@@ -264,14 +259,14 @@ export function ScannerCreateGuestPanel({
                 required
                 autoComplete="name"
                 placeholder="Jane Doe"
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
               />
             </div>
 
             <div>
               <label
                 htmlFor="guest-email"
-                className="mb-1.5 block text-sm font-medium text-zinc-700"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
               >
                 Email
               </label>
@@ -283,14 +278,14 @@ export function ScannerCreateGuestPanel({
                 required
                 autoComplete="email"
                 placeholder="jane@email.com"
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
               />
             </div>
 
             <div>
               <label
                 htmlFor="guest-phone"
-                className="mb-1.5 block text-sm font-medium text-zinc-700"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
               >
                 Phone
               </label>
@@ -302,7 +297,7 @@ export function ScannerCreateGuestPanel({
                 required
                 autoComplete="tel"
                 placeholder="(555) 123-4567"
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
               />
             </div>
 
@@ -315,7 +310,7 @@ export function ScannerCreateGuestPanel({
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="w-full cursor-pointer rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
             >
               {submitting ? "Creating…" : "Create guest"}
             </button>
@@ -325,12 +320,12 @@ export function ScannerCreateGuestPanel({
         {createdGuestId && !purchaseSuccess ? (
           <div className="border-t border-zinc-100 pt-5">
             <div className="mb-3 flex items-center gap-2">
-              <Gift className="size-4 text-zinc-500" aria-hidden />
-              <h3 className="text-sm font-semibold text-zinc-900">Select deals to buy</h3>
+              <Gift className="size-4 text-slate-700" aria-hidden />
+              <h3 className="text-sm font-semibold text-slate-800">Select deals to buy</h3>
             </div>
 
             {loadingDeals ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 py-10 text-sm text-zinc-500">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 py-10 text-sm text-slate-700">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
                 Loading deals…
               </div>
@@ -356,7 +351,7 @@ export function ScannerCreateGuestPanel({
                       type="button"
                       disabled={purchasing}
                       onClick={() => setPurchaseStep("enterPrice")}
-                      className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
                     >
                       Continue ({selectedFunnelIds.length} selected)
                     </button>
@@ -366,8 +361,8 @@ export function ScannerCreateGuestPanel({
             ) : null}
 
             {!loadingDeals && deals.length === 0 && !errorMessage ? (
-              <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-                No deals available for this business.
+              <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-slate-700">
+                No deals available for this restaurant.
               </p>
             ) : null}
 

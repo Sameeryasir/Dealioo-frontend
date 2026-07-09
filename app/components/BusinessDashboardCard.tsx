@@ -20,9 +20,9 @@ type Props = {
 
 const ACCENT_VARS = [
   "var(--brand-primary)",
-  "var(--brand-teal)",
   "var(--brand-coral)",
-  "var(--brand-violet)",
+  "var(--brand-teal)",
+  "var(--brand-amber)",
 ] as const;
 
 function setupProgress(business: AdminBusiness): number {

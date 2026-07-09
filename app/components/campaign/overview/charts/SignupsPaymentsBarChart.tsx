@@ -34,11 +34,11 @@ export function SignupsPaymentsBarChart({
       <div className="h-[260px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8edf5" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#71717a", fontSize: 11 }}
-              axisLine={{ stroke: "#e4e4e7" }}
+              tick={{ fill: "#64748b", fontSize: 11 }}
+              axisLine={{ stroke: "#e8edf5" }}
               tickLine={false}
               interval={0}
               tickFormatter={shortenMonthAxisLabel}
@@ -46,25 +46,25 @@ export function SignupsPaymentsBarChart({
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: "#71717a", fontSize: 12 }}
+              tick={{ fill: "#64748b", fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               width={40}
             />
             <Tooltip
               content={<OverviewChartTooltip />}
-              cursor={{ fill: "#f4f4f5" }}
+              cursor={{ fill: "#f4f7fb" }}
             />
             <Legend
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
               formatter={(value) => (
-                <span className="text-zinc-600">{value}</span>
+                <span className="text-slate-600">{value}</span>
               )}
             />
             <Bar
               dataKey="signups"
               name="Signups"
-              fill={OVERVIEW_CHART_COLORS.emerald}
+              fill={OVERVIEW_CHART_COLORS.green}
               radius={[6, 6, 0, 0]}
               maxBarSize={40}
             />

@@ -103,14 +103,13 @@ export function ScanCustomerConfirmDialog({
           className="flex max-h-[min(92dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.45)]"
           onClick={(event) => event.stopPropagation()}
         >
-          {/* --- Header --- */}
           <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6">
             <div
               className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-blue-400/20 blur-2xl"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute -bottom-12 left-8 size-32 rounded-full bg-violet-400/15 blur-2xl"
+              className="pointer-events-none absolute -bottom-12 left-8 size-32 rounded-full bg-[#e1306c]/15 blur-2xl"
               aria-hidden
             />
 
@@ -144,7 +143,6 @@ export function ScanCustomerConfirmDialog({
             </div>
           </div>
 
-          {/* --- Scrollable body --- */}
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 sm:space-y-4 sm:px-6 sm:py-5">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50/50 px-4 py-3 text-center ring-1 ring-blue-100/80">
@@ -155,7 +153,7 @@ export function ScanCustomerConfirmDialog({
                   Previous visits
                 </p>
               </div>
-              <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50/50 px-4 py-3 text-center ring-1 ring-violet-100/80">
+              <div className="rounded-2xl bg-gradient-to-br from-[#fdf2f8] to-[#fff1f2]/50 px-4 py-3 text-center ring-1 ring-[#fbcfe8]/80">
                 <p className="text-3xl font-bold tabular-nums text-zinc-900">
                   {preview.rewardsAvailable}
                 </p>
@@ -188,9 +186,9 @@ export function ScanCustomerConfirmDialog({
             </div>
 
             {preview.availableRewards.length > 0 ? (
-              <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
-                <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-violet-900">
-                  <Gift className="size-4 text-violet-600" aria-hidden />
+              <div className="rounded-2xl border border-[#fbcfe8] bg-[#fdf2f8]/60 p-4">
+                <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#9d174d]">
+                  <Gift className="size-4 text-[#e1306c]" aria-hidden />
                   Eligible rewards
                 </p>
                 <ul className="space-y-2">
@@ -199,13 +197,13 @@ export function ScanCustomerConfirmDialog({
                       key={reward.couponId}
                       className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm ${
                         reward.canSelect
-                          ? "border-violet-200 bg-white font-medium text-zinc-900"
+                          ? "border-[#fbcfe8] bg-white font-medium text-zinc-900"
                           : "border-zinc-200 bg-zinc-100/80 text-zinc-400"
                       }`}
                     >
                       <span className="min-w-0 truncate">{reward.label}</span>
                       {reward.isScannedCoupon ? (
-                        <span className="shrink-0 rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <span className="shrink-0 rounded-full bg-[#e1306c] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                           Scanned
                         </span>
                       ) : null}
@@ -256,7 +254,6 @@ export function ScanCustomerConfirmDialog({
             ) : null}
           </div>
 
-          {/* --- Sticky footer --- */}
           <div className="shrink-0 border-t border-zinc-200 bg-gradient-to-b from-white to-zinc-50 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
             <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 sm:text-base">
               <UserRound className="size-4 shrink-0 text-blue-600" aria-hidden />

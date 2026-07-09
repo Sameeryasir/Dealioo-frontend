@@ -38,16 +38,16 @@ export function AnalyticsMetricMiniChart({
       minHeightClass="min-h-[200px]"
       className="h-full"
     >
-      <p className="mb-3 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900">
+      <p className="mb-3 text-2xl font-extrabold tabular-nums tracking-tight text-[#07111f]">
         {total.toLocaleString()}
       </p>
       <div className="h-[180px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8edf5" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#a1a1aa", fontSize: 10 }}
+              tick={{ fill: "#94a3b8", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               interval={0}
@@ -56,7 +56,7 @@ export function AnalyticsMetricMiniChart({
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: "#a1a1aa", fontSize: 10 }}
+              tick={{ fill: "#94a3b8", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               width={30}

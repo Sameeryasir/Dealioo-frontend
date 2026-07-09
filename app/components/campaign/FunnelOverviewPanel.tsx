@@ -6,13 +6,15 @@ import {
   DollarSign,
   Eye,
   Layers,
+  Megaphone,
   MousePointerClick,
+  Plus,
   TrendingUp,
   UserPlus,
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type LucideIcon } from "react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AnalyticsMetricMiniChart } from "@/app/components/campaign/overview/charts/AnalyticsMetricMiniChart";
 import {
@@ -24,68 +26,83 @@ import {
   sumAnalyticsFromMonthly,
   sumStatsFromMonthly,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
-import type { FunnelAnalyticsMonthlyPoint } from "@/app/services/funnel/get-analytics-overview-monthly";
-import type { FunnelStatsMonthlyPoint } from "@/app/services/funnel/get-funnel-stats-monthly";
 import { SignupBreakdownPieChart } from "@/app/components/campaign/overview/charts/SignupBreakdownPieChart";
 import { SignupsPaymentsBarChart } from "@/app/components/campaign/overview/charts/SignupsPaymentsBarChart";
-import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import { Skeleton } from "@/app/components/skeleton";
 import { useAnalyticsOverviewMonthly } from "@/app/hooks/use-analytics-overview-monthly";
 import { useFunnelStatsMonthly } from "@/app/hooks/use-funnel-stats-monthly";
+import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
-import { panelCardClass, panelCardPaddingClass } from "@/app/lib/panel-styles";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import {
   hasAnalyticsMonthlyActivity,
   hasStatsMonthlyActivity,
 } from "@/app/components/campaign/overview/charts/overview-monthly-activity";
 
+const overviewCardClass =
+  "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+
+function OverviewKpiTile({
+  label,
+  value,
+  icon: Icon,
+  iconBg,
+}: {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  iconBg: string;
+}) {
+  return (
+    <div className="flex w-full items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
+      <span
+        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+      >
+        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="m-0 truncate text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-800">
+          {label}
+        </p>
+        <p className="mt-0.5 mb-0 truncate text-[1.1rem] font-extrabold tracking-tight text-black">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function OverviewSkeleton() {
   return (
-    <div className="space-y-8" aria-busy="true" aria-label="Loading stats">
-      <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-5" aria-busy="true" aria-label="Loading stats">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5">
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className={`h-full ${panelCardClass} ${panelCardPaddingClass}`}
+            className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Skeleton funnel className="size-9 shrink-0 rounded-xl" />
               <div className="min-w-0 flex-1 space-y-2">
                 <Skeleton funnel className="h-3 w-16" />
-                <Skeleton funnel className="h-8 w-20" />
-                <Skeleton funnel className="h-3 w-28" />
+                <Skeleton funnel className="h-7 w-20" />
               </div>
-              <Skeleton funnel className="size-11 shrink-0 rounded-xl" />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid auto-rows-fr gap-5 lg:grid-cols-2">
-        <div className={`h-full min-h-[280px] ${panelCardClass} ${panelCardPaddingClass}`}>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="min-h-[280px] rounded-[1.1rem] border border-[#e8edf5] px-4 py-4 sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-36" />
           <Skeleton funnel className="mt-2 h-3 w-28" />
           <Skeleton funnel className="mt-6 h-[220px] w-full rounded-xl" />
         </div>
-        <div className={`h-full min-h-[280px] ${panelCardClass} ${panelCardPaddingClass}`}>
+        <div className="min-h-[280px] rounded-[1.1rem] border border-[#e8edf5] px-4 py-4 sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-32" />
           <Skeleton funnel className="mt-2 h-3 w-40" />
           <Skeleton funnel className="mt-6 h-[220px] w-full rounded-full" />
-        </div>
-      </div>
-
-      <div>
-        <Skeleton funnel className="h-4 w-36" />
-        <Skeleton funnel className="mt-2 h-3 w-56" />
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} funnel className="h-24 w-full rounded-xl" />
-          ))}
-        </div>
-        <div className="mt-4 grid gap-5 lg:grid-cols-2">
-          <Skeleton funnel className="h-48 w-full rounded-2xl" />
-          <Skeleton funnel className="h-48 w-full rounded-2xl" />
         </div>
       </div>
     </div>
@@ -94,11 +111,11 @@ function OverviewSkeleton() {
 
 function NoRecordsFoundCard() {
   return (
-    <div
-      className={`${panelCardClass} ${panelCardPaddingClass} py-14 text-center`}
-    >
-      <p className="text-sm font-semibold text-zinc-900">No records found</p>
-      <p className="mt-1.5 text-sm text-zinc-500">
+    <div className="flex flex-col items-center justify-center px-6 py-14 text-center sm:py-16">
+      <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+        No records found
+      </p>
+      <p className="m-0 mt-1.5 max-w-sm text-[0.82rem] font-medium text-slate-500">
         No signups or payments yet for this campaign.
       </p>
     </div>
@@ -112,47 +129,45 @@ function NoFunnelEmptyState({
 }) {
   return (
     <motion.div
-      className={`relative overflow-hidden ${panelCardClass} px-6 py-14 sm:px-10 sm:py-16`}
+      className="flex min-h-0 w-full flex-1 flex-col items-center justify-center px-6 py-14 text-center sm:py-16"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: standardEase }}
     >
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-violet-200/40 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-20 -left-12 size-48 rounded-full bg-indigo-100/60 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto max-w-lg text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-white/20">
-          <Layers className="size-8" strokeWidth={1.75} aria-hidden />
-        </div>
-
-        <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600">
-          Funnel not set up
-        </p>
-        <h3 className="font-display mt-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
-          No activity on the funnel yet
-        </h3>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-600">
-          Create your funnel first to start capturing signups, payments, and
-          live analytics for this campaign.
-        </p>
-
-        {onCreateFunnel ? (
-          <button
-            type="button"
-            onClick={onCreateFunnel}
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition hover:bg-zinc-800 hover:shadow-lg"
-          >
-            Create funnel
-            <ArrowRight className="size-4" aria-hidden />
-          </button>
-        ) : null}
+      <div className="relative mb-5 flex size-28 items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
+          aria-hidden
+        />
+        <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
+          <Layers className="size-10 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
+        </span>
+        <span className="absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full border-2 border-white bg-[#e1306c] text-white shadow-md">
+          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+        </span>
       </div>
+
+      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+        Funnel not set up
+      </p>
+      <h3 className="m-0 mt-2 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+        No activity on the funnel yet
+      </h3>
+      <p className="mx-auto m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+        Create your funnel first to start capturing signups, payments, and live
+        analytics for this campaign.
+      </p>
+
+      {onCreateFunnel ? (
+        <button
+          type="button"
+          onClick={onCreateFunnel}
+          className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.8rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0]"
+        >
+          Create funnel
+          <ArrowRight className="size-4" aria-hidden />
+        </button>
+      ) : null}
     </motion.div>
   );
 }
@@ -298,7 +313,10 @@ export function FunnelOverviewPanel({
   const hasAnalyticsMonthly = hasAnalyticsActivity;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-zinc-50 via-white to-zinc-100/70">
+    <section
+      className="rd-premium flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+      aria-label="Campaign overview"
+    >
       <OverviewAlertDialog
         open={alertMessage != null}
         message={alertMessage ?? ""}
@@ -308,203 +326,199 @@ export function FunnelOverviewPanel({
         }}
       />
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">
-        <motion.header
-          className="mb-8 rounded-2xl border border-zinc-200/80 bg-white/90 px-5 py-5 shadow-sm ring-1 ring-zinc-950/[0.03] backdrop-blur-sm sm:px-6"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: standardEase }}
-        >
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Overview
-            </p>
-            <h2 className="font-display mt-1 text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">
-              {displayName}
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
-              Conversion metrics and live funnel behavior analytics, month
-              view (last {OVERVIEW_MONTH_COUNT} months).
-            </p>
-          </div>
-        </motion.header>
+      <div className="rd-premium-page flex min-h-0 flex-1 flex-col">
+        <header className="shrink-0 px-0.5">
+          <h1 className="m-0 text-[clamp(1.15rem,2vw,1.45rem)] font-extrabold tracking-tight text-[#07111f]">
+            Overview
+          </h1>
+          <p className="m-0 mt-1 max-w-[52ch] text-[0.8rem] font-medium leading-snug text-slate-500">
+            Conversion metrics and live funnel behavior for{" "}
+            <span className="font-semibold text-[#07111f]">{displayName}</span>
+            , month view (last {OVERVIEW_MONTH_COUNT} months).
+          </p>
+        </header>
 
-        {showNoFunnelMessage ? (
-          <NoFunnelEmptyState onCreateFunnel={onCreateFunnel} />
-        ) : null}
-
-        {showSkeleton ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: standardEase }}
-          >
-            <OverviewSkeleton />
-          </motion.div>
-        ) : null}
-
-        {showNoRecords ? <NoRecordsFoundCard /> : null}
-
-        {monthlyStatsTotals && !showSkeleton && !showNoRecords ? (
-          <motion.div
-            key="overview-content"
-            className="space-y-8"
-            variants={funnelPanelStagger}
-            initial="hidden"
-            animate="show"
-          >
-            <motion.div
-              className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-4"
-              variants={funnelPanelStagger}
-            >
-              <motion.div className="h-full" variants={funnelPanelItem}>
-                <MetricStatCardAccent
-                  label="Signups"
-                  value={monthlyStatsTotals.signups}
-                  icon={UserPlus}
-                  tone="emerald"
-                />
-              </motion.div>
-              <motion.div className="h-full" variants={funnelPanelItem}>
-                <MetricStatCardAccent
-                  label="Payments"
-                  value={monthlyStatsTotals.payments}
-                  icon={Users}
-                  tone="blue"
-                  highlight={monthlyStatsTotals.payments > 0}
-                />
-              </motion.div>
-              <motion.div className="h-full" variants={funnelPanelItem}>
-                <MetricStatCardAccent
-                  label="Revenue"
-                  value={formatCents(
-                    monthlyStatsTotals.revenue,
-                    statsMonthly?.currency ?? "usd",
-                  )}
-                  icon={DollarSign}
-                  tone="violet"
-                />
-              </motion.div>
-              <motion.div className="h-full" variants={funnelPanelItem}>
-                <MetricStatCardAccent
-                  label="Conversion"
-                  value={`${conversionRate.toFixed(1)}%`}
-                  icon={TrendingUp}
-                  tone="zinc"
-                  highlight={conversionRate >= 50}
-                />
-              </motion.div>
-            </motion.div>
-
-            {hasMonthlyCharts ? (
+        <article className={`${overviewCardClass} rd-premium-panel min-h-0 flex-1`}>
+          {showNoFunnelMessage ? (
+            <div className="rd-premium-panel__body rd-premium-panel__body--center">
+              <NoFunnelEmptyState onCreateFunnel={onCreateFunnel} />
+            </div>
+          ) : showSkeleton ? (
+            <div className="rd-premium-panel__body px-4 pt-4 pb-4 sm:px-5 sm:pt-5 sm:pb-5">
+              <OverviewSkeleton />
+            </div>
+          ) : showNoRecords ? (
+            <div className="rd-premium-panel__body rd-premium-panel__body--center">
+              <NoRecordsFoundCard />
+            </div>
+          ) : monthlyStatsTotals ? (
+            <div className="rd-premium-panel__body px-4 pt-4 pb-4 sm:px-5 sm:pt-5 sm:pb-5">
               <motion.div
-                className="grid auto-rows-fr gap-5 lg:grid-cols-2"
+                key="overview-content"
+                className="space-y-5"
                 variants={funnelPanelStagger}
+                initial="hidden"
+                animate="show"
               >
-                <motion.div className="h-full min-h-[300px]" variants={funnelPanelItem}>
-                  <SignupsPaymentsBarChart data={signupsPaymentsMonthly} />
-                </motion.div>
-                <motion.div className="h-full min-h-[300px]" variants={funnelPanelItem}>
-                  <SignupBreakdownPieChart data={signupBreakdownMonthly} />
-                </motion.div>
-              </motion.div>
-            ) : null}
-
-            {analyticsTotals && hasAnalyticsMonthly ? (
-              <motion.div className="space-y-5" variants={funnelPanelItem}>
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
-                    Behavior analytics
-                  </h3>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Page views, clicks, sessions, and customers, month view
-                  </p>
-                </div>
-
-                <motion.div
-                  className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                <motion.section
+                  className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5"
+                  aria-label="Campaign summary"
                   variants={funnelPanelStagger}
                 >
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <MetricStatCardAccent
-                      label="Page views"
-                      value={analyticsTotals.pageViews}
-                      icon={Eye}
-                      tone="blue"
+                  <motion.div variants={funnelPanelItem}>
+                    <OverviewKpiTile
+                      label="Signups"
+                      value={monthlyStatsTotals.signups}
+                      icon={UserPlus}
+                      iconBg={DASHBOARD_KPI_ICON.green}
                     />
                   </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <MetricStatCardAccent
-                      label="Button clicks"
-                      value={analyticsTotals.buttonClicks}
-                      icon={MousePointerClick}
-                      tone="violet"
-                    />
-                  </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <MetricStatCardAccent
-                      label="Unique visitors"
-                      value={analyticsTotals.uniqueVisitors}
+                  <motion.div variants={funnelPanelItem}>
+                    <OverviewKpiTile
+                      label="Payments"
+                      value={monthlyStatsTotals.payments}
                       icon={Users}
-                      tone="emerald"
+                      iconBg={DASHBOARD_KPI_ICON.blue}
                     />
                   </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <MetricStatCardAccent
-                      label="Sessions"
-                      value={analyticsTotals.sessions}
-                      icon={Activity}
-                      tone="zinc"
+                  <motion.div variants={funnelPanelItem}>
+                    <OverviewKpiTile
+                      label="Revenue"
+                      value={formatCents(
+                        monthlyStatsTotals.revenue,
+                        statsMonthly?.currency ?? "usd",
+                      )}
+                      icon={DollarSign}
+                      iconBg={DASHBOARD_KPI_ICON.pink}
                     />
                   </motion.div>
-                </motion.div>
+                  <motion.div variants={funnelPanelItem}>
+                    <OverviewKpiTile
+                      label="Conversion"
+                      value={`${conversionRate.toFixed(1)}%`}
+                      icon={TrendingUp}
+                      iconBg={DASHBOARD_KPI_ICON.orange}
+                    />
+                  </motion.div>
+                </motion.section>
 
-                <motion.div
-                  className="grid auto-rows-fr gap-5 lg:grid-cols-2"
-                  variants={funnelPanelStagger}
-                >
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Page views by month"
-                      subtitle="Monthly page views"
-                      total={analyticsTotals.pageViews}
-                      data={pageViewsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.blue}
-                    />
+                {hasMonthlyCharts ? (
+                  <motion.div
+                    className="grid gap-4 lg:grid-cols-2"
+                    variants={funnelPanelStagger}
+                  >
+                    <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                      <SignupsPaymentsBarChart data={signupsPaymentsMonthly} />
+                    </motion.div>
+                    <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                      <SignupBreakdownPieChart data={signupBreakdownMonthly} />
+                    </motion.div>
                   </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Button clicks by month"
-                      subtitle="Monthly button clicks"
-                      total={analyticsTotals.buttonClicks}
-                      data={buttonClicksMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.violet}
-                    />
+                ) : null}
+
+                {analyticsTotals && hasAnalyticsMonthly ? (
+                  <motion.div className="space-y-4" variants={funnelPanelItem}>
+                    <div className="px-0.5">
+                      <h2 className="m-0 flex items-center gap-2 text-[0.9rem] font-extrabold tracking-tight text-[#07111f]">
+                        <Megaphone
+                          className="size-4 text-[#1877f2]"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Behavior analytics
+                      </h2>
+                      <p className="m-0 mt-1 text-[0.72rem] font-medium text-slate-500">
+                        Page views, clicks, sessions, and visitors — month view
+                      </p>
+                    </div>
+
+                    <motion.section
+                      className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5"
+                      aria-label="Behavior summary"
+                      variants={funnelPanelStagger}
+                    >
+                      <motion.div variants={funnelPanelItem}>
+                        <OverviewKpiTile
+                          label="Page views"
+                          value={analyticsTotals.pageViews}
+                          icon={Eye}
+                          iconBg={DASHBOARD_KPI_ICON.blue}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <OverviewKpiTile
+                          label="Button clicks"
+                          value={analyticsTotals.buttonClicks}
+                          icon={MousePointerClick}
+                          iconBg={DASHBOARD_KPI_ICON.pink}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <OverviewKpiTile
+                          label="Unique visitors"
+                          value={analyticsTotals.uniqueVisitors}
+                          icon={Users}
+                          iconBg={DASHBOARD_KPI_ICON.green}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <OverviewKpiTile
+                          label="Sessions"
+                          value={analyticsTotals.sessions}
+                          icon={Activity}
+                          iconBg={DASHBOARD_KPI_ICON.orange}
+                        />
+                      </motion.div>
+                    </motion.section>
+
+                    <motion.div
+                      className="grid gap-4 lg:grid-cols-2"
+                      variants={funnelPanelStagger}
+                    >
+                      <motion.div variants={funnelPanelItem}>
+                        <AnalyticsMetricMiniChart
+                          title="Page views by month"
+                          subtitle="Monthly page views"
+                          total={analyticsTotals.pageViews}
+                          data={pageViewsMonthly}
+                          strokeColor={OVERVIEW_CHART_COLORS.blue}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <AnalyticsMetricMiniChart
+                          title="Button clicks by month"
+                          subtitle="Monthly button clicks"
+                          total={analyticsTotals.buttonClicks}
+                          data={buttonClicksMonthly}
+                          strokeColor={OVERVIEW_CHART_COLORS.pink}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <AnalyticsMetricMiniChart
+                          title="Unique visitors by month"
+                          subtitle="Monthly unique visitors"
+                          total={analyticsTotals.uniqueVisitors}
+                          data={uniqueVisitorsMonthly}
+                          strokeColor={OVERVIEW_CHART_COLORS.green}
+                        />
+                      </motion.div>
+                      <motion.div variants={funnelPanelItem}>
+                        <AnalyticsMetricMiniChart
+                          title="Sessions by month"
+                          subtitle="Monthly sessions"
+                          total={analyticsTotals.sessions}
+                          data={sessionsMonthly}
+                          strokeColor={OVERVIEW_CHART_COLORS.orange}
+                        />
+                      </motion.div>
+                    </motion.div>
                   </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Unique visitors by month"
-                      subtitle="Monthly unique visitors"
-                      total={analyticsTotals.uniqueVisitors}
-                      data={uniqueVisitorsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.emerald}
-                    />
-                  </motion.div>
-                  <motion.div className="h-full" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Sessions by month"
-                      subtitle="Monthly sessions"
-                      total={analyticsTotals.sessions}
-                      data={sessionsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.zinc}
-                    />
-                  </motion.div>
-                </motion.div>
+                ) : null}
               </motion.div>
-            ) : null}
-          </motion.div>
-        ) : null}
+            </div>
+          ) : null}
+        </article>
       </div>
-    </div>
+    </section>
   );
 }

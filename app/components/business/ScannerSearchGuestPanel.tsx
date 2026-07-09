@@ -10,16 +10,18 @@ import {
   Search,
   Trash2,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
-import { ReportTable } from "@/app/components/shared/ReportTable";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { ScanCompleteOrderDialog } from "@/app/components/business/ScanCompleteOrderDialog";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
 import { formatDateTimeShort } from "@/app/lib/datetime";
+import {
+  TABLE_HEAD_ICON_CLASS,
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
 import {
   GUEST_SEARCH_PAGE_SIZE,
   searchCustomers,
@@ -36,30 +38,15 @@ import {
 } from "@/app/services/redemption/scan-redemption";
 
 const thClass =
-  "whitespace-nowrap px-4 py-3.5 text-left align-middle text-xs font-semibold uppercase tracking-wider text-zinc-500 first:pl-6 last:pr-6";
+  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
 const tdClass =
-  "px-4 py-4 text-left align-middle text-sm text-zinc-700 first:pl-6 last:pr-6";
-
-const AVATAR_COLORS = [
-  "from-violet-500 to-purple-600",
-  "from-sky-500 to-blue-600",
-  "from-emerald-500 to-teal-600",
-  "from-amber-500 to-orange-600",
-  "from-rose-500 to-pink-600",
-  "from-fuchsia-500 to-purple-600",
-  "from-cyan-500 to-sky-600",
-  "from-lime-500 to-green-600",
-] as const;
+  "px-4 py-3 text-left align-middle text-sm text-slate-800 first:pl-5 last:pr-5";
 
 function guestInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-function guestAvatarColor(seed: number): string {
-  return AVATAR_COLORS[Math.abs(seed) % AVATAR_COLORS.length];
 }
 
 function DealPaymentBadge({ label }: { label: "PREPAID" | "UNPAID" }) {
@@ -148,10 +135,10 @@ function DealSelectRow({
         )}
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-zinc-900">{deal.offerName}</span>
+            <span className="font-medium text-slate-800">{deal.offerName}</span>
             <DealPaymentBadge label={deal.paymentLabel} />
           </span>
-          <span className="mt-1 block text-xs text-zinc-500">
+          <span className="mt-1 block text-xs text-slate-700">
             {deal.campaignName}
             {deal.expiresAt ? (
               <>, Expires {formatDateTimeShort(deal.expiresAt)}</>
@@ -453,14 +440,14 @@ export function ScannerSearchGuestPanel({
         />
       ) : null}
 
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {!selectedProfile && !loadingProfile ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <Search className="size-4" aria-hidden />
-            Search by name, email, or phone
-          </p>
-          <div className="flex gap-2">
+        <div>
+          <div className="relative min-w-0">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
             <input
               type="search"
               value={query}
@@ -470,19 +457,19 @@ export function ScannerSearchGuestPanel({
                   handleSearch();
                 }
               }}
-              placeholder="e.g. Jane Doe or jane@email.com"
-              className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              placeholder="Search by name, email, or phone..."
+              className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] py-2 pr-28 pl-9 text-[0.82rem] font-medium text-black outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
             />
             <button
               type="button"
               disabled={!query.trim() || searching}
               onClick={handleSearch}
-              className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-3.5 py-1.5 text-[0.75rem] font-bold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {searching ? "Searching…" : "Search"}
+              {searching ? "…" : "Search"}
             </button>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="m-0 mt-2 text-[0.72rem] font-medium text-slate-700">
             Type at least 2 characters, then search.
           </p>
         </div>
@@ -495,24 +482,24 @@ export function ScannerSearchGuestPanel({
       ) : null}
 
       {loadingProfile ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-12 text-sm text-zinc-500">
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-12 text-sm text-slate-700">
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading guest…
         </div>
       ) : null}
 
       {selectedProfile ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/50 p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-zinc-900">
+              <h2 className="text-xl font-semibold text-slate-800">
                 {selectedProfile.customerName}
               </h2>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-slate-700">
                 {selectedProfile.email}
               </p>
               {selectedProfile.phone ? (
-                <p className="text-sm text-zinc-500">{selectedProfile.phone}</p>
+                <p className="text-sm text-slate-700">{selectedProfile.phone}</p>
               ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -526,7 +513,7 @@ export function ScannerSearchGuestPanel({
                   setRedeemSuccess(null);
                   idempotencyKeyRef.current = "";
                 }}
-                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-zinc-50"
               >
                 Back to results
               </button>
@@ -570,19 +557,19 @@ export function ScannerSearchGuestPanel({
           <div className="mt-5 border-t border-zinc-100 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Gift className="size-4 text-zinc-500" aria-hidden />
-                <h3 className="text-sm font-semibold text-zinc-900">Deals</h3>
+                <Gift className="size-4 text-slate-700" aria-hidden />
+                <h3 className="text-sm font-semibold text-slate-800">Deals</h3>
               </div>
               {activeDeals.some((deal) => deal.canSelect) ? (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-slate-700">
                   Select deals to redeem, then continue.
                 </p>
               ) : null}
             </div>
 
             {activeDeals.length === 0 ? (
-              <p className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-                No active deals for this guest at this business.
+              <p className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-slate-700">
+                No active deals for this guest at this restaurant.
               </p>
             ) : (
               <div className="mt-3 space-y-4">
@@ -604,12 +591,12 @@ export function ScannerSearchGuestPanel({
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-zinc-500">No paid deals.</p>
+                    <p className="mt-2 text-sm text-slate-700">No paid deals.</p>
                   )}
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
                     Not paid yet ({unpaidDeals.length})
                   </p>
                   {unpaidDeals.length > 0 ? (
@@ -626,7 +613,7 @@ export function ScannerSearchGuestPanel({
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-zinc-500">
+                    <p className="mt-2 text-sm text-slate-700">
                       No unpaid deals.
                     </p>
                   )}
@@ -638,7 +625,7 @@ export function ScannerSearchGuestPanel({
                       type="button"
                       disabled={confirmingRedemption}
                       onClick={() => setRedeemStep("completeOrder")}
-                      className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
                     >
                       {confirmingRedemption
                         ? "Redeeming…"
@@ -657,7 +644,7 @@ export function ScannerSearchGuestPanel({
                 onClick={() =>
                   setShowPreviousRedemptions((current) => !current)
                 }
-                className="rounded-lg border border-zinc-900 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                className="rounded-lg border border-zinc-900 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-zinc-50"
               >
                 Show {selectedProfile.previouslyRedeemedCount} previously
                 redeemed reward
@@ -665,14 +652,14 @@ export function ScannerSearchGuestPanel({
               </button>
 
               {showPreviousRedemptions ? (
-                <ul className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <ul className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-slate-700">
                   {selectedProfile.previousRedemptions.map((item, index) => (
                     <li key={`${item.campaignName}-${item.redeemedAt}-${index}`}>
-                      <span className="font-medium text-zinc-900">
+                      <span className="font-medium text-slate-800">
                         {item.campaignName}
                       </span>
                       {item.redeemedAt ? (
-                        <span className="text-zinc-500">
+                        <span className="text-slate-700">
                           {" "}
                          , {formatDateTimeShort(item.redeemedAt)}
                         </span>
@@ -702,74 +689,54 @@ export function ScannerSearchGuestPanel({
       ) : null}
 
       {showTable ? (
-        <ReportTable
-          className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
-          header={
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-gradient-to-r from-zinc-50 to-white px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm">
-                  <Users className="size-4" aria-hidden />
-                </span>
-                <div>
-                  <h3 className="text-base font-semibold text-zinc-900">
-                    Search results
-                  </h3>
-                  <p className="text-xs text-zinc-500">
-                    Tap a guest to view their profile
-                  </p>
-                </div>
-              </div>
-              <span className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-semibold tabular-nums text-white">
-                {meta?.total ?? 0} found
-              </span>
+        <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-[#f8fafc]/60 px-4 py-3 sm:px-5">
+            <div>
+              <h3 className="m-0 text-[0.95rem] font-extrabold text-black">
+                Results
+              </h3>
+              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-700">
+                Tap a guest to view their profile
+              </p>
             </div>
-          }
-          footer={
-            meta && meta.totalPages > 1 ? (
-              <OffsetPagination
-                page={page}
-                totalPages={meta.totalPages}
-                total={meta.total}
-                limit={meta.limit}
-                loading={searching}
-                onPageChange={handlePageChange}
-                itemLabel="guests"
-              />
-            ) : null
-          }
-        >
+            <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              {meta?.total ?? 0} found
+            </span>
+          </div>
+
+          <div className="overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-[36rem] border-collapse">
             <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/90">
+              <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                 <th className={`${thClass} w-12`}>
                   <TableColumnHeader
                     label="#"
-                    iconClassName="text-zinc-400"
-                    labelClassName="text-zinc-500"
+                    iconClassName={TABLE_HEAD_ICON_CLASS}
+                    labelClassName={TABLE_HEAD_LABEL_CLASS}
                   />
                 </th>
                 <th className={thClass}>
                   <TableColumnHeader
                     icon={UserRound}
                     label="Guest"
-                    iconClassName="text-zinc-400"
-                    labelClassName="text-zinc-500"
+                    iconClassName={TABLE_HEAD_ICON_CLASS}
+                    labelClassName={TABLE_HEAD_LABEL_CLASS}
                   />
                 </th>
                 <th className={thClass}>
                   <TableColumnHeader
                     icon={Mail}
                     label="Email"
-                    iconClassName="text-zinc-400"
-                    labelClassName="text-zinc-500"
+                    iconClassName={TABLE_HEAD_ICON_CLASS}
+                    labelClassName={TABLE_HEAD_LABEL_CLASS}
                   />
                 </th>
                 <th className={thClass}>
                   <TableColumnHeader
                     icon={Phone}
                     label="Phone"
-                    iconClassName="text-zinc-400"
-                    labelClassName="text-zinc-500"
+                    iconClassName={TABLE_HEAD_ICON_CLASS}
+                    labelClassName={TABLE_HEAD_LABEL_CLASS}
                   />
                 </th>
                 <th className={`${thClass} w-16 text-right`}>
@@ -785,7 +752,7 @@ export function ScannerSearchGuestPanel({
                       className="mx-auto size-6 animate-spin text-zinc-400"
                       aria-hidden
                     />
-                    <p className="mt-3 text-sm text-zinc-500">Searching guests…</p>
+                    <p className="mt-3 text-sm text-slate-700">Searching guests…</p>
                   </td>
                 </tr>
               ) : null}
@@ -795,14 +762,11 @@ export function ScannerSearchGuestPanel({
                     const rowNumber = rowOffset + index + 1;
                     const displayName = guest.name?.trim() || "Guest";
                     const initials = guestInitials(displayName);
-                    const avatarColor = guestAvatarColor(guest.id * 13 + index * 7);
 
                     return (
                       <tr
                         key={guest.id}
-                        className={`group cursor-pointer border-b border-zinc-100 transition-all duration-150 last:border-0 hover:bg-zinc-50 hover:shadow-[inset_3px_0_0_0_rgb(24_24_27)] ${
-                          index % 2 === 1 ? "bg-zinc-50/50" : "bg-white"
-                        }`}
+                        className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                         onClick={() => void handleSelectGuest(guest)}
                       >
                         <td className={tdClass}>
@@ -813,17 +777,17 @@ export function ScannerSearchGuestPanel({
                         <td className={tdClass}>
                           <div className="flex min-w-0 items-center gap-3">
                             <span
-                              className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-xs font-semibold text-white shadow-sm ring-2 ring-white`}
+                              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.72rem] font-bold text-white"
                             >
                               {initials}
                             </span>
-                            <span className="truncate font-semibold text-zinc-900">
+                            <span className="truncate font-bold text-black">
                               {displayName}
                             </span>
                           </div>
                         </td>
                         <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
-                          <span className="inline-flex min-w-0 items-center gap-2 text-zinc-600">
+                          <span className="inline-flex min-w-0 items-center gap-2 text-slate-600">
                             <Mail
                               className="size-3.5 shrink-0 text-zinc-400"
                               aria-hidden
@@ -835,7 +799,7 @@ export function ScannerSearchGuestPanel({
                         </td>
                         <td className={tdClass}>
                           {guest.phone?.trim() ? (
-                            <span className="inline-flex items-center gap-2 text-zinc-600">
+                            <span className="inline-flex items-center gap-2 text-slate-600">
                               <Phone
                                 className="size-3.5 shrink-0 text-zinc-400"
                                 aria-hidden
@@ -847,7 +811,7 @@ export function ScannerSearchGuestPanel({
                           )}
                         </td>
                         <td className={`${tdClass} text-right`}>
-                          <span className="inline-flex size-8 items-center justify-center rounded-full text-zinc-300 transition group-hover:bg-zinc-900 group-hover:text-white">
+                          <span className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition group-hover:text-[#1877f2]">
                             <ChevronRight className="size-4" aria-hidden />
                           </span>
                         </td>
@@ -857,7 +821,22 @@ export function ScannerSearchGuestPanel({
                 : null}
             </tbody>
           </table>
-        </ReportTable>
+          </div>
+
+          {meta && meta.totalPages > 1 ? (
+            <div className="border-t border-[#e8edf5] px-4 py-3 sm:px-5">
+              <OffsetPagination
+                page={page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                limit={meta.limit}
+                loading={searching}
+                onPageChange={handlePageChange}
+                itemLabel="guests"
+              />
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
     </>

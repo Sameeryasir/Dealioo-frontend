@@ -89,13 +89,15 @@ export default function CampaignWelcomePage() {
           />
         </div>
       ) : activeTabId === "overview" ? (
-        <FunnelOverviewPanel
-          campaignName={campaign?.campaignName}
-          price={campaign?.price}
-          funnelId={funnelId}
-          isFunnelIdLoading={isFunnelIdLoading}
-          onCreateFunnel={() => setActiveTabId("funnel")}
-        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <FunnelOverviewPanel
+            campaignName={campaign?.campaignName}
+            price={campaign?.price}
+            funnelId={funnelId}
+            isFunnelIdLoading={isFunnelIdLoading}
+            onCreateFunnel={() => setActiveTabId("funnel")}
+          />
+        </div>
       ) : activeTabId === "orders" ? (
         <FunnelOrdersPanel
           funnelId={funnelId}

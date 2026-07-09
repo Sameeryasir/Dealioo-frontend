@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { panelCardClass, panelCardPaddingClass } from "@/app/lib/panel-styles";
+
+const overviewChartCardClass =
+  "rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02]";
 
 export function OverviewChartShell({
   title,
@@ -18,14 +20,16 @@ export function OverviewChartShell({
 }) {
   return (
     <div
-      className={`flex h-full min-h-0 flex-col ${panelCardClass} ${panelCardPaddingClass} transition duration-200 hover:shadow-md ${className}`}
+      className={`flex h-full min-h-0 flex-col ${overviewChartCardClass} px-4 py-4 sm:px-5 sm:py-5 ${className}`}
     >
-      <div className="mb-4 shrink-0 border-b border-zinc-100 pb-4">
-        <h3 className="text-sm font-semibold tracking-tight text-zinc-900">
+      <div className="mb-3 shrink-0">
+        <h3 className="m-0 text-[0.82rem] font-extrabold tracking-tight text-[#07111f]">
           {title}
         </h3>
         {subtitle ? (
-          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{subtitle}</p>
+          <p className="m-0 mt-1 text-[0.72rem] font-medium leading-snug text-slate-500">
+            {subtitle}
+          </p>
         ) : null}
       </div>
       <div className={`flex min-h-0 flex-1 flex-col ${minHeightClass}`}>

@@ -1,27 +1,24 @@
 "use client";
 
-import { useCredentialContext } from "@/app/contexts/credential-context";
-import { logoutSession } from "@/app/services/auth/logout";
-import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
-import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
-import BusinessSettingsDialog from "@/app/components/BusinessSettingsDialog";
-import { ArrowBigLeft, Bell, LogOut, Settings, UserRound } from "lucide-react";
+import { getSetupUser } from "@/app/lib/setup-user";
+import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
+import { Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+
+function firstName(fullName: string): string {
+  const part = fullName.trim().split(/\s+/)[0] ?? fullName;
+  if (!part) return "Account";
+  return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+}
 
 export default function BusinessNavbar() {
   const router = useRouter();
   const params = useParams();
-  const { clearPassword } = useCredentialContext();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<"account" | "integrations">(
-    "account",
-  );
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
-  const menuRootRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -37,144 +34,92 @@ export default function BusinessNavbar() {
   const notificationsHref = businessId
     ? `/business/${businessId}/dashboard/activity`
     : "/dashboard/activity";
+  const baseHref = businessId
+    ? `/business/${businessId}/dashboard`
+    : "/dashboard";
+  const displayName = user?.name?.trim() || "Account";
+  const shortName = firstName(displayName);
 
-  const iconButtonClass =
-    "flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] active:scale-[0.98]";
+  // Soft search: jump to the closest matching tool page.
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const q = query.trim().toLowerCase();
+    if (!q) return;
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const el = menuRootRef.current;
-      if (el && !el.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen]);
+    const routes: Array<{ keys: string[]; href: string }> = [
+      { keys: ["campaign", "offer", "ad"], href: `${baseHref}/campaigns` },
+      { keys: ["member", "customer", "guest"], href: `${baseHref}/members` },
+      { keys: ["scan", "qr", "check"], href: `${baseHref}/scanning` },
+      { keys: ["order"], href: `${baseHref}/orders` },
+      { keys: ["chat", "inbox", "message"], href: `${baseHref}/chats` },
+      { keys: ["program", "loyalty", "reward"], href: `${baseHref}/program` },
+      { keys: ["activity", "notif"], href: notificationsHref },
+      { keys: ["menu", "library"], href: `${baseHref}/ad-library` },
+      { keys: ["website", "builder"], href: `${baseHref}/website-builder` },
+    ];
 
-  const handleLogout = useCallback(async () => {
-    await logoutSession();
-    clearSetupUser();
-    clearPassword();
-    setMenuOpen(false);
-    setSettingsOpen(false);
-    router.push("/auth/login");
-  }, [clearPassword, router]);
-
-  const openSettingsDialog = useCallback(() => {
-    setMenuOpen(false);
-    setSettingsSection("integrations");
-    setSettingsOpen(true);
-  }, []);
+    const match = routes.find((route) =>
+      route.keys.some((key) => q.includes(key) || key.includes(q)),
+    );
+    router.push(match?.href ?? `${baseHref}/activity`);
+  };
 
   return (
-    <>
-    <nav
-      className="sticky top-0 z-40 w-full shrink-0 border-b border-white/10 bg-[#0c152f] px-4 py-3 sm:px-6"
-      aria-label="Business dashboard"
-    >
-      <div className="flex w-full items-center justify-between gap-3 bg-[#0c152f] sm:gap-4">
-        <Link
-          href="/dashboard"
-          aria-label="Back to dashboard"
-          className="-ml-4 inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-[#0c152f] sm:-ml-6"
+    <header className="rd-topbar" aria-label="Dashboard tools">
+      <div className="rd-topbar-inner flex h-[var(--rd-header-h)] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-5">
+        <form
+          className="flex min-w-0 max-w-[34rem] flex-1 items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f4f7fb] px-3.5 transition focus-within:border-[#1877f2]/35 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(24,119,242,0.1)]"
+          role="search"
+          onSubmit={handleSearch}
         >
-          <ArrowBigLeft className="size-5 shrink-0 text-white" aria-hidden strokeWidth={2} />
-        </Link>
+          <Search
+            className="size-[1.05rem] shrink-0 text-slate-400"
+            strokeWidth={2}
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search anything…"
+            className="w-full min-w-0 border-0 bg-transparent py-2.5 text-sm font-medium text-[#07111f] outline-none placeholder:text-slate-400"
+            aria-label="Search dashboard"
+          />
+        </form>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+          {/* Notifications — soft filled chip */}
           <Link
             href={notificationsHref}
-            className={iconButtonClass}
+            className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f4f7fb] text-[#07111f] outline-none transition hover:bg-[#e8f1ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
             aria-label="Notifications"
           >
-            <Bell
-              className="size-[1.125rem] text-white"
+            <Bell className="size-[1.125rem]" aria-hidden strokeWidth={2} />
+            {/* Soft presence dot — activity cue without fake unread count */}
+            <span
+              className="absolute top-2 right-2 size-1.5 rounded-full bg-[#1877f2] ring-2 ring-[#f4f7fb]"
               aria-hidden
-              strokeWidth={2}
             />
           </Link>
 
-          <button
-            type="button"
-            onClick={openSettingsDialog}
-            className={iconButtonClass}
-            aria-label="Settings"
-            aria-haspopup="dialog"
-            aria-expanded={settingsOpen}
+          {/* Profile — avatar ring + stacked name/role (not a flat pill).
+              Account actions stay in the sidebar Settings / Logout footer. */}
+          <div
+            className="group flex max-w-[14rem] items-center gap-2.5 rounded-2xl border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] py-1.5 pr-2.5 pl-1.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
+            aria-label={`Signed in as ${displayName}`}
           >
-            <Settings
-              className="size-[1.125rem] text-white"
-              aria-hidden
-              strokeWidth={2}
-            />
-          </button>
+            <span className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
+              <span className="inline-flex size-full items-center justify-center overflow-hidden rounded-full bg-white text-[0.72rem] font-extrabold text-[#0f5ed7]">
+                <UserAccountAvatar user={user} />
+              </span>
+            </span>
 
-          <div ref={menuRootRef} className="relative bg-[#0c152f]">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((o) => !o)}
-              className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#0c152f] text-xs font-semibold uppercase tracking-tight text-white outline-none ring-offset-2 ring-offset-[#0c152f] transition-all hover:border-white/35 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-[#0c152f] active:scale-[0.98] ${
-                menuOpen ? "ring-2 ring-white/50 ring-offset-2 ring-offset-[#0c152f]" : ""
-              }`}
-              aria-expanded={menuOpen}
-              aria-haspopup="menu"
-              aria-label="Account menu"
-            >
-              <UserAccountAvatar user={user} />
-            </button>
-
-            {menuOpen ? (
-              <div
-                role="menu"
-                aria-label="Account actions"
-                className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-zinc-200/80 bg-white py-1 shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-900/[0.04]"
-              >
-                <Link
-                  href="/dashboard/profile"
-                  role="menuitem"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-black"
-                >
-                  <UserRound
-                    className="size-4 shrink-0 text-zinc-500"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  Profile
-                </Link>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-black"
-                >
-                  <LogOut
-                    className="size-4 shrink-0 text-zinc-500"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                  Logout
-                </button>
-              </div>
-            ) : null}
+            <span className="hidden min-w-0 truncate pr-1 text-[0.8125rem] font-extrabold tracking-tight text-black sm:inline">
+              {shortName}
+            </span>
           </div>
         </div>
       </div>
-    </nav>
-
-    <BusinessSettingsDialog
-      open={settingsOpen}
-      onOpenChange={setSettingsOpen}
-      onSignOut={handleLogout}
-      initialSection={settingsSection}
-    />
-    </>
+    </header>
   );
 }

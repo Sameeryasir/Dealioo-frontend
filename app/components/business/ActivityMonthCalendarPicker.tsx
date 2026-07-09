@@ -33,10 +33,12 @@ export function ActivityMonthCalendarPicker({
   value,
   onChange,
   className = "",
+  compact = false,
 }: {
   value: string;
   onChange: (monthKey: string) => void;
   className?: string;
+  compact?: boolean;
 }) {
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
   const selectedLabel = useMemo(
@@ -173,27 +175,48 @@ export function ActivityMonthCalendarPicker({
 
   return (
     <div ref={anchorRef} className={className}>
-      <label className="flex w-full min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600 sm:w-auto sm:shrink-0">
-        Month
+      {compact ? (
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label="Choose month"
-          className="flex h-[42px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-sm text-zinc-900 transition hover:border-zinc-300 focus-visible:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10 sm:min-w-[12rem]"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-2 text-[0.75rem] font-bold text-slate-700 transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
         >
-          <Calendar className="size-4 shrink-0 text-zinc-500" aria-hidden />
-          <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
+          <Calendar className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
+          <span className="max-w-[10rem] truncate">{selectedLabel}</span>
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={{ duration: 0.24, ease: automationEase }}
-            className="shrink-0 text-zinc-400"
+            className="shrink-0 text-slate-400"
           >
-            <ChevronDown className="size-4" aria-hidden />
+            <ChevronDown className="size-3.5" aria-hidden />
           </motion.span>
         </button>
-      </label>
+      ) : (
+        <label className="flex w-full min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600 sm:w-auto sm:shrink-0">
+          Month
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            aria-label="Choose month"
+            className="flex h-[42px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-sm text-zinc-900 transition hover:border-zinc-300 focus-visible:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10 sm:min-w-[12rem]"
+          >
+            <Calendar className="size-4 shrink-0 text-zinc-500" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
+            <motion.span
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.24, ease: automationEase }}
+              className="shrink-0 text-zinc-400"
+            >
+              <ChevronDown className="size-4" aria-hidden />
+            </motion.span>
+          </button>
+        </label>
+      )}
 
       {mounted
         ? createPortal(

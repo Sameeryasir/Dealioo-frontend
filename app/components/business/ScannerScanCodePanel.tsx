@@ -325,55 +325,59 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}
             onScanAgain={() => void resetScan()}
           />
         ) : (
-        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm shadow-zinc-200/40 ring-1 ring-zinc-950/[0.03]">
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
           {scanState === "idle" ? (
-            <div className="flex flex-col items-center gap-5 px-6 py-12 sm:py-14">
-              <div className="relative flex size-20 items-center justify-center">
+            <div className="flex flex-1 flex-col items-center justify-center gap-5 px-2 py-8 sm:py-10">
+              <div className="relative flex size-28 items-center justify-center">
                 <span
-                  className="absolute inset-2 rounded-2xl border border-dashed border-zinc-200/90"
+                  className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
                   aria-hidden
                 />
-                <div className="relative flex size-[4.75rem] items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-50 via-white to-zinc-100 shadow-sm ring-1 ring-zinc-200/90">
-                  <ScanLine className="size-9 text-zinc-800" strokeWidth={1.75} aria-hidden />
-                </div>
+                <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
+                  <ScanLine
+                    className="size-10 text-[#1877f2]"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                </span>
               </div>
-              <p className="max-w-xs text-center text-sm font-medium leading-relaxed text-zinc-700">
+              <p className="max-w-xs text-center text-[0.82rem] font-medium leading-relaxed text-slate-700">
                 Open the camera to scan a customer QR code.
               </p>
               <button
                 type="button"
                 onClick={startScanner}
-                className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition-all duration-200 hover:bg-zinc-800 hover:shadow-lg hover:shadow-zinc-900/25 active:scale-[0.98]"
+                className="inline-flex items-center gap-2 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
               >
-                <ScanLine className="size-4" aria-hidden />
+                <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
                 Start camera
               </button>
             </div>
           ) : null}
 
           {scanState === "scanning" ? (
-            <div className="p-4">
-              <div className="relative overflow-hidden rounded-xl ring-2 ring-zinc-900/10 ring-offset-2 ring-offset-white">
+            <div>
+              <div className="relative overflow-hidden rounded-[1.1rem] ring-2 ring-[#1877f2]/20 ring-offset-2 ring-offset-white">
                 <div
                   id="qr-reader"
-                  className="min-h-[280px] overflow-hidden rounded-xl bg-zinc-950 [&_video]:min-h-[280px] [&_video]:w-full [&_video]:rounded-xl [&_video]:object-cover"
+                  className="min-h-[280px] overflow-hidden rounded-[1.1rem] bg-[#07111f] [&_video]:min-h-[280px] [&_video]:w-full [&_video]:rounded-[1.1rem] [&_video]:object-cover"
                 />
               </div>
-              <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
+              <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-slate-700">
                 Allow camera access if your browser asks. On a laptop, use the
                 built-in webcam.
               </p>
               <button
                 type="button"
                 onClick={() => void resetScan()}
-                className="mt-4 w-full rounded-xl border border-zinc-200 bg-white py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.99]"
+                className="mt-4 w-full cursor-pointer rounded-full border border-[#e8edf5] bg-white py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:bg-[#f4f7fb] hover:text-black"
               >
                 Cancel
               </button>
@@ -381,21 +385,23 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "loading" ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-14">
-              <Loader2 className="size-10 animate-spin text-zinc-500" aria-hidden />
-              <p className="text-sm font-medium text-zinc-700">Loading customer…</p>
+            <div className="flex flex-col items-center gap-3 px-6 py-12">
+              <Loader2 className="size-10 animate-spin text-[#1877f2]" aria-hidden />
+              <p className="text-[0.82rem] font-medium text-slate-700">
+                Loading customer…
+              </p>
             </div>
           ) : null}
 
           {scanState === "preview" ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-              <p className="text-sm font-medium text-zinc-700">
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+              <p className="text-[0.82rem] font-medium text-slate-700">
                 Customer found. Confirm redemption in the popup.
               </p>
               <button
                 type="button"
                 onClick={() => void resetScan()}
-                className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                className="cursor-pointer rounded-full border border-[#e8edf5] px-4 py-2 text-[0.8rem] font-bold text-slate-700 transition hover:bg-[#f4f7fb]"
               >
                 Cancel
               </button>
@@ -403,44 +409,44 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "success" && successResult ? (
-            <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-emerald-100">
-                <CheckCircle2 className="size-10 text-emerald-500" aria-hidden />
+            <div className="flex flex-col items-center gap-4 px-2 py-8 text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-[#ecfdf5] ring-1 ring-[#bbf7d0]/80">
+                <CheckCircle2 className="size-10 text-[#22c55e]" aria-hidden />
               </div>
               <div>
-                <p className="text-lg font-semibold text-zinc-900">Redeemed!</p>
-                <p className="mt-1 text-sm text-zinc-500">
+                <p className="text-[1.05rem] font-extrabold text-black">Redeemed!</p>
+                <p className="mt-1 text-[0.82rem] text-slate-700">
                   Offer successfully applied.
                 </p>
               </div>
-              <dl className="w-full rounded-xl border border-zinc-100 bg-gradient-to-b from-zinc-50 to-white px-4 py-3 text-left text-sm shadow-sm">
+              <dl className="w-full rounded-[1rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-4 py-3 text-left text-sm">
                 <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-zinc-500">Customer</dt>
-                  <dd className="font-medium text-zinc-900">
+                  <dt className="text-slate-700">Customer</dt>
+                  <dd className="font-bold text-black">
                     {successResult.customerName}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-zinc-500">Campaign</dt>
-                  <dd className="font-medium text-zinc-900">
+                  <dt className="text-slate-700">Campaign</dt>
+                  <dd className="font-bold text-black">
                     {successResult.campaignName}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-zinc-500">Total visits</dt>
-                  <dd className="font-medium text-zinc-900">
+                  <dt className="text-slate-700">Total visits</dt>
+                  <dd className="font-bold text-black">
                     {successResult.totalVisits}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-zinc-500">Rewards available</dt>
-                  <dd className="font-medium text-zinc-900">
+                  <dt className="text-slate-700">Rewards available</dt>
+                  <dd className="font-bold text-black">
                     {successResult.rewardsAvailable}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-zinc-500">Redeemed at</dt>
-                  <dd className="font-medium text-zinc-900">
+                  <dt className="text-slate-700">Redeemed at</dt>
+                  <dd className="font-bold text-black">
                     {formatDateTimeShort(successResult.redeemedAt)}
                   </dd>
                 </div>
@@ -448,7 +454,7 @@ export function ScannerScanCodePanel({
               <button
                 type="button"
                 onClick={() => void resetScan()}
-                className="rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition-all duration-200 hover:bg-zinc-800 hover:shadow-lg active:scale-[0.98]"
+                className="rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
               >
                 Scan another
               </button>
@@ -456,16 +462,16 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "error" ? (
-            <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-red-50 ring-1 ring-red-100">
-                <XCircle className="size-10 text-red-500" aria-hidden />
+            <div className="flex flex-col items-center gap-4 px-2 py-8 text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-[#fef2f2] ring-1 ring-[#fecaca]/80">
+                <XCircle className="size-10 text-[#ef4444]" aria-hidden />
               </div>
-              <p className="text-lg font-semibold text-zinc-900">Scan failed</p>
-              <p className="max-w-sm text-sm text-red-600">{errorMessage}</p>
+              <p className="text-[1.05rem] font-extrabold text-black">Scan failed</p>
+              <p className="max-w-sm text-[0.82rem] text-[#dc2626]">{errorMessage}</p>
               <button
                 type="button"
                 onClick={() => void resetScan()}
-                className="rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition-all duration-200 hover:bg-zinc-800 hover:shadow-lg active:scale-[0.98]"
+                className="rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
               >
                 Try again
               </button>

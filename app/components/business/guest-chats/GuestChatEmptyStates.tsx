@@ -25,11 +25,11 @@ function GuestChatEmptyStateShell({
   title: string;
   description: string;
   action?: ReactNode;
-  accent?: "blue" | "violet" | "zinc";
+  accent?: "blue" | "pink" | "zinc";
 }) {
   const accentClass =
-    accent === "violet"
-      ? "from-violet-500 to-indigo-600 shadow-violet-500/20 ring-violet-100"
+    accent === "pink"
+      ? "from-[#e1306c] to-[#be185d] shadow-[#e1306c]/20 ring-[#fbcfe8]"
       : accent === "zinc"
         ? "from-zinc-500 to-zinc-600 shadow-zinc-500/15 ring-zinc-100"
         : "from-blue-500 to-blue-600 shadow-blue-500/20 ring-blue-100";
@@ -86,7 +86,7 @@ export function GuestChatNoThreadsEmptyState() {
   return (
     <GuestChatEmptyStateShell
       icon={Inbox}
-      accent="violet"
+      accent="pink"
       title="No chats yet"
       description="When automations send emails or texts, each guest thread will appear in your inbox."
       action={
@@ -114,7 +114,7 @@ export function GuestChatNoMessagesEmptyState() {
   return (
     <GuestChatEmptyStateShell
       icon={Sparkles}
-      accent="violet"
+      accent="pink"
       title="No messages yet"
       description="Emails and texts from automations will appear here once they are sent to this guest."
     />
