@@ -1,7 +1,7 @@
 "use client";
 
 import type { AdminRestaurant } from "@/app/services/restaurant/get-my-restaurant";
-import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import { resolveUploadImageUrl, spacesImageLoadProps } from "@/app/lib/resolve-upload-image-url";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import {
   ArrowUpRight,
@@ -80,7 +80,7 @@ export default function RestaurantDashboardCard({
       >
         <span className="org-biz-card-thumb">
           {logoSrc ? (
-            <img src={logoSrc} alt="" className="h-full w-full object-cover" />
+            <img src={logoSrc} alt="" className="h-full w-full object-cover" {...spacesImageLoadProps} />
           ) : (
             <Store className="size-6 text-brand-primary/50" strokeWidth={1.5} aria-hidden />
           )}
@@ -124,7 +124,7 @@ export default function RestaurantDashboardCard({
       <div className="org-biz-card-inner">
         <div className="org-biz-card-hero">
           {logoSrc ? (
-            <img src={logoSrc} alt="" className="org-biz-card-hero-img" />
+            <img src={logoSrc} alt="" className="org-biz-card-hero-img" {...spacesImageLoadProps} />
           ) : (
             <span className="org-biz-card-hero-fallback" aria-hidden>
               <Store className="size-8 text-[#93c5fd]" strokeWidth={1.75} />

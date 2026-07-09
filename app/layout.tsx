@@ -35,6 +35,11 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
+const spacesCdnOrigin = process.env.NEXT_PUBLIC_DO_SPACES_CDN_URL?.trim()?.replace(
+  /\/$/,
+  "",
+);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -46,6 +51,11 @@ export default function RootLayout({
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
       style={{ colorScheme: "light" }}
     >
+      <head>
+        {spacesCdnOrigin ? (
+          <link rel="preconnect" href={spacesCdnOrigin} crossOrigin="anonymous" />
+        ) : null}
+      </head>
       <body className={`${poppins.className} min-h-full flex flex-col antialiased`}>
         <StoreProvider>
           <QueryProvider>

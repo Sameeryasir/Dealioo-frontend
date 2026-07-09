@@ -1,7 +1,7 @@
 "use client";
 
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
-import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import { resolveUploadImageUrl, spacesImageLoadProps } from "@/app/lib/resolve-upload-image-url";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -88,6 +88,7 @@ export default function CampaignFunnelCard({ funnel, restaurantId }: Props) {
               src={imageSrc}
               alt={`Campaign ${funnel.id}`}
               className="h-full w-full object-cover"
+              {...spacesImageLoadProps}
               onError={() => setImageFailed(true)}
             />
           ) : (
