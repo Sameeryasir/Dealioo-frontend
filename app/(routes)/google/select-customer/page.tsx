@@ -117,7 +117,7 @@ function SelectGoogleCustomerInner() {
   if (restaurantId == null) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-4">
-        <p className="text-sm text-red-700">Missing restaurant. Go back and try again.</p>
+        <p className="text-sm text-red-700">Missing business. Go back and try again.</p>
       </main>
     );
   }
@@ -149,7 +149,7 @@ function SelectGoogleCustomerInner() {
           Choose your Google Ads account
         </h1>
         <p className="mt-2 text-center text-sm text-zinc-600">
-          Pick the Google Ads customer account for this restaurant. Campaign
+          Pick the Google Ads customer account for this business. Campaign
           stats will only come from this account.
         </p>
 

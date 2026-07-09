@@ -27,7 +27,7 @@ import {
 import { createPortal } from "react-dom";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
 import { primaryButtonMdClass } from "@/app/lib/panel-styles";
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { updateCampaign } from "@/app/services/funnel/update-campaign";
 
 const inputClassName =

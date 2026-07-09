@@ -24,7 +24,7 @@ function FacebookConnectSuccessInner() {
           Facebook connected
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Your Facebook account is linked to this restaurant. You can run ads and
+          Your Facebook account is linked to this business. You can run ads and
           use your funnel tracking link in Meta Ads Manager.
         </p>
         <Link

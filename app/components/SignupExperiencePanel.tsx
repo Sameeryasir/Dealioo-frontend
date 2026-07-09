@@ -45,8 +45,8 @@ function LivePreviewCard({
     ? email.trim()
       ? email.split("@")[0] || "Your account"
       : "Your account"
-    : name.trim() || "Your restaurant";
-  const displayEmail = email.trim() || (isLogin ? "Sign in to view your dashboard" : "you@restaurant.com");
+    : name.trim() || "Your business";
+  const displayEmail = email.trim() || (isLogin ? "Sign in to view your dashboard" : "you@business.com");
   const cardTitle = isLogin ? "Dashboard snapshot" : "Live preview";
   const journeyLabel = isLogin ? "Active guest funnel" : "Guest journey";
 

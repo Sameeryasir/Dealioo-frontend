@@ -88,7 +88,7 @@ export function BookMeetingBusinessStep({
               type="text"
               autoFocus
               className={styles.businessNameInput}
-              placeholder="Restaurant, salon, or gym"
+              placeholder="Business, salon, or gym"
               value={businessCategory}
               onChange={(event) => onCategoryChange(event.target.value)}
             />

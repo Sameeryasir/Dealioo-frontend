@@ -4,7 +4,7 @@ export default function RestaurantWebsiteBuilderPage() {
   return (
     <ComingSoonRoutePage
       title="Website builder"
-      description="Design and publish your restaurant website from one place."
+      description="Design and publish your business website from one place."
     />
   );
 }

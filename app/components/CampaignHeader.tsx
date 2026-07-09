@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
   buildFunnelPublicPath,
   resolveFunnelRouteId,

@@ -2,7 +2,7 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
-import type { ConversationMessage } from "@/app/services/chat/get-restaurant-conversation";
+import type { ConversationMessage } from "@/app/services/chat/get-business-conversation";
 
 export async function sendCustomerMessage(
   restaurantId: number,
@@ -13,7 +13,7 @@ export async function sendCustomerMessage(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!isPositiveInt(restaurantId)) {
-    throw new Error("Valid restaurant id is required.");
+    throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(customerId)) {
     throw new Error("Valid customer id is required.");

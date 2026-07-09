@@ -16,11 +16,11 @@ import SearchNoMatchFound from "@/app/components/SearchNoMatchFound";
 import { Megaphone, Plus } from "lucide-react";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
-import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
+import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
-import { CAMPAIGNS_PAGE_SIZE } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import { CAMPAIGNS_PAGE_SIZE } from "@/app/services/funnel/get-campaigns-by-business";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
@@ -29,9 +29,9 @@ import {
   createCampaign,
   extractCampaignIdFromCreateResponse,
 } from "@/app/services/funnel/create-campaign";
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 
-export default function RestaurantCampaignsPage() {
+export default function BusinessCampaignsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const params = useParams();
@@ -65,7 +65,7 @@ export default function RestaurantCampaignsPage() {
     isFetching: funnelsFetching,
     error: funnelsError,
     refetch: loadFunnels,
-  } = useCampaignsByRestaurantQuery(restaurantId, {
+  } = useCampaignsByBusinessQuery(restaurantId, {
     page,
     search: searchQuery,
   });

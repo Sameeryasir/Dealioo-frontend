@@ -13,7 +13,7 @@ export async function connectGoogleAds(
     throw new Error("You're signed out. Sign in again to connect Google Ads.");
   }
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
 
   const res = await authenticatedFetch(

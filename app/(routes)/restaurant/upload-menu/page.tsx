@@ -7,7 +7,7 @@ import { OnboardingRouteGuard } from "@/app/components/OnboardingRouteGuard";
 import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
-import { uploadRestaurantMenu } from "@/app/services/restaurant/upload-menu";
+import { uploadBusinessMenu } from "@/app/services/business/upload-menu";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -34,11 +34,11 @@ function UploadMenuPageInner() {
   }, []);
 
   const onSubmit = useCallback(
-    async (payload: Parameters<typeof uploadRestaurantMenu>[1]) => {
+    async (payload: Parameters<typeof uploadBusinessMenu>[1]) => {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        await uploadRestaurantMenu(accessToken, payload);
+        await uploadBusinessMenu(accessToken, payload);
         const status = await getOnboardingStatus(payload.restaurantId);
         router.push(resolvePostLoginPath(status));
       } catch (error) {

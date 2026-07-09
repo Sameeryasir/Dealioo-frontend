@@ -36,8 +36,8 @@ const COPY: Record<
     badge: "Pass expired",
     title: "Oops! Your QR pass has expired",
     subtitle: "This offer is past its expiry date",
-    message: "This QR code can no longer be scanned at the restaurant.",
-    hint: "Contact the restaurant if you believe this is a mistake.",
+    message: "This QR code can no longer be scanned at the business.",
+    hint: "Contact the business if you believe this is a mistake.",
     variant: "danger",
   },
   redeemed: {
@@ -46,7 +46,7 @@ const COPY: Record<
     subtitle: "Your visit was recorded",
     message:
       "This QR code has already been scanned and redeemed. Each pass works only once.",
-    hint: "If you need another offer, sign up again or contact the restaurant.",
+    hint: "If you need another offer, sign up again or contact the business.",
     variant: "success",
   },
   default: {
@@ -54,7 +54,7 @@ const COPY: Record<
     title: "Oops! Your QR pass has expired",
     subtitle: "This pass cannot be displayed",
     message: "This QR code is no longer available.",
-    hint: "Please contact the restaurant if you need help.",
+    hint: "Please contact the business if you need help.",
     variant: "danger",
   },
   loadFailed: {

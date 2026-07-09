@@ -4,7 +4,7 @@ export default function MembersPage() {
   return (
     <ComingSoonRoutePage
       title="Members"
-      description="Manage team members and permissions for your restaurant."
+      description="Manage team members and permissions for your business."
     />
   );
 }

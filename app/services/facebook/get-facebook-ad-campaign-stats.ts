@@ -30,7 +30,7 @@ export async function getFacebookAdCampaignStats(
   websiteUrl?: string | null,
 ): Promise<FacebookAdCampaignStats> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
 
   const params = new URLSearchParams();

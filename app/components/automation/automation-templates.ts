@@ -44,7 +44,7 @@ const PAYMENT_REMINDER_EMAIL_CONFIG = {
 /** Shared payment-reminder SMS copy (Abandoned Cart payment branch). */
 const PAYMENT_REMINDER_SMS_CONFIG = {
   message:
-    "Hi [First Name] — thank you for signing up!\n\nYour offer is almost ready. Complete your payment here: [Payment Link]\n\nPrefer to pay when you visit?\n• Save your pass to Google Wallet: [Pass Link]\n• Come by the restaurant — we'll scan your pass at checkout.\n\nWe look forward to seeing you!",
+    "Hi [First Name] — thank you for signing up!\n\nYour offer is almost ready. Complete your payment here: [Payment Link]\n\nPrefer to pay when you visit?\n• Save your pass to Google Wallet: [Pass Link]\n• Come by the business — we'll scan your pass at checkout.\n\nWe look forward to seeing you!",
   linkLabel: "View Your Pass",
 } as const;
 
@@ -197,7 +197,7 @@ export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
       key: "action_payment",
       kind: "send_sms",
       label: "Send Text",
-      summary: "Register thanks, pay online, or add pass to Wallet then visit restaurant.",
+      summary: "Register thanks, pay online, or add pass to Wallet then visit business.",
       config: {
         flowBranch: FLOW_BRANCH_PAYMENT,
         ...PAYMENT_REMINDER_SMS_CONFIG,
@@ -225,7 +225,7 @@ const QR_PASS_EMAIL_CONFIG = {
   subject: "Your QR pass is ready — add to Wallet",
   template: "QR pass guide",
   message:
-    "Your offer pass is ready! Tap the button below to view your QR code.\n\nHow to use your pass:\n1. Open your pass and tap Add to Apple Wallet or Google Wallet\n2. Visit the restaurant and show your pass at the scanner when you pay\n\nPrefer to pay online? You can still complete checkout anytime.",
+    "Your offer pass is ready! Tap the button below to view your QR code.\n\nHow to use your pass:\n1. Open your pass and tap Add to Apple Wallet or Google Wallet\n2. Visit the business and show your pass at the scanner when you pay\n\nPrefer to pay online? You can still complete checkout anytime.",
   headline: "Your QR pass is ready",
   ctaLabel: "View my pass",
 } as const;
@@ -316,7 +316,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
   name: "Prepaid Offer",
   category: "Guest Journey",
   description:
-    "Runs after a guest pays. Sends thank-you and confirmation emails, a pass reminder, then follow-ups after they visit the restaurant (when their pass is scanned).",
+    "Runs after a guest pays. Sends thank-you and confirmation emails, a pass reminder, then follow-ups after they visit the business (when their pass is scanned).",
   trigger: "Payment",
   purpose: "funnel_payment",
   nodes: [
@@ -363,7 +363,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
         subject: "Your offer is ready — visit us anytime",
         template: "Payment confirmation",
         message:
-          "Hi [First Name] — your offer is ready whenever you visit! Show your pass at the restaurant when you arrive.",
+          "Hi [First Name] — your offer is ready whenever you visit! Show your pass at the business when you arrive.",
         headline: "Your offer is ready",
         ctaLabel: "View Your Pass",
       },
@@ -372,7 +372,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
       key: "filter_visited",
       kind: "condition",
       label: "Filters",
-      summary: "Customer visited (pass scanned at restaurant)",
+      summary: "Customer visited (pass scanned at business)",
       config: {
         conditionType: "Customer visited",
         value: "Customer visited",

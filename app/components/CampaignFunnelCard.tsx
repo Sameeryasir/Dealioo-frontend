@@ -1,6 +1,6 @@
 "use client";
 
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { resolveUploadImageUrl, spacesImageLoadProps } from "@/app/lib/resolve-upload-image-url";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";

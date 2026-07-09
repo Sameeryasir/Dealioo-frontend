@@ -11,7 +11,7 @@ import {
   getFunnelCampaignPrice,
   setFunnelCampaignPrice,
 } from "@/app/lib/funnel-campaign-price-storage";
-import { useCampaignsByRestaurantQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
+import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 
 export function useCampaignPricing(
   campaignId: number | null | undefined,
@@ -20,7 +20,7 @@ export function useCampaignPricing(
 ): CampaignPricing {
   const searchParams = useSearchParams();
 
-  const { data: campaigns } = useCampaignsByRestaurantQuery(
+  const { data: campaigns } = useCampaignsByBusinessQuery(
     override ? null : restaurantId,
   );
 

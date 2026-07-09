@@ -7,7 +7,7 @@ import {
   appendChatConversationMessage,
   patchChatCustomersAfterSendInIndexedDb,
 } from "@/app/services/chat/chat-indexed-db";
-import type { ChatCustomer } from "@/app/services/chat/get-restaurant-chat-customers";
+import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
 import { sendCustomerMessage } from "@/app/services/chat/send-customer-message";
 
 export function useSendCustomerMessage(

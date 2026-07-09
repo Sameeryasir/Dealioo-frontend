@@ -1,7 +1,7 @@
 import type {
   ConversationMessage,
   ConversationMessageKind,
-} from "@/app/services/chat/get-restaurant-conversation";
+} from "@/app/services/chat/get-business-conversation";
 import { isPusherConfigured } from "@/app/lib/pusher-execution";
 
 export { isPusherConfigured };

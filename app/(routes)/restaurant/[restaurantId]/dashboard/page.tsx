@@ -4,7 +4,7 @@ import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export default function RestaurantDashboardPage() {
+export default function BusinessDashboardPage() {
   const router = useRouter();
   const params = useParams();
   const restaurantId = params?.restaurantId;

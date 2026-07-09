@@ -100,7 +100,7 @@ export function MetaPrivacyPolicyContent() {
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base">
             This policy explains how <strong className="font-semibold text-zinc-800">Dealioo</strong>{" "}
-            uses Meta (Facebook) when restaurant owners connect their accounts,
+            uses Meta (Facebook) when business owners connect their accounts,
             build campaigns, and publish ads. It is written in plain language so
             you know exactly what we do and what data we handle.
           </p>
@@ -117,7 +117,7 @@ export function MetaPrivacyPolicyContent() {
             <div>
               <h2 className="text-lg font-semibold text-zinc-900">What Dealioo does</h2>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                Dealioo is a restaurant marketing platform. We help you run
+                Dealioo is a business marketing platform. We help you run
                 promotional campaigns, build signup funnels, track guests, and
                 measure results. When you connect Meta, we act as your authorized
                 tool to manage advertising through the{" "}
@@ -258,7 +258,7 @@ export function MetaPrivacyPolicyContent() {
                 <li>Meta access tokens are encrypted at rest in our database.</li>
                 <li>Tokens are transmitted only over HTTPS to Meta&apos;s Graph API.</li>
                 <li>Audit logs exclude secrets, tokens, and passwords.</li>
-                <li>Only authorized restaurant admins can connect or disconnect Meta for their account.</li>
+                <li>Only authorized business admins can connect or disconnect Meta for their account.</li>
               </ul>
             </div>
           </div>
@@ -298,10 +298,10 @@ export function MetaPrivacyPolicyContent() {
           <h2 className="text-lg font-semibold text-zinc-900">Other platform data (brief)</h2>
           <p className="mt-2 text-sm leading-relaxed text-zinc-600">
             Beyond Meta, Dealioo collects guest signup data (name, email, phone)
-            through restaurant funnels, payment details processed by Stripe (we do
-            not store full card numbers), and restaurant account information you
+            through business funnels, payment details processed by Stripe (we do
+            not store full card numbers), and business account information you
             provide when registering. That data is separate from Meta and is used
-            to run campaigns, passes, and retention features for your restaurant.
+            to run campaigns, passes, and retention features for your business.
           </p>
         </section>
 

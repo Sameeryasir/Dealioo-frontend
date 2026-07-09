@@ -74,7 +74,7 @@ function FunnelCampaignPaymentPageInner() {
             ? checkoutError
             : !checkoutToken
               ? "Complete signup first to get your checkout link."
-              : "Add ?restaurantId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID."}
+              : "Add ?businessId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_RESTAURANT_ID."}
         </div>
       ) : null}
       <TemplatePreview

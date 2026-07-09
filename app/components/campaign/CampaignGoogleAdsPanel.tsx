@@ -329,7 +329,7 @@ export function CampaignGoogleAdsPanel({
                     Google linked, pick your Ads account
                   </p>
                   <p className="mt-1 text-sm text-zinc-600">
-                    Choose which customer account powers this restaurant.
+                    Choose which customer account powers this business.
                   </p>
                 </div>
               </div>

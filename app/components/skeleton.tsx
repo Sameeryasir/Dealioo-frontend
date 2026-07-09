@@ -38,7 +38,7 @@ export function SkeletonGrid({
 const restaurantCardShell =
   "org-biz-card org-biz-card--grid min-h-[18.5rem] rounded-2xl p-4 sm:p-5";
 
-export function RestaurantCardSkeleton() {
+export function BusinessCardSkeleton() {
   return (
     <article className={restaurantCardShell} aria-hidden>
       <div className="flex items-start justify-between gap-3">

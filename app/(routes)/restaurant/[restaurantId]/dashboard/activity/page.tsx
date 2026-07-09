@@ -1,7 +1,7 @@
 "use client";
 
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { RestaurantActivityPanel } from "@/app/components/restaurant/RestaurantActivityPanel";
+import { BusinessActivityPanel } from "@/app/components/business/BusinessActivityPanel";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -17,5 +17,5 @@ export default function RestaurantActivityPage() {
     return <InvalidRouteMessage />;
   }
 
-  return <RestaurantActivityPanel restaurantId={restaurantId} />;
+  return <BusinessActivityPanel restaurantId={restaurantId} />;
 }

@@ -1,4 +1,4 @@
-import { RestaurantDashboardShell } from "@/app/components/RestaurantDashboardShell";
+import { BusinessDashboardShell } from "@/app/components/BusinessDashboardShell";
 import { OnboardingCompleteGuard } from "@/app/components/OnboardingCompleteGuard";
 
 export default function RestaurantDashboardLayout({
@@ -8,7 +8,7 @@ export default function RestaurantDashboardLayout({
 }>) {
   return (
     <OnboardingCompleteGuard>
-      <RestaurantDashboardShell>{children}</RestaurantDashboardShell>
+      <BusinessDashboardShell>{children}</BusinessDashboardShell>
     </OnboardingCompleteGuard>
   );
 }

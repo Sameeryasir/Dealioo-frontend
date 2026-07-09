@@ -1,7 +1,7 @@
 "use client";
 
 import { getChatUnreadSummary } from "@/app/services/chat/get-chat-unread-summary";
-import { markRestaurantChatsRead } from "@/app/services/chat/mark-restaurant-chats-read";
+import { markRestaurantChatsRead } from "@/app/services/chat/mark-business-chats-read";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import {
   readChatHasUnread,
@@ -10,7 +10,7 @@ import {
 import { getSetupUser } from "@/app/lib/setup-user";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useRestaurantChatPusher } from "@/app/hooks/use-restaurant-chat-pusher";
+import { useBusinessChatPusher } from "@/app/hooks/use-business-chat-pusher";
 
 function isOnChatsRoute(pathname: string, chatsPathPrefix: string | null): boolean {
   if (!chatsPathPrefix) return false;
@@ -119,7 +119,7 @@ export function useChatSidebarUnread(
     return () => window.removeEventListener("focus", onFocus);
   }, [restaurantId, userId, onChatsPage, refreshUnreadFromServer]);
 
-  useRestaurantChatPusher(restaurantId ?? 0, (payload) => {
+  useBusinessChatPusher(restaurantId ?? 0, (payload) => {
     const restaurant = restaurantIdRef.current;
     const user = userIdRef.current;
     if (restaurant == null || restaurant < 1 || user == null) return;

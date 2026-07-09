@@ -6,7 +6,7 @@ export async function setFacebookAdAccount(
   adAccountId: string,
 ): Promise<{ metaAdAccountId: string }> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
   if (!adAccountId.trim()) {
     throw new Error("Please choose an ad account.");

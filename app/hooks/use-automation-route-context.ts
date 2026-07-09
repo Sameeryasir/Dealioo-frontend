@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
-import { parseRestaurantDashboardPathIds } from "@/app/lib/restaurant-dashboard-pathname";
+import { parseBusinessDashboardPathIds } from "@/app/lib/business-dashboard-pathname";
 
 /**
  * Restaurant + campaign ids from the URL (campaign workspace path).
@@ -13,7 +13,7 @@ export function useAutomationRouteContext() {
   const pathname = usePathname() ?? "";
 
   const { restaurantId, campaignId } = useMemo(
-    () => parseRestaurantDashboardPathIds(pathname),
+    () => parseBusinessDashboardPathIds(pathname),
     [pathname],
   );
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyRestaurantCampaignsPage() {
+export default function LegacyBusinessCampaignsPage() {
   redirect("/dashboard");
 }

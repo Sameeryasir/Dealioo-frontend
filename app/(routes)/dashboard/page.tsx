@@ -1,16 +1,16 @@
 "use client";
 
 import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
-import RestaurantDashboardCard from "@/app/components/RestaurantDashboardCard";
+import BusinessDashboardCard from "@/app/components/BusinessDashboardCard";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
-  RestaurantCardSkeleton,
+  BusinessCardSkeleton,
   SkeletonGrid,
 } from "@/app/components/skeleton";
-import { useMyRestaurantsQuery } from "@/app/hooks/use-my-restaurants-query";
+import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { getSetupUser } from "@/app/lib/setup-user";
-import { MY_RESTAURANTS_PAGE_SIZE } from "@/app/services/restaurant/get-my-restaurant";
+import { MY_RESTAURANTS_PAGE_SIZE } from "@/app/services/business/get-my-business";
 import { Filter, Megaphone, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -45,7 +45,7 @@ export default function DashboardPage() {
     isFetching,
     error: errorMessage,
     refetch: loadRestaurants,
-  } = useMyRestaurantsQuery({ page });
+  } = useMyBusinessesQuery({ page });
 
   const sortedRestaurants = useMemo(() => {
     const copy = [...restaurants];
@@ -132,7 +132,7 @@ export default function DashboardPage() {
               {showSkeleton ? (
                 <SkeletonGrid
                   className="org-dashboard-grid org-dashboard-grid--cards grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
-                  Card={RestaurantCardSkeleton}
+                  Card={BusinessCardSkeleton}
                 />
               ) : errorMessage ? (
                 <AsyncErrorRetry
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                 <>
                   <div className="org-dashboard-grid org-dashboard-grid--cards grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                     {sortedRestaurants.map((r, index) => (
-                      <RestaurantDashboardCard
+                      <BusinessDashboardCard
                         key={r.id ?? `restaurant-${index}`}
                         restaurant={r}
                         layout="grid"

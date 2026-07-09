@@ -48,7 +48,7 @@ function assertPayload(
     throw new Error("Funnel id is required.");
   }
   if (!isPositiveInt(payload.restaurantId)) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
   const currency = payload.currency?.trim().toLowerCase();
   if (!currency) {

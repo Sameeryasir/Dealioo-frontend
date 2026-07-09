@@ -42,7 +42,7 @@ export async function createCampaign(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!Number.isFinite(payload.restaurantId) || payload.restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
   if (!payload.campaignName.trim()) {
     throw new Error("Campaign name is required.");

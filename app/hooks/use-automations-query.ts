@@ -17,7 +17,7 @@ export function useAutomationsQuery(restaurantId: number | null | undefined) {
         : automationQueryKeys.lists(),
     queryFn: async () => {
       if (restaurantId == null) {
-        throw new Error("Restaurant id is missing from the URL.");
+        throw new Error("Business id is missing from the URL.");
       }
       const list = await getAutomations(restaurantId);
       return list.map((automation) => mapAutomationToListItem(automation));

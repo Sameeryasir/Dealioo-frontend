@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useRestaurantChatPusher } from "@/app/hooks/use-restaurant-chat-pusher";
+import { useBusinessChatPusher } from "@/app/hooks/use-business-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   getLatestMessageWindow,
-} from "@/app/components/restaurant/guest-chats/guest-chats-utils";
+} from "@/app/components/business/guest-chats/guest-chats-utils";
 import {
   getLatestMessageId,
   insertMessageIfAbsent,
@@ -26,8 +26,8 @@ import {
   getCustomerConversation,
   syncCustomerConversationMessages,
   type CustomerConversationDetail,
-} from "@/app/services/chat/get-restaurant-conversation";
-import { useConversationCatchUpRegistration } from "@/app/hooks/use-restaurant-chat-catch-up-sync";
+} from "@/app/services/chat/get-business-conversation";
+import { useConversationCatchUpRegistration } from "@/app/hooks/use-business-chat-catch-up-sync";
 
 export function useCustomerConversationQuery(
   restaurantId: number,
@@ -354,7 +354,7 @@ export function useCustomerConversationQuery(
     [customerId, restaurantId],
   );
 
-  useRestaurantChatPusher(restaurantId, applyPusherMessage);
+  useBusinessChatPusher(restaurantId, applyPusherMessage);
 
   return {
     conversation,

@@ -16,7 +16,7 @@ export async function getChatUnreadSummary(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!isPositiveInt(restaurantId)) {
-    throw new Error("Invalid restaurant id.");
+    throw new Error("Invalid business id.");
   }
 
   const res = await authenticatedFetch(

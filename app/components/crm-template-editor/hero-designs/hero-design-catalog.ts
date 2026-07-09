@@ -32,7 +32,7 @@ export const HERO_DESIGN_CATALOG = [
     id: "wide_banner",
     preset: "cinema_wide",
     label: "Cinematic wide",
-    description: "Letterbox strip, logos, panoramas, and restaurant interiors.",
+    description: "Letterbox strip, logos, panoramas, and business interiors.",
   },
   {
     id: "tall_focus",

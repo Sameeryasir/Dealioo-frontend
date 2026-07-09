@@ -15,7 +15,7 @@ export type FunnelLandingCopyTemplate = {
 
 export const FUNNEL_COPY_TEMPLATE_TAGS = [
   "All",
-  "Restaurant",
+  "Business",
   "E‑commerce",
   "Wellness",
   "Events",
@@ -30,7 +30,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-restaurant-booking",
     name: "Table booking",
     description: "Reserve a table, warm and direct.",
-    tags: ["Restaurant"],
+    tags: ["Business"],
     copy: {
       heading: "Your table is almost reserved",
       subheading: "Join guests who book online in under a minute.",
@@ -42,7 +42,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-restaurant-offer",
     name: "Chef's special",
     description: "Promote a limited dining offer.",
-    tags: ["Restaurant"],
+    tags: ["Business"],
     copy: {
       heading: "Tonight's chef special is waiting",
       subheading: "A limited offer for guests who sign up today.",
@@ -54,7 +54,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-family-deal",
     name: "Family deal",
     description: "Friendly promo for families.",
-    tags: ["Restaurant", "Events"],
+    tags: ["Business", "Events"],
     copy: {
       heading: "Family night, kids eat free",
       subheading: "Bring everyone this week only.",
@@ -150,7 +150,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-membership-club",
     name: "Members club",
     description: "Recurring membership or wine club.",
-    tags: ["Membership", "Restaurant"],
+    tags: ["Membership", "Business"],
     copy: {
       heading: "Join the members club",
       subheading: "Exclusive perks every month.",
@@ -162,7 +162,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-wine-cellar",
     name: "Wine cellar club",
     description: "Fine dining or wine subscription.",
-    tags: ["Membership", "Restaurant"],
+    tags: ["Membership", "Business"],
     copy: {
       heading: "Join the cellar club",
       subheading: "Sommelier picks delivered to your door.",
@@ -174,7 +174,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-resort-stay",
     name: "Resort getaway",
     description: "Travel, beach, or hospitality.",
-    tags: ["Restaurant", "Events"],
+    tags: ["Business", "Events"],
     copy: {
       heading: "Your beach getaway starts here",
       subheading: "Best rate when you book direct.",
@@ -186,7 +186,7 @@ export const FUNNEL_LANDING_COPY_TEMPLATES: FunnelLandingCopyTemplate[] = [
     id: "copy-bakery-treat",
     name: "Bakery treat",
     description: "Bakeries and sweet promos.",
-    tags: ["Restaurant"],
+    tags: ["Business"],
     copy: {
       heading: "Free treat on your first order",
       subheading: "Baked fresh daily, limited batches.",

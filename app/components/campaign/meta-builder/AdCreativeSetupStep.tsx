@@ -751,7 +751,7 @@ export function AdCreativeSetupStep({
                       value={destinationUrl}
                       onChange={(e) => setDestinationUrl(e.target.value)}
                       className={`${inputClass} ${fieldErrors.destinationUrl ? builderInputErrorClass : ""}`}
-                      placeholder="https://your-restaurant.com/offer"
+                      placeholder="https://your-business.com/offer"
                     />
                     {destinationUrl.trim() ? (
                       <a
@@ -769,12 +769,12 @@ export function AdCreativeSetupStep({
 
                 <BuilderField
                   label="Display link"
-                  hint="Optional short link text shown in the ad (e.g. yourrestaurant.com)."
+                  hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
                 >
                   <input
                     value={displayLink}
                     onChange={(e) => setDisplayLink(e.target.value)}
-                    placeholder="yourrestaurant.com"
+                    placeholder="yourbusiness.com"
                     className={inputClass}
                   />
                 </BuilderField>

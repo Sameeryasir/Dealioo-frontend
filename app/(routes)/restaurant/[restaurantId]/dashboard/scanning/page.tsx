@@ -1,7 +1,7 @@
 "use client";
 
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { RestaurantQrScannerPanel } from "@/app/components/restaurant/RestaurantQrScannerPanel";
+import { BusinessQrScannerPanel } from "@/app/components/business/BusinessQrScannerPanel";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -17,5 +17,5 @@ export default function RestaurantScanningPage() {
     return <InvalidRouteMessage />;
   }
 
-  return <RestaurantQrScannerPanel restaurantId={restaurantId} />;
+  return <BusinessQrScannerPanel restaurantId={restaurantId} />;
 }

@@ -6,11 +6,11 @@ import {
 import type {
   ChatCustomer,
   PaginatedChatCustomersResponse,
-} from "@/app/services/chat/get-restaurant-chat-customers";
+} from "@/app/services/chat/get-business-chat-customers";
 import type {
   ConversationMessage,
   CustomerConversationDetail,
-} from "@/app/services/chat/get-restaurant-conversation";
+} from "@/app/services/chat/get-business-conversation";
 
 export function messageExistsById(
   messages: ConversationMessage[],

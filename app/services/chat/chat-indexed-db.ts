@@ -12,11 +12,11 @@ import {
 import type {
   ChatCustomer,
   PaginatedChatCustomersResponse,
-} from "@/app/services/chat/get-restaurant-chat-customers";
+} from "@/app/services/chat/get-business-chat-customers";
 import type {
   ConversationMessage,
   CustomerConversationDetail,
-} from "@/app/services/chat/get-restaurant-conversation";
+} from "@/app/services/chat/get-business-conversation";
 
 const DB_NAME = "retention-chat";
 const DB_VERSION = 4;

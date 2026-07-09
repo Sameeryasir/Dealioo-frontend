@@ -7,7 +7,7 @@ export async function setGoogleAdsCustomer(
   managerCustomerId?: string | null,
 ): Promise<{ googleCustomerId: string }> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
   if (!customerId.trim()) {
     throw new Error("Please choose a Google Ads account.");

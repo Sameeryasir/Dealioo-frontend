@@ -97,7 +97,7 @@ async function postScanPayload(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!isPositiveInt(restaurantId)) {
-    throw new Error("Valid restaurant id is required.");
+    throw new Error("Valid business id is required.");
   }
   if (!qrToken.trim()) {
     throw new Error("QR token is required.");
@@ -229,7 +229,7 @@ export async function getGuestProfile(
     throw new Error("Missing access token. Sign in again.");
   }
   if (!isPositiveInt(restaurantId) || !isPositiveInt(customerId)) {
-    throw new Error("Valid restaurant and guest ids are required.");
+    throw new Error("Valid business and guest ids are required.");
   }
 
   const res = await authenticatedFetch(

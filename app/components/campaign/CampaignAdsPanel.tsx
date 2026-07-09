@@ -304,7 +304,7 @@ export function CampaignAdsPanel({
                   <span className="font-semibold text-zinc-900">
                     Settings → Integrations
                   </span>{" "}
-                  from your restaurant dashboard to connect Facebook and unlock
+                  from your business dashboard to connect Facebook and unlock
                   campaign creation.
                 </p>
               </div>
@@ -318,7 +318,7 @@ export function CampaignAdsPanel({
                   </p>
                   <p className="mt-1 text-sm text-zinc-600">
                     Facebook is connected. Pick which Meta ad account this
-                    restaurant should use for campaigns and reporting.
+                    business should use for campaigns and reporting.
                   </p>
                 </div>
                 <Link

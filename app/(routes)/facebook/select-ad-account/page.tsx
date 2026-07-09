@@ -79,7 +79,7 @@ function SelectAdAccountInner() {
   if (restaurantId == null) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-4">
-        <p className="text-sm text-red-700">Missing restaurant. Go back and try again.</p>
+        <p className="text-sm text-red-700">Missing business. Go back and try again.</p>
       </main>
     );
   }
@@ -94,7 +94,7 @@ function SelectAdAccountInner() {
           Choose your ad account
         </h1>
         <p className="mt-2 text-center text-sm text-zinc-600">
-          Pick the Meta ad account for this restaurant. Campaign stats will only
+          Pick the Meta ad account for this business. Campaign stats will only
           come from this account.
         </p>
 

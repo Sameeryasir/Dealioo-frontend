@@ -1,16 +1,16 @@
 "use client";
 
-import RegisterRestaurantForm, {
-  type RegisterRestaurantFormValues,
-} from "@/app/components/RegisterRestaurantForm";
+import RegisterBusinessForm, {
+  type RegisterBusinessFormValues,
+} from "@/app/components/RegisterBusinessForm";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { registerRestaurant } from "@/app/services/restaurant/register-restaurant";
+import { registerBusiness } from "@/app/services/business/register-business";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-export default function RegisterRestaurantPage() {
+export default function RegisterBusinessPage() {
   const router = useRouter();
   const [tokenReady, setTokenReady] = useState(false);
   const [accessToken, setAccessToken] = useState("");
@@ -25,11 +25,11 @@ export default function RegisterRestaurantPage() {
   }, []);
 
   const onSubmit = useCallback(
-    async (data: RegisterRestaurantFormValues) => {
+    async (data: RegisterBusinessFormValues) => {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        await registerRestaurant(accessToken, {
+        await registerBusiness(accessToken, {
           name: data.name,
           phoneNumber: data.phoneNumber,
           email: data.email.trim() || undefined,
@@ -70,7 +70,7 @@ export default function RegisterRestaurantPage() {
         </p>
       </header>
 
-      <RegisterRestaurantForm
+      <RegisterBusinessForm
         submitting={submitting}
         errorMessage={errorMessage}
         onSubmit={onSubmit}

@@ -17,7 +17,7 @@ export async function getGoogleAdsConnectionStatus(
   restaurantId: number,
 ): Promise<GoogleAdsConnectionStatus> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
-    throw new Error("Restaurant is required.");
+    throw new Error("Business is required.");
   }
 
   const res = await authenticatedFetch(

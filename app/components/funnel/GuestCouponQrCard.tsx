@@ -98,7 +98,7 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
             Your QR Code
           </p>
           <p className="mt-0.5 text-xs text-zinc-300">
-            Ready to redeem at the restaurant
+            Ready to redeem at the business
           </p>
         </div>
         <div className="p-4">

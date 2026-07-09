@@ -10,7 +10,7 @@ import {
   MessageSquare,
   Smartphone,
 } from "lucide-react";
-import type { Funnel } from "@/app/services/funnel/get-campaigns-by-restaurant";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import {
   formatMetaDailyBudget,
@@ -280,7 +280,7 @@ export default function CampaignGuestExperience({
                   Facebook is linked
                 </p>
                 <p className="text-sm text-zinc-600">
-                  Choose which Meta ad account belongs to this restaurant.
+                  Choose which Meta ad account belongs to this business.
                 </p>
                 <Link
                   href={`/facebook/select-ad-account?restaurantId=${restaurantId}`}

@@ -9,7 +9,7 @@ export const PREPAID_FIRST_EMAIL_DEFAULTS = {
   template: "Payment confirmation",
   headline: "Your offer is ready for your visit",
   message:
-    "Hi [First Name]! Your payment is confirmed and your prepaid offer is ready.\n\nWhen you're ready to visit, open your pass below and show it at the restaurant. We look forward to welcoming you!",
+    "Hi [First Name]! Your payment is confirmed and your prepaid offer is ready.\n\nWhen you're ready to visit, open your pass below and show it at the business. We look forward to welcoming you!",
   ctaLabel: "View my pass",
 } as const;
 

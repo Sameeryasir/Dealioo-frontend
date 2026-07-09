@@ -7,7 +7,7 @@ import { CampaignGuestsPanel } from "@/app/components/campaign/CampaignGuestsPan
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
 import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
 import CampaignHeader from "@/app/components/CampaignHeader";
-import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-restaurant-query";
+import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import { useParams, useRouter } from "next/navigation";

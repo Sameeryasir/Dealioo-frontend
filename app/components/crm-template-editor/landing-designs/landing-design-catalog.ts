@@ -42,7 +42,7 @@ export const LANDING_DESIGN_CATALOG = [
     mode: "light",
     accent: "orange",
     label: "Sunset Warm",
-    description: "Amber and coral tones, great for restaurants.",
+    description: "Amber and coral tones, great for businesses.",
     backgroundDefault: "#FFF7ED",
     primary: "#EA580C",
     secondary: "#DC2626",

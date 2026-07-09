@@ -1,6 +1,6 @@
 "use client";
 
-import type { CreateMenuPayload } from "@/app/services/restaurant/upload-menu";
+import type { CreateMenuPayload } from "@/app/services/business/upload-menu";
 import {
   AlertCircle,
   FilePlus,

@@ -26,7 +26,7 @@ export function validateAutomationCreateContext(
   if (!isPositiveInt(input.restaurantId)) {
     return {
       ok: false,
-      message: "Restaurant is required to create an automation.",
+      message: "Business is required to create an automation.",
     };
   }
 
