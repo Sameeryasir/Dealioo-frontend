@@ -11,6 +11,7 @@ import {
   Hash,
   ImagePlus,
   Landmark,
+  Link2,
   Loader2,
   LocateFixed,
   Mail,
@@ -25,6 +26,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useForm } from "react-hook-form";
 import { resolveAddressFromBrowserLocation } from "@/app/lib/browser-geolocation";
+import { slugifyBusinessName } from "@/app/lib/business-slug";
 
 const BusinessLocationMap = dynamic(
   () =>
@@ -64,15 +66,12 @@ export type RegisterRestaurantFormProps = {
 const STEPS = [
   {
     title: "Business basics",
-    subtitle: "Start with your business name and contact number.",
   },
   {
     title: "About your business",
-    subtitle: "Optional details — you can add or change these later in settings.",
   },
   {
     title: "Location & logo",
-    subtitle: "Optional — skip anything you do not have yet.",
   },
 ] as const;
 
@@ -281,9 +280,6 @@ function RestaurantLogoDropField({
             <span className="block text-sm font-semibold text-brand-navy">
               {isDragging ? "Drop image here" : "Upload business logo"}
             </span>
-            <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
-              Optional. PNG, JPG, or WEBP (max 10MB).
-            </span>
           </span>
         </label>
       )}
@@ -319,6 +315,7 @@ export default function RegisterRestaurantForm({
     handleSubmit,
     trigger,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<RegisterRestaurantFormValues>({
     defaultValues: {
@@ -335,6 +332,12 @@ export default function RegisterRestaurantForm({
     },
     shouldUnregister: false,
   });
+
+  const businessNameValue = watch("name");
+  const slugPreview = useMemo(
+    () => slugifyBusinessName(businessNameValue),
+    [businessNameValue],
+  );
 
   const currentStep = STEPS[step] ?? STEPS[STEPS.length - 1];
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -440,7 +443,6 @@ export default function RegisterRestaurantForm({
           <h2 className="text-lg font-semibold text-brand-navy sm:text-xl">
             {currentStep.title}
           </h2>
-          <p className="mt-1 text-sm text-zinc-600">{currentStep.subtitle}</p>
         </div>
       </div>
 
@@ -455,16 +457,12 @@ export default function RegisterRestaurantForm({
                 <Building2 className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
                 Business name <RequiredStar />
               </label>
-              <p className="text-xs leading-relaxed text-zinc-500">
-                Use a unique name — add city or branch if you manage more than one
-                (e.g. Sunrise Café – Islamabad).
-              </p>
               <input
                 id="restaurant-name"
                 type="text"
                 autoComplete="organization"
                 disabled={submitting}
-                placeholder="e.g. Sunrise Café – Islamabad"
+                placeholder="Enter business name"
                 aria-invalid={!!errors.name}
                 className={`${inputBase} py-2 ${fieldRing(!!errors.name)}`}
                 {...register("name", { required: "Business name is required." })}
@@ -472,6 +470,27 @@ export default function RegisterRestaurantForm({
               {errors.name && (
                 <p className="text-sm text-red-600">{errors.name.message}</p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="restaurant-slug"
+                className="flex items-center gap-1.5 text-sm font-medium text-zinc-700"
+              >
+                <Link2 className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+                Business slug
+              </label>
+              <input
+                id="restaurant-slug"
+                type="text"
+                readOnly
+                tabIndex={-1}
+                disabled={submitting}
+                value={slugPreview}
+                placeholder="Auto-generated"
+                className={`${inputBase} cursor-default bg-zinc-50 py-2 text-zinc-600`}
+                aria-readonly="true"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -516,7 +535,7 @@ export default function RegisterRestaurantForm({
                 type="email"
                 autoComplete="email"
                 disabled={submitting}
-                placeholder="Enter email address (optional)"
+                placeholder="Enter email address"
                 aria-invalid={!!errors.email}
                 className={`${inputBase} py-2 ${fieldRing(!!errors.email)}`}
                 {...register("email", {
@@ -545,7 +564,7 @@ export default function RegisterRestaurantForm({
               <textarea
                 id="restaurant-description"
                 disabled={submitting}
-                placeholder="Tell customers about your business (optional)"
+                placeholder="Enter description"
                 aria-invalid={!!errors.description}
                 className={`${textareaBase} w-full ${fieldRing(!!errors.description)}`}
                 {...register("description")}
@@ -565,7 +584,7 @@ export default function RegisterRestaurantForm({
                 type="text"
                 inputMode="url"
                 disabled={submitting}
-                placeholder="https://example.com (optional)"
+                placeholder="Enter website"
                 aria-invalid={!!errors.websiteUrl}
                 className={`${inputBase} py-2 ${fieldRing(!!errors.websiteUrl)}`}
                 {...register("websiteUrl", { validate: optionalUrlRule })}
@@ -584,11 +603,6 @@ export default function RegisterRestaurantForm({
                 <MapPin className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
                 Location
               </h3>
-
-              <p className="text-sm text-zinc-600">
-                Optional. Tap the button below to auto-fill from your device, or
-                type the address manually.
-              </p>
 
               <div className="flex flex-col gap-2">
                 <button
@@ -636,7 +650,7 @@ export default function RegisterRestaurantForm({
                     id="city"
                     type="text"
                     disabled={submitting}
-                    placeholder="e.g. San Francisco"
+                    placeholder="Enter city"
                     className={`${inputBase} min-w-0 py-2`}
                     {...register("city")}
                   />
@@ -654,7 +668,7 @@ export default function RegisterRestaurantForm({
                     id="state"
                     type="text"
                     disabled={submitting}
-                    placeholder="e.g. CA"
+                    placeholder="Enter state or region"
                     className={`${inputBase} min-w-0 py-2`}
                     {...register("state")}
                   />
@@ -673,7 +687,7 @@ export default function RegisterRestaurantForm({
                     type="text"
                     autoComplete="postal-code"
                     disabled={submitting}
-                    placeholder="e.g. 94102"
+                    placeholder="Enter postal code"
                     className={`${inputBase} min-w-0 py-2`}
                     {...register("postalCode")}
                   />
@@ -692,7 +706,7 @@ export default function RegisterRestaurantForm({
                     type="text"
                     autoComplete="country-name"
                     disabled={submitting}
-                    placeholder="e.g. USA"
+                    placeholder="Enter country"
                     className={`${inputBase} min-w-0 py-2`}
                     {...register("country")}
                   />

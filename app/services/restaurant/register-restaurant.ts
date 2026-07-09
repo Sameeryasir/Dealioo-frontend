@@ -8,6 +8,7 @@ import { compressImageForUpload } from "@/app/lib/compress-image-file";
 
 export type RegisterRestaurantPayload = {
   name: string;
+  slug?: string;
   phoneNumber: string;
   email?: string;
   cuisineType?: string;
@@ -59,6 +60,9 @@ export async function registerRestaurant(
   formData.append("name", payload.name.trim());
   formData.append("phoneNumber", payload.phoneNumber.trim());
   formData.append("branchCount", String(payload.branchCount));
+
+  const slug = optionalString(payload.slug);
+  if (slug !== undefined) formData.append("slug", slug);
 
   const email = optionalString(payload.email);
   if (email !== undefined) formData.append("email", email);

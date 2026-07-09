@@ -20,7 +20,6 @@ function geolocationErrorMessage(error: GeolocationPositionError): string {
   }
 }
 
-/** Browser Geolocation API — free, no API key; user must allow access. */
 export function requestBrowserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -53,7 +52,6 @@ function pickState(properties: Record<string, string | undefined>): string {
   return properties.state?.trim() || properties.region?.trim() || "";
 }
 
-/** Reverse geocode coordinates via Photon (OpenStreetMap, no API key). */
 export async function reverseGeocodeCoordinates(
   latitude: number,
   longitude: number,
@@ -93,7 +91,6 @@ export async function reverseGeocodeCoordinates(
   };
 }
 
-/** Get GPS coordinates, then fill city/state/postal/country from reverse geocoding. */
 export async function resolveAddressFromBrowserLocation(): Promise<ResolvedAddress> {
   const position = await requestBrowserLocation();
   const { latitude, longitude } = position.coords;

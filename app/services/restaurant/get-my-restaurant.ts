@@ -6,6 +6,7 @@ import { authAxios } from "@/app/lib/auth-axios";
 export type AdminRestaurant = {
   id?: number;
   name: string;
+  slug?: string | null;
   description?: string | null;
   cuisineType?: string | null;
   logoUrl?: string | null;
@@ -176,6 +177,7 @@ function coerceRestaurant(value: unknown): AdminRestaurant | null {
   return {
     id: parsedId,
     name: name.trim(),
+    slug: pickString(o, "slug", "slug") ?? null,
     description: pickString(o, "description", "description") ?? null,
     cuisineType: pickString(o, "cuisineType", "cuisine_type") ?? null,
     logoUrl: pickString(o, "logoUrl", "logo_url") ?? null,
