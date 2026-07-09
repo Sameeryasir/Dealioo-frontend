@@ -166,6 +166,10 @@ function coerceRestaurantDetail(value: unknown): RestaurantDetail | null {
   };
 }
 
+export function parseBusinessFromApi(value: unknown): AdminRestaurant | null {
+  return coerceRestaurant(value);
+}
+
 function coerceRestaurant(value: unknown): AdminRestaurant | null {
   if (!value || typeof value !== "object") return null;
   const o = value as Record<string, unknown>;

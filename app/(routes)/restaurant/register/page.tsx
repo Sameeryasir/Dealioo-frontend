@@ -6,12 +6,16 @@ import RegisterBusinessForm, {
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
 import { registerBusiness } from "@/app/services/business/register-business";
+import type { AdminRestaurant } from "@/app/services/business/get-my-business";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 export default function RegisterBusinessPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [tokenReady, setTokenReady] = useState(false);
   const [accessToken, setAccessToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +33,7 @@ export default function RegisterBusinessPage() {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        await registerBusiness(accessToken, {
+        const result = await registerBusiness(accessToken, {
           name: data.name,
           phoneNumber: data.phoneNumber,
           email: data.email.trim() || undefined,
@@ -43,6 +47,23 @@ export default function RegisterBusinessPage() {
           country: data.country,
           branchCount: data.branchCount,
         });
+
+        const businessForCache: AdminRestaurant =
+          result.business ?? {
+            id: result.id,
+            name: data.name.trim(),
+            phoneNumber: data.phoneNumber.trim(),
+            email: data.email.trim() || null,
+            description: data.description.trim() || null,
+            websiteUrl: data.websiteUrl.trim() || null,
+            city: data.city.trim() || null,
+            state: data.state.trim() || null,
+            postalCode: data.postalCode.trim() || null,
+            country: data.country.trim() || null,
+            branchCount: data.branchCount,
+          };
+
+        prependBusinessToMyListCache(queryClient, businessForCache);
         router.push("/dashboard");
       } catch (error) {
         setErrorMessage(
@@ -53,7 +74,7 @@ export default function RegisterBusinessPage() {
         setSubmitting(false);
       }
     },
-    [accessToken, router],
+    [accessToken, queryClient, router],
   );
 
   if (!tokenReady) {

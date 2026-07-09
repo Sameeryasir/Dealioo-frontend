@@ -5,6 +5,10 @@ import {
 } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { compressImageForUpload } from "@/app/lib/compress-image-file";
+import {
+  parseBusinessFromApi,
+  type AdminRestaurant,
+} from "@/app/services/business/get-my-business";
 
 export type RegisterBusinessPayload = {
   name: string;
@@ -26,6 +30,7 @@ export type RegisterBusinessResponse = {
   message: string;
   restaurantId?: number;
   id?: number;
+  business: AdminRestaurant | null;
 };
 
 function optionalString(value: string | undefined): string | undefined {
@@ -113,18 +118,15 @@ export async function registerBusiness(
       );
     }
 
-    const data = (await response.json()) as RegisterBusinessResponse & {
-      message?: unknown;
-    };
+    const data = (await response.json()) as Record<string, unknown>;
+    const business = parseBusinessFromApi(data);
+    const id = business?.id;
 
     return {
-      ...data,
-      restaurantId: data.restaurantId ?? data.id,
-      id: data.id ?? data.restaurantId,
-      message:
-        typeof data.message === "string"
-          ? data.message
-          : parseApiMessage(data.message, "Business added."),
+      restaurantId: id,
+      id,
+      business,
+      message: parseApiMessage(data.message, "Business added."),
     };
   } catch (error) {
     console.error("Register restaurant error:", error);
