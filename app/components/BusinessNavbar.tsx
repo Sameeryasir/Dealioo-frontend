@@ -2,6 +2,7 @@
 
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { getSetupUser } from "@/app/lib/setup-user";
+import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { Bell, PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +42,7 @@ export default function BusinessNavbar() {
     : "/dashboard";
   const displayName = user?.name?.trim() || "Account";
   const shortName = firstName(displayName);
+  const roleLabel = user?.role?.name?.trim() || getUserRoleLabel();
 
   // Soft search: jump to the closest matching tool page.
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -125,8 +127,15 @@ export default function BusinessNavbar() {
               </span>
             </span>
 
-            <span className="hidden min-w-0 truncate pr-0.5 text-[0.78rem] font-extrabold tracking-tight text-black sm:inline">
-              {shortName}
+            <span className="hidden min-w-0 flex-col truncate pr-0.5 sm:flex">
+              <span className="truncate text-[0.78rem] font-extrabold tracking-tight text-black">
+                {shortName}
+              </span>
+              {roleLabel ? (
+                <span className="truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  {roleLabel}
+                </span>
+              ) : null}
             </span>
           </div>
         </div>

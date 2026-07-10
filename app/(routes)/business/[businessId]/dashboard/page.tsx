@@ -7,25 +7,17 @@ import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { userAvatarUrl } from "@/app/lib/user-initials";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
-import { getRestaurantChatCustomers } from "@/app/services/chat/get-business-chat-customers";
-import { fetchCampaignsByBusiness } from "@/app/services/funnel/get-campaigns-by-business";
-import { getBusinessFunnelEvents } from "@/app/services/funnel-event/get-business-registrations";
-import { getRedemptionStats } from "@/app/services/redemption/scan-redemption";
+import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
+import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Building2,
   Check,
   MapPin,
-  Megaphone,
-  MessageSquare,
   Plus,
-  ScanLine,
-  ShoppingBag,
   Store,
   UserRound,
-  Users,
-  UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -56,38 +48,6 @@ function formatTitleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function formatCompactNumber(value: number): string {
-  if (!Number.isFinite(value)) return "0";
-  return new Intl.NumberFormat("en-US", {
-    notation: value >= 10000 ? "compact" : "standard",
-    maximumFractionDigits: value >= 10000 ? 1 : 0,
-  }).format(value);
-}
-
-function formatMoneyFromCents(cents: number, currency = "USD"): string {
-  if (!Number.isFinite(cents) || cents <= 0) return "$0";
-  const dollars = cents / 100;
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-      maximumFractionDigits: 0,
-    }).format(dollars);
-  } catch {
-    return `$${formatCompactNumber(Math.round(dollars))}`;
-  }
-}
-
-function isSameLocalDay(iso: string, now = new Date()): boolean {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return false;
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
 }
 
 function AvatarStatusRing({
@@ -201,36 +161,15 @@ export default function BusinessDashboardPage() {
 
   const { data: restaurant, isPending } = useBusinessByIdQuery(businessId);
 
-  const metricsEnabled = businessId != null && hasAuthSession();
+  const activityEnabled = businessId != null && hasAuthSession();
+  const activityMonths = 6;
 
-  const campaignsQuery = useQuery({
-    queryKey: ["rd-home-campaigns", businessId],
-    enabled: metricsEnabled,
+  const activityChartQuery = useQuery({
+    queryKey: ["rd-home-activity-monthly", businessId, activityMonths],
+    enabled: activityEnabled,
     staleTime: 60_000,
     queryFn: () =>
-      fetchCampaignsByBusiness(businessId!, { page: 1, limit: 50 }),
-  });
-
-  const redemptionQuery = useQuery({
-    queryKey: ["rd-home-redemptions", businessId],
-    enabled: metricsEnabled,
-    staleTime: 60_000,
-    queryFn: () => getRedemptionStats(businessId!),
-  });
-
-  const eventsQuery = useQuery({
-    queryKey: ["rd-home-events", businessId],
-    enabled: metricsEnabled,
-    staleTime: 60_000,
-    queryFn: () => getBusinessFunnelEvents(businessId!, 1, 50),
-  });
-
-  const guestsQuery = useQuery({
-    queryKey: ["rd-home-guests", businessId],
-    enabled: metricsEnabled,
-    staleTime: 60_000,
-    queryFn: () =>
-      getRestaurantChatCustomers(businessId!, { page: 1, limit: 1 }),
+      getRestaurantActivityMonthly(businessId!, { months: activityMonths }),
   });
 
   const baseHref = useMemo(
@@ -268,146 +207,12 @@ export default function BusinessDashboardPage() {
   if (hasMenu || restaurant?.cuisineType?.trim()) score += 33;
   const readyPercent = Math.min(100, score);
 
-  const campaignRows = campaignsQuery.data?.data ?? [];
-  const activeCampaigns = campaignRows.filter((c) => {
-    const status = (c.status ?? "").toLowerCase();
-    return (
-      c.published === true ||
-      status === "published" ||
-      status === "active" ||
-      status === "live"
-    );
-  }).length;
-  const campaignsValue =
-    activeCampaigns > 0
-      ? activeCampaigns
-      : (campaignsQuery.data?.meta.total ?? campaignRows.length);
-
-  const guestsTotal = guestsQuery.data?.meta.total ?? 0;
-  const scansTotal =
-    redemptionQuery.data?.restaurantVisits ??
-    redemptionQuery.data?.couponsRedeemed ??
-    0;
-
-  const todayEvents = (eventsQuery.data?.data ?? []).filter((event) =>
-    isSameLocalDay(event.createdAt),
-  );
-  const todayOrders = todayEvents.filter(
-    (event) => event.eventType === "payment" || event.orderStatus !== "not_paid",
-  ).length;
-  const todayRevenueCents = todayEvents.reduce((sum, event) => {
-    const online = event.onlineAmountCents ?? 0;
-    const restaurantAmt = event.restaurantAmount ?? 0;
-    const amount = event.amount ?? 0;
-    if (online > 0) return sum + online;
-    if (restaurantAmt > 0) return sum + Math.round(restaurantAmt * 100);
-    if (amount > 0) return sum + Math.round(amount * 100);
-    return sum;
-  }, 0);
-  const todayCurrency =
-    todayEvents.find((e) => e.currency)?.currency?.toUpperCase() || "USD";
-
-  const kpiStrip = [
-    {
-      label: "Campaigns",
-      value: formatCompactNumber(campaignsValue),
-      hint: activeCampaigns > 0 ? "Active" : "Total",
-      href: `${baseHref}/campaigns`,
-    },
-    {
-      label: "Members",
-      value: formatCompactNumber(guestsTotal),
-      hint: "Guests",
-      href: `${baseHref}/members`,
-    },
-    {
-      label: "Today's orders",
-      value: formatCompactNumber(todayOrders),
-      hint: "Payments",
-      href: `${baseHref}/orders`,
-    },
-    {
-      label: "QR check-ins",
-      value: formatCompactNumber(scansTotal),
-      hint: "Visits",
-      href: `${baseHref}/scanning`,
-    },
-    {
-      label: "Revenue",
-      value: formatMoneyFromCents(todayRevenueCents, todayCurrency),
-      hint: "Today",
-      href: `${baseHref}/orders`,
-    },
-  ];
-
-  const quickAccess = [
-    {
-      label: "Campaigns",
-      meta: "Launch offers",
-      href: `${baseHref}/campaigns`,
-      icon: Megaphone,
-      tone: "blue" as const,
-      image: "/dashboard/shortcuts/shortcut-campaigns.png",
-      mediaBg: "from-[#dbeafe] to-[#eff6ff]",
-    },
-    {
-      label: "Members",
-      meta: "Your guests",
-      href: `${baseHref}/members`,
-      icon: Users,
-      tone: "pink" as const,
-      image: "/dashboard/shortcuts/shortcut-members.png",
-      mediaBg: "from-[#fce7f3] to-[#fdf2f8]",
-    },
-    {
-      label: "Scanning",
-      meta: "Check-ins",
-      href: `${baseHref}/scanning`,
-      icon: ScanLine,
-      tone: "green" as const,
-      image: "/dashboard/shortcuts/shortcut-scanning.png",
-      mediaBg: "from-[#dcfce7] to-[#f0fdf4]",
-    },
-    {
-      label: hasMenu ? "Menu is live" : "Upload menu",
-      meta: hasMenu ? "Ready for guests" : "Finish setup",
-      href: hasMenu
-        ? `${baseHref}/ad-library`
-        : businessId != null
-          ? `/business/upload-menu?businessId=${businessId}`
-          : "/business/upload-menu",
-      icon: UtensilsCrossed,
-      tone: "amber" as const,
-      image: "/dashboard/shortcuts/shortcut-menu.png",
-      mediaBg: "from-[#ffedd5] to-[#fff7ed]",
-    },
-    {
-      label: "Orders",
-      meta: "Incoming tickets",
-      href: `${baseHref}/orders`,
-      icon: ShoppingBag,
-      tone: "blue" as const,
-      image: "/dashboard/shortcuts/shortcut-orders.png",
-      mediaBg: "from-[#dbeafe] to-[#eff6ff]",
-    },
-    {
-      label: "Chats",
-      meta: "Reply to guests",
-      href: `${baseHref}/chats`,
-      icon: MessageSquare,
-      tone: "pink" as const,
-      image: "/dashboard/shortcuts/shortcut-chats.png",
-      mediaBg: "from-[#fce7f3] to-[#fdf2f8]",
-    },
-  ];
-
   return (
     <section
       className="rd-premium rd-premium--fill"
       aria-label="Business dashboard"
     >
       <div className="flex h-full min-h-0 flex-1 flex-col gap-4 sm:gap-[1.1rem]">
-        {/* Top row: compact Overview + Setup Progress */}
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(14.5rem,16.5rem)] lg:items-stretch lg:gap-4">
           <article className="rd-premium-hero relative h-full overflow-hidden md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(12.5rem,0.95fr)] md:items-stretch md:gap-0">
             <span
@@ -541,103 +346,17 @@ export default function BusinessDashboardPage() {
           </aside>
         </div>
 
-        {/* KPI strip — full width under the top row */}
-        <section
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-2.5"
-          aria-label="Live business metrics"
-        >
-          {kpiStrip.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="group flex flex-col items-center justify-center rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3 text-center no-underline shadow-[0_6px_18px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-[3px] hover:border-[#1877f2]/45 hover:shadow-[0_14px_32px_rgba(24,119,242,0.14)]"
-            >
-              <p className="m-0 w-full truncate text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-600 transition group-hover:text-[#1877f2]">
-                {item.label}
-              </p>
-              <p className="mt-1 mb-0 w-full truncate text-[1.2rem] font-extrabold tracking-tight text-black transition group-hover:text-[#1877f2]">
-                {item.value}
-              </p>
-              <p className="mt-0.5 mb-0 w-full truncate text-[0.72rem] font-medium text-slate-500">
-                {item.hint}
-              </p>
-            </Link>
-          ))}
-        </section>
-
-        <section
-          className="rd-premium-section mt-auto flex min-h-0 flex-1 flex-col pb-4 sm:mt-3 xl:flex-none"
-          aria-label="Quick access"
-        >
-          <div className="rd-premium-section-head">
-            <h2>Quick access</h2>
-            <Link href={`${baseHref}/activity`}>See activity</Link>
-          </div>
-          <ul className="m-0 grid min-h-[8rem] flex-1 list-none auto-rows-fr grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 xl:min-h-0 xl:flex-none xl:auto-rows-auto xl:grid-cols-6">
-            {quickAccess.map((card) => {
-              const Icon = card.icon;
-              const badgeTone =
-                card.tone === "blue"
-                  ? "bg-[#1877f2] text-white"
-                  : card.tone === "pink"
-                    ? "bg-[#e1306c] text-white"
-                    : card.tone === "green"
-                      ? "bg-[#34a853] text-white"
-                      : "bg-[#f77737] text-white";
-              const ringTone =
-                card.tone === "blue"
-                  ? "group-hover:ring-[#1877f2]/25"
-                  : card.tone === "pink"
-                    ? "group-hover:ring-[#e1306c]/25"
-                    : card.tone === "green"
-                      ? "group-hover:ring-[#34a853]/25"
-                      : "group-hover:ring-[#f77737]/25";
-              return (
-                <li key={card.label} className="flex min-h-0 xl:items-start">
-                  <Link
-                    href={card.href}
-                    className={`group relative flex h-full min-h-[8.25rem] w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white no-underline shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-[2px] hover:border-[#1877f2]/35 hover:shadow-[0_14px_32px_rgba(24,119,242,0.12)] xl:h-auto xl:min-h-0 ${ringTone}`}
-                  >
-                    <span
-                      className={`relative flex shrink-0 items-end justify-center overflow-hidden bg-gradient-to-br ${card.mediaBg} px-3.5 pt-2.5 pb-1 min-h-[5.25rem] sm:min-h-[5.5rem] xl:min-h-[6.5rem] xl:px-4 xl:pt-3 xl:pb-1.5 2xl:min-h-[7rem] 2xl:px-4 2xl:pt-3.5`}
-                      aria-hidden
-                    >
-                      <span
-                        className="pointer-events-none absolute -right-4 -top-6 size-16 rounded-full bg-white/50 blur-xl xl:size-20"
-                        aria-hidden
-                      />
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={card.image}
-                        alt=""
-                        className="relative z-[1] h-[4.15rem] w-auto max-w-[96%] object-contain transition duration-300 group-hover:scale-[1.05] sm:h-[4.65rem] xl:h-[5.25rem] 2xl:h-[5.75rem]"
-                      />
-                      <span
-                        className={`absolute bottom-2.5 right-2.5 z-[2] inline-flex size-7 items-center justify-center rounded-xl border-2 border-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] xl:bottom-3 xl:right-3 xl:size-8 2xl:size-9 ${badgeTone}`}
-                      >
-                        <Icon className="size-3 xl:size-3.5 2xl:size-4" strokeWidth={2.35} />
-                      </span>
-                    </span>
-
-                    <span className="flex shrink-0 items-center gap-2.5 border-t border-[#eef2f7] px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5 xl:px-4 xl:py-3 2xl:gap-3.5 2xl:px-4 2xl:py-3.5">
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 xl:gap-1">
-                        <span className="truncate text-[0.88rem] font-extrabold leading-tight tracking-tight text-black transition group-hover:text-[#0f5ed7] sm:text-[0.94rem] xl:text-[1rem] 2xl:text-[1.05rem]">
-                          {card.label}
-                        </span>
-                        <span className="truncate text-[0.7rem] font-medium text-slate-500 sm:text-[0.74rem] xl:text-[0.8rem] 2xl:text-[0.84rem]">
-                          {card.meta}
-                        </span>
-                      </span>
-
-                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#1877f2] transition duration-300 group-hover:border-[#1877f2] group-hover:bg-[#1877f2] group-hover:text-white xl:size-9 2xl:size-10">
-                        <ArrowUpRight className="size-3.5 xl:size-4" strokeWidth={2.35} />
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <section aria-label="Restaurant activity overview">
+          <BusinessActivityOverviewPanel
+            businessName={restaurant?.name}
+            data={activityChartQuery.data?.data ?? []}
+            months={activityChartQuery.data?.months ?? activityMonths}
+            activeCampaigns={activityChartQuery.data?.activeCampaigns ?? 0}
+            totalOrders={activityChartQuery.data?.totalOrders ?? 0}
+            totalMembers={activityChartQuery.data?.totalMembers ?? 0}
+            todayRevenueCents={activityChartQuery.data?.todayRevenueCents ?? 0}
+            isLoading={activityChartQuery.isPending}
+          />
         </section>
       </div>
     </section>

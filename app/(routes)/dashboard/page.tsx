@@ -10,6 +10,7 @@ import {
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { getSetupUser } from "@/app/lib/setup-user";
+import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
 import { Filter, Megaphone, Plus, Users } from "lucide-react";
 import Link from "next/link";
@@ -31,10 +32,12 @@ function firstName(fullName: string | null | undefined): string {
 export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     queueMicrotask(() => {
       setUserName(getSetupUser()?.name ?? null);
+      setUserRole(getUserRoleLabel());
     });
   }, []);
 
@@ -70,7 +73,7 @@ export default function DashboardPage() {
                   <div className="org-dashboard-stats-copy">
                     <p className="org-dashboard-stats-pill">
                       <span className="org-dashboard-stats-pill-dot" aria-hidden />
-                      <span>Your workspace</span>
+                      <span>{userRole ?? "Your workspace"}</span>
                     </p>
                     <h1 className="org-dashboard-stats-title">
                       <span className="org-dashboard-stats-greeting">Welcome back, </span>

@@ -752,7 +752,7 @@ export function OwnerProfileForm({
                       <div className="profile-hero-identity-copy">
                         <p className="org-dashboard-stats-pill">
                           <span className="org-dashboard-stats-pill-dot" aria-hidden />
-                          <span>Account owner</span>
+                          <span>{profile.role.name}</span>
                         </p>
                         <h2 className="org-dashboard-stats-title">
                           <span className="org-dashboard-stats-greeting">Your profile, </span>
@@ -885,7 +885,7 @@ export function OwnerProfileForm({
                       : "text-xs font-semibold uppercase tracking-wider text-brand-primary"
                   }
                 >
-                  Account owner
+                  Account {profile.role.name}
                 </p>
                 <h2
                   className={

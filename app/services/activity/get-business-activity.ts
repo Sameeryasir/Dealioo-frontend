@@ -28,6 +28,29 @@ export type ActivitySummary = {
   totalMessagesSent: number;
 };
 
+export type ActivityMonthlyPoint = {
+  month: string;
+  totalEvents: number;
+  checkIns?: number;
+  visited: number;
+  redeemedReward: number;
+  prepaidForOffer: number;
+  messageSent: number;
+  prepaidRevenueCents: number;
+  orders?: number;
+  members?: number;
+};
+
+export type ActivityMonthlyResponse = {
+  businessId: number;
+  months: number;
+  activeCampaigns: number;
+  totalOrders: number;
+  totalMembers: number;
+  todayRevenueCents: number;
+  data: ActivityMonthlyPoint[];
+};
+
 export type PaginatedActivityResponse = {
   data: RestaurantActivityEvent[];
   meta: {
@@ -118,4 +141,35 @@ export async function getRestaurantActivitySummary(
   }
 
   return (await res.json()) as ActivitySummary;
+}
+
+export async function getRestaurantActivityMonthly(
+  restaurantId: number,
+  options: { months?: number } = {},
+): Promise<ActivityMonthlyResponse> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(restaurantId)) {
+    throw new Error("Valid business id is required.");
+  }
+
+  const months = options.months ?? 6;
+  const q = new URLSearchParams({ months: String(months) });
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/activity/business/${encodeURIComponent(String(restaurantId))}/summary/monthly?${q.toString()}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load activity chart."),
+    );
+  }
+
+  return (await res.json()) as ActivityMonthlyResponse;
 }

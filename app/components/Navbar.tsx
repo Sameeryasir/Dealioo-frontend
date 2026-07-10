@@ -5,6 +5,7 @@ import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
+import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
@@ -61,6 +62,8 @@ export default function Navbar() {
     router.push("/auth/login");
   }, [clearPassword, router]);
 
+  const roleLabel = user?.role?.name?.trim() || getUserRoleLabel();
+
   return (
     <header
       className={`brand-landing-nav transition-all duration-300 ${
@@ -97,8 +100,22 @@ export default function Navbar() {
             <div
               role="menu"
               aria-label="Account actions"
-              className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
+              className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
             >
+              {user?.name || roleLabel ? (
+                <div className="border-b border-[#e8edf5] px-3 py-2.5">
+                  {user?.name ? (
+                    <p className="truncate text-sm font-semibold text-brand-navy">
+                      {user.name}
+                    </p>
+                  ) : null}
+                  {roleLabel ? (
+                    <p className="mt-0.5 truncate text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-brand-muted">
+                      {roleLabel}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <Link
                 href="/dashboard/profile"
                 role="menuitem"
