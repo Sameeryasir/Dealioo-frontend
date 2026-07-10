@@ -196,8 +196,8 @@ export default function SignupForm({
       password: passwordValue ?? "",
       accountCreated,
       emailVerified: emailVerified || hasAuthSession(),
-      selectedPlanId: "starter",
-      billing: "monthly",
+      selectedPlanId: readSignupProgress()?.selectedPlanId ?? "starter",
+      billing: readSignupProgress()?.billing ?? "annual",
     });
   }, [
     hydrated,

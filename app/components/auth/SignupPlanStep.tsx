@@ -62,6 +62,11 @@ function SignupPlanFeatures({ plan }: { plan: PricingPlan }) {
   );
 }
 
+const BILLING_LABELS: Record<BillingCycle, string> = {
+  monthly: "Monthly",
+  annual: "Yearly",
+};
+
 function BillingToggle({
   cycle,
   onChange,
@@ -99,7 +104,7 @@ function BillingToggle({
             ) : selected ? (
               <span className="absolute inset-0 rounded-full bg-brand-primary shadow-[0_4px_14px_rgba(24,119,242,0.28)]" />
             ) : null}
-            <span className="relative z-[1]">{value}</span>
+            <span className="relative z-[1]">{BILLING_LABELS[value]}</span>
           </button>
         );
       })}

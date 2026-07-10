@@ -197,7 +197,7 @@ function coerceRestaurant(value: unknown): AdminBusiness | null {
   return coerceBusiness(value);
 }
 
-export const MY_BUSINESSES_PAGE_SIZE = 6;
+export const MY_BUSINESSES_PAGE_SIZE = 8;
 /** @deprecated Use MY_BUSINESSES_PAGE_SIZE */
 export const MY_RESTAURANTS_PAGE_SIZE = MY_BUSINESSES_PAGE_SIZE;
 

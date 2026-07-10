@@ -63,7 +63,7 @@ export default function BusinessDashboardCard({
 
   const progress = setupProgress(business);
   const accent = ACCENT_VARS[accentIndex % ACCENT_VARS.length];
-  const statusLabel = progress >= 100 ? "Ready" : "In setup";
+  const showSetupStatus = progress < 100;
 
   if (layout === "list") {
     return (
@@ -83,13 +83,9 @@ export default function BusinessDashboardCard({
         <span className="org-biz-card-list-main">
           <span className="org-biz-card-list-top">
             <span className="org-biz-card-title">{name}</span>
-            <span
-              className={`org-biz-card-status ${
-                progress >= 100 ? "org-biz-card-status--ready" : ""
-              }`}
-            >
-              {statusLabel}
-            </span>
+            {showSetupStatus ? (
+              <span className="org-biz-card-status">In setup</span>
+            ) : null}
           </span>
           <span className="org-biz-card-meta-inline">
             <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
@@ -124,13 +120,11 @@ export default function BusinessDashboardCard({
             </span>
           )}
           <span className="org-biz-card-hero-overlay" aria-hidden />
-          <span
-            className={`org-biz-card-status org-biz-card-status--hero ${
-              progress >= 100 ? "org-biz-card-status--ready" : ""
-            }`}
-          >
-            {statusLabel}
-          </span>
+          {showSetupStatus ? (
+            <span className="org-biz-card-status org-biz-card-status--hero">
+              In setup
+            </span>
+          ) : null}
         </div>
 
         <div className="org-biz-card-content">

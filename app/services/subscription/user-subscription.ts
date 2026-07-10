@@ -57,6 +57,16 @@ function normalizeCheckout(raw: unknown): UserSubscriptionCheckout | null {
   return { checkoutUrl, sessionId };
 }
 
+async function parseOptionalJson(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
+
 async function parseApiMessageFromResponse(
   res: Response,
   fallback: string,
@@ -91,7 +101,7 @@ export async function getMyUserSubscription(): Promise<UserSubscription | null> 
     );
   }
 
-  const data: unknown = await res.json();
+  const data = await parseOptionalJson(res);
   if (data == null) return null;
   return normalizeUserSubscription(data);
 }
@@ -117,7 +127,7 @@ export async function startUserPlanCheckout(
     );
   }
 
-  const checkout = normalizeCheckout(await res.json());
+  const checkout = normalizeCheckout(await parseOptionalJson(res));
   if (!checkout) {
     throw new Error("Could not start checkout for your plan.");
   }
@@ -177,7 +187,7 @@ export async function completeUserPlanCheckout(
     );
   }
 
-  const subscription = normalizeUserSubscription(await res.json());
+  const subscription = normalizeUserSubscription(await parseOptionalJson(res));
   if (!subscription) {
     throw new Error("Could not complete your subscription.");
   }

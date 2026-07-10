@@ -1,5 +1,6 @@
 "use client";
 
+import { appendBillingQuery } from "@/app/lib/billing-cycle";
 import { landingSignupHref } from "@/app/components/landing/landing-auth";
 import {
   getPlanTier,
@@ -160,7 +161,9 @@ function BillingToggle({
             ) : selected ? (
               <span className="absolute inset-0 rounded-full bg-brand-primary shadow-[0_4px_14px_rgba(24,119,242,0.28)]" />
             ) : null}
-            <span className="relative z-[1]">{value}</span>
+            <span className="relative z-[1]">
+              {value === "annual" ? "Yearly" : "Monthly"}
+            </span>
             {value === "annual" && selected ? (
               <span className="relative ml-1.5 hidden text-[10px] font-bold uppercase tracking-wide text-white/90 sm:inline">
                 Save 17%
@@ -514,7 +517,10 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
   const reduced = useReducedMotion();
   const { plans, loading } = useSubscriptionPlans();
   const [billing, setBilling] = useState<BillingCycle>("annual");
-  const signupHref = landingSignupHref(returnTo);
+  const signupHref = useMemo(
+    () => appendBillingQuery(landingSignupHref(returnTo), billing),
+    [billing, returnTo],
+  );
 
   const footerNote = useMemo(
     () =>

@@ -39,9 +39,9 @@ export function mapSubscriptionPlansToPricingPlans(
 }
 
 export function getDefaultBillingCycle(
-  plans: PricingPlan[],
+  _plans: PricingPlan[],
 ): BillingCycle {
-  return plans.length > 0 ? "monthly" : "monthly";
+  return "annual";
 }
 
 export function getDefaultSelectedPlanSlug(plans: PricingPlan[]): string {

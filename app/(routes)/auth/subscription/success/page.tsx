@@ -5,7 +5,10 @@ import { hasAuthSession } from "@/app/lib/auth-session";
 import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
-import { waitForActiveUserSubscription } from "@/app/services/subscription/user-subscription";
+import {
+  completeUserPlanCheckout,
+  waitForActiveUserSubscription,
+} from "@/app/services/subscription/user-subscription";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -32,7 +35,12 @@ function SubscriptionSuccessInner() {
       }
 
       try {
-        const subscription = await waitForActiveUserSubscription();
+        let subscription;
+        try {
+          subscription = await completeUserPlanCheckout(sessionId);
+        } catch {
+          subscription = await waitForActiveUserSubscription();
+        }
         if (cancelled) return;
 
         saveSelectedSignupPlan({

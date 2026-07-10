@@ -41,7 +41,7 @@ export function readSignupProgress(): SignupProgress | null {
         typeof parsed.selectedPlanId === "string" && parsed.selectedPlanId.trim()
           ? parsed.selectedPlanId
           : "starter",
-      billing: isBillingCycle(parsed.billing) ? parsed.billing : "monthly",
+      billing: isBillingCycle(parsed.billing) ? parsed.billing : "annual",
     };
   } catch {
     return null;

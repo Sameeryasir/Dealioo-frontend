@@ -7,6 +7,11 @@ import {
 import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { findPricingPlan } from "@/app/components/landing/pricing-plans";
 import { useSubscriptionPlans } from "@/app/hooks/use-subscription-plans";
+import {
+  appendBillingQuery,
+  persistBillingCyclePreference,
+  readBillingCyclePreference,
+} from "@/app/lib/billing-cycle";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -21,16 +26,35 @@ function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: 
 export function SignupSelectPlanPanel() {
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [billingReady, setBillingReady] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState("starter");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBillingCycle(readBillingCyclePreference());
+    setBillingReady(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && plans.length > 0) {
       setSelectedPlanId(defaultPlanId);
     }
   }, [defaultPlanId, loading, plans.length]);
+
+  useEffect(() => {
+    if (!billingReady) return;
+    persistBillingCyclePreference(billingCycle, selectedPlanId);
+  }, [billingCycle, billingReady, selectedPlanId]);
+
+  const handleBillingChange = useCallback(
+    (cycle: BillingCycle) => {
+      setBillingCycle(cycle);
+      persistBillingCyclePreference(cycle, selectedPlanId);
+    },
+    [selectedPlanId],
+  );
 
   const onContinue = useCallback(async () => {
     if (!selectedPlanId) return;
@@ -95,7 +119,7 @@ export function SignupSelectPlanPanel() {
       <div className="select-plan-panel__plans">
         <SignupPlanStep
           billing={billingCycle}
-          onBillingChange={setBillingCycle}
+          onBillingChange={handleBillingChange}
           selectedPlanId={selectedPlanId}
           onSelectPlan={setSelectedPlanId}
           plans={plans}
