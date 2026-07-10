@@ -1,4 +1,11 @@
 import type { OnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
+
+function isPaidSubscriptionStatus(status: string | null | undefined): boolean {
+  const normalized = status?.trim().toLowerCase();
+  return normalized === "active" || normalized === "trialing";
+}
 
 function isSafeReturnPath(path: string): boolean {
   if (!path.startsWith("/")) return false;
@@ -40,6 +47,30 @@ export function resolvePostAuthPath(
   }
 
   return resolvePostLoginPath(status, returnTo);
+}
+
+export async function fetchAuthenticatedOnboardingDestination(
+  returnTo?: string | null,
+): Promise<string> {
+  try {
+    const status = await getOnboardingStatus();
+    if (status.subscriptionSelected) {
+      return resolvePostAuthPath(status, returnTo);
+    }
+  } catch {
+    // Fall back to direct subscription lookup below.
+  }
+
+  try {
+    const subscription = await getMyUserSubscription();
+    if (isPaidSubscriptionStatus(subscription?.status)) {
+      return "/business/register";
+    }
+  } catch {
+    // Ignore and send user to plan selection.
+  }
+
+  return "/auth/select-plan";
 }
 
 export function resolveCompletedStepRedirect(

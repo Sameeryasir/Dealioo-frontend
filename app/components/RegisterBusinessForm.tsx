@@ -13,7 +13,6 @@ import {
   Landmark,
   Link2,
   Loader2,
-  LocateFixed,
   Mail,
   MapPin,
   MapPinned,
@@ -23,25 +22,8 @@ import {
   Upload,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { useForm } from "react-hook-form";
-import { resolveAddressFromBrowserLocation } from "@/app/lib/browser-geolocation";
 import { slugifyBusinessName } from "@/app/lib/business-slug";
-
-const BusinessLocationMap = dynamic(
-  () =>
-    import("@/app/components/BusinessLocationMap").then(
-      (mod) => mod.BusinessLocationMap,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-52 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-500 sm:h-56">
-        Loading map…
-      </div>
-    ),
-  },
-);
 
 export type RegisterBusinessFormValues = {
   name: string;
@@ -302,19 +284,11 @@ export default function RegisterBusinessForm({
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoFileError, setLogoFileError] = useState<string | undefined>();
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [locationSummary, setLocationSummary] = useState<string | null>(null);
-  const [locationCoords, setLocationCoords] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
 
   const {
     register,
     handleSubmit,
     trigger,
-    setValue,
     watch,
     formState: { errors },
   } = useForm<RegisterBusinessFormValues>({
@@ -382,42 +356,6 @@ export default function RegisterBusinessForm({
     }
 
     void finish();
-  };
-
-  const handleUseCurrentLocation = async () => {
-    setLocationError(null);
-    setLocationLoading(true);
-
-    try {
-      const address = await resolveAddressFromBrowserLocation();
-      setValue("city", address.city, { shouldDirty: true });
-      setValue("state", address.state, { shouldDirty: true });
-      setValue("postalCode", address.postalCode, { shouldDirty: true });
-      setValue("country", address.country, { shouldDirty: true });
-
-      const summary = [address.city, address.state, address.country]
-        .filter(Boolean)
-        .join(", ");
-      setLocationSummary(
-        summary.length > 0
-          ? summary
-          : "Location detected — review the fields below.",
-      );
-      setLocationCoords({
-        latitude: address.latitude,
-        longitude: address.longitude,
-      });
-    } catch (error) {
-      setLocationSummary(null);
-      setLocationCoords(null);
-      setLocationError(
-        error instanceof Error
-          ? error.message
-          : "Could not get your location. Try again or enter manually.",
-      );
-    } finally {
-      setLocationLoading(false);
-    }
   };
 
   return (
@@ -598,46 +536,12 @@ export default function RegisterBusinessForm({
 
         {step === 2 ? (
           <section className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-navy">
-                <MapPin className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
-                Location
-              </h3>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-navy">
+              <MapPin className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
+              Location
+            </h3>
 
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  disabled={submitting || locationLoading}
-                  onClick={() => void handleUseCurrentLocation()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
-                  {locationLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <LocateFixed className="h-4 w-4" aria-hidden />
-                  )}
-                  {locationLoading ? "Detecting location…" : "Use my current location"}
-                </button>
-                {locationSummary ? (
-                  <p className="text-sm font-medium text-emerald-700" role="status">
-                    Detected: {locationSummary}
-                  </p>
-                ) : null}
-                {locationCoords ? (
-                  <BusinessLocationMap
-                    latitude={locationCoords.latitude}
-                    longitude={locationCoords.longitude}
-                    label={locationSummary ?? undefined}
-                  />
-                ) : null}
-                {locationError ? (
-                  <p className="text-sm text-red-600" role="alert">
-                    {locationError}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <label
                     htmlFor="city"
@@ -712,7 +616,6 @@ export default function RegisterBusinessForm({
                   />
                 </div>
               </div>
-            </div>
 
             <div className="flex flex-col gap-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-navy">

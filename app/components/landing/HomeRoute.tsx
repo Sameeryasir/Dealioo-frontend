@@ -2,8 +2,7 @@
 
 import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
 import { useAuth } from "@/app/contexts/auth-context";
-import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -28,9 +27,9 @@ export function HomeRoute() {
 
     void (async () => {
       try {
-        const status = await getOnboardingStatus();
+        const destination = await fetchAuthenticatedOnboardingDestination();
         if (cancelled) return;
-        router.replace(resolvePostAuthPath(status));
+        router.replace(destination);
       } catch {
         if (!cancelled) {
           router.replace("/dashboard");

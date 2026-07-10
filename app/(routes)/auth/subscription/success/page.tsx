@@ -2,9 +2,8 @@
 
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { hasAuthSession } from "@/app/lib/auth-session";
-import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import {
   completeUserPlanCheckout,
   waitForActiveUserSubscription,
@@ -48,10 +47,10 @@ function SubscriptionSuccessInner() {
           billing: subscription.billingCycle,
         });
 
-        const status = await getOnboardingStatus();
+        const destination = await fetchAuthenticatedOnboardingDestination();
         if (cancelled) return;
 
-        router.replace(resolvePostAuthPath(status));
+        router.replace(destination);
       } catch (error) {
         if (cancelled) return;
         setMessage(

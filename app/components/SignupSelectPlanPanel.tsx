@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/billing-cycle";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
+import { useRouter } from "next/navigation";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -24,6 +25,7 @@ function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: 
 }
 
 export function SignupSelectPlanPanel() {
+  const router = useRouter();
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
@@ -85,14 +87,20 @@ export function SignupSelectPlanPanel() {
 
       window.location.href = checkout.checkoutUrl;
     } catch (error) {
-      setErrorMessage(
+      const message =
         error instanceof Error
           ? error.message
-          : "Could not start checkout. Try again.",
-      );
+          : "Could not start checkout. Try again.";
+
+      if (message.toLowerCase().includes("already have an active subscription")) {
+        router.replace("/business/register");
+        return;
+      }
+
+      setErrorMessage(message);
       setSubmitting(false);
     }
-  }, [billingCycle, plans, selectedPlanId]);
+  }, [billingCycle, plans, router, selectedPlanId]);
 
   if (loading) {
     return (

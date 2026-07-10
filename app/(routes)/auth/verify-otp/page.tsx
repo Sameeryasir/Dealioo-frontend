@@ -4,11 +4,10 @@ import OtpForm from "@/app/components/OtpForm";
 import AuthPageShell, { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
-  resolvePostAuthPath,
+  fetchAuthenticatedOnboardingDestination,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -37,9 +36,9 @@ function VerifyOtpPageInner() {
       setAuthTokens(token, refreshToken);
       setSetupUser(user);
 
-      const status = await getOnboardingStatus();
+      const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
 
-      router.push(resolvePostAuthPath(status, returnTo));
+      router.push(destination);
     },
     [email, returnTo, router],
   );

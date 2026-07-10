@@ -9,6 +9,7 @@ import OtpForm from "@/app/components/OtpForm";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { hasAuthSession } from "@/app/lib/auth-session";
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import {
   clearSignupProgress,
   readSignupProgress,
@@ -155,7 +156,8 @@ export default function SignupForm({
     await onVerifyOtp(otp);
     setEmailVerified(true);
     clearSignupProgress();
-    router.push("/auth/select-plan");
+    const destination = await fetchAuthenticatedOnboardingDestination();
+    router.push(destination);
   };
 
   useEffect(() => {

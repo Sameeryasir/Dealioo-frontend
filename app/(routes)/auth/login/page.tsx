@@ -4,11 +4,10 @@ import { LoginPageShell } from "@/app/components/auth/LoginPageShell";
 import LoginForm from "@/app/components/LoginForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
-  resolvePostAuthPath,
+  fetchAuthenticatedOnboardingDestination,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { login } from "@/app/services/auth/login";
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { resetPassword } from "@/app/services/auth/reset-password";
@@ -52,9 +51,9 @@ function LoginPageInner() {
         setSetupUser(user);
         rememberCredentials(email, password);
 
-        const status = await getOnboardingStatus();
+        const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
 
-        router.push(resolvePostAuthPath(status, returnTo));
+        router.push(destination);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Login failed. Please try again.";
@@ -95,9 +94,9 @@ function LoginPageInner() {
         setSetupUser(user);
         rememberCredentials(email, password);
 
-        const status = await getOnboardingStatus();
+        const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
 
-        router.push(resolvePostAuthPath(status, returnTo));
+        router.push(destination);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Could not reset password.";

@@ -4,8 +4,8 @@ import { AuthLandingNav } from "@/app/components/auth/AuthLandingNav";
 import { SignupSelectPlanPanel } from "@/app/components/SignupSelectPlanPanel";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { hasAuthSession } from "@/app/lib/auth-session";
-import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
+import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -23,15 +23,27 @@ function SelectPlanPageInner() {
       }
 
       try {
-        const status = await getOnboardingStatus();
+        const destination = await fetchAuthenticatedOnboardingDestination();
         if (cancelled) return;
 
-        if (status.subscriptionSelected) {
-          router.replace(resolvePostAuthPath(status));
+        if (destination !== "/auth/select-plan") {
+          router.replace(destination);
           return;
         }
       } catch {
         if (cancelled) return;
+
+        try {
+          const subscription = await getMyUserSubscription();
+          if (cancelled) return;
+
+          if (subscription?.status === "active" || subscription?.status === "trialing") {
+            router.replace("/business/register");
+            return;
+          }
+        } catch {
+          if (cancelled) return;
+        }
       }
 
       if (!cancelled) {
