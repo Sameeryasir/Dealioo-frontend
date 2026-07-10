@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LayoutTemplate } from "lucide-react";
 import { editorPanelScrollClass } from "@/app/components/crm-template-editor/editor-layout";
 import {
   FUNNEL_PAGE_ORDER,
@@ -13,33 +12,64 @@ export function EditorLeftSidebar({
   activeId,
   onSelect,
   onEditPage,
+  compact = false,
 }: {
   activeId: TemplatePageId;
   onSelect: (id: TemplatePageId) => void;
   onEditPage: (id: TemplatePageId) => void;
+  compact?: boolean;
 }) {
   const stepIndex = FUNNEL_PAGE_ORDER.indexOf(activeId);
   const progress = ((stepIndex + 1) / FUNNEL_PAGE_ORDER.length) * 100;
 
-  return (
-    <aside className="flex h-full min-h-0 flex-col border-r border-zinc-200/90 bg-white">
-      <div className="shrink-0 border-b border-zinc-100 px-3 py-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white shadow-sm">
-            <LayoutTemplate className="size-4" strokeWidth={2} aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight text-zinc-900">
-              Funnel editor
-            </p>
-            <p className="mt-0.5 text-[0.65rem] text-zinc-500">
-              Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
-            </p>
+  if (compact) {
+    return (
+      <aside className="relative flex h-full min-h-0 w-full max-w-full flex-col gap-3 bg-transparent px-1 py-1.5 lg:gap-3.5 lg:px-0 lg:py-2">
+        <div className="shrink-0 rounded-xl border border-[#e8edf5] bg-white px-3 py-2.5 text-center shadow-[0_4px_14px_rgba(15,23,42,0.04)] lg:px-3.5 lg:py-3">
+          <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2] lg:text-[0.66rem]">
+            Funnel
+          </p>
+          <p className="m-0 mt-1 text-[0.82rem] font-extrabold text-[#07111f] lg:text-[0.9rem]">
+            Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
+          </p>
+          <div className="mx-auto mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#e8edf5]">
+            <motion.div
+              className="h-full rounded-full bg-[#1877f2]"
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            />
           </div>
         </div>
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-200">
+
+        <div className={`${editorPanelScrollClass} min-h-0 scroll-smooth`}>
+          <TemplatePageList
+            activeId={activeId}
+            onSelect={onSelect}
+            onEditPage={onEditPage}
+            compact={compact}
+          />
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="relative flex h-full min-h-0 w-full max-w-full flex-col border-r border-[#e8edf5] bg-[#f8fafc]">
+      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-3 py-2.5">
+        <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+          Funnel flow
+        </p>
+        <p className="m-0 mt-1 text-[0.9rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
+          Your funnel
+        </p>
+        <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-500">
+          Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
+        </p>
+
+        <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#e8edf5]">
           <motion.div
-            className="h-full rounded-full bg-zinc-900"
+            className="h-full rounded-full bg-[#1877f2]"
             initial={false}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -52,6 +82,7 @@ export function EditorLeftSidebar({
           activeId={activeId}
           onSelect={onSelect}
           onEditPage={onEditPage}
+          compact={compact}
         />
       </div>
     </aside>

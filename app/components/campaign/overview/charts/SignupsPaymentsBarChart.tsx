@@ -4,14 +4,18 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
+import {
+  OverviewChartGradientDefs,
+  useBarChartGradients,
+} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
 import {
   OVERVIEW_BAR_CHART_MARGIN,
   OVERVIEW_CHART_COLORS,
@@ -25,59 +29,79 @@ export function SignupsPaymentsBarChart({
 }: {
   data: MonthlySignupsPaymentsPoint[];
 }) {
+  const gradients = useBarChartGradients();
+  const signupTotal = data.reduce((sum, row) => sum + row.signups, 0);
+  const paymentTotal = data.reduce((sum, row) => sum + row.payments, 0);
+
   return (
     <OverviewChartShell
       title="Signups vs payments"
       subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months`}
-      minHeightClass="min-h-[280px]"
+      minHeightClass="min-h-[300px]"
+      accent="multi"
     >
-      <div className="h-[260px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e8edf5" vertical={false} />
+      <div className="h-[250px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN} barGap={6}>
+            <OverviewChartGradientDefs stops={gradients.stops} />
+            <CartesianGrid
+              strokeDasharray="4 6"
+              stroke="#e8edf5"
+              vertical={false}
+            />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#64748b", fontSize: 11 }}
+              tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
               axisLine={{ stroke: "#e8edf5" }}
               tickLine={false}
               interval={0}
               tickFormatter={shortenMonthAxisLabel}
-              height={32}
+              height={34}
+              dy={6}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
-              width={40}
+              width={36}
             />
             <Tooltip
               content={<OverviewChartTooltip />}
-              cursor={{ fill: "#f4f7fb" }}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-              formatter={(value) => (
-                <span className="text-slate-600">{value}</span>
-              )}
+              cursor={{ fill: "rgba(24,119,242,0.06)", radius: 8 }}
             />
             <Bar
               dataKey="signups"
               name="Signups"
-              fill={OVERVIEW_CHART_COLORS.green}
-              radius={[6, 6, 0, 0]}
-              maxBarSize={40}
+              fill={`url(#${gradients.signups})`}
+              radius={[8, 8, 2, 2]}
+              maxBarSize={34}
             />
             <Bar
               dataKey="payments"
               name="Payments"
-              fill={OVERVIEW_CHART_COLORS.blue}
-              radius={[6, 6, 0, 0]}
-              maxBarSize={40}
+              fill={`url(#${gradients.payments})`}
+              radius={[8, 8, 2, 2]}
+              maxBarSize={34}
             />
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <OverviewChartLegend
+        items={[
+          {
+            label: "Signups",
+            value: signupTotal.toLocaleString(),
+            color: OVERVIEW_CHART_COLORS.green,
+          },
+          {
+            label: "Payments",
+            value: paymentTotal.toLocaleString(),
+            color: OVERVIEW_CHART_COLORS.blue,
+          },
+        ]}
+      />
     </OverviewChartShell>
   );
 }

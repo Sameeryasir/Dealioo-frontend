@@ -3,10 +3,11 @@
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
-import { Bell, Search } from "lucide-react";
+import { Bell, PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 
 function firstName(fullName: string): string {
   const part = fullName.trim().split(/\s+/)[0] ?? fullName;
@@ -17,6 +18,7 @@ function firstName(fullName: string): string {
 export default function BusinessNavbar() {
   const router = useRouter();
   const params = useParams();
+  const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebarExpand();
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
   const [query, setQuery] = useState("");
 
@@ -66,14 +68,26 @@ export default function BusinessNavbar() {
 
   return (
     <header className="rd-topbar" aria-label="Dashboard tools">
-      <div className="rd-topbar-inner flex h-[var(--rd-header-h)] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-5">
-        <form
-          className="flex min-w-0 max-w-[34rem] flex-1 items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f4f7fb] px-3.5 transition focus-within:border-[#1877f2]/35 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(24,119,242,0.1)]"
-          role="search"
-          onSubmit={handleSearch}
-        >
+      <div className="rd-topbar-inner flex h-[var(--rd-header-h)] items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+            aria-expanded={sidebarExpanded}
+            aria-controls="rd-sidebar-nav"
+            aria-label={sidebarExpanded ? "Close menu" : "Open menu"}
+          >
+            <PanelLeft className="size-4" strokeWidth={2.25} aria-hidden />
+          </button>
+
+          <form
+            className="flex min-w-0 max-w-[34rem] flex-1 items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f4f7fb] px-3 transition focus-within:border-[#1877f2]/35 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(24,119,242,0.1)]"
+            role="search"
+            onSubmit={handleSearch}
+          >
           <Search
-            className="size-[1.05rem] shrink-0 text-slate-400"
+            className="size-4 shrink-0 text-slate-400"
             strokeWidth={2}
             aria-hidden
           />
@@ -82,39 +96,36 @@ export default function BusinessNavbar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search anything…"
-            className="w-full min-w-0 border-0 bg-transparent py-2.5 text-sm font-medium text-[#07111f] outline-none placeholder:text-slate-400"
+            className="w-full min-w-0 border-0 bg-transparent py-2 text-sm font-medium text-[#07111f] outline-none placeholder:text-slate-400"
             aria-label="Search dashboard"
           />
         </form>
+        </div>
 
-        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
-          {/* Notifications — soft filled chip */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
           <Link
             href={notificationsHref}
-            className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f4f7fb] text-[#07111f] outline-none transition hover:bg-[#e8f1ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+            className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f4f7fb] text-[#07111f] outline-none transition hover:bg-[#e8f1ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
             aria-label="Notifications"
           >
-            <Bell className="size-[1.125rem]" aria-hidden strokeWidth={2} />
-            {/* Soft presence dot — activity cue without fake unread count */}
+            <Bell className="size-4" aria-hidden strokeWidth={2} />
             <span
-              className="absolute top-2 right-2 size-1.5 rounded-full bg-[#1877f2] ring-2 ring-[#f4f7fb]"
+              className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-[#1877f2] ring-2 ring-[#f4f7fb]"
               aria-hidden
             />
           </Link>
 
-          {/* Profile — avatar ring + stacked name/role (not a flat pill).
-              Account actions stay in the sidebar Settings / Logout footer. */}
           <div
-            className="group flex max-w-[14rem] items-center gap-2.5 rounded-2xl border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] py-1.5 pr-2.5 pl-1.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
+            className="group flex max-w-[14rem] items-center gap-2 rounded-2xl border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] py-1 pr-2 pl-1 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
             aria-label={`Signed in as ${displayName}`}
           >
-            <span className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
-              <span className="inline-flex size-full items-center justify-center overflow-hidden rounded-full bg-white text-[0.72rem] font-extrabold text-[#0f5ed7]">
+            <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
+              <span className="inline-flex size-full items-center justify-center overflow-hidden rounded-full bg-white text-[0.68rem] font-extrabold text-[#0f5ed7]">
                 <UserAccountAvatar user={user} />
               </span>
             </span>
 
-            <span className="hidden min-w-0 truncate pr-1 text-[0.8125rem] font-extrabold tracking-tight text-black sm:inline">
+            <span className="hidden min-w-0 truncate pr-0.5 text-[0.78rem] font-extrabold tracking-tight text-black sm:inline">
               {shortName}
             </span>
           </div>

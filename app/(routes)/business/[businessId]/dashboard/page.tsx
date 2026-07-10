@@ -402,11 +402,14 @@ export default function BusinessDashboardPage() {
   ];
 
   return (
-    <section className="rd-premium" aria-label="Business dashboard">
-      <div className="flex flex-col gap-4 sm:gap-[1.1rem]">
+    <section
+      className="rd-premium rd-premium--fill"
+      aria-label="Business dashboard"
+    >
+      <div className="flex h-full min-h-0 flex-1 flex-col gap-4 sm:gap-[1.1rem]">
         {/* Top row: compact Overview + Setup Progress */}
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(14.5rem,16.5rem)] lg:items-stretch lg:gap-4">
-          <article className="rd-premium-hero relative h-full overflow-hidden md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(12.5rem,0.95fr)] md:items-stretch">
+          <article className="rd-premium-hero relative h-full overflow-hidden md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(12.5rem,0.95fr)] md:items-stretch md:gap-0">
             <span
               className="pointer-events-none absolute top-[-15%] right-[22%] z-0 hidden size-32 rounded-full bg-[#1877f2]/40 blur-2xl md:block"
               aria-hidden
@@ -416,20 +419,21 @@ export default function BusinessDashboardPage() {
               aria-hidden
             />
 
-            {/* Same padding as photo column so CTA bottom = image bottom */}
-            <div className="relative z-[1] flex h-full min-w-0 flex-col p-3 sm:pl-5 md:pr-2">
-              <div className="flex min-h-0 flex-1 flex-col justify-center gap-2">
-                <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-sky-300/90">
-                  Overview
-                </p>
-                <h1 className="m-0 text-[clamp(1.25rem,2vw,1.6rem)] font-extrabold tracking-tight text-white">
-                  {isPending ? "Loading…" : name}
-                </h1>
-                <p className="m-0 max-w-[38ch] text-[0.78rem] font-medium leading-snug text-slate-300/90">
-                  Run campaigns, manage members, track check-ins and grow
-                  customer loyalty.
-                </p>
-                <div className="flex flex-wrap items-center gap-1.5">
+            <div className="relative z-[1] flex h-full min-w-0 flex-col py-3 pl-6 pr-2 sm:py-4 sm:pl-8 sm:pr-2 md:pl-10 md:pr-1 lg:pl-11">
+              <div className="flex min-h-0 flex-1 flex-col justify-center">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
+                  <span className="inline-flex w-fit items-center rounded-full bg-sky-400/15 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-sky-200 ring-1 ring-sky-300/25 sm:text-[0.72rem]">
+                    Overview
+                  </span>
+                  <h1 className="m-0 text-[clamp(1.45rem,2.4vw,1.9rem)] font-extrabold leading-tight tracking-tight text-white">
+                    {isPending ? "Loading…" : name}
+                  </h1>
+                  <p className="m-0 max-w-[40ch] text-[0.875rem] font-medium leading-snug text-slate-300/90 sm:text-[0.95rem]">
+                    Run campaigns, manage members, track check-ins and grow
+                    customer loyalty.
+                  </p>
+                </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-white/10 px-2.5 py-1 text-[0.68rem] font-semibold text-slate-100 ring-1 ring-white/10">
                     <MapPin className="size-3 shrink-0 opacity-80" strokeWidth={2.25} />
                     <span className="truncate">{location || "Add location"}</span>
@@ -456,9 +460,8 @@ export default function BusinessDashboardPage() {
               </div>
             </div>
 
-            {/* Photo — shared p-3 so bottom edge matches New campaign */}
             <div
-              className="relative z-[1] hidden self-stretch p-3 md:block"
+              className="relative z-[1] hidden self-stretch py-3 pr-3 pl-1 md:block md:pl-0"
               aria-hidden
             >
               <div className="relative h-full min-h-[10.5rem] w-full overflow-hidden rounded-[1.1rem] border border-white/20 bg-white/10 shadow-[0_14px_32px_rgba(0,0,0,0.3)]">
@@ -562,13 +565,15 @@ export default function BusinessDashboardPage() {
           ))}
         </section>
 
-        {/* Quick access — full width */}
-        <section className="rd-premium-section" aria-label="Quick access">
+        <section
+          className="rd-premium-section mt-auto flex min-h-0 flex-1 flex-col pb-4 sm:mt-3"
+          aria-label="Quick access"
+        >
           <div className="rd-premium-section-head">
             <h2>Quick access</h2>
             <Link href={`${baseHref}/activity`}>See activity</Link>
           </div>
-          <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3">
+          <ul className="m-0 grid min-h-[8rem] flex-1 list-none auto-rows-fr grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 xl:grid-cols-6">
             {quickAccess.map((card) => {
               const Icon = card.icon;
               const badgeTone =
@@ -588,49 +593,48 @@ export default function BusinessDashboardPage() {
                       ? "group-hover:ring-[#34a853]/25"
                       : "group-hover:ring-[#f77737]/25";
               return (
-                <li key={card.label} className="min-w-0">
+                <li key={card.label} className="flex min-h-0">
                   <Link
                     href={card.href}
-                    className={`group relative flex items-center gap-3.5 overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-white via-white to-[#f7faff] p-3 no-underline shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-[3px] hover:border-[#1877f2]/40 hover:shadow-[0_18px_40px_rgba(24,119,242,0.14)] ${ringTone}`}
+                    className={`group relative flex h-full min-h-[8.25rem] w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white no-underline shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-[2px] hover:border-[#1877f2]/35 hover:shadow-[0_14px_32px_rgba(24,119,242,0.12)] ${ringTone}`}
                   >
                     <span
-                      className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-80"
-                      aria-hidden
-                    />
-                    <span
-                      className="pointer-events-none absolute -right-6 -top-8 size-20 rounded-full bg-[#1877f2]/[0.06] blur-2xl transition duration-300 group-hover:bg-[#1877f2]/15"
-                      aria-hidden
-                    />
-
-                    <span
-                      className={`relative flex size-[4.6rem] shrink-0 items-center justify-center overflow-hidden rounded-[1.05rem] bg-gradient-to-br ${card.mediaBg} shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_18px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.04]`}
+                      className={`relative flex shrink-0 items-end justify-center overflow-hidden bg-gradient-to-br ${card.mediaBg} px-3.5 pt-2.5 pb-1 min-h-[5.25rem] sm:min-h-[5.5rem]`}
                       aria-hidden
                     >
+                      <span
+                        className="pointer-events-none absolute -right-4 -top-6 size-16 rounded-full bg-white/50 blur-xl"
+                        aria-hidden
+                      />
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={card.image}
                         alt=""
-                        className="h-[88%] w-[88%] object-contain transition duration-300 group-hover:scale-[1.06]"
+                        className="relative z-[1] h-[4.15rem] w-auto max-w-[96%] object-contain transition duration-300 group-hover:scale-[1.05] sm:h-[4.65rem]"
                       />
                       <span
-                        className={`absolute -bottom-1 -right-1 inline-flex size-7 items-center justify-center rounded-xl border-2 border-white shadow-[0_4px_10px_rgba(15,23,42,0.18)] ${badgeTone}`}
+                        className={`absolute bottom-2.5 right-2.5 z-[2] inline-flex size-7 items-center justify-center rounded-xl border-2 border-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] ${badgeTone}`}
                       >
                         <Icon className="size-3" strokeWidth={2.35} />
                       </span>
                     </span>
 
-                    <span className="relative z-[1] flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-[0.98rem] font-extrabold tracking-tight text-black transition group-hover:text-[#0f5ed7]">
-                        {card.label}
+                    <span className="flex shrink-0 items-center gap-2.5 border-t border-[#eef2f7] px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate text-[0.88rem] font-extrabold leading-tight tracking-tight text-black transition group-hover:text-[#0f5ed7] sm:text-[0.94rem]">
+                          {card.label}
+                        </span>
+                        <span className="truncate text-[0.7rem] font-medium text-slate-500 sm:text-[0.74rem]">
+                          {card.meta}
+                        </span>
                       </span>
-                      <span className="truncate text-[0.76rem] font-medium text-slate-500">
-                        {card.meta}
+
+                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#1877f2] transition duration-300 group-hover:border-[#1877f2] group-hover:bg-[#1877f2] group-hover:text-white">
+                        <ArrowUpRight className="size-3.5" strokeWidth={2.35} />
                       </span>
                     </span>
 
-                    <span className="relative z-[1] inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#1877f2] shadow-[0_4px_12px_rgba(15,23,42,0.06)] transition duration-300 group-hover:border-[#1877f2] group-hover:bg-[#1877f2] group-hover:text-white group-hover:shadow-[0_8px_18px_rgba(24,119,242,0.28)]">
-                      <ArrowUpRight className="size-4" strokeWidth={2.35} />
-                    </span>
+                    <span className="min-h-0 flex-1" aria-hidden />
                   </Link>
                 </li>
               );

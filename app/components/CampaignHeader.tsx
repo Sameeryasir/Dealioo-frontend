@@ -45,6 +45,7 @@ export type CampaignHeaderProps = {
   onTabChange?: (tabId: string) => void;
   onGenerateTrackingLink?: () => void;
   onCampaignUpdated?: () => void | Promise<void>;
+  embedded?: boolean;
 };
 
 const TABS: { id: string; label: string; icon?: typeof Circle }[] = [
@@ -71,6 +72,7 @@ export default function CampaignHeader({
   onTabChange,
   onGenerateTrackingLink,
   onCampaignUpdated,
+  embedded = false,
 }: CampaignHeaderProps) {
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
   const offerLine = offer?.trim() ?? "";
@@ -160,25 +162,151 @@ export default function CampaignHeader({
   }, [landingTrackingUrl]);
 
   const isFunnelTab = activeTabId === "funnel";
+  const immersiveChrome = embedded;
+
+  const tabButtons = TABS.map(({ id, label, icon: Icon }) => {
+    const active = id === activeTabId;
+    const immersiveTabActive =
+      "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] text-white shadow-[0_6px_16px_rgba(24,119,242,0.38),inset_0_1px_0_rgba(255,255,255,0.2)]";
+    const immersiveTabIdle =
+      "bg-transparent text-white/60 hover:bg-white/10 hover:text-white";
+    const lightTabActive =
+      "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.22)]";
+    const lightTabIdle =
+      "bg-white text-slate-500 ring-1 ring-[#e8edf5] hover:bg-[#e8f2ff] hover:text-[#1877f2] hover:ring-[#1877f2]/20";
+
+    return (
+      <button
+        key={id}
+        type="button"
+        role="tab"
+        aria-selected={active}
+        onClick={() => selectTab(id)}
+        className={`relative flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
+          immersiveChrome
+            ? "px-2.5 py-1 text-[0.7rem] sm:px-3 sm:text-[0.74rem]"
+            : "gap-1.5 px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.75rem]"
+        } ${
+          active
+            ? immersiveChrome
+              ? immersiveTabActive
+              : lightTabActive
+            : immersiveChrome
+              ? immersiveTabIdle
+              : lightTabIdle
+        }`}
+      >
+        {Icon ? (
+          <Icon
+            className="size-3 shrink-0 text-current"
+            aria-hidden
+            strokeWidth={2.25}
+          />
+        ) : null}
+        {label}
+      </button>
+    );
+  });
 
   return (
     <>
-    <header className="shrink-0 border-b border-zinc-200 bg-white">
-      <div className="flex w-full flex-nowrap items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4 lg:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-1.5">
+    <header
+      className={
+        embedded
+          ? "shrink-0 border-b border-[#e8edf5] bg-white"
+          : "shrink-0 border-b border-zinc-200 bg-white"
+      }
+    >
+      {immersiveChrome ? (
+        <div className="grid min-h-[2.75rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 py-1.5 sm:min-h-[3rem] sm:gap-3 sm:px-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="flex min-w-0 items-center gap-2 justify-self-start">
+            <Link
+              href={campaignsHref}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+              aria-label="Back to campaigns"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
+            </Link>
+            <div className="hidden min-w-0 max-w-[9rem] md:block lg:max-w-[11rem]">
+              <p
+                className="m-0 truncate text-[0.8rem] font-extrabold tracking-tight text-[#07111f] lg:text-[0.88rem]"
+                title={campaignTitle}
+              >
+                {campaignTitle}
+              </p>
+              {offerPriceLine ? (
+                <p className="m-0 truncate text-[0.65rem] font-medium text-slate-500">
+                  {offerPriceLine}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <nav
+            className="min-w-0 max-w-full justify-self-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Campaign sections"
+          >
+            <div className="relative mx-auto flex w-max max-w-full items-center gap-1 overflow-hidden rounded-full border border-white/10 bg-gradient-to-b from-[#07111f] via-[#0a1628] to-[#0f1f3d] p-0.5 shadow-[0_10px_28px_rgba(7,17,31,0.35)] sm:gap-1.5 sm:p-1">
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(24,119,242,0.28),transparent_55%)]"
+                aria-hidden
+              />
+              <div className="relative flex items-center gap-1 sm:gap-1.5">
+                {tabButtons}
+              </div>
+            </div>
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1.5 justify-self-end">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={campaignId == null || !isFunnelTab}
+              title={
+                campaignId == null
+                  ? "Campaign details not loaded yet"
+                  : !isFunnelTab
+                    ? "Open the Funnel tab to generate a tracking link"
+                    : "Get link for Facebook ads"
+              }
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:px-3"
+            >
+              <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
+              <span className="hidden sm:inline">Tracking link</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditCampaignOpen(true)}
+              disabled={campaignId == null || campaign == null}
+              title="Edit campaign"
+              aria-label="Edit campaign"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
+            >
+              <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+      <div
+        className={`flex w-full flex-nowrap items-center justify-between gap-2 sm:gap-3 ${
+          embedded ? "px-2.5 py-2 sm:px-3" : "px-4 py-3 sm:px-5 sm:py-4"
+        }`}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
           <Link
             href={campaignsHref}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-700 outline-none ring-offset-2 ring-offset-white transition-colors hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-blue-600/40"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
             aria-label="Back to campaigns"
           >
-            <ArrowLeft className="size-5" aria-hidden strokeWidth={2} />
+            <ArrowLeft className="size-4" aria-hidden strokeWidth={2.25} />
           </Link>
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-left text-sm font-medium text-zinc-900 sm:text-base">
+            <p className="truncate text-left text-[0.95rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.05rem]">
               {campaignTitle}
             </p>
             {offerPriceLine && campaign?.campaignName?.trim() ? (
-              <p className="truncate text-left text-xs text-zinc-500 sm:text-sm">
+              <p className="truncate text-left text-[0.72rem] font-medium text-slate-500 sm:text-[0.78rem]">
                 {offerPriceLine}
               </p>
             ) : null}
@@ -196,9 +324,9 @@ export default function CampaignHeader({
                   ? "Open the Funnel tab to generate a tracking link"
                   : "Get link for Facebook ads"
             }
-            className="inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-black px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-100 sm:gap-2 sm:px-3 sm:text-sm"
+            className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 focus-visible:ring-offset-2 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:gap-2 sm:px-3 sm:text-[0.78rem]"
           >
-            <Link2 className="size-4 shrink-0" aria-hidden strokeWidth={2} />
+            <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
             <span className="truncate">Generate Tracking Link</span>
           </button>
           <button
@@ -211,49 +339,27 @@ export default function CampaignHeader({
                 : "Edit campaign"
             }
             aria-label="Edit campaign"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-black text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-100"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
           >
-            <Pencil className="size-3.5" aria-hidden strokeWidth={2} />
+            <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
           </button>
         </div>
       </div>
 
       <nav
-        className="border-t border-zinc-100"
+        className={embedded ? "border-b border-[#e8edf5] bg-[#f8fafc]/50" : "border-t border-zinc-100"}
         aria-label="Campaign sections"
       >
-        <div className="flex w-full gap-1 overflow-x-auto px-3 sm:gap-2 sm:px-4 lg:px-6">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = id === activeTabId;
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => selectTab(id)}
-                className={`relative flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-400/50 sm:px-4 ${
-                  active
-                    ? "bg-zinc-100 text-zinc-950 hover:bg-zinc-100"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                }`}
-              >
-                {Icon ? (
-                  <Icon
-                    className="size-3.5 shrink-0 text-current"
-                    aria-hidden
-                    strokeWidth={2}
-                  />
-                ) : null}
-                {label}
-                {active ? (
-                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-zinc-950 sm:inset-x-3" />
-                ) : null}
-              </button>
-            );
-          })}
+        <div
+          className={`flex w-full gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] sm:gap-1.5 [&::-webkit-scrollbar]:hidden ${
+            embedded ? "px-2.5 sm:px-3" : "px-4 sm:px-5"
+          }`}
+        >
+          {tabButtons}
         </div>
       </nav>
+        </>
+      )}
     </header>
 
     {trackingDialogOpen ? (

@@ -60,20 +60,20 @@ export function SortableSectionList<T extends string>({
               handleDrop(index);
             }}
             className={[
-              "flex items-center gap-2 rounded-xl border bg-white px-2.5 py-2 text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow,opacity] duration-200",
+              "flex items-center gap-2 rounded-[1rem] border bg-white px-2.5 py-2 text-sm shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow,opacity] duration-200",
               dragging ? "opacity-40" : "",
               over
-                ? "border-zinc-400 ring-2 ring-zinc-900/10"
-                : "border-zinc-200/90 hover:border-zinc-300/90",
+                ? "border-[#1877f2]/45 ring-2 ring-[#1877f2]/15"
+                : "border-[#e8edf5] hover:border-[#1877f2]/25 hover:bg-[#f4f8ff]/40",
             ].join(" ")}
           >
             <span
-              className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-zinc-400 transition-colors duration-200 hover:text-zinc-600 active:cursor-grabbing"
+              className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-[#1877f2]/50 transition-colors duration-200 hover:text-[#1877f2] active:cursor-grabbing"
               aria-hidden
             >
               <GripVertical className="size-4" />
             </span>
-            <span className="min-w-0 flex-1 font-medium text-zinc-800">
+            <span className="min-w-0 flex-1 font-semibold text-[#07111f]">
               {labels[id]}
             </span>
             <span className="text-[10px] font-semibold tabular-nums text-zinc-400">

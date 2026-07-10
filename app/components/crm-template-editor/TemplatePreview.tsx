@@ -50,7 +50,7 @@ function previewOuterChrome(
     return "flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto";
   }
   if (options.editorChrome) {
-    return "flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-white";
+    return "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-white";
   }
   return "overflow-hidden rounded-2xl bg-white shadow-sm";
 }

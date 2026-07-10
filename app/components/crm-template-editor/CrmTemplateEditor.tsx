@@ -53,6 +53,7 @@ export type CrmTemplateEditorProps = {
   campaignOffer?: string;
   initialPageId?: TemplatePageId;
   interactivePreview?: boolean;
+  embedded?: boolean;
 };
 
 export function CrmTemplateEditor({
@@ -63,6 +64,7 @@ export function CrmTemplateEditor({
   campaignOffer,
   initialPageId = "landing",
   interactivePreview = false,
+  embedded = false,
 }: CrmTemplateEditorProps) {
   const funnelLoader = useCampaignFunnelLoader(campaignId);
   const {
@@ -383,32 +385,41 @@ export function CrmTemplateEditor({
 
   return (
     <>
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <EditorShell
+        embedded={embedded}
         navbar={
-          <TopNavigation
-            campaignName={campaignName ?? "Campaign"}
-            pageLabel={activePage.label}
-            saveStatus={displaySaveStatus}
-            isDirty={isDirty}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            onSave={() => void handleSave()}
-            onPreview={previewRouteId != null ? handlePreview : undefined}
-            isSaving={saveStatus === "saving"}
-            saveError={saveError}
-          />
+          embedded ? undefined : (
+            <TopNavigation
+              campaignName={campaignName ?? "Campaign"}
+              pageLabel={activePage.label}
+              saveStatus={displaySaveStatus}
+              isDirty={isDirty}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              onSave={() => void handleSave()}
+              onPreview={previewRouteId != null ? handlePreview : undefined}
+              isSaving={saveStatus === "saving"}
+              saveError={saveError}
+            />
+          )
         }
         leftSidebar={
           <EditorLeftSidebar
             activeId={activeId}
             onSelect={requestSwitchActive}
             onEditPage={openEditorForPage}
+            compact={embedded}
           />
         }
         canvas={
-          <CanvasWorkspace isLoading={isLoadingFunnel} loadError={loadError}>
+          <CanvasWorkspace
+            isLoading={isLoadingFunnel}
+            loadError={loadError}
+            embedded={embedded}
+          >
             <TemplatePreview
               page={activePage}
               landingPage={pages.landing}
@@ -427,9 +438,30 @@ export function CrmTemplateEditor({
             page={activePage}
             onChange={patchPage}
             onBrowseTemplates={() => setTemplateGalleryOpen(true)}
+            toolbar={
+              embedded ? (
+                <TopNavigation
+                  campaignName={campaignName ?? "Campaign"}
+                  pageLabel={activePage.label}
+                  saveStatus={displaySaveStatus}
+                  isDirty={isDirty}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={undo}
+                  onRedo={redo}
+                  onSave={() => void handleSave()}
+                  onPreview={previewRouteId != null ? handlePreview : undefined}
+                  isSaving={saveStatus === "saving"}
+                  saveError={saveError}
+                  embedded
+                  docked
+                />
+              ) : undefined
+            }
           />
         }
       />
+      </div>
 
       <DiscardChangesDialog
         open={pendingNavId !== null}

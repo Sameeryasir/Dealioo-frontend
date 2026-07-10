@@ -1,14 +1,13 @@
 "use client";
 
 import type { LandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/types";
+import { editorTheme } from "@/app/components/crm-template-editor/editor-theme";
 
-/** Tiny landing-page mock, reuses design tokens (colors, CTA gradient). */
 export function LandingDesignMiniPreview({
   style,
 }: {
   style: LandingDesignStyle;
 }) {
-  const ctaGradient = `linear-gradient(135deg, ${style.primary} 0%, ${style.secondary} 100%)`;
   const heroGradient = `linear-gradient(160deg, ${style.primary}55 0%, ${style.secondary}66 100%)`;
 
   return (
@@ -26,7 +25,7 @@ export function LandingDesignMiniPreview({
         <div className="h-[1.5px] w-full rounded-full bg-zinc-400/35" />
         <div
           className="mt-0.5 h-[3px] w-full rounded-[3px] shadow-sm"
-          style={{ background: ctaGradient }}
+          style={{ backgroundColor: editorTheme.primary }}
         />
       </div>
     </div>

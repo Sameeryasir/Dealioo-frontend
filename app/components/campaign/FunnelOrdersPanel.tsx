@@ -71,9 +71,11 @@ function TableSkeleton() {
 export function FunnelOrdersPanel({
   funnelId,
   isFunnelIdLoading = false,
+  embedded = false,
 }: {
   funnelId?: number | null;
   isFunnelIdLoading?: boolean;
+  embedded?: boolean;
 }) {
   const { payments, isLoading: isPaymentsLoading, error } =
     useFunnelPayments(funnelId);
@@ -98,7 +100,13 @@ export function FunnelOrdersPanel({
   }, [funnelId]);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50">
+    <div
+      className={
+        embedded
+          ? "min-h-0 w-full"
+          : "min-h-0 flex-1 overflow-y-auto bg-zinc-50"
+      }
+    >
       <OverviewAlertDialog
         open={alertMessage != null}
         message={alertMessage ?? ""}
@@ -108,7 +116,13 @@ export function FunnelOrdersPanel({
         }}
       />
 
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div
+        className={
+          embedded
+            ? "w-full px-2.5 py-4 sm:px-3 sm:py-5"
+            : "mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+        }
+      >
         {showSkeleton ? (
           <motion.div
             initial={{ opacity: 0, y: 24 }}

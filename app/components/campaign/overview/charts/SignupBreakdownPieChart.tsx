@@ -3,14 +3,19 @@
 import { useMemo } from "react";
 import {
   Cell,
-  Legend,
+  Label,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
+import {
+  OverviewChartGradientDefs,
+  usePieChartGradients,
+} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
 import {
   hasSignupBreakdownData,
   OVERVIEW_CHART_COLORS,
@@ -18,71 +23,121 @@ import {
   type ChartNameValue,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 
-const SLICE_COLORS = [OVERVIEW_CHART_COLORS.orange, OVERVIEW_CHART_COLORS.green];
+const PIE_CHART_MARGIN = { top: 4, right: 8, bottom: 4, left: 8 };
 
-const PIE_CHART_MARGIN = { top: 8, right: 16, bottom: 36, left: 16 };
+function PieCenterLabel({
+  cx = 0,
+  cy = 0,
+  total,
+}: {
+  cx?: number;
+  cy?: number;
+  total: number;
+}) {
+  return (
+    <g>
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fill="#07111f"
+        fontSize={30}
+        fontWeight={800}
+      >
+        {total.toLocaleString()}
+      </text>
+      <text
+        x={cx}
+        y={cy + 18}
+        textAnchor="middle"
+        fill="#64748b"
+        fontSize={12}
+        fontWeight={600}
+      >
+        total signups
+      </text>
+    </g>
+  );
+}
 
 export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
   const hasData = hasSignupBreakdownData(data);
+  const gradients = usePieChartGradients();
   const total = useMemo(
     () => data.reduce((sum, point) => sum + point.value, 0),
     [data],
   );
 
+  const legendItems = data.map((entry, index) => {
+    const percent =
+      total > 0 ? `${((entry.value / total) * 100).toFixed(0)}%` : "0%";
+    return {
+      label: entry.name,
+      value: percent,
+      color:
+        index === 0 ? OVERVIEW_CHART_COLORS.orange : OVERVIEW_CHART_COLORS.green,
+    };
+  });
+
+  const sliceIds = [gradients.signupOnly, gradients.paid];
+
   return (
     <OverviewChartShell
       title="Signup breakdown"
       subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months combined`}
-      minHeightClass="min-h-[300px]"
+      minHeightClass="min-h-[320px]"
+      accent="orange"
     >
       {hasData ? (
-        <div className="h-[280px] w-full min-w-0">
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={PIE_CHART_MARGIN}>
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="48%"
-                innerRadius="48%"
-                outerRadius="72%"
-                paddingAngle={2}
-                label={false}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={entry.name}
-                    fill={SLICE_COLORS[index] ?? SLICE_COLORS[0]}
-                    stroke="#fff"
-                    strokeWidth={2}
+        <>
+          <div className="h-[250px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart margin={PIE_CHART_MARGIN}>
+                <OverviewChartGradientDefs stops={gradients.stops} />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="54%"
+                  outerRadius="78%"
+                  paddingAngle={3}
+                  cornerRadius={6}
+                  stroke="#ffffff"
+                  strokeWidth={3}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={`url(#${sliceIds[index] ?? sliceIds[0]})`}
+                    />
+                  ))}
+                  <Label
+                    position="center"
+                    content={({ viewBox }) => {
+                      if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
+                        return null;
+                      }
+                      return (
+                        <PieCenterLabel
+                          cx={viewBox.cx}
+                          cy={viewBox.cy}
+                          total={total}
+                        />
+                      );
+                    }}
                   />
-                ))}
-              </Pie>
-              <Tooltip content={<OverviewChartTooltip />} />
-              <Legend
-                verticalAlign="bottom"
-                wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-                formatter={(value) => {
-                  const item = data.find((point) => point.name === value);
-                  const percent =
-                    total > 0 && item
-                      ? ((item.value / total) * 100).toFixed(0)
-                      : "0";
+                </Pie>
+                <Tooltip content={<OverviewChartTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
 
-                  return (
-                    <span className="text-slate-600">
-                      {value}{" "}
-                      <span className="font-medium text-[#07111f]">{percent}%</span>
-                    </span>
-                  );
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+          <OverviewChartLegend items={legendItems} />
+        </>
       ) : (
-        <p className="flex flex-1 items-center justify-center text-sm text-slate-500">
+        <p className="flex flex-1 items-center justify-center text-[0.82rem] font-medium text-slate-500">
           No signup breakdown in this period.
         </p>
       )}

@@ -69,7 +69,7 @@ export function BusinessQrScannerPanel({
 
         <article className={`${scannerCardClass} rd-premium-panel`}>
           <div
-            className="flex shrink-0 flex-col gap-3 border-b border-[#e8edf5] px-4 py-3.5 sm:px-5"
+            className="flex shrink-0 flex-col gap-3 border-b border-[#e8edf5] px-2.5 py-3.5 sm:px-3"
             aria-label="Scanner actions"
           >
             <div
@@ -106,7 +106,7 @@ export function BusinessQrScannerPanel({
           </div>
 
           <div
-            className={`rd-premium-panel__body px-4 py-4 sm:px-5 sm:py-5${
+            className={`rd-premium-panel__body px-2.5 py-4 sm:px-3 sm:py-5${
               activeTab === "scan" ? " rd-premium-panel__body--center" : ""
             }`}
             role="tabpanel"

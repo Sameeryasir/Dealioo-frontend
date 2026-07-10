@@ -10,6 +10,7 @@ import {
   normalizeLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { textColorStyle } from "@/app/components/crm-template-editor/landing-content-colors";
+import { funnelBrandCtaClass } from "@/app/components/crm-template-editor/editor-theme";
 import type {
   LandingTemplatePage,
   SignUpTemplatePage,
@@ -84,16 +85,12 @@ export function SignupPagePreview({
     : "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl border border-zinc-200/90 bg-white/80 px-5 py-3 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-white active:scale-[0.99]";
 
   const primaryClass = [
-    "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:brightness-105 active:scale-[0.99]",
-    landingStyle.ctaShadow,
+    "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold",
+    funnelBrandCtaClass,
     signupSubmitting ? "cursor-not-allowed opacity-60" : "",
   ]
     .filter(Boolean)
     .join(" ");
-
-  const primaryStyle: CSSProperties = {
-    background: `linear-gradient(135deg, ${landingStyle.primary} 0%, ${landingStyle.secondary} 100%)`,
-  };
 
   const back =
     signupBackAsLink != null ? (
@@ -119,7 +116,6 @@ export function SignupPagePreview({
       type="submit"
       disabled={signupSubmitting}
       className={primaryClass}
-      style={primaryStyle}
       onClick={() => onButtonClick?.(signupPage.navNextLabel)}
     >
       {signupPage.navNextLabel}
@@ -128,7 +124,6 @@ export function SignupPagePreview({
     <Link
       href={signupNextAsLink}
       className={primaryClass}
-      style={primaryStyle}
       onClick={() => onButtonClick?.(signupPage.navNextLabel)}
     >
       {signupPage.navNextLabel}
@@ -137,7 +132,6 @@ export function SignupPagePreview({
     <button
       type="button"
       className={primaryClass}
-      style={primaryStyle}
       onClick={() => onButtonClick?.(signupPage.navNextLabel)}
     >
       {signupPage.navNextLabel}

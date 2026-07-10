@@ -1,26 +1,40 @@
 "use client";
 
-import { Calendar, Hash, Mail, Phone, UserRound, Users } from "lucide-react";
+import { Calendar, Mail, Phone, UserRound, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
-import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
-import { ReportTable } from "@/app/components/shared/ReportTable";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useCustomers } from "@/app/hooks/use-customers";
+import {
+  TABLE_HEAD_ICON_CLASS,
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
 import { CUSTOMERS_PAGE_SIZE } from "@/app/services/customer/get-customers";
 import { useEffect, useMemo, useState } from "react";
 
+const guestsCardClass =
+  "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+
 const thClass =
-  "whitespace-nowrap px-4 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wider text-zinc-500 first:pl-6 last:pr-6";
+  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
 const tdClass =
-  "px-4 py-3.5 text-left align-middle text-sm text-zinc-700 first:pl-6 last:pr-6";
+  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
 const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -14 },
+  hidden: { opacity: 0, y: -10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.28, ease: standardEase },
+  },
+};
+
+const tableRowReveal = {
+  hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,
     y: 0,
@@ -28,61 +42,40 @@ const tableHeaderReveal = {
   },
 };
 
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 18 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.38, ease: standardEase },
-  },
-};
-
 const tableBodyStagger = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
   },
 };
 
 const AVATAR_COLORS = [
-  "from-violet-500 to-purple-600",
-  "from-sky-500 to-blue-600",
-  "from-emerald-500 to-teal-600",
-  "from-amber-500 to-orange-600",
-  "from-rose-500 to-pink-600",
-  "from-fuchsia-500 to-purple-600",
-  "from-cyan-500 to-sky-600",
-  "from-lime-500 to-green-600",
-  "from-red-500 to-rose-600",
-  "from-indigo-500 to-violet-600",
+  "from-[#1877f2] to-[#4f9cf9]",
+  "from-[#e1306c] to-[#f472b6]",
+  "from-[#34a853] to-[#86efac]",
+  "from-[#f77737] to-[#fdba74]",
+  "from-[#8b5cf6] to-[#c4b5fd]",
+  "from-[#0ea5e9] to-[#7dd3fc]",
 ] as const;
 
 function GuestsTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/60 px-6 py-4">
-        <Skeleton funnel className="h-4 w-16" />
-        <Skeleton funnel className="h-6 w-14 rounded-md" />
-      </div>
-      <div className="border-b border-zinc-200 bg-zinc-50/80 px-6 py-3">
+    <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
+      <div className="border-b border-[#e8edf5] px-5 py-3">
         <div className="flex gap-8">
-          <Skeleton funnel className="h-3 w-6" />
-          <Skeleton funnel className="h-3 w-12" />
-          <Skeleton funnel className="h-3 w-14" />
-          <Skeleton funnel className="h-3 w-12" />
-          <Skeleton funnel className="h-3 w-14" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} funnel className="h-3 w-12" />
+          ))}
         </div>
       </div>
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className={`flex items-center gap-4 border-b border-zinc-100 px-6 py-3.5 last:border-0 ${
-            i % 2 === 1 ? "bg-zinc-50/40" : ""
-          }`}
+          className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-3.5 last:border-0"
         >
           <Skeleton funnel className="h-3 w-4" />
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <Skeleton funnel className="size-9 shrink-0 rounded-full" />
+            <Skeleton funnel className="size-8 shrink-0 rounded-full" />
             <Skeleton funnel className="h-4 w-28" />
           </div>
           <Skeleton funnel className="h-4 w-32" />
@@ -90,6 +83,31 @@ function GuestsTableSkeleton() {
           <Skeleton funnel className="h-4 w-24" />
         </div>
       ))}
+    </div>
+  );
+}
+
+function GuestsEmptyState() {
+  return (
+    <div className="flex flex-col items-center px-6 py-14 text-center sm:py-16">
+      <div className="relative mb-5 flex size-24 items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
+          aria-hidden
+        />
+        <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
+          <Users className="size-9 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
+        </span>
+      </div>
+      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+        No guests yet
+      </p>
+      <h3 className="m-0 mt-2 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+        Your guest list is empty
+      </h3>
+      <p className="mx-auto m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+        Customers who sign up through your funnel will appear here.
+      </p>
     </div>
   );
 }
@@ -105,7 +123,27 @@ function guestAvatarColor(seed: number): string {
   return AVATAR_COLORS[Math.abs(seed) % AVATAR_COLORS.length];
 }
 
-export function CampaignGuestsPanel() {
+function GuestsPanelHeader({ total }: { total: number }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#e8edf5] pb-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+          Guests
+        </span>
+        <span className="text-[0.72rem] font-medium text-slate-500">
+          Funnel signups & members
+        </span>
+      </div>
+      <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+        {total} total
+      </span>
+    </div>
+  );
+}
+
+export function CampaignGuestsPanel({
+  embedded = false,
+}: { embedded?: boolean } = {}) {
   const { data: customers, meta, page, setPage, loading, error } =
     useCustomers(true);
 
@@ -124,9 +162,178 @@ export function CampaignGuestsPanel() {
   }, [error, loading, alertDismissed]);
 
   const showEmpty = !loading && !error && (meta?.total ?? 0) === 0;
+  const totalGuests = meta?.total ?? customers.length;
+
+  const panelContent = (
+    <>
+      {loading && customers.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: standardEase }}
+        >
+          <GuestsPanelHeader total={0} />
+          <GuestsTableSkeleton />
+        </motion.div>
+      ) : null}
+
+      {showEmpty ? <GuestsEmptyState /> : null}
+
+      {!loading && !error && customers.length > 0 ? (
+        <motion.div
+          key={`guests-page-${page}`}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: standardEase }}
+        >
+          <GuestsPanelHeader total={totalGuests} />
+
+          <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-[40rem] border-collapse">
+                <thead>
+                  <motion.tr
+                    variants={tableHeaderReveal}
+                    initial="hidden"
+                    animate="show"
+                    className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
+                  >
+                    <th className={`${thClass} w-12`}>
+                      <TableColumnHeader
+                        label="#"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={UserRound}
+                        label="Name"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={Mail}
+                        label="Email"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={Phone}
+                        label="Phone"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={Calendar}
+                        label="Joined"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                  </motion.tr>
+                </thead>
+                <motion.tbody
+                  variants={tableBodyStagger}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {customers.map((customer, index) => {
+                    const rowNumber = rowOffset + index + 1;
+                    const initials = guestInitials(customer.name);
+                    const avatarColor = guestAvatarColor(
+                      customer.id * 13 + index * 7,
+                    );
+
+                    return (
+                      <motion.tr
+                        key={customer.id}
+                        variants={tableRowReveal}
+                        className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
+                      >
+                        <td className={tdClass}>
+                          <span className="text-xs font-semibold tabular-nums text-slate-400">
+                            {rowNumber}
+                          </span>
+                        </td>
+                        <td className={tdClass}>
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span
+                              className={`flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]`}
+                            >
+                              {initials}
+                            </span>
+                            <span className="truncate font-semibold text-[#07111f]">
+                              {customer.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
+                          <a
+                            href={`mailto:${customer.email}`}
+                            className="block truncate text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                            title={customer.email}
+                          >
+                            {customer.email}
+                          </a>
+                        </td>
+                        <td className={tdClass}>
+                          {customer.phone?.trim() ? (
+                            <a
+                              href={`tel:${customer.phone.trim()}`}
+                              className="text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                            >
+                              {customer.phone}
+                            </a>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                        <td
+                          className={`${tdClass} whitespace-nowrap text-slate-600`}
+                        >
+                          {formatDateTimeShort(customer.createdAt)}
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </motion.tbody>
+              </table>
+            </div>
+
+            {meta && meta.totalPages > 1 ? (
+              <div className="border-t border-[#e8edf5] bg-[#f8fafc]/40 px-3 py-2 sm:px-4">
+                <OffsetPagination
+                  page={page}
+                  totalPages={meta.totalPages}
+                  total={meta.total}
+                  limit={meta.limit}
+                  loading={loading}
+                  onPageChange={setPage}
+                  itemLabel="guests"
+                />
+              </div>
+            ) : null}
+          </div>
+        </motion.div>
+      ) : null}
+    </>
+  );
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50">
+    <div
+      className={
+        embedded
+          ? "min-h-0 w-full"
+          : "min-h-0 flex-1 overflow-y-auto bg-[#eef2f7]"
+      }
+    >
       <OverviewAlertDialog
         open={alertMessage != null}
         message={alertMessage ?? ""}
@@ -136,189 +343,17 @@ export function CampaignGuestsPanel() {
         }}
       />
 
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        {loading && customers.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: standardEase }}
-          >
-            <GuestsTableSkeleton />
-          </motion.div>
-        ) : null}
-
-        {showEmpty ? (
-          <PanelEmptyState
-            icon={Users}
-            title="No guests yet"
-            description="Customers who sign up through your funnel will appear here."
-          />
-        ) : null}
-
-        {!loading && !error && customers.length > 0 ? (
-          <motion.div
-            key={`guests-page-${page}`}
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: standardEase }}
-          >
-            <ReportTable
-              className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"
-              header={
-                <motion.div
-                  initial={{ opacity: 0, y: -16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease: standardEase }}
-                  className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/60 px-6 py-4"
-                >
-                  <h3 className="text-base font-semibold text-zinc-900">Guests</h3>
-                  <span className="rounded-md bg-white px-2.5 py-1 text-xs font-medium tabular-nums text-zinc-600 ring-1 ring-zinc-200">
-                    {meta?.total ?? customers.length} total
-                  </span>
-                </motion.div>
-              }
-              footer={
-                meta && meta.totalPages > 1 ? (
-                  <OffsetPagination
-                    page={page}
-                    totalPages={meta.totalPages}
-                    total={meta.total}
-                    limit={meta.limit}
-                    loading={loading}
-                    onPageChange={setPage}
-                    itemLabel="guests"
-                  />
-                ) : null
-              }
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[36rem] border-collapse">
-                  <thead>
-                    <motion.tr
-                      variants={tableHeaderReveal}
-                      initial="hidden"
-                      animate="show"
-                      className="border-b border-zinc-200 bg-zinc-50/80"
-                    >
-                      <th className={`${thClass} w-12`}>
-                        <TableColumnHeader
-                          icon={Hash}
-                          label="#"
-                          iconClassName="text-zinc-400"
-                          labelClassName="text-zinc-500"
-                        />
-                      </th>
-                      <th className={thClass}>
-                        <TableColumnHeader
-                          icon={UserRound}
-                          label="Name"
-                          iconClassName="text-zinc-400"
-                          labelClassName="text-zinc-500"
-                        />
-                      </th>
-                      <th className={thClass}>
-                        <TableColumnHeader
-                          icon={Mail}
-                          label="Email"
-                          iconClassName="text-zinc-400"
-                          labelClassName="text-zinc-500"
-                        />
-                      </th>
-                      <th className={thClass}>
-                        <TableColumnHeader
-                          icon={Phone}
-                          label="Phone"
-                          iconClassName="text-zinc-400"
-                          labelClassName="text-zinc-500"
-                        />
-                      </th>
-                      <th className={thClass}>
-                        <TableColumnHeader
-                          icon={Calendar}
-                          label="Joined"
-                          iconClassName="text-zinc-400"
-                          labelClassName="text-zinc-500"
-                        />
-                      </th>
-                    </motion.tr>
-                  </thead>
-                  <motion.tbody
-                    variants={tableBodyStagger}
-                    initial="hidden"
-                    animate="show"
-                  >
-                    {customers.map((customer, index) => {
-                      const rowNumber = rowOffset + index + 1;
-                      const initials = guestInitials(customer.name);
-                      const avatarColor = guestAvatarColor(
-                        customer.id * 13 + index * 7,
-                      );
-
-                      return (
-                        <motion.tr
-                          key={customer.id}
-                          variants={tableRowReveal}
-                          className={`group border-b border-zinc-100 transition-colors duration-150 last:border-0 hover:bg-zinc-50/80 ${
-                            index % 2 === 1 ? "bg-zinc-50/40" : "bg-white"
-                          }`}
-                        >
-                          <td className={tdClass}>
-                            <span className="text-xs font-medium tabular-nums text-zinc-400">
-                              {rowNumber}
-                            </span>
-                          </td>
-                          <td className={tdClass}>
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <span
-                                className={`flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-[11px] font-semibold text-white`}
-                              >
-                                {initials}
-                              </span>
-                              <span className="truncate font-medium text-zinc-900">
-                                {customer.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
-                            <a
-                              href={`mailto:${customer.email}`}
-                              className="block truncate text-zinc-600 underline-offset-2 transition hover:text-zinc-900 hover:underline"
-                              title={customer.email}
-                            >
-                              {customer.email}
-                            </a>
-                          </td>
-                          <td className={tdClass}>
-                            {customer.phone?.trim() ? (
-                              <a
-                                href={`tel:${customer.phone.trim()}`}
-                                className="text-zinc-600 underline-offset-2 transition hover:text-zinc-900 hover:underline"
-                              >
-                                {customer.phone}
-                              </a>
-                            ) : (
-                              <span className="text-zinc-300">N/A</span>
-                            )}
-                          </td>
-                          <td className={`${tdClass} whitespace-nowrap text-zinc-600`}>
-                            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm">
-                              <Calendar
-                                className="size-3.5 shrink-0 text-zinc-400"
-                                aria-hidden
-                              />
-                              {formatDateTimeShort(customer.createdAt)}
-                            </span>
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </motion.tbody>
-                </table>
-              </div>
-            </ReportTable>
-          </motion.div>
-        ) : null}
-      </div>
+      {embedded ? (
+        <div className="w-full px-2.5 py-3.5 sm:px-3 sm:py-4">
+          {panelContent}
+        </div>
+      ) : (
+        <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <article className={`${guestsCardClass} p-4 sm:p-5`}>
+            {panelContent}
+          </article>
+        </div>
+      )}
     </div>
   );
 }

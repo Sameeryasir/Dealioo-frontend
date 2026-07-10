@@ -985,7 +985,7 @@ export function BusinessOrdersPanel({
         ) : (
           <article className={`${ordersCardClass} rd-premium-panel`}>
             <div
-              className="flex shrink-0 flex-col gap-3 px-4 py-3.5 sm:px-5"
+              className="flex shrink-0 flex-col gap-3 px-2.5 py-3.5 sm:px-3"
               aria-label="Order filters"
             >
               <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

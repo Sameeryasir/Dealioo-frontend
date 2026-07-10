@@ -64,77 +64,92 @@ export default function CampaignWelcomePage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="shrink-0">
-        <CampaignHeader
-          businessId={businessId}
-          campaignId={campaignId}
-          funnelId={funnelId}
-          offer={campaign?.offer}
-          price={campaign?.price}
-          campaign={campaign}
-          activeTabId={activeTabId}
-          onTabChange={setActiveTabId}
-          onCampaignUpdated={handleCampaignUpdated}
-        />
-      </div>
-      {activeTabId === "funnel" ? (
-        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-          <CrmTemplateEditor
+    <section className="rd-premium rd-premium--fill" aria-label="Campaign">
+      <div className="rd-premium-page">
+        <article
+          className={`campaign-immersive-shell rd-premium-panel ${
+            activeTabId === "funnel" ? "funnel-editor-shell" : ""
+          }`}
+        >
+          <CampaignHeader
+            embedded
             businessId={businessId}
             campaignId={campaignId}
-            campaignName={campaign?.campaignName}
-            campaignPrice={campaign?.price}
-            campaignOffer={campaign?.offer}
-          />
-        </div>
-      ) : activeTabId === "overview" ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <FunnelOverviewPanel
-            campaignName={campaign?.campaignName}
-            price={campaign?.price}
             funnelId={funnelId}
-            isFunnelIdLoading={isFunnelIdLoading}
-            onCreateFunnel={() => setActiveTabId("funnel")}
+            offer={campaign?.offer}
+            price={campaign?.price}
+            campaign={campaign}
+            activeTabId={activeTabId}
+            onTabChange={setActiveTabId}
+            onCampaignUpdated={handleCampaignUpdated}
           />
-        </div>
-      ) : activeTabId === "orders" ? (
-        <FunnelOrdersPanel
-          funnelId={funnelId}
-          isFunnelIdLoading={isFunnelIdLoading}
-        />
-      ) : activeTabId === "guests" ? (
-        <CampaignGuestsPanel />
-      ) : activeTabId === "automations" ? (
-        <AutomationListPage onOpenBuilder={openAutomationBuilder} />
-      ) : activeTabId === "ads" ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-zinc-50/50">
-          <CampaignAdsPanel
-            businessId={businessId}
-            campaignName={campaign?.campaignName}
-            campaignImageUrl={campaign?.imageUrl}
-            campaignWebsiteUrl={campaign?.websiteUrl}
-          />
-          <div className="mx-auto w-full max-w-5xl px-4 sm:px-8">
-            <div
-              className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
-              aria-hidden
-            />
+
+          <div
+            className={`flex min-h-0 flex-1 flex-col ${
+              activeTabId === "funnel" ? "overflow-hidden" : "overflow-y-auto"
+            }`}
+          >
+            {activeTabId === "funnel" ? (
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+                <CrmTemplateEditor
+                  embedded
+                  businessId={businessId}
+                  campaignId={campaignId}
+                  campaignName={campaign?.campaignName}
+                  campaignPrice={campaign?.price}
+                  campaignOffer={campaign?.offer}
+                />
+              </div>
+            ) : activeTabId === "overview" ? (
+              <FunnelOverviewPanel
+                embedded
+                campaignName={campaign?.campaignName}
+                price={campaign?.price}
+                funnelId={funnelId}
+                isFunnelIdLoading={isFunnelIdLoading}
+                onCreateFunnel={() => setActiveTabId("funnel")}
+              />
+            ) : activeTabId === "orders" ? (
+              <FunnelOrdersPanel
+                embedded
+                funnelId={funnelId}
+                isFunnelIdLoading={isFunnelIdLoading}
+              />
+            ) : activeTabId === "guests" ? (
+              <CampaignGuestsPanel embedded />
+            ) : activeTabId === "automations" ? (
+              <AutomationListPage onOpenBuilder={openAutomationBuilder} />
+            ) : activeTabId === "ads" ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <CampaignAdsPanel
+                  businessId={businessId}
+                  campaignName={campaign?.campaignName}
+                  campaignImageUrl={campaign?.imageUrl}
+                  campaignWebsiteUrl={campaign?.websiteUrl}
+                />
+                <div className="mx-auto w-full px-4 sm:px-5">
+                  <div
+                    className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
+                    aria-hidden
+                  />
+                </div>
+                <CampaignGoogleAdsPanel businessId={businessId} />
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-5">
+                <p className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                  Welcome to Campaign page
+                </p>
+                {campaign === null ? (
+                  <p className="mt-4 text-center text-sm text-zinc-500">
+                    Could not load this campaign from the list.
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
-          <CampaignGoogleAdsPanel businessId={businessId} />
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
-          <p className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
-            Welcome to Campaign page
-          </p>
-          {campaign === null ? (
-            <p className="mt-4 text-center text-sm text-zinc-500">
-              Could not load this campaign from the list.
-            </p>
-          ) : null}
-        </div>
-      )}
-    </div>
+        </article>
+      </div>
+    </section>
   );
 }

@@ -4,24 +4,38 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { editorMotion } from "@/app/components/crm-template-editor/editor-animation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
-import { previewPhoneFrameClass } from "@/app/components/crm-template-editor/editor-layout";
+import {
+  editorPreviewStageClass,
+  editorPreviewStageEmbeddedClass,
+  previewPhoneFrameClass,
+  previewPhoneFrameEmbeddedClass,
+} from "@/app/components/crm-template-editor/editor-layout";
 
 export function CanvasWorkspace({
   isLoading,
   loadError,
   children,
+  embedded = false,
 }: {
   isLoading?: boolean;
   loadError?: string | null;
   children: ReactNode;
+  embedded?: boolean;
 }) {
+  const stageClass = embedded
+    ? editorPreviewStageEmbeddedClass
+    : editorPreviewStageClass;
+  const frameClass = embedded
+    ? previewPhoneFrameEmbeddedClass
+    : previewPhoneFrameClass;
+
   return (
-    <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50">
-      <div className="relative flex min-h-0 flex-1 w-full flex-col items-center justify-start overflow-hidden p-2 sm:p-3 lg:p-4">
+    <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#eef2f7]">
+      <div className={stageClass}>
         {loadError ? (
           <motion.p
             {...editorMotion.slideUp}
-            className="mb-3 w-full max-w-[min(390px,100%)] shrink-0 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-xs text-amber-950"
+            className="absolute left-2 right-2 top-2 z-10 mx-auto w-full max-w-[min(390px,100%)] shrink-0 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-xs font-medium text-amber-950"
             role="status"
           >
             {loadError}
@@ -29,11 +43,11 @@ export function CanvasWorkspace({
         ) : null}
 
         {isLoading ? (
-          <div className={previewPhoneFrameClass}>
+          <div className={frameClass}>
             <FunnelPreviewSkeleton />
           </div>
         ) : (
-          <motion.div className={previewPhoneFrameClass} {...editorMotion.scaleIn}>
+          <motion.div className={frameClass} {...editorMotion.scaleIn}>
             {children}
           </motion.div>
         )}

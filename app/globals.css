@@ -9167,7 +9167,7 @@ body:has(.auth-select-plan-page) {
 
 .rd-shell,
 .rd-shell--app {
-  --rd-header-h: 5rem;
+  --rd-header-h: 3.75rem;
   background: #ffffff;
   color: #07111f;
 }
@@ -9179,19 +9179,19 @@ body:has(.auth-select-plan-page) {
   min-height: 100dvh;
   min-width: 0;
   width: 100%;
-  padding: 0.25rem 0.25rem 0.375rem;
+  padding: 0.2rem 0.1rem 0.3rem;
   box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .rd-shell--app {
-    padding: 0.5rem 0.375rem 0.5rem;
+    padding: 0.35rem 0.15rem 0.4rem;
   }
 }
 
 @media (min-width: 1280px) {
   .rd-shell--app {
-    padding: 0.5rem 0.5rem 0.5rem;
+    padding: 0.4rem 0.25rem 0.45rem;
   }
 }
 
@@ -9237,13 +9237,13 @@ body:has(.auth-select-plan-page) {
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
-  padding: 0 1rem;
+  padding: 0 0.6rem;
 }
 
 @media (min-width: 640px) {
   .rd-topbar-inner {
     gap: 1rem;
-    padding: 0 1.25rem;
+    padding: 0 0.7rem;
   }
 }
 
@@ -9379,12 +9379,12 @@ body:has(.auth-select-plan-page) {
   overflow-x: hidden;
   overflow-y: auto;
   background: #eef2f7;
-  padding: 0.75rem 0.75rem 1rem;
+  padding: 0.4rem 0.35rem 1rem;
 }
 
 @media (min-width: 640px) {
   .rd-main-scroll {
-    padding: 1rem 1.25rem 1.25rem;
+    padding: 0.5rem 0.5rem 1.25rem;
   }
 }
 
@@ -9477,8 +9477,8 @@ body:has(.auth-select-plan-page) {
 
 .rd-sidebar-logo-mark {
   display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
+  height: 2.125rem;
+  width: 2.125rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -9489,8 +9489,8 @@ body:has(.auth-select-plan-page) {
 
 .rd-sidebar-favicon {
   display: block;
-  height: 1.85rem;
-  width: 1.85rem;
+  height: 1.5rem;
+  width: 1.5rem;
   object-fit: contain;
 }
 
@@ -10146,14 +10146,40 @@ body:has(.auth-select-plan-page) {
 
 .rd-premium {
   width: 100%;
-  max-width: 76rem;
-  margin: 0 auto;
-  padding: 0.25rem 0.15rem 0.75rem;
+  max-width: none;
+  margin-inline: 0;
+  padding: 0.1rem 0 0.75rem;
 }
 
 @media (min-width: 640px) {
   .rd-premium {
-    padding: 0.35rem 0.35rem 1rem;
+    padding: 0.15rem 0 1rem;
+  }
+}
+
+.rd-main-scroll--sidebar-collapsed {
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+
+@media (min-width: 640px) {
+  .rd-main-scroll--sidebar-collapsed {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+.rd-main-scroll--sidebar-expanded > .rd-premium,
+.rd-main-scroll--sidebar-expanded > .rd-premium.rd-premium--fill {
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 0;
+}
+
+@media (min-width: 640px) {
+  .rd-main-scroll--sidebar-expanded > .rd-premium,
+  .rd-main-scroll--sidebar-expanded > .rd-premium.rd-premium--fill {
+    padding-inline: 0;
   }
 }
 
@@ -10161,13 +10187,30 @@ body:has(.auth-select-plan-page) {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding-top: 0.25rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
   padding-bottom: 0;
+}
+
+.rd-main-scroll:has(> .rd-premium--fill) > .rd-premium--fill {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+@media (min-width: 640px) {
+  .rd-main-scroll:has(> .rd-premium--fill) {
+    padding-top: 0.35rem;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+  }
 }
 
 .rd-premium--fill {
   --rd-shell-v-pad: 0.625rem;
-  --rd-main-pad-top: 0.75rem;
-  --rd-premium-pad-top: 0.25rem;
+  --rd-main-pad-top: 0.25rem;
+  --rd-premium-pad-top: 0.1rem;
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
@@ -10182,8 +10225,8 @@ body:has(.auth-select-plan-page) {
 @media (min-width: 640px) {
   .rd-premium--fill {
     --rd-shell-v-pad: 1rem;
-    --rd-main-pad-top: 1rem;
-    --rd-premium-pad-top: 0.35rem;
+    --rd-main-pad-top: 0.35rem;
+    --rd-premium-pad-top: 0.15rem;
   }
 }
 
@@ -10207,6 +10250,42 @@ body:has(.auth-select-plan-page) {
 }
 
 .rd-premium-panel {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rd-main-scroll--campaign-immersive {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+@media (min-width: 640px) {
+  .rd-main-scroll--campaign-immersive {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+.rd-premium--fill > .rd-premium-page:has(.funnel-editor-shell) {
+  gap: 0;
+}
+
+.rd-premium--fill > .rd-premium-page:has(.campaign-immersive-shell) {
+  gap: 0;
+}
+
+.funnel-editor-shell,
+.campaign-immersive-shell {
+  border-radius: 1.1rem;
+  border: 1px solid #e8edf5;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.campaign-immersive-shell {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;

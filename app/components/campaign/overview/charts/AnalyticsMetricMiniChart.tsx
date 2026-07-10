@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -12,11 +13,24 @@ import {
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
+  OverviewChartGradientDefs,
+  useLineChartGradient,
+} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
+import {
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
+
+function strokeToAccent(
+  color: string,
+): "green" | "blue" | "pink" | "orange" {
+  if (color.includes("34a853") || color.includes("22c55e")) return "green";
+  if (color.includes("e1306c") || color.includes("ec4899")) return "pink";
+  if (color.includes("f77737") || color.includes("f97316")) return "orange";
+  return "blue";
+}
 
 export function AnalyticsMetricMiniChart({
   title,
@@ -31,44 +45,72 @@ export function AnalyticsMetricMiniChart({
   data: MonthlyMetricPoint[];
   strokeColor: string;
 }) {
+  const gradient = useLineChartGradient(strokeColor);
+
   return (
     <OverviewChartShell
       title={title}
       subtitle={`${subtitle}, last ${OVERVIEW_MONTH_COUNT} months`}
-      minHeightClass="min-h-[200px]"
+      minHeightClass="min-h-[220px]"
       className="h-full"
+      accent={strokeToAccent(strokeColor)}
+      stat={total.toLocaleString()}
     >
-      <p className="mb-3 text-2xl font-extrabold tabular-nums tracking-tight text-[#07111f]">
-        {total.toLocaleString()}
-      </p>
-      <div className="h-[180px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height={180}>
+      <div className="h-[190px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height={190}>
           <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e8edf5" vertical={false} />
+            <OverviewChartGradientDefs stops={gradient.stops} />
+            <CartesianGrid
+              strokeDasharray="4 6"
+              stroke="#e8edf5"
+              vertical={false}
+            />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#94a3b8", fontSize: 10 }}
+              tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
               axisLine={false}
               tickLine={false}
               interval={0}
               tickFormatter={shortenMonthAxisLabel}
-              height={28}
+              height={30}
+              dy={4}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: "#94a3b8", fontSize: 10 }}
+              tick={{ fill: "#cbd5e1", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={30}
+              width={28}
             />
             <Tooltip content={<OverviewChartTooltip />} />
-            <Line
+            <Area
+              id={`${gradient.lineId}-fill`}
               type="monotone"
               dataKey="value"
+              stroke="none"
+              fill={`url(#${gradient.areaId})`}
+              fillOpacity={1}
+              tooltipType="none"
+            />
+            <Line
+              id={`${gradient.lineId}-stroke`}
+              type="monotone"
+              dataKey="value"
+              name={title}
               stroke={strokeColor}
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: strokeColor, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: strokeColor }}
+              strokeWidth={3}
+              dot={{
+                r: 3.5,
+                fill: "#ffffff",
+                stroke: strokeColor,
+                strokeWidth: 2.5,
+              }}
+              activeDot={{
+                r: 6,
+                fill: strokeColor,
+                stroke: "#ffffff",
+                strokeWidth: 3,
+              }}
             />
           </LineChart>
         </ResponsiveContainer>

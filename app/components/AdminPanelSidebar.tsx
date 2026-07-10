@@ -26,8 +26,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-const SIDEBAR_EXPANDED_KEY = "dealioo-rd-sidebar-expanded";
+import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 
 type NavItem = {
   href: string;
@@ -42,31 +41,12 @@ export default function AdminPanelSidebar() {
   const router = useRouter();
   const { clearPassword } = useCredentialContext();
   const scannerUser = isScannerUser();
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, toggle: toggleExpanded } = useSidebarExpand();
   const [hydrated, setHydrated] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(SIDEBAR_EXPANDED_KEY);
-      if (saved === "1") setExpanded(true);
-      if (saved === "0") setExpanded(false);
-    } catch {
-      // ignore storage errors
-    }
     setHydrated(true);
-  }, []);
-
-  const toggleExpanded = useCallback(() => {
-    setExpanded((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(SIDEBAR_EXPANDED_KEY, next ? "1" : "0");
-      } catch {
-        // ignore storage errors
-      }
-      return next;
-    });
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -200,7 +180,7 @@ export default function AdminPanelSidebar() {
               <DealiooLogo
                 variant="dark"
                 transparent
-                className="h-8 w-auto sm:h-9"
+                className="h-7 w-auto"
                 priority
               />
             ) : (

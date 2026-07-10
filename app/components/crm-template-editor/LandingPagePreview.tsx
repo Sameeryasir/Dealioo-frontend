@@ -18,6 +18,7 @@ import type {
   LandingTemplatePage,
   TemplatePage,
 } from "@/app/components/crm-template-editor/template-types";
+import { funnelBrandCtaClass } from "@/app/components/crm-template-editor/editor-theme";
 
 export function pageBackgroundStyle(
   color: string | undefined,
@@ -127,32 +128,27 @@ function LandingCta({
   label,
   href,
   centered,
-  primary,
-  secondary,
-  ctaShadow,
   labelColorStyle,
   onButtonClick,
 }: {
   label: string;
   href: string | null;
   centered: boolean;
-  primary: string;
-  secondary: string;
-  ctaShadow: string;
+  primary?: string;
+  secondary?: string;
+  ctaShadow?: string;
   labelColorStyle?: CSSProperties;
   onButtonClick?: (elementName: string) => void;
 }) {
   const className = [
-    "group relative mt-8 flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99]",
-    labelColorStyle ? "" : "text-white",
-    ctaShadow,
+    "group relative mt-8 flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-sm font-semibold",
+    funnelBrandCtaClass,
     centered ? "mx-auto max-w-sm" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   const style: CSSProperties = {
-    background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
     ...labelColorStyle,
   };
 

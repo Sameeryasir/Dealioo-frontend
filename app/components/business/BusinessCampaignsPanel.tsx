@@ -300,7 +300,7 @@ export function BusinessCampaignsPanel({
               <CampaignsEmptyState onCreate={openCreateFlow} />
             </div>
           ) : showCreateInCard && !hasAnyCampaigns ? (
-            <div className="rd-premium-panel__body px-4 py-4 sm:px-5 sm:py-5">
+            <div className="rd-premium-panel__body px-2.5 py-4 sm:px-3 sm:py-5">
               <CreateCampaigns
                 variant="inline"
                 open={createOpen}
@@ -326,7 +326,7 @@ export function BusinessCampaignsPanel({
           ) : (
             <>
               <div
-                className="flex shrink-0 flex-col gap-3 px-4 py-3.5 sm:px-5"
+                className="flex shrink-0 flex-col gap-3 px-2.5 py-3.5 sm:px-3"
                 aria-label="Campaign filters"
               >
                 <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -385,7 +385,7 @@ export function BusinessCampaignsPanel({
                 </div>
               </div>
 
-              <div className="rd-premium-panel__body px-4 pt-4 pb-4 sm:px-5 sm:pt-5 sm:pb-5">
+              <div className="rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5">
                 {loading ? (
                   <SkeletonGrid
                     count={CAMPAIGNS_GRID_PAGE_SIZE}

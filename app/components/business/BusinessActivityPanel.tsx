@@ -574,7 +574,7 @@ export function BusinessActivityPanel({
         ) : (
           <article className={`${activityCardClass} rd-premium-panel`}>
             <div
-              className="flex shrink-0 flex-col gap-3 px-4 py-3.5 sm:px-5"
+              className="flex shrink-0 flex-col gap-3 px-2.5 py-3.5 sm:px-3"
               aria-label="Activity filters"
             >
               <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -801,7 +801,7 @@ export function BusinessActivityPanel({
             </div>
 
             {showTable && meta && meta.totalPages > 1 ? (
-              <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-5">
+              <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs text-slate-500">
                     Showing {meta.total === 0 ? 0 : rowOffset + 1} to{" "}
