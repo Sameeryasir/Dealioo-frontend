@@ -4,7 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
-import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
+import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
@@ -38,7 +38,7 @@ function GoogleAuthCompleteInner() {
       try {
         const status = await getOnboardingStatus();
         if (!cancelled) {
-          router.replace(resolvePostLoginPath(status, null));
+          router.replace(resolvePostAuthPath(status, null));
         }
       } catch (error) {
         if (cancelled) return;

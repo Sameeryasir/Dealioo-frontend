@@ -16,6 +16,9 @@ type SignupPlanStepProps = {
   onBillingChange: (cycle: BillingCycle) => void;
   selectedPlanId: string;
   onSelectPlan: (planId: string) => void;
+  plans?: readonly PricingPlan[];
+  /** Full-width select-plan page: all cards in one row, no scroll hint. */
+  layout?: "signup" | "single-row";
 };
 
 function SignupPlanFeatures({ plan }: { plan: PricingPlan }) {
@@ -229,7 +232,10 @@ export function SignupPlanStep({
   onBillingChange,
   selectedPlanId,
   onSelectPlan,
+  plans = PRICING_PLANS,
+  layout = "signup",
 }: SignupPlanStepProps) {
+  const singleRow = layout === "single-row";
   const billingNote = useMemo(
     () =>
       billing === "annual"
@@ -238,8 +244,8 @@ export function SignupPlanStep({
     [billing],
   );
 
-  const topRowPlans = PRICING_PLANS.slice(0, 2);
-  const bottomRowPlans = PRICING_PLANS.slice(2);
+  const topRowPlans = plans.slice(0, 2);
+  const bottomRowPlans = plans.slice(2);
   const firstBottomPlanRef = useRef<HTMLButtonElement>(null);
 
   const scrollToBottomPlans = useCallback(() => {
@@ -279,7 +285,11 @@ export function SignupPlanStep({
   }, []);
 
   return (
-    <div className="auth-signup-plan-step flex w-full flex-col">
+    <div
+      className={`auth-signup-plan-step flex w-full flex-col${
+        singleRow ? " auth-signup-plan-step--single-row" : ""
+      }`}
+    >
       <div className="auth-signup-plan-billing-wrap flex shrink-0 items-center justify-between gap-2 pb-2">
         <BillingToggle cycle={billing} onChange={onBillingChange} />
         <p className="auth-signup-plan-billing-note text-right text-[10px] font-semibold leading-tight text-brand-muted sm:text-[11px]">
@@ -291,39 +301,59 @@ export function SignupPlanStep({
         <div className="auth-signup-plan-list-scroll">
           <div className="auth-signup-plan-card-shell">
             <div className="auth-signup-plan-list" role="radiogroup" aria-label="Choose a plan">
-              {topRowPlans.map((plan) => (
-                <SignupPlanCard
-                  key={plan.id}
-                  plan={plan}
-                  billing={billing}
-                  selected={selectedPlanId === plan.id}
-                  onSelect={onSelectPlan}
-                />
-              ))}
+              {singleRow
+                ? plans.map((plan) => (
+                    <SignupPlanCard
+                      key={plan.id}
+                      plan={plan}
+                      billing={billing}
+                      selected={selectedPlanId === plan.id}
+                      onSelect={onSelectPlan}
+                    />
+                  ))
+                : (
+                  <>
+                    {topRowPlans.map((plan) => (
+                      <SignupPlanCard
+                        key={plan.id}
+                        plan={plan}
+                        billing={billing}
+                        selected={selectedPlanId === plan.id}
+                        onSelect={onSelectPlan}
+                      />
+                    ))}
 
-              <SignupPlanMoreHint
-                count={bottomRowPlans.length}
-                onClick={scrollToBottomPlans}
-              />
+                    <SignupPlanMoreHint
+                      count={bottomRowPlans.length}
+                      onClick={scrollToBottomPlans}
+                    />
 
-              {bottomRowPlans.map((plan, index) => (
-                <SignupPlanCard
-                  key={plan.id}
-                  cardRef={index === 0 ? firstBottomPlanRef : undefined}
-                  plan={plan}
-                  billing={billing}
-                  selected={selectedPlanId === plan.id}
-                  onSelect={onSelectPlan}
-                />
-              ))}
+                    {bottomRowPlans.map((plan, index) => (
+                      <SignupPlanCard
+                        key={plan.id}
+                        cardRef={index === 0 ? firstBottomPlanRef : undefined}
+                        plan={plan}
+                        billing={billing}
+                        selected={selectedPlanId === plan.id}
+                        onSelect={onSelectPlan}
+                      />
+                    ))}
+                  </>
+                )}
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
 
-export function getSignupPlanCta(planId: string): string {
+export function getSignupPlanCta(
+  planId: string,
+  plans?: readonly PricingPlan[],
+): string {
+  const fromList = plans?.find((plan) => plan.id === planId);
+  if (fromList?.cta) return fromList.cta;
   return findPricingPlan(planId)?.cta ?? "Continue";
 }

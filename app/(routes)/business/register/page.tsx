@@ -5,7 +5,10 @@ import RegisterBusinessForm, {
 } from "@/app/components/RegisterBusinessForm";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { registerBusiness } from "@/app/services/business/register-business";
@@ -23,11 +26,45 @@ export default function RegisterBusinessPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setAccessToken(getSetupAccessToken());
-      setTokenReady(true);
-    });
-  }, []);
+    let cancelled = false;
+
+    async function run() {
+      if (!hasAuthSession()) {
+        router.replace("/auth/login");
+        return;
+      }
+
+      try {
+        const status = await getOnboardingStatus();
+        if (cancelled) return;
+
+        if (!status.subscriptionSelected) {
+          router.replace("/auth/select-plan");
+          return;
+        }
+
+        if (status.businessCreated) {
+          router.replace(resolvePostAuthPath(status));
+          return;
+        }
+      } catch {
+        if (cancelled) return;
+        router.replace("/auth/select-plan");
+        return;
+      }
+
+      if (!cancelled) {
+        setAccessToken(getSetupAccessToken());
+        setTokenReady(true);
+      }
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const onSubmit = useCallback(
     async (data: RegisterBusinessFormValues) => {

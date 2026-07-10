@@ -4,7 +4,7 @@ import { LoginPageShell } from "@/app/components/auth/LoginPageShell";
 import LoginForm from "@/app/components/LoginForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
-  resolvePostLoginPath,
+  resolvePostAuthPath,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -54,7 +54,7 @@ function LoginPageInner() {
 
         const status = await getOnboardingStatus();
 
-        router.push(resolvePostLoginPath(status, returnTo));
+        router.push(resolvePostAuthPath(status, returnTo));
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Login failed. Please try again.";
@@ -97,7 +97,7 @@ function LoginPageInner() {
 
         const status = await getOnboardingStatus();
 
-        router.push(resolvePostLoginPath(status, returnTo));
+        router.push(resolvePostAuthPath(status, returnTo));
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Could not reset password.";

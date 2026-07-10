@@ -10,17 +10,24 @@ import { useState } from "react";
 export type SignupPageShellProps = {
   loginHref: string;
   signupHref?: string;
+  /** When true, hides the left brand illustration panel (e.g. plan selection step). */
+  hideBrandPanel?: boolean;
   children: ReactNode;
 };
 
-export function SignupPageShell({ loginHref, signupHref, children }: SignupPageShellProps) {
+export function SignupPageShell({
+  loginHref,
+  signupHref,
+  hideBrandPanel = false,
+  children,
+}: SignupPageShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <div
       className={`landing-page auth-signup-page${
-        mobileNavOpen ? " landing-page-shell--menu-open" : ""
-      }`}
+        hideBrandPanel ? " auth-signup-page--plan-only" : ""
+      }${mobileNavOpen ? " landing-page-shell--menu-open" : ""}`}
       data-auth-signup-page
     >
       <AuthLandingNav
@@ -32,28 +39,30 @@ export function SignupPageShell({ loginHref, signupHref, children }: SignupPageS
       <main className="auth-signup-main">
         <div className="auth-signup-inner">
           <div className="auth-signup-card">
-            <SignupBrandPanel loginHref={loginHref} />
+            {!hideBrandPanel ? <SignupBrandPanel loginHref={loginHref} /> : null}
 
             <div className="auth-signup-split-form">
-              <header className="auth-signup-card-header">
-                <div className="auth-signup-card-header-inner auth-signup-mobile-header-inner">
-                  <div className="auth-signup-mobile-header-copy">
-                    <p className="landing-section-eyebrow">Create your account</p>
-                    <h1 className="brand-landing-display auth-signup-title">
-                      <span className="auth-signup-title-lead">Get started with</span>
-                      <DealiooLogo
-                        variant="dark"
-                        transparent
-                        className="auth-signup-title-logo"
-                        priority
-                      />
-                    </h1>
+              {!hideBrandPanel ? (
+                <header className="auth-signup-card-header">
+                  <div className="auth-signup-card-header-inner auth-signup-mobile-header-inner">
+                    <div className="auth-signup-mobile-header-copy">
+                      <p className="landing-section-eyebrow">Create your account</p>
+                      <h1 className="brand-landing-display auth-signup-title">
+                        <span className="auth-signup-title-lead">Get started with</span>
+                        <DealiooLogo
+                          variant="dark"
+                          transparent
+                          className="auth-signup-title-logo"
+                          priority
+                        />
+                      </h1>
+                    </div>
+                    <div className="auth-signup-mobile-header-art">
+                      <SignupBrandIllustration layout="mobile-header" />
+                    </div>
                   </div>
-                  <div className="auth-signup-mobile-header-art">
-                    <SignupBrandIllustration layout="mobile-header" />
-                  </div>
-                </div>
-              </header>
+                </header>
+              ) : null}
 
               <div className="auth-signup-card-body">{children}</div>
             </div>

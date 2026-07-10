@@ -1,5 +1,6 @@
 "use client";
 
+import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { mergeSetupUser, setSetupUser } from "@/app/lib/setup-user";
@@ -853,6 +854,7 @@ export function OwnerProfileForm({
                 {pageAccountDetails}
                 {pageEditForm}
               </div>
+              <OwnerSubscriptionSection variant={variant} layout="page" />
             </div>
           </div>
         </>

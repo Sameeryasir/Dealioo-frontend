@@ -4,7 +4,7 @@ import OtpForm from "@/app/components/OtpForm";
 import AuthPageShell, { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
-  resolvePostLoginPath,
+  resolvePostAuthPath,
 } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -39,7 +39,7 @@ function VerifyOtpPageInner() {
 
       const status = await getOnboardingStatus();
 
-      router.push(resolvePostLoginPath(status, returnTo));
+      router.push(resolvePostAuthPath(status, returnTo));
     },
     [email, returnTo, router],
   );

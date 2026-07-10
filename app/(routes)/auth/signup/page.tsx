@@ -3,19 +3,12 @@
 import { SignupPageShell } from "@/app/components/auth/SignupPageShell";
 import SignupForm from "@/app/components/SignupForm";
 import { useCredentialContext } from "@/app/contexts/credential-context";
-import {
-  resolvePostLoginPath,
-} from "@/app/lib/onboarding-redirect";
-import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
-import { clearSignupProgress } from "@/app/lib/signup-progress-storage";
-import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { registerUser } from "@/app/services/auth/register";
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 function buildAuthHref(base: string, returnTo: string | null) {
@@ -26,7 +19,6 @@ function buildAuthHref(base: string, returnTo: string | null) {
 }
 
 function SignupPageInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { email, setCredentials } = useCredentialContext();
   const [submitting, setSubmitting] = useState(false);
@@ -91,29 +83,6 @@ function SignupPageInner() {
     [email],
   );
 
-  const onFinishSignup = useCallback(
-    async (selection: { planId: string; billing: BillingCycle }) => {
-      setErrorMessage(null);
-      setSubmitting(true);
-      try {
-        saveSelectedSignupPlan(selection);
-        clearSignupProgress();
-
-        const status = await getOnboardingStatus();
-
-        router.push(resolvePostLoginPath(status, returnTo));
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Could not finish signup. Try again.";
-        setErrorMessage(message);
-        throw error;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [returnTo, router],
-  );
-
   const onResendOtp = useCallback(async () => {
     if (!email) {
       throw new Error("Missing email. Go back and try again.");
@@ -131,7 +100,6 @@ function SignupPageInner() {
         onRegister={onRegister}
         onVerifyOtp={onVerifyOtp}
         onResendOtp={onResendOtp}
-        onFinishSignup={onFinishSignup}
       />
     </SignupPageShell>
   );

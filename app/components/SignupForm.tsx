@@ -5,12 +5,7 @@ import {
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import GoogleAuthButton from "@/app/components/auth/GoogleAuthButton";
-import {
-  getSignupPlanCta,
-  SignupPlanStep,
-} from "@/app/components/auth/SignupPlanStep";
 import OtpForm from "@/app/components/OtpForm";
-import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { hasAuthSession } from "@/app/lib/auth-session";
@@ -54,7 +49,6 @@ export type SignupFormProps = {
   onRegister: (values: SignupRegisterValues) => Promise<void>;
   onVerifyOtp: (otp: number) => Promise<void>;
   onResendOtp: () => Promise<void>;
-  onFinishSignup: (selection: { planId: string; billing: BillingCycle }) => Promise<void>;
 };
 
 const STEPS = [
@@ -75,12 +69,6 @@ const STEPS = [
     accent: "email",
     subtitle: "Enter the 6-digit code we sent to your inbox.",
     accentClass: "landing-hero-accent-pink",
-  },
-  {
-    lead: "Choose your ",
-    accent: "plan",
-    subtitle: "Pick the same plan options from our pricing page.",
-    accentClass: "landing-hero-accent-blue",
   },
 ] as const;
 
@@ -119,7 +107,6 @@ export default function SignupForm({
   onRegister,
   onVerifyOtp,
   onResendOtp,
-  onFinishSignup,
 }: SignupFormProps) {
   const router = useRouter();
   const { rememberCredentials } = useCredentialContext();
@@ -131,8 +118,6 @@ export default function SignupForm({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState("starter");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [emailVerified, setEmailVerified] = useState(false);
 
   const {
@@ -164,20 +149,13 @@ export default function SignupForm({
   const stepSubtitle =
     step === 2 && emailValue.trim()
       ? `Enter the 6-digit code we sent to ${emailValue.trim()}.`
-      : step === 3
-        ? "Starter is selected by default — switch anytime before you continue."
-        : currentStep.subtitle;
+      : currentStep.subtitle;
 
   const handleVerifyOtp = async (otp: number) => {
     await onVerifyOtp(otp);
     setEmailVerified(true);
-    setStep(3);
-  };
-
-  const handleFinishSignup = async () => {
-    if (!selectedPlanId) return;
-    await onFinishSignup({ planId: selectedPlanId, billing: billingCycle });
     clearSignupProgress();
+    router.push("/auth/select-plan");
   };
 
   useEffect(() => {
@@ -196,8 +174,6 @@ export default function SignupForm({
       setStep(restored.step);
       setAccountCreated(saved.accountCreated);
       setEmailVerified(restored.emailVerified);
-      setSelectedPlanId(saved.selectedPlanId);
-      setBillingCycle(saved.billing);
 
       if (saved.email.trim()) {
         rememberCredentials(saved.email.trim(), saved.password);
@@ -220,8 +196,8 @@ export default function SignupForm({
       password: passwordValue ?? "",
       accountCreated,
       emailVerified: emailVerified || hasAuthSession(),
-      selectedPlanId,
-      billing: billingCycle,
+      selectedPlanId: "starter",
+      billing: "monthly",
     });
   }, [
     hydrated,
@@ -232,8 +208,6 @@ export default function SignupForm({
     passwordValue,
     accountCreated,
     emailVerified,
-    selectedPlanId,
-    billingCycle,
   ]);
 
   useEffect(() => {
@@ -283,10 +257,6 @@ export default function SignupForm({
   };
 
   const goBack = () => {
-    if (step === 3) {
-      setStep(2);
-      return;
-    }
     if (step === 2) {
       setStep(1);
       return;
@@ -318,7 +288,7 @@ export default function SignupForm({
       <div
         className={`auth-signup-scroll-block${
           step === 2 ? " auth-signup-scroll-block--otp-step" : ""
-        }${step === 3 ? " auth-signup-scroll-block--plan-step" : ""}`}
+        }`}
       >
         <div className="auth-signup-progress-block">
           <p className="auth-signup-step-meta">
@@ -354,7 +324,7 @@ export default function SignupForm({
         <div
           className={`auth-signup-step-body${
             step === 2 ? " auth-signup-step-body--otp-step" : ""
-          }${step === 3 ? " auth-signup-step-body--plan-step" : ""}`}
+          }`}
         >
         {errorMessage ? (
           <div className="auth-signup-form-alert-banner" role="alert" aria-live="polite">
@@ -375,15 +345,6 @@ export default function SignupForm({
               onVerifyOtp={handleVerifyOtp}
               onResendOtp={onResendOtp}
               onBack={goBack}
-            />
-          </div>
-        ) : step === 3 ? (
-          <div className="auth-signup-fields auth-signup-fields--plan-step">
-            <SignupPlanStep
-              billing={billingCycle}
-              onBillingChange={setBillingCycle}
-              selectedPlanId={selectedPlanId}
-              onSelectPlan={setSelectedPlanId}
             />
           </div>
         ) : (
@@ -668,7 +629,7 @@ export default function SignupForm({
                 "Next"
               )}
             </button>
-          ) : step === 2 ? (
+          ) : (
             <button
               type="submit"
               form="auth-signup-otp-form"
@@ -680,20 +641,6 @@ export default function SignupForm({
                 <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
               ) : (
                 "Verify"
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void handleFinishSignup()}
-              disabled={submitting || !selectedPlanId || !emailVerified}
-              aria-busy={submitting}
-              className="landing-btn-primary auth-signup-action-btn inline-flex h-11 cursor-pointer touch-manipulation items-center justify-center rounded-full px-3 text-sm font-bold disabled:opacity-50"
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-              ) : (
-                getSignupPlanCta(selectedPlanId)
               )}
             </button>
           )}

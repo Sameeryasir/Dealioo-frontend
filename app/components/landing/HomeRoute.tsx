@@ -2,7 +2,7 @@
 
 import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
 import { useAuth } from "@/app/contexts/auth-context";
-import { resolvePostLoginPath } from "@/app/lib/onboarding-redirect";
+import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,7 +30,7 @@ export function HomeRoute() {
       try {
         const status = await getOnboardingStatus();
         if (cancelled) return;
-        router.replace(resolvePostLoginPath(status));
+        router.replace(resolvePostAuthPath(status));
       } catch {
         if (!cancelled) {
           router.replace("/dashboard");

@@ -1,6 +1,7 @@
 "use client";
 
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -20,7 +21,7 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
 
         if (!status.onboardingCompleted) {
           setState("redirecting");
-          router.replace(status.redirectPath);
+          router.replace(resolvePostAuthPath(status));
           return;
         }
 

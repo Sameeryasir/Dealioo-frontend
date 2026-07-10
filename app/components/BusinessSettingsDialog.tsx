@@ -29,6 +29,7 @@ import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsC
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
+import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 
 function parseBusinessIdFromParams(raw: unknown): number | undefined {
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
@@ -535,6 +536,10 @@ export default function BusinessSettingsDialog({
                   Sign Out
                 </button>
                 </div>
+              </div>
+            ) : section === "subscription" ? (
+              <div className="mt-6 max-w-2xl">
+                <OwnerSubscriptionSection variant="dark" layout="compact" />
               </div>
             ) : section === "integrations" ? (
               <div className="mt-6 max-w-2xl">

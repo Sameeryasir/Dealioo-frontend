@@ -1,11 +1,12 @@
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
-export type OnboardingNextStep = "business_creation" | null;
+export type OnboardingNextStep = "plan_selection" | "business_creation" | null;
 
 export type OnboardingStatus = {
   businessId: number | null;
   twoFactorCompleted: boolean;
+  subscriptionSelected: boolean;
   businessCreated: boolean;
   onboardingCompleted: boolean;
   nextStep: OnboardingNextStep;
@@ -13,17 +14,19 @@ export type OnboardingStatus = {
 };
 
 function normalizeNextStep(value: unknown): OnboardingNextStep {
-  if (value === "business_creation") {
-    return "business_creation";
+  if (value === "plan_selection" || value === "business_creation") {
+    return value;
   }
   return null;
 }
 
 function normalizeRedirectPath(
   value: unknown,
+  subscriptionSelected: boolean,
   businessCreated: boolean,
 ): string {
   if (typeof value !== "string" || !value.trim()) {
+    if (!subscriptionSelected) return "/auth/select-plan";
     return businessCreated ? "/dashboard" : "/business/register";
   }
 
@@ -53,14 +56,20 @@ function normalizeOnboardingStatus(raw: unknown): OnboardingStatus {
 
   const businessId = parseOptionalId(record.businessId);
   const businessCreated = Boolean(record.businessCreated);
+  const subscriptionSelected = Boolean(record.subscriptionSelected);
 
   return {
     businessId,
     twoFactorCompleted: Boolean(record.twoFactorCompleted ?? true),
+    subscriptionSelected,
     businessCreated,
     onboardingCompleted: Boolean(record.onboardingCompleted),
     nextStep: normalizeNextStep(record.nextStep),
-    redirectPath: normalizeRedirectPath(record.redirectPath, businessCreated),
+    redirectPath: normalizeRedirectPath(
+      record.redirectPath,
+      subscriptionSelected,
+      businessCreated,
+    ),
   };
 }
 

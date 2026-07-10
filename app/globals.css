@@ -6683,6 +6683,128 @@ body {
   width: 100%;
 }
 
+.auth-signup-page--plan-only .auth-signup-inner {
+  max-width: min(72rem, calc(100vw - clamp(1.25rem, 5vw, 2rem)));
+}
+
+.auth-select-plan-page {
+  --landing-nav-bg: #e4ecf6;
+  --landing-nav-bg-scrolled: rgba(228, 236, 246, 0.98);
+  --landing-nav-border-scrolled: #a3b8d4;
+  --landing-nav-shine: rgba(24, 119, 242, 0.14);
+  --landing-nav-shine-scrolled: rgba(24, 119, 242, 0.18);
+  --landing-nav-mirror: rgba(228, 236, 246, 0.65);
+  --landing-nav-mirror-scrolled: rgba(228, 236, 246, 0.88);
+  min-height: 100dvh;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  background: linear-gradient(165deg, #f8faff 0%, #eef3ff 48%, #f5f8ff 100%);
+}
+
+.auth-select-plan-page .brand-landing-nav {
+  background: var(--landing-nav-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.08),
+    0 6px 22px rgba(15, 23, 42, 0.07);
+}
+
+.auth-select-plan-page .brand-landing-nav.landing-nav-scrolled {
+  background: var(--landing-nav-bg-scrolled);
+  border-bottom-color: var(--landing-nav-border-scrolled);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.07),
+    0 10px 32px rgba(15, 23, 42, 0.09);
+}
+
+html:has(.auth-select-plan-page),
+body:has(.auth-select-plan-page) {
+  height: auto;
+  min-height: 100dvh;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.auth-select-plan-main {
+  width: 100%;
+  max-width: min(88rem, calc(100vw - 2rem));
+  margin-inline: auto;
+  padding: calc(5rem + 1.25rem) clamp(0.75rem, 2.5vw, 1.5rem)
+    calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  overflow: visible;
+}
+
+.auth-select-plan-header {
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+.auth-select-plan-page .select-plan-panel__plans {
+  width: 100%;
+  overflow: visible;
+}
+
+.auth-select-plan-page .signup-select-plan-panel {
+  width: 100%;
+}
+
+.auth-select-plan-page .auth-signup-plan-card-shell {
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.auth-select-plan-page .auth-signup-plan-list-wrap,
+.auth-select-plan-page .auth-signup-plan-list-scroll {
+  width: 100%;
+  overflow: visible;
+}
+
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 0.75rem;
+  padding: 0;
+}
+
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex: unset;
+  min-height: 0;
+  height: auto;
+  overflow: visible;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 0.875rem 0.75rem 1rem;
+}
+
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card-features-wrap {
+  overflow: visible;
+  min-height: 0;
+}
+
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card-desc {
+  overflow: visible;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.auth-select-plan-page .auth-signup-plan-more-hint {
+  display: none !important;
+}
+
 .auth-signup-main {
   display: flex;
   flex: 1;
@@ -7778,6 +7900,37 @@ body {
   .auth-signup-plan-card--expert .auth-signup-plan-features {
     gap: 0.25rem;
   }
+
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-list-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card-shell {
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(11.5rem, 1fr));
+    width: 100%;
+    min-width: 0;
+    gap: 0.75rem;
+  }
+
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card {
+    border: 1px solid #dbe3ef;
+    border-top: 1px solid #dbe3ef;
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    min-height: 0;
+    height: auto;
+    padding: 0.875rem 0.75rem 1rem;
+  }
 }
 
 @media (max-width: 360px) {
@@ -7954,6 +8107,21 @@ body {
   .auth-signup-page .auth-signup-plan-feature-check {
     width: 0.75rem;
     height: 0.75rem;
+  }
+
+  .auth-select-plan-page .auth-signup-plan-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    gap: 1rem;
+    position: static;
+  }
+
+  .auth-select-plan-page .auth-signup-plan-card {
+    min-height: 0;
+    height: auto;
+    overflow: visible;
+    padding: 1rem 1rem 1.125rem;
   }
 }
 
@@ -8368,6 +8536,24 @@ body {
     padding-bottom: 0;
     overflow: hidden;
     background: #ffffff;
+  }
+
+  html:has(.auth-select-plan-page),
+  body:has(.auth-select-plan-page) {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .auth-select-plan-page {
+    position: relative;
+    inset: auto;
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
   }
 
   .auth-signup-page > .auth-signup-main,

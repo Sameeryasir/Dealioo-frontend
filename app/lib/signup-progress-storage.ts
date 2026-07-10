@@ -54,9 +54,9 @@ export function resolveSignupStep(progress: SignupProgress): {
 } {
   const authed = hasAuthSession();
   let emailVerified = progress.emailVerified || authed;
-  let step = Math.min(Math.max(Math.trunc(progress.step), 0), 3);
+  let step = Math.min(Math.max(Math.trunc(progress.step), 0), 2);
 
-  if (step >= 3 && !emailVerified) {
+  if (step >= 2 && !emailVerified) {
     step = progress.accountCreated ? 2 : 1;
     emailVerified = false;
   }
@@ -67,10 +67,6 @@ export function resolveSignupStep(progress: SignupProgress): {
 
   if (step >= 1 && (!progress.email.trim() || !progress.name.trim())) {
     step = 0;
-  }
-
-  if (step >= 3 && emailVerified) {
-    step = 3;
   }
 
   return { step, emailVerified };

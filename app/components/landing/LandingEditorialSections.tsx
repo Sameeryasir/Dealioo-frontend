@@ -3,10 +3,10 @@
 import { landingSignupHref } from "@/app/components/landing/landing-auth";
 import {
   getPlanTier,
-  PRICING_PLANS,
   type BillingCycle,
   type PricingPlan,
 } from "@/app/components/landing/pricing-plans";
+import { useSubscriptionPlans } from "@/app/hooks/use-subscription-plans";
 import { Reveal } from "@/app/components/landing/LandingMotionParts";
 import { BRAND_COLORS } from "@/app/components/landing/landing-brand";
 import { easeOut } from "@/app/components/landing/landing-motion";
@@ -17,6 +17,7 @@ import {
   BarChart3,
   Check,
   CreditCard,
+  Loader2,
   MousePointerClick,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -511,6 +512,7 @@ export function LandingQuoteStat() {
 
 export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
   const reduced = useReducedMotion();
+  const { plans, loading } = useSubscriptionPlans();
   const [billing, setBilling] = useState<BillingCycle>("annual");
   const signupHref = landingSignupHref(returnTo);
 
@@ -558,8 +560,13 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
           transition={{ duration: 0.45 }}
           className="landing-section-card-shell landing-pricing-card-shell !mt-5 sm:!mt-6"
         >
+          {loading ? (
+            <div className="flex min-h-[20rem] items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-hidden />
+            </div>
+          ) : (
           <div className="landing-pricing-grid grid md:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#e8edf5]">
-            {PRICING_PLANS.map((plan, i) => {
+            {plans.map((plan, i) => {
               const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";
 
@@ -619,6 +626,7 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
               );
             })}
           </div>
+          )}
           <div className="landing-section-card-footer px-4 py-3 text-center sm:px-5">
             <p className="text-[11px] text-brand-muted sm:text-xs">{footerNote}</p>
           </div>
