@@ -8,8 +8,10 @@ import {
   editorSettingsSlotClass,
   editorSettingsSlotEmbeddedClass,
   editorShellClass,
+  editorShellEmbeddedClass,
   editorShellGridClass,
   editorShellGridEmbeddedClass,
+  editorShellGridWrapEmbeddedClass,
   editorSidebarSlotClass,
   editorSidebarSlotEmbeddedClass,
 } from "@/app/components/crm-template-editor/editor-layout";
@@ -28,6 +30,7 @@ export function EditorShell({
   embedded?: boolean;
 }) {
   const gridClass = embedded ? editorShellGridEmbeddedClass : editorShellGridClass;
+  const shellClass = embedded ? editorShellEmbeddedClass : editorShellClass;
   const sidebarClass = embedded
     ? editorSidebarSlotEmbeddedClass
     : editorSidebarSlotClass;
@@ -36,16 +39,24 @@ export function EditorShell({
     ? editorSettingsSlotEmbeddedClass
     : editorSettingsSlotClass;
 
+  const grid = (
+    <div className={gridClass}>
+      {leftSidebar ? <div className={sidebarClass}>{leftSidebar}</div> : null}
+      {!embedded && navbar ? (
+        <div className={editorNavbarSlotClass}>{navbar}</div>
+      ) : null}
+      <div className={canvasClass}>{canvas}</div>
+      <div className={settingsClass}>{settingsPanel}</div>
+    </div>
+  );
+
   return (
-    <div className={editorShellClass}>
-      <div className={gridClass}>
-        {leftSidebar ? <div className={sidebarClass}>{leftSidebar}</div> : null}
-        {!embedded && navbar ? (
-          <div className={editorNavbarSlotClass}>{navbar}</div>
-        ) : null}
-        <div className={canvasClass}>{canvas}</div>
-        <div className={settingsClass}>{settingsPanel}</div>
-      </div>
+    <div className={shellClass}>
+      {embedded ? (
+        <div className={editorShellGridWrapEmbeddedClass}>{grid}</div>
+      ) : (
+        grid
+      )}
     </div>
   );
 }

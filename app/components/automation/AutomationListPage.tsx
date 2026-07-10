@@ -129,11 +129,13 @@ export function AutomationListPage({
   campaignId: campaignIdProp,
   funnelId: funnelIdProp,
   onOpenBuilder,
+  embedded = false,
 }: {
   businessId?: number;
   campaignId?: number;
   funnelId?: number | null;
   onOpenBuilder?: (automationId: string) => void;
+  embedded?: boolean;
 } = {}) {
   const route = useAutomationRouteContext();
   const businessId = route.businessId ?? businessIdProp;
@@ -223,8 +225,20 @@ export function AutomationListPage({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50 [scrollbar-gutter:stable]">
-      <div className="mx-auto w-full max-w-[min(100%,77.62rem)] px-4 py-8 sm:px-8 lg:px-10">
+    <div
+      className={
+        embedded
+          ? "campaign-immersive-tab-panel min-h-0 flex-1 overflow-y-auto bg-white [scrollbar-gutter:stable]"
+          : "min-h-0 flex-1 overflow-y-auto bg-zinc-50 [scrollbar-gutter:stable]"
+      }
+    >
+      <div
+        className={
+          embedded
+            ? "w-full max-w-none px-0 py-0"
+            : "mx-auto w-full max-w-[min(100%,77.62rem)] px-4 py-8 sm:px-8 lg:px-10"
+        }
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">

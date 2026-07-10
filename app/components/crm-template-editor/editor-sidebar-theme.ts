@@ -1,6 +1,21 @@
 export const editorSidebarRootClass =
   "flex w-full flex-col gap-2 bg-transparent p-2 [&_button]:cursor-pointer [&_select]:cursor-pointer";
 
+export const editorPremiumCardClass =
+  "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+
+export const editorPremiumStepCardClass =
+  "overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.02] transition-all duration-200";
+
+export const editorPanelTopShellClass =
+  "editor-panel-top-shell shrink-0 border-b border-[#e8edf5] px-3 py-4";
+
+export const editorPanelTopFootClass =
+  "editor-panel-top-foot flex w-full shrink-0 items-center";
+
+export const editorSettingsPanelShellEmbeddedClass =
+  "hidden h-full min-h-0 w-full flex-col gap-2 overflow-hidden lg:flex";
+
 export const editorSettingsPanelShellClass =
   "hidden h-full min-h-0 flex-col overflow-hidden border-l border-[#e8edf5] bg-[#f8fafc] lg:flex !rounded-none !border-y-0 !border-r-0";
 
@@ -126,6 +141,17 @@ export const editorFunnelRailStepSelectedClass =
 
 export const editorFunnelRailStepIdleClass =
   "bg-transparent hover:bg-[#f4f8ff]/70";
+
+export const editorFunnelSignupGradient =
+  "linear-gradient(90deg, #1877f2 0%, #833aba 55%, #ea5a8f 100%)";
+
+export const editorFunnelSignupGradientVertical =
+  "linear-gradient(180deg, #1877f2 0%, #833aba 55%, #ea5a8f 100%)";
+
+export const editorFunnelSignupGradientTrailIdle =
+  "linear-gradient(180deg, rgba(24,119,242,0.32) 0%, rgba(131,58,186,0.18) 55%, #e8edf5 100%)";
+
+export const editorFunnelStepIconRailLeftClass = "left-[1.65rem]";
 
 export const editorSidebarCaptionClass = "mb-2 text-xs font-semibold text-slate-600";
 

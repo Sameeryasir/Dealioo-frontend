@@ -1,5 +1,6 @@
 "use client";
 
+import { buildBusinessActivityMock } from "@/app/components/business/business-activity-mock";
 import {
   buildCheckInsMonthlyData,
   buildMembersMonthlyData,
@@ -123,19 +124,6 @@ function OverviewSkeleton() {
   );
 }
 
-function NoActivityCard() {
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-14 text-center sm:py-16">
-      <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-        No records found
-      </p>
-      <p className="m-0 mt-1.5 max-w-sm text-[0.82rem] font-medium text-slate-500">
-        No activity or business metrics yet for this restaurant.
-      </p>
-    </div>
-  );
-}
-
 export function BusinessActivityOverviewPanel({
   businessName,
   data,
@@ -155,7 +143,6 @@ export function BusinessActivityOverviewPanel({
   todayRevenueCents?: number;
   isLoading?: boolean;
 }) {
-  const totals = useMemo(() => sumActivityFromMonthly(data), [data]);
   const hasActivity = useMemo(
     () =>
       hasBusinessActivityMonthly(data, {
@@ -166,17 +153,42 @@ export function BusinessActivityOverviewPanel({
       }),
     [data, activeCampaigns, totalOrders, totalMembers, todayRevenueCents],
   );
-  const checkInsMonthly = useMemo(() => buildCheckInsMonthlyData(data), [data]);
-  const revenueMonthly = useMemo(() => buildRevenueMonthlyData(data), [data]);
-  const ordersMonthly = useMemo(() => buildOrdersMonthlyData(data), [data]);
-  const membersMonthly = useMemo(() => buildMembersMonthlyData(data), [data]);
+
+  const usePreviewData = !isLoading && !hasActivity;
+  const preview = useMemo(
+    () => (usePreviewData ? buildBusinessActivityMock(months) : null),
+    [usePreviewData, months],
+  );
+
+  const chartData = preview?.data ?? data;
+  const displayActiveCampaigns = preview?.activeCampaigns ?? activeCampaigns;
+  const displayTotalOrders = preview?.totalOrders ?? totalOrders;
+  const displayTotalMembers = preview?.totalMembers ?? totalMembers;
+  const displayTodayRevenueCents = preview?.todayRevenueCents ?? todayRevenueCents;
+
+  const totals = useMemo(() => sumActivityFromMonthly(chartData), [chartData]);
+  const checkInsMonthly = useMemo(
+    () => buildCheckInsMonthlyData(chartData),
+    [chartData],
+  );
+  const revenueMonthly = useMemo(
+    () => buildRevenueMonthlyData(chartData),
+    [chartData],
+  );
+  const ordersMonthly = useMemo(
+    () => buildOrdersMonthlyData(chartData),
+    [chartData],
+  );
+  const membersMonthly = useMemo(
+    () => buildMembersMonthlyData(chartData),
+    [chartData],
+  );
   const newMembersInPeriod = useMemo(
     () => membersMonthly.reduce((sum, row) => sum + row.value, 0),
     [membersMonthly],
   );
 
   const displayName = businessName?.trim() || "Your business";
-  const showNoRecords = !isLoading && !hasActivity;
 
   return (
     <article className={`${overviewCardClass} w-full`} aria-label="Business activity">
@@ -201,6 +213,11 @@ export function BusinessActivityOverviewPanel({
             <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
               Last {months} months
             </span>
+            {usePreviewData ? (
+              <span className="inline-flex items-center rounded-full bg-[#fff7ed] px-2.5 py-1 text-[0.68rem] font-bold text-[#c2410c] ring-1 ring-[#fed7aa]/80">
+                Preview data
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -209,8 +226,6 @@ export function BusinessActivityOverviewPanel({
         <div className="px-2.5 py-4 sm:px-3 sm:py-5">
           <OverviewSkeleton />
         </div>
-      ) : showNoRecords ? (
-        <NoActivityCard />
       ) : (
         <div className="px-2.5 py-3.5 sm:px-3 sm:py-4">
           <motion.div
@@ -227,7 +242,7 @@ export function BusinessActivityOverviewPanel({
               <motion.div variants={funnelPanelItem}>
                 <OverviewKpiTile
                   label="Active campaigns"
-                  value={activeCampaigns}
+                  value={displayActiveCampaigns}
                   hint="Published"
                   icon={Megaphone}
                   iconBg={DASHBOARD_KPI_ICON.green}
@@ -237,7 +252,7 @@ export function BusinessActivityOverviewPanel({
               <motion.div variants={funnelPanelItem}>
                 <OverviewKpiTile
                   label="Total orders"
-                  value={totalOrders}
+                  value={displayTotalOrders}
                   hint="Paid payments"
                   icon={ShoppingBag}
                   iconBg={DASHBOARD_KPI_ICON.orange}
@@ -247,7 +262,7 @@ export function BusinessActivityOverviewPanel({
               <motion.div variants={funnelPanelItem}>
                 <OverviewKpiTile
                   label="Total members"
-                  value={totalMembers}
+                  value={displayTotalMembers}
                   hint="Guests with chats"
                   icon={Users}
                   iconBg={DASHBOARD_KPI_ICON.pink}
@@ -277,7 +292,7 @@ export function BusinessActivityOverviewPanel({
               <motion.div variants={funnelPanelItem}>
                 <OverviewKpiTile
                   label="Today's revenue"
-                  value={formatCents(todayRevenueCents, "usd")}
+                  value={formatCents(displayTodayRevenueCents, "usd")}
                   hint="Paid today"
                   icon={DollarSign}
                   iconBg={DASHBOARD_KPI_ICON.orange}

@@ -34,16 +34,17 @@ export type TopNavigationProps = {
   saveError?: string | null;
   embedded?: boolean;
   docked?: boolean;
+  showPreview?: boolean;
 };
 
 const primaryActionClass =
-  "inline-flex items-center justify-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const compactPrimaryActionClass =
-  "inline-flex items-center justify-center gap-1 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex shrink-0 items-center justify-center gap-1 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const ghostActionClass =
-  "inline-flex items-center justify-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]";
 
 export function TopNavigation({
   campaignName,
@@ -60,6 +61,7 @@ export function TopNavigation({
   saveError,
   embedded = false,
   docked = false,
+  showPreview = true,
 }: TopNavigationProps) {
   const campaignLine = campaignName ? campaignName : "Your campaign";
   const compact = embedded || docked;
@@ -67,24 +69,24 @@ export function TopNavigation({
 
   if (embedded && docked) {
     return (
-      <div className="flex w-full flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-              Editing
-            </p>
+      <div className="editor-panel-top-inner flex h-full min-h-0 w-full flex-col justify-between">
+        <div className="editor-panel-top-head shrink-0">
+          <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+            Editor
+          </p>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
             <p
-              className="m-0 mt-0.5 truncate text-[0.88rem] font-extrabold tracking-tight text-[#07111f]"
+              className="m-0 min-w-0 truncate text-[0.9rem] font-extrabold tracking-tight text-[#07111f]"
               title={pageLabel}
             >
               {pageLabel}
             </p>
+            <StatusBadge status={saveStatus} isDirty={isDirty} />
           </div>
-          <StatusBadge status={saveStatus} isDirty={isDirty} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1">
-          <div className="flex items-center gap-0.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] p-0.5">
+        <div className="editor-panel-top-foot flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+          <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] p-0.5">
             <button
               type="button"
               onClick={onUndo}
@@ -106,17 +108,6 @@ export function TopNavigation({
               <Redo2 className="size-3.5" />
             </button>
           </div>
-
-          {onPreview ? (
-            <button
-              type="button"
-              onClick={onPreview}
-              className={ghostActionClass}
-            >
-              <Eye className="size-3.5" />
-              <span className="hidden xl:inline">Preview</span>
-            </button>
-          ) : null}
 
           <button
             type="button"
@@ -147,7 +138,7 @@ export function TopNavigation({
 
         {saveError ? (
           <p
-            className="m-0 truncate text-[0.65rem] font-semibold text-red-600"
+            className="editor-panel-top-error absolute bottom-1 left-3 right-3 m-0 truncate text-[0.65rem] font-semibold text-red-600"
             role="status"
           >
             {saveError}
@@ -189,7 +180,7 @@ export function TopNavigation({
         </button>
       </motion.div>
 
-      {onPreview ? (
+      {showPreview && onPreview ? (
         <motion.button
           type="button"
           variants={headerActionItemVariants}

@@ -1,45 +1,46 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Eye, Pencil } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   editorFunnelStepIconIdleClass,
   editorFunnelStepIconSelectedClass,
-  editorFunnelStepIdleClass,
-  editorFunnelStepSelectedClass,
 } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 
 export function EditorPageItem({
   title,
   description,
   icon: Icon,
+  thumbSrc,
   selected,
-  stepNumber,
   onSelect,
   onEdit,
+  onPreview,
   compact = false,
 }: {
   title: string;
   description: string;
   icon: LucideIcon;
+  thumbSrc?: string;
   selected: boolean;
-  stepNumber: number;
+  stepNumber?: number;
   onSelect: () => void;
   onEdit: () => void;
+  onPreview?: () => void;
   compact?: boolean;
 }) {
   if (compact) {
     return (
       <div
-        className={`group relative min-h-[5.5rem] overflow-hidden rounded-xl border bg-white shadow-[0_4px_14px_rgba(15,23,42,0.05)] transition-all duration-200 lg:min-h-[6.25rem] ${
+        className={`group relative flex min-h-[5rem] items-center overflow-hidden rounded-[1.1rem] border transition-all duration-200 ${
           selected
-            ? "border-[#1877f2]/35 ring-1 ring-[#1877f2]/15"
-            : "border-[#e8edf5] hover:border-[#1877f2]/20 hover:shadow-[0_6px_18px_rgba(24,119,242,0.08)]"
+            ? "border-[#1877f2]/30 bg-[#f4f8ff] shadow-[0_4px_14px_rgba(24,119,242,0.08)]"
+            : "border-[#e8edf5] bg-white hover:border-[#1877f2]/20 hover:bg-[#fafcff]"
         }`}
       >
         {selected ? (
           <span
-            className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r-full bg-[#1877f2]"
+            className="absolute bottom-3 left-0 top-3 w-0.5 rounded-r-full bg-[#1877f2]"
             aria-hidden
           />
         ) : null}
@@ -47,35 +48,74 @@ export function EditorPageItem({
         <button
           type="button"
           onClick={onSelect}
-          title={title}
-          className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center max-lg:flex-row max-lg:justify-start max-lg:gap-2.5 max-lg:px-2.5 max-lg:py-2.5 max-lg:text-left lg:gap-2 lg:px-2.5 lg:py-3.5"
+          title={`${title} — ${description}`}
+          className="flex min-w-0 flex-1 items-center gap-3 px-3.5 py-4 text-left"
         >
-          <span
-            className={`flex size-8 shrink-0 items-center justify-center rounded-full lg:size-10 ${
+          {thumbSrc ? (
+            <span
+              className={`editor-funnel-step-thumb flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#f4f8ff] to-white ring-1 ring-[#e8edf5] ${
+                selected ? "editor-funnel-step-thumb--selected" : ""
+              }`}
+            >
+              <img
+                src={`${thumbSrc}?v=1`}
+                alt=""
+                className="size-[3.35rem] object-contain drop-shadow-[0_3px_8px_rgba(24,119,242,0.2)]"
+                loading="lazy"
+                decoding="async"
+                aria-hidden
+              />
+            </span>
+          ) : (
+            <span
+              className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+                selected
+                  ? editorFunnelStepIconSelectedClass
+                  : editorFunnelStepIconIdleClass
+              }`}
+            >
+              <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+            </span>
+          )}
+
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.9rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
+              {title}
+            </span>
+          </span>
+        </button>
+
+        <div className="mr-2.5 flex shrink-0 items-center gap-1">
+          {onPreview ? (
+            <button
+              type="button"
+              aria-label={`Preview ${title}`}
+              title="Preview live page"
+              onClick={onPreview}
+              className={`flex size-10 items-center justify-center rounded-lg transition ${
+                selected
+                  ? "text-[#1877f2] hover:bg-[#1877f2]/10"
+                  : "text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+              }`}
+            >
+              <Eye className="size-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            aria-label={`Edit ${title}`}
+            title="Edit page"
+            onClick={onEdit}
+            className={`flex size-10 items-center justify-center rounded-lg transition ${
               selected
-                ? editorFunnelStepIconSelectedClass
-                : editorFunnelStepIconIdleClass
+                ? "text-[#1877f2] hover:bg-[#1877f2]/10"
+                : "text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
             }`}
           >
-            <Icon className="size-4 lg:size-[1.15rem]" strokeWidth={2.25} aria-hidden />
-          </span>
-
-          <span className="w-full min-w-0 text-center text-[0.72rem] font-extrabold leading-tight text-[#07111f] max-lg:flex-1 max-lg:truncate max-lg:text-left lg:text-[0.8rem]">
-            {title}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          aria-label={`Edit ${title}`}
-          title="Edit page"
-          onClick={onEdit}
-          className={`absolute right-1 top-1 flex size-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-[#e8f2ff] hover:text-[#1877f2] lg:right-1.5 lg:top-1.5 lg:size-7 ${
-            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
-        >
-          <Pencil className="size-3 lg:size-3.5" strokeWidth={2.5} aria-hidden />
-        </button>
+            <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
       </div>
     );
   }
@@ -83,7 +123,9 @@ export function EditorPageItem({
   return (
     <div
       className={`group relative flex items-stretch overflow-hidden rounded-[1.05rem] border transition-all duration-200 ${
-        selected ? editorFunnelStepSelectedClass : editorFunnelStepIdleClass
+        selected
+          ? "border-[#1877f2]/30 bg-[#f4f8ff] shadow-[0_6px_18px_rgba(24,119,242,0.1)] ring-1 ring-[#1877f2]/15"
+          : "border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] hover:border-[#1877f2]/20 hover:bg-[#fafcff]"
       }`}
     >
       {selected ? (
@@ -99,21 +141,13 @@ export function EditorPageItem({
         className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2.5 text-left"
       >
         <span
-          className={`relative flex size-8 shrink-0 items-center justify-center rounded-xl font-extrabold text-[0.65rem] ${
+          className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${
             selected
               ? editorFunnelStepIconSelectedClass
               : editorFunnelStepIconIdleClass
           }`}
         >
           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-          {!selected ? (
-            <span
-              className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-white text-[0.5rem] font-bold text-[#1877f2] ring-1 ring-[#e8edf5]"
-              aria-hidden
-            >
-              {stepNumber}
-            </span>
-          ) : null}
         </span>
 
         <span className="min-w-0 flex-1">

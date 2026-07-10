@@ -297,6 +297,19 @@ export function CrmTemplateEditor({
     funnelLinkQuery,
   ]);
 
+  const handlePreviewPage = useCallback(
+    (pageId: TemplatePageId) => {
+      if (previewRouteId == null) return;
+      const url = buildFunnelPublicPath({
+        funnelId: previewRouteId,
+        step: pageId === "confirmation" ? "confirmation" : pageId,
+        query: funnelLinkQuery,
+      });
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [previewRouteId, funnelLinkQuery],
+  );
+
   const cancelDiscard = useCallback(() => setPendingNavId(null), []);
 
   const confirmDiscard = useCallback(() => {
@@ -411,6 +424,9 @@ export function CrmTemplateEditor({
             activeId={activeId}
             onSelect={requestSwitchActive}
             onEditPage={openEditorForPage}
+            onPreviewPage={
+              previewRouteId != null ? handlePreviewPage : undefined
+            }
             compact={embedded}
           />
         }
@@ -438,6 +454,7 @@ export function CrmTemplateEditor({
             page={activePage}
             onChange={patchPage}
             onBrowseTemplates={() => setTemplateGalleryOpen(true)}
+            embedded={embedded}
             toolbar={
               embedded ? (
                 <TopNavigation
@@ -450,11 +467,11 @@ export function CrmTemplateEditor({
                   onUndo={undo}
                   onRedo={redo}
                   onSave={() => void handleSave()}
-                  onPreview={previewRouteId != null ? handlePreview : undefined}
                   isSaving={saveStatus === "saving"}
                   saveError={saveError}
                   embedded
                   docked
+                  showPreview={false}
                 />
               ) : undefined
             }

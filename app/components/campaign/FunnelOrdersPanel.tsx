@@ -119,7 +119,7 @@ export function FunnelOrdersPanel({
       <div
         className={
           embedded
-            ? "w-full px-2.5 py-4 sm:px-3 sm:py-5"
+            ? "w-full px-0 py-4 sm:py-5"
             : "mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
         }
       >

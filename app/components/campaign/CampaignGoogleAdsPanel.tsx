@@ -146,8 +146,10 @@ function CampaignMetric({
 
 export function CampaignGoogleAdsPanel({
   businessId,
+  embedded = false,
 }: {
   businessId: number;
+  embedded?: boolean;
 }) {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
@@ -229,7 +231,13 @@ export function CampaignGoogleAdsPanel({
     : "https://ads.google.com";
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white px-4 py-8 sm:px-8 sm:py-10">
+    <div
+      className={
+        embedded
+          ? "relative overflow-hidden bg-white px-0 py-0"
+          : "relative overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white px-4 py-8 sm:px-8 sm:py-10"
+      }
+    >
       <div
         className="pointer-events-none absolute -right-24 top-0 size-72 rounded-full bg-[#4285F4]/10 blur-3xl"
         aria-hidden

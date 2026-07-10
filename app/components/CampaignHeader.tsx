@@ -166,14 +166,10 @@ export default function CampaignHeader({
 
   const tabButtons = TABS.map(({ id, label, icon: Icon }) => {
     const active = id === activeTabId;
-    const immersiveTabActive =
-      "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] text-white shadow-[0_6px_16px_rgba(24,119,242,0.38),inset_0_1px_0_rgba(255,255,255,0.2)]";
-    const immersiveTabIdle =
-      "bg-transparent text-white/60 hover:bg-white/10 hover:text-white";
     const lightTabActive =
       "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.22)]";
     const lightTabIdle =
-      "bg-white text-slate-500 ring-1 ring-[#e8edf5] hover:bg-[#e8f2ff] hover:text-[#1877f2] hover:ring-[#1877f2]/20";
+      "bg-transparent text-slate-500 hover:bg-[#f4f7fb] hover:text-[#1877f2]";
 
     return (
       <button
@@ -182,18 +178,16 @@ export default function CampaignHeader({
         role="tab"
         aria-selected={active}
         onClick={() => selectTab(id)}
-        className={`relative flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
+        className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
           immersiveChrome
             ? "px-2.5 py-1 text-[0.7rem] sm:px-3 sm:text-[0.74rem]"
             : "gap-1.5 px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.75rem]"
         } ${
           active
-            ? immersiveChrome
-              ? immersiveTabActive
-              : lightTabActive
+            ? lightTabActive
             : immersiveChrome
-              ? immersiveTabIdle
-              : lightTabIdle
+              ? lightTabIdle
+              : "bg-white text-slate-500 ring-1 ring-[#e8edf5] hover:bg-[#e8f2ff] hover:text-[#1877f2] hover:ring-[#1877f2]/20"
         }`}
       >
         {Icon ? (
@@ -213,13 +207,13 @@ export default function CampaignHeader({
     <header
       className={
         embedded
-          ? "shrink-0 border-b border-[#e8edf5] bg-white"
+          ? "campaign-immersive-patti__header shrink-0"
           : "shrink-0 border-b border-zinc-200 bg-white"
       }
     >
       {immersiveChrome ? (
-        <div className="grid min-h-[2.75rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 py-1.5 sm:min-h-[3rem] sm:gap-3 sm:px-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <div className="flex min-w-0 items-center gap-2 justify-self-start">
+        <div className="campaign-immersive-patti__inner">
+          <div className="campaign-immersive-patti__side campaign-immersive-patti__side--start gap-2">
             <Link
               href={campaignsHref}
               className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
@@ -227,9 +221,9 @@ export default function CampaignHeader({
             >
               <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
             </Link>
-            <div className="hidden min-w-0 max-w-[9rem] md:block lg:max-w-[11rem]">
+            <div className="campaign-immersive-patti__side-title hidden min-w-0 md:block">
               <p
-                className="m-0 truncate text-[0.8rem] font-extrabold tracking-tight text-[#07111f] lg:text-[0.88rem]"
+                className="m-0 truncate text-[0.8rem] font-extrabold tracking-tight text-[#07111f] xl:text-[0.88rem]"
                 title={campaignTitle}
               >
                 {campaignTitle}
@@ -243,21 +237,15 @@ export default function CampaignHeader({
           </div>
 
           <nav
-            className="min-w-0 max-w-full justify-self-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="campaign-immersive-patti__nav"
             aria-label="Campaign sections"
           >
-            <div className="relative mx-auto flex w-max max-w-full items-center gap-1 overflow-hidden rounded-full border border-white/10 bg-gradient-to-b from-[#07111f] via-[#0a1628] to-[#0f1f3d] p-0.5 shadow-[0_10px_28px_rgba(7,17,31,0.35)] sm:gap-1.5 sm:p-1">
-              <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(24,119,242,0.28),transparent_55%)]"
-                aria-hidden
-              />
-              <div className="relative flex items-center gap-1 sm:gap-1.5">
-                {tabButtons}
-              </div>
+            <div className="campaign-immersive-patti__nav-track">
+              {tabButtons}
             </div>
           </nav>
 
-          <div className="flex shrink-0 items-center gap-1.5 justify-self-end">
+          <div className="campaign-immersive-patti__side campaign-immersive-patti__side--end shrink-0 gap-1.5">
             <button
               type="button"
               onClick={handleGenerate}
@@ -375,7 +363,6 @@ export default function CampaignHeader({
           className="w-full max-w-lg overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* --- Black header --- */}
           <div className="relative bg-black px-6 pb-6 pt-6 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
@@ -412,7 +399,6 @@ export default function CampaignHeader({
             </div>
           </div>
 
-          {/* --- White body --- */}
           <div className="bg-white px-6 py-6">
             {campaignId != null && landingTrackingUrl ? (
               <div className="space-y-5">
