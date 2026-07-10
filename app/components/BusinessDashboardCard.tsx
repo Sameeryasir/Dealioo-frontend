@@ -120,7 +120,7 @@ export default function BusinessDashboardCard({
             <img src={logoSrc} alt="" className="org-biz-card-hero-img" {...spacesImageLoadProps} />
           ) : (
             <span className="org-biz-card-hero-fallback" aria-hidden>
-              <Store className="size-8 text-[#93c5fd]" strokeWidth={1.75} />
+              <Store className="size-8 text-[#93c5fd] xl:size-10 2xl:size-12" strokeWidth={1.75} />
             </span>
           )}
           <span className="org-biz-card-hero-overlay" aria-hidden />

@@ -3359,7 +3359,20 @@ body {
   }
 
   .org-dashboard-grid--cards {
-    @apply items-stretch;
+    @apply items-stretch gap-5 sm:gap-6 xl:gap-7;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  }
+
+  @media (min-width: 1280px) {
+    .org-dashboard-grid--cards {
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .org-dashboard-grid--cards {
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+    }
   }
 
   .org-add-card {
@@ -3789,6 +3802,90 @@ body {
     @apply mt-6 rounded-2xl border px-4 py-3;
     border-color: rgba(15, 23, 42, 0.08);
     background: rgba(255, 255, 255, 0.82);
+  }
+
+  @media (min-width: 1280px) {
+    .org-biz-card--grid {
+      @apply min-h-[24rem] p-5 pb-5;
+    }
+
+    .org-biz-card-hero {
+      @apply -mx-5 -mt-5 h-[11.5rem];
+    }
+
+    .org-biz-card-content {
+      @apply pt-4;
+    }
+
+    .org-biz-card-title {
+      @apply text-xl;
+    }
+
+    .org-biz-card-bento {
+      @apply mt-3 gap-3;
+    }
+
+    .org-biz-card-bento-cell {
+      @apply h-[5.75rem] p-3;
+    }
+
+    .org-biz-card-bento-eyebrow {
+      font-size: 0.6875rem;
+    }
+
+    .org-biz-card-setup-status {
+      @apply text-sm;
+    }
+
+    .org-biz-card-location-value {
+      @apply text-sm;
+    }
+
+    .org-biz-card-location-meta {
+      font-size: 0.6875rem;
+    }
+
+    .org-biz-card-progress-track {
+      @apply h-2;
+    }
+
+    .org-biz-card-footer--bento {
+      @apply pt-3;
+    }
+
+    .org-biz-card-footer--bento .org-biz-card-cta {
+      @apply py-2.5 text-[0.9375rem];
+    }
+
+    .org-biz-card-status--hero {
+      @apply right-4 top-4;
+    }
+
+    .org-biz-card-status {
+      @apply px-3 py-1 text-[11px];
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .org-biz-card--grid {
+      @apply min-h-[26rem];
+    }
+
+    .org-biz-card-hero {
+      @apply h-[13rem];
+    }
+
+    .org-biz-card-bento-cell {
+      @apply h-[6.25rem];
+    }
+
+    .org-biz-card-title {
+      @apply text-[1.35rem];
+    }
+
+    .org-biz-card-footer--bento .org-biz-card-cta {
+      @apply py-3 text-base;
+    }
   }
 
   @media (max-width: 639px) {

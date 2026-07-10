@@ -566,14 +566,14 @@ export default function BusinessDashboardPage() {
         </section>
 
         <section
-          className="rd-premium-section mt-auto flex min-h-0 flex-1 flex-col pb-4 sm:mt-3"
+          className="rd-premium-section mt-auto flex min-h-0 flex-1 flex-col pb-4 sm:mt-3 xl:flex-none"
           aria-label="Quick access"
         >
           <div className="rd-premium-section-head">
             <h2>Quick access</h2>
             <Link href={`${baseHref}/activity`}>See activity</Link>
           </div>
-          <ul className="m-0 grid min-h-[8rem] flex-1 list-none auto-rows-fr grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 xl:grid-cols-6">
+          <ul className="m-0 grid min-h-[8rem] flex-1 list-none auto-rows-fr grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-3.5 xl:min-h-0 xl:flex-none xl:auto-rows-auto xl:grid-cols-6">
             {quickAccess.map((card) => {
               const Icon = card.icon;
               const badgeTone =
@@ -593,48 +593,46 @@ export default function BusinessDashboardPage() {
                       ? "group-hover:ring-[#34a853]/25"
                       : "group-hover:ring-[#f77737]/25";
               return (
-                <li key={card.label} className="flex min-h-0">
+                <li key={card.label} className="flex min-h-0 xl:items-start">
                   <Link
                     href={card.href}
-                    className={`group relative flex h-full min-h-[8.25rem] w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white no-underline shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-[2px] hover:border-[#1877f2]/35 hover:shadow-[0_14px_32px_rgba(24,119,242,0.12)] ${ringTone}`}
+                    className={`group relative flex h-full min-h-[8.25rem] w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white no-underline shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-[2px] hover:border-[#1877f2]/35 hover:shadow-[0_14px_32px_rgba(24,119,242,0.12)] xl:h-auto xl:min-h-0 ${ringTone}`}
                   >
                     <span
-                      className={`relative flex shrink-0 items-end justify-center overflow-hidden bg-gradient-to-br ${card.mediaBg} px-3.5 pt-2.5 pb-1 min-h-[5.25rem] sm:min-h-[5.5rem]`}
+                      className={`relative flex shrink-0 items-end justify-center overflow-hidden bg-gradient-to-br ${card.mediaBg} px-3.5 pt-2.5 pb-1 min-h-[5.25rem] sm:min-h-[5.5rem] xl:min-h-[6.5rem] xl:px-4 xl:pt-3 xl:pb-1.5 2xl:min-h-[7rem] 2xl:px-4 2xl:pt-3.5`}
                       aria-hidden
                     >
                       <span
-                        className="pointer-events-none absolute -right-4 -top-6 size-16 rounded-full bg-white/50 blur-xl"
+                        className="pointer-events-none absolute -right-4 -top-6 size-16 rounded-full bg-white/50 blur-xl xl:size-20"
                         aria-hidden
                       />
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={card.image}
                         alt=""
-                        className="relative z-[1] h-[4.15rem] w-auto max-w-[96%] object-contain transition duration-300 group-hover:scale-[1.05] sm:h-[4.65rem]"
+                        className="relative z-[1] h-[4.15rem] w-auto max-w-[96%] object-contain transition duration-300 group-hover:scale-[1.05] sm:h-[4.65rem] xl:h-[5.25rem] 2xl:h-[5.75rem]"
                       />
                       <span
-                        className={`absolute bottom-2.5 right-2.5 z-[2] inline-flex size-7 items-center justify-center rounded-xl border-2 border-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] ${badgeTone}`}
+                        className={`absolute bottom-2.5 right-2.5 z-[2] inline-flex size-7 items-center justify-center rounded-xl border-2 border-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] xl:bottom-3 xl:right-3 xl:size-8 2xl:size-9 ${badgeTone}`}
                       >
-                        <Icon className="size-3" strokeWidth={2.35} />
+                        <Icon className="size-3 xl:size-3.5 2xl:size-4" strokeWidth={2.35} />
                       </span>
                     </span>
 
-                    <span className="flex shrink-0 items-center gap-2.5 border-t border-[#eef2f7] px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5">
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="truncate text-[0.88rem] font-extrabold leading-tight tracking-tight text-black transition group-hover:text-[#0f5ed7] sm:text-[0.94rem]">
+                    <span className="flex shrink-0 items-center gap-2.5 border-t border-[#eef2f7] px-3 py-2 sm:gap-3 sm:px-3.5 sm:py-2.5 xl:px-4 xl:py-3 2xl:gap-3.5 2xl:px-4 2xl:py-3.5">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 xl:gap-1">
+                        <span className="truncate text-[0.88rem] font-extrabold leading-tight tracking-tight text-black transition group-hover:text-[#0f5ed7] sm:text-[0.94rem] xl:text-[1rem] 2xl:text-[1.05rem]">
                           {card.label}
                         </span>
-                        <span className="truncate text-[0.7rem] font-medium text-slate-500 sm:text-[0.74rem]">
+                        <span className="truncate text-[0.7rem] font-medium text-slate-500 sm:text-[0.74rem] xl:text-[0.8rem] 2xl:text-[0.84rem]">
                           {card.meta}
                         </span>
                       </span>
 
-                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#1877f2] transition duration-300 group-hover:border-[#1877f2] group-hover:bg-[#1877f2] group-hover:text-white">
-                        <ArrowUpRight className="size-3.5" strokeWidth={2.35} />
+                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#1877f2] transition duration-300 group-hover:border-[#1877f2] group-hover:bg-[#1877f2] group-hover:text-white xl:size-9 2xl:size-10">
+                        <ArrowUpRight className="size-3.5 xl:size-4" strokeWidth={2.35} />
                       </span>
                     </span>
-
-                    <span className="min-h-0 flex-1" aria-hidden />
                   </Link>
                 </li>
               );

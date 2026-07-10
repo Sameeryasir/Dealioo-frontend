@@ -131,7 +131,7 @@ export default function DashboardPage() {
             <div className="org-dashboard-panel-body">
               {showSkeleton ? (
                 <SkeletonGrid
-                  className="org-dashboard-grid org-dashboard-grid--cards grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                  className="org-dashboard-grid org-dashboard-grid--cards grid"
                   Card={BusinessCardSkeleton}
                 />
               ) : errorMessage ? (
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <>
-                  <div className="org-dashboard-grid org-dashboard-grid--cards grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="org-dashboard-grid org-dashboard-grid--cards grid">
                     {sortedBusinesses.map((business, index) => (
                       <BusinessDashboardCard
                         key={business.id ?? `business-${index}`}
