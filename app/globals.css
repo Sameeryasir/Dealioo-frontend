@@ -9494,8 +9494,16 @@ body:has(.auth-select-plan-page) {
 .rd-shell,
 .rd-shell--app {
   --rd-header-h: 3.75rem;
+  --rd-main-gutter-inline: 0.35rem;
   background: #ffffff;
   color: #07111f;
+}
+
+@media (min-width: 640px) {
+  .rd-shell,
+  .rd-shell--app {
+    --rd-main-gutter-inline: 0.45rem;
+  }
 }
 
 .rd-shell--app {
@@ -10514,8 +10522,8 @@ body:has(.auth-select-plan-page) {
   flex-direction: column;
   min-height: 0;
   padding-top: 0.25rem;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
+  padding-left: var(--rd-main-gutter-inline);
+  padding-right: var(--rd-main-gutter-inline);
   padding-bottom: 0;
 }
 
@@ -10528,8 +10536,6 @@ body:has(.auth-select-plan-page) {
 @media (min-width: 640px) {
   .rd-main-scroll:has(> .rd-premium--fill) {
     padding-top: 0.35rem;
-    padding-left: 0.45rem;
-    padding-right: 0.45rem;
   }
 }
 
@@ -10583,40 +10589,522 @@ body:has(.auth-select-plan-page) {
   overflow: hidden;
 }
 
+.rd-shell--campaign-immersive .rd-shell-frame {
+  background: #ffffff;
+}
+
+.rd-shell--campaign-immersive .rd-shell-column {
+  overflow: hidden;
+  background: #ffffff;
+}
+
 .rd-main-scroll--campaign-immersive {
-  padding-top: 0.2rem;
-  padding-bottom: 0.2rem;
+  background: #ffffff;
+}
+
+.rd-shell--campaign-immersive {
+  --rd-campaign-gutter-inline: 0.5rem;
+  --rd-campaign-gutter-block-start: 0.65rem;
+  --rd-campaign-gutter-block-end: 1rem;
+  --rd-funnel-editor-gap-bottom: 0.35rem;
+  --rd-funnel-editor-gutter-inline: 0.1rem;
+  --rd-funnel-preview-height: 100%;
 }
 
 @media (min-width: 640px) {
-  .rd-main-scroll--campaign-immersive {
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+  .rd-shell--campaign-immersive {
+    --rd-campaign-gutter-inline: 0.65rem;
+    --rd-campaign-gutter-block-start: 0.75rem;
+    --rd-campaign-gutter-block-end: 1.25rem;
+    --rd-funnel-editor-gap-bottom: 0.45rem;
+    --rd-funnel-editor-gutter-inline: 0.15rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .rd-shell--campaign-immersive {
+    --rd-campaign-gutter-inline: 0.85rem;
+    --rd-campaign-gutter-block-start: 0.8rem;
+    --rd-campaign-gutter-block-end: 1.35rem;
+    --rd-funnel-editor-gap-bottom: 0.5rem;
+    --rd-funnel-editor-gutter-inline: 0.2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .rd-shell--campaign-immersive {
+    --rd-campaign-gutter-inline: 1rem;
+    --rd-campaign-gutter-block-start: 0.85rem;
+    --rd-campaign-gutter-block-end: 1.5rem;
+    --rd-funnel-editor-gap-bottom: 0.55rem;
+    --rd-funnel-editor-gutter-inline: 0.25rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .rd-shell--campaign-immersive {
+    --rd-campaign-gutter-inline: 1.15rem;
+    --rd-funnel-editor-gap-bottom: 0.6rem;
+    --rd-funnel-editor-gutter-inline: 0.3rem;
+  }
+}
+
+.rd-main-scroll--campaign-immersive:has(> .rd-premium--fill) {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+}
+
+.rd-shell--campaign-immersive .campaign-immersive-patti {
+  box-sizing: border-box;
+  width: 100%;
+  margin-right: 0;
+  border: none;
+  border-bottom: 1px solid #e8edf5;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.rd-main-scroll--campaign-immersive > .rd-premium,
+.rd-main-scroll--campaign-immersive > .rd-premium--fill {
+  padding: 0;
+  min-height: 100%;
+}
+
+.rd-main-scroll--campaign-immersive > .rd-premium--fill {
+  --rd-main-pad-top: 0;
+  --rd-premium-pad-top: 0;
+  min-height: calc(
+    100dvh - var(--rd-shell-v-pad) - var(--rd-header-h) - var(--rd-main-pad-top)
+  );
+}
+
+.campaign-immersive-page {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  padding-top: 0;
+}
+
+.campaign-immersive-patti {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  height: var(--rd-header-h);
+  min-height: var(--rd-header-h);
+  overflow: hidden;
+  border: none;
+  border-bottom: 1px solid #e8edf5;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.campaign-immersive-patti__header {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.campaign-immersive-patti__inner {
+  display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: var(--rd-campaign-gutter-inline);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .campaign-immersive-patti__inner {
+    gap: 0.65rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .campaign-immersive-patti__inner {
+    gap: 0.75rem;
+  }
+}
+
+.campaign-immersive-patti__side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.campaign-immersive-patti__side--start {
+  width: auto;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.campaign-immersive-patti__side--end {
+  width: auto;
+  max-width: 100%;
+  justify-content: flex-end;
+  justify-self: end;
+}
+
+.campaign-immersive-patti__side-title {
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+.campaign-immersive-patti__nav {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  align-self: center;
+  justify-self: center;
+  justify-content: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.15rem;
+  padding-inline: 0.1rem;
+  scroll-padding-inline: 0.35rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.campaign-immersive-patti__nav::-webkit-scrollbar {
+  display: none;
+}
+
+.campaign-immersive-patti__nav-track {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: max-content;
+  align-items: center;
+  gap: 0.35rem;
+  padding-inline: 0.15rem;
+}
+
+@media (min-width: 640px) {
+  .campaign-immersive-patti__nav-track {
+    gap: 0.45rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .campaign-immersive-patti__nav-track {
+    gap: 0.55rem;
   }
 }
 
 .rd-premium--fill > .rd-premium-page:has(.funnel-editor-shell) {
+  gap: 0.35rem;
+}
+
+.rd-premium--fill > .rd-premium-page:has(.campaign-immersive-page) {
   gap: 0;
 }
 
-.rd-premium--fill > .rd-premium-page:has(.campaign-immersive-shell) {
-  gap: 0;
+.campaign-immersive-panel .rd-premium-section {
+  gap: 0.85rem;
 }
 
-.funnel-editor-shell,
-.campaign-immersive-shell {
-  border-radius: 1.1rem;
-  border: 1px solid #e8edf5;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+@media (min-width: 1280px) {
+  .campaign-immersive-panel .rd-premium-section {
+    gap: 1rem;
+  }
+
+  .campaign-immersive-panel .rd-premium-section-head h2 {
+    font-size: 1.1rem;
+  }
 }
 
-.campaign-immersive-shell {
+.funnel-editor-shell {
+  padding: 0;
+  --rd-funnel-editor-edge-gap: 0.65rem;
+}
+
+.rd-shell--campaign-immersive .funnel-editor-shell .crm-editor-embedded-grid-wrap {
+  padding-left: var(--rd-funnel-editor-edge-gap);
+  padding-right: var(--rd-funnel-editor-edge-gap);
+}
+
+@media (min-width: 1024px) {
+  .funnel-editor-shell {
+    --rd-funnel-editor-edge-gap: 0.85rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .funnel-editor-shell {
+    --rd-funnel-editor-edge-gap: 1rem;
+  }
+}
+
+.campaign-immersive-shell:not(.funnel-editor-shell) {
+  box-sizing: border-box;
+  padding-inline: var(--rd-funnel-editor-gutter-inline);
+  padding-top: 0.35rem;
+  padding-bottom: var(--rd-funnel-editor-gap-bottom);
+}
+
+@media (min-width: 640px) {
+  .campaign-immersive-shell:not(.funnel-editor-shell) {
+    padding-top: 0.4rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .campaign-immersive-shell:not(.funnel-editor-shell) {
+    padding-top: 0.45rem;
+  }
+}
+
+.campaign-immersive-tab-panel {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  flex-direction: column;
+}
+
+.rd-shell--campaign-immersive .crm-editor-embedded-shell {
+  background: #ffffff;
+}
+
+.rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 0.25rem;
+  padding-bottom: 0.15rem;
+}
+
+.rd-shell--campaign-immersive .crm-editor-embedded-grid {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  align-items: stretch;
+  align-content: stretch;
+  padding-inline: 0;
+  column-gap: 1.375rem;
+}
+
+@media (min-width: 640px) {
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
+    padding-top: 0.4rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
+    padding-top: 0.45rem;
+  }
+
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid {
+    column-gap: 1.375rem;
+  }
+}
+
+.rd-shell--campaign-immersive .crm-editor-embedded-grid > :first-child,
+.rd-shell--campaign-immersive .crm-editor-embedded-grid > :last-child {
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.rd-shell--campaign-immersive .crm-editor-embedded-grid > :nth-child(2) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 100%;
+  height: 100%;
+  align-self: stretch;
+  justify-self: stretch;
+}
+
+.rd-main-scroll--campaign-immersive:has(.funnel-editor-shell) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.rd-main-scroll--campaign-immersive:has(.funnel-editor-shell) > .rd-premium--fill {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+}
+
+.campaign-immersive-page:has(.funnel-editor-shell) {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+}
+
+.funnel-editor-host {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+}
+
+.editor-funnel-step-thumb img {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.editor-funnel-step-thumb--selected {
+  background: linear-gradient(145deg, #eef4ff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.12);
+  outline: 1px solid rgba(24, 119, 242, 0.2);
+}
+
+.editor-settings-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(232 237 245) transparent;
+}
+
+.editor-settings-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-settings-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.editor-settings-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.editor-settings-section-thumb img {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.editor-settings-section-thumb--open {
+  background: linear-gradient(145deg, #eef4ff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.12);
+  outline: 1px solid rgba(24, 119, 242, 0.2);
+}
+
+.editor-panel-top-shell {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  height: 7.85rem;
+  min-height: 7.85rem;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.editor-panel-top-inner {
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-panel-top-foot {
+  min-height: 2rem;
+  align-items: center;
+}
+
+.editor-funnel-top-shell {
+  justify-content: flex-start;
+}
+
+.editor-funnel-top-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-settings-stack {
+  width: 100%;
+}
+
+.editor-settings-stack--embedded {
+  justify-content: flex-start;
+}
+
+.editor-settings-card--open {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-settings-stack-panel {
+  display: block;
+  width: 100%;
+}
+
+@media (min-width: 1280px) {
+  .editor-settings-stack--embedded {
+    gap: 0.45rem;
+  }
+
+  .editor-settings-stack--embedded .editor-settings-stack-trigger {
+    min-height: 3.25rem;
+    padding-block: 0.55rem;
+    padding-inline: 0.65rem;
+    gap: 0.6rem;
+  }
+
+  .editor-settings-stack--embedded .editor-settings-card--closed {
+    border-radius: 0.95rem;
+  }
+
+  .editor-settings-stack--embedded .editor-settings-section-thumb {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.75rem;
+  }
+
+  .editor-settings-stack--embedded .editor-settings-section-thumb img {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .editor-settings-scroll--embedded {
+    padding-inline: 0.7rem;
+    padding-block: 0.65rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .editor-settings-stack--embedded .editor-settings-stack-trigger {
+    min-height: 3.1rem;
+    padding-block: 0.5rem;
+  }
+}
+
+.campaign-immersive-shell,
+.funnel-editor-shell {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
 .rd-premium-panel__body {

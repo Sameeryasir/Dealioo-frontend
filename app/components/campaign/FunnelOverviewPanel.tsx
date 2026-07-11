@@ -345,10 +345,22 @@ export function FunnelOverviewPanel({
   const hasMonthlyCharts = hasStatsActivity && signupsPaymentsMonthly.length > 0;
   const hasAnalyticsMonthly = hasAnalyticsActivity;
 
+  const performanceBandClass = embedded
+    ? "relative shrink-0 bg-white px-0 py-3 sm:py-3.5"
+    : "relative shrink-0 border-b border-[#e8edf5] bg-white px-2.5 py-3 sm:px-3 sm:py-3.5";
+
+  const panelBodyPadClass = embedded
+    ? "px-0 py-3.5 sm:py-4"
+    : "px-2.5 py-3.5 sm:px-3 sm:py-4";
+
+  const panelSkeletonPadClass = embedded
+    ? "px-0 py-4 sm:py-5"
+    : "px-2.5 py-4 sm:px-3 sm:py-5";
+
   const panelBody = (
     <>
-      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-2.5 py-3 sm:px-3 sm:py-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className={performanceBandClass}>
+        <div className="flex flex-wrap items-center justify-between gap-2 xl:flex-nowrap">
           <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
             Campaign performance
           </span>
@@ -368,7 +380,7 @@ export function FunnelOverviewPanel({
           <NoFunnelEmptyState onCreateFunnel={onCreateFunnel} />
         </div>
       ) : showSkeleton ? (
-        <div className="rd-premium-panel__body px-2.5 py-4 sm:px-3 sm:py-5">
+        <div className={`rd-premium-panel__body ${panelSkeletonPadClass}`}>
           <OverviewSkeleton />
         </div>
       ) : showNoRecords ? (
@@ -376,16 +388,16 @@ export function FunnelOverviewPanel({
           <NoRecordsFoundCard />
         </div>
       ) : monthlyStatsTotals ? (
-        <div className="rd-premium-panel__body px-2.5 py-3.5 sm:px-3 sm:py-4">
+        <div className={`rd-premium-panel__body ${panelBodyPadClass}`}>
           <motion.div
             key="overview-content"
-            className="space-y-4"
+            className="space-y-4 lg:space-y-5"
             variants={funnelPanelStagger}
             initial="hidden"
             animate="show"
           >
             <motion.section
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4"
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4 lg:gap-3.5 xl:gap-4"
               aria-label="Campaign summary"
               variants={funnelPanelStagger}
             >
@@ -443,7 +455,7 @@ export function FunnelOverviewPanel({
                 <div className="rd-premium-section-head">
                   <h2>Conversion trends</h2>
                 </div>
-                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
+                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2 lg:gap-4">
                   <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
                     <SignupsPaymentsBarChart data={signupsPaymentsMonthly} />
                   </motion.div>
@@ -510,7 +522,7 @@ export function FunnelOverviewPanel({
                   </motion.div>
                 </motion.div>
 
-                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
+                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2 lg:gap-4">
                   <motion.div variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Page views by month"
@@ -558,7 +570,10 @@ export function FunnelOverviewPanel({
 
   if (embedded) {
     return (
-      <div className="relative w-full" aria-label="Campaign overview">
+      <div
+        className="campaign-immersive-panel relative flex min-h-0 w-full flex-1 flex-col"
+        aria-label="Campaign overview"
+      >
         <OverviewAlertDialog
           open={alertMessage != null}
           message={alertMessage ?? ""}

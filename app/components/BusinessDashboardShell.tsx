@@ -26,7 +26,14 @@ function DashboardShellInner({ children }: { children: ReactNode }) {
       >
         <AdminPanelSidebar />
         <div className="rd-shell-column">
-          {immersiveCampaign ? null : <BusinessNavbar />}
+          {immersiveCampaign ? (
+            <div
+              id="campaign-immersive-patti-host"
+              className="campaign-immersive-patti"
+            />
+          ) : (
+            <BusinessNavbar />
+          )}
           <main
             className={`rd-main-scroll ${
               immersiveCampaign ? "rd-main-scroll--campaign-immersive" : ""

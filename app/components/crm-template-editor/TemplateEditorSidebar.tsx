@@ -21,9 +21,11 @@ import {
   UserPlus,
   UserRound,
   ZoomIn,
+  Palette,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FUNNEL_STEP_META } from "@/app/components/crm-template-editor/editor-ui/funnel-step-meta";
+import { EDITOR_SETTINGS_SECTION_THUMBS } from "@/app/components/crm-template-editor/editor-ui/editor-settings-section-meta";
 import {
   CHECKOUT_TEMPLATE_OPTIONS,
   CheckoutTemplateType,
@@ -108,7 +110,8 @@ type SectionId =
   | "content"
   | "media"
   | "form"
-  | "checkout-templates";
+  | "checkout-templates"
+  | "style";
 
 const FORM_FIELD_ICONS: Record<FormFieldId, LucideIcon> = {
   firstName: User,
@@ -124,6 +127,25 @@ const SECTION_ICONS: Partial<Record<SectionId, LucideIcon>> = {
   media: ImageIcon,
   form: UserPlus,
   "checkout-templates": CreditCard,
+  style: Palette,
+};
+
+const STACKED_SECTION_LABELS: Partial<
+  Record<SectionId, { title: string; hint: string }>
+> = {
+  templates: { title: "Template", hint: "Starter template selected" },
+  content: { title: "Content", hint: "Headline, text and buttons" },
+  media: { title: "Media", hint: "Hero image and positioning" },
+  sections: { title: "Sections & Order", hint: "Arrange page sections" },
+  style: { title: "Style", hint: "Colors, fonts and buttons" },
+};
+
+const STACKED_SECTION_ORDER: Partial<Record<SectionId, string>> = {
+  templates: "order-1",
+  content: "order-2",
+  media: "order-3",
+  sections: "order-4",
+  style: "order-5",
 };
 
 const SECTION_HINTS: Partial<Record<SectionId, string>> = {
@@ -137,7 +159,6 @@ const SECTION_HINTS: Partial<Record<SectionId, string>> = {
 
 const accordionEase = [0.22, 1, 0.36, 1] as const;
 
-/** Slower open/close so the sidebar accordion feels deliberate, not snappy. */
 const accordionPanelOpen = {
   duration: 0.28,
   delay: 0.04,
@@ -160,6 +181,8 @@ function AccordionSection({
   open,
   onToggle,
   children,
+  variant = "card",
+  orderClassName,
 }: {
   id: SectionId;
   title: string;
@@ -167,13 +190,84 @@ function AccordionSection({
   open: boolean;
   onToggle: (id: SectionId) => void;
   children: React.ReactNode;
+  variant?: "card" | "stack";
+  orderClassName?: string;
 }) {
   const Icon = SECTION_ICONS[id] ?? FileText;
   const subtitle = hint ?? SECTION_HINTS[id];
+  const thumbSrc = EDITOR_SETTINGS_SECTION_THUMBS[id];
+
+  if (variant === "stack") {
+    return (
+      <div
+        className={`flex w-full flex-col rounded-[1.05rem] border border-[#e8edf5] bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-[#1877f2]/20 hover:shadow-[0_6px_18px_rgba(24,119,242,0.07)] ${
+          open
+            ? "editor-settings-card--open shrink-0 overflow-visible border-[#1877f2]/25 shadow-[0_6px_18px_rgba(24,119,242,0.1)]"
+            : "editor-settings-card--closed shrink-0 overflow-hidden"
+        } ${orderClassName ?? ""}`}
+      >
+        <button
+          type="button"
+          onClick={() => onToggle(id)}
+          title={subtitle ? `${title} — ${subtitle}` : title}
+          className="editor-settings-stack-trigger flex w-full shrink-0 items-center gap-2.5 px-2.5 py-2.5 text-left transition-colors hover:bg-[#fafcff]"
+        >
+          {thumbSrc ? (
+            <span
+              className={`editor-settings-section-thumb flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[0.85rem] bg-gradient-to-br from-[#f4f8ff] to-white ring-1 ring-[#e8edf5] ${
+                open ? "editor-settings-section-thumb--open" : ""
+              }`}
+              aria-hidden
+            >
+              <img
+                src={`${thumbSrc}?v=1`}
+                alt=""
+                className="size-8 object-contain drop-shadow-[0_2px_6px_rgba(24,119,242,0.18)]"
+                loading="lazy"
+                decoding="async"
+              />
+            </span>
+          ) : (
+            <span
+              className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${
+                open
+                  ? "bg-[#1877f2] text-white ring-1 ring-[#1877f2]/20"
+                  : "bg-[#f4f8ff] text-[#1877f2] ring-1 ring-[#1877f2]/12"
+              }`}
+              aria-hidden
+            >
+              <Icon className="size-4" strokeWidth={2.25} />
+            </span>
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.8rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
+              {title}
+            </span>
+          </span>
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={accordionChevronTransition}
+            className={`flex size-7 shrink-0 items-center justify-center rounded-full transition ${
+              open
+                ? "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#1877f2]/15"
+                : "text-slate-400"
+            }`}
+          >
+            <ChevronDown className="size-3.5" strokeWidth={2.25} aria-hidden />
+          </motion.span>
+        </button>
+        {open ? (
+          <div className="editor-settings-stack-panel border-t border-[#eef2f7] bg-[#f8fafc]/50 px-3 pb-3 pt-2.5">
+            <div className="space-y-3">{children}</div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <motion.div
-      className={open ? editorAccordionShellOpenClass : editorAccordionShellClosedClass}
+      className={`${open ? editorAccordionShellOpenClass : editorAccordionShellClosedClass} ${orderClassName ?? ""}`}
     >
       <button
         type="button"
@@ -327,10 +421,14 @@ export function TemplateEditorSidebar({
   page,
   onChange,
   onBrowseTemplates,
+  stackedLayout = false,
+  stackFillHeight = false,
 }: {
   page: TemplatePage;
   onChange: (patch: TemplatePagePatch) => void;
   onBrowseTemplates?: () => void;
+  stackedLayout?: boolean;
+  stackFillHeight?: boolean;
 }) {
   const mediaFileId = useId();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
@@ -342,7 +440,6 @@ export function TemplateEditorSidebar({
     setOpenSection(null);
   }, [page.id]);
 
-  /** Only one section open, tapping another closes the rest. */
   const toggle = useCallback((id: SectionId) => {
     setOpenSection((prev) => (prev === id ? null : id));
   }, []);
@@ -390,15 +487,61 @@ export function TemplateEditorSidebar({
     onChange({ formFieldIds: Array.from(set) });
   };
 
+  const accordionVariant = stackedLayout ? "stack" : "card";
+  const sectionLabel = (id: SectionId, defaultTitle: string) =>
+    stackedLayout
+      ? (STACKED_SECTION_LABELS[id]?.title ?? defaultTitle)
+      : defaultTitle;
+  const sectionHint = (id: SectionId) =>
+    stackedLayout ? STACKED_SECTION_LABELS[id]?.hint : undefined;
+  const sectionOrder = (id: SectionId) =>
+    stackedLayout ? STACKED_SECTION_ORDER[id] : undefined;
+
+  const heroDesignPicker = (
+    <div className={editorSidebarPickerPanelClass}>
+      <div className={editorSidebarPickerScrollClass}>
+        <div className="grid grid-cols-1 gap-2 pb-1">
+          {HERO_DESIGN_OPTIONS.map((opt) => {
+            const on = activeHeroDesign === opt.value;
+            const tokens = getHeroDesignStyle(opt.value);
+            return (
+              <HeroDesignPickerOption
+                key={opt.value}
+                label={opt.label}
+                description={opt.description}
+                selected={on}
+                style={tokens}
+                onSelect={() =>
+                  onChange({ heroDesign: opt.value as HeroDesign })
+                }
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className={editorSidebarRootClass}>
+    <div
+      className={
+        stackedLayout && stackFillHeight
+          ? "editor-settings-stack editor-settings-stack--embedded w-full flex flex-col gap-1.5 px-0.5 py-1"
+          : stackedLayout
+            ? "flex w-full flex-col gap-2 px-0.5 py-0.5"
+            : editorSidebarRootClass
+      }
+    >
         {showLandingHeroEditor ? (
           <>
             <AccordionSection
               id="templates"
-              title="Starter templates"
+              title={sectionLabel("templates", "Starter templates")}
+              hint={sectionHint("templates")}
               open={isOpen("templates")}
               onToggle={toggle}
+              variant={accordionVariant}
+              orderClassName={sectionOrder("templates")}
             >
               <p className={editorSidebarBodyTextClass}>
                 <strong className={editorSidebarBodyStrongClass}>Page design</strong>{" "}
@@ -418,9 +561,12 @@ export function TemplateEditorSidebar({
 
             <AccordionSection
               id="sections"
-              title="Section order"
+              title={sectionLabel("sections", "Section order")}
+              hint={sectionHint("sections")}
               open={isOpen("sections")}
               onToggle={toggle}
+              variant={accordionVariant}
+              orderClassName={sectionOrder("sections")}
             >
               <p className={`mb-3 ${editorSidebarBodyTextClass}`}>
                 Drag to reorder blocks on the landing page.
@@ -438,9 +584,12 @@ export function TemplateEditorSidebar({
 
             <AccordionSection
               id="content"
-              title="Content"
+              title={sectionLabel("content", "Content")}
+              hint={sectionHint("content")}
               open={isOpen("content")}
               onToggle={toggle}
+              variant={accordionVariant}
+              orderClassName={sectionOrder("content")}
             >
               <div className="space-y-5">
                 <Field
@@ -514,33 +663,15 @@ export function TemplateEditorSidebar({
 
             <AccordionSection
               id="media"
-              title="Media"
+              title={sectionLabel("media", "Media")}
+              hint={sectionHint("media")}
               open={isOpen("media")}
               onToggle={toggle}
+              variant={accordionVariant}
+              orderClassName={sectionOrder("media")}
             >
               <div className="space-y-4">
-                <div className={editorSidebarPickerPanelClass}>
-                  <div className={editorSidebarPickerScrollClass}>
-                    <div className="grid grid-cols-1 gap-2 pb-1">
-                    {HERO_DESIGN_OPTIONS.map((opt) => {
-                      const on = activeHeroDesign === opt.value;
-                      const tokens = getHeroDesignStyle(opt.value);
-                      return (
-                        <HeroDesignPickerOption
-                          key={opt.value}
-                          label={opt.label}
-                          description={opt.description}
-                          selected={on}
-                          style={tokens}
-                          onSelect={() =>
-                            onChange({ heroDesign: opt.value as HeroDesign })
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-                </div>
+                {!stackedLayout ? heroDesignPicker : null}
 
                 <Field
                   as="div"
@@ -637,6 +768,20 @@ export function TemplateEditorSidebar({
                 ) : null}
               </div>
             </AccordionSection>
+
+            {stackedLayout ? (
+              <AccordionSection
+                id="style"
+                title={sectionLabel("style", "Style")}
+                hint={sectionHint("style")}
+                open={isOpen("style")}
+                onToggle={toggle}
+                variant={accordionVariant}
+                orderClassName={sectionOrder("style")}
+              >
+                {heroDesignPicker}
+              </AccordionSection>
+            ) : null}
           </>
         ) : null}
 

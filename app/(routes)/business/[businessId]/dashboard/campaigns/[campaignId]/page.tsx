@@ -11,7 +11,8 @@ import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-quer
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
@@ -30,12 +31,16 @@ export default function CampaignWelcomePage() {
     [params.campaignId],
   );
 
-  const { data: campaign, isLoading: campaignsLoading } =
-    useCampaignByIdQuery(campaignId);
+  const { data: campaign } = useCampaignByIdQuery(campaignId);
 
   const [activeTabId, setActiveTabId] = useState("overview");
+  const [pattiHost, setPattiHost] = useState<HTMLElement | null>(null);
   const { funnelId, isLoading: isFunnelIdLoading } =
     useCampaignFunnelId(campaignId);
+
+  useEffect(() => {
+    setPattiHost(document.getElementById("campaign-immersive-patti-host"));
+  }, []);
 
   const openAutomationBuilder = useCallback(
     (automationId: string) => {
@@ -63,34 +68,38 @@ export default function CampaignWelcomePage() {
     return <InvalidRouteMessage />;
   }
 
+  const campaignHeader = (
+    <CampaignHeader
+      embedded
+      businessId={businessId}
+      campaignId={campaignId}
+      funnelId={funnelId}
+      offer={campaign?.offer}
+      price={campaign?.price}
+      campaign={campaign}
+      activeTabId={activeTabId}
+      onTabChange={setActiveTabId}
+      onCampaignUpdated={handleCampaignUpdated}
+    />
+  );
+
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Campaign">
-      <div className="rd-premium-page">
+      {pattiHost ? createPortal(campaignHeader, pattiHost) : null}
+
+      <div className="rd-premium-page campaign-immersive-page">
         <article
           className={`campaign-immersive-shell rd-premium-panel ${
             activeTabId === "funnel" ? "funnel-editor-shell" : ""
           }`}
         >
-          <CampaignHeader
-            embedded
-            businessId={businessId}
-            campaignId={campaignId}
-            funnelId={funnelId}
-            offer={campaign?.offer}
-            price={campaign?.price}
-            campaign={campaign}
-            activeTabId={activeTabId}
-            onTabChange={setActiveTabId}
-            onCampaignUpdated={handleCampaignUpdated}
-          />
-
           <div
             className={`flex min-h-0 flex-1 flex-col ${
               activeTabId === "funnel" ? "overflow-hidden" : "overflow-y-auto"
             }`}
           >
             {activeTabId === "funnel" ? (
-              <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+              <div className="funnel-editor-host flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
                 <CrmTemplateEditor
                   embedded
                   businessId={businessId}
@@ -118,25 +127,26 @@ export default function CampaignWelcomePage() {
             ) : activeTabId === "guests" ? (
               <CampaignGuestsPanel embedded />
             ) : activeTabId === "automations" ? (
-              <AutomationListPage onOpenBuilder={openAutomationBuilder} />
+              <AutomationListPage embedded onOpenBuilder={openAutomationBuilder} />
             ) : activeTabId === "ads" ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="campaign-immersive-tab-panel overflow-y-auto">
                 <CampaignAdsPanel
+                  embedded
                   businessId={businessId}
                   campaignName={campaign?.campaignName}
                   campaignImageUrl={campaign?.imageUrl}
                   campaignWebsiteUrl={campaign?.websiteUrl}
                 />
-                <div className="mx-auto w-full px-4 sm:px-5">
+                <div className="w-full px-0">
                   <div
                     className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
                     aria-hidden
                   />
                 </div>
-                <CampaignGoogleAdsPanel businessId={businessId} />
+                <CampaignGoogleAdsPanel embedded businessId={businessId} />
               </div>
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-5">
+              <div className="campaign-immersive-tab-panel flex flex-1 flex-col items-center justify-center py-8">
                 <p className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
                   Welcome to Campaign page
                 </p>

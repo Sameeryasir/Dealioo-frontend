@@ -41,6 +41,7 @@ type CampaignAdsPanelProps = {
   campaignName?: string;
   campaignImageUrl?: string;
   campaignWebsiteUrl?: string;
+  embedded?: boolean;
 };
 
 type ConnectionPhase = "loading" | "not_connected" | "needs_account" | "ready";
@@ -100,6 +101,7 @@ export function CampaignAdsPanel({
   campaignName = "",
   campaignImageUrl = "",
   campaignWebsiteUrl = "",
+  embedded = false,
 }: CampaignAdsPanelProps) {
   const [metaConnected, setMetaConnected] = useState(false);
   const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
@@ -231,7 +233,13 @@ export function CampaignAdsPanel({
     : "https://www.facebook.com/adsmanager";
 
   return (
-    <div className="bg-zinc-50/50 px-4 py-8 sm:px-8 sm:py-10">
+    <div
+      className={
+        embedded
+          ? "bg-white px-0 py-0"
+          : "bg-zinc-50/50 px-4 py-8 sm:px-8 sm:py-10"
+      }
+    >
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 max-w-xl">

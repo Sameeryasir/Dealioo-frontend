@@ -344,7 +344,7 @@ export function CampaignGuestsPanel({
       />
 
       {embedded ? (
-        <div className="w-full px-2.5 py-3.5 sm:px-3 sm:py-4">
+        <div className="w-full px-0 py-3.5 sm:py-4">
           {panelContent}
         </div>
       ) : (
