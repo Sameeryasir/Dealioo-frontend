@@ -3,7 +3,7 @@
  * Maps calendar months to API `from` / `to` ISO ranges.
  */
 
-export const ACTIVITY_MONTH_COUNT = 12;
+export const ACTIVITY_MONTH_COUNT = 6;
 
 export const ACTIVITY_ALL_MONTHS_ID = "all";
 

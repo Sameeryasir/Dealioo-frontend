@@ -11,6 +11,15 @@ export type ActivityEventType =
   | "prepaid_for_offer"
   | "message_sent";
 
+export type ActivityEventFilter = "all" | ActivityEventType;
+
+export type ActivityQueryFilters = {
+  eventType?: ActivityEventFilter;
+  from?: string;
+  to?: string;
+  search?: string;
+};
+
 export type RestaurantActivityEvent = {
   id: number;
   eventType: ActivityEventType;
@@ -26,6 +35,8 @@ export type ActivitySummary = {
   totalRedeemed: number;
   totalPrepaid: number;
   totalMessagesSent: number;
+  from?: string;
+  to?: string;
 };
 
 export type ActivityMonthlyPoint = {
@@ -58,18 +69,36 @@ export type PaginatedActivityResponse = {
     limit: number;
     total: number;
     totalPages: number;
+    allEventsTotal: number;
   };
 };
+
+function appendActivityFilters(
+  params: URLSearchParams,
+  filters: ActivityQueryFilters = {},
+) {
+  const eventType = filters.eventType ?? "all";
+  if (eventType !== "all") {
+    params.set("eventType", eventType);
+  }
+  if (filters.from) {
+    params.set("from", filters.from);
+  }
+  if (filters.to) {
+    params.set("to", filters.to);
+  }
+  const search = filters.search?.trim();
+  if (search) {
+    params.set("search", search);
+  }
+}
 
 export async function getRestaurantActivityEvents(
   restaurantId: number,
   options: {
     page?: number;
     limit?: number;
-    eventType?: ActivityEventType | "all";
-    from?: string;
-    to?: string;
-  } = {},
+  } & ActivityQueryFilters = {},
 ): Promise<PaginatedActivityResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -83,15 +112,7 @@ export async function getRestaurantActivityEvents(
     limit: String(options.limit ?? RESTAURANT_ACTIVITY_PAGE_SIZE),
   });
 
-  if (options.eventType && options.eventType !== "all") {
-    q.set("eventType", options.eventType);
-  }
-  if (options.from) {
-    q.set("from", options.from);
-  }
-  if (options.to) {
-    q.set("to", options.to);
-  }
+  appendActivityFilters(q, options);
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/activity/business/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
@@ -112,7 +133,7 @@ export async function getRestaurantActivityEvents(
 
 export async function getRestaurantActivitySummary(
   restaurantId: number,
-  options: { from?: string; to?: string } = {},
+  options: ActivityQueryFilters = {},
 ): Promise<ActivitySummary> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -122,8 +143,7 @@ export async function getRestaurantActivitySummary(
   }
 
   const q = new URLSearchParams();
-  if (options.from) q.set("from", options.from);
-  if (options.to) q.set("to", options.to);
+  appendActivityFilters(q, options);
 
   const query = q.toString();
   const res = await authenticatedFetch(

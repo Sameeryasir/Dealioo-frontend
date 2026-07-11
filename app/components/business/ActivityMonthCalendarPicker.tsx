@@ -93,7 +93,7 @@ export function ActivityMonthCalendarPicker({
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.24, ease: automationEase }}
           style={menuStyle}
-          className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white p-3 shadow-lg ring-1 ring-zinc-950/[0.04]"
+          className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.08)] ring-1 ring-black/[0.02]"
         >
           <button
             type="button"
@@ -101,26 +101,26 @@ export function ActivityMonthCalendarPicker({
               onChange(ACTIVITY_ALL_MONTHS_ID);
               setOpen(false);
             }}
-            className={`mb-3 flex w-full cursor-pointer items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            className={`mb-3 flex w-full cursor-pointer items-center justify-center rounded-full px-3 py-2 text-[0.8rem] font-bold transition ${
               value === ACTIVITY_ALL_MONTHS_ID
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
+                : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
             }`}
           >
             All months (last {ACTIVITY_MONTH_COUNT})
           </button>
 
-          <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-2 py-1.5">
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-2 py-1.5">
             <button
               type="button"
               aria-label="Previous year"
               disabled={!canGoPrevYear}
               onClick={() => setViewYear((year) => year - 1)}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="size-4" aria-hidden />
             </button>
-            <p className="text-sm font-semibold tabular-nums text-zinc-900">
+            <p className="text-sm font-extrabold tabular-nums text-[#07111f]">
               {viewYear}
             </p>
             <button
@@ -128,7 +128,7 @@ export function ActivityMonthCalendarPicker({
               aria-label="Next year"
               disabled={!canGoNextYear}
               onClick={() => setViewYear((year) => year + 1)}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronRight className="size-4" aria-hidden />
             </button>
@@ -154,14 +154,14 @@ export function ActivityMonthCalendarPicker({
                     onChange(monthKey);
                     setOpen(false);
                   }}
-                  className={`rounded-lg px-2 py-2.5 text-sm font-medium transition ${
+                  className={`rounded-full px-2 py-2.5 text-[0.8rem] font-bold transition ${
                     isSelected
-                      ? "bg-zinc-900 text-white shadow-sm"
+                      ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
                       : selectable
                         ? isCurrent
-                          ? "cursor-pointer bg-white text-zinc-900 ring-2 ring-zinc-900/15 hover:bg-zinc-50"
-                          : "cursor-pointer bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                        : "cursor-not-allowed bg-zinc-50/60 text-zinc-300"
+                          ? "cursor-pointer bg-white text-[#1877f2] ring-2 ring-[#1877f2]/20 hover:bg-[#f4f8ff]"
+                          : "cursor-pointer bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+                        : "cursor-not-allowed bg-[#f8fafc] text-slate-300"
                   }`}
                 >
                   {label}
@@ -182,7 +182,11 @@ export function ActivityMonthCalendarPicker({
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label="Choose month"
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-2 text-[0.75rem] font-bold text-slate-700 transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
+          className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-2 text-[0.75rem] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15 ${
+            open || value !== ACTIVITY_ALL_MONTHS_ID
+              ? "border-[#1877f2]/35 bg-[#f4f8ff] text-[#1877f2]"
+              : "border-[#e8edf5] bg-[#f8fafc] text-slate-700 hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+          }`}
         >
           <Calendar className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
           <span className="max-w-[10rem] truncate">{selectedLabel}</span>

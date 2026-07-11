@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -20,6 +20,7 @@ import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDial
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import {
   DASHBOARD_EVENT_BADGE,
   DASHBOARD_KPI_ICON,
@@ -33,15 +34,15 @@ import {
   buildActivityMonthFilterOptions,
   resolveActivityMonthRange,
 } from "@/app/lib/activity-month-filter";
-import { standardEase } from "@/app/lib/motion";
+import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   getRestaurantActivityEvents,
   getRestaurantActivitySummary,
   RESTAURANT_ACTIVITY_PAGE_SIZE,
   type ActivityEventType,
-  type ActivitySummary,
   type RestaurantActivityEvent,
 } from "@/app/services/activity/get-business-activity";
+import { standardEase } from "@/app/lib/motion";
 
 const activityCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -157,24 +158,6 @@ function EventTypeBadge({ type }: { type: ActivityEventType }) {
         </span>
       );
   }
-}
-
-function matchesActivitySearch(
-  event: RestaurantActivityEvent,
-  query: string,
-): boolean {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-
-  const name = guestName(event).toLowerCase();
-  const email = event.customerEmail?.trim().toLowerCase() ?? "";
-  const description = activityDescription(event).toLowerCase();
-
-  return (
-    name.includes(needle) ||
-    email.includes(needle) ||
-    description.includes(needle)
-  );
 }
 
 function FilterPill({
@@ -379,17 +362,8 @@ export function BusinessActivityPanel({
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
   const [monthFilter, setMonthFilter] = useState(ACTIVITY_ALL_MONTHS_ID);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [events, setEvents] = useState<RestaurantActivityEvent[]>([]);
-  const [meta, setMeta] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null>(null);
-  const [summary, setSummary] = useState<ActivitySummary | null>(null);
 
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
   const selectedMonthOption = useMemo(
@@ -403,71 +377,85 @@ export function BusinessActivityPanel({
     [monthFilter, monthOptions],
   );
 
-  const loadActivity = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const hasActiveFilters =
+    eventFilter !== "all" ||
+    monthFilter !== ACTIVITY_ALL_MONTHS_ID ||
+    deferredSearchQuery.trim().length > 0;
 
-    try {
-      const [eventsResponse, summaryResponse] = await Promise.all([
-        getRestaurantActivityEvents(businessId, {
-          page,
-          limit: RESTAURANT_ACTIVITY_PAGE_SIZE,
-          eventType: eventFilter,
-          from: range.from,
-          to: range.to,
-        }),
-        getRestaurantActivitySummary(businessId, {
-          from: range.from,
-          to: range.to,
-        }),
-      ]);
+  const eventsQuery = useQuery({
+    queryKey: [
+      "business-activity-events",
+      businessId,
+      page,
+      eventFilter,
+      monthFilter,
+      deferredSearchQuery,
+      range.from,
+      range.to,
+    ],
+    queryFn: () =>
+      getRestaurantActivityEvents(businessId, {
+        page,
+        limit: RESTAURANT_ACTIVITY_PAGE_SIZE,
+        eventType: eventFilter,
+        from: range.from,
+        to: range.to,
+        search: deferredSearchQuery,
+      }),
+    enabled: businessId > 0,
+    placeholderData: (previousData) => previousData,
+  });
 
-      setEvents(eventsResponse.data);
-      setMeta(eventsResponse.meta);
-      setSummary(summaryResponse);
-    } catch (err) {
-      setEvents([]);
-      setMeta(null);
-      setSummary(null);
-      setError(
-        err instanceof Error ? err.message : "Could not load activity.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [eventFilter, page, range.from, range.to, businessId]);
+  const summaryQuery = useQuery({
+    queryKey: [
+      "business-activity-summary",
+      businessId,
+      monthFilter,
+      range.from,
+      range.to,
+    ],
+    queryFn: () =>
+      getRestaurantActivitySummary(businessId, {
+        from: range.from,
+        to: range.to,
+      }),
+    enabled: businessId > 0,
+  });
 
-  useEffect(() => {
-    void loadActivity();
-  }, [loadActivity]);
+  const events = eventsQuery.data?.data ?? [];
+  const meta = eventsQuery.data?.meta ?? null;
+  const summary = summaryQuery.data ?? null;
+  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const error = eventsQuery.error
+    ? getApiErrorMessage(eventsQuery.error, "Could not load activity.")
+    : summaryQuery.error
+      ? getApiErrorMessage(summaryQuery.error, "Could not load activity.")
+      : null;
+
+  const totalEvents = meta?.total ?? 0;
+  const allEventsTotal = meta?.allEventsTotal ?? totalEvents;
+  const totalPages = Math.max(1, meta?.totalPages ?? 1);
+  const rowOffset = meta ? (meta.page - 1) * meta.limit : 0;
 
   useEffect(() => {
     setPage(1);
-  }, [eventFilter, monthFilter]);
+  }, [eventFilter, monthFilter, deferredSearchQuery]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   useEffect(() => {
     if (error) setAlertDismissed(false);
   }, [error]);
 
-  const filteredEvents = useMemo(
-    () => events.filter((event) => matchesActivitySearch(event, searchQuery)),
-    [events, searchQuery],
-  );
-
-  const hasActiveFilters =
-    eventFilter !== "all" ||
-    monthFilter !== ACTIVITY_ALL_MONTHS_ID ||
-    searchQuery.trim().length > 0;
-
-  const rowOffset = meta ? (meta.page - 1) * meta.limit : 0;
-
   const showEmpty =
-    !loading && !error && (meta?.total ?? 0) === 0 && !hasActiveFilters;
+    !loading && !error && !hasActiveFilters && allEventsTotal === 0;
   const showFilteredEmpty =
-    !loading && !error && events.length === 0 && hasActiveFilters;
-  const showNoFilterResults =
-    !loading && !error && events.length > 0 && filteredEvents.length === 0;
-  const showTable = !loading && !error && filteredEvents.length > 0;
+    !loading && !error && hasActiveFilters && totalEvents === 0;
+  const showTable = !loading && !error && events.length > 0;
 
   const applyAllFilter = () => {
     setEventFilter("all");
@@ -517,7 +505,7 @@ export function BusinessActivityPanel({
             <KpiCard
               label="Total Events"
               value={String(summary.totalEvents)}
-              hint={selectedMonthOption?.label ?? "Last 12 months"}
+              hint={selectedMonthOption?.label ?? "Last 6 months"}
               hintTone="text-slate-400"
               icon={TrendingUp}
               iconBg={DASHBOARD_KPI_ICON.blue}
@@ -622,14 +610,14 @@ export function BusinessActivityPanel({
                   </h2>
                   <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
                     {hasActiveFilters
-                      ? `${filteredEvents.length} matching events`
+                      ? `${totalEvents} matching events`
                       : "Visits, redemptions and guest actions"}
                   </p>
                 </div>
                 <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
                   {hasActiveFilters
-                    ? `${filteredEvents.length} shown`
-                    : `${meta?.total ?? events.length} total`}
+                    ? `${totalEvents} shown`
+                    : `${allEventsTotal} total`}
                 </span>
               </div>
             </div>
@@ -645,7 +633,7 @@ export function BusinessActivityPanel({
                 </motion.div>
               ) : null}
 
-              {showNoFilterResults || showFilteredEmpty ? (
+              {showFilteredEmpty ? (
                 <div className="flex flex-col items-center px-6 py-10 text-center">
                   <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
                     No matching events
@@ -669,7 +657,7 @@ export function BusinessActivityPanel({
 
               {showTable ? (
                 <motion.div
-                  key={`activity-page-${page}-${eventFilter}-${monthFilter}-${searchQuery}`}
+                  key={`activity-page-${page}-${eventFilter}-${monthFilter}-${deferredSearchQuery}`}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: standardEase }}
@@ -729,7 +717,7 @@ export function BusinessActivityPanel({
                         initial="hidden"
                         animate="show"
                       >
-                        {filteredEvents.map((event, index) => {
+                        {events.map((event, index) => {
                           const rowNumber = rowOffset + index + 1;
                           const name = guestName(event);
 
@@ -788,7 +776,7 @@ export function BusinessActivityPanel({
                   </div>
 
                   <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
-                    {filteredEvents.map((event, index) => (
+                    {events.map((event, index) => (
                       <ActivityEventMobileCard
                         key={event.id}
                         event={event}
@@ -800,13 +788,14 @@ export function BusinessActivityPanel({
               ) : null}
             </div>
 
-            {showTable && meta && meta.totalPages > 1 ? (
+            {showTable && meta && meta.total > 0 ? (
               <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs text-slate-500">
                     Showing {meta.total === 0 ? 0 : rowOffset + 1} to{" "}
                     {Math.min(rowOffset + meta.limit, meta.total)} of{" "}
                     {meta.total} events
+                    {meta.limit > 0 ? ` · ${meta.limit} per page` : ""}
                   </p>
                   <div className="flex items-center gap-2">
                     <button

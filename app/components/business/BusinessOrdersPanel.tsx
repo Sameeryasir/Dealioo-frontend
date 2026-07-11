@@ -36,11 +36,10 @@ import {
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
-const ORDERS_FETCH_LIMIT = 200;
 const ORDERS_TABLE_PAGE_SIZE = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE;
 
 const ordersCardClass =
@@ -245,78 +244,6 @@ function guestInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
-function startOfLocalDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function isToday(iso: string): boolean {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return false;
-  return date.toDateString() === new Date().toDateString();
-}
-
-function isThisWeek(iso: string): boolean {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  const weekStart = startOfLocalDay(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  return date >= weekStart;
-}
-
-function isThisMonth(iso: string): boolean {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  return (
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  );
-}
-
-function matchesDateFilter(iso: string, filter: DateFilter): boolean {
-  if (filter === "all") return true;
-  if (filter === "today") return isToday(iso);
-  if (filter === "week") return isThisWeek(iso);
-  return isThisMonth(iso);
-}
-
-function matchesStatusFilter(
-  event: BusinessFunnelEvent,
-  filter: StatusFilter,
-): boolean {
-  if (filter === "all") return true;
-  const status = resolveDisplayStatus(event);
-  if (filter === "paid") return status === "paid";
-  return status === "pending";
-}
-
-function matchesCustomerSearch(
-  event: BusinessFunnelEvent,
-  query: string,
-): boolean {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-
-  const name = displayName(event).toLowerCase();
-  const email = (
-    event.customer?.email?.trim() ||
-    event.customerEmail?.trim() ||
-    ""
-  ).toLowerCase();
-  const phone = event.customer?.phone?.trim().toLowerCase() ?? "";
-  const campaign = event.campaignName.trim().toLowerCase();
-
-  return (
-    name.includes(needle) ||
-    email.includes(needle) ||
-    phone.includes(needle) ||
-    campaign.includes(needle)
-  );
-}
-
 function FilterPill({
   active,
   label,
@@ -357,9 +284,16 @@ function OrderEventMobileCard({
   const status = resolveDisplayStatus(event);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onView}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView();
+        }
+      }}
       className="w-full cursor-pointer rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 text-left shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff]/60"
     >
       <div className="flex items-start justify-between gap-2">
@@ -388,18 +322,18 @@ function OrderEventMobileCard({
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <Link
-          href={`${baseHref}/campaigns/${event.campaignId}`}
+        <span
+          className="inline-flex max-w-[70%] items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15"
+          title={event.campaignName}
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex max-w-[70%] items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] no-underline ring-1 ring-[#1877f2]/15"
         >
           <span className="truncate">{event.campaignName}</span>
-        </Link>
+        </span>
         <span className="shrink-0 text-[0.82rem] font-bold text-[#07111f]">
           <OrderAmountDisplay event={event} />
         </span>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -729,12 +663,9 @@ function OrderEventDetailDialog({
 
           <dl className="m-0 flex flex-col gap-2 rounded-[0.9rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-3.5 py-3">
             <OrderDetailRow icon={Megaphone} label="Campaign">
-              <Link
-                href={`${baseHref}/campaigns/${event.campaignId}`}
-                className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.8rem] font-bold text-[#1877f2] no-underline ring-1 ring-[#1877f2]/15"
-              >
+              <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.8rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15">
                 <span className="truncate">{campaignLabel}</span>
-              </Link>
+              </span>
             </OrderDetailRow>
 
             <OrderDetailRow icon={CircleDollarSign} label="Amount">
@@ -760,16 +691,6 @@ function OrderEventDetailDialog({
             </OrderDetailRow>
           </dl>
         </div>
-
-        <div className="border-t border-[#e8edf5] px-4 py-3">
-          <Link
-            href={`${baseHref}/campaigns/${event.campaignId}`}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-          >
-            View Campaign
-            <ArrowUpRight className="size-3.5" strokeWidth={2.5} aria-hidden />
-          </Link>
-        </div>
       </div>
     </div>
   );
@@ -784,7 +705,7 @@ function OrderRowActions({
   baseHref: string;
   onView: () => void;
 }) {
-  const menuItemCount = event.receiptUrl ? 3 : 2;
+  const menuItemCount = 1;
   const {
     open,
     setOpen,
@@ -822,28 +743,6 @@ function OrderRowActions({
           <Eye className="size-3.5 text-[#1877f2]" aria-hidden />
           View details
         </button>
-        <Link
-          href={`${baseHref}/campaigns/${event.campaignId}`}
-          role="menuitem"
-          onClick={() => setOpen(false)}
-          className="flex w-full items-center gap-2 px-3 py-2 text-[0.8rem] font-semibold text-slate-700 no-underline transition hover:bg-[#f8fbff]"
-        >
-          <Megaphone className="size-3.5 text-[#1877f2]" aria-hidden />
-          Open campaign
-        </Link>
-        {event.receiptUrl ? (
-          <a
-            href={event.receiptUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-[0.8rem] font-semibold text-slate-700 no-underline transition hover:bg-[#f8fbff]"
-          >
-            <ArrowUpRight className="size-3.5 text-[#1877f2]" aria-hidden />
-            View receipt
-          </a>
-        ) : null}
       </div>
     ) : null;
 
@@ -875,24 +774,12 @@ export function BusinessOrdersPanel({
 }) {
   const baseHref = `/business/${businessId}/dashboard`;
 
-  const eventsQuery = useQuery({
-    queryKey: ["business-orders-events", businessId],
-    queryFn: () => getBusinessFunnelEvents(businessId, 1, ORDERS_FETCH_LIMIT),
-    enabled: businessId > 0,
-  });
-
-  const events = eventsQuery.data?.data ?? [];
-  const meta = eventsQuery.data?.meta ?? null;
-  const loading = eventsQuery.isLoading;
-  const error = eventsQuery.error
-    ? getApiErrorMessage(eventsQuery.error, "Could not load funnel events.")
-    : null;
-
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("paid");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] =
     useState<BusinessFunnelEvent | null>(null);
@@ -900,50 +787,59 @@ export function BusinessOrdersPanel({
   const hasActiveFilters =
     statusFilter !== "all" ||
     dateFilter !== "all" ||
-    searchQuery.trim().length > 0;
+    deferredSearchQuery.trim().length > 0;
 
-  const filteredEvents = useMemo(
-    () =>
-      events.filter(
-        (event) =>
-          matchesStatusFilter(event, statusFilter) &&
-          matchesDateFilter(event.createdAt, dateFilter) &&
-          matchesCustomerSearch(event, searchQuery),
-      ),
-    [events, statusFilter, dateFilter, searchQuery],
-  );
+  const eventsQuery = useQuery({
+    queryKey: [
+      "business-orders-events",
+      businessId,
+      page,
+      statusFilter,
+      dateFilter,
+      deferredSearchQuery,
+    ],
+    queryFn: () =>
+      getBusinessFunnelEvents(businessId, page, ORDERS_TABLE_PAGE_SIZE, {
+        status: statusFilter,
+        date: dateFilter,
+        search: deferredSearchQuery,
+      }),
+    enabled: businessId > 0,
+    placeholderData: (previousData) => previousData,
+  });
 
-  const totalFilteredPages = Math.max(
-    1,
-    Math.ceil(filteredEvents.length / ORDERS_TABLE_PAGE_SIZE),
-  );
+  const events = eventsQuery.data?.data ?? [];
+  const meta = eventsQuery.data?.meta ?? null;
+  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const error = eventsQuery.error
+    ? getApiErrorMessage(eventsQuery.error, "Could not load funnel events.")
+    : null;
 
-  const pagedEvents = useMemo(() => {
-    const start = (page - 1) * ORDERS_TABLE_PAGE_SIZE;
-    return filteredEvents.slice(start, start + ORDERS_TABLE_PAGE_SIZE);
-  }, [filteredEvents, page]);
-
+  const totalPages = Math.max(1, meta?.totalPages ?? 1);
+  const totalEvents = meta?.total ?? 0;
+  const allEventsTotal = meta?.allEventsTotal ?? totalEvents;
   const rowOffset = (page - 1) * ORDERS_TABLE_PAGE_SIZE;
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, dateFilter, searchQuery]);
+  }, [statusFilter, dateFilter, deferredSearchQuery]);
 
   useEffect(() => {
-    if (page > totalFilteredPages) {
-      setPage(totalFilteredPages);
+    if (page > totalPages) {
+      setPage(totalPages);
     }
-  }, [page, totalFilteredPages]);
+  }, [page, totalPages]);
 
   useEffect(() => {
     if (loading || !error || alertDismissed) return;
     setAlertMessage(error);
   }, [error, loading, alertDismissed]);
 
-  const showEmpty = !loading && !error && (meta?.total ?? 0) === 0;
+  const showEmpty =
+    !loading && !error && !hasActiveFilters && allEventsTotal === 0;
   const showNoFilterResults =
-    !loading && !error && events.length > 0 && filteredEvents.length === 0;
-  const showTable = !loading && !error && pagedEvents.length > 0;
+    !loading && !error && hasActiveFilters && totalEvents === 0;
+  const showTable = !loading && !error && events.length > 0;
 
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Orders">
@@ -1042,14 +938,14 @@ export function BusinessOrdersPanel({
                   </h2>
                   <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
                     {hasActiveFilters
-                      ? `${filteredEvents.length} matching events`
+                      ? `${totalEvents} matching events`
                       : "Latest signups and payments"}
                   </p>
                 </div>
                 <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
                   {hasActiveFilters
-                    ? `${filteredEvents.length} shown`
-                    : `${meta?.total ?? events.length} total`}
+                    ? `${totalEvents} shown`
+                    : `${allEventsTotal} total`}
                 </span>
               </div>
             </div>
@@ -1160,7 +1056,7 @@ export function BusinessOrdersPanel({
                         initial="hidden"
                         animate="show"
                       >
-                        {pagedEvents.map((event, index) => {
+                        {events.map((event, index) => {
                           const rowNumber = rowOffset + index + 1;
                           const name = displayName(event);
                           const initial = guestInitial(name);
@@ -1199,22 +1095,18 @@ export function BusinessOrdersPanel({
                                   </span>
                                 </div>
                               </td>
-                              <td className={tdClass}>
-                                <Link
-                                  href={`${baseHref}/campaigns/${event.campaignId}`}
+                              <td
+                                className={tdClass}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span
                                   title={event.campaignName}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.75rem] font-bold text-[#1877f2] no-underline ring-1 ring-[#1877f2]/15 transition hover:bg-[#e8f2ff] hover:ring-[#1877f2]/30"
+                                  className="inline-flex max-w-[14rem] items-center truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.75rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15"
                                 >
                                   <span className="truncate">
                                     {event.campaignName}
                                   </span>
-                                  <ArrowUpRight
-                                    className="size-3 shrink-0 opacity-70"
-                                    strokeWidth={2.5}
-                                    aria-hidden
-                                  />
-                                </Link>
+                                </span>
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap tabular-nums`}
@@ -1252,7 +1144,7 @@ export function BusinessOrdersPanel({
                   </div>
 
                   <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
-                    {pagedEvents.map((event, index) => (
+                    {events.map((event, index) => (
                       <OrderEventMobileCard
                         key={event.id}
                         event={event}
@@ -1266,16 +1158,16 @@ export function BusinessOrdersPanel({
               ) : null}
             </div>
 
-            {showTable && totalFilteredPages > 1 ? (
+            {showTable && totalPages > 1 ? (
               <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs text-slate-500">
-                    Showing {filteredEvents.length === 0 ? 0 : rowOffset + 1} to{" "}
+                    Showing {totalEvents === 0 ? 0 : rowOffset + 1} to{" "}
                     {Math.min(
                       rowOffset + ORDERS_TABLE_PAGE_SIZE,
-                      filteredEvents.length,
+                      totalEvents,
                     )}{" "}
-                    of {filteredEvents.length} events
+                    of {totalEvents} events
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -1287,14 +1179,14 @@ export function BusinessOrdersPanel({
                       Previous
                     </button>
                     <span className="min-w-[5rem] text-center text-sm font-medium tabular-nums text-slate-700">
-                      Page {page} of {totalFilteredPages}
+                      Page {page} of {totalPages}
                     </span>
                     <button
                       type="button"
-                      disabled={loading || page >= totalFilteredPages}
+                      disabled={loading || page >= totalPages}
                       onClick={() =>
                         setPage((prev) =>
-                          Math.min(totalFilteredPages, prev + 1),
+                          Math.min(totalPages, prev + 1),
                         )
                       }
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"

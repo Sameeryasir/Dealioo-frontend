@@ -5,6 +5,15 @@ import { isPositiveInt } from "@/app/lib/numbers";
 
 export const RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE = 10;
 
+export type BusinessFunnelEventStatusFilter = "all" | "paid" | "not_paid";
+export type BusinessFunnelEventDateFilter = "all" | "today" | "week" | "month";
+
+export type BusinessFunnelEventFilters = {
+  status?: BusinessFunnelEventStatusFilter;
+  date?: BusinessFunnelEventDateFilter;
+  search?: string;
+};
+
 export type RestaurantOrderPaymentStatus =
   | "not_paid"
   | "paid_online"
@@ -44,6 +53,7 @@ export type PaginatedBusinessFunnelEventsResponse = {
     totalPages: number;
     campaignCount: number;
     funnelCount: number;
+    allEventsTotal: number;
   };
 };
 
@@ -51,6 +61,7 @@ export async function getBusinessFunnelEvents(
   restaurantId: number,
   page = 1,
   limit = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
+  filters: BusinessFunnelEventFilters = {},
 ): Promise<PaginatedBusinessFunnelEventsResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -63,6 +74,20 @@ export async function getBusinessFunnelEvents(
     page: String(page),
     limit: String(limit),
   });
+
+  const status = filters.status ?? "all";
+  const date = filters.date ?? "all";
+  const search = filters.search?.trim() ?? "";
+
+  if (status !== "all") {
+    q.set("status", status);
+  }
+  if (date !== "all") {
+    q.set("date", date);
+  }
+  if (search.length > 0) {
+    q.set("search", search);
+  }
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/funnel-event/business/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
