@@ -4,6 +4,9 @@ import {
   CheckCircle2,
   Loader2,
   ScanLine,
+  Sparkles,
+  UserCheck,
+  Wallet,
   XCircle,
 } from "lucide-react";
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
@@ -42,6 +45,154 @@ async function resolveCameraConfig(): Promise<string | MediaTrackConstraints> {
   }
 
   return { facingMode: "user" };
+}
+
+const SCAN_STEPS = [
+  {
+    icon: ScanLine,
+    title: "Scan pass",
+    description: "Point the camera at the guest's QR code.",
+  },
+  {
+    icon: UserCheck,
+    title: "Confirm guest",
+    description: "Review their profile and available rewards.",
+  },
+  {
+    icon: Wallet,
+    title: "Redeem offer",
+    description: "Apply the deal and complete the order.",
+  },
+] as const;
+
+function ScannerIdleState({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+      <div className="relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] p-6 shadow-[0_12px_32px_rgba(24,119,242,0.08)] ring-1 ring-black/[0.02] sm:p-8">
+        <span
+          className="pointer-events-none absolute -top-10 -right-8 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
+          aria-hidden
+        />
+        <span
+          className="pointer-events-none absolute -bottom-12 -left-10 size-32 rounded-full bg-[#6366f1]/8 blur-2xl"
+          aria-hidden
+        />
+
+        <div className="relative flex flex-col items-center text-center">
+          <div className="relative mb-5 flex size-32 items-center justify-center">
+            <span
+              className="absolute inset-2 rounded-[1.5rem] border-2 border-dashed border-[#1877f2]/25"
+              aria-hidden
+            />
+            <span className="absolute left-3 top-3 size-5 border-l-2 border-t-2 border-[#1877f2]" aria-hidden />
+            <span className="absolute right-3 top-3 size-5 border-r-2 border-t-2 border-[#1877f2]" aria-hidden />
+            <span className="absolute bottom-3 left-3 size-5 border-b-2 border-l-2 border-[#1877f2]" aria-hidden />
+            <span className="absolute bottom-3 right-3 size-5 border-b-2 border-r-2 border-[#1877f2]" aria-hidden />
+            <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-white shadow-[0_12px_32px_rgba(24,119,242,0.14)]">
+              <ScanLine
+                className="size-9 text-[#1877f2]"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+            </span>
+          </div>
+
+          <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+            <Sparkles className="size-3" aria-hidden />
+            Ready to scan
+          </p>
+          <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#07111f]">
+            Scan a guest pass
+          </h3>
+          <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+            Use your device camera to read a customer QR code, confirm their
+            details, and redeem rewards at the counter.
+          </p>
+
+          <button
+            type="button"
+            onClick={onStart}
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1877f2] px-6 py-3 text-[0.85rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
+          >
+            <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
+            Start camera
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {SCAN_STEPS.map((step, index) => {
+          const Icon = step.icon;
+          return (
+            <div
+              key={step.title}
+              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.02]"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] text-[0.72rem] font-bold text-[#1877f2]">
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="size-3.5 text-[#1877f2]" aria-hidden />
+                    <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+                      {step.title}
+                    </p>
+                  </div>
+                  <p className="m-0 mt-1 text-[0.72rem] leading-relaxed text-slate-500">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="mx-auto w-full max-w-lg">
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-4 py-2">
+        <span className="inline-flex items-center gap-2 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1877f2]/60" />
+            <span className="relative inline-flex size-2 rounded-full bg-[#1877f2]" />
+          </span>
+          Scanning
+        </span>
+        <span className="text-[0.72rem] font-medium text-slate-500">
+          Align QR inside the frame
+        </span>
+      </div>
+
+      <div className="relative overflow-hidden rounded-[1.35rem] border border-[#1877f2]/20 bg-[#07111f] shadow-[0_16px_40px_rgba(24,119,242,0.18)] ring-2 ring-[#1877f2]/15 ring-offset-2 ring-offset-white">
+        <div
+          id="qr-reader"
+          className="min-h-[320px] overflow-hidden [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover"
+        />
+        <span className="pointer-events-none absolute inset-0 rounded-[1.35rem] ring-1 ring-inset ring-white/10" aria-hidden />
+        <span className="pointer-events-none absolute left-5 top-5 size-8 border-l-2 border-t-2 border-[#1877f2]" aria-hidden />
+        <span className="pointer-events-none absolute right-5 top-5 size-8 border-r-2 border-t-2 border-[#1877f2]" aria-hidden />
+        <span className="pointer-events-none absolute bottom-5 left-5 size-8 border-b-2 border-l-2 border-[#1877f2]" aria-hidden />
+        <span className="pointer-events-none absolute bottom-5 right-5 size-8 border-b-2 border-r-2 border-[#1877f2]" aria-hidden />
+      </div>
+
+      <p className="mt-4 text-center text-[0.78rem] leading-relaxed text-slate-500">
+        Allow camera access if your browser asks. On a laptop, use the built-in
+        webcam and hold the QR code steady in the frame.
+      </p>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="mt-4 w-full cursor-pointer rounded-full border border-[#e8edf5] bg-white py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+      >
+        Cancel
+      </button>
+    </div>
+  );
 }
 
 export function ScannerScanCodePanel({
@@ -332,76 +483,41 @@ export function ScannerScanCodePanel({
             onScanAgain={() => void resetScan()}
           />
         ) : (
-        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
           {scanState === "idle" ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-5 px-2 py-8 sm:py-10">
-              <div className="relative flex size-28 items-center justify-center">
-                <span
-                  className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
-                  aria-hidden
-                />
-                <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
-                  <ScanLine
-                    className="size-10 text-[#1877f2]"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                </span>
-              </div>
-              <p className="max-w-xs text-center text-[0.82rem] font-medium leading-relaxed text-slate-700">
-                Open the camera to scan a customer QR code.
-              </p>
-              <button
-                type="button"
-                onClick={startScanner}
-                className="inline-flex items-center gap-2 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-              >
-                <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
-                Start camera
-              </button>
-            </div>
+            <ScannerIdleState onStart={startScanner} />
           ) : null}
 
           {scanState === "scanning" ? (
-            <div>
-              <div className="relative overflow-hidden rounded-[1.1rem] ring-2 ring-[#1877f2]/20 ring-offset-2 ring-offset-white">
-                <div
-                  id="qr-reader"
-                  className="min-h-[280px] overflow-hidden rounded-[1.1rem] bg-[#07111f] [&_video]:min-h-[280px] [&_video]:w-full [&_video]:rounded-[1.1rem] [&_video]:object-cover"
-                />
-              </div>
-              <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-slate-700">
-                Allow camera access if your browser asks. On a laptop, use the
-                built-in webcam.
-              </p>
-              <button
-                type="button"
-                onClick={() => void resetScan()}
-                className="mt-4 w-full cursor-pointer rounded-full border border-[#e8edf5] bg-white py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:bg-[#f4f7fb] hover:text-black"
-              >
-                Cancel
-              </button>
-            </div>
+            <ScannerActiveView onCancel={() => void resetScan()} />
           ) : null}
 
           {scanState === "loading" ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-12">
+            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#e8edf5] bg-white px-6 py-14 text-center shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
               <Loader2 className="size-10 animate-spin text-[#1877f2]" aria-hidden />
-              <p className="text-[0.82rem] font-medium text-slate-700">
-                Loading customer…
-              </p>
+              <div>
+                <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+                  Loading guest
+                </p>
+                <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
+                  Fetching pass details from your business account…
+                </p>
+              </div>
             </div>
           ) : null}
 
           {scanState === "preview" ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <p className="text-[0.82rem] font-medium text-slate-700">
-                Customer found. Confirm redemption in the popup.
+            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#dbeafe] bg-[#f4f8ff] px-6 py-12 text-center">
+              <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+                Guest found
+              </p>
+              <p className="m-0 max-w-sm text-[0.8rem] font-medium text-slate-600">
+                Confirm redemption in the popup to continue.
               </p>
               <button
                 type="button"
                 onClick={() => void resetScan()}
-                className="cursor-pointer rounded-full border border-[#e8edf5] px-4 py-2 text-[0.8rem] font-bold text-slate-700 transition hover:bg-[#f4f7fb]"
+                className="cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-slate-700 transition hover:bg-white hover:text-[#1877f2]"
               >
                 Cancel
               </button>
@@ -409,17 +525,17 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "success" && successResult ? (
-            <div className="flex flex-col items-center gap-4 px-2 py-8 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#ecfdf5] ring-1 ring-[#bbf7d0]/80">
+            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#bbf7d0] bg-gradient-to-b from-[#f0fdf4] to-white px-4 py-8 text-center shadow-[0_10px_28px_rgba(34,197,94,0.08)]">
+              <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#bbf7d0]/80 shadow-sm">
                 <CheckCircle2 className="size-10 text-[#22c55e]" aria-hidden />
               </div>
               <div>
-                <p className="text-[1.05rem] font-extrabold text-black">Redeemed!</p>
-                <p className="mt-1 text-[0.82rem] text-slate-700">
+                <p className="m-0 text-[1.05rem] font-extrabold text-[#07111f]">Redeemed!</p>
+                <p className="m-0 mt-1 text-[0.82rem] text-slate-600">
                   Offer successfully applied.
                 </p>
               </div>
-              <dl className="w-full rounded-[1rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-4 py-3 text-left text-sm">
+              <dl className="w-full rounded-[1rem] border border-[#e8edf5] bg-white px-4 py-3 text-left text-sm shadow-sm">
                 <div className="flex justify-between gap-4 py-1.5">
                   <dt className="text-slate-700">Customer</dt>
                   <dd className="font-bold text-black">
@@ -462,12 +578,12 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "error" ? (
-            <div className="flex flex-col items-center gap-4 px-2 py-8 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#fef2f2] ring-1 ring-[#fecaca]/80">
+            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#fecaca] bg-gradient-to-b from-[#fef2f2] to-white px-4 py-8 text-center shadow-[0_10px_28px_rgba(239,68,68,0.08)]">
+              <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#fecaca]/80 shadow-sm">
                 <XCircle className="size-10 text-[#ef4444]" aria-hidden />
               </div>
-              <p className="text-[1.05rem] font-extrabold text-black">Scan failed</p>
-              <p className="max-w-sm text-[0.82rem] text-[#dc2626]">{errorMessage}</p>
+              <p className="m-0 text-[1.05rem] font-extrabold text-[#07111f]">Scan failed</p>
+              <p className="m-0 max-w-sm text-[0.82rem] text-[#dc2626]">{errorMessage}</p>
               <button
                 type="button"
                 onClick={() => void resetScan()}

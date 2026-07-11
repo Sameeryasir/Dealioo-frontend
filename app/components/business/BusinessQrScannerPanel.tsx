@@ -58,20 +58,16 @@ export function BusinessQrScannerPanel({
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Scan and redeem">
       <div className="rd-premium-page">
-        <header className="shrink-0 px-0.5">
-          <h1 className="m-0 text-[clamp(1.15rem,2vw,1.45rem)] font-extrabold tracking-tight text-black">
-            Scan &amp; Redeem
-          </h1>
-          <p className="m-0 mt-1 max-w-[42ch] text-[0.8rem] font-medium leading-snug text-slate-700">
-            Scan a pass, search for a guest, or create a new guest profile.
-          </p>
-        </header>
-
         <article className={`${scannerCardClass} rd-premium-panel`}>
           <div
-            className="flex shrink-0 flex-col gap-3 border-b border-[#e8edf5] px-2.5 py-3.5 sm:px-3"
+            className="relative shrink-0 overflow-hidden border-b border-[#e8edf5]/80 bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-2.5 py-3.5 sm:px-3"
             aria-label="Scanner actions"
           >
+            <span
+              className="pointer-events-none absolute -top-8 -right-6 size-32 rounded-full bg-[#1877f2]/10 blur-2xl"
+              aria-hidden
+            />
+            <div className="relative flex flex-col gap-3">
             <div
               className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               role="tablist"
@@ -88,14 +84,14 @@ export function BusinessQrScannerPanel({
             </div>
 
             <div>
-              <h2 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-black">
+              <h2 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-[#07111f]">
                 {activeTab === "scan"
                   ? "Scan QR code"
                   : activeTab === "search"
                     ? "Find a guest"
                     : "Add a guest"}
               </h2>
-              <p className="m-0 mt-0.5 text-[0.72rem] font-semibold text-slate-700">
+              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
                 {activeTab === "scan"
                   ? "Use your camera to redeem a customer pass."
                   : activeTab === "search"
@@ -103,12 +99,11 @@ export function BusinessQrScannerPanel({
                     : "Create a profile, then attach deals at the counter."}
               </p>
             </div>
+            </div>
           </div>
 
           <div
-            className={`rd-premium-panel__body px-2.5 py-4 sm:px-3 sm:py-5${
-              activeTab === "scan" ? " rd-premium-panel__body--center" : ""
-            }`}
+            className="rd-premium-panel__body px-2.5 py-4 sm:px-3 sm:py-5"
             role="tabpanel"
           >
             {activeTab === "scan" ? (

@@ -8,8 +8,11 @@ import {
   Mail,
   Phone,
   Search,
+  Sparkles,
   Trash2,
+  UserCheck,
   UserRound,
+  Wallet,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
@@ -41,6 +44,128 @@ const thClass =
   "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
 const tdClass =
   "px-4 py-3 text-left align-middle text-sm text-slate-800 first:pl-5 last:pr-5";
+
+const SEARCH_STEPS = [
+  {
+    icon: Search,
+    title: "Search guest",
+    description: "Look up by name, email, or phone number.",
+  },
+  {
+    icon: UserCheck,
+    title: "Open profile",
+    description: "Review contact details and active deals.",
+  },
+  {
+    icon: Wallet,
+    title: "Redeem offer",
+    description: "Apply rewards and complete the order.",
+  },
+] as const;
+
+function SearchHeroCard({
+  query,
+  searching,
+  onQueryChange,
+  onSearch,
+}: {
+  query: string;
+  searching: boolean;
+  onQueryChange: (value: string) => void;
+  onSearch: () => void;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+      <div className="relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] p-6 shadow-[0_12px_32px_rgba(24,119,242,0.08)] ring-1 ring-black/[0.02] sm:p-8">
+        <span
+          className="pointer-events-none absolute -top-10 -right-8 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
+          aria-hidden
+        />
+        <span
+          className="pointer-events-none absolute -bottom-12 -left-10 size-32 rounded-full bg-[#6366f1]/8 blur-2xl"
+          aria-hidden
+        />
+
+        <div className="relative">
+          <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+            <Sparkles className="size-3" aria-hidden />
+            Guest lookup
+          </p>
+          <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#07111f]">
+            Find a guest quickly
+          </h3>
+          <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+            Search your guest list, open their profile, and redeem active deals
+            without scanning a QR code.
+          </p>
+
+          <div className="relative mt-6 min-w-0">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-[#1877f2]/70"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onSearch();
+                }
+              }}
+              placeholder="Name, email, or phone..."
+              className="w-full rounded-full border border-[#dbeafe] bg-white py-3 pr-32 pl-11 text-[0.85rem] font-medium text-black shadow-[0_4px_14px_rgba(24,119,242,0.08)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+            />
+            <button
+              type="button"
+              disabled={!query.trim() || searching}
+              onClick={onSearch}
+              className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.78rem] font-bold text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {searching ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                "Search"
+              )}
+            </button>
+          </div>
+          <p className="m-0 mt-3 text-[0.72rem] font-medium text-slate-500">
+            Type at least 2 characters, then search.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {SEARCH_STEPS.map((step, index) => {
+          const Icon = step.icon;
+          return (
+            <div
+              key={step.title}
+              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.02]"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] text-[0.72rem] font-bold text-[#1877f2]">
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="size-3.5 text-[#1877f2]" aria-hidden />
+                    <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+                      {step.title}
+                    </p>
+                  </div>
+                  <p className="m-0 mt-1 text-[0.72rem] leading-relaxed text-slate-500">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function guestInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -442,101 +567,144 @@ export function ScannerSearchGuestPanel({
 
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {!selectedProfile && !loadingProfile ? (
-        <div>
-          <div className="relative min-w-0">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleSearch();
-                }
-              }}
-              placeholder="Search by name, email, or phone..."
-              className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] py-2 pr-28 pl-9 text-[0.82rem] font-medium text-black outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-            />
-            <button
-              type="button"
-              disabled={!query.trim() || searching}
-              onClick={handleSearch}
-              className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-3.5 py-1.5 text-[0.75rem] font-bold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {searching ? "…" : "Search"}
-            </button>
+        activeQuery.length === 0 && !searching ? (
+          <SearchHeroCard
+            query={query}
+            searching={searching}
+            onQueryChange={setQuery}
+            onSearch={handleSearch}
+          />
+        ) : (
+          <div className="mx-auto w-full max-w-2xl">
+            <div className="relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] p-5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] ring-1 ring-black/[0.02]">
+              <span
+                className="pointer-events-none absolute -top-8 -right-6 size-28 rounded-full bg-[#1877f2]/10 blur-2xl"
+                aria-hidden
+              />
+              <div className="relative min-w-0">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-[#1877f2]/70"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleSearch();
+                    }
+                  }}
+                  placeholder="Name, email, or phone..."
+                  className="w-full rounded-full border border-[#dbeafe] bg-white py-3 pr-32 pl-11 text-[0.85rem] font-medium text-black shadow-[0_4px_14px_rgba(24,119,242,0.08)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                />
+                <button
+                  type="button"
+                  disabled={!query.trim() || searching}
+                  onClick={handleSearch}
+                  className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.78rem] font-bold text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {searching ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    "Search"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="m-0 mt-2 text-[0.72rem] font-medium text-slate-700">
-            Type at least 2 characters, then search.
-          </p>
-        </div>
+        )
       ) : null}
 
       {errorMessage && !showGuestNotFound ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-auto w-full max-w-2xl rounded-[1.1rem] border border-[#fecaca] bg-gradient-to-b from-[#fef2f2] to-white px-4 py-3 text-sm text-[#dc2626] shadow-[0_6px_18px_rgba(239,68,68,0.08)]">
           {errorMessage}
-        </p>
+        </div>
       ) : null}
 
       {loadingProfile ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-12 text-sm text-slate-700">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading guest…
+        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 rounded-[1.35rem] border border-[#e8edf5] bg-white px-6 py-14 text-center shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+          <Loader2 className="size-10 animate-spin text-[#1877f2]" aria-hidden />
+          <div>
+            <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+              Loading guest
+            </p>
+            <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
+              Fetching profile and active deals…
+            </p>
+          </div>
         </div>
       ) : null}
 
       {selectedProfile ? (
-        <div className="rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/50 p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-800">
-                {selectedProfile.customerName}
-              </h2>
-              <p className="mt-1 text-sm text-slate-700">
-                {selectedProfile.email}
-              </p>
-              {selectedProfile.phone ? (
-                <p className="text-sm text-slate-700">{selectedProfile.phone}</p>
-              ) : null}
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedProfile(null);
-                  setShowPreviousRedemptions(false);
-                  setSelectedDealIds([]);
-                  setRedeemStep(null);
-                  setRedeemSuccess(null);
-                  idempotencyKeyRef.current = "";
-                }}
-                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-zinc-50"
-              >
-                Back to results
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => void handleDeleteGuest()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-                {deleting ? "Deleting…" : "Delete guest"}
-              </button>
+        <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02]">
+          <div className="relative overflow-hidden border-b border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-5 py-5 sm:px-6">
+            <span
+              className="pointer-events-none absolute -top-8 -right-6 size-28 rounded-full bg-[#1877f2]/10 blur-2xl"
+              aria-hidden
+            />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-4">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[1rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)]">
+                  {guestInitials(selectedProfile.customerName)}
+                </span>
+                <div className="min-w-0">
+                  <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+                    <UserCheck className="size-3" aria-hidden />
+                    Guest profile
+                  </p>
+                  <h2 className="m-0 mt-1 text-[1.2rem] font-extrabold tracking-tight text-[#07111f]">
+                    {selectedProfile.customerName}
+                  </h2>
+                  <p className="m-0 mt-1 inline-flex items-center gap-2 text-[0.8rem] font-medium text-slate-600">
+                    <Mail className="size-3.5 text-[#1877f2]/70" aria-hidden />
+                    {selectedProfile.email}
+                  </p>
+                  {selectedProfile.phone ? (
+                    <p className="m-0 mt-1 inline-flex items-center gap-2 text-[0.8rem] font-medium text-slate-600">
+                      <Phone className="size-3.5 text-[#1877f2]/70" aria-hidden />
+                      {selectedProfile.phone}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProfile(null);
+                    setShowPreviousRedemptions(false);
+                    setSelectedDealIds([]);
+                    setRedeemStep(null);
+                    setRedeemSuccess(null);
+                    idempotencyKeyRef.current = "";
+                  }}
+                  className="rounded-full border border-[#e8edf5] bg-white px-3.5 py-1.5 text-[0.78rem] font-bold text-slate-700 transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+                >
+                  Back to results
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => void handleDeleteGuest()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-[0.78rem] font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                  {deleting ? "Deleting…" : "Delete guest"}
+                </button>
+              </div>
             </div>
           </div>
 
+          <div className="p-5 sm:p-6">
           {redeemSuccess ? (
-            <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div className="mb-5 flex items-start gap-3 rounded-[1.1rem] border border-[#bbf7d0] bg-gradient-to-b from-[#f0fdf4] to-white px-4 py-4 shadow-[0_6px_18px_rgba(34,197,94,0.08)]">
               <CheckCircle2
                 className="mt-0.5 size-5 shrink-0 text-emerald-600"
                 aria-hidden
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-emerald-900">
+                <p className="text-sm font-extrabold text-emerald-900">
                   Redeemed successfully
                 </p>
                 <p className="mt-0.5 text-sm text-emerald-800">
@@ -547,14 +715,14 @@ export function ScannerSearchGuestPanel({
               <button
                 type="button"
                 onClick={() => setRedeemSuccess(null)}
-                className="shrink-0 text-xs font-medium text-emerald-700 hover:text-emerald-900"
+                className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
               >
                 Dismiss
               </button>
             </div>
           ) : null}
 
-          <div className="mt-5 border-t border-zinc-100 pt-5">
+          <div className="border-t border-[#f1f5f9] pt-5 first:border-0 first:pt-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Gift className="size-4 text-slate-700" aria-hidden />
@@ -638,13 +806,13 @@ export function ScannerSearchGuestPanel({
           </div>
 
           {selectedProfile.previouslyRedeemedCount > 0 ? (
-            <div className="mt-5">
+            <div className="mt-5 border-t border-[#f1f5f9] pt-5">
               <button
                 type="button"
                 onClick={() =>
                   setShowPreviousRedemptions((current) => !current)
                 }
-                className="rounded-lg border border-zinc-900 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-zinc-50"
+                className="rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.78rem] font-bold text-slate-700 transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]"
               >
                 Show {selectedProfile.previouslyRedeemedCount} previously
                 redeemed reward
@@ -652,14 +820,14 @@ export function ScannerSearchGuestPanel({
               </button>
 
               {showPreviousRedemptions ? (
-                <ul className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-slate-700">
+                <ul className="mt-3 space-y-2 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/60 p-3 text-sm text-slate-700">
                   {selectedProfile.previousRedemptions.map((item, index) => (
                     <li key={`${item.campaignName}-${item.redeemedAt}-${index}`}>
-                      <span className="font-medium text-slate-800">
+                      <span className="font-bold text-[#07111f]">
                         {item.campaignName}
                       </span>
                       {item.redeemedAt ? (
-                        <span className="text-slate-700">
+                        <span className="text-slate-600">
                           {" "}
                          , {formatDateTimeShort(item.redeemedAt)}
                         </span>
@@ -670,6 +838,7 @@ export function ScannerSearchGuestPanel({
               ) : null}
             </div>
           ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -689,17 +858,25 @@ export function ScannerSearchGuestPanel({
       ) : null}
 
       {showTable ? (
-        <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-[#f8fafc]/60 px-4 py-3 sm:px-5">
-            <div>
-              <h3 className="m-0 text-[0.95rem] font-extrabold text-black">
-                Results
+        <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02]">
+          <div className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-4 py-4 sm:px-5">
+            <span
+              className="pointer-events-none absolute -top-8 -right-6 size-24 rounded-full bg-[#1877f2]/10 blur-2xl"
+              aria-hidden
+            />
+            <div className="relative">
+              <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+                <Sparkles className="size-3" aria-hidden />
+                Search results
+              </p>
+              <h3 className="m-0 mt-1 text-[1rem] font-extrabold text-[#07111f]">
+                {meta?.total ?? 0} guest{(meta?.total ?? 0) === 1 ? "" : "s"} found
               </h3>
-              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-700">
-                Tap a guest to view their profile
+              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
+                Tap a guest to view their profile and deals
               </p>
             </div>
-            <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+            <span className="relative rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.72rem] font-bold tabular-nums text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
               {meta?.total ?? 0} found
             </span>
           </div>

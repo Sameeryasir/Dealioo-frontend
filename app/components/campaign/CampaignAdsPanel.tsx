@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import {
   formatMetaCount,
@@ -243,13 +244,13 @@ export function CampaignAdsPanel({
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1877f2]">
               Paid social
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#07111f] sm:text-3xl">
               Meta Ads
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
               Run Facebook and Instagram ads for this campaign. Performance below
               reflects the last 30 days on your linked ad account.
             </p>
@@ -260,7 +261,7 @@ export function CampaignAdsPanel({
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 sm:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5] sm:w-auto"
               >
                 <Plus className="size-4 shrink-0" aria-hidden />
                 Create campaign
@@ -269,7 +270,7 @@ export function CampaignAdsPanel({
                 type="button"
                 onClick={() => void loadStats()}
                 disabled={adStatsLoading}
-                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-60 sm:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-60 sm:w-auto"
               >
                 <RefreshCw
                   className={`size-4 shrink-0 ${adStatsLoading ? "animate-spin" : ""}`}
@@ -290,7 +291,7 @@ export function CampaignAdsPanel({
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
           <div className="space-y-6 px-5 py-6 sm:px-6">
             {connectionPhase === "loading" ? (
               <p className="flex items-center gap-2 text-sm text-zinc-600">
@@ -331,7 +332,7 @@ export function CampaignAdsPanel({
                 </div>
                 <Link
                   href={`/facebook/select-ad-account?businessId=${businessId}`}
-                  className="mt-4 inline-flex shrink-0 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white no-underline shadow-sm hover:bg-zinc-800 sm:mt-0"
+                  className="mt-4 inline-flex shrink-0 rounded-xl bg-[#1877f2] px-5 py-3 text-sm font-bold text-white no-underline shadow-[0_6px_18px_rgba(24,119,242,0.3)] hover:bg-[#166fe5] sm:mt-0"
                 >
                   Select ad account
                 </Link>
@@ -340,21 +341,23 @@ export function CampaignAdsPanel({
 
             {connectionPhase === "ready" ? (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Active ad account
-                    </p>
-                    <p className="mt-0.5 text-sm font-semibold text-zinc-900">
-                      {adStats?.adAccountName?.trim() || "Meta ad account"}
-                    </p>
-                    <p className="font-mono text-xs text-zinc-500">
-                      {metaAdAccountId?.replace(/^act_/, "")}
-                    </p>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e8edf5] bg-gradient-to-r from-[#f4f8ff] to-white px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-white shadow-[0_4px_12px_rgba(24,119,242,0.1)]">
+                      <MetaLogo className="size-6" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+                        Active ad account
+                      </p>
+                      <p className="m-0 mt-0.5 truncate text-sm font-bold text-[#07111f]">
+                        {adStats?.adAccountName?.trim() || "Meta ad account"}
+                      </p>
+                    </div>
                   </div>
                   <Link
                     href={`/facebook/select-ad-account?businessId=${businessId}`}
-                    className="text-sm font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+                    className="text-sm font-semibold text-[#1877f2] underline-offset-2 hover:underline"
                   >
                     Change account
                   </Link>
@@ -487,22 +490,25 @@ export function CampaignAdsPanel({
                 ) : null}
 
                 {!adStatsLoading && adStats && campaigns.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-12 text-center">
-                    <Megaphone
-                      className="mx-auto size-10 text-zinc-300"
-                      aria-hidden
-                    />
-                    <p className="mt-4 text-base font-semibold text-zinc-900">
+                  <div className="rounded-2xl border border-dashed border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white px-6 py-12 text-center">
+                    <span className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-[#dbeafe] bg-white shadow-[0_10px_24px_rgba(24,119,242,0.12)]">
+                      <Megaphone
+                        className="size-8 text-[#1877f2]"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    </span>
+                    <p className="mt-4 text-base font-extrabold text-[#07111f]">
                       No campaigns yet
                     </p>
-                    <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
+                    <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
                       Create your first Meta campaign with the guided builder.
                       Published campaigns appear here with performance metrics.
                     </p>
                     <button
                       type="button"
                       onClick={() => setCreateOpen(true)}
-                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] hover:bg-[#166fe5]"
                     >
                       <Plus className="size-4" aria-hidden />
                       Create campaign

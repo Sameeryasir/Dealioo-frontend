@@ -349,12 +349,12 @@ export function MetaCampaignBuilder({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-50">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#eef2f7]">
       <div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-4">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-zinc-200 bg-white p-2.5 text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900"
+          className="rounded-xl border border-[#e8edf5] bg-white p-2.5 text-slate-500 shadow-sm transition hover:bg-[#f4f8ff] hover:text-[#1877f2]"
           aria-label="Close builder"
         >
           <X className="size-5" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { BUILDER_STEPS } from "@/app/lib/meta-campaign-builder-types";
 
 type BuilderStepNavProps = {
@@ -26,20 +27,25 @@ export function BuilderStepNav({
 
   return (
     <header
-      className="shrink-0 border-b border-zinc-200 bg-white"
+      className="shrink-0 border-b border-[#e8edf5] bg-white"
       aria-label="Campaign builder progress"
     >
       <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <p className="text-sm font-semibold text-zinc-900">Create Meta campaign</p>
-          <p className="text-xs font-medium text-zinc-500">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] shadow-[0_4px_12px_rgba(24,119,242,0.1)]">
+              <MetaLogo className="size-5" />
+            </span>
+            <p className="text-sm font-extrabold text-[#07111f]">Create Meta campaign</p>
+          </div>
+          <p className="shrink-0 text-xs font-bold tabular-nums text-[#1877f2]">
             {Math.round(progressPercent)}% complete
           </p>
         </div>
 
-        <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+        <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-[#e8edf5]">
           <div
-            className="h-full rounded-full bg-zinc-900 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-[#1877f2] transition-all duration-500 ease-out"
             style={{ width: `${Math.max(progressPercent, 6)}%` }}
           />
         </div>
@@ -60,10 +66,10 @@ export function BuilderStepNav({
                   aria-current={isCurrent ? "step" : undefined}
                   className={`flex w-full flex-col items-center gap-2 rounded-xl px-2 py-2.5 transition sm:flex-row sm:items-center sm:px-3 ${
                     isCurrent
-                      ? "bg-zinc-900 text-white shadow-sm"
+                      ? "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.32)]"
                       : isClickable
-                        ? "cursor-pointer bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                        : "cursor-default text-zinc-400"
+                        ? "cursor-pointer bg-[#f4f8ff] text-[#1877f2] hover:bg-[#e8f2ff]"
+                        : "cursor-default text-slate-400"
                   }`}
                 >
                   <span
@@ -73,8 +79,8 @@ export function BuilderStepNav({
                         : isCurrent
                           ? "bg-white/20 text-white"
                           : isReachable
-                            ? "bg-zinc-200 text-zinc-700"
-                            : "bg-zinc-100 text-zinc-400"
+                            ? "bg-[#dbeafe] text-[#1877f2]"
+                            : "bg-[#f1f5f9] text-slate-400"
                     }`}
                   >
                     {isComplete ? (
@@ -83,7 +89,7 @@ export function BuilderStepNav({
                       step.id
                     )}
                   </span>
-                  <span className="hidden text-center text-[11px] font-semibold leading-tight sm:block sm:text-left sm:text-xs">
+                  <span className="hidden text-center text-[11px] font-bold leading-tight sm:block sm:text-left sm:text-xs">
                     {STEP_SHORT[step.id] ?? step.label}
                   </span>
                 </button>
@@ -92,7 +98,7 @@ export function BuilderStepNav({
           })}
         </ol>
 
-        <p className="mt-3 text-center text-xs text-zinc-500 sm:hidden">
+        <p className="mt-3 text-center text-xs font-medium text-slate-500 sm:hidden">
           Step {currentStep}: {BUILDER_STEPS[currentStep - 1]?.label}
         </p>
       </div>

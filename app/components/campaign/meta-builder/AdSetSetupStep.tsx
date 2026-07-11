@@ -394,7 +394,7 @@ export function AdSetSetupStep({
                   type="button"
                   onClick={() => setBudgetType(type)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize ${
-                    budgetType === type ? "bg-zinc-900 text-white" : "border border-zinc-200"
+                    budgetType === type ? "bg-[#1877f2] text-white" : "border border-[#e8edf5]"
                   }`}
                 >
                   {type}

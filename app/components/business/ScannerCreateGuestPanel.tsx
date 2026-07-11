@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Gift, Loader2 } from "lucide-react";
+import { CheckCircle2, Gift, Loader2, Sparkles, UserCheck, UserPlus, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
 import { formatDollars } from "@/app/lib/money";
@@ -44,14 +44,14 @@ function DealCheckboxRow({
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:shadow-sm"
         } ${
           checked
-            ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-300"
-            : "border-zinc-200 bg-white"
+            ? "border-[#1877f2]/35 bg-[#f4f8ff] ring-1 ring-[#1877f2]/20"
+            : "border-[#e8edf5] bg-white hover:border-[#dbeafe]"
         }`}
       >
         <span
           className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border ${
             checked
-              ? "border-zinc-900 bg-zinc-900 text-xs text-white"
+              ? "border-[#1877f2] bg-[#1877f2] text-xs text-white"
               : "border-zinc-300 bg-white"
           }`}
           aria-hidden
@@ -59,9 +59,9 @@ function DealCheckboxRow({
           {checked ? "✓" : ""}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-medium text-slate-800">{deal.campaignName}</span>
+          <span className="block font-bold text-[#07111f]">{deal.campaignName}</span>
           {priceLabel ? (
-            <span className="mt-1 block text-xs font-medium text-emerald-700">
+            <span className="mt-1 block text-xs font-semibold text-emerald-700">
               {priceLabel}
             </span>
           ) : null}
@@ -70,6 +70,24 @@ function DealCheckboxRow({
     </li>
   );
 }
+
+const CREATE_STEPS = [
+  {
+    icon: UserPlus,
+    title: "Create profile",
+    description: "Add name, email, and phone at the counter.",
+  },
+  {
+    icon: Gift,
+    title: "Pick deals",
+    description: "Choose which offers to attach to the guest.",
+  },
+  {
+    icon: Wallet,
+    title: "Complete purchase",
+    description: "Record payment and finish the order.",
+  },
+] as const;
 
 export function ScannerCreateGuestPanel({
   businessId,
@@ -202,28 +220,30 @@ export function ScannerCreateGuestPanel({
 
       <div
         className={`flex min-h-0 w-full flex-1 flex-col ${
-          !createdGuestId && !purchaseSuccess ? "mx-auto max-w-lg" : "max-w-xl"
+          !createdGuestId && !purchaseSuccess ? "mx-auto max-w-2xl" : "mx-auto max-w-2xl"
         }`}
       >
         {purchaseSuccess ? (
-          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-emerald-600" aria-hidden />
-              <div>
-                <p className="font-semibold text-emerald-900">Purchase recorded</p>
-                <p className="mt-1 text-sm text-emerald-800">
-                  {createdGuestName || "Guest"} bought{" "}
-                  {purchaseSuccess.length === 1
-                    ? purchaseSuccess[0].campaignName
-                    : `${purchaseSuccess.length} deals`}
-                  .
-                </p>
-              </div>
+          <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#bbf7d0] bg-gradient-to-b from-[#f0fdf4] to-white px-6 py-8 text-center shadow-[0_10px_28px_rgba(34,197,94,0.08)]">
+            <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#bbf7d0]/80 shadow-sm">
+              <CheckCircle2 className="size-10 text-[#22c55e]" aria-hidden />
+            </div>
+            <div>
+              <p className="m-0 text-[1.05rem] font-extrabold text-[#07111f]">
+                Purchase recorded
+              </p>
+              <p className="m-0 mt-1 text-[0.82rem] text-slate-600">
+                {createdGuestName || "Guest"} bought{" "}
+                {purchaseSuccess.length === 1
+                  ? purchaseSuccess[0].campaignName
+                  : `${purchaseSuccess.length} deals`}
+                .
+              </p>
             </div>
             <button
               type="button"
               onClick={resetForm}
-              className="self-start cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.82rem] font-bold text-white transition hover:bg-[#166fe5]"
+              className="cursor-pointer rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
             >
               Create another guest
             </button>
@@ -231,103 +251,183 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {createdGuestId && !purchaseSuccess ? (
-          <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-            <p className="font-semibold text-slate-800">Guest created</p>
-            <p className="mt-1 text-sm text-slate-700">
-              {createdGuestName || "Guest"}, ID #{createdGuestId}
-            </p>
+          <div className="mb-5 overflow-hidden rounded-[1.35rem] border border-[#bbf7d0] bg-gradient-to-br from-[#f0fdf4] via-white to-[#f8fafc] shadow-[0_10px_28px_rgba(34,197,94,0.08)] ring-1 ring-black/[0.02]">
+            <div className="flex items-center gap-4 px-5 py-4 sm:px-6">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-[#bbf7d0]/80 shadow-sm">
+                <CheckCircle2 className="size-6 text-[#22c55e]" aria-hidden />
+              </span>
+              <div>
+                <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700">
+                  Profile created
+                </p>
+                <p className="m-0 mt-1 text-[1rem] font-extrabold text-[#07111f]">
+                  {createdGuestName || "Guest"}
+                </p>
+                <p className="m-0 mt-0.5 text-[0.78rem] font-medium text-slate-500">
+                  Guest ID #{createdGuestId} · Now attach deals below
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
 
         {!createdGuestId && !purchaseSuccess ? (
-          <form
-            onSubmit={(event) => void handleSubmit(event)}
-            className="space-y-4 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/60 p-5 sm:p-6"
-          >
-            <div>
-              <label
-                htmlFor="guest-name"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Name
-              </label>
-              <input
-                id="guest-name"
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                autoComplete="name"
-                placeholder="Jane Doe"
-                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
+          <div className="flex flex-col gap-5">
+            <div className="relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] p-6 shadow-[0_12px_32px_rgba(24,119,242,0.08)] ring-1 ring-black/[0.02] sm:p-8">
+              <span
+                className="pointer-events-none absolute -top-10 -right-8 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
+                aria-hidden
               />
+              <span
+                className="pointer-events-none absolute -bottom-12 -left-10 size-32 rounded-full bg-[#6366f1]/8 blur-2xl"
+                aria-hidden
+              />
+
+              <div className="relative">
+                <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+                  <Sparkles className="size-3" aria-hidden />
+                  New guest
+                </p>
+                <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#07111f]">
+                  Create a guest profile
+                </h3>
+                <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+                  Add their details at the counter, then attach deals and
+                  complete the purchase in one flow.
+                </p>
+
+                <form
+                  onSubmit={(event) => void handleSubmit(event)}
+                  className="mt-6 space-y-4"
+                >
+                  <div>
+                    <label
+                      htmlFor="guest-name"
+                      className="mb-1.5 block text-[0.78rem] font-bold text-slate-700"
+                    >
+                      Name
+                    </label>
+                    <input
+                      id="guest-name"
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      required
+                      autoComplete="name"
+                      placeholder="Jane Doe"
+                      className="w-full rounded-full border border-[#dbeafe] bg-white px-4 py-3 text-[0.85rem] font-medium text-black shadow-[0_4px_14px_rgba(24,119,242,0.06)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="guest-email"
+                      className="mb-1.5 block text-[0.78rem] font-bold text-slate-700"
+                    >
+                      Email
+                    </label>
+                    <input
+                      id="guest-email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                      autoComplete="email"
+                      placeholder="jane@email.com"
+                      className="w-full rounded-full border border-[#dbeafe] bg-white px-4 py-3 text-[0.85rem] font-medium text-black shadow-[0_4px_14px_rgba(24,119,242,0.06)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="guest-phone"
+                      className="mb-1.5 block text-[0.78rem] font-bold text-slate-700"
+                    >
+                      Phone
+                    </label>
+                    <input
+                      id="guest-phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      required
+                      autoComplete="tel"
+                      placeholder="(555) 123-4567"
+                      className="w-full rounded-full border border-[#dbeafe] bg-white px-4 py-3 text-[0.85rem] font-medium text-black shadow-[0_4px_14px_rgba(24,119,242,0.06)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                    />
+                  </div>
+
+                  {errorMessage ? (
+                    <p className="rounded-[1.1rem] border border-[#fecaca] bg-gradient-to-b from-[#fef2f2] to-white px-4 py-3 text-sm text-[#dc2626]">
+                      {errorMessage}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full cursor-pointer rounded-full bg-[#1877f2] px-4 py-3 text-[0.85rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
+                  >
+                    {submitting ? "Creating…" : "Create guest"}
+                  </button>
+                </form>
+              </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="guest-email"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Email
-              </label>
-              <input
-                id="guest-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                autoComplete="email"
-                placeholder="jane@email.com"
-                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-              />
+            <div className="grid gap-3 sm:grid-cols-3">
+              {CREATE_STEPS.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    key={step.title}
+                    className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.02]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] text-[0.72rem] font-bold text-[#1877f2]">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Icon className="size-3.5 text-[#1877f2]" aria-hidden />
+                          <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+                            {step.title}
+                          </p>
+                        </div>
+                        <p className="m-0 mt-1 text-[0.72rem] leading-relaxed text-slate-500">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <div>
-              <label
-                htmlFor="guest-phone"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Phone
-              </label>
-              <input
-                id="guest-phone"
-                type="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                required
-                autoComplete="tel"
-                placeholder="(555) 123-4567"
-                className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-[0.82rem] font-medium text-black outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-              />
-            </div>
-
-            {errorMessage ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {errorMessage}
-              </p>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full cursor-pointer rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
-            >
-              {submitting ? "Creating…" : "Create guest"}
-            </button>
-          </form>
+          </div>
         ) : null}
 
         {createdGuestId && !purchaseSuccess ? (
-          <div className="border-t border-zinc-100 pt-5">
-            <div className="mb-3 flex items-center gap-2">
-              <Gift className="size-4 text-slate-700" aria-hidden />
-              <h3 className="text-sm font-semibold text-slate-800">Select deals to buy</h3>
+          <div className="overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02]">
+            <div className="border-b border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-2">
+                <Gift className="size-4 text-[#1877f2]" aria-hidden />
+                <div>
+                  <h3 className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+                    Select deals to buy
+                  </h3>
+                  <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
+                    Choose one or more offers to attach to this guest
+                  </p>
+                </div>
+              </div>
             </div>
 
+            <div className="p-5 sm:p-6">
             {loadingDeals ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 py-10 text-sm text-slate-700">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Loading deals…
+              <div className="flex flex-col items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/60 py-12 text-center">
+                <Loader2 className="size-8 animate-spin text-[#1877f2]" aria-hidden />
+                <p className="m-0 text-[0.82rem] font-medium text-slate-600">
+                  Loading available deals…
+                </p>
               </div>
             ) : null}
 
@@ -346,7 +446,7 @@ export function ScannerCreateGuestPanel({
                 </ul>
 
                 {selectedFunnelIds.length > 0 ? (
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-5 flex justify-end border-t border-[#f1f5f9] pt-5">
                     <button
                       type="button"
                       disabled={purchasing}
@@ -361,16 +461,17 @@ export function ScannerCreateGuestPanel({
             ) : null}
 
             {!loadingDeals && deals.length === 0 && !errorMessage ? (
-              <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-slate-700">
+              <p className="rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc]/60 px-4 py-4 text-[0.82rem] font-medium text-slate-600">
                 No deals available for this restaurant.
               </p>
             ) : null}
 
             {errorMessage ? (
-              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p className="mt-3 rounded-[1.1rem] border border-[#fecaca] bg-gradient-to-b from-[#fef2f2] to-white px-4 py-3 text-sm text-[#dc2626]">
                 {errorMessage}
               </p>
             ) : null}
+            </div>
           </div>
         ) : null}
       </div>

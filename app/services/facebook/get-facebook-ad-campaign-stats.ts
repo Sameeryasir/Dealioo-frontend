@@ -18,7 +18,6 @@ export type FacebookAdCampaign = {
 };
 
 export type FacebookAdCampaignStats = {
-  adAccountId: string | null;
   adAccountName: string | null;
   currency: string | null;
   datePreset: string;

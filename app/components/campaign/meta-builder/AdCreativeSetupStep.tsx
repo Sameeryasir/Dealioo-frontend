@@ -400,7 +400,7 @@ export function AdCreativeSetupStep({
           <div className="relative">
             {selectedAdAccount ? (
               <span
-                className="pointer-events-none absolute left-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white"
+                className="pointer-events-none absolute left-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-[#1877f2] text-[11px] font-bold text-white"
                 aria-hidden
               >
                 {adAccountLabel(selectedAdAccount).charAt(0).toUpperCase()}
@@ -563,10 +563,10 @@ export function AdCreativeSetupStep({
               key={value}
               type="button"
               onClick={() => setCreativeFormat(value)}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                 creativeFormat === value
-                  ? "bg-zinc-900 text-white shadow-sm"
-                  : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  ? "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.32)]"
+                  : "border border-[#e8edf5] bg-white text-slate-600 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
               }`}
             >
               {label}

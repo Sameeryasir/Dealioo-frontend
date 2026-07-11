@@ -1,7 +1,7 @@
 "use client";
 
 import { CampaignAdsPanel } from "@/app/components/campaign/CampaignAdsPanel";
-import { CampaignGoogleAdsPanel } from "@/app/components/campaign/CampaignGoogleAdsPanel";
+// import { CampaignGoogleAdsPanel } from "@/app/components/campaign/CampaignGoogleAdsPanel";
 import { FunnelOrdersPanel } from "@/app/components/campaign/FunnelOrdersPanel";
 import { CampaignGuestsPanel } from "@/app/components/campaign/CampaignGuestsPanel";
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
@@ -147,6 +147,7 @@ export default function CampaignWelcomePage() {
                   campaignImageUrl={campaign?.imageUrl}
                   campaignWebsiteUrl={campaign?.websiteUrl}
                 />
+                {/* Google Ads — hidden for now
                 <div className="w-full px-0">
                   <div
                     className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
@@ -154,6 +155,7 @@ export default function CampaignWelcomePage() {
                   />
                 </div>
                 <CampaignGoogleAdsPanel embedded businessId={businessId} />
+                */}
               </div>
             ) : (
               <div className="campaign-immersive-tab-panel flex flex-1 flex-col items-center justify-center py-8">
