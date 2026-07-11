@@ -42,9 +42,9 @@ const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
 const campaignsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
-const campaignsGridClass = "flex flex-wrap justify-center gap-4";
-const campaignCardWrapClass =
-  "w-full max-w-[320px] sm:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.85rem)]";
+const campaignsGridClass =
+  "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+const campaignCardWrapClass = "min-w-0";
 
 function getEmptyFilterMessage(
   statusFilter: StatusFilter,

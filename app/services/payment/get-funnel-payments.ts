@@ -6,6 +6,8 @@ import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 
+export const FUNNEL_ORDERS_PAGE_SIZE = 10;
+
 export type FunnelPayment = {
   id: number;
   funnelId: number;
@@ -28,13 +30,23 @@ export type FunnelPayment = {
   updatedAt: string;
 };
 
-export type FunnelPaymentsResponse = {
-  payments: FunnelPayment[];
+/** Server-paginated orders for one funnel (page/limit applied on the API). */
+export type PaginatedFunnelOrdersResponse = {
+  funnelId: number;
+  data: FunnelPayment[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
-export async function getFunnelPayments(
+export async function getFunnelOrders(
   funnelId: number,
-): Promise<FunnelPayment[]> {
+  page = 1,
+  limit = FUNNEL_ORDERS_PAGE_SIZE,
+): Promise<PaginatedFunnelOrdersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -42,8 +54,13 @@ export async function getFunnelPayments(
     throw new Error("Valid funnel id is required.");
   }
 
+  const q = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/payment/funnel/${encodeURIComponent(String(funnelId))}`,
+    `${getApiBaseUrl()}/payment/funnel/${encodeURIComponent(String(funnelId))}/orders?${q.toString()}`,
     {
       method: "GET",
       headers: {
@@ -54,11 +71,15 @@ export async function getFunnelPayments(
 
   if (!res.ok) {
     throw new Error(
-      await parseApiErrorMessage(res, "Could not load funnel payments."),
+      await parseApiErrorMessage(res, "Could not load funnel orders."),
     );
   }
 
-  const json = (await res.json()) as FunnelPaymentsResponse | FunnelPayment[];
-  if (Array.isArray(json)) return json;
-  return Array.isArray(json.payments) ? json.payments : [];
+  const json = (await res.json()) as PaginatedFunnelOrdersResponse;
+
+  if (!Array.isArray(json.data) || !json.meta) {
+    throw new Error("Invalid funnel orders response from server.");
+  }
+
+  return json;
 }

@@ -5,3 +5,11 @@ export function parseOfferPrice(raw: string): number {
   }
   return n;
 }
+
+/** Campaign create flow: price must be present and a non-negative number. */
+export function isValidOfferPrice(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  const n = Number.parseFloat(trimmed.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) && n >= 0;
+}

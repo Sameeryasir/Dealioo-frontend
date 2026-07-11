@@ -5,6 +5,7 @@ import {
 } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import { isValidOfferPrice, parseOfferPrice } from "@/app/lib/campaign-form";
 
 /** Image uploads can exceed the default 5s API timeout. */
 const CREATE_CAMPAIGN_TIMEOUT_MS = Math.max(API_REQUEST_TIMEOUT_MS, 120_000);
@@ -57,7 +58,11 @@ export async function createCampaign(
   if (!payload.offer.trim()) {
     throw new Error("Offer is required.");
   }
-  if (!Number.isFinite(payload.price)) {
+  if (!isValidOfferPrice(String(payload.price))) {
+    throw new Error("Enter a valid price.");
+  }
+  const price = parseOfferPrice(String(payload.price));
+  if (!Number.isFinite(price) || price < 0) {
     throw new Error("Price is required.");
   }
 
@@ -67,7 +72,7 @@ export async function createCampaign(
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);
   form.append("offer", payload.offer.trim());
-  form.append("price", String(payload.price));
+  form.append("price", String(price));
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/campaign/create`,

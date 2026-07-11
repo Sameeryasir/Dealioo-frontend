@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { setOffer, setOkayimageUrl, setPrice } from "@/app/store/campaignSlice";
+import { isValidOfferPrice } from "@/app/lib/campaign-form";
 import { useAppDispatch } from "@/app/store/hooks";
 
 export type MakeYourOfferSavePayload = {
@@ -147,7 +148,7 @@ export default function MakeYourOffer({
     e.preventDefault();
     if (isSaving) return;
     const nameOk = offerName.trim().length > 0;
-    const priceOk = offerPrice.trim().length > 0;
+    const priceOk = isValidOfferPrice(offerPrice);
     const imageOk = imageFile !== null;
     setNameErr(!nameOk);
     setPriceErr(!priceOk);
@@ -159,6 +160,11 @@ export default function MakeYourOffer({
       imageFile,
     });
   };
+
+  const canSubmit =
+    offerName.trim().length > 0 &&
+    isValidOfferPrice(offerPrice) &&
+    imageFile !== null;
 
   const offerPanel = (
     <div
@@ -185,6 +191,7 @@ export default function MakeYourOffer({
                 name="offerImage"
                 type="file"
                 accept="image/*"
+                required
                 className="hidden"
                 tabIndex={-1}
                 onChange={handleFileChange}
@@ -252,6 +259,9 @@ export default function MakeYourOffer({
                     </span>
                     <span className="mt-1 block text-xs leading-relaxed text-slate-500">
                       Drag a file here or click to choose from your computer.
+                      <span className="mt-0.5 block font-semibold text-[#1877f2]">
+                        Required
+                      </span>
                     </span>
                   </span>
                   <span className="rounded-full bg-[#1877f2] px-4 py-2 text-xs font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
@@ -262,7 +272,7 @@ export default function MakeYourOffer({
 
               {imageErr ? (
                 <p className="mt-3 text-sm text-red-600" role="alert">
-                  Choose a valid image file (PNG, JPG, or WebP).
+                  Upload an offer image to continue.
                 </p>
               ) : null}
             </div>
@@ -272,13 +282,14 @@ export default function MakeYourOffer({
                 htmlFor={nameId}
                 className="block text-sm font-bold text-[#07111f]"
               >
-                Offer name
+                Offer name <span className="text-red-500">*</span>
               </label>
               <input
                 id={nameId}
                 name="offerName"
                 type="text"
                 autoComplete="off"
+                required
                 value={offerName}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -302,7 +313,7 @@ export default function MakeYourOffer({
                 htmlFor={priceId}
                 className="block text-sm font-bold text-[#07111f]"
               >
-                Price
+                Price <span className="text-red-500">*</span>
               </label>
               <input
                 id={priceId}
@@ -310,12 +321,13 @@ export default function MakeYourOffer({
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
+                required
                 value={offerPrice}
                 onChange={(e) => {
                   const v = e.target.value;
                   setOfferPrice(v);
                   dispatch(setPrice(v));
-                  if (priceErr && v.trim()) setPriceErr(false);
+                  if (priceErr && isValidOfferPrice(v)) setPriceErr(false);
                 }}
                 aria-invalid={priceErr}
                 className="mt-2 w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm font-medium text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
@@ -323,7 +335,7 @@ export default function MakeYourOffer({
               />
               {priceErr ? (
                 <p className="mt-2 text-sm text-red-600" role="alert">
-                  Enter a price.
+                  Enter a valid price (0 or higher).
                 </p>
               ) : null}
             </div>
@@ -341,7 +353,7 @@ export default function MakeYourOffer({
               ) : null}
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || !canSubmit}
                 aria-busy={isSaving}
                 className="min-w-56 rounded-full bg-[#1877f2] px-10 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 focus-visible:ring-offset-2 enabled:cursor-pointer enabled:hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-60"
               >

@@ -9,8 +9,9 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { StripeIcon } from "@/app/components/StripeLogo";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -19,6 +20,7 @@ import { paymentStatusBadgeClass } from "@/app/lib/badge-variants";
 import { formatPaidAtParts } from "@/app/lib/datetime";
 import { formatCents } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
+import { FUNNEL_ORDERS_PAGE_SIZE } from "@/app/services/payment/get-funnel-payments";
 
 const ordersCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -121,7 +123,7 @@ function OrdersPanelHeader({ total }: { total: number }) {
           Orders
         </span>
         <span className="text-[0.72rem] font-medium text-slate-500">
-          Funnel payments & checkouts
+          Paid orders for this funnel
         </span>
       </div>
       <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
@@ -140,18 +142,30 @@ export function FunnelOrdersPanel({
   isFunnelIdLoading?: boolean;
   embedded?: boolean;
 }) {
-  const { payments, isLoading: isPaymentsLoading, error } =
-    useFunnelPayments(funnelId);
+  const {
+    data: payments,
+    meta,
+    page,
+    setPage,
+    loading: isPaymentsLoading,
+    error,
+  } = useFunnelPayments(funnelId);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  const showSkeleton = isFunnelIdLoading || isPaymentsLoading;
+  const pageSize = meta?.limit ?? FUNNEL_ORDERS_PAGE_SIZE;
+  const rowOffset = useMemo(
+    () => (page - 1) * pageSize,
+    [page, pageSize],
+  );
+
+  const showSkeleton = isFunnelIdLoading || (isPaymentsLoading && payments.length === 0);
   const showNoFunnelMessage =
     !isFunnelIdLoading && !isPaymentsLoading && funnelId == null;
   const showNoRecords =
-    !showSkeleton && !error && funnelId != null && payments.length === 0;
-  const totalOrders = payments.length;
+    !showSkeleton && !error && funnelId != null && (meta?.total ?? 0) === 0;
+  const totalOrders = meta?.total ?? payments.length;
 
   useEffect(() => {
     if (showSkeleton || !error || alertDismissed) return;
@@ -191,7 +205,7 @@ export function FunnelOrdersPanel({
 
       {!showSkeleton && !error && payments.length > 0 ? (
         <motion.div
-          key="orders-table"
+          key={`orders-page-${page}`}
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: standardEase }}
@@ -280,7 +294,7 @@ export function FunnelOrdersPanel({
                     >
                       <td className={tdClass}>
                         <span className="text-xs font-semibold tabular-nums text-slate-400">
-                          {index + 1}
+                          {rowOffset + index + 1}
                         </span>
                       </td>
                       <td className={`${tdClass} w-16`}>
@@ -340,6 +354,20 @@ export function FunnelOrdersPanel({
                 </motion.tbody>
               </table>
             </div>
+
+            {meta && meta.totalPages > 1 ? (
+              <div className="border-t border-[#e8edf5] bg-[#f8fafc]/40 px-3 py-2 sm:px-4">
+                <OffsetPagination
+                  page={page}
+                  totalPages={meta.totalPages}
+                  total={meta.total}
+                  limit={meta.limit}
+                  loading={isPaymentsLoading}
+                  onPageChange={setPage}
+                  itemLabel="orders"
+                />
+              </div>
+            ) : null}
           </div>
         </motion.div>
       ) : null}

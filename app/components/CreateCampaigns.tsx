@@ -11,6 +11,7 @@ import {
   setWebsiteUrl as setDraftWebsiteUrl,
 } from "@/app/store/campaignSlice";
 import { getPublicAppUrl } from "@/app/lib/public-app-url";
+import { isValidOfferPrice } from "@/app/lib/campaign-form";
 import { useAppDispatch } from "@/app/store/hooks";
 
 function resolveDefaultCampaignWebsiteUrl(
@@ -192,7 +193,7 @@ export default function CreateCampaigns({
           htmlFor={nameFieldId}
           className="block text-sm font-bold text-[#07111f]"
         >
-          Campaign name
+          Campaign name <span className="text-red-500">*</span>
         </label>
         <input
           ref={nameInputRef}
@@ -200,6 +201,7 @@ export default function CreateCampaigns({
           name="campaignName"
           type="text"
           autoComplete="off"
+          required
           placeholder="e.g. Weekend brunch promo"
           value={campaignName}
           onChange={(e) => {
@@ -228,7 +230,11 @@ export default function CreateCampaigns({
           >
             Back
           </button>
-          <button type="submit" className={continueButtonClassName}>
+          <button
+            type="submit"
+            disabled={!campaignName.trim()}
+            className={`${continueButtonClassName} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
             Continue
           </button>
         </div>
@@ -245,6 +251,14 @@ export default function CreateCampaigns({
       onOpenChange={setShowOfferStep}
       onSave={async (payload) => {
         if (!pendingWebsiteUrl || isCompletingOffer) return;
+        if (
+          !campaignName.trim() ||
+          !payload.offerName.trim() ||
+          !isValidOfferPrice(payload.offerPrice) ||
+          !(payload.imageFile instanceof File)
+        ) {
+          return;
+        }
         const completePayload: CreateCampaignCompletePayload = {
           campaignName: campaignName.trim(),
           websiteUrl: pendingWebsiteUrl,
