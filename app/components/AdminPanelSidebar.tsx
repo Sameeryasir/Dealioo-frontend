@@ -1,10 +1,14 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import BusinessSettingsDialog from "@/app/components/BusinessSettingsDialog";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import {
+  businessSettingsHref,
+  defaultBusinessSettingsSection,
+  orgSettingsHref,
+} from "@/app/lib/business-settings-routes";
 import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
@@ -42,8 +46,14 @@ export default function AdminPanelSidebar() {
   const { clearPassword } = useCredentialContext();
   const scannerUser = isScannerUser();
   const { expanded, toggle: toggleExpanded } = useSidebarExpand();
+
+  const businessIdParam = params?.businessId;
+  const businessId =
+    typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
+      ? businessIdParam
+      : null;
+
   const [hydrated, setHydrated] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
@@ -53,15 +63,8 @@ export default function AdminPanelSidebar() {
     await logoutSession();
     clearSetupUser();
     clearPassword();
-    setSettingsOpen(false);
     router.push("/auth/login");
   }, [clearPassword, router]);
-
-  const businessIdParam = params?.businessId;
-  const businessId =
-    typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
-      ? businessIdParam
-      : null;
 
   const restaurantHomeHref = businessId
     ? `/business/${businessId}/dashboard`
@@ -75,6 +78,21 @@ export default function AdminPanelSidebar() {
     businessId != null ? Number(businessId) : null,
     businessId != null ? chatsHref : null,
   );
+
+  const settingsBasePath = businessId
+    ? `/business/${businessId}/dashboard/settings`
+    : "/dashboard/settings";
+
+  const settingsHref = businessId
+    ? businessSettingsHref(
+        businessId,
+        defaultBusinessSettingsSection(businessId),
+      )
+    : orgSettingsHref(defaultBusinessSettingsSection(null));
+
+  const settingsActive =
+    pathname === settingsBasePath ||
+    pathname.startsWith(`${settingsBasePath}/`);
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -261,12 +279,12 @@ export default function AdminPanelSidebar() {
             </p>
           ) : null}
 
-          <button
-            type="button"
-            className="rd-sidebar-item w-full border-0 bg-transparent font-inherit"
-            onClick={() => setSettingsOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={settingsOpen}
+          <Link
+            href={settingsHref}
+            className={`rd-sidebar-item group ${
+              settingsActive ? "rd-sidebar-item--active" : ""
+            }`}
+            aria-current={settingsActive ? "page" : undefined}
             aria-label="Settings"
             title="Settings"
           >
@@ -279,7 +297,7 @@ export default function AdminPanelSidebar() {
                 Settings
               </span>
             ) : null}
-          </button>
+          </Link>
 
           <button
             type="button"
@@ -300,12 +318,6 @@ export default function AdminPanelSidebar() {
           </button>
         </div>
       </aside>
-
-      <BusinessSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onSignOut={handleLogout}
-      />
     </>
   );
 }

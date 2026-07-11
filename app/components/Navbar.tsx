@@ -5,7 +5,6 @@ import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
-import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
@@ -62,8 +61,6 @@ export default function Navbar() {
     router.push("/auth/login");
   }, [clearPassword, router]);
 
-  const roleLabel = user?.role?.name?.trim() || getUserRoleLabel();
-
   return (
     <header
       className={`brand-landing-nav transition-all duration-300 ${
@@ -82,58 +79,51 @@ export default function Navbar() {
           />
         </Link>
 
-        <div ref={menuRootRef} className="relative ml-auto">
+        <div ref={menuRootRef} className="org-nav-account ml-auto">
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-[#b4c5dc] bg-white text-xs font-semibold uppercase tracking-tight text-brand-navy outline-none transition-all hover:border-brand-primary/35 hover:bg-brand-soft focus-visible:ring-2 focus-visible:ring-brand-primary/25 active:scale-[0.98] ${
-              menuOpen ? "ring-2 ring-brand-primary/30" : ""
-            }`}
+            className="org-nav-account-trigger"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-label="Account menu"
           >
-            <UserAccountAvatar user={user} />
+            <span className="org-nav-account-trigger-ring">
+              <span className="org-nav-account-trigger-avatar">
+                <UserAccountAvatar user={user} className="size-full" />
+              </span>
+            </span>
           </button>
 
           {menuOpen ? (
-            <div
-              role="menu"
-              aria-label="Account actions"
-              className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
-            >
-              {user?.name || roleLabel ? (
-                <div className="border-b border-[#e8edf5] px-3 py-2.5">
-                  {user?.name ? (
-                    <p className="truncate text-sm font-semibold text-brand-navy">
-                      {user.name}
-                    </p>
-                  ) : null}
-                  {roleLabel ? (
-                    <p className="mt-0.5 truncate text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-brand-muted">
-                      {roleLabel}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-              <Link
-                href="/dashboard/profile"
-                role="menuitem"
-                onClick={() => setMenuOpen(false)}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-brand-body transition-colors hover:bg-brand-soft hover:text-brand-navy"
-              >
-                <UserRound className="size-4 shrink-0 text-brand-muted" aria-hidden strokeWidth={2} />
-                Profile
-              </Link>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void handleLogout()}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-brand-body transition-colors hover:bg-brand-soft hover:text-brand-navy"
-              >
-                <LogOut className="size-4 shrink-0 text-brand-muted" aria-hidden strokeWidth={2} />
-                Logout
-              </button>
+            <div className="org-nav-account-menu" role="menu" aria-label="Account actions">
+              <div className="org-nav-account-menu-accent" aria-hidden />
+
+              <div className="org-nav-account-menu-body">
+                <Link
+                  href="/dashboard/profile"
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="org-nav-account-menu-item"
+                >
+                  <span className="org-nav-account-menu-item-icon" aria-hidden>
+                    <UserRound className="size-4" strokeWidth={2} />
+                  </span>
+                  Profile
+                </Link>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleLogout()}
+                  className="org-nav-account-menu-item org-nav-account-menu-item--logout"
+                >
+                  <span className="org-nav-account-menu-item-icon" aria-hidden>
+                    <LogOut className="size-4" strokeWidth={2} />
+                  </span>
+                  Logout
+                </button>
+              </div>
             </div>
           ) : null}
         </div>

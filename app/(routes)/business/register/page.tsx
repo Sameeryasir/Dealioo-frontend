@@ -2,11 +2,8 @@
 
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
-} from "@/app/components/RegisterBusinessForm";
-import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
-import { hasAuthSession } from "@/app/lib/auth-session";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+} from "@/app/components/register-business/RegisterBusinessForm";
+import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
@@ -17,72 +14,49 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+async function userCanRegisterBusiness(): Promise<boolean> {
+  try {
+    const status = await getOnboardingStatus();
+    if (status.subscriptionSelected) return true;
+  } catch {
+    // Fall through to subscription check.
+  }
+
+  try {
+    const subscription = await getMyUserSubscription();
+    return (
+      subscription?.status === "active" || subscription?.status === "trialing"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function RegisterBusinessPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [tokenReady, setTokenReady] = useState(false);
-  const [accessToken, setAccessToken] = useState("");
+  const [accessToken] = useState(() => getSetupAccessToken());
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function run() {
+    async function verifyAccess() {
       if (!hasAuthSession()) {
         router.replace("/auth/login");
         return;
       }
 
-      let canRegister = false;
-
-      try {
-        const status = await getOnboardingStatus();
-        if (cancelled) return;
-
-        if (status.subscriptionSelected) {
-          canRegister = true;
-        } else {
-          const subscription = await getMyUserSubscription();
-          if (cancelled) return;
-
-          if (
-            subscription?.status === "active" ||
-            subscription?.status === "trialing"
-          ) {
-            canRegister = true;
-          }
-        }
-      } catch {
-        if (cancelled) return;
-
-        try {
-          const subscription = await getMyUserSubscription();
-          if (cancelled) return;
-
-          if (
-            subscription?.status === "active" ||
-            subscription?.status === "trialing"
-          ) {
-            canRegister = true;
-          }
-        } catch {
-          if (cancelled) return;
-        }
-      }
+      const canRegister = await userCanRegisterBusiness();
+      if (cancelled) return;
 
       if (!canRegister) {
         router.replace("/auth/select-plan");
-        return;
-      }
-
-      if (!cancelled) {
-        setAccessToken(getSetupAccessToken());
-        setTokenReady(true);
       }
     }
 
-    void run();
+    void verifyAccess();
 
     return () => {
       cancelled = true;
@@ -141,25 +115,11 @@ export default function RegisterBusinessPage() {
     [accessToken, queryClient, router],
   );
 
-  if (!tokenReady) {
-    return <AuthPageLoading />;
-  }
-
   return (
-    <div className="brand-onboarding-page min-h-screen px-4 py-8 sm:px-8 lg:px-12 xl:px-16">
-      <header className="mx-auto mb-8 flex max-w-3xl flex-col items-center text-center">
-        <DealiooLogo variant="light" className="mb-6 h-9 w-auto sm:h-10" />
-        <h1 className="brand-heading">Add business</h1>
-        <p className="brand-subtext mt-1">
-          Set up a new business in a few quick steps.
-        </p>
-      </header>
-
-      <RegisterBusinessForm
-        submitting={submitting}
-        errorMessage={errorMessage}
-        onSubmit={onSubmit}
-      />
-    </div>
+    <RegisterBusinessForm
+      submitting={submitting}
+      errorMessage={errorMessage}
+      onSubmit={onSubmit}
+    />
   );
 }

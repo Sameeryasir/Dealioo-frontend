@@ -31,20 +31,20 @@ function firstName(fullName: string | null | undefined): string {
 
 export default function DashboardPage() {
   const [page, setPage] = useState(1);
+  const [isClient, setIsClient] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setUserName(getSetupUser()?.name ?? null);
-      setUserRole(getUserRoleLabel());
-    });
+    setIsClient(true);
+    setUserName(getSetupUser()?.name ?? null);
+    setUserRole(getUserRoleLabel());
   }, []);
 
   const {
     data: businesses,
     meta,
-    isPending,
+    isLoading,
     isFetching,
     error: errorMessage,
     refetch: loadBusinesses,
@@ -58,9 +58,11 @@ export default function DashboardPage() {
     return copy;
   }, [businesses]);
 
-  const showSkeleton = isPending && businesses.length === 0;
+  const isBusinessListLoading =
+    businesses.length === 0 && (isLoading || isFetching) && !errorMessage;
+  const showSkeleton = !isClient || isBusinessListLoading;
   const hasAnyBusinesses = meta.total > 0;
-  const showToolbar = !showSkeleton && !errorMessage;
+  const showToolbar = !errorMessage;
 
   return (
     <section className="org-dashboard-section" aria-label="Your businesses">
@@ -134,6 +136,7 @@ export default function DashboardPage() {
             <div className="org-dashboard-panel-body">
               {showSkeleton ? (
                 <SkeletonGrid
+                  count={3}
                   className="org-dashboard-grid org-dashboard-grid--cards grid"
                   Card={BusinessCardSkeleton}
                 />
@@ -144,7 +147,7 @@ export default function DashboardPage() {
                   message={errorMessage}
                   onRetry={() => loadBusinesses()}
                 />
-              ) : !hasAnyBusinesses ? (
+              ) : isClient && !hasAnyBusinesses ? (
                 <div className="org-dashboard-first-run">
                   <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
                     <p className="org-dashboard-first-run-title">Start with your first business</p>

@@ -5,20 +5,20 @@ import {
   BarChart3,
   Building2,
   CreditCard,
-  Cog,
   ExternalLink,
   Link2,
   Loader2,
   ScanLine,
   User,
   Users,
-  X,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
+import { BusinessGeneralSettingsForm } from "@/app/components/business/BusinessGeneralSettingsForm";
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
@@ -30,40 +30,41 @@ import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
-
-function parseBusinessIdFromParams(raw: unknown): number | undefined {
-  if (typeof raw !== "string" || !/^\d+$/.test(raw)) return undefined;
-  const n = Number.parseInt(raw, 10);
-  return n >= 1 ? n : undefined;
-}
+import {
+  businessSettingsHref,
+  orgSettingsHref,
+  type BusinessSettingsSection,
+} from "@/app/lib/business-settings-routes";
+import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
+import { logoutSession } from "@/app/services/auth/logout";
 
 const DASHBOARD_HREF = "/dashboard" as const;
 
-type SectionId =
-  | "account"
-  | "general"
-  | "members"
-  | "integrations"
-  | "usage"
-  | "scanning"
-  | "subscription";
+type SectionId = BusinessSettingsSection;
 
-type NavItem = { id: SectionId; label: string; icon: typeof User };
+type NavItem = {
+  id: SectionId;
+  label: string;
+  icon: typeof User;
+  tone: keyof typeof DASHBOARD_KPI_ICON;
+};
 
-const accountNav: NavItem[] = [{ id: "account", label: "Account", icon: User }];
+const accountNav: NavItem[] = [
+  { id: "account", label: "Account", icon: User, tone: "blue" },
+];
 
 const organizationNav: NavItem[] = [
-  { id: "general", label: "General", icon: Cog },
-  { id: "members", label: "Members", icon: Users },
-  { id: "integrations", label: "Integrations", icon: Link2 },
-  { id: "usage", label: "Usage", icon: BarChart3 },
-  { id: "scanning", label: "Scanning", icon: ScanLine },
-  { id: "subscription", label: "Subscription", icon: CreditCard },
+  { id: "general", label: "Business profile", icon: Building2, tone: "blue" },
+  { id: "members", label: "Members", icon: Users, tone: "green" },
+  { id: "integrations", label: "Integrations", icon: Link2, tone: "pink" },
+  { id: "usage", label: "Usage", icon: BarChart3, tone: "orange" },
+  { id: "scanning", label: "Scanning", icon: ScanLine, tone: "blue" },
+  { id: "subscription", label: "Subscription", icon: CreditCard, tone: "pink" },
 ];
 
 const sectionTitles: Record<SectionId, string> = {
   account: "Account",
-  general: "General",
+  general: "Business profile",
   members: "Members",
   integrations: "Integrations",
   usage: "Usage",
@@ -71,20 +72,57 @@ const sectionTitles: Record<SectionId, string> = {
   subscription: "Subscription",
 };
 
-const integrationCardClass =
-  "rounded-2xl border border-zinc-800/50 bg-gradient-to-b from-zinc-900/90 to-zinc-950 p-5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/[0.04] transition-colors hover:border-zinc-700/60";
+// --- Integration card themes (sync with dashboard brand tones) ---
+const integrationCardThemes = {
+  stripe: {
+    accent: "bg-gradient-to-r from-[#635BFF] via-[#7c3aed] to-[#635BFF]",
+    surface: "bg-gradient-to-br from-white to-[#f5f3ff]",
+    chip: "bg-[#ede9fe] text-[#5b21b6] ring-1 ring-[#ddd6fe]",
+    secondaryBtn:
+      "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-3.5 text-xs font-semibold text-[#5b21b6] no-underline shadow-sm transition-all hover:border-[#c4b5fd] hover:bg-[#ede9fe]",
+  },
+  facebook: {
+    accent: "bg-gradient-to-r from-[#1877F2] via-[#3b82f6] to-[#1877F2]",
+    surface: "bg-gradient-to-br from-white to-[#f4f8ff]",
+    chip: "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]",
+    secondaryBtn:
+      "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#bfdbfe] bg-[#e8f2ff] px-3.5 text-xs font-semibold text-[#1877f2] no-underline shadow-sm transition-all hover:border-[#93c5fd] hover:bg-[#dbeafe]",
+  },
+  google: {
+    accent: "bg-gradient-to-r from-[#34a853] via-[#4285F4] to-[#f77737]",
+    surface: "bg-gradient-to-br from-white to-[#f0fdf4]",
+    chip: "bg-[#ecfdf5] text-[#166534] ring-1 ring-[#bbf7d0]",
+    secondaryBtn:
+      "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#bbf7d0] bg-[#ecfdf5] px-3.5 text-xs font-semibold text-[#166534] no-underline shadow-sm transition-all hover:border-[#86efac] hover:bg-[#d1fae5]",
+  },
+} as const;
 
-const integrationSecondaryBtnClass =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-zinc-600/70 bg-zinc-800/70 px-3.5 text-xs font-semibold text-zinc-100 no-underline shadow-sm transition-all hover:border-zinc-500 hover:bg-zinc-700/90 hover:shadow-md hover:shadow-black/20";
+function IntegrationCardShell({
+  theme,
+  children,
+}: {
+  theme: keyof typeof integrationCardThemes;
+  children: ReactNode;
+}) {
+  const t = integrationCardThemes[theme];
+  return (
+    <li
+      className={`overflow-hidden rounded-[1.35rem] border border-[#e8edf5] shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${t.surface}`}
+    >
+      <div className={`h-1.5 w-full ${t.accent}`} aria-hidden />
+      <div className="p-5">{children}</div>
+    </li>
+  );
+}
 
 const integrationRemoveBtnClass =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-red-500/35 bg-red-500/10 px-3.5 text-xs font-semibold text-red-200 transition-all hover:border-red-500/55 hover:bg-red-500/20 hover:shadow-sm hover:shadow-red-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-70";
+  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 transition-all hover:border-red-300 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/40 disabled:cursor-not-allowed disabled:opacity-70";
 
 function IntegrationConnectedBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-300 ring-1 ring-emerald-500/25">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-700 ring-1 ring-emerald-200">
       <span
-        className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.75)]"
+        className="size-1.5 rounded-full bg-emerald-500"
         aria-hidden
       />
       Connected
@@ -94,22 +132,99 @@ function IntegrationConnectedBadge() {
 
 function IntegrationLoadingBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800/80 px-2.5 py-0.5 text-[0.65rem] font-medium text-zinc-400 ring-1 ring-zinc-700/50">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[0.65rem] font-medium text-slate-500 ring-1 ring-slate-200">
       <Loader2 className="size-2.5 animate-spin" strokeWidth={2.5} aria-hidden />
       Checking
     </span>
   );
 }
 
-function IntegrationAccountChip({ label, value }: { label: string; value: string }) {
+function IntegrationAccountChip({
+  label,
+  value,
+  chipClassName = "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+}: {
+  label: string;
+  value: string;
+  chipClassName?: string;
+}) {
   return (
     <div className="mt-2.5 flex flex-wrap items-center gap-2">
-      <span className="text-[0.65rem] font-medium uppercase tracking-wide text-zinc-500">
+      <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-500">
         {label}
       </span>
-      <code className="rounded-md bg-zinc-800/90 px-2 py-0.5 font-mono text-[0.7rem] text-zinc-300 ring-1 ring-zinc-700/50">
+      <code
+        className={`rounded-md px-2 py-0.5 font-mono text-[0.7rem] ${chipClassName}`}
+      >
         {value}
       </code>
+    </div>
+  );
+}
+
+function IntegrationsOverview({
+  stripeConnected,
+  metaConnected,
+  googleConnected,
+  loading,
+}: {
+  stripeConnected: boolean;
+  metaConnected: boolean;
+  googleConnected: boolean;
+  loading: boolean;
+}) {
+  const connectedCount = [stripeConnected, metaConnected, googleConnected].filter(
+    Boolean,
+  ).length;
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-gradient-to-r from-[#f8faff] via-white to-[#fdf2f8] p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+            Connected platforms
+          </p>
+          <p className="m-0 mt-1 text-sm text-slate-600">
+            Link payments and ad accounts to run campaigns and track performance.
+          </p>
+        </div>
+        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-3 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/20">
+          {loading ? "Checking…" : `${connectedCount} of 3 connected`}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ring-1 ${
+            stripeConnected
+              ? "bg-[#ede9fe] text-[#5b21b6] ring-[#ddd6fe]"
+              : "bg-white text-slate-500 ring-[#e8edf5]"
+          }`}
+        >
+          <span className="size-1.5 rounded-full bg-[#635BFF]" aria-hidden />
+          Stripe
+        </span>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ring-1 ${
+            metaConnected
+              ? "bg-[#e8f2ff] text-[#1877f2] ring-[#bfdbfe]"
+              : "bg-white text-slate-500 ring-[#e8edf5]"
+          }`}
+        >
+          <span className="size-1.5 rounded-full bg-[#1877f2]" aria-hidden />
+          Facebook
+        </span>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ring-1 ${
+            googleConnected
+              ? "bg-[#ecfdf5] text-[#166534] ring-[#bbf7d0]"
+              : "bg-white text-slate-500 ring-[#e8edf5]"
+          }`}
+        >
+          <span className="size-1.5 rounded-full bg-[#34a853]" aria-hidden />
+          Google Ads
+        </span>
+      </div>
     </div>
   );
 }
@@ -159,34 +274,16 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-type BusinessSettingsDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSignOut: () => void;
-  initialSection?: SectionId;
+type BusinessSettingsPanelProps = {
+  section: SectionId;
+  businessId?: number;
 };
 
-export default function BusinessSettingsDialog({
-  open,
-  onOpenChange,
-  onSignOut,
-  initialSection = "account",
-}: BusinessSettingsDialogProps) {
+export function BusinessSettingsPanel({
+  section,
+  businessId,
+}: BusinessSettingsPanelProps) {
   const router = useRouter();
-  const params = useParams();
-  const titleId = useId();
-  const [section, setSection] = useState<SectionId>(initialSection);
-
-  useEffect(() => {
-    if (open) {
-      setSection(initialSection);
-    }
-  }, [open, initialSection]);
-
-  const businessId = useMemo(
-    () => parseBusinessIdFromParams(params?.businessId),
-    [params?.businessId],
-  );
 
   type ConnectStatus = "idle" | "loading" | "error";
   const [stripeConnected, setStripeConnected] = useState(false);
@@ -293,11 +390,27 @@ export default function BusinessSettingsDialog({
   }, [businessId]);
 
   useEffect(() => {
-    if (!open || businessId == null) return;
+    if (businessId == null) return;
     void refreshStripeStatus();
     void refreshMetaStatus();
     void refreshGoogleStatus();
-  }, [open, businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
+  }, [businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
+
+  const handleSignOut = useCallback(async () => {
+    await logoutSession();
+    clearSetupUser();
+    router.push("/auth/login");
+  }, [router]);
+
+  const settingsHref = useCallback(
+    (targetSection: SectionId) => {
+      if (businessId != null) {
+        return businessSettingsHref(businessId, targetSection);
+      }
+      return orgSettingsHref(targetSection);
+    },
+    [businessId],
+  );
 
   const handleConnectStripe = async () => {
     setStripeStatus("loading");
@@ -434,103 +547,114 @@ export default function BusinessSettingsDialog({
     }
   };
 
-  if (!open) return null;
-
-  const navButton = (item: NavItem) => {
+  const navLink = (item: NavItem) => {
     const Icon = item.icon;
     const selected = section === item.id;
+    const hoverBorder =
+      item.tone === "pink"
+        ? "hover:border-[#e1306c]/35"
+        : item.tone === "green"
+          ? "hover:border-[#34a853]/35"
+          : item.tone === "orange"
+            ? "hover:border-[#f77737]/35"
+            : "hover:border-[#1877f2]/35";
+
     return (
-      <button
+      <Link
         key={item.id}
-        type="button"
-        onClick={() => setSection(item.id)}
-        className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+        href={settingsHref(item.id)}
+        className={`flex items-center gap-2.5 rounded-[0.95rem] border px-2.5 py-2.5 text-left text-sm font-semibold no-underline transition duration-200 ${
           selected
-            ? "bg-sky-500/20 text-sky-100 ring-1 ring-sky-500/40"
-            : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+            ? "border-[#1877f2]/30 bg-[#1877f2]/[0.07] text-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.12)]"
+            : `border-[#e8edf5] bg-white text-slate-700 shadow-[0_4px_12px_rgba(15,23,42,0.03)] ${hoverBorder}`
         }`}
+        aria-current={selected ? "page" : undefined}
       >
-        <Icon className="size-4 shrink-0 opacity-80" aria-hidden strokeWidth={2} />
-        {item.label}
-      </button>
+        <span
+          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
+            selected ? DASHBOARD_KPI_ICON[item.tone] : DASHBOARD_KPI_ICON[item.tone]
+          }`}
+        >
+          <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      </Link>
     );
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-6"
-      role="presentation"
-    >
-      <button
-        type="button"
-        className="absolute inset-0 cursor-pointer bg-black/70 backdrop-blur-sm"
-        aria-label="Close settings"
-        onClick={() => onOpenChange(false)}
-      />
+    <section className="rd-premium rd-premium--fill" aria-label="Settings">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(14.5rem,16.5rem)_minmax(0,1fr)] lg:items-stretch">
+          <aside className="relative flex flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-b from-white via-white to-[#f4f8ff] px-3.5 py-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+            <span
+              className="pointer-events-none absolute -top-8 left-1/2 size-28 -translate-x-1/2 rounded-full bg-[#1877f2]/10 blur-3xl"
+              aria-hidden
+            />
+            <p className="relative m-0 text-center text-[0.65rem] font-bold uppercase tracking-[0.14em] text-slate-500">
+              Menu
+            </p>
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="relative z-10 flex h-[min(32rem,92dvh)] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-zinc-700/90 bg-zinc-900 shadow-2xl shadow-black/60 sm:max-h-[85vh] sm:rounded-2xl"
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onOpenChange(false);
-        }}
-      >
-        <header className="flex shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/95 px-4 py-3 sm:px-5">
-          <h2 id={titleId} className="text-base font-semibold tracking-tight text-white">
-            Settings
-          </h2>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            aria-label="Close"
-          >
-            <X className="size-5" strokeWidth={2} aria-hidden />
-          </button>
-        </header>
-
-        <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-          <aside className="flex w-full shrink-0 flex-col gap-4 border-b border-zinc-800 bg-zinc-950/80 p-3 sm:w-52 sm:border-b-0 sm:border-r sm:border-zinc-800 sm:py-4">
-            <div>
-              <p className="mb-1.5 px-3 text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                Account
-              </p>
-              <div className="space-y-0.5">{accountNav.map(navButton)}</div>
-            </div>
-            <div>
-              <p className="mb-1.5 px-3 text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                Organization
-              </p>
-              <div className="space-y-0.5">{organizationNav.map(navButton)}</div>
+            <div className="relative mt-3 flex flex-col gap-3">
+              {businessId != null ? (
+                <div>
+                  <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Organization
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {organizationNav.map(navLink)}
+                  </div>
+                </div>
+              ) : null}
+              <div>
+                <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                  Account
+                </p>
+                <div className="flex flex-col gap-2">{accountNav.map(navLink)}</div>
+              </div>
+              {businessId == null ? (
+                <div>
+                  <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Organization
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {organizationNav.map(navLink)}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </aside>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-zinc-950 p-5 sm:p-8">
-            <h3 className="text-lg font-semibold text-white">{sectionTitles[section]}</h3>
+          <article className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+            <header className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8faff] to-white px-5 py-4 sm:px-7 sm:py-5">
+              <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+                {businessId != null ? "Organization" : "Account"}
+              </p>
+              <h2 className="m-0 mt-1 text-[clamp(1.2rem,2vw,1.5rem)] font-extrabold tracking-tight text-slate-900">
+                {sectionTitles[section]}
+              </h2>
+            </header>
 
-            {section === "account" ? (
-              <div className="mt-6 flex max-w-md flex-col gap-8">
-                <OwnerProfileForm variant="dark" layout="compact" />
-                <div className="flex flex-col gap-3 border-t border-zinc-800 pt-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+
+            {section === "general" && businessId != null ? (
+              <BusinessGeneralSettingsForm businessId={businessId} />
+            ) : section === "account" ? (
+              <div className="flex max-w-md flex-col gap-8">
+                <OwnerProfileForm variant="light" layout="compact" />
+                <div className="flex flex-col gap-3 border-t border-[#e8edf5] pt-6">
                 <button
                   type="button"
                   onClick={() => {
-                    onOpenChange(false);
                     router.push(DASHBOARD_HREF);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-sky-500/70 bg-transparent px-4 py-3 text-sm font-medium text-sky-400 transition-colors hover:border-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#1877f2]/25 bg-[#f8faff] px-4 py-3 text-sm font-medium text-[#1877f2] transition-colors hover:border-[#1877f2]/40 hover:bg-[#1877f2]/10"
                 >
                   <Building2 className="size-4 shrink-0" aria-hidden strokeWidth={2} />
                   Switch Organization
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    onSignOut();
-                    onOpenChange(false);
-                  }}
+                  onClick={() => void handleSignOut()}
                   className="w-full cursor-pointer rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-500 active:bg-red-700"
                 >
                   Sign Out
@@ -538,13 +662,21 @@ export default function BusinessSettingsDialog({
                 </div>
               </div>
             ) : section === "subscription" ? (
-              <div className="mt-6 max-w-2xl">
-                <OwnerSubscriptionSection variant="dark" layout="compact" />
+              <div className="max-w-2xl">
+                <OwnerSubscriptionSection variant="light" layout="compact" />
               </div>
             ) : section === "integrations" ? (
-              <div className="mt-6 max-w-2xl">
+              <div className="max-w-3xl">
+                <IntegrationsOverview
+                  stripeConnected={stripeConnected}
+                  metaConnected={metaConnected}
+                  googleConnected={googleConnected}
+                  loading={
+                    stripeStatusLoading || metaStatusLoading || googleStatusLoading
+                  }
+                />
                 <ul className="space-y-4">
-                  <li className={integrationCardClass}>
+                  <IntegrationCardShell theme="stripe">
                     <div className="flex flex-wrap items-center gap-5">
                       <span
                         aria-hidden
@@ -555,7 +687,7 @@ export default function BusinessSettingsDialog({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold tracking-tight text-white">
+                          <p className="text-sm font-semibold tracking-tight text-slate-900">
                             Stripe
                           </p>
                           {stripeStatusLoading ? (
@@ -564,7 +696,7 @@ export default function BusinessSettingsDialog({
                             <IntegrationConnectedBadge />
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
                           Accept payments and manage subscriptions for your funnels.
                         </p>
                       </div>
@@ -606,7 +738,7 @@ export default function BusinessSettingsDialog({
                     {stripeStatus === "error" && stripeError ? (
                       <div
                         role="alert"
-                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
                       >
                         <AlertCircle
                           className="mt-px size-3.5 shrink-0"
@@ -616,9 +748,9 @@ export default function BusinessSettingsDialog({
                         <span>{stripeError}</span>
                       </div>
                     ) : null}
-                  </li>
+                  </IntegrationCardShell>
 
-                  <li className={integrationCardClass}>
+                  <IntegrationCardShell theme="facebook">
                     <div className="flex flex-wrap items-center gap-5">
                       <span
                         aria-hidden
@@ -629,7 +761,7 @@ export default function BusinessSettingsDialog({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold tracking-tight text-white">
+                          <p className="text-sm font-semibold tracking-tight text-slate-900">
                             Facebook
                           </p>
                           {metaStatusLoading ? (
@@ -638,7 +770,7 @@ export default function BusinessSettingsDialog({
                             <IntegrationConnectedBadge />
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
                           Pull ad spend, impressions, reach, clicks, and campaign
                           stats from Meta.
                         </p>
@@ -646,6 +778,7 @@ export default function BusinessSettingsDialog({
                           <IntegrationAccountChip
                             label="Ad account"
                             value={metaAdAccountId.replace(/^act_/, "")}
+                            chipClassName={integrationCardThemes.facebook.chip}
                           />
                         ) : null}
                       </div>
@@ -655,14 +788,14 @@ export default function BusinessSettingsDialog({
                           {metaAdAccountId && businessId != null ? (
                             <a
                               href={`/facebook/select-ad-account?businessId=${businessId}`}
-                              className={integrationSecondaryBtnClass}
+                              className={integrationCardThemes.facebook.secondaryBtn}
                             >
                               Change ad account
                             </a>
                           ) : businessId != null ? (
                             <a
                               href={`/facebook/select-ad-account?businessId=${businessId}`}
-                              className={integrationSecondaryBtnClass}
+                              className={integrationCardThemes.facebook.secondaryBtn}
                             >
                               Choose ad account
                             </a>
@@ -735,7 +868,7 @@ export default function BusinessSettingsDialog({
                     metaError ? (
                       <div
                         role="alert"
-                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
                       >
                         <AlertCircle
                           className="mt-px size-3.5 shrink-0"
@@ -745,9 +878,9 @@ export default function BusinessSettingsDialog({
                         <span>{metaError}</span>
                       </div>
                     ) : null}
-                  </li>
+                  </IntegrationCardShell>
 
-                  <li className={integrationCardClass}>
+                  <IntegrationCardShell theme="google">
                     <div className="flex flex-wrap items-center gap-5">
                       <button
                         type="button"
@@ -770,14 +903,14 @@ export default function BusinessSettingsDialog({
                             ? "View Google Ads campaigns"
                             : "Connect Google Ads first"
                         }
-                        className="flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-white shadow-lg shadow-black/20 ring-1 ring-white/30 transition-all hover:shadow-xl hover:shadow-[#4285F4]/20 hover:ring-[#4285F4]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285F4]/60 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-white shadow-lg shadow-[#34a853]/20 ring-1 ring-[#bbf7d0] transition-all hover:shadow-xl hover:shadow-[#4285F4]/25 hover:ring-[#4285F4]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285F4]/60 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <GoogleLogo className="size-8" />
                       </button>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold tracking-tight text-white">
+                          <p className="text-sm font-semibold tracking-tight text-slate-900">
                             Google Ads
                           </p>
                           {googleStatusLoading ? (
@@ -786,7 +919,7 @@ export default function BusinessSettingsDialog({
                             <IntegrationConnectedBadge />
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
                           Pull spend, impressions, clicks, and campaign stats
                           from Google Ads.
                         </p>
@@ -794,6 +927,7 @@ export default function BusinessSettingsDialog({
                           <IntegrationAccountChip
                             label="Customer ID"
                             value={googleCustomerId}
+                            chipClassName={integrationCardThemes.google.chip}
                           />
                         ) : null}
                       </div>
@@ -803,7 +937,7 @@ export default function BusinessSettingsDialog({
                           {businessId != null ? (
                             <a
                               href={`/google/select-customer?businessId=${businessId}`}
-                              className={integrationSecondaryBtnClass}
+                              className={integrationCardThemes.google.secondaryBtn}
                             >
                               {googleCustomerId ? "Change Ads account" : "Choose Ads account"}
                             </a>
@@ -839,7 +973,7 @@ export default function BusinessSettingsDialog({
                             disabled={
                               googleConnectStatus === "loading" || googleStatusLoading
                             }
-                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-white px-4 text-xs font-semibold text-zinc-900 shadow-md shadow-black/15 transition-all hover:bg-zinc-100 hover:shadow-lg hover:shadow-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-[#34a853] to-[#4285F4] px-4 text-xs font-semibold text-white shadow-md shadow-[#34a853]/25 transition-all hover:from-[#2d9749] hover:to-[#3b78e0] hover:shadow-lg hover:shadow-[#4285F4]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285F4]/50 disabled:cursor-not-allowed disabled:opacity-70"
                           >
                             {googleConnectStatus === "loading" ? (
                               <>
@@ -869,7 +1003,7 @@ export default function BusinessSettingsDialog({
                     googleError ? (
                       <div
                         role="alert"
-                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                        className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
                       >
                         <AlertCircle
                           className="mt-px size-3.5 shrink-0"
@@ -879,17 +1013,17 @@ export default function BusinessSettingsDialog({
                         <span>{googleError}</span>
                       </div>
                     ) : null}
-                  </li>
+                  </IntegrationCardShell>
                 </ul>
               </div>
             ) : (
-              <p className="mt-6 max-w-md text-sm leading-relaxed text-zinc-500">
+              <p className="max-w-md text-sm leading-relaxed text-slate-500">
                 {sectionTitles[section]} settings will be available here.
               </p>
             )}
-          </div>
+            </div>
+          </article>
         </div>
-      </div>
 
       {businessId != null ? (
         <GoogleAdsCampaignsDialog
@@ -899,6 +1033,6 @@ export default function BusinessSettingsDialog({
           customerId={googleCustomerId}
         />
       ) : null}
-    </div>
+    </section>
   );
 }

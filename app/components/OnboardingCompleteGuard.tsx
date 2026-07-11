@@ -1,15 +1,12 @@
 "use client";
 
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
+import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-
-type GuardState = "loading" | "allowed" | "redirecting";
+import { useEffect, type ReactNode } from "react";
 
 export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [state, setState] = useState<GuardState>("loading");
 
   useEffect(() => {
     let cancelled = false;
@@ -20,16 +17,10 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         if (cancelled) return;
 
         if (!status.onboardingCompleted) {
-          setState("redirecting");
           router.replace(resolvePostAuthPath(status));
-          return;
         }
-
-        setState("allowed");
       } catch {
-        if (!cancelled) {
-          setState("allowed");
-        }
+        // Allow the page to render; onboarding can be retried from the next screen.
       }
     }
 
@@ -39,14 +30,6 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [router]);
-
-  if (state === "loading" || state === "redirecting") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft">
-        <p className="text-sm text-brand-muted">Loading…</p>
-      </div>
-    );
-  }
 
   return <>{children}</>;
 }

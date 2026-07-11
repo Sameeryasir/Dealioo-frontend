@@ -4,40 +4,30 @@ import { hasAuthSession } from "@/app/lib/auth-session";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+function readAuthSession(): boolean | null {
+  if (typeof window === "undefined") return null;
+  return hasAuthSession();
+}
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(
+    readAuthSession,
+  );
 
   useEffect(() => {
-    queueMicrotask(() => {
-      if (hasAuthSession()) {
-        setStatus("authenticated");
-        return;
-      }
+    const authed = hasAuthSession();
+    setIsAuthenticated(authed);
 
-      setStatus("unauthenticated");
+    if (!authed) {
       const returnTo = encodeURIComponent(pathname);
       router.replace(`/?returnTo=${returnTo}`);
-    });
+    }
   }, [pathname, router]);
 
-  if (status === "unauthenticated") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft">
-        <p className="text-sm text-brand-muted">Redirecting…</p>
-      </div>
-    );
-  }
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-soft">
-        <p className="text-sm text-brand-muted">Loading…</p>
-      </div>
-    );
+  if (isAuthenticated === false) {
+    return null;
   }
 
   return <>{children}</>;

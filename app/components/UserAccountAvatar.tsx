@@ -29,5 +29,12 @@ export default function UserAccountAvatar({
     );
   }
 
-  return <span className={className}>{initials}</span>;
+  return (
+    <span
+      className={`inline-flex size-full items-center justify-center rounded-full bg-white text-[0.7rem] font-extrabold leading-none tracking-tight text-[#0f5ed7] ${className}`.trim()}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
 }
