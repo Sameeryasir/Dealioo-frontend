@@ -70,9 +70,6 @@ export default function BusinessDashboardPage() {
   if (isScannerUser()) return null;
 
   const name = formatTitleCase(restaurant?.name?.trim() || "Your business");
-  const cuisine = formatTitleCase(
-    restaurant?.cuisineType?.trim() || "Business",
-  );
   const location = formatLocation(
     restaurant?.city,
     restaurant?.state,
@@ -122,9 +119,6 @@ export default function BusinessDashboardPage() {
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[0.68rem] font-semibold text-slate-100 ring-1 ring-white/10">
                     <Building2 className="size-3 shrink-0 opacity-80" strokeWidth={2.25} />
                     {branchCount} {branchCount === 1 ? "branch" : "branches"}
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-[#1877f2]/30 px-2.5 py-1 text-[0.68rem] font-bold text-sky-100 ring-1 ring-[#1877f2]/35">
-                    {cuisine}
                   </span>
                 </div>
               </div>

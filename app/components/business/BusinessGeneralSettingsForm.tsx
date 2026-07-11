@@ -27,7 +27,6 @@ import {
   Mail,
   MapPin,
   Phone,
-  Store,
   X,
 } from "lucide-react";
 import {
@@ -57,7 +56,6 @@ const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
 type FormSnapshot = {
   name: string;
   description: string;
-  cuisineType: string;
   phoneNumber: string;
   email: string;
   websiteUrl: string;
@@ -128,7 +126,6 @@ function snapshotFromBusiness(
   return {
     name: business.name?.trim() ?? "",
     description: business.description?.trim() ?? "",
-    cuisineType: business.cuisineType?.trim() ?? "",
     phoneNumber: business.phoneNumber?.trim() ?? "",
     email: business.email?.trim() ?? "",
     websiteUrl: business.websiteUrl?.trim() ?? "",
@@ -354,7 +351,6 @@ export function BusinessGeneralSettingsForm({
   const [form, setForm] = useState<FormSnapshot>({
     name: "",
     description: "",
-    cuisineType: "",
     phoneNumber: "",
     email: "",
     websiteUrl: "",
@@ -383,7 +379,6 @@ export function BusinessGeneralSettingsForm({
 
   const logoSrc = resolveUploadImageUrl(business?.logoUrl ?? null);
   const locationLabel = formatLocation(form.city, form.state, form.country);
-  const cuisineLabel = formatTitleCase(form.cuisineType.trim() || "Category");
   const displayName = formatTitleCase(form.name.trim() || "Your business");
 
   const hasChanges = useMemo(() => {
@@ -392,7 +387,6 @@ export function BusinessGeneralSettingsForm({
     return (
       form.name !== baseline.name ||
       form.description !== baseline.description ||
-      form.cuisineType !== baseline.cuisineType ||
       form.phoneNumber !== baseline.phoneNumber ||
       form.email !== baseline.email ||
       form.websiteUrl !== baseline.websiteUrl ||
@@ -434,7 +428,6 @@ export function BusinessGeneralSettingsForm({
       await updateBusiness(businessId, {
         name: form.name.trim(),
         description: form.description.trim(),
-        cuisineType: form.cuisineType.trim(),
         phoneNumber: form.phoneNumber.trim(),
         email: form.email.trim() || undefined,
         websiteUrl: form.websiteUrl.trim() || undefined,
@@ -527,9 +520,6 @@ export function BusinessGeneralSettingsForm({
                   {form.branchCount}{" "}
                   {Number(form.branchCount) === 1 ? "branch" : "branches"}
                 </span>
-                <span className="inline-flex items-center rounded-full bg-[#fdf2f8] px-2.5 py-1 text-[0.72rem] font-semibold text-[#be185d] ring-1 ring-[#fbcfe8]">
-                  {cuisineLabel}
-                </span>
                 {hasChanges ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff7ed] px-2.5 py-1 text-[0.72rem] font-bold text-[#c2410c] ring-1 ring-[#fed7aa]">
                     <span className="size-1.5 rounded-full bg-[#f77737]" />
@@ -548,37 +538,20 @@ export function BusinessGeneralSettingsForm({
         description="Core information customers see on your dashboard and campaigns."
         icon={Building2}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ColoredFormField
-            label="Business name"
-            htmlFor="business-settings-name"
-            icon={Building2}
-            tone="blue"
-          >
-            <input
-              id="business-settings-name"
-              className={inputClass}
-              value={form.name}
-              onChange={(e) => patchForm({ name: e.target.value })}
-              autoComplete="organization"
-            />
-          </ColoredFormField>
-
-          <ColoredFormField
-            label="Cuisine / category"
-            htmlFor="business-settings-cuisine"
-            icon={Store}
-            tone="pink"
-          >
-            <input
-              id="business-settings-cuisine"
-              className={inputClass}
-              value={form.cuisineType}
-              onChange={(e) => patchForm({ cuisineType: e.target.value })}
-              placeholder="Indian, Pizza, Retail…"
-            />
-          </ColoredFormField>
-        </div>
+        <ColoredFormField
+          label="Business name"
+          htmlFor="business-settings-name"
+          icon={Building2}
+          tone="blue"
+        >
+          <input
+            id="business-settings-name"
+            className={inputClass}
+            value={form.name}
+            onChange={(e) => patchForm({ name: e.target.value })}
+            autoComplete="organization"
+          />
+        </ColoredFormField>
 
         <ColoredFormField
           label="Description"

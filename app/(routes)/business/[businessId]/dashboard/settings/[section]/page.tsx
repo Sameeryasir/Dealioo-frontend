@@ -26,8 +26,17 @@ export default function BusinessSettingsSectionPage() {
     ? sectionParam
     : defaultBusinessSettingsSection(businessId);
 
+  const displaySection: BusinessSettingsSection =
+    businessId != null && section === "account" ? "general" : section;
+
   useEffect(() => {
     if (businessId == null) return;
+
+    if (sectionParam === "account") {
+      router.replace(`/business/${businessId}/dashboard/settings/general`);
+      return;
+    }
+
     if (
       typeof sectionParam === "string" &&
       isBusinessSettingsSection(sectionParam)
@@ -39,5 +48,7 @@ export default function BusinessSettingsSectionPage() {
 
   if (businessId == null) return null;
 
-  return <BusinessSettingsPanel section={section} businessId={businessId} />;
+  return (
+    <BusinessSettingsPanel section={displaySection} businessId={businessId} />
+  );
 }

@@ -4,7 +4,6 @@ import {
   AlertCircle,
   BarChart3,
   Building2,
-  CreditCard,
   ExternalLink,
   Link2,
   Loader2,
@@ -29,7 +28,6 @@ import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsC
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
-import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
   businessSettingsHref,
   orgSettingsHref,
@@ -59,7 +57,6 @@ const organizationNav: NavItem[] = [
   { id: "integrations", label: "Integrations", icon: Link2, tone: "pink" },
   { id: "usage", label: "Usage", icon: BarChart3, tone: "orange" },
   { id: "scanning", label: "Scanning", icon: ScanLine, tone: "blue" },
-  { id: "subscription", label: "Subscription", icon: CreditCard, tone: "pink" },
 ];
 
 const sectionTitles: Record<SectionId, string> = {
@@ -69,7 +66,6 @@ const sectionTitles: Record<SectionId, string> = {
   integrations: "Integrations",
   usage: "Usage",
   scanning: "Scanning",
-  subscription: "Subscription",
 };
 
 // --- Integration card themes (sync with dashboard brand tones) ---
@@ -605,12 +601,14 @@ export function BusinessSettingsPanel({
                   </div>
                 </div>
               ) : null}
-              <div>
-                <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
-                  Account
-                </p>
-                <div className="flex flex-col gap-2">{accountNav.map(navLink)}</div>
-              </div>
+              {businessId == null ? (
+                <div>
+                  <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Account
+                  </p>
+                  <div className="flex flex-col gap-2">{accountNav.map(navLink)}</div>
+                </div>
+              ) : null}
               {businessId == null ? (
                 <div>
                   <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
@@ -638,7 +636,7 @@ export function BusinessSettingsPanel({
 
             {section === "general" && businessId != null ? (
               <BusinessGeneralSettingsForm businessId={businessId} />
-            ) : section === "account" ? (
+            ) : section === "account" && businessId == null ? (
               <div className="flex max-w-md flex-col gap-8">
                 <OwnerProfileForm variant="light" layout="compact" />
                 <div className="flex flex-col gap-3 border-t border-[#e8edf5] pt-6">
@@ -660,10 +658,6 @@ export function BusinessSettingsPanel({
                   Sign Out
                 </button>
                 </div>
-              </div>
-            ) : section === "subscription" ? (
-              <div className="max-w-2xl">
-                <OwnerSubscriptionSection variant="light" layout="compact" />
               </div>
             ) : section === "integrations" ? (
               <div className="max-w-3xl">

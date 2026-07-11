@@ -15,7 +15,6 @@ import {
 export type UpdateBusinessPayload = {
   name?: string;
   description?: string;
-  cuisineType?: string;
   phoneNumber?: string;
   email?: string;
   websiteUrl?: string;
@@ -63,9 +62,6 @@ export async function updateBusiness(
       if (payload.name !== undefined) formData.append("name", payload.name.trim());
       if (payload.description !== undefined) {
         formData.append("description", payload.description.trim());
-      }
-      if (payload.cuisineType !== undefined) {
-        formData.append("cuisineType", payload.cuisineType.trim());
       }
       if (payload.phoneNumber !== undefined) {
         formData.append("phoneNumber", payload.phoneNumber.trim());
@@ -135,9 +131,6 @@ export async function updateBusiness(
     if (payload.name !== undefined) body.name = payload.name.trim();
     if (payload.description !== undefined) {
       body.description = payload.description.trim();
-    }
-    if (payload.cuisineType !== undefined) {
-      body.cuisineType = payload.cuisineType.trim();
     }
     if (payload.phoneNumber !== undefined) {
       body.phoneNumber = payload.phoneNumber.trim();

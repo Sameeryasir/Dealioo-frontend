@@ -614,12 +614,14 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                       {tier.subline ?? "\u00A0"}
                     </p>
                     <p className="mt-1.5 text-[11px] leading-snug text-brand-body sm:text-xs">{plan.description}</p>
-                    <PricingPlanFeatures plan={plan} />
+                    <div className="flex-1">
+                      <PricingPlanFeatures plan={plan} />
+                    </div>
                     <motion.a
                       href={signupHref}
                       whileHover={reduced ? undefined : { scale: 1.02, y: -1 }}
                       whileTap={reduced ? undefined : { scale: 0.98 }}
-                      className={`mt-3 flex h-9 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:text-sm ${
+                      className={`mt-auto flex h-9 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:text-sm ${
                         plan.highlighted
                           ? "bg-brand-primary text-white shadow-[0_6px_20px_rgba(24,119,242,0.28)]"
                           : "border border-brand-border bg-white text-brand-navy hover:bg-brand-soft"

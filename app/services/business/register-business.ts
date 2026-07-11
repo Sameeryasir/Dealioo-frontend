@@ -15,7 +15,6 @@ export type RegisterBusinessPayload = {
   slug?: string;
   phoneNumber: string;
   email?: string;
-  cuisineType?: string;
   description?: string;
   websiteUrl?: string;
   logoFile?: File | null;
@@ -110,9 +109,6 @@ export async function registerBusiness(
 
   const email = optionalString(payload.email);
   if (email !== undefined) formData.append("email", email);
-
-  const cuisineType = optionalString(payload.cuisineType);
-  if (cuisineType !== undefined) formData.append("cuisineType", cuisineType);
 
   const description = optionalString(payload.description);
   if (description !== undefined) formData.append("description", description);

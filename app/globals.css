@@ -3582,7 +3582,7 @@ body {
   }
 
   .org-dashboard-panel-body {
-    @apply relative z-[1] bg-white pt-3 pb-2 sm:pt-4 sm:pb-2.5;
+    @apply relative z-[1] bg-white pt-3 pb-6 sm:pt-4 sm:pb-8;
     padding-left: var(--org-dashboard-align-pl);
     padding-right: var(--org-dashboard-gutter);
   }
@@ -3719,7 +3719,7 @@ body {
   }
 
   .org-biz-card--grid {
-    @apply flex h-full min-h-[21rem] flex-col rounded-2xl p-3.5 pb-3.5 sm:p-4 sm:pb-4;
+    @apply flex h-full min-h-[22.5rem] flex-col rounded-2xl p-3.5 pb-4 sm:p-4 sm:pb-4;
   }
 
   .org-biz-card--grid:hover {
@@ -3771,7 +3771,7 @@ body {
   }
 
   .org-biz-card-bento-cell {
-    @apply flex h-[4.75rem] flex-col justify-between rounded-xl border p-2.5;
+    @apply flex min-h-[5.25rem] flex-col justify-between rounded-xl border p-2.5;
     border-color: rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
@@ -3802,10 +3802,11 @@ body {
   .org-biz-card-location-value {
     @apply m-0 line-clamp-2 text-[11px] font-semibold leading-snug sm:text-xs;
     color: rgba(255, 255, 255, 0.94);
+    overflow-wrap: anywhere;
   }
 
   .org-biz-card-location-meta {
-    @apply shrink-0 text-[10px] font-medium;
+    @apply mt-1 shrink-0 text-[10px] font-medium leading-snug;
     color: rgba(255, 255, 255, 0.52);
   }
 
@@ -4035,11 +4036,11 @@ body {
 
   @media (min-width: 1280px) {
     .org-biz-card--grid {
-      @apply min-h-[24rem] p-5 pb-5;
+      @apply min-h-[27rem] p-5 pb-5;
     }
 
     .org-biz-card-hero {
-      @apply -mx-5 -mt-5 h-[11.5rem];
+      @apply -mx-5 -mt-5 h-[10.5rem];
     }
 
     .org-biz-card-content {
@@ -4055,7 +4056,7 @@ body {
     }
 
     .org-biz-card-bento-cell {
-      @apply h-[5.75rem] p-3;
+      @apply min-h-[6.25rem] p-3;
     }
 
     .org-biz-card-bento-eyebrow {
@@ -4097,15 +4098,15 @@ body {
 
   @media (min-width: 1536px) {
     .org-biz-card--grid {
-      @apply min-h-[26rem];
+      @apply min-h-[28.5rem];
     }
 
     .org-biz-card-hero {
-      @apply h-[13rem];
+      @apply h-[11rem];
     }
 
     .org-biz-card-bento-cell {
-      @apply h-[6.25rem];
+      @apply min-h-[6.75rem];
     }
 
     .org-biz-card-title {
@@ -4135,7 +4136,7 @@ body {
     }
 
     .org-biz-card--grid {
-      @apply min-h-[19.5rem];
+      @apply min-h-[21rem];
     }
   }
 
@@ -4297,11 +4298,11 @@ body {
   }
 
   .landing-page .landing-pricing-grid {
-    align-items: start;
+    align-items: stretch;
   }
 
   .landing-page .landing-pricing-grid > * {
-    height: auto;
+    height: 100%;
   }
 
   .landing-page .landing-pricing-card-expert .landing-pricing-feature-groups {

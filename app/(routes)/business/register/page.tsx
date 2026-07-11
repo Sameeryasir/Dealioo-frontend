@@ -72,7 +72,6 @@ export default function RegisterBusinessPage() {
           name: data.name,
           phoneNumber: data.phoneNumber,
           email: data.email.trim() || undefined,
-          cuisineType: undefined,
           description: data.description.trim() || undefined,
           websiteUrl: data.websiteUrl || undefined,
           logoFile: data.logoFile ?? null,

@@ -36,7 +36,7 @@ export function SkeletonGrid({
 }
 
 const restaurantCardShell =
-  "org-biz-card org-biz-card--grid min-h-[18.5rem] rounded-2xl p-4 sm:p-5";
+  "org-biz-card org-biz-card--grid min-h-[22.5rem] rounded-2xl p-4 sm:p-5";
 
 export function BusinessCardSkeleton() {
   return (

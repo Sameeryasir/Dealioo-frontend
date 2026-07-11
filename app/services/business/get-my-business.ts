@@ -8,7 +8,6 @@ export type AdminBusiness = {
   name: string;
   slug?: string | null;
   description?: string | null;
-  cuisineType?: string | null;
   logoUrl?: string | null;
   websiteUrl?: string | null;
   email?: string | null;
@@ -41,13 +40,8 @@ export type BusinessOwner = {
 /** @deprecated Use BusinessOwner */
 export type RestaurantOwner = BusinessOwner;
 
-export type BusinessMenuSummary = {
-  id?: number;
-};
-
 export type BusinessDetail = AdminBusiness & {
   owner?: BusinessOwner | null;
-  menu?: BusinessMenuSummary[];
 };
 
 /** @deprecated Use BusinessDetail */
@@ -121,20 +115,6 @@ function coerceOwner(o: Record<string, unknown>): BusinessOwner | null {
   };
 }
 
-function coerceMenuSummaries(value: unknown): BusinessMenuSummary[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-
-  const menu = value
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-      const id = parseId((entry as Record<string, unknown>).id);
-      return id != null ? { id } : { id: undefined };
-    })
-    .filter((entry): entry is BusinessMenuSummary => entry != null);
-
-  return menu.length > 0 ? menu : [];
-}
-
 function coerceBusinessDetail(value: unknown): BusinessDetail | null {
   const base = coerceBusiness(value);
   if (!base) return null;
@@ -146,12 +126,9 @@ function coerceBusinessDetail(value: unknown): BusinessDetail | null {
     owner = coerceOwner(o.owner as Record<string, unknown>);
   }
 
-  const menu = coerceMenuSummaries(o.menu);
-
   return {
     ...base,
     ...(owner != null ? { owner } : {}),
-    ...(menu !== undefined ? { menu } : {}),
   };
 }
 
@@ -177,7 +154,6 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
     name: name.trim(),
     slug: pickString(o, "slug", "slug") ?? null,
     description: pickString(o, "description", "description") ?? null,
-    cuisineType: pickString(o, "cuisineType", "cuisine_type") ?? null,
     logoUrl: pickString(o, "logoUrl", "logo_url") ?? null,
     websiteUrl: pickString(o, "websiteUrl", "website_url") ?? null,
     email: pickString(o, "email", "email") ?? null,
