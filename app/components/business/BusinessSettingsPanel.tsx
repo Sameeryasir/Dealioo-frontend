@@ -18,6 +18,7 @@ import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
 import { BusinessGeneralSettingsForm } from "@/app/components/business/BusinessGeneralSettingsForm";
+import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
@@ -636,6 +637,8 @@ export function BusinessSettingsPanel({
 
             {section === "general" && businessId != null ? (
               <BusinessGeneralSettingsForm businessId={businessId} />
+            ) : section === "members" && businessId != null ? (
+              <BusinessMembersPanel businessId={businessId} embedded />
             ) : section === "account" && businessId == null ? (
               <div className="flex max-w-md flex-col gap-8">
                 <OwnerProfileForm variant="light" layout="compact" />
