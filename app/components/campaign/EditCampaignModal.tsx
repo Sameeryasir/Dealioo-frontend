@@ -5,7 +5,6 @@ import {
   Check,
   CircleDollarSign,
   Gift,
-  Globe,
   ImageIcon,
   ImagePlus,
   Megaphone,
@@ -81,7 +80,6 @@ export function EditCampaignModal({
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [campaignName, setCampaignName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const [offer, setOffer] = useState("");
   const [price, setPrice] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -99,7 +97,6 @@ export function EditCampaignModal({
   useEffect(() => {
     if (!open || !campaign) return;
     setCampaignName(campaign.campaignName?.trim() ?? "");
-    setWebsiteUrl(campaign.websiteUrl?.trim() ?? "");
     setOffer(campaign.offer?.trim() ?? "");
     setPrice(parsePrice(campaign.price));
     setImageFile(null);
@@ -176,7 +173,7 @@ export function EditCampaignModal({
       await updateCampaign({
         campaignId: campaign.id,
         campaignName: campaignName.trim(),
-        websiteUrl: websiteUrl.trim(),
+        websiteUrl: campaign.websiteUrl?.trim() ?? "",
         offer: offer.trim(),
         price: parseOfferPrice(price),
         image: imageFile,
@@ -244,25 +241,6 @@ export function EditCampaignModal({
                 onChange={(e) => setCampaignName(e.target.value)}
                 className={inputClassName}
                 placeholder="Campaign name"
-                required
-              />
-            </div>
-
-            <div>
-              <FieldLabel
-                htmlFor="edit-campaign-url"
-                icon={Globe}
-                iconClassName="text-emerald-600"
-                iconBoxClassName="border-emerald-200 bg-emerald-50"
-              >
-                Website URL
-              </FieldLabel>
-              <input
-                id="edit-campaign-url"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                className={`${inputClassName} font-mono text-sm`}
-                placeholder="https://yoursite.com"
                 required
               />
             </div>

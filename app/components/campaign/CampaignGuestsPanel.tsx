@@ -7,10 +7,6 @@ import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useCustomers } from "@/app/hooks/use-customers";
-import {
-  TABLE_HEAD_ICON_CLASS,
-  TABLE_HEAD_LABEL_CLASS,
-} from "@/app/lib/dashboard-brand-tones";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
 import { CUSTOMERS_PAGE_SIZE } from "@/app/services/customer/get-customers";
@@ -23,6 +19,9 @@ const thClass =
   "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
 const tdClass =
   "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
+
+const guestsHeadIconClass = "text-[#1877f2]";
+const guestsHeadLabelClass = "text-slate-800";
 
 const tableHeaderReveal = {
   hidden: { opacity: 0, y: -10 },
@@ -51,11 +50,9 @@ const tableBodyStagger = {
 
 const AVATAR_COLORS = [
   "from-[#1877f2] to-[#4f9cf9]",
-  "from-[#e1306c] to-[#f472b6]",
-  "from-[#34a853] to-[#86efac]",
-  "from-[#f77737] to-[#fdba74]",
-  "from-[#8b5cf6] to-[#c4b5fd]",
+  "from-[#166fe5] to-[#60a5fa]",
   "from-[#0ea5e9] to-[#7dd3fc]",
+  "from-[#2563eb] to-[#93c5fd]",
 ] as const;
 
 function GuestsTableSkeleton() {
@@ -201,40 +198,40 @@ export function CampaignGuestsPanel({
                     <th className={`${thClass} w-12`}>
                       <TableColumnHeader
                         label="#"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                        iconClassName={guestsHeadIconClass}
+                        labelClassName={guestsHeadLabelClass}
                       />
                     </th>
                     <th className={thClass}>
                       <TableColumnHeader
                         icon={UserRound}
                         label="Name"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                        iconClassName={guestsHeadIconClass}
+                        labelClassName={guestsHeadLabelClass}
                       />
                     </th>
                     <th className={thClass}>
                       <TableColumnHeader
                         icon={Mail}
                         label="Email"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                        iconClassName={guestsHeadIconClass}
+                        labelClassName={guestsHeadLabelClass}
                       />
                     </th>
                     <th className={thClass}>
                       <TableColumnHeader
                         icon={Phone}
                         label="Phone"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                        iconClassName={guestsHeadIconClass}
+                        labelClassName={guestsHeadLabelClass}
                       />
                     </th>
                     <th className={thClass}>
                       <TableColumnHeader
                         icon={Calendar}
                         label="Joined"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                        iconClassName={guestsHeadIconClass}
+                        labelClassName={guestsHeadLabelClass}
                       />
                     </th>
                   </motion.tr>

@@ -4,9 +4,9 @@ import {
   Calendar,
   CircleCheck,
   CircleDollarSign,
-  Hash,
   Layers,
   Mail,
+  ShoppingBag,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -20,50 +20,113 @@ import { formatPaidAtParts } from "@/app/lib/datetime";
 import { formatCents } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
 
-const thClass =
-  "whitespace-nowrap px-4 py-3.5 text-left align-middle sm:px-5";
-const tdClass = "px-4 py-3.5 text-left align-middle text-sm sm:px-5";
+const ordersCardClass =
+  "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 18 },
+const thClass =
+  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
+const tdClass =
+  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
+
+const tableHeaderReveal = {
+  hidden: { opacity: 0, y: -10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.38, ease: standardEase },
+    transition: { duration: 0.28, ease: standardEase },
+  },
+};
+
+const tableRowReveal = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.32, ease: standardEase },
   },
 };
 
 const tableBodyStagger = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.12 },
+    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
   },
 };
 
-function TableSkeleton() {
+const ordersHeadIconClass = "text-[#1877f2]";
+const ordersHeadLabelClass = "text-slate-800";
+const ordersHeadBoxClass = "border-[#bfdbfe]/80 bg-[#f4f8ff]";
+
+function OrdersTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
-        <div className="flex w-full gap-6">
-          <Skeleton funnel className="h-3 w-[10%]" />
-          <Skeleton funnel className="h-3 w-[28%]" />
-          <Skeleton funnel className="h-3 w-[12%]" />
-          <Skeleton funnel className="h-3 w-[12%]" />
-          <Skeleton funnel className="h-3 w-[20%]" />
+    <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
+      <div className="border-b border-[#e8edf5] px-5 py-3">
+        <div className="flex gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} funnel className="h-3 w-12" />
+          ))}
         </div>
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="flex w-full gap-6 border-b border-zinc-100 bg-white px-4 py-4 last:border-0 sm:px-5"
+          className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-3.5 last:border-0"
         >
+          <Skeleton funnel className="h-3 w-4" />
           <Skeleton funnel className="size-8 shrink-0 rounded-lg" />
-          <Skeleton funnel className="h-4 w-[28%]" />
-          <Skeleton funnel className="h-4 w-[12%]" />
-          <Skeleton funnel className="h-4 w-[12%]" />
-          <Skeleton funnel className="h-4 w-[20%]" />
+          <Skeleton funnel className="h-4 w-32" />
+          <Skeleton funnel className="h-4 w-16" />
+          <Skeleton funnel className="h-4 w-16" />
+          <Skeleton funnel className="h-4 w-24" />
         </div>
       ))}
+    </div>
+  );
+}
+
+function OrdersEmptyState() {
+  return (
+    <div className="flex flex-col items-center px-6 py-14 text-center sm:py-16">
+      <div className="relative mb-5 flex size-24 items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
+          aria-hidden
+        />
+        <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
+          <ShoppingBag
+            className="size-9 text-[#1877f2]"
+            strokeWidth={1.75}
+            aria-hidden
+          />
+        </span>
+      </div>
+      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+        No orders yet
+      </p>
+      <h3 className="m-0 mt-2 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+        Your order list is empty
+      </h3>
+      <p className="mx-auto m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+        Payments from your funnel will appear here once customers check out.
+      </p>
+    </div>
+  );
+}
+
+function OrdersPanelHeader({ total }: { total: number }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#e8edf5] pb-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+          Orders
+        </span>
+        <span className="text-[0.72rem] font-medium text-slate-500">
+          Funnel payments & checkouts
+        </span>
+      </div>
+      <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+        {total} total
+      </span>
     </div>
   );
 }
@@ -88,6 +151,7 @@ export function FunnelOrdersPanel({
     !isFunnelIdLoading && !isPaymentsLoading && funnelId == null;
   const showNoRecords =
     !showSkeleton && !error && funnelId != null && payments.length === 0;
+  const totalOrders = payments.length;
 
   useEffect(() => {
     if (showSkeleton || !error || alertDismissed) return;
@@ -99,82 +163,66 @@ export function FunnelOrdersPanel({
     setAlertMessage(null);
   }, [funnelId]);
 
-  return (
-    <div
-      className={
-        embedded
-          ? "min-h-0 w-full"
-          : "min-h-0 flex-1 overflow-y-auto bg-zinc-50"
-      }
-    >
-      <OverviewAlertDialog
-        open={alertMessage != null}
-        message={alertMessage ?? ""}
-        onClose={() => {
-          setAlertMessage(null);
-          setAlertDismissed(true);
-        }}
-      />
+  const panelContent = (
+    <>
+      {showSkeleton ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: standardEase }}
+        >
+          <OrdersPanelHeader total={0} />
+          <OrdersTableSkeleton />
+        </motion.div>
+      ) : null}
 
-      <div
-        className={
-          embedded
-            ? "w-full px-0 py-4 sm:py-5"
-            : "mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
-        }
-      >
-        {showSkeleton ? (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: standardEase }}
-          >
-            <TableSkeleton />
-          </motion.div>
-        ) : null}
-
-        {showNoFunnelMessage ? (
-          <p className="rounded-2xl border border-zinc-200/90 bg-white px-4 py-12 text-center text-sm text-zinc-500 shadow-sm">
-            No funnel saved yet. Open the Funnel tab and save once to load
-            orders.
+      {showNoFunnelMessage ? (
+        <div className="rounded-[1.1rem] border border-dashed border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white px-6 py-12 text-center">
+          <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+            No funnel saved yet
           </p>
-        ) : null}
+          <p className="m-0 mt-2 text-[0.82rem] font-medium text-slate-500">
+            Open the Funnel tab and save once to load orders.
+          </p>
+        </div>
+      ) : null}
 
-        {showNoRecords ? (
-          <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
-            <p className="px-4 py-14 text-center text-sm font-semibold text-zinc-900 sm:px-5">
-              No records found
-            </p>
-          </div>
-        ) : null}
+      {showNoRecords ? <OrdersEmptyState /> : null}
 
-        {!showSkeleton && !error && payments.length > 0 ? (
-          <motion.div
-            key="orders-table"
-            className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)] ring-1 ring-zinc-950/[0.04]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: standardEase }}
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+      {!showSkeleton && !error && payments.length > 0 ? (
+        <motion.div
+          key="orders-table"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: standardEase }}
+        >
+          <OrdersPanelHeader total={totalOrders} />
+
+          <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-[48rem] border-collapse">
                 <thead>
                   <motion.tr
-                    className="border-b border-zinc-200/90 bg-gradient-to-b from-zinc-50/95 to-white"
-                    initial={{ opacity: 0, y: -14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: standardEase }}
+                    variants={tableHeaderReveal}
+                    initial="hidden"
+                    animate="show"
+                    className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
                   >
                     <th className={`${thClass} w-12`}>
-                      <TableColumnHeader variant="boxed" icon={Hash} label="" />
+                      <TableColumnHeader
+                        label="#"
+                        iconClassName={ordersHeadIconClass}
+                        labelClassName={ordersHeadLabelClass}
+                      />
                     </th>
                     <th className={`${thClass} w-16`}>
                       <TableColumnHeader
                         variant="boxed"
                         icon={Layers}
                         label="Platform"
-                        iconClassName="text-[#635bff]"
-                        iconBoxClassName="border-[#635bff]/25 bg-[#635bff]/10"
+                        iconClassName={ordersHeadIconClass}
+                        iconBoxClassName={ordersHeadBoxClass}
+                        labelClassName={ordersHeadLabelClass}
                       />
                     </th>
                     <th className={thClass}>
@@ -182,8 +230,9 @@ export function FunnelOrdersPanel({
                         variant="boxed"
                         icon={Mail}
                         label="Customer email"
-                        iconClassName="text-blue-600"
-                        iconBoxClassName="border-blue-200/80 bg-blue-50"
+                        iconClassName={ordersHeadIconClass}
+                        iconBoxClassName={ordersHeadBoxClass}
+                        labelClassName={ordersHeadLabelClass}
                       />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
@@ -191,8 +240,9 @@ export function FunnelOrdersPanel({
                         variant="boxed"
                         icon={CircleDollarSign}
                         label="Amount"
-                        iconClassName="text-emerald-600"
-                        iconBoxClassName="border-emerald-200/80 bg-emerald-50"
+                        iconClassName={ordersHeadIconClass}
+                        iconBoxClassName={ordersHeadBoxClass}
+                        labelClassName={ordersHeadLabelClass}
                       />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
@@ -200,8 +250,9 @@ export function FunnelOrdersPanel({
                         variant="boxed"
                         icon={CircleCheck}
                         label="Status"
-                        iconClassName="text-teal-600"
-                        iconBoxClassName="border-teal-200/80 bg-teal-50"
+                        iconClassName={ordersHeadIconClass}
+                        iconBoxClassName={ordersHeadBoxClass}
+                        labelClassName={ordersHeadLabelClass}
                       />
                     </th>
                     <th className={`${thClass} whitespace-nowrap`}>
@@ -209,8 +260,9 @@ export function FunnelOrdersPanel({
                         variant="boxed"
                         icon={Calendar}
                         label="Paid at"
-                        iconClassName="text-orange-600"
-                        iconBoxClassName="border-orange-200/80 bg-orange-50"
+                        iconClassName={ordersHeadIconClass}
+                        iconBoxClassName={ordersHeadBoxClass}
+                        labelClassName={ordersHeadLabelClass}
                       />
                     </th>
                   </motion.tr>
@@ -224,32 +276,41 @@ export function FunnelOrdersPanel({
                     <motion.tr
                       key={payment.id}
                       variants={tableRowReveal}
-                      className="group border-b border-zinc-100/90 bg-white transition-[background-color,box-shadow] duration-200 last:border-0 hover:bg-zinc-50/90 hover:shadow-[inset_3px_0_0_0_rgb(24_24_27)]"
+                      className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
                     >
-                      <td className={`${tdClass} w-12`}>
-                        <span className="inline-flex size-7 items-center justify-center rounded-lg bg-zinc-100/90 text-xs font-semibold tabular-nums text-zinc-600 ring-1 ring-zinc-200/80">
+                      <td className={tdClass}>
+                        <span className="text-xs font-semibold tabular-nums text-slate-400">
                           {index + 1}
                         </span>
                       </td>
                       <td className={`${tdClass} w-16`}>
-                        <span className="inline-flex rounded-xl border border-zinc-200/80 bg-white p-1 shadow-sm ring-1 ring-zinc-950/[0.03] transition-transform duration-200 group-hover:scale-[1.03]">
+                        <span className="inline-flex rounded-xl border border-[#e8edf5] bg-white p-1 shadow-sm ring-1 ring-black/[0.02] transition-transform duration-200 group-hover:scale-[1.03]">
                           <StripeIcon className="!size-8 !rounded-lg shadow-none ring-0" />
                         </span>
                       </td>
                       <td
-                        className={`${tdClass} max-w-[280px] truncate font-medium text-zinc-800`}
+                        className={`${tdClass} max-w-[280px] truncate font-medium text-[#07111f]`}
                         title={payment.customerEmail?.trim() || undefined}
                       >
-                        {payment.customerEmail?.trim() || "N/A"}
+                        {payment.customerEmail?.trim() ? (
+                          <a
+                            href={`mailto:${payment.customerEmail.trim()}`}
+                            className="text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                          >
+                            {payment.customerEmail.trim()}
+                          </a>
+                        ) : (
+                          <span className="text-slate-300">N/A</span>
+                        )}
                       </td>
                       <td
-                        className={`${tdClass} whitespace-nowrap text-base font-bold tabular-nums tracking-tight text-zinc-900`}
+                        className={`${tdClass} whitespace-nowrap text-base font-bold tabular-nums tracking-tight text-[#07111f]`}
                       >
                         {formatCents(payment.amount, payment.currency)}
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold capitalize shadow-sm ring-1 ring-black/5 ${paymentStatusBadgeClass(payment.status)}`}
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold capitalize ring-1 ring-black/5 ${paymentStatusBadgeClass(payment.status)}`}
                         >
                           {payment.status}
                         </span>
@@ -260,14 +321,14 @@ export function FunnelOrdersPanel({
                             payment.paidAt ?? payment.createdAt,
                           );
                           if (!paid) {
-                            return <span className="text-zinc-300">N/A</span>;
+                            return <span className="text-slate-300">N/A</span>;
                           }
                           return (
-                            <span className="inline-flex flex-col gap-0.5">
-                              <span className="text-sm font-medium text-zinc-800">
+                            <span className="inline-flex flex-col gap-0.5 text-slate-600">
+                              <span className="text-sm font-medium">
                                 {paid.date}
                               </span>
-                              <span className="text-xs tabular-nums text-zinc-500">
+                              <span className="text-xs tabular-nums text-slate-400">
                                 {paid.time}
                               </span>
                             </span>
@@ -279,9 +340,38 @@ export function FunnelOrdersPanel({
                 </motion.tbody>
               </table>
             </div>
-          </motion.div>
-        ) : null}
-      </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </>
+  );
+
+  return (
+    <div
+      className={
+        embedded
+          ? "min-h-0 w-full"
+          : "min-h-0 flex-1 overflow-y-auto bg-[#eef2f7]"
+      }
+    >
+      <OverviewAlertDialog
+        open={alertMessage != null}
+        message={alertMessage ?? ""}
+        onClose={() => {
+          setAlertMessage(null);
+          setAlertDismissed(true);
+        }}
+      />
+
+      {embedded ? (
+        <div className="w-full px-0 py-3.5 sm:py-4">{panelContent}</div>
+      ) : (
+        <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <article className={`${ordersCardClass} p-4 sm:p-5`}>
+            {panelContent}
+          </article>
+        </div>
+      )}
     </div>
   );
 }

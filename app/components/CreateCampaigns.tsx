@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Megaphone, Sparkles } from "lucide-react";
 import CampaignOfferPreviewCard from "@/app/components/CampaignOfferPreviewCard";
 import MakeYourOffer from "@/app/components/MakeYourOffer";
 import {
@@ -9,7 +10,22 @@ import {
   setCampaignName as setDraftCampaignName,
   setWebsiteUrl as setDraftWebsiteUrl,
 } from "@/app/store/campaignSlice";
+import { getPublicAppUrl } from "@/app/lib/public-app-url";
 import { useAppDispatch } from "@/app/store/hooks";
+
+function resolveDefaultCampaignWebsiteUrl(
+  override?: string | null,
+): string {
+  const trimmed = override?.trim();
+  if (trimmed) {
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed.replace(/\/$/, "");
+    }
+    return `https://${trimmed.replace(/\/$/, "")}`;
+  }
+
+  return getPublicAppUrl();
+}
 
 export type CreateCampaignCompletePayload = {
   campaignName: string;
@@ -24,6 +40,8 @@ export type CreateCampaignsProps = {
   onOpenChange: (open: boolean) => void;
   variant?: "modal" | "inline";
   businessId: number;
+  /** Hidden for now — auto-filled from business settings or app URL. */
+  defaultWebsiteUrl?: string | null;
   onComplete?: (
     payload: CreateCampaignCompletePayload,
   ) =>
@@ -38,20 +56,16 @@ export default function CreateCampaigns({
   onOpenChange,
   variant = "modal",
   businessId,
+  defaultWebsiteUrl,
   onComplete,
 }: CreateCampaignsProps) {
   const dispatch = useAppDispatch();
   const isModal = variant === "modal";
   const nameFieldId = useId();
-  const urlFieldId = useId();
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const urlInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
   const [campaignName, setCampaignName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const [showNameError, setShowNameError] = useState(false);
-  const [showUrlError, setShowUrlError] = useState(false);
   const [showOfferStep, setShowOfferStep] = useState(false);
   const [pendingWebsiteUrl, setPendingWebsiteUrl] = useState<string | null>(
     null,
@@ -79,11 +93,8 @@ export default function CreateCampaigns({
   useEffect(() => {
     if (!open) return;
     dispatch(resetCampaignDraft());
-    setStep(1);
     setCampaignName("");
-    setWebsiteUrl("");
     setShowNameError(false);
-    setShowUrlError(false);
     setShowOfferStep(false);
     setPendingWebsiteUrl(null);
     setIsCompletingOffer(false);
@@ -92,18 +103,12 @@ export default function CreateCampaigns({
   }, [open, dispatch]);
 
   useEffect(() => {
-    if (!open || step !== 2) return;
-    queueMicrotask(() => urlInputRef.current?.focus());
-  }, [open, step]);
-
-  useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (createdOffer) return;
       if (showOfferStep) {
-        setShowOfferStep(false);
-        setPendingWebsiteUrl(null);
+        handleBackFromOffer();
         return;
       }
       if (isModal) onOpenChange(false);
@@ -116,7 +121,20 @@ export default function CreateCampaigns({
   if (isModal && !mounted) return null;
 
   const continueButtonClassName =
-    "min-w-80 cursor-pointer rounded-xl bg-black px-14 py-3 text-sm font-semibold tracking-wide text-white shadow-md shadow-black/40 ring-1 ring-inset ring-white/10 transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-black hover:shadow-lg hover:shadow-black/50 active:translate-y-0 active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2";
+    "min-w-80 cursor-pointer rounded-full bg-[#1877f2] px-14 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 focus-visible:ring-offset-2";
+
+  const fieldInputClassName =
+    "mt-2 w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm font-medium text-[#07111f] placeholder:text-slate-400 outline-none transition focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15";
+
+  const handleBackFromOffer = () => {
+    if (isCompletingOffer) return;
+    setShowOfferStep(false);
+  };
+
+  const handleCloseCreateFlow = () => {
+    if (isCompletingOffer) return;
+    onOpenChange(false);
+  };
 
   const handleStep1Submit = (e: FormEvent) => {
     e.preventDefault();
@@ -126,174 +144,95 @@ export default function CreateCampaigns({
       nameInputRef.current?.focus();
       return;
     }
+
+    const websiteUrl = resolveDefaultCampaignWebsiteUrl(defaultWebsiteUrl);
     setShowNameError(false);
     dispatch(setDraftCampaignName(trimmed));
-    setStep(2);
-  };
-
-  const handleStep2Submit = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmed = websiteUrl.trim();
-    if (!trimmed) {
-      setShowUrlError(true);
-      urlInputRef.current?.focus();
-      return;
-    }
-    setShowUrlError(false);
-    dispatch(setDraftWebsiteUrl(trimmed));
-    setPendingWebsiteUrl(trimmed);
+    dispatch(setDraftWebsiteUrl(websiteUrl));
+    setPendingWebsiteUrl(websiteUrl);
     setShowOfferStep(true);
   };
 
   const panel = (
     <div
-      className={`relative w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl ${
-        isModal ? "" : "shadow-sm"
+      className={`relative w-full max-w-2xl overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-black/[0.02] ${
+        isModal ? "" : ""
       }`}
       role={isModal ? "dialog" : "region"}
       aria-modal={isModal ? true : undefined}
       aria-label="Create campaign"
       onClick={isModal ? (e) => e.stopPropagation() : undefined}
     >
-      <nav
-        className="mb-8 flex w-full items-center gap-2 sm:gap-4"
-        aria-label="Campaign setup steps"
-      >
-        <div className="flex min-w-0 shrink-0 items-center gap-2">
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${
-              step === 1 ? "bg-black" : "bg-zinc-300"
-            }`}
-            aria-current={step === 1 ? "step" : undefined}
-          >
-            1
-          </span>
-          <span
-            className={`truncate text-sm font-medium ${
-              step === 1 ? "text-zinc-900" : "text-zinc-400"
-            }`}
-          >
-            Campaign name
-          </span>
-        </div>
-        <div
-          className="h-px min-w-[2rem] flex-1 bg-zinc-800"
+      <div className="relative border-b border-[#e8edf5]/80 bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-6 py-5">
+        <span
+          className="pointer-events-none absolute -top-6 -right-4 size-28 rounded-full bg-[#1877f2]/10 blur-2xl"
           aria-hidden
         />
-        <div className="flex min-w-0 shrink-0 items-center gap-2">
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${
-              step === 2 ? "bg-black" : "bg-zinc-300"
-            }`}
-            aria-current={step === 2 ? "step" : undefined}
-          >
-            2
+        <div className="relative flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#bfdbfe] bg-white shadow-[0_8px_20px_rgba(24,119,242,0.12)]">
+            <Megaphone className="size-5 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
           </span>
-          <span
-            className={`truncate text-sm font-medium ${
-              step === 2 ? "text-zinc-900" : "text-zinc-400"
-            }`}
-          >
-            Host website
-          </span>
+          <div className="min-w-0">
+            <p className="m-0 inline-flex items-center gap-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#1877f2]">
+              <Sparkles className="size-3" aria-hidden />
+              Step 1 of 2
+            </p>
+            <h2 className="m-0 mt-1 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+              Name your campaign
+            </h2>
+            <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
+              Pick a clear name your team will recognize later.
+            </p>
+          </div>
         </div>
-      </nav>
+      </div>
 
-      {step === 1 ? (
-        <form onSubmit={handleStep1Submit} noValidate>
-          <label
-            htmlFor={nameFieldId}
-            className="block text-sm font-medium text-zinc-800"
+      <form onSubmit={handleStep1Submit} noValidate className="p-6">
+        <label
+          htmlFor={nameFieldId}
+          className="block text-sm font-bold text-[#07111f]"
+        >
+          Campaign name
+        </label>
+        <input
+          ref={nameInputRef}
+          id={nameFieldId}
+          name="campaignName"
+          type="text"
+          autoComplete="off"
+          placeholder="e.g. Weekend brunch promo"
+          value={campaignName}
+          onChange={(e) => {
+            setCampaignName(e.target.value);
+            if (showNameError && e.target.value.trim()) setShowNameError(false);
+          }}
+          aria-invalid={showNameError}
+          aria-describedby={showNameError ? `${nameFieldId}-error` : undefined}
+          className={fieldInputClassName}
+        />
+        {showNameError ? (
+          <p
+            id={`${nameFieldId}-error`}
+            className="mt-2 text-sm text-red-600"
+            role="alert"
           >
-            What is the name of your campaigns?
-          </label>
-          <input
-            ref={nameInputRef}
-            id={nameFieldId}
-            name="campaignName"
-            type="text"
-            autoComplete="off"
-            placeholder="e.g. Weekend brunch promo"
-            value={campaignName}
-            onChange={(e) => {
-              setCampaignName(e.target.value);
-              if (showNameError && e.target.value.trim())
-                setShowNameError(false);
-            }}
-            aria-invalid={showNameError}
-            aria-describedby={
-              showNameError ? `${nameFieldId}-error` : undefined
-            }
-            className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-zinc-900/0 transition-[box-shadow] focus:border-zinc-300 focus:ring-2 focus:ring-zinc-900/15"
-          />
-          {showNameError ? (
-            <p
-              id={`${nameFieldId}-error`}
-              className="mt-2 text-sm text-red-600"
-              role="alert"
-            >
-              Enter a campaign name to continue.
-            </p>
-          ) : null}
+            Enter a campaign name to continue.
+          </p>
+        ) : null}
 
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <button
-              type="submit"
-              className={continueButtonClassName}
-            >
-              Continue
-            </button>
-          </div>
-        </form>
-      ) : (
-        <form onSubmit={handleStep2Submit} noValidate>
-          <label
-            htmlFor={urlFieldId}
-            className="block text-sm font-medium text-zinc-800"
+        <div className="mt-6 flex flex-col-reverse items-center justify-center gap-2 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={handleCloseCreateFlow}
+            className="min-w-40 cursor-pointer rounded-full border border-[#e8edf5] px-8 py-3 text-sm font-semibold text-slate-600 transition hover:bg-[#f8fafc]"
           >
-            Where do you want to host your funnel?
-          </label>
-          <input
-            ref={urlInputRef}
-            id={urlFieldId}
-            name="websiteUrl"
-            type="text"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="e.g. https://yoursite.com or yoursite.com"
-            value={websiteUrl}
-            onChange={(e) => {
-              setWebsiteUrl(e.target.value);
-              if (showUrlError && e.target.value.trim())
-                setShowUrlError(false);
-            }}
-            aria-invalid={showUrlError}
-            aria-describedby={
-              showUrlError ? `${urlFieldId}-error` : undefined
-            }
-            className="mt-2 w-full min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-zinc-900/0 transition-[box-shadow] focus:border-zinc-300 focus:ring-2 focus:ring-zinc-900/15"
-          />
-          {showUrlError ? (
-            <p
-              id={`${urlFieldId}-error`}
-              className="mt-2 text-sm text-red-600"
-              role="alert"
-            >
-              Enter a website URL to continue.
-            </p>
-          ) : null}
-
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <button
-              type="submit"
-              className={continueButtonClassName}
-            >
-              Continue
-            </button>
-          </div>
-        </form>
-      )}
+            Back
+          </button>
+          <button type="submit" className={continueButtonClassName}>
+            Continue
+          </button>
+        </div>
+      </form>
     </div>
   );
 
@@ -302,10 +241,8 @@ export default function CreateCampaigns({
       variant="inline"
       open={showOfferStep}
       isSaving={isCompletingOffer}
-      onOpenChange={(next) => {
-        setShowOfferStep(next);
-        if (!next) setPendingWebsiteUrl(null);
-      }}
+      onBack={handleBackFromOffer}
+      onOpenChange={setShowOfferStep}
       onSave={async (payload) => {
         if (!pendingWebsiteUrl || isCompletingOffer) return;
         const completePayload: CreateCampaignCompletePayload = {
@@ -360,7 +297,7 @@ export default function CreateCampaigns({
           setCreatedOffer(null);
           onOpenChange(false);
         }}
-        className="mt-8 min-w-56 rounded-xl bg-black px-10 py-3 text-sm font-semibold tracking-wide text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
+        className="mt-8 min-w-56 rounded-full bg-[#1877f2] px-10 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 focus-visible:ring-offset-2"
       >
         View campaigns
       </button>
@@ -376,13 +313,12 @@ export default function CreateCampaigns({
   if (isModal) {
     return createPortal(
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#07111f]/45 p-4 backdrop-blur-[2px]"
         role="presentation"
         onClick={() => {
           if (createdOffer) return;
           if (showOfferStep) {
-            setShowOfferStep(false);
-            setPendingWebsiteUrl(null);
+            handleBackFromOffer();
           } else {
             onOpenChange(false);
           }
@@ -402,11 +338,7 @@ export default function CreateCampaigns({
   }
 
   return (
-    <div
-      className={`flex w-full justify-center px-4 py-8 md:px-6 md:py-10 ${
-        showOfferStep ? "max-w-2xl mx-auto" : createdOffer ? "max-w-sm mx-auto" : ""
-      }`}
-    >
+    <div className="flex w-full max-w-2xl justify-center">
       {activePanel}
     </div>
   );
