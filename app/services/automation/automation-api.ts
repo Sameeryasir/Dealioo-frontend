@@ -74,6 +74,7 @@ export function mapAutomationToListItem(
     trigger: triggerToUi(automation.trigger),
     status: listStatusFromApi(automation),
     business: businessLabel,
+    campaignId: automation.campaignId,
     lastUpdated: formatLastUpdated(automation.updatedAt ?? automation.createdAt),
     customersEntered: 0,
   };

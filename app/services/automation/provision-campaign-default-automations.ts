@@ -5,7 +5,7 @@ import {
 } from "@/app/components/automation/automation-templates";
 import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
 import { buildCreateAutomationBody } from "@/app/services/automation/automation-create-context";
-import { createAutomation } from "@/app/services/automation/automation-api";
+import { createAutomation, getAutomations } from "@/app/services/automation/automation-api";
 
 const DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   PAYMENT_REMINDER_TEMPLATE,
@@ -16,6 +16,12 @@ export async function provisionCampaignDefaultAutomations(
   businessId: number,
   campaignId: number,
 ): Promise<void> {
+  const existing = await getAutomations(businessId);
+  const alreadyProvisioned = existing.some(
+    (automation) => automation.campaignId === campaignId,
+  );
+  if (alreadyProvisioned) return;
+
   for (const template of DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES) {
     const created = await createAutomation(
       buildCreateAutomationBody({

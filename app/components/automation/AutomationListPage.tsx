@@ -197,6 +197,7 @@ export function AutomationListPage({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (items ?? []).filter((row) => {
+      if (campaignId != null && row.campaignId !== campaignId) return false;
       if (filter !== "all" && row.status !== filter) return false;
       if (!q) return true;
       return (
@@ -204,7 +205,7 @@ export function AutomationListPage({
         row.trigger.toLowerCase().includes(q)
       );
     });
-  }, [items, query, filter]);
+  }, [items, query, filter, campaignId]);
 
   const builderHref = (row: AutomationListItem) => {
     const base = `/business/${businessId}/dashboard/automations/${
@@ -373,8 +374,16 @@ export function AutomationListPage({
           <PanelEmptyState
             className="mt-8 px-4 py-14"
             icon={SearchX}
-            title="No automations match your search"
-            description="Try a different keyword or filter to find your workflows."
+            title={
+              campaignId != null
+                ? "No automations for this campaign"
+                : "No automations match your search"
+            }
+            description={
+              campaignId != null
+                ? "Default automations are created when you add a campaign. Create one here if you need more."
+                : "Try a different keyword or filter to find your workflows."
+            }
           />
         ) : null}
       </div>

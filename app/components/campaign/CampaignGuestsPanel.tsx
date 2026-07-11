@@ -6,10 +6,10 @@ import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDial
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
-import { useCustomers } from "@/app/hooks/use-customers";
+import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
-import { CUSTOMERS_PAGE_SIZE } from "@/app/services/customer/get-customers";
+import { FUNNEL_GUESTS_PAGE_SIZE } from "@/app/services/funnel-event/get-funnel-guests";
 import { useEffect, useMemo, useState } from "react";
 
 const guestsCardClass =
@@ -139,31 +139,46 @@ function GuestsPanelHeader({ total }: { total: number }) {
 }
 
 export function CampaignGuestsPanel({
+  funnelId,
+  isFunnelIdLoading = false,
   embedded = false,
-}: { embedded?: boolean } = {}) {
-  const { data: customers, meta, page, setPage, loading, error } =
-    useCustomers(true);
+}: {
+  funnelId?: number | null;
+  isFunnelIdLoading?: boolean;
+  embedded?: boolean;
+} = {}) {
+  const { data: guests, meta, page, setPage, loading, error } =
+    useFunnelGuests(funnelId);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  const pageSize = meta?.limit ?? CUSTOMERS_PAGE_SIZE;
+  const pageSize = meta?.limit ?? FUNNEL_GUESTS_PAGE_SIZE;
   const rowOffset = useMemo(
     () => (page - 1) * pageSize,
     [page, pageSize],
   );
 
-  useEffect(() => {
-    if (loading || !error || alertDismissed) return;
-    setAlertMessage(error);
-  }, [error, loading, alertDismissed]);
+  const showSkeleton = isFunnelIdLoading || loading;
+  const showNoFunnelMessage =
+    !isFunnelIdLoading && !loading && funnelId == null;
+  const showEmpty =
+    !showSkeleton && !error && funnelId != null && (meta?.total ?? 0) === 0;
+  const totalGuests = meta?.total ?? guests.length;
 
-  const showEmpty = !loading && !error && (meta?.total ?? 0) === 0;
-  const totalGuests = meta?.total ?? customers.length;
+  useEffect(() => {
+    if (showSkeleton || !error || alertDismissed) return;
+    setAlertMessage(error);
+  }, [error, showSkeleton, alertDismissed]);
+
+  useEffect(() => {
+    setAlertDismissed(false);
+    setAlertMessage(null);
+  }, [funnelId]);
 
   const panelContent = (
     <>
-      {loading && customers.length === 0 ? (
+      {showSkeleton && guests.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -174,9 +189,21 @@ export function CampaignGuestsPanel({
         </motion.div>
       ) : null}
 
+      {showNoFunnelMessage ? (
+        <div className="rounded-[1.1rem] border border-dashed border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white px-6 py-12 text-center">
+          <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
+            No funnel saved yet
+          </p>
+          <p className="m-0 mt-2 text-[0.82rem] font-medium text-slate-500">
+            Open the Funnel tab and save once. Guests appear after people sign up
+            through your funnel.
+          </p>
+        </div>
+      ) : null}
+
       {showEmpty ? <GuestsEmptyState /> : null}
 
-      {!loading && !error && customers.length > 0 ? (
+      {!showSkeleton && !error && guests.length > 0 ? (
         <motion.div
           key={`guests-page-${page}`}
           initial={{ opacity: 0, y: -8 }}
@@ -241,16 +268,16 @@ export function CampaignGuestsPanel({
                   initial="hidden"
                   animate="show"
                 >
-                  {customers.map((customer, index) => {
+                  {guests.map((guest, index) => {
                     const rowNumber = rowOffset + index + 1;
-                    const initials = guestInitials(customer.name);
+                    const initials = guestInitials(guest.name);
                     const avatarColor = guestAvatarColor(
-                      customer.id * 13 + index * 7,
+                      guest.id * 13 + index * 7,
                     );
 
                     return (
                       <motion.tr
-                        key={customer.id}
+                        key={guest.id}
                         variants={tableRowReveal}
                         className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
                       >
@@ -267,26 +294,26 @@ export function CampaignGuestsPanel({
                               {initials}
                             </span>
                             <span className="truncate font-semibold text-[#07111f]">
-                              {customer.name}
+                              {guest.name}
                             </span>
                           </div>
                         </td>
                         <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
                           <a
-                            href={`mailto:${customer.email}`}
+                            href={`mailto:${guest.email}`}
                             className="block truncate text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
-                            title={customer.email}
+                            title={guest.email}
                           >
-                            {customer.email}
+                            {guest.email}
                           </a>
                         </td>
                         <td className={tdClass}>
-                          {customer.phone?.trim() ? (
+                          {guest.phone?.trim() ? (
                             <a
-                              href={`tel:${customer.phone.trim()}`}
+                              href={`tel:${guest.phone.trim()}`}
                               className="text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
                             >
-                              {customer.phone}
+                              {guest.phone}
                             </a>
                           ) : (
                             <span className="text-slate-300">—</span>
@@ -295,7 +322,7 @@ export function CampaignGuestsPanel({
                         <td
                           className={`${tdClass} whitespace-nowrap text-slate-600`}
                         >
-                          {formatDateTimeShort(customer.createdAt)}
+                          {formatDateTimeShort(guest.createdAt)}
                         </td>
                       </motion.tr>
                     );

@@ -6,6 +6,9 @@ export const funnelQueryKeys = {
   payments: () => [...funnelQueryKeys.all, "payments"] as const,
   paymentsByFunnel: (funnelId: number) =>
     [...funnelQueryKeys.payments(), funnelId] as const,
+  guests: () => [...funnelQueryKeys.all, "guests"] as const,
+  guestsByFunnel: (funnelId: number, page = 1) =>
+    [...funnelQueryKeys.guests(), funnelId, page] as const,
   eventStats: () => [...funnelQueryKeys.all, "event-stats"] as const,
   eventStatsByFunnel: (funnelId: number) =>
     [...funnelQueryKeys.eventStats(), funnelId] as const,
