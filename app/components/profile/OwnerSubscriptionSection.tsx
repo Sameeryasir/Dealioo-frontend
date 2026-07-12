@@ -4,6 +4,7 @@ import {
   getMyUserSubscription,
   type UserSubscription,
 } from "@/app/services/subscription/user-subscription";
+import { cancelUserSubscription } from "@/app/services/subscription/cancel-user-subscription";
 import {
   AlertCircle,
   CalendarDays,
@@ -131,6 +132,9 @@ export function OwnerSubscriptionSection({
   layout = "page",
 }: OwnerSubscriptionSectionProps) {
   const [loading, setLoading] = useState(true);
+  const [cancelStatus, setCancelStatus] = useState<"idle" | "loading" | "error">(
+    "idle",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<UserSubscription | null>(
     null,
@@ -159,6 +163,32 @@ export function OwnerSubscriptionSection({
   useEffect(() => {
     void loadSubscription();
   }, [loadSubscription]);
+
+  const handleCancelSubscription = async () => {
+    const confirmed = window.confirm(
+      "Cancel your Dealioo subscription? Your plan will end immediately and you will need to choose a new plan to continue using paid features.",
+    );
+    if (!confirmed) return;
+
+    setCancelStatus("loading");
+    setErrorMessage(null);
+    try {
+      await cancelUserSubscription();
+      setSubscription(null);
+      setCancelStatus("idle");
+    } catch (error) {
+      setCancelStatus("error");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not cancel your subscription.",
+      );
+    }
+  };
+
+  const canCancelSubscription =
+    subscription != null &&
+    (subscription.status === "active" || subscription.status === "trialing");
 
   const headingClass = isDark
     ? "text-base font-semibold text-white"
@@ -302,6 +332,42 @@ export function OwnerSubscriptionSection({
         This plan applies to your whole account and is shared across every
         business you own.
       </p>
+
+      {canCancelSubscription ? (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCancelSubscription()}
+            disabled={cancelStatus === "loading"}
+            className={
+              isDark
+                ? "inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 text-xs font-semibold text-red-200 transition-colors hover:border-red-500/45 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-70"
+                : "inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 transition-colors hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+            }
+          >
+            {cancelStatus === "loading" ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Cancelling…
+              </>
+            ) : (
+              "Cancel subscription"
+            )}
+          </button>
+          {cancelStatus === "error" && errorMessage ? (
+            <p
+              role="alert"
+              className={
+                isDark
+                  ? "text-xs text-red-300"
+                  : "text-xs text-red-700"
+              }
+            >
+              {errorMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 

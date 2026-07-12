@@ -29,6 +29,7 @@ import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsC
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
+import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
   businessSettingsHref,
   orgSettingsHref,
@@ -640,8 +641,9 @@ export function BusinessSettingsPanel({
             ) : section === "members" && businessId != null ? (
               <BusinessMembersPanel businessId={businessId} embedded />
             ) : section === "account" && businessId == null ? (
-              <div className="flex max-w-md flex-col gap-8">
+              <div className="flex max-w-3xl flex-col gap-8">
                 <OwnerProfileForm variant="light" layout="compact" />
+                <OwnerSubscriptionSection variant="light" layout="page" />
                 <div className="flex flex-col gap-3 border-t border-[#e8edf5] pt-6">
                 <button
                   type="button"
