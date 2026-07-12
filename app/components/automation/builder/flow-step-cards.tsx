@@ -67,9 +67,9 @@ export function FlowStepHeader({
         <Icon className="size-4 text-white" strokeWidth={2.25} aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-bold tracking-tight">{title}</p>
+        <p className="text-xs font-bold tracking-tight">{title}</p>
         {subtitle ? (
-          <p className={`text-[0.6875rem] ${subtitleClass}`}>{subtitle}</p>
+          <p className={`text-[0.625rem] ${subtitleClass}`}>{subtitle}</p>
         ) : null}
       </div>
     </div>
@@ -97,13 +97,13 @@ export function FlowTriggerCard({
         >
           <UserPlus className={`size-4 ${FLOW_TRIGGER.icon}`} strokeWidth={2.25} aria-hidden />
         </div>
-        <p className={`text-[0.6875rem] font-bold uppercase tracking-[0.16em] ${FLOW_TRIGGER.label}`}>
+        <p className={`text-[0.625rem] font-bold uppercase tracking-[0.16em] ${FLOW_TRIGGER.label}`}>
           Trigger
         </p>
-        <h3 className={`mt-1 text-xl font-bold leading-tight tracking-tight ${FLOW_TRIGGER.title}`}>
+        <h3 className={`mt-1 text-base font-bold leading-tight tracking-tight ${FLOW_TRIGGER.title}`}>
           {getTriggerTitle(node)}
         </h3>
-        <p className={`mt-2.5 text-sm leading-relaxed ${FLOW_TRIGGER.body}`}>
+        <p className={`mt-2 text-xs leading-relaxed ${FLOW_TRIGGER.body}`}>
           {getTriggerDescription(node)}
         </p>
       </div>
@@ -137,10 +137,10 @@ export function FlowCronJobCard({
         subtitleClass={FLOW_CRON.headerSub}
       />
       <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <p className={`text-lg font-bold tracking-tight ${FLOW_CRON.body}`}>
+        <p className={`text-sm font-bold tracking-tight ${FLOW_CRON.body}`}>
           {schedule}
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
           Checks unpaid guests, then continues the flow.
         </p>
       </div>
@@ -172,7 +172,7 @@ export function FlowWaitCard({
         subtitleClass={FLOW_WAIT.headerSub}
       />
       <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <p className={`text-lg font-bold tracking-tight ${FLOW_WAIT.body}`}>
+        <p className={`text-sm font-bold tracking-tight ${FLOW_WAIT.body}`}>
           {formatWaitSummary(node.config)}
         </p>
       </div>
@@ -208,17 +208,17 @@ export function FlowFilterCard({
         {conditions.map((condition, index) => (
           <span key={`${condition.label}-${index}`} className="contents">
             {index > 0 ? (
-              <span className="text-xs font-semibold lowercase text-zinc-500">and</span>
+              <span className="text-[0.65rem] font-semibold lowercase text-zinc-500">and</span>
             ) : null}
             {condition.negated ? (
               <span
-                className={`rounded-full px-3 py-1.5 text-[0.6875rem] font-bold uppercase tracking-wide shadow-sm ${FLOW_FILTER.notPill}`}
+                className={`rounded-full px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide shadow-sm ${FLOW_FILTER.notPill}`}
               >
                 NOT
               </span>
             ) : null}
             <span
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ring-1 ${FLOW_FILTER.valuePill}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${FLOW_FILTER.valuePill}`}
             >
               {condition.label}
             </span>
@@ -228,18 +228,18 @@ export function FlowFilterCard({
       {isCustomerVisitedFilterNode(node) ? (
         <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
           <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-amber-800">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
               If not visited
             </p>
-            <p className="mt-1 text-xs font-medium text-amber-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
               {String(node.config.branchLabelFalse ?? "Restart from first email")}
             </p>
           </div>
           <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-800">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
               If visited
             </p>
-            <p className="mt-1 text-xs font-medium text-emerald-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
               {String(node.config.branchLabelTrue ?? "Continue post-visit emails")}
             </p>
           </div>
@@ -281,10 +281,10 @@ export function PrepaidLoopBackCard({
           <RotateCcw className="size-4" aria-hidden />
         </span>
         <div>
-          <p className="text-sm font-bold tracking-tight text-zinc-900">
+          <p className="text-xs font-bold tracking-tight text-zinc-900">
             Loop back
           </p>
-          <p className="text-xs font-medium text-amber-800">
+          <p className="text-[0.65rem] font-medium text-amber-800">
             {isWaitLoop
               ? "Customer not visited → wait, then visit reminder"
               : "Customer not visited → restart from first email"}
@@ -294,28 +294,28 @@ export function PrepaidLoopBackCard({
       <div className="px-5 py-4">
         {isWaitLoop ? (
           <>
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-violet-700">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-violet-700">
               Wait until
             </p>
-            <p className="mt-1 text-sm font-semibold text-zinc-800">
+            <p className="mt-1 text-xs font-semibold text-zinc-800">
               {waitSummary || "Delay before next reminder"}
             </p>
-            <p className="mt-3 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+            <p className="mt-2.5 text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
               Then send email
             </p>
-            <p className="mt-1 text-sm text-zinc-700">
+            <p className="mt-1 text-xs text-zinc-700">
               Visit reminder — your offer is ready
             </p>
           </>
         ) : (
           <>
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
               Send Email
             </p>
             {previewSubject ? (
-              <p className="mt-1 text-xs font-semibold text-zinc-800">{previewSubject}</p>
+              <p className="mt-1 text-[0.65rem] font-semibold text-zinc-800">{previewSubject}</p>
             ) : null}
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+            <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
               {previewMessage || "Restart from the first offer email with pass link."}
             </p>
           </>
@@ -360,7 +360,7 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
     const parts = splitSmsPreviewParts(previewMessage);
     return (
       <div className="space-y-2.5 text-left">
-        <p className="whitespace-pre-wrap text-left text-[0.9375rem] leading-relaxed text-zinc-700">
+        <p className="whitespace-pre-wrap text-left text-xs leading-relaxed text-zinc-700">
           {parts.map((part, index) =>
             isSmsMergeTag(part) ? (
               <span
@@ -375,7 +375,7 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
           )}
         </p>
         {linkLabel ? (
-          <span className="inline-flex items-center rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+          <span className="inline-flex items-center rounded-lg bg-sky-500 px-2.5 py-1 text-[0.65rem] font-semibold text-white shadow-sm">
             {linkLabel}
           </span>
         ) : null}
@@ -386,11 +386,11 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
   if (node.kind === "create_coupon") {
     return (
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-zinc-900">
+        <p className="text-xs font-semibold text-zinc-900">
           Offer:{" "}
           <span className="font-bold text-zinc-950">{getRewardName(config)}</span>
         </p>
-        <p className="text-xs leading-relaxed text-zinc-500">
+        <p className="text-[0.65rem] leading-relaxed text-zinc-500">
           Expires: {formatExpirationDisplay(config)}
         </p>
       </div>
@@ -399,7 +399,7 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
 
   if (node.kind === "tag_customer") {
     return (
-      <p className="text-sm leading-relaxed text-zinc-700">
+      <p className="text-xs leading-relaxed text-zinc-700">
         Set expiration for{" "}
         <span className="font-semibold text-zinc-900">{getRewardName(config)}</span> to{" "}
         <span className="font-semibold text-zinc-900">
@@ -433,7 +433,7 @@ export function FlowActionStepContent({
           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
         </span>
         <div className="min-w-0 flex-1 text-left">
-          <p className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-emerald-700/70">
+          <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-emerald-700/70">
             {label}
           </p>
           <div className="mt-2">
@@ -454,8 +454,8 @@ export function FlowActionsBlockHeader() {
         <Send className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
       <div>
-        <p className="text-sm font-bold tracking-tight">Actions</p>
-        <p className={`text-[0.6875rem] ${FLOW_ACTIONS.headerSub}`}>
+        <p className="text-xs font-bold tracking-tight">Actions</p>
+        <p className={`text-[0.625rem] ${FLOW_ACTIONS.headerSub}`}>
           Messages and rewards sent in order
         </p>
       </div>
@@ -474,7 +474,7 @@ export function FlowActionsGroupBody({
     <div className="space-y-4 bg-white px-4 py-4 sm:px-5 sm:py-5">
       {children}
       {footer ? (
-        <div className="flex items-center justify-between border-t border-zinc-100 pt-2.5 text-[0.6875rem] text-zinc-400">
+        <div className="flex items-center justify-between border-t border-zinc-100 pt-2.5 text-[0.625rem] text-zinc-400">
           {footer}
         </div>
       ) : null}
@@ -569,7 +569,7 @@ export function FlowStepCard({
         selected ? cardShellClass(true, "ring-zinc-400/35") : ""
       }`}
     >
-      <p className="text-sm font-semibold text-zinc-900">{node.label}</p>
+      <p className="text-xs font-semibold text-zinc-900">{node.label}</p>
     </div>
   );
 }
@@ -577,7 +577,7 @@ export function FlowStepCard({
 export function FlowBranchContainer({ children }: { children: ReactNode }) {
   return (
     <div className="relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
-      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.65rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.6875rem]">
+      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.625rem]">
         <span
           className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
           aria-hidden

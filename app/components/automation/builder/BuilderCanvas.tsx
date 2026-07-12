@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutTemplate, Maximize2, Minus, Plus } from "lucide-react";
+import { LayoutTemplate } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -49,9 +49,6 @@ import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation
 
 const FLOW_TRUNK_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-xl";
 const FLOW_TREE_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-5xl";
-const ZOOM_MIN = 0.72;
-const ZOOM_MAX = 1.2;
-const ZOOM_STEP = 0.08;
 const LONG_PRESS_MS = 450;
 const POINTER_MOVE_CANCEL_PX = 10;
 
@@ -104,7 +101,6 @@ export function BuilderCanvas({
   editLocked?: boolean;
   onEditBlocked?: () => void;
 }) {
-  const [zoom, setZoom] = useState(1);
   const [revealKey, setRevealKey] = useState(0);
   const wasLoadingRef = useRef(loading);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -124,8 +120,6 @@ export function BuilderCanvas({
 
   const canDropBlocks = onDropBlock != null && !editLocked;
   const canReorder = onReorderNodes != null && nodes.length > 1 && !editLocked;
-
-  const fitScreen = useCallback(() => setZoom(1), []);
 
   useEffect(() => {
     if (wasLoadingRef.current && !loading && nodes.length > 0) {
@@ -551,43 +545,6 @@ export function BuilderCanvas({
       />
 
       <motion.div
-        className="absolute bottom-4 left-4 z-20 flex items-center gap-0.5 rounded-xl border border-white/70 bg-white/75 p-0.5 shadow-[0_8px_24px_rgba(0,0,0,0.08)] ring-1 ring-zinc-950/[0.04] backdrop-blur-md sm:bottom-5 sm:left-5 sm:rounded-2xl sm:p-1"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, ease: automationEase }}
-      >
-        <button
-          type="button"
-          aria-label="Zoom out"
-          onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-          className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95 sm:size-9 sm:rounded-xl"
-        >
-          <Minus className="size-4" aria-hidden />
-        </button>
-        <span className="min-w-[2.75rem] text-center text-[0.65rem] font-bold tabular-nums tracking-wide text-zinc-500 sm:min-w-[3.25rem] sm:text-[0.7rem]">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          type="button"
-          aria-label="Zoom in"
-          onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-          className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95 sm:size-9 sm:rounded-xl"
-        >
-          <Plus className="size-4" aria-hidden />
-        </button>
-        <span className="mx-0.5 h-6 w-px bg-zinc-200/90" aria-hidden />
-        <button
-          type="button"
-          aria-label="Fit screen"
-          onClick={fitScreen}
-          className="flex h-8 cursor-pointer items-center gap-1 rounded-lg px-2 text-[0.65rem] font-semibold text-zinc-600 transition hover:bg-zinc-100/90 hover:text-zinc-900 active:scale-95 sm:h-9 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:text-xs"
-        >
-          <Maximize2 className="size-3 sm:size-3.5" aria-hidden />
-          <span className="hidden sm:inline">Fit</span>
-        </button>
-      </motion.div>
-
-      <motion.div
         className={`min-h-0 flex-1 overflow-auto px-3 py-10 pb-20 transition-colors duration-300 sm:px-4 sm:py-12 sm:pb-24 lg:px-5 lg:py-14 xl:px-6 xl:py-16 ${
           canvasDragOver ? "bg-violet-50/40" : ""
         }`}
@@ -603,8 +560,6 @@ export function BuilderCanvas({
       >
         <motion.div
           className="mx-auto flex w-full flex-col items-center"
-          animate={{ scale: zoom }}
-          transition={{ type: "spring", stiffness: 260, damping: 28 }}
         >
           {loading ? (
             <FlowLoadingPlaceholder />
@@ -665,7 +620,7 @@ export function BuilderCanvas({
                       <>
                         <TriggerFlowConnector />
                         <div className="relative w-full rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
-                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.65rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.6875rem]">
+                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.625rem]">
                             <span
                               className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
                               aria-hidden

@@ -203,7 +203,7 @@ export function NodeSettingsPanel({
 
   return (
     <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden border-l border-zinc-200/60 bg-white">
-      <motion.div className="relative border-b border-zinc-100 px-5 py-5">
+      <motion.div className="relative border-b border-zinc-100 px-4 py-4">
         <h2 className="text-base font-semibold tracking-tight text-zinc-900">
           Settings
         </h2>
@@ -666,7 +666,7 @@ function NodeSettingsForm({
         void submitSave();
       }}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 [scrollbar-gutter:stable]">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 [scrollbar-gutter:stable]">
       <motion.div
         className={`mb-8 flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-zinc-50/40 px-4 py-3.5 ${tone?.accent ?? "border-l-[3px] border-l-zinc-400"}`}
         layout
@@ -779,11 +779,8 @@ function NodeSettingsForm({
           </p>
         </SettingsSection>
       )}
-      </div>
-      </div>
-
       {(editable && onSave) || onDelete ? (
-        <div className="relative shrink-0 space-y-3 border-t border-zinc-100 bg-white px-5 py-6">
+        <div className="mt-6 space-y-3.5 border-t border-zinc-100 pt-4">
           {editable && onSave ? (
             <button
               type="submit"
@@ -818,6 +815,8 @@ function NodeSettingsForm({
           ) : null}
         </div>
       ) : null}
+      </div>
+      </div>
     </motion.form>
   );
 }

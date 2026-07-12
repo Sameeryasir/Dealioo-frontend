@@ -9575,6 +9575,46 @@ body:has(.auth-select-plan-page) {
   padding: 0 0.6rem;
 }
 
+.automation-builder-topbar-center-host:empty,
+.automation-builder-topbar-actions-host:empty {
+  display: none;
+}
+
+.automation-builder-topbar-center-host:not(:empty) {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: flex;
+  max-width: calc(100% - 12rem);
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.automation-builder-topbar-center-host:not(:empty) > * {
+  pointer-events: auto;
+}
+
+.automation-builder-topbar-actions-host:not(:empty) {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 639px) {
+  .automation-builder-topbar-center-host:not(:empty) {
+    max-width: calc(100% - 8.5rem);
+  }
+
+  .automation-builder-topbar__tabs {
+    min-width: 7.75rem;
+  }
+
+  .automation-builder-topbar__activate-label {
+    display: none;
+  }
+}
+
 @media (min-width: 640px) {
   .rd-topbar-inner {
     gap: 1rem;
@@ -12173,6 +12213,96 @@ body:has(.auth-select-plan-page) {
 
   .create-automation-choice-card__desc {
     font-size: 0.875rem;
+  }
+}
+
+/* --- Automation builder route: remove main scroll padding (green gap in devtools) --- */
+.rd-main-scroll:has(.automation-builder-route) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+.automation-builder-route {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.automation-builder-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.automation-builder-page > header {
+  flex-shrink: 0;
+}
+
+.automation-builder-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.automation-builder-shell,
+.automation-builder-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.automation-builder-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(11rem, 15rem)
+    minmax(0, 1fr)
+    minmax(17rem, 19.5rem);
+}
+
+.automation-builder-sidebar,
+.automation-builder-canvas,
+.automation-builder-settings {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.automation-builder-canvas {
+  min-width: 0;
+}
+
+.automation-builder-sidebar > aside,
+.automation-builder-settings > aside {
+  height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 1279px) {
+  .automation-builder-grid {
+    grid-template-columns:
+      minmax(10rem, 13rem)
+      minmax(0, 1fr)
+      minmax(14rem, 16rem);
   }
 }
 

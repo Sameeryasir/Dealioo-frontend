@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Zap, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
@@ -28,6 +29,11 @@ import {
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
 import { useAutomationQuery } from "@/app/hooks/use-automation-query";
 import { BuilderShell } from "@/app/components/builder/BuilderShell";
+import {
+  AutomationBuilderActivateButton,
+  AutomationBuilderTabBar,
+  type AutomationBuilderTab,
+} from "@/app/components/automation/AutomationBuilderTopbar";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import {
   getWorkflowNodeInsertIndex,
@@ -57,65 +63,11 @@ import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
 import { isPositiveInt } from "@/app/lib/numbers";
 import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 
-type BuilderTab = "builder" | "runs";
+type BuilderTab = AutomationBuilderTab;
 
 type PendingFlowNavigation =
   | { kind: "href"; href: string }
   | { kind: "tab"; tab: BuilderTab };
-
-const TABS: { id: BuilderTab; label: string }[] = [
-  { id: "builder", label: "Flow" },
-  { id: "runs", label: "Runs" },
-];
-
-function BuilderTabToggle({
-  tab,
-  onChange,
-}: {
-  tab: BuilderTab;
-  onChange: (next: BuilderTab) => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Automation views"
-      className="relative grid w-max min-w-[10.5rem] grid-cols-2 rounded-full border border-zinc-200/80 bg-zinc-100/80 p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-zinc-950/[0.05] sm:min-w-[12rem] sm:p-1 xl:min-w-[14rem]"
-    >
-      {TABS.map((t) => {
-        const active = tab === t.id;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(t.id)}
-            className={`relative z-10 cursor-pointer rounded-full px-4 py-1.5 text-xs font-semibold tracking-tight transition-colors duration-200 sm:px-6 sm:py-2 sm:text-sm xl:px-7 xl:py-2.5 ${
-              active ? "" : "text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            {active ? (
-              <motion.span
-                layoutId="automation-builder-tab-pill"
-                className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-zinc-950 shadow-[0_4px_14px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-black/25"
-                transition={{ type: "spring", stiffness: 420, damping: 32 }}
-              />
-            ) : null}
-            <motion.span
-              className={`relative block ${
-                active ? "text-white" : "text-zinc-500 hover:text-zinc-800"
-              }`}
-              animate={{ scale: active ? 1.02 : 1 }}
-              transition={{ duration: 0.2, ease: automationEase }}
-            >
-              {t.label}
-            </motion.span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export function AutomationBuilderPage({
   businessId,
@@ -158,6 +110,20 @@ export function AutomationBuilderPage({
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
     null,
   );
+  const [topbarCenterHost, setTopbarCenterHost] = useState<HTMLElement | null>(
+    null,
+  );
+  const [topbarActionsHost, setTopbarActionsHost] =
+    useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setTopbarCenterHost(
+      document.getElementById("automation-builder-topbar-center-host"),
+    );
+    setTopbarActionsHost(
+      document.getElementById("automation-builder-topbar-actions-host"),
+    );
+  }, []);
 
   const {
     data: remoteAutomation,
@@ -656,80 +622,67 @@ export function AutomationBuilderPage({
     }
   }, [guardEdit]);
 
-  const persistentHeader = (
-    <header className="relative shrink-0 border-b border-zinc-200/70 bg-gradient-to-b from-white via-white to-zinc-50/80 px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] sm:px-4 sm:py-3 lg:px-6 lg:py-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 lg:gap-4">
-        <BuilderTabToggle tab={tab} onChange={setBuilderTab} />
-
-        {tab === "builder" ? (
-            <button
-              type="button"
-              onClick={() =>
-                void (automationActive ? handleDeactivate() : handleActivate())
-              }
-              disabled={activating}
-              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
-                automationActive
-                  ? "border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
-                  : "bg-zinc-950 text-white hover:bg-black"
-              }`}
-            >
-              {activating ? (
-                <Loader2
-                  className={`size-3.5 animate-spin sm:size-4 ${automationActive ? "text-zinc-900" : "text-white"}`}
-                  aria-hidden
-                />
-              ) : (
-                <Zap
-                  className={`size-3.5 sm:size-4 ${automationActive ? "text-zinc-900" : "text-white"}`}
-                  aria-hidden
-                />
-              )}
-              {activating
-                ? automationActive
-                  ? "Deactivating…"
-                  : "Activating…"
-                : automationActive
-                  ? "Deactivate"
-                  : "Activate"}
-            </button>
+  const builderAlerts =
+    tab === "builder" && (automationActive || hasUnsavedStepSettings) ? (
+      <div className="shrink-0 space-y-2 border-b border-zinc-200/60 bg-white/80 px-3 py-2 sm:px-4 sm:py-2.5">
+        {automationActive ? (
+          <div className="flex items-start gap-2 rounded-xl border border-blue-200/90 bg-blue-50/90 px-3 py-2 text-xs leading-relaxed text-blue-950 sm:text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden />
+            <p>
+              This automation is live. Deactivate it before editing steps or email
+              copy.
+            </p>
+          </div>
+        ) : null}
+        {!automationActive && hasUnsavedStepSettings ? (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950 sm:text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
+            <p>
+              Unsaved email changes — guests still get the old text until you click{" "}
+              <span className="font-semibold">Save changes</span> in the settings panel.
+              Activate saves your edits automatically.
+            </p>
+          </div>
         ) : null}
       </div>
-      {tab === "builder" && automationActive ? (
-        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-blue-200/90 bg-blue-50/90 px-3 py-2.5 text-xs leading-relaxed text-blue-950 sm:text-sm">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden />
-          <p>
-            This automation is live. Deactivate it before editing steps or email
-            copy.
-          </p>
-        </div>
-      ) : null}
-      {tab === "builder" && !automationActive && hasUnsavedStepSettings ? (
-        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-2.5 text-xs leading-relaxed text-amber-950 sm:text-sm">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
-          <p>
-            Unsaved email changes — guests still get the old text until you click{" "}
-            <span className="font-semibold">Save changes</span> in the settings panel.
-            Activate saves your edits automatically.
-          </p>
-        </div>
-      ) : null}
-    </header>
-  );
+    ) : null;
+
+  const topbarCenterPortal =
+    topbarCenterHost != null
+      ? createPortal(
+          <AutomationBuilderTabBar tab={tab} onTabChange={setBuilderTab} />,
+          topbarCenterHost,
+        )
+      : null;
+
+  const topbarActionsPortal =
+    topbarActionsHost != null && tab === "builder"
+      ? createPortal(
+          <AutomationBuilderActivateButton
+            automationActive={automationActive}
+            activating={activating}
+            onActivate={handleActivate}
+            onDeactivate={handleDeactivate}
+          />,
+          topbarActionsHost,
+        )
+      : null;
 
   return (
     <motion.div
-      className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col overflow-hidden bg-[#f0f0f2]"
+      className="automation-builder-page flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f0f0f2]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: automationEase }}
     >
-      {persistentHeader}
+      {topbarCenterPortal}
+      {topbarActionsPortal}
+      {builderAlerts}
       <AnimatePresence mode="wait">
       {tab === "builder" ? (
         <motion.div
           key="builder"
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          className="automation-builder-main flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}

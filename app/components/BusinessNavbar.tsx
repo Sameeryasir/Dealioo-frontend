@@ -22,8 +22,8 @@ export default function BusinessNavbar() {
 
   return (
     <header className="rd-topbar" aria-label="Dashboard tools">
-      <div className="rd-topbar-inner flex h-[var(--rd-header-h)] items-center justify-between gap-2.5 sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+      <div className="rd-topbar-inner relative flex h-[var(--rd-header-h)] items-center justify-between gap-2.5 sm:gap-3">
+        <div className="rd-topbar-leading relative z-[2] flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={toggleSidebar}
@@ -45,14 +45,25 @@ export default function BusinessNavbar() {
           </Link>
         </div>
 
-        <div className="flex shrink-0 items-center">
+        <div
+          id="automation-builder-topbar-center-host"
+          className="automation-builder-topbar-center-host"
+        />
+
+        <div className="rd-topbar-trailing relative z-[2] flex shrink-0 items-center gap-2 sm:gap-2.5">
           <div
-            className="inline-flex rounded-full border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] p-1 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
-            aria-label={`Signed in as ${displayName}`}
-          >
-            <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
-              <UserAccountAvatar user={user} className="size-full" />
-            </span>
+            id="automation-builder-topbar-actions-host"
+            className="automation-builder-topbar-actions-host flex items-center"
+          />
+          <div className="flex shrink-0 items-center">
+            <div
+              className="inline-flex rounded-full border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] p-1 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
+              aria-label={`Signed in as ${displayName}`}
+            >
+              <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
+                <UserAccountAvatar user={user} className="size-full" />
+              </span>
+            </div>
           </div>
         </div>
       </div>

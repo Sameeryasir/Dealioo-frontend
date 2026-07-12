@@ -142,7 +142,7 @@ export function BlockSidebar({
 
   return (
     <aside className="flex h-full w-full min-w-0 flex-col border-r border-zinc-200/60 bg-white shadow-[4px_0_28px_rgba(0,0,0,0.04)]">
-      <div className="shrink-0 border-b border-zinc-100/90 bg-gradient-to-br from-zinc-50/90 via-white to-white px-3 py-3 lg:px-3.5 lg:py-3.5 xl:px-4 xl:py-4">
+      <div className="shrink-0 border-b border-zinc-100/90 bg-gradient-to-br from-zinc-50/90 via-white to-white px-2.5 py-3 lg:px-3 lg:py-3 xl:px-3.5 xl:py-3.5">
         <div className="flex items-start gap-2">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/70 bg-white text-zinc-600 shadow-sm ring-1 ring-zinc-950/[0.04] xl:size-9 xl:rounded-xl">
             <LayoutGrid className="size-3.5 xl:size-4" strokeWidth={2} aria-hidden />
@@ -170,7 +170,7 @@ export function BlockSidebar({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 [scrollbar-gutter:stable] xl:px-3 xl:py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-3 [scrollbar-gutter:stable] xl:px-2.5 xl:py-3.5">
         {query.trim() && filtered.length === 0 ? (
           <p className="rounded-xl border border-dashed border-zinc-200/80 bg-zinc-50/60 px-3 py-8 text-center text-xs leading-relaxed text-zinc-500">
             No blocks match your search.
