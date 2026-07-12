@@ -9,11 +9,13 @@ import {
   Info,
   Link2,
   Megaphone,
+  PanelLeft,
   Pencil,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
@@ -107,6 +109,8 @@ export default function CampaignHeader({
   const [editCampaignOpen, setEditCampaignOpen] = useState(false);
   const [trackingOrigin, setTrackingOrigin] = useState("");
   const [copyDone, setCopyDone] = useState(false);
+  const { expanded: sidebarExpanded, toggle: toggleSidebar } =
+    useSidebarExpand();
 
   const landingTrackingPath = useMemo(() => {
     const routeId = resolveFunnelRouteId(funnelId, campaignId);
@@ -184,7 +188,7 @@ export default function CampaignHeader({
         onClick={() => selectTab(id)}
         className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
           immersiveChrome
-            ? `rounded-none px-2.5 py-2 text-[0.75rem] sm:px-3 sm:text-[0.78rem] ${
+            ? `rounded-none px-2 py-1.5 text-[0.7rem] sm:px-2.5 sm:py-2 sm:text-[0.75rem] md:px-3 md:text-[0.78rem] ${
                 active ? immersiveTabActive : immersiveTabIdle
               }`
             : `gap-1.5 rounded-md px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.75rem] ${
@@ -216,27 +220,37 @@ export default function CampaignHeader({
       {immersiveChrome ? (
         <div className="campaign-immersive-patti__inner">
           <div className="campaign-immersive-patti__side campaign-immersive-patti__side--start gap-2">
-            <Link
-              href={campaignsHref}
-              className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
-              aria-label="Back to campaigns"
-            >
-              <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
-            </Link>
-            <div className="campaign-immersive-patti__side-title hidden min-w-0 md:block">
-              <p
-                className="m-0 truncate text-[0.8rem] font-extrabold tracking-tight text-[#07111f] xl:text-[0.88rem]"
-                title={campaignTitle}
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 md:hidden"
+                aria-expanded={sidebarExpanded}
+                aria-controls="rd-sidebar-nav"
+                aria-label={sidebarExpanded ? "Close menu" : "Open menu"}
               >
-                {campaignTitle}
-              </p>
-              {offerPriceLine ? (
-                <p className="m-0 truncate text-[0.65rem] font-medium text-slate-500">
-                  {offerPriceLine}
+                <PanelLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
+              </button>
+              <Link
+                href={campaignsHref}
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+                aria-label="Back to campaigns"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
+              </Link>
+              <div className="campaign-immersive-patti__side-title min-w-0 flex-1 md:max-w-[14rem] md:flex-none">
+                <p
+                  className="m-0 truncate text-[0.78rem] font-extrabold tracking-tight text-[#07111f] md:text-[0.8rem] xl:text-[0.88rem]"
+                  title={campaignTitle}
+                >
+                  {campaignTitle}
                 </p>
-              ) : null}
+                {offerPriceLine ? (
+                  <p className="m-0 truncate text-[0.62rem] font-medium text-slate-500 md:text-[0.65rem]">
+                    {offerPriceLine}
+                  </p>
+                ) : null}
+              </div>
             </div>
-          </div>
 
           <nav
             className="campaign-immersive-patti__nav"
@@ -248,30 +262,30 @@ export default function CampaignHeader({
           </nav>
 
           <div className="campaign-immersive-patti__side campaign-immersive-patti__side--end shrink-0 gap-1.5">
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={campaignId == null || !isFunnelTab}
-              title={
-                campaignId == null
-                  ? "Campaign details not loaded yet"
-                  : !isFunnelTab
-                    ? "Open the Funnel tab to generate a tracking link"
-                    : "Get link for Facebook ads"
-              }
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-semibold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:px-3"
-            >
-              <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
-              <span className="hidden sm:inline">Tracking link</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditCampaignOpen(true)}
-              disabled={campaignId == null || campaign == null}
-              title="Edit campaign"
-              aria-label="Edit campaign"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
-            >
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={campaignId == null || !isFunnelTab}
+                title={
+                  campaignId == null
+                    ? "Campaign details not loaded yet"
+                    : !isFunnelTab
+                      ? "Open the Funnel tab to generate a tracking link"
+                      : "Get link for Facebook ads"
+                }
+                className="inline-flex items-center gap-1.5 rounded-md bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-semibold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:px-3"
+              >
+                <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
+                <span className="hidden sm:inline">Tracking link</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditCampaignOpen(true)}
+                disabled={campaignId == null || campaign == null}
+                title="Edit campaign"
+                aria-label="Edit campaign"
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
+              >
               <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
             </button>
           </div>

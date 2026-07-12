@@ -12,6 +12,7 @@ type SidebarExpandContextValue = {
   expanded: boolean;
   toggle: () => void;
   setExpanded: (value: boolean) => void;
+  closeMobile: () => void;
 };
 
 const SidebarExpandContext = createContext<SidebarExpandContextValue | null>(
@@ -25,8 +26,17 @@ export function SidebarExpandProvider({ children }: { children: ReactNode }) {
     setExpanded((prev) => !prev);
   }, []);
 
+  const closeMobile = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setExpanded(false);
+    }
+  }, []);
+
   return (
-    <SidebarExpandContext.Provider value={{ expanded, toggle, setExpanded }}>
+    <SidebarExpandContext.Provider
+      value={{ expanded, toggle, setExpanded, closeMobile }}
+    >
       {children}
     </SidebarExpandContext.Provider>
   );

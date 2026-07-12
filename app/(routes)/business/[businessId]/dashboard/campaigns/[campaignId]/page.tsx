@@ -94,9 +94,7 @@ export default function CampaignWelcomePage() {
           }`}
         >
           <div
-            className={`flex min-h-0 flex-1 flex-col ${
-              activeTabId === "funnel" ? "overflow-hidden" : "overflow-y-auto"
-            }`}
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           >
             {activeTabId === "funnel" ? (
               <div className="funnel-editor-host flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
@@ -110,20 +108,24 @@ export default function CampaignWelcomePage() {
                 />
               </div>
             ) : activeTabId === "overview" ? (
-              <FunnelOverviewPanel
-                embedded
-                campaignName={campaign?.campaignName}
-                price={campaign?.price}
-                funnelId={funnelId}
-                isFunnelIdLoading={isFunnelIdLoading}
-                onCreateFunnel={() => setActiveTabId("funnel")}
-              />
+              <div className="campaign-immersive-overview">
+                <FunnelOverviewPanel
+                  embedded
+                  campaignName={campaign?.campaignName}
+                  price={campaign?.price}
+                  funnelId={funnelId}
+                  isFunnelIdLoading={isFunnelIdLoading}
+                  onCreateFunnel={() => setActiveTabId("funnel")}
+                />
+              </div>
             ) : activeTabId === "orders" ? (
-              <FunnelOrdersPanel
-                embedded
-                funnelId={funnelId}
-                isFunnelIdLoading={isFunnelIdLoading}
-              />
+              <div className="campaign-immersive-overview">
+                <FunnelOrdersPanel
+                  embedded
+                  funnelId={funnelId}
+                  isFunnelIdLoading={isFunnelIdLoading}
+                />
+              </div>
             ) : activeTabId === "guests" ? (
               <CampaignGuestsPanel
                 embedded

@@ -37,7 +37,7 @@ export function OverviewChartShell({
 }) {
   return (
     <div
-      className={`group/chart relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:border-[#1877f2]/25 hover:shadow-[0_14px_36px_rgba(24,119,242,0.1)] ${className}`}
+      className={`group/chart relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:border-[#1877f2]/25 hover:shadow-[0_14px_36px_rgba(24,119,242,0.1)] ${className}`}
     >
       <span
         className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accentTopBar[accent]}`}

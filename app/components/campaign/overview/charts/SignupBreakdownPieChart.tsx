@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { OverviewChartCanvas } from "@/app/components/campaign/overview/charts/OverviewChartCanvas";
 import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
@@ -85,54 +86,56 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
     <OverviewChartShell
       title="Signup breakdown"
       subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months combined`}
-      minHeightClass="min-h-[320px]"
+      minHeightClass="min-h-0"
       accent="orange"
     >
       {hasData ? (
         <>
-          <div className="h-[250px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart margin={PIE_CHART_MARGIN}>
-                <OverviewChartGradientDefs stops={gradients.stops} />
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="54%"
-                  outerRadius="78%"
-                  paddingAngle={3}
-                  cornerRadius={6}
-                  stroke="#ffffff"
-                  strokeWidth={3}
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={entry.name}
-                      fill={`url(#${sliceIds[index] ?? sliceIds[0]})`}
+          <OverviewChartCanvas>
+            {({ width, height }) => (
+              <ResponsiveContainer width={width} height={height}>
+                <PieChart margin={PIE_CHART_MARGIN}>
+                  <OverviewChartGradientDefs stops={gradients.stops} />
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="54%"
+                    outerRadius="78%"
+                    paddingAngle={3}
+                    cornerRadius={6}
+                    stroke="#ffffff"
+                    strokeWidth={3}
+                  >
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={entry.name}
+                        fill={`url(#${sliceIds[index] ?? sliceIds[0]})`}
+                      />
+                    ))}
+                    <Label
+                      position="center"
+                      content={({ viewBox }) => {
+                        if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
+                          return null;
+                        }
+                        return (
+                          <PieCenterLabel
+                            cx={viewBox.cx}
+                            cy={viewBox.cy}
+                            total={total}
+                          />
+                        );
+                      }}
                     />
-                  ))}
-                  <Label
-                    position="center"
-                    content={({ viewBox }) => {
-                      if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
-                        return null;
-                      }
-                      return (
-                        <PieCenterLabel
-                          cx={viewBox.cx}
-                          cy={viewBox.cy}
-                          total={total}
-                        />
-                      );
-                    }}
-                  />
-                </Pie>
-                <Tooltip content={<OverviewChartTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  </Pie>
+                  <Tooltip content={<OverviewChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </OverviewChartCanvas>
 
           <OverviewChartLegend items={legendItems} />
         </>

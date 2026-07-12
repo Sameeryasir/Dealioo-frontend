@@ -45,7 +45,8 @@ export default function AdminPanelSidebar() {
   const router = useRouter();
   const { clearPassword } = useCredentialContext();
   const scannerUser = isScannerUser();
-  const { expanded, toggle: toggleExpanded } = useSidebarExpand();
+  const { expanded, toggle: toggleExpanded, closeMobile, setExpanded } =
+    useSidebarExpand();
 
   const businessIdParam = params?.businessId;
   const businessId =
@@ -93,6 +94,21 @@ export default function AdminPanelSidebar() {
   const settingsActive =
     pathname === settingsBasePath ||
     pathname.startsWith(`${settingsBasePath}/`);
+
+  useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -176,6 +192,13 @@ export default function AdminPanelSidebar() {
 
   return (
     <>
+      <button
+        type="button"
+        className={`rd-sidebar-backdrop ${expanded ? "rd-sidebar-backdrop--visible" : ""}`}
+        aria-label="Close menu"
+        tabIndex={expanded ? 0 : -1}
+        onClick={() => setExpanded(false)}
+      />
       <aside
         className={`rd-sidebar ${expanded ? "rd-sidebar--expanded" : "rd-sidebar--collapsed"} ${
           hydrated ? "rd-sidebar--ready" : ""
@@ -244,6 +267,7 @@ export default function AdminPanelSidebar() {
               <Link
                 key={href}
                 href={href}
+                onClick={closeMobile}
                 aria-label={
                   label === "Chats" && hasUnreadChats
                     ? `${label} (new message)`
@@ -281,6 +305,7 @@ export default function AdminPanelSidebar() {
 
           <Link
             href={settingsHref}
+            onClick={closeMobile}
             className={`rd-sidebar-item group ${
               settingsActive ? "rd-sidebar-item--active" : ""
             }`}

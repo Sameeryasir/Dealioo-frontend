@@ -78,10 +78,10 @@ function OverviewKpiTile({
 
   return (
     <div
-      className={`group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
+      className={`funnel-overview-kpi-tile group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
     >
       <span
-        className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+        className={`funnel-overview-kpi-tile__icon flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
       >
         <Icon className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
@@ -92,7 +92,7 @@ function OverviewKpiTile({
           {label}
         </p>
         <p
-          className={`m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] ${hoverText}`}
+          className={`funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] ${hoverText}`}
         >
           {value}
         </p>
@@ -108,8 +108,8 @@ function OverviewKpiTile({
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-5" aria-busy="true" aria-label="Loading stats">
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+    <div className="funnel-overview-content" aria-busy="true" aria-label="Loading stats">
+      <div className="funnel-overview-kpi-grid">
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -124,13 +124,13 @@ function OverviewSkeleton() {
         ))}
       </div>
 
-      <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
-        <div className="min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
+      <div className="funnel-overview-chart-grid">
+        <div className="funnel-overview-chart-slot min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-36" />
           <Skeleton funnel className="mt-2 h-3 w-28" />
           <Skeleton funnel className="mt-6 h-[220px] w-full rounded-xl" />
         </div>
-        <div className="min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
+        <div className="funnel-overview-chart-slot min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-32" />
           <Skeleton funnel className="mt-2 h-3 w-40" />
           <Skeleton funnel className="mt-6 h-[220px] w-full rounded-full" />
@@ -346,32 +346,28 @@ export function FunnelOverviewPanel({
   const hasAnalyticsMonthly = hasAnalyticsActivity;
 
   const performanceBandClass = embedded
-    ? "relative shrink-0 bg-white px-0 py-3 sm:py-3.5"
-    : "relative shrink-0 border-b border-[#e8edf5] bg-white px-2.5 py-3 sm:px-3 sm:py-3.5";
+    ? "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white"
+    : "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white";
 
-  const panelBodyPadClass = embedded
-    ? "px-0 py-3.5 sm:py-4"
-    : "px-2.5 py-3.5 sm:px-3 sm:py-4";
-
-  const panelSkeletonPadClass = embedded
-    ? "px-0 py-4 sm:py-5"
-    : "px-2.5 py-4 sm:px-3 sm:py-5";
+  const panelBodyPadClass = "funnel-overview-body";
+  const panelSkeletonPadClass = "funnel-overview-body";
 
   const panelBody = (
     <>
       <div className={performanceBandClass}>
-        <div className="flex flex-wrap items-center justify-between gap-2 xl:flex-nowrap">
-          <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-            Campaign performance
+        <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+          Campaign performance
+        </span>
+        <div className="funnel-overview-performance-band__meta">
+          <span
+            className="inline-flex max-w-full items-center rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.2)]"
+            title={displayName}
+          >
+            {displayName}
           </span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.2)]">
-              {displayName}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
-              Last {OVERVIEW_MONTH_COUNT} months
-            </span>
-          </div>
+          <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
+            Last {OVERVIEW_MONTH_COUNT} months
+          </span>
         </div>
       </div>
 
@@ -391,13 +387,13 @@ export function FunnelOverviewPanel({
         <div className={`rd-premium-panel__body ${panelBodyPadClass}`}>
           <motion.div
             key="overview-content"
-            className="space-y-4 lg:space-y-5"
+            className="funnel-overview-content"
             variants={funnelPanelStagger}
             initial="hidden"
             animate="show"
           >
             <motion.section
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4 lg:gap-3.5 xl:gap-4"
+              className="funnel-overview-kpi-grid"
               aria-label="Campaign summary"
               variants={funnelPanelStagger}
             >
@@ -455,11 +451,11 @@ export function FunnelOverviewPanel({
                 <div className="rd-premium-section-head">
                   <h2>Conversion trends</h2>
                 </div>
-                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2 lg:gap-4">
-                  <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                <div className="funnel-overview-chart-grid">
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <SignupsPaymentsBarChart data={signupsPaymentsMonthly} />
                   </motion.div>
-                  <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <SignupBreakdownPieChart data={signupBreakdownMonthly} />
                   </motion.div>
                 </div>
@@ -477,7 +473,7 @@ export function FunnelOverviewPanel({
                 </div>
 
                 <motion.div
-                  className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4"
+                  className="funnel-overview-kpi-grid"
                   variants={funnelPanelStagger}
                 >
                   <motion.div variants={funnelPanelItem}>
@@ -522,8 +518,8 @@ export function FunnelOverviewPanel({
                   </motion.div>
                 </motion.div>
 
-                <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2 lg:gap-4">
-                  <motion.div variants={funnelPanelItem}>
+                <div className="funnel-overview-chart-grid">
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Page views by month"
                       subtitle="Monthly page views"
@@ -532,7 +528,7 @@ export function FunnelOverviewPanel({
                       strokeColor={OVERVIEW_CHART_COLORS.blue}
                     />
                   </motion.div>
-                  <motion.div variants={funnelPanelItem}>
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Button clicks by month"
                       subtitle="Monthly button clicks"
@@ -541,7 +537,7 @@ export function FunnelOverviewPanel({
                       strokeColor={OVERVIEW_CHART_COLORS.pink}
                     />
                   </motion.div>
-                  <motion.div variants={funnelPanelItem}>
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Unique visitors by month"
                       subtitle="Monthly unique visitors"
@@ -550,7 +546,7 @@ export function FunnelOverviewPanel({
                       strokeColor={OVERVIEW_CHART_COLORS.green}
                     />
                   </motion.div>
-                  <motion.div variants={funnelPanelItem}>
+                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Sessions by month"
                       subtitle="Monthly sessions"
@@ -571,7 +567,7 @@ export function FunnelOverviewPanel({
   if (embedded) {
     return (
       <div
-        className="campaign-immersive-panel relative flex min-h-0 w-full flex-1 flex-col"
+        className="campaign-immersive-panel funnel-overview-root relative flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden"
         aria-label="Campaign overview"
       >
         <OverviewAlertDialog
@@ -590,7 +586,9 @@ export function FunnelOverviewPanel({
           className="pointer-events-none absolute bottom-8 left-6 size-24 rounded-full bg-[#e1306c]/8 blur-3xl"
           aria-hidden
         />
-        {panelBody}
+        <div className="funnel-overview-scroll">
+          {panelBody}
+        </div>
       </div>
     );
   }
@@ -610,7 +608,7 @@ export function FunnelOverviewPanel({
       />
 
       <div className="rd-premium-page flex min-h-0 w-full flex-1 flex-col px-3 py-4 sm:px-4 sm:py-5 lg:px-6">
-        <article className={`${overviewCardClass} rd-premium-panel w-full`}>
+        <article className={`${overviewCardClass} funnel-overview-root rd-premium-panel w-full min-w-0`}>
           <span
             className="pointer-events-none absolute -top-10 right-8 size-32 rounded-full bg-[#1877f2]/10 blur-3xl"
             aria-hidden

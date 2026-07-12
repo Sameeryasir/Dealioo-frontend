@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { OverviewChartCanvas } from "@/app/components/campaign/overview/charts/OverviewChartCanvas";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
@@ -51,70 +52,72 @@ export function AnalyticsMetricMiniChart({
     <OverviewChartShell
       title={title}
       subtitle={`${subtitle}, last ${OVERVIEW_MONTH_COUNT} months`}
-      minHeightClass="min-h-[220px]"
+      minHeightClass="min-h-0"
       className="h-full"
       accent={strokeToAccent(strokeColor)}
       stat={total.toLocaleString()}
     >
-      <div className="h-[190px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height={190}>
-          <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <OverviewChartGradientDefs stops={gradient.stops} />
-            <CartesianGrid
-              strokeDasharray="4 6"
-              stroke="#e8edf5"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-              tickFormatter={shortenMonthAxisLabel}
-              height={30}
-              dy={4}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fill: "#cbd5e1", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              width={28}
-            />
-            <Tooltip content={<OverviewChartTooltip />} />
-            <Area
-              id={`${gradient.lineId}-fill`}
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${gradient.areaId})`}
-              fillOpacity={1}
-              tooltipType="none"
-            />
-            <Line
-              id={`${gradient.lineId}-stroke`}
-              type="monotone"
-              dataKey="value"
-              name={title}
-              stroke={strokeColor}
-              strokeWidth={3}
-              dot={{
-                r: 3.5,
-                fill: "#ffffff",
-                stroke: strokeColor,
-                strokeWidth: 2.5,
-              }}
-              activeDot={{
-                r: 6,
-                fill: strokeColor,
-                stroke: "#ffffff",
-                strokeWidth: 3,
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <OverviewChartCanvas variant="mini">
+        {({ width, height }) => (
+          <ResponsiveContainer width={width} height={height}>
+            <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
+              <OverviewChartGradientDefs stops={gradient.stops} />
+              <CartesianGrid
+                strokeDasharray="4 6"
+                stroke="#e8edf5"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                tickFormatter={shortenMonthAxisLabel}
+                height={30}
+                dy={4}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#cbd5e1", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                width={28}
+              />
+              <Tooltip content={<OverviewChartTooltip />} />
+              <Area
+                id={`${gradient.lineId}-fill`}
+                type="monotone"
+                dataKey="value"
+                stroke="none"
+                fill={`url(#${gradient.areaId})`}
+                fillOpacity={1}
+                tooltipType="none"
+              />
+              <Line
+                id={`${gradient.lineId}-stroke`}
+                type="monotone"
+                dataKey="value"
+                name={title}
+                stroke={strokeColor}
+                strokeWidth={3}
+                dot={{
+                  r: 3.5,
+                  fill: "#ffffff",
+                  stroke: strokeColor,
+                  strokeWidth: 2.5,
+                }}
+                activeDot={{
+                  r: 6,
+                  fill: strokeColor,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </OverviewChartCanvas>
     </OverviewChartShell>
   );
 }
