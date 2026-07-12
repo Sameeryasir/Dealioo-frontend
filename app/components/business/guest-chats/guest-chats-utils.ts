@@ -1,6 +1,7 @@
 import { customerLabel } from "@/app/components/automation/execution-status-ui";
 import {
-  stripEmailSignoffForChat,
+  sanitizeChatMessageBody,
+  sanitizeChatMessagePreview,
 } from "@/app/lib/strip-email-signoff-for-chat";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
 import type {
@@ -128,16 +129,21 @@ export function matchesSearch(row: ChatCustomer, query: string): boolean {
   return haystack.includes(needle);
 }
 
+/** Sidebar-style navy blue — visibly blue, not black. */
+export function guestAvatarSidebarClass(): string {
+  return "from-[#12325f] via-[#15407a] to-[#1a4f8f] shadow-[0_4px_14px_rgba(24,119,242,0.28)] ring-[#1877f2]/35";
+}
+
 export function channelGradientClass(channel: ConversationMessageKind | null | undefined): string {
   switch (channel) {
     case "email":
-      return "from-blue-500 to-blue-600 shadow-blue-500/25 ring-blue-100/80";
+      return guestAvatarSidebarClass();
     case "sms":
-      return "from-green-500 to-emerald-600 shadow-green-500/25 ring-emerald-100/80";
+      return guestAvatarSidebarClass();
     case "whatsapp":
-      return "from-emerald-500 to-teal-600 shadow-emerald-500/25 ring-teal-100/80";
+      return guestAvatarSidebarClass();
     default:
-      return "from-zinc-400 to-zinc-500 shadow-zinc-400/20 ring-zinc-100/80";
+      return guestAvatarSidebarClass();
   }
 }
 
@@ -162,12 +168,11 @@ export function truncateListPreview(text: string, maxLength = 72): string {
 }
 
 export function listItemPreview(row: ChatCustomer): string {
-  return truncateListPreview(stripEmailSignoffForChat(row.lastMessagePreview));
+  return truncateListPreview(sanitizeChatMessagePreview(row.lastMessagePreview));
 }
 
 export function messagePreview(message: ConversationMessage): string {
-  const body = message.body.trim() || "Message sent";
-  return stripEmailSignoffForChat(body) || "Message sent";
+  return sanitizeChatMessageBody(message.body);
 }
 
 export function participantLabel(

@@ -76,6 +76,10 @@ export function GuestChatMessageBubble({
   const rowSpacing =
     stackPosition === "first" || stackPosition === "middle" ? "mb-2" : "mb-4";
 
+  const guestBubbleBg =
+    "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] ring-1 ring-white/20";
+  const guestTailBg = "bg-[#0f5ed7]";
+
   const rowClass = isGuestMessage
     ? `flex w-full justify-start px-3 sm:px-4 ${rowSpacing}`
     : `flex w-full justify-end px-3 sm:px-4 ${rowSpacing}`;
@@ -83,7 +87,7 @@ export function GuestChatMessageBubble({
   const bubbleBg = isError
     ? "bg-red-50"
     : isGuestMessage
-      ? "bg-blue-500"
+      ? guestBubbleBg
       : "bg-white";
 
   let bubbleClass =
@@ -92,9 +96,9 @@ export function GuestChatMessageBubble({
   if (isError) {
     bubbleClass += " text-red-800 rounded-[18px]";
   } else if (isGuestMessage) {
-    bubbleClass += ` text-white ${bubbleBg} ${guestBubbleRadius(stackPosition)}`;
+    bubbleClass += ` text-white shadow-[0_8px_18px_rgba(24,119,242,0.32)] ${bubbleBg} ${guestBubbleRadius(stackPosition)}`;
   } else {
-    bubbleClass += ` text-zinc-800 ${bubbleBg} ${outboundBubbleRadius(stackPosition)}`;
+    bubbleClass += ` text-zinc-800 bg-white ring-1 ring-[#e8edf5] ${outboundBubbleRadius(stackPosition)}`;
   }
 
   const textClass =
@@ -104,12 +108,13 @@ export function GuestChatMessageBubble({
     : "shrink-0 text-[11px] font-normal text-zinc-400/90";
 
   const tailPosition = isGuestMessage ? "bottom-left" : "bottom-right";
+  const tailClass = isGuestMessage ? guestTailBg : bubbleBg;
 
   return (
     <div className={rowClass}>
       <article className={bubbleClass}>
         {isStackEnd && !isError ? (
-          <BubbleTail position={tailPosition} className={bubbleBg} />
+          <BubbleTail position={tailPosition} className={tailClass} />
         ) : null}
 
         <div className="relative z-[1] min-w-0">
@@ -118,7 +123,7 @@ export function GuestChatMessageBubble({
             className={textClass}
             linkClassName={
               isGuestMessage
-                ? "font-medium text-blue-100 underline decoration-blue-200/70 underline-offset-2"
+                ? "font-medium text-blue-50 underline decoration-blue-200/80 underline-offset-2"
                 : "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
             }
           />

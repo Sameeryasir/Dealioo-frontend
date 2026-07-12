@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { channelGradientClass, guestInitials } from "./guest-chats-utils";
+import { guestAvatarSidebarClass, guestInitials } from "./guest-chats-utils";
 import type { ConversationMessageKind } from "@/app/services/chat/get-business-conversation";
 
 export function GuestChatAvatar({
@@ -27,7 +27,7 @@ export function GuestChatAvatar({
         ? "size-10 text-xs"
         : "size-11 text-sm";
 
-  const className = `relative flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br font-bold text-white shadow-md ring-2 ${sizeClass} ${channelGradientClass(channel)}`;
+  const className = `relative flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br font-bold text-white ring-2 ${sizeClass} ${guestAvatarSidebarClass()}`;
 
   if (animated) {
     return (

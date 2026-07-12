@@ -27,7 +27,7 @@ export function GuestChatSearchBar({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-zinc-200/90 bg-white py-3 pl-11 pr-4 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 transition-all duration-200 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+        className="w-full rounded-2xl border border-[#e8edf5] bg-white py-3 pl-11 pr-4 text-sm text-[#07111f] shadow-sm placeholder:text-zinc-400 transition-all duration-200 focus:border-[#1877f2]/50 focus:outline-none focus:ring-4 focus:ring-[#1877f2]/15"
       />
     </motion.label>
   );

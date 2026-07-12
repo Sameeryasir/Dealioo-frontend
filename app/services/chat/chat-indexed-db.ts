@@ -19,7 +19,7 @@ import type {
 } from "@/app/services/chat/get-business-conversation";
 
 const DB_NAME = "retention-chat";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const CONVERSATIONS_STORE = "conversations";
 const CUSTOMERS_STORE = "customers";
 const LEGACY_CONVERSATION_LIST_STORE = "conversation-list";
@@ -208,6 +208,15 @@ function openChatDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(CUSTOMERS_STORE)) {
         db.createObjectStore(CUSTOMERS_STORE, { keyPath: "key" });
+      }
+
+      if (event.oldVersion < 5 && transaction) {
+        for (const storeName of [CONVERSATIONS_STORE, CUSTOMERS_STORE]) {
+          if (db.objectStoreNames.contains(storeName)) {
+            db.deleteObjectStore(storeName);
+            db.createObjectStore(storeName, { keyPath: "key" });
+          }
+        }
       }
 
       if (event.oldVersion < 4 && transaction) {

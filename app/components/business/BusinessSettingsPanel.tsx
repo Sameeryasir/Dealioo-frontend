@@ -28,6 +28,7 @@ import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google
 import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsCampaignsDialog";
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
+import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
@@ -287,6 +288,8 @@ export function BusinessSettingsPanel({
   const [stripeConnected, setStripeConnected] = useState(false);
   const [stripeStatusLoading, setStripeStatusLoading] = useState(true);
   const [stripeStatus, setStripeStatus] = useState<ConnectStatus>("idle");
+  const [stripeDisconnectStatus, setStripeDisconnectStatus] =
+    useState<ConnectStatus>("idle");
   const [stripeError, setStripeError] = useState<string | null>(null);
 
   const [metaConnected, setMetaConnected] = useState(false);
@@ -430,6 +433,32 @@ export function BusinessSettingsPanel({
       setStripeStatus("error");
       setStripeError(
         e instanceof Error ? e.message : "Could not connect to Stripe.",
+      );
+    }
+  };
+
+  const handleDisconnectStripe = async () => {
+    if (businessId == null) return;
+
+    const confirmed = window.confirm(
+      "Remove this Stripe account from Dealioo? Funnel payments will stop until you connect Stripe again.",
+    );
+    if (!confirmed) return;
+
+    setStripeDisconnectStatus("loading");
+    setStripeError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        throw new Error("You're signed out. Sign in again to remove Stripe.");
+      }
+      await disconnectStripe(token, businessId);
+      setStripeConnected(false);
+      setStripeDisconnectStatus("idle");
+    } catch (e) {
+      setStripeDisconnectStatus("error");
+      setStripeError(
+        e instanceof Error ? e.message : "Could not remove Stripe account.",
       );
     }
   };
@@ -700,7 +729,32 @@ export function BusinessSettingsPanel({
                         </p>
                       </div>
 
-                      {stripeStatusLoading ? null : !stripeConnected ? (
+                      {stripeStatusLoading ? null : stripeConnected ? (
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                          <button
+                            type="button"
+                            onClick={() => void handleDisconnectStripe()}
+                            disabled={
+                              stripeDisconnectStatus === "loading" ||
+                              stripeStatusLoading
+                            }
+                            className={integrationRemoveBtnClass}
+                          >
+                            {stripeDisconnectStatus === "loading" ? (
+                              <>
+                                <Loader2
+                                  className="size-3.5 animate-spin"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                Removing…
+                              </>
+                            ) : (
+                              "Remove account"
+                            )}
+                          </button>
+                        </div>
+                      ) : (
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
                           <button
                             type="button"
@@ -731,10 +785,11 @@ export function BusinessSettingsPanel({
                             )}
                           </button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
 
-                    {stripeStatus === "error" && stripeError ? (
+                    {(stripeStatus === "error" || stripeDisconnectStatus === "error") &&
+                    stripeError ? (
                       <div
                         role="alert"
                         className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"

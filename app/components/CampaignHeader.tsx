@@ -360,28 +360,32 @@ export default function CampaignHeader({
           role="dialog"
           aria-modal="true"
           aria-labelledby="tracking-link-dialog-title"
-          className="w-full max-w-lg overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl"
+          className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#0a1628]/15 bg-white shadow-2xl shadow-[#07111f]/20"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="relative bg-black px-6 pb-6 pt-6 text-white">
-            <div className="flex items-start justify-between gap-4">
+          <div className="relative overflow-hidden bg-gradient-to-b from-[#07111f] via-[#0a1628] to-[#0f1f3d] px-6 pb-6 pt-6 text-white">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_40%_at_50%_0%,rgba(24,119,242,0.28)_0%,transparent_70%),radial-gradient(ellipse_120%_35%_at_50%_100%,rgba(244,114,182,0.16)_0%,transparent_70%)]"
+            />
+            <div className="relative flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                   <Megaphone className="size-3" strokeWidth={2.5} aria-hidden />
                   Meta ads
                 </span>
                 <div className="mt-4 flex items-center gap-3.5">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-black">
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-white ring-1 ring-white/10">
                     <Link2 className="size-5" strokeWidth={2.25} aria-hidden />
                   </span>
                   <div className="min-w-0">
                     <h2
                       id="tracking-link-dialog-title"
-                      className="text-xl font-bold tracking-tight"
+                      className="text-xl font-bold tracking-tight text-white"
                     >
                       Tracking link
                     </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-white/60">
+                    <p className="mt-1 text-sm leading-relaxed text-white/62">
                       Paste as the website destination in your Facebook / Meta
                       ad landing step.
                     </p>
@@ -392,7 +396,7 @@ export default function CampaignHeader({
                 type="button"
                 aria-label="Close"
                 onClick={() => setTrackingDialogOpen(false)}
-                className="shrink-0 rounded-xl border border-white/15 p-2 text-white/60 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
+                className="relative shrink-0 rounded-lg p-2 text-white/70 transition hover:bg-white/8 hover:text-white"
               >
                 <X className="size-5" strokeWidth={2} aria-hidden />
               </button>
@@ -402,14 +406,14 @@ export default function CampaignHeader({
           <div className="bg-white px-6 py-6">
             {campaignId != null && landingTrackingUrl ? (
               <div className="space-y-5">
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                     Campaign
                   </p>
-                  <p className="mt-2 text-base font-semibold text-zinc-900">
+                  <p className="mt-2 text-base font-semibold text-[#07111f]">
                     {campaignTitle}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <p className="mt-1 text-sm text-slate-600">
                     {funnelId != null && funnelId >= 1
                       ? "Funnel is ready — copy the link below for your ads."
                       : "Save your funnel first so this link points to your live pages."}
@@ -419,34 +423,34 @@ export default function CampaignHeader({
                 <div>
                   <label
                     htmlFor="tracking-landing-url"
-                    className="mb-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500"
+                    className="mb-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"
                   >
                     <Link2 className="size-3.5" strokeWidth={2.5} aria-hidden />
                     Landing URL
                   </label>
-                  <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm">
+                  <div className="overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc]">
                     <div className="px-4 py-4">
                       <input
                         id="tracking-landing-url"
                         readOnly
                         value={landingTrackingUrl}
-                        className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[13px] leading-relaxed text-zinc-900 outline-none sm:text-sm"
+                        className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[13px] leading-relaxed text-[#07111f] outline-none sm:text-sm"
                       />
                     </div>
-                    <div className="flex flex-col gap-3 border-t border-zinc-200 bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="min-w-0 text-[11px] leading-relaxed text-zinc-500">
+                    <div className="flex flex-col gap-3 border-t border-[#e8edf5] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="min-w-0 text-[11px] leading-relaxed text-slate-500">
                         Origin
-                        <span className="mt-0.5 block break-all font-mono text-zinc-700">
+                        <span className="mt-0.5 block break-all font-mono text-slate-700">
                           {trackingOrigin || "—"}
                         </span>
                       </p>
                       <button
                         type="button"
                         onClick={() => void handleCopyLandingUrl()}
-                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition sm:w-auto ${
+                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-[0.85rem] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition sm:w-auto ${
                           copyDone
-                            ? "bg-zinc-900 text-white"
-                            : "border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800"
+                            ? "bg-gradient-to-br from-[#2b8fff] via-[#1877f2] to-[#1468e8] shadow-[0_8px_18px_rgba(24,119,242,0.32)]"
+                            : "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] shadow-[0_8px_18px_rgba(24,119,242,0.32)] hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8]"
                         }`}
                       >
                         {copyDone ? (
@@ -460,15 +464,15 @@ export default function CampaignHeader({
                   </div>
                 </div>
 
-                <div className="flex gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3.5">
+                <div className="flex gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5">
                   <Info
-                    className="mt-0.5 size-4 shrink-0 text-zinc-400"
+                    className="mt-0.5 size-4 shrink-0 text-[#1877f2]"
                     strokeWidth={2}
                     aria-hidden
                   />
-                  <p className="text-xs leading-relaxed text-zinc-600">
+                  <p className="text-xs leading-relaxed text-slate-600">
                     Dev server on port{" "}
-                    <span className="font-mono font-semibold text-zinc-900">
+                    <span className="font-mono font-semibold text-[#07111f]">
                       3002
                     </span>
                     . Uses your current browser origin — works with ngrok and
@@ -477,17 +481,17 @@ export default function CampaignHeader({
                 </div>
               </div>
             ) : (
-              <p className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3.5 text-sm text-zinc-700">
+              <p className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5 text-sm text-slate-700">
                 This campaign is not ready yet, so a tracking link cannot be
                 built.
               </p>
             )}
 
-            <div className="mt-7 flex flex-col-reverse gap-2.5 border-t border-zinc-100 pt-5 sm:flex-row sm:justify-end">
+            <div className="mt-7 flex flex-col-reverse gap-2.5 border-t border-[#e8edf5] pt-5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setTrackingDialogOpen(false)}
-                className="rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                className="rounded-[0.85rem] border border-[#e8edf5] bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fafc] hover:text-[#07111f]"
               >
                 Done
               </button>
@@ -496,7 +500,7 @@ export default function CampaignHeader({
                   href={landingTrackingPath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
+                  className="inline-flex items-center justify-center gap-2 rounded-[0.85rem] bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.32)] transition hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8]"
                 >
                   <ExternalLink className="size-4" strokeWidth={2.25} aria-hidden />
                   Open preview

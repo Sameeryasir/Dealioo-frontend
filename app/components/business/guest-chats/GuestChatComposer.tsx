@@ -46,7 +46,7 @@ export function GuestChatComposer({
   }
 
   return (
-    <div className="shrink-0 bg-transparent px-4 py-3 sm:px-5">
+    <div className="shrink-0 border-t border-[#e8edf5] bg-gradient-to-t from-[#e8f2ff]/30 to-white px-4 py-3 sm:px-5">
       <div className="mx-auto flex max-w-3xl items-center gap-2.5">
         <label className="sr-only" htmlFor="guest-chat-message">
           Message
@@ -62,14 +62,14 @@ export function GuestChatComposer({
           onKeyDown={handleKeyDown}
           rows={1}
           disabled={disabled || sending}
-          className="max-h-32 min-h-[2.75rem] flex-1 resize-none overflow-y-hidden rounded-2xl border border-zinc-200/90 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-900 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+          className="max-h-32 min-h-[2.75rem] flex-1 resize-none overflow-y-hidden rounded-2xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm leading-relaxed text-[#07111f] shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:border-[#1877f2]/50 focus:ring-4 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <button
           type="button"
           onClick={() => void handleSend()}
           disabled={!canSend}
           aria-label="Send message"
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] text-white shadow-md shadow-[#1877f2]/25 transition hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8] active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 disabled:from-zinc-200 disabled:via-zinc-200 disabled:to-zinc-200 disabled:shadow-none"
         >
           {sending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
