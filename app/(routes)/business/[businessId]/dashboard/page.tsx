@@ -1,7 +1,6 @@
 "use client";
 
 import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
-import { BusinessQuickStatsCard } from "@/app/components/business/BusinessQuickStatsCard";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
@@ -86,8 +85,7 @@ export default function BusinessDashboardPage() {
       aria-label="Business dashboard"
     >
       <div className="flex h-full min-h-0 flex-1 flex-col gap-4 sm:gap-[1.1rem]">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(14.5rem,16.5rem)] lg:items-stretch lg:gap-4">
-          <article className="rd-premium-hero relative h-full overflow-hidden md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(12.5rem,0.95fr)] md:items-stretch md:gap-0">
+        <article className="rd-premium-hero relative h-full overflow-hidden md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(12.5rem,0.95fr)] md:items-stretch md:gap-0">
             <span
               className="pointer-events-none absolute top-[-15%] right-[22%] z-0 hidden size-32 rounded-full bg-[#1877f2]/40 blur-2xl md:block"
               aria-hidden
@@ -143,18 +141,7 @@ export default function BusinessDashboardPage() {
                 )}
               </div>
             </div>
-          </article>
-
-          <aside className="min-w-0">
-            <BusinessQuickStatsCard
-              activeCampaigns={activityData?.activeCampaigns ?? 0}
-              totalMembers={activityData?.totalMembers ?? 0}
-              totalOrders={activityData?.totalOrders ?? 0}
-              todayRevenueCents={activityData?.todayRevenueCents ?? 0}
-              isLoading={activityChartQuery.isPending}
-            />
-          </aside>
-        </div>
+        </article>
 
         <section aria-label="Restaurant activity overview">
           <BusinessActivityOverviewPanel
