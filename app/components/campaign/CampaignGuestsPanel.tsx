@@ -2,6 +2,7 @@
 
 import { Calendar, Mail, Phone, UserRound, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -9,16 +10,16 @@ import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
-import { FUNNEL_GUESTS_PAGE_SIZE } from "@/app/services/funnel-event/get-funnel-guests";
-import { useEffect, useMemo, useState } from "react";
+import {
+  FUNNEL_GUESTS_PAGE_SIZE,
+  type FunnelGuestRecord,
+} from "@/app/services/funnel-event/get-funnel-guests";
 
 const guestsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
-const thClass =
-  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
-const tdClass =
-  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
+const thClass = "funnel-guests-th whitespace-nowrap text-left align-middle";
+const tdClass = "funnel-guests-td text-left align-middle text-slate-700";
 
 const guestsHeadIconClass = "text-[#1877f2]";
 const guestsHeadLabelClass = "text-slate-800";
@@ -57,7 +58,7 @@ const AVATAR_COLORS = [
 
 function GuestsTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
+    <div className="funnel-guests-table-skeleton overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
       <div className="border-b border-[#e8edf5] px-5 py-3">
         <div className="flex gap-8">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -122,8 +123,8 @@ function guestAvatarColor(seed: number): string {
 
 function GuestsPanelHeader({ total }: { total: number }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#e8edf5] pb-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="funnel-guests-header">
+      <div className="funnel-guests-header__copy">
         <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
           Guests
         </span>
@@ -131,9 +132,165 @@ function GuestsPanelHeader({ total }: { total: number }) {
           Funnel signups & members
         </span>
       </div>
-      <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+      <span className="funnel-guests-header__total rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
         {total} total
       </span>
+    </div>
+  );
+}
+
+function GuestsTableSection({
+  guests,
+  rowOffset,
+  page,
+  meta,
+  loading,
+  setPage,
+}: {
+  guests: FunnelGuestRecord[];
+  rowOffset: number;
+  page: number;
+  meta: NonNullable<ReturnType<typeof useFunnelGuests>["meta"]> | null;
+  loading: boolean;
+  setPage: (page: number) => void;
+}) {
+  return (
+    <div className="funnel-guests-surface">
+      <p className="funnel-guests-scroll-hint">
+        Swipe sideways to see all columns
+      </p>
+
+      <div className="funnel-guests-table-wrap">
+        <table className="funnel-guests-table">
+          <thead>
+            <motion.tr
+              variants={tableHeaderReveal}
+              initial="hidden"
+              animate="show"
+              className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
+            >
+              <th className={`${thClass} funnel-guests-th--index`}>
+                <TableColumnHeader
+                  label="#"
+                  iconClassName={guestsHeadIconClass}
+                  labelClassName={guestsHeadLabelClass}
+                />
+              </th>
+              <th className={`${thClass} funnel-guests-th--name`}>
+                <TableColumnHeader
+                  icon={UserRound}
+                  label="Name"
+                  iconClassName={guestsHeadIconClass}
+                  labelClassName={guestsHeadLabelClass}
+                />
+              </th>
+              <th className={`${thClass} funnel-guests-th--email`}>
+                <TableColumnHeader
+                  icon={Mail}
+                  label="Email"
+                  iconClassName={guestsHeadIconClass}
+                  labelClassName={guestsHeadLabelClass}
+                />
+              </th>
+              <th className={`${thClass} funnel-guests-th--phone`}>
+                <TableColumnHeader
+                  icon={Phone}
+                  label="Phone"
+                  iconClassName={guestsHeadIconClass}
+                  labelClassName={guestsHeadLabelClass}
+                />
+              </th>
+              <th className={`${thClass} funnel-guests-th--joined`}>
+                <TableColumnHeader
+                  icon={Calendar}
+                  label="Joined"
+                  iconClassName={guestsHeadIconClass}
+                  labelClassName={guestsHeadLabelClass}
+                />
+              </th>
+            </motion.tr>
+          </thead>
+          <motion.tbody
+            variants={tableBodyStagger}
+            initial="hidden"
+            animate="show"
+          >
+            {guests.map((guest, index) => {
+              const rowNumber = rowOffset + index + 1;
+              const initials = guestInitials(guest.name);
+              const avatarColor = guestAvatarColor(guest.id * 13 + index * 7);
+
+              return (
+                <motion.tr
+                  key={guest.id}
+                  variants={tableRowReveal}
+                  className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
+                >
+                  <td className={`${tdClass} funnel-guests-td--index`}>
+                    <span className="text-xs font-semibold tabular-nums text-slate-400">
+                      {rowNumber}
+                    </span>
+                  </td>
+                  <td className={`${tdClass} funnel-guests-td--name`}>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className={`funnel-guests-avatar flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]`}
+                      >
+                        {initials}
+                      </span>
+                      <span className="truncate font-semibold text-[#07111f]">
+                        {guest.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td
+                    className={`${tdClass} funnel-guests-td--email`}
+                    title={guest.email}
+                  >
+                    <a
+                      href={`mailto:${guest.email}`}
+                      className="block truncate text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                    >
+                      {guest.email}
+                    </a>
+                  </td>
+                  <td className={`${tdClass} funnel-guests-td--phone`}>
+                    {guest.phone?.trim() ? (
+                      <a
+                        href={`tel:${guest.phone.trim()}`}
+                        className="whitespace-nowrap text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                      >
+                        {guest.phone}
+                      </a>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td
+                    className={`${tdClass} funnel-guests-td--joined whitespace-nowrap text-slate-600`}
+                  >
+                    {formatDateTimeShort(guest.createdAt)}
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </motion.tbody>
+        </table>
+      </div>
+
+      {meta && meta.totalPages > 1 ? (
+        <div className="funnel-guests-pagination">
+          <OffsetPagination
+            page={page}
+            totalPages={meta.totalPages}
+            total={meta.total}
+            limit={meta.limit}
+            loading={loading}
+            onPageChange={setPage}
+            itemLabel="guests"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -206,178 +363,55 @@ export function CampaignGuestsPanel({
       {!showSkeleton && !error && guests.length > 0 ? (
         <motion.div
           key={`guests-page-${page}`}
+          className="funnel-guests-content"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: standardEase }}
         >
           <GuestsPanelHeader total={totalGuests} />
-
-          <div className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
-            <div className="overflow-x-auto overscroll-x-contain">
-              <table className="w-full min-w-[40rem] border-collapse">
-                <thead>
-                  <motion.tr
-                    variants={tableHeaderReveal}
-                    initial="hidden"
-                    animate="show"
-                    className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-                  >
-                    <th className={`${thClass} w-12`}>
-                      <TableColumnHeader
-                        label="#"
-                        iconClassName={guestsHeadIconClass}
-                        labelClassName={guestsHeadLabelClass}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={UserRound}
-                        label="Name"
-                        iconClassName={guestsHeadIconClass}
-                        labelClassName={guestsHeadLabelClass}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={Mail}
-                        label="Email"
-                        iconClassName={guestsHeadIconClass}
-                        labelClassName={guestsHeadLabelClass}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={Phone}
-                        label="Phone"
-                        iconClassName={guestsHeadIconClass}
-                        labelClassName={guestsHeadLabelClass}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={Calendar}
-                        label="Joined"
-                        iconClassName={guestsHeadIconClass}
-                        labelClassName={guestsHeadLabelClass}
-                      />
-                    </th>
-                  </motion.tr>
-                </thead>
-                <motion.tbody
-                  variants={tableBodyStagger}
-                  initial="hidden"
-                  animate="show"
-                >
-                  {guests.map((guest, index) => {
-                    const rowNumber = rowOffset + index + 1;
-                    const initials = guestInitials(guest.name);
-                    const avatarColor = guestAvatarColor(
-                      guest.id * 13 + index * 7,
-                    );
-
-                    return (
-                      <motion.tr
-                        key={guest.id}
-                        variants={tableRowReveal}
-                        className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
-                      >
-                        <td className={tdClass}>
-                          <span className="text-xs font-semibold tabular-nums text-slate-400">
-                            {rowNumber}
-                          </span>
-                        </td>
-                        <td className={tdClass}>
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <span
-                              className={`flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]`}
-                            >
-                              {initials}
-                            </span>
-                            <span className="truncate font-semibold text-[#07111f]">
-                              {guest.name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
-                          <a
-                            href={`mailto:${guest.email}`}
-                            className="block truncate text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
-                            title={guest.email}
-                          >
-                            {guest.email}
-                          </a>
-                        </td>
-                        <td className={tdClass}>
-                          {guest.phone?.trim() ? (
-                            <a
-                              href={`tel:${guest.phone.trim()}`}
-                              className="text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
-                            >
-                              {guest.phone}
-                            </a>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
-                        <td
-                          className={`${tdClass} whitespace-nowrap text-slate-600`}
-                        >
-                          {formatDateTimeShort(guest.createdAt)}
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </motion.tbody>
-              </table>
-            </div>
-
-            {meta && meta.totalPages > 1 ? (
-              <div className="border-t border-[#e8edf5] bg-[#f8fafc]/40 px-3 py-2 sm:px-4">
-                <OffsetPagination
-                  page={page}
-                  totalPages={meta.totalPages}
-                  total={meta.total}
-                  limit={meta.limit}
-                  loading={loading}
-                  onPageChange={setPage}
-                  itemLabel="guests"
-                />
-              </div>
-            ) : null}
-          </div>
+          <GuestsTableSection
+            guests={guests}
+            rowOffset={rowOffset}
+            page={page}
+            meta={meta}
+            loading={loading}
+            setPage={setPage}
+          />
         </motion.div>
       ) : null}
     </>
   );
 
-  return (
-    <div
-      className={
-        embedded
-          ? "min-h-0 w-full"
-          : "min-h-0 flex-1 overflow-y-auto bg-[#eef2f7]"
-      }
-    >
-      <OverviewAlertDialog
-        open={alertMessage != null}
-        message={alertMessage ?? ""}
-        onClose={() => {
-          setAlertMessage(null);
-          setAlertDismissed(true);
-        }}
-      />
+  const alert = (
+    <OverviewAlertDialog
+      open={alertMessage != null}
+      message={alertMessage ?? ""}
+      onClose={() => {
+        setAlertMessage(null);
+        setAlertDismissed(true);
+      }}
+    />
+  );
 
-      {embedded ? (
-        <div className="w-full px-0 py-3.5 sm:py-4">
+  if (embedded) {
+    return (
+      <div className="campaign-immersive-guests funnel-guests-root">
+        {alert}
+        <div className="funnel-guests-panel">
+          <div className="funnel-guests-body">{panelContent}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="funnel-guests-root min-h-0 flex-1 overflow-y-auto bg-[#eef2f7]">
+      {alert}
+      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <article className={`${guestsCardClass} p-4 sm:p-5`}>
           {panelContent}
-        </div>
-      ) : (
-        <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <article className={`${guestsCardClass} p-4 sm:p-5`}>
-            {panelContent}
-          </article>
-        </div>
-      )}
+        </article>
+      </div>
     </div>
   );
 }

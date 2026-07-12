@@ -127,19 +127,23 @@ export default function CampaignWelcomePage() {
                 />
               </div>
             ) : activeTabId === "guests" ? (
-              <CampaignGuestsPanel
-                embedded
-                funnelId={funnelId}
-                isFunnelIdLoading={isFunnelIdLoading}
-              />
+              <div className="campaign-immersive-overview">
+                <CampaignGuestsPanel
+                  embedded
+                  funnelId={funnelId}
+                  isFunnelIdLoading={isFunnelIdLoading}
+                />
+              </div>
             ) : activeTabId === "automations" ? (
-              <AutomationListPage
-                embedded
-                businessId={businessId}
-                campaignId={campaignId}
-                funnelId={funnelId}
-                onOpenBuilder={openAutomationBuilder}
-              />
+              <div className="campaign-immersive-overview">
+                <AutomationListPage
+                  embedded
+                  businessId={businessId}
+                  campaignId={campaignId}
+                  funnelId={funnelId}
+                  onOpenBuilder={openAutomationBuilder}
+                />
+              </div>
             ) : activeTabId === "ads" ? (
               <div className="campaign-immersive-tab-panel overflow-y-auto">
                 <CampaignAdsPanel

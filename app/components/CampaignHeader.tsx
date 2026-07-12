@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
@@ -109,6 +109,8 @@ export default function CampaignHeader({
   const [editCampaignOpen, setEditCampaignOpen] = useState(false);
   const [trackingOrigin, setTrackingOrigin] = useState("");
   const [copyDone, setCopyDone] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const tabButtonRefs = useRef<Partial<Record<string, HTMLButtonElement>>>({});
   const { expanded: sidebarExpanded, toggle: toggleSidebar } =
     useSidebarExpand();
 
@@ -144,6 +146,16 @@ export default function CampaignHeader({
       document.body.style.overflow = prev;
     };
   }, [trackingDialogOpen]);
+
+  useEffect(() => {
+    const activeButton = tabButtonRefs.current[activeTabId];
+    if (!activeButton || !navRef.current) return;
+    activeButton.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: "smooth",
+    });
+  }, [activeTabId]);
 
   const handleGenerate = useCallback(() => {
     onGenerateTrackingLink?.();
@@ -182,6 +194,10 @@ export default function CampaignHeader({
     return (
       <button
         key={id}
+        ref={(node) => {
+          if (node) tabButtonRefs.current[id] = node;
+          else delete tabButtonRefs.current[id];
+        }}
         type="button"
         role="tab"
         aria-selected={active}
@@ -252,14 +268,20 @@ export default function CampaignHeader({
               </div>
             </div>
 
-          <nav
-            className="campaign-immersive-patti__nav"
-            aria-label="Campaign sections"
-          >
-            <div className="campaign-immersive-patti__nav-track">
-              {tabButtons}
-            </div>
-          </nav>
+          <div className="campaign-immersive-patti__nav-wrap">
+            <nav
+              ref={navRef}
+              className="campaign-immersive-patti__nav"
+              aria-label="Campaign sections"
+            >
+              <div className="campaign-immersive-patti__nav-track">
+                {tabButtons}
+              </div>
+            </nav>
+            <p className="campaign-immersive-patti__nav-hint">
+              Swipe sideways for all sections
+            </p>
+          </div>
 
           <div className="campaign-immersive-patti__side campaign-immersive-patti__side--end shrink-0 gap-1.5">
               <button

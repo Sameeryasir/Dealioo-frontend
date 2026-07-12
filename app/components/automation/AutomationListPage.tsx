@@ -3,21 +3,12 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  ChevronRight,
-  CircleDot,
   Clock,
-  CreditCard,
   ExternalLink,
-  GitBranch,
   MoreHorizontal,
-  PauseCircle,
   Trash2,
-  Pencil,
   Plus,
   SearchX,
-  Send,
-  Tag,
-  UserPlus,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -25,11 +16,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { triggerIconClass } from "@/app/lib/badge-variants";
 import { panelRowMotion, panelStagger, standardEase } from "@/app/lib/motion";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
-import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
@@ -44,11 +33,10 @@ import { AutomationFilterDropdown } from "@/app/components/automation/Automation
 import { CreateAutomationModal } from "@/app/components/automation/CreateAutomationModal";
 import { DeleteAutomationDialog } from "@/app/components/automation/DeleteAutomationDialog";
 import { automationStatusBadgeClass } from "@/app/lib/badge-variants";
-import { primaryButtonMdClass, reportTableShellClass } from "@/app/lib/panel-styles";
+import { primaryButtonMdClass } from "@/app/lib/panel-styles";
 import type {
   AutomationFilter,
   AutomationListItem,
-  AutomationStatus,
 } from "@/app/components/automation/types";
 import {
   createAutomation,
@@ -73,48 +61,7 @@ function truncateDescription(description: string, maxLength = 40): string {
   return `${text.slice(0, maxLength)}…`;
 }
 
-function triggerIcon(trigger: string): LucideIcon {
-  const t = trigger.toLowerCase();
-  if (t.includes("signup")) return UserPlus;
-  if (t.includes("payment")) return CreditCard;
-  if (t.includes("funnel")) return GitBranch;
-  if (t.includes("tag")) return Tag;
-  return Zap;
-}
-
-function statusIcon(status: AutomationStatus): LucideIcon {
-  switch (status) {
-    case "active":
-      return CircleDot;
-    case "published":
-      return Send;
-    case "paused":
-      return PauseCircle;
-    case "draft":
-    default:
-      return Pencil;
-  }
-}
-
 const ICON_STROKE = 2.5;
-
-function IconBadge({
-  icon: Icon,
-  className,
-  iconClassName = "size-3.5",
-}: {
-  icon: LucideIcon;
-  className: string;
-  iconClassName?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex size-8 shrink-0 items-center justify-center rounded-lg ${className}`}
-    >
-      <Icon className={iconClassName} aria-hidden strokeWidth={ICON_STROKE} />
-    </span>
-  );
-}
 
 const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -123,6 +70,74 @@ const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "active", label: "Active" },
   { id: "paused", label: "Paused" },
 ];
+
+const thClass = "funnel-automations-th whitespace-nowrap text-left align-middle";
+const tdClass = "funnel-automations-td text-left align-middle text-zinc-700";
+
+function AutomationsColumnHead({
+  icon: Icon,
+  longLabel,
+  shortLabel,
+  iconClassName,
+}: {
+  icon: LucideIcon;
+  longLabel: string;
+  shortLabel: string;
+  iconClassName: string;
+}) {
+  return (
+    <span className="funnel-automations-col-head inline-flex items-center gap-1.5">
+      <Icon
+        className={`size-3.5 shrink-0 ${iconClassName}`}
+        aria-hidden
+        strokeWidth={ICON_STROKE}
+      />
+      <span className="funnel-automations-col-head__long text-[0.65rem] font-bold uppercase tracking-[0.08em] text-zinc-800">
+        {longLabel}
+      </span>
+      <span className="funnel-automations-col-head__short text-[0.62rem] font-bold uppercase tracking-[0.06em] text-zinc-800">
+        {shortLabel}
+      </span>
+    </span>
+  );
+}
+
+function AutomationsEmbeddedHeader({ total }: { total: number }) {
+  return (
+    <div className="funnel-automations-header">
+      <div className="funnel-automations-header__copy">
+        <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-violet-700 ring-1 ring-violet-500/15">
+          Automations
+        </span>
+        <span className="text-[0.72rem] font-medium text-zinc-500">
+          Workflows for this campaign
+        </span>
+      </div>
+      <span className="funnel-automations-header__total rounded-full bg-violet-50 px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-violet-700 ring-1 ring-violet-500/15">
+        {total} total
+      </span>
+    </div>
+  );
+}
+
+function CreateAutomationButton({
+  onClick,
+  className = "",
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.98] ${primaryButtonMdClass} ${className}`}
+    >
+      <Plus className="size-4" aria-hidden />
+      <span>Create Automation</span>
+    </button>
+  );
+}
 
 export function AutomationListPage({
   businessId: businessIdProp,
@@ -217,177 +232,17 @@ export function AutomationListPage({
     return base;
   };
 
-  if (businessId == null) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-zinc-700">
-        <p>Invalid link, business id not found in the URL.</p>
-      </div>
-    );
-  }
+  const openCreateModal = useCallback(() => {
+    const context = validateAutomationCreateContext(createContextInput);
+    if (!context.ok) {
+      toast.error(context.message);
+      return;
+    }
+    setModalOpen(true);
+  }, [createContextInput]);
 
-  return (
-    <div
-      className={
-        embedded
-          ? "campaign-immersive-tab-panel min-h-0 flex-1 overflow-y-auto bg-white [scrollbar-gutter:stable]"
-          : "min-h-0 flex-1 overflow-y-auto bg-zinc-50 [scrollbar-gutter:stable]"
-      }
-    >
-      <div
-        className={
-          embedded
-            ? "w-full max-w-none px-0 py-0"
-            : "mx-auto w-full max-w-[min(100%,77.62rem)] px-4 py-8 sm:px-8 lg:px-10"
-        }
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
-                aria-hidden
-              >
-                <Workflow className="size-4 sm:size-5" strokeWidth={ICON_STROKE} />
-              </span>
-              Automation
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-zinc-600">
-              Create workflows that automatically engage customers.
-            </p>
-            {createBlockedMessage ? (
-              <p className="mt-2 max-w-xl text-sm text-amber-800">{createBlockedMessage}</p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const context = validateAutomationCreateContext(createContextInput);
-              if (!context.ok) {
-                toast.error(context.message);
-                return;
-              }
-              setModalOpen(true);
-            }}
-            className={`inline-flex shrink-0 justify-center transition hover:scale-[1.02] active:scale-[0.98] ${primaryButtonMdClass}`}
-          >
-            <Plus className="size-4" aria-hidden />
-            Create Automation
-          </button>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBar
-            value={query}
-            onChange={setQuery}
-            placeholder="Search automations…"
-            className="w-full sm:max-w-md"
-          />
-          <AutomationFilterDropdown
-            value={filter}
-            options={FILTERS}
-            onChange={setFilter}
-            className="w-full sm:w-44"
-          />
-        </div>
-
-        {loadError ? (
-          <AsyncErrorRetry
-            message={loadError}
-            onRetry={() => loadAutomations()}
-          />
-        ) : loading ? (
-          <AutomationListSkeleton />
-        ) : null}
-
-        {!loading && !loadError ? (
-        <motion.div
-          className={`mt-6 hidden overflow-hidden ${reportTableShellClass} lg:block`}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: standardEase }}
-        >
-          <div
-            className={`${TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5 text-xs font-bold uppercase tracking-wide text-zinc-500`}
-          >
-            <TableColumnHeader
-              icon={Workflow}
-              label="Automation name"
-              iconClassName="text-violet-600"
-            />
-            <TableColumnHeader
-              icon={Zap}
-              label="Trigger"
-              iconClassName="text-amber-600"
-            />
-            <TableColumnHeader
-              icon={Activity}
-              label="Status"
-              iconClassName="text-emerald-600"
-            />
-            <TableColumnHeader
-              icon={Clock}
-              label="Last updated"
-              iconClassName="text-orange-600"
-            />
-            <span aria-hidden />
-          </div>
-          <motion.div
-            variants={panelStagger}
-            initial="hidden"
-            animate="show"
-          >
-            {filtered.map((row) => (
-              <motion.div key={row.id} variants={panelRowMotion}>
-                <AutomationTableRow
-                  row={row}
-                  href={builderHref(row)}
-                  onOpenBuilder={onOpenBuilder}
-                  onDelete={() => setDeleteTarget(row)}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-        ) : null}
-
-        {!loading && !loadError ? (
-        <motion.div
-          className="mt-6 grid gap-4 lg:hidden"
-          variants={panelStagger}
-          initial="hidden"
-          animate="show"
-        >
-          {filtered.map((row) => (
-            <motion.div key={row.id} variants={panelRowMotion}>
-              <AutomationCard
-                row={row}
-                href={builderHref(row)}
-                onOpenBuilder={onOpenBuilder}
-                onDelete={() => setDeleteTarget(row)}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-        ) : null}
-
-        {!loading && !loadError && filtered.length === 0 ? (
-          <PanelEmptyState
-            className="mt-8 px-4 py-14"
-            icon={SearchX}
-            title={
-              campaignId != null
-                ? "No automations for this campaign"
-                : "No automations match your search"
-            }
-            description={
-              campaignId != null
-                ? "Default automations are created when you add a campaign. Create one here if you need more."
-                : "Try a different keyword or filter to find your workflows."
-            }
-          />
-        ) : null}
-      </div>
-
+  const modals = (
+    <>
       <CreateAutomationModal
         open={modalOpen}
         isSubmitting={creating}
@@ -479,31 +334,246 @@ export function AutomationListPage({
           }
         }}
       />
+    </>
+  );
+
+  const listBody = (
+    <div className="funnel-automations-content">
+      {embedded ? (
+        <AutomationsEmbeddedHeader total={filtered.length} />
+      ) : (
+        <div className="funnel-automations-hero flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
+                aria-hidden
+              >
+                <Workflow className="size-4 sm:size-5" strokeWidth={ICON_STROKE} />
+              </span>
+              Automation
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-zinc-600">
+              Create workflows that automatically engage customers.
+            </p>
+            {createBlockedMessage ? (
+              <p className="mt-2 max-w-xl text-sm text-amber-800">
+                {createBlockedMessage}
+              </p>
+            ) : null}
+          </div>
+          <CreateAutomationButton onClick={openCreateModal} />
+        </div>
+      )}
+
+      {embedded && createBlockedMessage ? (
+        <p className="m-0 text-[0.78rem] font-medium text-amber-800">
+          {createBlockedMessage}
+        </p>
+      ) : null}
+
+      <div className="funnel-automations-toolbar">
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Search automations…"
+          className="funnel-automations-toolbar__search w-full sm:max-w-md"
+        />
+        <AutomationFilterDropdown
+          value={filter}
+          options={FILTERS}
+          onChange={setFilter}
+          className="funnel-automations-toolbar__filter w-full sm:w-44"
+        />
+        {embedded ? (
+          <CreateAutomationButton
+            onClick={openCreateModal}
+            className="funnel-automations-toolbar__create w-full sm:w-auto"
+          />
+        ) : null}
+      </div>
+
+      {loadError ? (
+        <AsyncErrorRetry
+          message={loadError}
+          onRetry={() => loadAutomations()}
+        />
+      ) : loading ? (
+        <AutomationListSkeleton />
+      ) : null}
+
+      {!loading && !loadError && filtered.length > 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: standardEase }}
+        >
+          <AutomationsTableSection
+            rows={filtered}
+            builderHref={builderHref}
+            onOpenBuilder={onOpenBuilder}
+            onDelete={(row) => setDeleteTarget(row)}
+          />
+        </motion.div>
+      ) : null}
+
+      {!loading && !loadError && filtered.length === 0 ? (
+        <PanelEmptyState
+          className="funnel-automations-empty px-4 py-14"
+          icon={SearchX}
+          title={
+            campaignId != null
+              ? "No automations for this campaign"
+              : "No automations match your search"
+          }
+          description={
+            campaignId != null
+              ? "Default automations are created when you add a campaign. Create one here if you need more."
+              : "Try a different keyword or filter to find your workflows."
+          }
+        />
+      ) : null}
+    </div>
+  );
+
+  if (businessId == null) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-zinc-700">
+        <p>Invalid link, business id not found in the URL.</p>
+      </div>
+    );
+  }
+
+  if (embedded) {
+    return (
+      <>
+        <div className="campaign-immersive-automations funnel-automations-root">
+          <div className="funnel-automations-panel">
+            <div className="funnel-automations-body">{listBody}</div>
+          </div>
+        </div>
+        {modals}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="funnel-automations-root min-h-0 flex-1 overflow-y-auto bg-zinc-50 [scrollbar-gutter:stable]">
+        <div className="funnel-automations-standalone mx-auto w-full max-w-[min(100%,77.62rem)] px-4 py-8 sm:px-8 lg:px-10">
+          {listBody}
+        </div>
+      </div>
+      {modals}
+    </>
+  );
+}
+
+function AutomationsTableSection({
+  rows,
+  builderHref,
+  onOpenBuilder,
+  onDelete,
+}: {
+  rows: AutomationListItem[];
+  builderHref: (row: AutomationListItem) => string;
+  onOpenBuilder?: (automationId: string) => void;
+  onDelete: (row: AutomationListItem) => void;
+}) {
+  return (
+    <div className="funnel-automations-surface">
+      <p className="funnel-automations-scroll-hint">
+        Swipe sideways to see all columns
+      </p>
+
+      <div className="funnel-automations-table-wrap">
+        <table className="funnel-automations-table">
+          <thead>
+            <tr className="border-b border-zinc-200 bg-zinc-50/90">
+              <th className={`${thClass} funnel-automations-th--name`}>
+                <AutomationsColumnHead
+                  icon={Workflow}
+                  longLabel="Automation name"
+                  shortLabel="Name"
+                  iconClassName="text-violet-600"
+                />
+              </th>
+              <th className={`${thClass} funnel-automations-th--trigger`}>
+                <AutomationsColumnHead
+                  icon={Zap}
+                  longLabel="Trigger"
+                  shortLabel="Trigger"
+                  iconClassName="text-amber-600"
+                />
+              </th>
+              <th className={`${thClass} funnel-automations-th--status`}>
+                <AutomationsColumnHead
+                  icon={Activity}
+                  longLabel="Status"
+                  shortLabel="Status"
+                  iconClassName="text-emerald-600"
+                />
+              </th>
+              <th className={`${thClass} funnel-automations-th--updated`}>
+                <AutomationsColumnHead
+                  icon={Clock}
+                  longLabel="Last updated"
+                  shortLabel="Updated"
+                  iconClassName="text-orange-600"
+                />
+              </th>
+              <th className={`${thClass} funnel-automations-th--actions`}>
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <motion.tbody
+            variants={panelStagger}
+            initial="hidden"
+            animate="show"
+          >
+            {rows.map((row) => (
+              <motion.tr
+                key={row.id}
+                variants={panelRowMotion}
+                className="group border-b border-zinc-100 bg-white transition-colors duration-150 last:border-0 hover:bg-zinc-50/80"
+              >
+                <AutomationTableRowCells
+                  row={row}
+                  href={builderHref(row)}
+                  onOpenBuilder={onOpenBuilder}
+                  onDelete={() => onDelete(row)}
+                />
+              </motion.tr>
+            ))}
+          </motion.tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-const TABLE_GRID =
-  "grid grid-cols-[minmax(0,1.4fr)_0.7fr_0.6fr_0.8fr_2.5rem] gap-4";
-
 function AutomationListSkeleton() {
   return (
-    <div className="mt-6" aria-busy="true" aria-label="Loading automations">
-      <div className={`hidden overflow-hidden ${reportTableShellClass} lg:block`}>
-        <div
-          className={`${TABLE_GRID} border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5`}
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} funnel className="h-3 w-16" />
-          ))}
-          <Skeleton funnel className="h-3 w-3" />
+    <div
+      className="funnel-automations-skeleton"
+      aria-busy="true"
+      aria-label="Loading automations"
+    >
+      <div className="funnel-automations-surface overflow-hidden">
+        <div className="border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5">
+          <div className="flex gap-8">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} funnel className="h-3 w-16" />
+            ))}
+          </div>
         </div>
         {Array.from({ length: 5 }).map((_, row) => (
           <div
             key={row}
-            className={`${TABLE_GRID} items-center border-b border-zinc-100 px-5 py-4 last:border-0`}
+            className="flex items-center gap-4 border-b border-zinc-100 px-5 py-4 last:border-0"
           >
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Skeleton funnel className="h-4 w-4/5" />
               <Skeleton funnel className="h-3 w-1/2" />
             </div>
@@ -512,29 +582,6 @@ function AutomationListSkeleton() {
             <Skeleton funnel className="h-4 w-16" />
             <Skeleton funnel className="size-4 rounded-full" />
           </div>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:hidden">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <article
-            key={i}
-            className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03]"
-            aria-hidden
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton funnel className="h-5 w-3/4" />
-                <Skeleton funnel className="h-3 w-1/3" />
-              </div>
-              <Skeleton funnel className="h-6 w-14 shrink-0 rounded-full" />
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Skeleton funnel className="h-8 w-full" />
-              <Skeleton funnel className="h-8 w-full" />
-            </div>
-            <Skeleton funnel className="mt-4 h-3 w-24" />
-          </article>
         ))}
       </div>
     </div>
@@ -637,7 +684,7 @@ function AutomationRowMenu({
   );
 }
 
-function AutomationTableRow({
+function AutomationTableRowCells({
   row,
   href,
   onOpenBuilder,
@@ -649,109 +696,50 @@ function AutomationTableRow({
   onDelete?: () => void;
 }) {
   return (
-    <div
-      className={`${TABLE_GRID} items-center border-b border-zinc-100 px-5 py-4 text-sm transition last:border-0 hover:bg-zinc-50/80`}
-    >
-      <Link href={href} onClick={() => onOpenBuilder?.(row.id)} className="contents">
-        <div className="min-w-0">
+    <>
+      <td className={`${tdClass} funnel-automations-td--name`}>
+        <Link
+          href={href}
+          onClick={() => onOpenBuilder?.(row.id)}
+          className="block min-w-0"
+        >
           <p className="truncate font-semibold text-zinc-900">{row.name}</p>
-          <p className="mt-0.5 text-xs text-zinc-500" title={row.description}>
+          <p
+            className="funnel-automations-desc mt-0.5 truncate text-xs text-zinc-500"
+            title={row.description}
+          >
             {truncateDescription(row.description)}
           </p>
-        </div>
-        <span className="text-zinc-700">{row.trigger}</span>
-        <span>
+        </Link>
+      </td>
+      <td className={`${tdClass} funnel-automations-td--trigger whitespace-nowrap`}>
+        <Link
+          href={href}
+          onClick={() => onOpenBuilder?.(row.id)}
+          className="text-zinc-700"
+        >
+          {row.trigger}
+        </Link>
+      </td>
+      <td className={`${tdClass} funnel-automations-td--status whitespace-nowrap`}>
+        <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
           <StatusPill className={automationStatusBadgeClass(row.status)}>
             {row.status}
           </StatusPill>
-        </span>
-        <span className="text-zinc-500">{row.lastUpdated}</span>
-      </Link>
-      <AutomationRowMenu
-        href={href}
-        onOpenBuilder={() => onOpenBuilder?.(row.id)}
-        onDelete={onDelete}
-      />
-    </div>
-  );
-}
-
-function AutomationCard({
-  row,
-  href,
-  onOpenBuilder,
-  onDelete,
-}: {
-  row: AutomationListItem;
-  href: string;
-  onOpenBuilder?: (id: string) => void;
-  onDelete?: () => void;
-}) {
-  const TriggerIcon = triggerIcon(row.trigger);
-  const StatusIcon = statusIcon(row.status);
-
-  return (
-    <article className="relative rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <IconBadge
-            icon={Workflow}
-            className="border-0 bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-sm ring-0"
-          />
-          <div className="min-w-0">
-            <Link
-              href={href}
-              onClick={() => onOpenBuilder?.(row.id)}
-              className="font-semibold text-zinc-900 hover:underline"
-            >
-              {row.name}
-            </Link>
-            <p
-              className="mt-1 line-clamp-2 text-xs text-zinc-500"
-              title={row.description}
-            >
-              {truncateDescription(row.description)}
-            </p>
-            <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-800">
-              <TriggerIcon
-                className={`size-3.5 ${triggerIconClass(row.trigger)}`}
-                aria-hidden
-                strokeWidth={ICON_STROKE}
-              />
-              {row.trigger}
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <StatusPill
-            className={`inline-flex items-center gap-1 ${automationStatusBadgeClass(row.status)}`}
-          >
-            <StatusIcon
-              className="size-3 shrink-0"
-              aria-hidden
-              strokeWidth={ICON_STROKE}
-            />
-            {row.status}
-          </StatusPill>
-          <AutomationRowMenu
-            href={href}
-            onOpenBuilder={() => onOpenBuilder?.(row.id)}
-            onDelete={onDelete}
-          />
-        </div>
-      </div>
-      <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-        <Clock className="size-3.5 text-orange-600" aria-hidden strokeWidth={ICON_STROKE} />
-        Updated {row.lastUpdated}
-      </p>
-      <Link
-        href={href}
-        onClick={() => onOpenBuilder?.(row.id)}
-        className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-violet-700"
-      >
-        Open builder
-        <ChevronRight className="size-3.5" aria-hidden strokeWidth={ICON_STROKE} />
-      </Link>
-    </article>
+        </Link>
+      </td>
+      <td className={`${tdClass} funnel-automations-td--updated whitespace-nowrap text-zinc-500`}>
+        <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
+          {row.lastUpdated}
+        </Link>
+      </td>
+      <td className={`${tdClass} funnel-automations-td--actions`}>
+        <AutomationRowMenu
+          href={href}
+          onOpenBuilder={() => onOpenBuilder?.(row.id)}
+          onDelete={onDelete}
+        />
+      </td>
+    </>
   );
 }

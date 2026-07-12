@@ -217,22 +217,24 @@ function ChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25"
+      className="create-automation-choice-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25"
     >
       <span
-        className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${accentClass}`}
+        className={`create-automation-choice-card__icon flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${accentClass}`}
       >
         <Icon className="size-5" strokeWidth={ICON_STROKE} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-zinc-900">{title}</span>
+          <span className="create-automation-choice-card__title text-sm font-semibold text-zinc-900">
+            {title}
+          </span>
           <ChevronRight
             className="size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-600"
             aria-hidden
           />
         </span>
-        <span className="mt-1 block text-sm leading-relaxed text-zinc-500">
+        <span className="create-automation-choice-card__desc mt-1 block text-sm leading-relaxed text-zinc-500">
           {description}
         </span>
       </span>
@@ -339,7 +341,7 @@ export function CreateAutomationModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain p-3 sm:p-4"
+          className="create-automation-modal-overlay fixed inset-0 z-50 overflow-y-auto overscroll-contain"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -351,18 +353,18 @@ export function CreateAutomationModal({
             aria-label="Close dialog"
             onClick={onClose}
           />
-          <div className="flex min-h-[calc(100dvh-1.5rem)] items-end justify-center sm:min-h-[calc(100dvh-2rem)] sm:items-center">
+          <div className="create-automation-modal-wrap flex min-h-dvh items-center justify-center sm:min-h-[calc(100dvh-2rem)]">
             <motion.div
               role="dialog"
               aria-modal="true"
               aria-labelledby="create-automation-title"
-              className="relative z-10 flex w-full max-w-lg max-h-[min(calc(100dvh-1.5rem),720px)] flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-2xl ring-1 ring-zinc-950/5 sm:max-h-[min(calc(100dvh-2rem),720px)]"
+              className="create-automation-modal relative z-10 flex w-full max-w-lg flex-col overflow-hidden border border-zinc-200/90 bg-white shadow-2xl ring-1 ring-zinc-950/5"
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               transition={{ duration: 0.28, ease: automationEase }}
             >
-              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="create-automation-modal__header flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex min-w-0 items-start gap-3">
                   {step !== "choose" ? (
                     <button
@@ -376,7 +378,7 @@ export function CreateAutomationModal({
                     </button>
                   ) : (
                     <span
-                      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
+                      className="create-automation-modal__brand-icon flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
                       aria-hidden
                     >
                       <Workflow className="size-4 sm:size-5" strokeWidth={ICON_STROKE} />
@@ -385,11 +387,11 @@ export function CreateAutomationModal({
                   <div className="min-w-0">
                     <h2
                       id="create-automation-title"
-                      className="text-base font-bold tracking-tight text-zinc-900 sm:text-lg"
+                      className="create-automation-modal__title text-base font-bold tracking-tight text-zinc-900 sm:text-lg"
                     >
                       {modalTitle}
                     </h2>
-                    <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
+                    <p className="create-automation-modal__subtitle mt-1 text-xs text-zinc-500 sm:text-sm">
                       {modalSubtitle}
                     </p>
                   </div>
@@ -398,14 +400,14 @@ export function CreateAutomationModal({
                   type="button"
                   onClick={onClose}
                   aria-label="Close"
-                  className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-900 bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 hover:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 sm:size-9"
+                  className="create-automation-modal__close flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-900 bg-zinc-900 text-white shadow-sm transition hover:border-zinc-800 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 sm:size-9"
                 >
                   <X className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
                 </button>
               </div>
 
               {step === "choose" ? (
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                <div className="create-automation-modal__body min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
                   <ChoiceCard
                     icon={Download}
                     title="Import template"
@@ -424,8 +426,8 @@ export function CreateAutomationModal({
               ) : null}
 
               {step === "import-list" ? (
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="space-y-3">
+                <div className="create-automation-modal__body create-automation-template-list min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="create-automation-template-list__items">
                     {AUTOMATION_TEMPLATES.map((template) => {
                       const visual = templateListVisual(template.id);
                       const TemplateIcon = visual.icon;
@@ -437,26 +439,26 @@ export function CreateAutomationModal({
                           setSelectedTemplateId(template.id);
                           setStep("import-preview");
                         }}
-                        className="group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25"
+                        className="create-automation-template-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25"
                       >
                         <span
-                          className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${visual.accentClass}`}
+                          className={`create-automation-template-card__icon flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${visual.accentClass}`}
                         >
                           <TemplateIcon className="size-5" strokeWidth={ICON_STROKE} />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold text-zinc-900">
+                          <span className="create-automation-template-card__heading flex flex-wrap items-center gap-2">
+                            <span className="create-automation-template-card__title text-sm font-semibold text-zinc-900">
                               {template.name}
                             </span>
-                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-600">
+                            <span className="create-automation-template-card__category rounded-full bg-zinc-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-600">
                               {template.category}
                             </span>
                           </span>
-                          <span className="mt-1 block text-sm leading-relaxed text-zinc-500">
+                          <span className="create-automation-template-card__description mt-1 block text-sm leading-relaxed text-zinc-500">
                             {template.description}
                           </span>
-                          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                          <span className="create-automation-template-card__steps mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
                             {template.nodes.length} steps
                             <ChevronRight
                               className="size-3.5 transition group-hover:translate-x-0.5"
@@ -473,7 +475,7 @@ export function CreateAutomationModal({
 
               {step === "import-preview" && selectedTemplate ? (
                 <>
-                  <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="create-automation-modal__body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
                     <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/80 p-4">
                       <p className="text-sm leading-relaxed text-zinc-700">
                         {selectedTemplate.description}
@@ -510,7 +512,7 @@ export function CreateAutomationModal({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-zinc-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
+                  <div className="create-automation-modal__footer flex shrink-0 flex-col-reverse gap-2 border-t border-zinc-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
                     <button
                       type="button"
                       onClick={onClose}
@@ -534,7 +536,7 @@ export function CreateAutomationModal({
 
               {step === "create-blank" ? (
                 <form
-                  className="flex min-h-0 flex-1 flex-col"
+                  className="create-automation-modal__form flex min-h-0 flex-1 flex-col"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!name.trim() || isSubmitting) return;
@@ -546,7 +548,7 @@ export function CreateAutomationModal({
                     });
                   }}
                 >
-                  <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="create-automation-modal__body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
                     <div>
                       <FieldLabel icon={Type}>Automation name</FieldLabel>
                       <input
@@ -594,7 +596,7 @@ export function CreateAutomationModal({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-zinc-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
+                  <div className="create-automation-modal__footer flex shrink-0 flex-col-reverse gap-2 border-t border-zinc-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
                     <button
                       type="button"
                       onClick={onClose}
