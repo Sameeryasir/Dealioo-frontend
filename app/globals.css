@@ -10969,13 +10969,13 @@ body:has(.auth-select-plan-page) {
 }
 
 .editor-funnel-step-thumb img {
-  transform: translateY(-2px) scale(1.02);
+  transform: none;
 }
 
 .editor-funnel-step-thumb--selected {
-  background: linear-gradient(145deg, #eef4ff 0%, #ffffff 100%);
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.12);
-  outline: 1px solid rgba(24, 119, 242, 0.2);
+  background: #f1f5f9;
+  box-shadow: none;
+  outline: none;
 }
 
 .editor-settings-scroll {
@@ -10998,21 +10998,21 @@ body:has(.auth-select-plan-page) {
 }
 
 .editor-settings-section-thumb img {
-  transform: translateY(-1px) scale(1.02);
+  transform: none;
 }
 
 .editor-settings-section-thumb--open {
-  background: linear-gradient(145deg, #eef4ff 0%, #ffffff 100%);
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.12);
-  outline: 1px solid rgba(24, 119, 242, 0.2);
+  background: #f1f5f9;
+  box-shadow: none;
+  outline: none;
 }
 
 .editor-panel-top-shell {
   position: relative;
   box-sizing: border-box;
   display: flex;
-  height: 7.85rem;
-  min-height: 7.85rem;
+  height: auto;
+  min-height: 6.5rem;
   flex-direction: column;
   justify-content: space-between;
 }

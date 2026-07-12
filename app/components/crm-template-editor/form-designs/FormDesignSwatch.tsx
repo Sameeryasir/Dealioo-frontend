@@ -11,7 +11,7 @@ export function FormDesignSwatch({
   selected?: boolean;
 }) {
   const ring = selected
-    ? "ring-2 ring-white/45 ring-offset-2 ring-offset-zinc-900"
+    ? "ring-2 ring-[#1877f2] ring-offset-2 ring-offset-[#e8f2ff]"
     : "ring-1 ring-zinc-200/80";
 
   const wrap = `flex h-11 w-[4.25rem] shrink-0 items-stretch overflow-hidden rounded-lg border border-zinc-200/70 bg-zinc-50 shadow-inner ${ring}`;
@@ -65,7 +65,7 @@ export function FormDesignSwatch({
     case "underline":
       return (
         <div
-          className={`flex h-11 w-[4.25rem] shrink-0 items-stretch overflow-hidden rounded-lg border-0 bg-transparent p-0 shadow-none ${selected ? "ring-2 ring-white/45 ring-offset-2 ring-offset-zinc-900" : "ring-1 ring-zinc-200/80"}`}
+          className={`flex h-11 w-[4.25rem] shrink-0 items-stretch overflow-hidden rounded-lg border-0 bg-transparent p-0 shadow-none ${selected ? "ring-2 ring-[#1877f2] ring-offset-2 ring-offset-[#e8f2ff]" : "ring-1 ring-zinc-200/80"}`}
         >
           <div className="flex h-full w-full flex-col justify-center gap-1.5 border-b-2 border-zinc-300 pb-0.5">
             <div className="h-px w-full bg-zinc-300" />

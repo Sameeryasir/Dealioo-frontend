@@ -64,8 +64,8 @@ export function useCampaignFunnelLoader(
 
     if (local && !signal.cancelled) {
       setState({
-        pages: local,
-        pagesBaseline: clonePages(local),
+        pages: baseline,
+        pagesBaseline: clonePages(baseline),
         funnelId: null,
         isLoading: Boolean(token),
         loadError: null,

@@ -20,4 +20,15 @@ export function getLandingDesignStyle(design: LandingDesign | string | undefined
   return landingDesignStyles[normalizeLandingDesign(design)];
 }
 
+/** Keep payment CTA color aligned with the active landing template palette. */
+export function syncCheckoutThemeWithLandingDesign<
+  T extends { buttonColor: string },
+>(theme: T, landingDesign: LandingDesign | string | undefined): T {
+  const { primary } = getLandingDesignStyle(landingDesign);
+  return {
+    ...theme,
+    buttonColor: primary,
+  };
+}
+
 export { landingDesignStyles, LANDING_DESIGN_OPTIONS } from "@/app/components/crm-template-editor/landing-designs/landing-design-catalog";

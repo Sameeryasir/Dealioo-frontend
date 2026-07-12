@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FUNNEL_STEP_META } from "@/app/components/crm-template-editor/editor-ui/funnel-step-meta";
-import { EDITOR_SETTINGS_SECTION_THUMBS } from "@/app/components/crm-template-editor/editor-ui/editor-settings-section-meta";
 import {
   CHECKOUT_TEMPLATE_OPTIONS,
   CheckoutTemplateType,
@@ -195,69 +194,52 @@ function AccordionSection({
 }) {
   const Icon = SECTION_ICONS[id] ?? FileText;
   const subtitle = hint ?? SECTION_HINTS[id];
-  const thumbSrc = EDITOR_SETTINGS_SECTION_THUMBS[id];
 
   if (variant === "stack") {
     return (
       <div
-        className={`flex w-full flex-col rounded-[1.05rem] border border-[#e8edf5] bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-[#1877f2]/20 hover:shadow-[0_6px_18px_rgba(24,119,242,0.07)] ${
+        className={`flex w-full flex-col overflow-hidden rounded-md border border-slate-200 bg-white transition-colors duration-150 ${
           open
-            ? "editor-settings-card--open shrink-0 overflow-visible border-[#1877f2]/25 shadow-[0_6px_18px_rgba(24,119,242,0.1)]"
-            : "editor-settings-card--closed shrink-0 overflow-hidden"
+            ? "editor-settings-card--open shrink-0 border-slate-300"
+            : "editor-settings-card--closed shrink-0 hover:border-slate-300"
         } ${orderClassName ?? ""}`}
       >
         <button
           type="button"
           onClick={() => onToggle(id)}
           title={subtitle ? `${title} — ${subtitle}` : title}
-          className="editor-settings-stack-trigger flex w-full shrink-0 items-center gap-2.5 px-2.5 py-2.5 text-left transition-colors hover:bg-[#fafcff]"
+          className="editor-settings-stack-trigger flex w-full shrink-0 items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-slate-50"
         >
-          {thumbSrc ? (
-            <span
-              className={`editor-settings-section-thumb flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[0.85rem] bg-gradient-to-br from-[#f4f8ff] to-white ring-1 ring-[#e8edf5] ${
-                open ? "editor-settings-section-thumb--open" : ""
-              }`}
-              aria-hidden
-            >
-              <img
-                src={`${thumbSrc}?v=1`}
-                alt=""
-                className="size-8 object-contain drop-shadow-[0_2px_6px_rgba(24,119,242,0.18)]"
-                loading="lazy"
-                decoding="async"
-              />
-            </span>
-          ) : (
-            <span
-              className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${
-                open
-                  ? "bg-[#1877f2] text-white ring-1 ring-[#1877f2]/20"
-                  : "bg-[#f4f8ff] text-[#1877f2] ring-1 ring-[#1877f2]/12"
-              }`}
-              aria-hidden
-            >
-              <Icon className="size-4" strokeWidth={2.25} />
-            </span>
-          )}
+          <span
+            className={`flex size-7 shrink-0 items-center justify-center rounded-md ${
+              open
+                ? "bg-[#1877f2] text-white"
+                : "bg-[#e8f2ff] text-[#1877f2]"
+            }`}
+            aria-hidden
+          >
+            <Icon className="size-3.5" strokeWidth={2} />
+          </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.8rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
+            <span className="block text-[0.8125rem] font-semibold leading-tight text-slate-900">
               {title}
             </span>
+            {subtitle && !open ? (
+              <span className="mt-0.5 block truncate text-[0.7rem] text-slate-500">
+                {subtitle}
+              </span>
+            ) : null}
           </span>
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={accordionChevronTransition}
-            className={`flex size-7 shrink-0 items-center justify-center rounded-full transition ${
-              open
-                ? "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#1877f2]/15"
-                : "text-slate-400"
-            }`}
+            className="flex size-6 shrink-0 items-center justify-center text-slate-400"
           >
-            <ChevronDown className="size-3.5" strokeWidth={2.25} aria-hidden />
+            <ChevronDown className="size-3.5" strokeWidth={2} aria-hidden />
           </motion.span>
         </button>
         {open ? (
-          <div className="editor-settings-stack-panel border-t border-[#eef2f7] bg-[#f8fafc]/50 px-3 pb-3 pt-2.5">
+          <div className="editor-settings-stack-panel border-t border-slate-100 bg-slate-50/40 px-3 pb-3 pt-2.5">
             <div className="space-y-3">{children}</div>
           </div>
         ) : null}
@@ -526,9 +508,9 @@ export function TemplateEditorSidebar({
     <div
       className={
         stackedLayout && stackFillHeight
-          ? "editor-settings-stack editor-settings-stack--embedded w-full flex flex-col gap-1.5 px-0.5 py-1"
+          ? "editor-settings-stack editor-settings-stack--embedded w-full flex flex-col gap-1 px-0.5 py-1"
           : stackedLayout
-            ? "flex w-full flex-col gap-2 px-0.5 py-0.5"
+            ? "flex w-full flex-col gap-1.5 px-0.5 py-0.5"
             : editorSidebarRootClass
       }
     >
@@ -965,7 +947,7 @@ export function TemplateEditorSidebar({
                           </span>
                           <span
                             className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                              on ? "text-zinc-300" : "text-zinc-500"
+                              on ? "text-slate-600" : "text-zinc-500"
                             }`}
                           >
                             {opt.description}
@@ -1120,7 +1102,7 @@ export function TemplateEditorSidebar({
                         </span>
                         <span
                           className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                            on ? "text-zinc-300" : "text-zinc-500"
+                            on ? "text-slate-600" : "text-zinc-500"
                           }`}
                         >
                           {opt.description}

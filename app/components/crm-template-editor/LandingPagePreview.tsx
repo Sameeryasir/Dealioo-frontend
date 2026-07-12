@@ -18,7 +18,10 @@ import type {
   LandingTemplatePage,
   TemplatePage,
 } from "@/app/components/crm-template-editor/template-types";
-import { funnelBrandCtaClass } from "@/app/components/crm-template-editor/editor-theme";
+import {
+  landingTemplateButtonStyle,
+  landingTemplateCtaLayoutClass,
+} from "@/app/components/crm-template-editor/landing-cta-styles";
 
 export function pageBackgroundStyle(
   color: string | undefined,
@@ -128,6 +131,8 @@ function LandingCta({
   label,
   href,
   centered,
+  primary,
+  secondary,
   labelColorStyle,
   onButtonClick,
 }: {
@@ -141,16 +146,23 @@ function LandingCta({
   onButtonClick?: (elementName: string) => void;
 }) {
   const className = [
-    "group relative mt-8 flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-sm font-semibold",
-    funnelBrandCtaClass,
+    "group relative mt-8 w-full",
+    landingTemplateCtaLayoutClass,
     centered ? "mx-auto max-w-sm" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
-  const style: CSSProperties = {
-    ...labelColorStyle,
-  };
+  const style: CSSProperties = landingTemplateButtonStyle(
+    primary ?? "#1877f2",
+    secondary ?? "#166fe5",
+    {
+      labelColor:
+        typeof labelColorStyle?.color === "string"
+          ? labelColorStyle.color
+          : undefined,
+    },
+  );
 
   const inner = (
     <>
@@ -317,7 +329,7 @@ export function LandingPagePreview({
 
   const content = (
     <div
-      className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 ${fillViewport ? "flex-1" : ""}`}
+      className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 ${fillViewport ? "min-h-0 flex-1" : ""}`}
       style={pageBackgroundStyle(page.backgroundColor, style.backgroundDefault)}
     >
       {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
@@ -325,7 +337,7 @@ export function LandingPagePreview({
   );
 
   const rootClass = fillViewport
-    ? "flex min-h-full flex-1 flex-col overflow-hidden"
+    ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
     : "flex min-h-0 flex-col overflow-hidden";
 
   if (layoutType === "split") {

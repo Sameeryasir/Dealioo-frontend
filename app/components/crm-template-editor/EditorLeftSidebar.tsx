@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { editorPremiumCardClass, editorPanelTopShellClass } from "@/app/components/crm-template-editor/editor-sidebar-theme";
+import { editorPremiumCardClass, editorPanelTopShellClass, editorFunnelProgressFillGradient } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import {
   FUNNEL_PAGE_ORDER,
   TemplatePageList,
@@ -11,13 +11,11 @@ import type { TemplatePageId } from "@/app/components/crm-template-editor/templa
 export function EditorLeftSidebar({
   activeId,
   onSelect,
-  onEditPage,
   onPreviewPage,
   compact = false,
 }: {
   activeId: TemplatePageId;
   onSelect: (id: TemplatePageId) => void;
-  onEditPage: (id: TemplatePageId) => void;
   onPreviewPage?: (id: TemplatePageId) => void;
   compact?: boolean;
 }) {
@@ -31,31 +29,31 @@ export function EditorLeftSidebar({
       >
         <div className={`${editorPanelTopShellClass} editor-funnel-top-shell`}>
           <div className="editor-funnel-top-stack w-full">
-            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+            <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
               Funnel
             </p>
-            <p className="m-0 mt-3 text-[1.02rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
+            <p className="m-0 mt-2 text-[0.9375rem] font-semibold leading-tight text-slate-900">
               Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
             </p>
-            <div className="auth-signup-progress-track mt-2 h-1.5 w-full">
+            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
               <motion.div
-                className="auth-signup-progress-fill h-full rounded-full"
+                className="h-full rounded-full"
+                style={{ background: editorFunnelProgressFillGradient }}
                 initial={false}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
-            <p className="m-0 mt-2 text-[0.68rem] font-medium leading-snug text-slate-500">
+            <p className="m-0 mt-2 text-[0.7rem] font-normal text-slate-500">
               Select a step to preview or edit
             </p>
           </div>
         </div>
 
-        <div className="shrink-0 px-2.5 pb-3 pt-2.5">
+        <div className="shrink-0 px-2.5 pb-3 pt-2">
           <TemplatePageList
             activeId={activeId}
             onSelect={onSelect}
-            onEditPage={onEditPage}
             onPreviewPage={onPreviewPage}
             compact={compact}
           />
@@ -79,7 +77,8 @@ export function EditorLeftSidebar({
 
         <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#e8edf5]">
           <motion.div
-            className="h-full rounded-full bg-[#1877f2]"
+            className="h-full rounded-full"
+            style={{ background: editorFunnelProgressFillGradient }}
             initial={false}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -91,7 +90,6 @@ export function EditorLeftSidebar({
         <TemplatePageList
           activeId={activeId}
           onSelect={onSelect}
-          onEditPage={onEditPage}
           onPreviewPage={onPreviewPage}
           compact={compact}
         />

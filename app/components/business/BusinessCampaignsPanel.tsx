@@ -38,6 +38,7 @@ import {
 
 const CAMPAIGNS_FETCH_LIMIT = 200;
 const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
+const CAMPAIGNS_LOADING_SKELETON_COUNT = 3;
 
 const campaignsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
@@ -406,7 +407,7 @@ export function BusinessCampaignsPanel({
           >
             {loading ? (
               <div className={campaignsGridClass}>
-                {Array.from({ length: CAMPAIGNS_GRID_PAGE_SIZE }).map((_, i) => (
+                {Array.from({ length: CAMPAIGNS_LOADING_SKELETON_COUNT }).map((_, i) => (
                   <div key={i} className={campaignCardWrapClass}>
                     <CampaignFunnelCardSkeleton />
                   </div>

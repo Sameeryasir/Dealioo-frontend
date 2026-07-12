@@ -4,10 +4,7 @@ import { motion } from "framer-motion";
 import {
   Eye,
   Loader2,
-  Redo2,
   Save,
-  Undo2,
-  Upload,
 } from "lucide-react";
 import {
   headerActionItemVariants,
@@ -24,10 +21,6 @@ export type TopNavigationProps = {
   pageLabel: string;
   saveStatus: EditorSaveStatus;
   isDirty: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
   onSave: () => void;
   onPreview?: () => void;
   isSaving?: boolean;
@@ -38,23 +31,19 @@ export type TopNavigationProps = {
 };
 
 const primaryActionClass =
-  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#1877f2] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const compactPrimaryActionClass =
-  "inline-flex shrink-0 items-center justify-center gap-1 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-semibold text-white transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const ghostActionClass =
-  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
 
 export function TopNavigation({
   campaignName,
   pageLabel,
   saveStatus,
   isDirty,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
   onSave,
   onPreview,
   isSaving = false,
@@ -71,12 +60,12 @@ export function TopNavigation({
     return (
       <div className="editor-panel-top-inner flex h-full min-h-0 w-full flex-col justify-between">
         <div className="editor-panel-top-head shrink-0">
-          <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+          <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
             Editor
           </p>
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <p
-              className="m-0 min-w-0 truncate text-[0.9rem] font-extrabold tracking-tight text-[#07111f]"
+              className="m-0 min-w-0 truncate text-[0.875rem] font-semibold text-slate-900"
               title={pageLabel}
             >
               {pageLabel}
@@ -86,29 +75,6 @@ export function TopNavigation({
         </div>
 
         <div className="editor-panel-top-foot flex flex-nowrap items-center gap-1.5 overflow-x-auto">
-          <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] p-0.5">
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="flex size-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-[#1877f2] disabled:opacity-35"
-              title="Undo (Ctrl+Z)"
-              aria-label="Undo"
-            >
-              <Undo2 className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className="flex size-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-[#1877f2] disabled:opacity-35"
-              title="Redo (Ctrl+Shift+Z)"
-              aria-label="Redo"
-            >
-              <Redo2 className="size-3.5" />
-            </button>
-          </div>
-
           <button
             type="button"
             onClick={onSave}
@@ -122,17 +88,6 @@ export function TopNavigation({
               <Save className="size-3.5" aria-hidden />
             )}
             Save
-          </button>
-
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving}
-            title="Publish (saves to server)"
-            className={compactPrimaryActionClass}
-          >
-            <Upload className="size-3.5" />
-            Publish
           </button>
         </div>
 
@@ -152,32 +107,6 @@ export function TopNavigation({
     <>
       <motion.div variants={headerActionItemVariants}>
         <StatusBadge status={saveStatus} isDirty={isDirty} />
-      </motion.div>
-
-      <motion.div
-        variants={headerActionItemVariants}
-        className="hidden items-center gap-0.5 rounded-full border border-[#e8edf5] bg-[#f8fafc] p-0.5 sm:flex"
-      >
-        <button
-          type="button"
-          onClick={onUndo}
-          disabled={!canUndo}
-          className="flex size-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-[#1877f2] disabled:opacity-35"
-          title="Undo (Ctrl+Z)"
-          aria-label="Undo"
-        >
-          <Undo2 className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={onRedo}
-          disabled={!canRedo}
-          className="flex size-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-[#1877f2] disabled:opacity-35"
-          title="Redo (Ctrl+Shift+Z)"
-          aria-label="Redo"
-        >
-          <Redo2 className="size-3.5" />
-        </button>
       </motion.div>
 
       {showPreview && onPreview ? (
@@ -206,18 +135,6 @@ export function TopNavigation({
           <Save className="size-3.5" aria-hidden />
         )}
         Save
-      </motion.button>
-
-      <motion.button
-        type="button"
-        variants={headerActionItemVariants}
-        onClick={onSave}
-        disabled={isSaving}
-        title="Publish (saves to server)"
-        className={`hidden md:inline-flex ${ctaClass}`}
-      >
-        <Upload className="size-3.5" />
-        Publish
       </motion.button>
     </>
   );

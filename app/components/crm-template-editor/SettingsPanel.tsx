@@ -69,8 +69,8 @@ export function SettingsPanel({
               {toolbar}
             </div>
           ) : null}
-          <div className="shrink-0 border-b border-[#e8edf5] px-3 py-2">
-            <span className="inline-flex items-center text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+          <div className="shrink-0 border-b border-slate-200 px-3 py-2">
+            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
               Page settings
             </span>
           </div>
@@ -104,8 +104,7 @@ export function SettingsPanel({
             Customize your page
           </p>
           <p className="m-0 max-w-[14rem] text-[0.72rem] font-medium leading-relaxed text-slate-500">
-            Pick a funnel step and tap the pencil to edit content, media, and
-            layout.
+            Pick a funnel step to preview or edit.
           </p>
         </div>
       </aside>
@@ -119,8 +118,8 @@ export function SettingsPanel({
           {toolbar}
         </div>
       ) : null}
-      <div className="shrink-0 border-b border-[#e8edf5] bg-white px-3 py-2">
-        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+      <div className="shrink-0 border-b border-slate-200 px-3 py-2">
+        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
           Page settings
         </span>
       </div>

@@ -166,10 +166,14 @@ export default function CampaignHeader({
 
   const tabButtons = TABS.map(({ id, label, icon: Icon }) => {
     const active = id === activeTabId;
+    const immersiveTabActive =
+      "border-b-2 border-[#1877f2] text-slate-900";
+    const immersiveTabIdle =
+      "border-b-2 border-transparent text-slate-500 hover:text-slate-800";
     const lightTabActive =
-      "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.22)]";
+      "bg-[#1877f2] text-white shadow-sm";
     const lightTabIdle =
-      "bg-transparent text-slate-500 hover:bg-[#f4f7fb] hover:text-[#1877f2]";
+      "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800";
 
     return (
       <button
@@ -178,16 +182,14 @@ export default function CampaignHeader({
         role="tab"
         aria-selected={active}
         onClick={() => selectTab(id)}
-        className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
+        className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
           immersiveChrome
-            ? "px-2.5 py-1 text-[0.7rem] sm:px-3 sm:text-[0.74rem]"
-            : "gap-1.5 px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.75rem]"
-        } ${
-          active
-            ? lightTabActive
-            : immersiveChrome
-              ? lightTabIdle
-              : "bg-white text-slate-500 ring-1 ring-[#e8edf5] hover:bg-[#e8f2ff] hover:text-[#1877f2] hover:ring-[#1877f2]/20"
+            ? `rounded-none px-2.5 py-2 text-[0.75rem] sm:px-3 sm:text-[0.78rem] ${
+                active ? immersiveTabActive : immersiveTabIdle
+              }`
+            : `gap-1.5 rounded-md px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.75rem] ${
+                active ? lightTabActive : `ring-1 ring-slate-200 ${lightTabIdle}`
+              }`
         }`}
       >
         {Icon ? (
@@ -216,7 +218,7 @@ export default function CampaignHeader({
           <div className="campaign-immersive-patti__side campaign-immersive-patti__side--start gap-2">
             <Link
               href={campaignsHref}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+              className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
               aria-label="Back to campaigns"
             >
               <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
@@ -257,7 +259,7 @@ export default function CampaignHeader({
                     ? "Open the Funnel tab to generate a tracking link"
                     : "Get link for Facebook ads"
               }
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:px-3"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#1877f2] px-2.5 py-1.5 text-[0.72rem] font-semibold text-white transition hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:px-3"
             >
               <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
               <span className="hidden sm:inline">Tracking link</span>

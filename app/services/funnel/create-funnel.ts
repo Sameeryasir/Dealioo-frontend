@@ -270,15 +270,19 @@ export function buildCreateFunnelRequestBody(
     "confirmation",
   ]);
 
+  const landing = pages.landing as LandingTemplatePage;
+  const signup = pages.signup as SignUpTemplatePage;
+  const payment = pages.payment as PaymentTemplatePage;
+
   const out: CreateFunnelPagesPayload = {};
   if (include.has("landing")) {
-    out.landing = buildLandingPayload(pages.landing as LandingTemplatePage);
+    out.landing = buildLandingPayload(landing);
   }
   if (include.has("signup")) {
-    out.signup = buildSignupPayload(pages.signup as SignUpTemplatePage);
+    out.signup = buildSignupPayload(signup);
   }
   if (include.has("payment")) {
-    out.payment = buildPaymentPayload(pages.payment as PaymentTemplatePage);
+    out.payment = buildPaymentPayload(payment);
   }
   if (include.has("confirmation")) {
     out.confirmation = buildConfirmationPayload(pages.confirmation);

@@ -12,7 +12,10 @@ import {
   DEFAULT_CHECKOUT_THEME,
 } from "@/app/components/crm-template-editor/checkout-template-types";
 import { LandingFunnelStepShell } from "@/app/components/crm-template-editor/LandingFunnelStepShell";
-import { normalizeLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
+import {
+  normalizeLandingDesign,
+  syncCheckoutThemeWithLandingDesign,
+} from "@/app/components/crm-template-editor/landing-designs/registry";
 import { getCheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
 import {
   EMPTY_CAMPAIGN_PRICING,
@@ -64,7 +67,18 @@ export function PaymentPagePreview({
     ? normalizeLandingDesign(landingPage.landingDesign)
     : null;
 
-  const formStyles = getCheckoutFormStyles(payment.formDesign, {
+  const syncedPayment =
+    onLanding && landingDesignId
+      ? {
+          ...payment,
+          checkoutTheme: syncCheckoutThemeWithLandingDesign(
+            payment.checkoutTheme,
+            landingDesignId,
+          ),
+        }
+      : payment;
+
+  const formStyles = getCheckoutFormStyles(syncedPayment.formDesign, {
     landingDesignId,
     blendWithLanding: onLanding,
   });
@@ -77,14 +91,14 @@ export function PaymentPagePreview({
     stripeMode && stripeCheckout ? (
       <FunnelStripePaymentForm
         context={stripeCheckout}
-        page={payment}
+        page={syncedPayment}
         formStyles={formStyles}
       />
     ) : null;
 
   const checkout = (
     <CheckoutTemplateRenderer
-      page={payment}
+      page={syncedPayment}
       landingPage={landingPage}
       interactive={interactive}
       stripeCheckout={stripeCheckout}

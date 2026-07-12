@@ -11,7 +11,8 @@ import type { EditorSaveStatus } from "@/app/components/crm-template-editor/edit
 import { FunnelPageTemplateGallery } from "@/app/components/crm-template-editor/FunnelPageTemplateGallery";
 import type { FunnelLandingCopyTemplate } from "@/app/components/crm-template-editor/funnel-landing-copy-templates";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
-import { getLandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/registry";
+import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
+import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import {
   buildFunnelPublicPath,
@@ -81,8 +82,6 @@ export function CrmTemplateEditor({
     reset: resetPagesHistory,
     undo,
     redo,
-    canUndo,
-    canRedo,
   } = useUndoRedo<TemplatePagesState>(funnelLoader.pages);
 
   const [activeId, setActiveId] = useState<TemplatePageId>(initialPageId);
@@ -133,7 +132,7 @@ export function CrmTemplateEditor({
       setSaveStatus("saved");
       setIsDirty(false);
       editSnapshotRef.current = JSON.parse(
-        JSON.stringify(pages),
+        JSON.stringify(pagesToSave),
       ) as TemplatePagesState;
     } catch (e) {
       setSaveStatus("error");
@@ -364,6 +363,10 @@ export function CrmTemplateEditor({
             checkoutTemplate: template.checkoutTemplate,
             formDesign: template.formDesign,
             layoutType: template.layoutType,
+            checkoutTheme: syncCheckoutThemeWithLandingDesign(
+              payment.checkoutTheme ?? DEFAULT_CHECKOUT_THEME,
+              template.landingDesign,
+            ),
           },
         };
       });
@@ -408,10 +411,6 @@ export function CrmTemplateEditor({
               pageLabel={activePage.label}
               saveStatus={displaySaveStatus}
               isDirty={isDirty}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onUndo={undo}
-              onRedo={redo}
               onSave={() => void handleSave()}
               onPreview={previewRouteId != null ? handlePreview : undefined}
               isSaving={saveStatus === "saving"}
@@ -422,8 +421,7 @@ export function CrmTemplateEditor({
         leftSidebar={
           <EditorLeftSidebar
             activeId={activeId}
-            onSelect={requestSwitchActive}
-            onEditPage={openEditorForPage}
+            onSelect={openEditorForPage}
             onPreviewPage={
               previewRouteId != null ? handlePreviewPage : undefined
             }
@@ -462,10 +460,6 @@ export function CrmTemplateEditor({
                   pageLabel={activePage.label}
                   saveStatus={displaySaveStatus}
                   isDirty={isDirty}
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  onUndo={undo}
-                  onRedo={redo}
                   onSave={() => void handleSave()}
                   isSaving={saveStatus === "saving"}
                   saveError={saveError}

@@ -7,7 +7,7 @@ export const editorWorkspaceColsEmbeddedClass =
 export const editorFunnelRailWidthClass = "w-full max-w-full";
 
 export const editorShellEmbeddedClass =
-  "crm-editor-embedded-shell relative flex h-full min-h-0 w-full max-h-full flex-1 flex-col overflow-hidden bg-white text-[#07111f]";
+  "crm-editor-embedded-shell relative flex h-full min-h-0 w-full max-h-full flex-1 flex-col overflow-hidden bg-slate-50 text-slate-900";
 
 export const editorShellGridWrapEmbeddedClass =
   "crm-editor-embedded-grid-wrap flex min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden";
@@ -61,7 +61,7 @@ export const editorSidebarPickerScrollClass = [
 ].join(" ");
 
 export const editorSidebarPickerPanelClass =
-  "overflow-hidden rounded-[1.05rem] border border-[#e8edf5] bg-white p-1.5 ring-1 ring-black/[0.02]";
+  "overflow-hidden rounded-md border border-slate-200 bg-white p-1.5";
 
 export const editorPreviewStageClass =
   "@container/preview-stage relative flex h-full min-h-0 w-full items-center justify-center overflow-hidden p-0.5 sm:p-1";
@@ -75,9 +75,9 @@ export const previewPhoneFrameClass = [
   "max-w-[min(100%,26rem)] sm:max-w-[min(100%,30rem)] lg:max-w-[min(100%,34rem)] xl:max-w-[min(100%,38rem)] 2xl:max-w-[min(100%,42rem)]",
   "aspect-[390/844]",
   "overflow-x-hidden overflow-y-auto",
-  "rounded-[1.2rem] bg-white",
-  "shadow-[0_10px_28px_rgba(15,23,42,0.08)]",
-  "ring-1 ring-[#e8edf5]",
+  "rounded-lg bg-white",
+  "shadow-sm",
+  "ring-1 ring-slate-200",
   "[scrollbar-width:thin]",
 ].join(" ");
 
@@ -85,11 +85,11 @@ export const previewPhoneFrameEmbeddedClass = [
   "@container/preview",
   "h-full min-h-0 w-full max-w-[20.5rem] flex-1",
   "overflow-x-hidden overflow-y-auto",
-  "rounded-[1.2rem] bg-white",
-  "shadow-[0_12px_32px_rgba(15,23,42,0.1)]",
-  "ring-1 ring-[#e8edf5]",
+  "rounded-lg bg-white",
+  "shadow-sm",
+  "ring-1 ring-slate-200",
   "[scrollbar-width:thin]",
 ].join(" ");
 
 export const funnelFullPagePreviewFrameClass =
-  "@container/preview flex w-full min-h-dvh flex-col overflow-hidden sm:max-w-[min(390px,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-[1.65rem] sm:shadow-[0_20px_50px_rgba(15,23,42,0.12)] sm:ring-2 sm:ring-[#e8edf5]";
+  "@container/preview flex w-full min-h-dvh flex-col overflow-hidden sm:max-w-[min(390px,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-lg sm:shadow-sm sm:ring-1 sm:ring-slate-200";
