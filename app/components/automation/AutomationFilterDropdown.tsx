@@ -67,13 +67,13 @@ export function AutomationFilterDropdown<T extends string>({
                 }}
                 className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left text-sm transition ${
                   isSelected
-                    ? "bg-violet-50 font-semibold text-violet-900"
-                    : "font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900"
+                    ? "bg-[#e8f2ff] font-semibold text-[#0f5ed7]"
+                    : "font-medium text-[#334155] hover:bg-[#f8faff] hover:text-[#07111f]"
                 }`}
               >
                 <span className="flex size-4 shrink-0 items-center justify-center">
                   {isSelected ? (
-                    <Check className="size-4 text-violet-600" strokeWidth={2.5} />
+                    <Check className="size-4 text-[#1877f2]" strokeWidth={2.5} />
                   ) : null}
                 </span>
                 {option.label}
@@ -93,9 +93,9 @@ export function AutomationFilterDropdown<T extends string>({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
-        className="flex h-10 w-full min-w-[8.5rem] cursor-pointer items-center gap-2 rounded-xl border border-zinc-200/90 bg-white py-2 pl-3 pr-2.5 text-sm font-semibold text-zinc-800 shadow-sm outline-none transition hover:border-violet-200 hover:bg-violet-50/30 focus-visible:border-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500/20"
+        className="flex h-10 w-full min-w-[8.5rem] cursor-pointer items-center gap-2 rounded-xl border border-[#e8edf5] bg-white py-2 pl-3 pr-2.5 text-sm font-semibold text-[#07111f] shadow-sm outline-none transition hover:border-[#1877f2]/30 hover:bg-[#f8faff] focus-visible:border-[#1877f2]/40 focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
       >
-        <Filter className="size-4 shrink-0 text-violet-600" aria-hidden strokeWidth={2.5} />
+        <Filter className="size-4 shrink-0 text-[#1877f2]" aria-hidden strokeWidth={2.5} />
         <span className="min-w-0 flex-1 truncate text-left">{selected?.label}</span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}

@@ -33,7 +33,7 @@ const AdSetLocationsMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-sm text-zinc-500">
+      <div className="flex h-64 items-center justify-center rounded-lg border border-[#e8edf5] bg-[#f4f8ff] text-sm text-slate-500">
         Loading map…
       </div>
     ),
@@ -197,20 +197,20 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
   };
 
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+    <section className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex w-full items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-3 text-left"
+        className="flex w-full items-center justify-between border-b border-[#e8edf5] bg-[#f4f8ff]/80 px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-zinc-900">Locations</span>
-          <Info className="size-4 text-zinc-400" aria-hidden />
+          <span className="text-sm font-semibold text-[#07111f]">Locations</span>
+          <Info className="size-4 text-slate-400" aria-hidden />
         </div>
         {expanded ? (
-          <ChevronUp className="size-4 text-zinc-500" />
+          <ChevronUp className="size-4 text-slate-500" />
         ) : (
-          <ChevronDown className="size-4 text-zinc-500" />
+          <ChevronDown className="size-4 text-slate-500" />
         )}
       </button>
 
@@ -218,14 +218,14 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
         <div className="space-y-3 p-4">
           {Array.from(grouped.entries()).map(([countryName, countryLocations]) => (
             <div key={countryName} className="space-y-2">
-              <p className="text-sm font-semibold text-zinc-900">{countryName}</p>
+              <p className="text-sm font-semibold text-[#07111f]">{countryName}</p>
               {countryLocations.map((location) => (
                 <div key={location.id} className="space-y-2">
                   <div
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
                       activeLocationId === location.id
                         ? "border-[#1877F2] bg-[#1877F2]/5"
-                        : "border-zinc-200 bg-white"
+                        : "border-[#e8edf5] bg-white"
                     }`}
                   >
                     <button
@@ -244,25 +244,25 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                         <MapPin className="size-4 text-emerald-600" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-zinc-800">
+                        <span className="block truncate text-sm text-[#07111f]">
                           {location.label}
                         </span>
                         {location.mode === "exclude" ? (
                           <span className="text-xs text-red-600">Excluded</span>
                         ) : location.type === "address" && location.radius ? (
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-slate-500">
                             {location.radius}{" "}
                             {location.distanceUnit === "mile" ? "mi" : "km"} radius
                           </span>
                         ) : null}
                       </span>
                       {location.type === "address" ? (
-                        <ChevronDown className="size-4 shrink-0 text-zinc-400" />
+                        <ChevronDown className="size-4 shrink-0 text-slate-400" />
                       ) : null}
                     </button>
                     <button
                       type="button"
-                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                      className="rounded p-1 text-slate-400 hover:bg-[#e8f2ff] hover:text-slate-500"
                       aria-label="More options"
                     >
                       <MoreHorizontal className="size-4" />
@@ -270,7 +270,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                     <button
                       type="button"
                       onClick={() => removeLocation(location.id)}
-                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                      className="rounded p-1 text-slate-400 hover:bg-[#e8f2ff] hover:text-slate-500"
                       aria-label="Remove location"
                     >
                       <X className="size-4" />
@@ -278,8 +278,8 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                   </div>
 
                   {radiusEditorId === location.id && location.type === "address" ? (
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                      <p className="mb-2 text-xs font-semibold text-zinc-600">
+                    <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff] p-4">
+                      <p className="mb-2 text-xs font-semibold text-slate-500">
                         Radius around this address
                       </p>
                       <div className="flex flex-wrap items-center gap-3">
@@ -305,7 +305,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                               radius: Number.parseInt(e.target.value, 10) || 1,
                             })
                           }
-                          className="w-14 rounded border border-zinc-200 px-2 py-1 text-sm"
+                          className="w-14 rounded border border-[#e8edf5] px-2 py-1 text-sm"
                         />
                         <select
                           value={location.distanceUnit ?? "kilometer"}
@@ -314,7 +314,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                               distanceUnit: e.target.value as MetaDistanceUnit,
                             })
                           }
-                          className="rounded border border-zinc-200 px-2 py-1 text-sm"
+                          className="rounded border border-[#e8edf5] px-2 py-1 text-sm"
                         >
                           <option value="kilometer">km</option>
                           <option value="mile">mi</option>
@@ -334,24 +334,24 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                 onChange={(e) =>
                   setSearchMode(e.target.value as MetaLocationTargetMode)
                 }
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-800"
+                className="rounded-lg border border-[#e8edf5] bg-white px-3 py-2 text-sm font-medium text-[#07111f]"
               >
                 <option value="include">Include</option>
                 <option value="exclude">Exclude</option>
               </select>
 
               <div className="relative flex min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search locations"
-                  className="w-full rounded-lg border border-zinc-200 py-2 pl-9 pr-24 text-sm text-zinc-900"
+                  className="w-full rounded-lg border border-[#e8edf5] py-2 pl-9 pr-24 text-sm text-[#07111f]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowBrowse((value) => !value)}
-                  className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-100"
+                  className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-[#e8f2ff]"
                 >
                   Browse
                   <ChevronDown className="size-3" />
@@ -361,7 +361,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
               <button
                 type="button"
                 onClick={() => setMapExpanded((value) => !value)}
-                className="rounded-lg border border-zinc-200 px-2 py-2 text-zinc-600 hover:bg-zinc-50"
+                className="rounded-lg border border-[#e8edf5] px-2 py-2 text-slate-500 hover:bg-[#f4f8ff]"
                 aria-label={mapExpanded ? "Collapse map" : "Expand map"}
               >
                 {mapExpanded ? (
@@ -373,25 +373,25 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
             </div>
 
             {searching ? (
-              <p className="text-xs text-zinc-500">Searching…</p>
+              <p className="text-xs text-slate-500">Searching…</p>
             ) : null}
             {searchError ? (
               <p className="text-xs text-red-600">{searchError}</p>
             ) : null}
 
             {searchResults.length > 0 ? (
-              <ul className="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
+              <ul className="max-h-48 overflow-y-auto rounded-lg border border-[#e8edf5] bg-white shadow-sm">
                 {searchResults.map((result) => (
                   <li key={result.id}>
                     <button
                       type="button"
                       onClick={() => addLocation(result)}
-                      className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
+                      className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-[#f4f8ff]"
                     >
-                      <MapPin className="mt-0.5 size-4 shrink-0 text-zinc-400" />
+                      <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />
                       <span>
-                        <span className="block text-zinc-900">{result.label}</span>
-                        <span className="text-xs text-zinc-500">
+                        <span className="block text-[#07111f]">{result.label}</span>
+                        <span className="text-xs text-slate-500">
                           {result.countryName}
                         </span>
                       </span>
@@ -402,13 +402,13 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
             ) : null}
 
             {showBrowse ? (
-              <ul className="max-h-40 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
+              <ul className="max-h-40 overflow-y-auto rounded-lg border border-[#e8edf5] bg-white shadow-sm">
                 {COUNTRIES.map((country) => (
                   <li key={country.code}>
                     <button
                       type="button"
                       onClick={() => addCountry(country.code)}
-                      className="w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                      className="w-full px-3 py-2 text-left text-sm text-[#07111f] hover:bg-[#f4f8ff]"
                     >
                       {country.label}
                     </button>
@@ -433,7 +433,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                   className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
                     dropPinMode
                       ? "border-[#1877F2] bg-[#1877F2] text-white"
-                      : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50"
+                      : "border-[#e8edf5] bg-white text-[#07111f] hover:bg-[#f4f8ff]"
                   }`}
                 >
                   <MapPin className="size-4" />

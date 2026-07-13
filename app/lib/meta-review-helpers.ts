@@ -105,3 +105,38 @@ export function getCreativePreviewUrl(creative: AdCreativeStepData): string | un
   }
   return creative.carouselCards?.[0]?.imageUrl;
 }
+
+/** HTTPS media URL(s) Dealioo sends to Meta on publish. */
+export function getCreativeMediaLinks(
+  creative: AdCreativeStepData,
+): Array<{ label: string; url: string }> {
+  if (creative.creativeFormat === "SINGLE_IMAGE" && creative.imageUrl?.trim()) {
+    return [{ label: "Image link", url: creative.imageUrl.trim() }];
+  }
+
+  if (creative.creativeFormat === "SINGLE_VIDEO") {
+    const links: Array<{ label: string; url: string }> = [];
+    if (creative.videoUrl?.trim()) {
+      links.push({ label: "Video link", url: creative.videoUrl.trim() });
+    }
+    if (creative.thumbnailUrl?.trim()) {
+      links.push({ label: "Thumbnail link", url: creative.thumbnailUrl.trim() });
+    }
+    return links;
+  }
+
+  if (creative.creativeFormat === "CAROUSEL") {
+    return (creative.carouselCards ?? [])
+      .map((card, index) => {
+        const url = card.imageUrl?.trim() || card.videoUrl?.trim();
+        if (!url) return null;
+        return {
+          label: `Card ${index + 1} ${card.imageUrl?.trim() ? "image" : "video"} link`,
+          url,
+        };
+      })
+      .filter((row): row is { label: string; url: string } => row != null);
+  }
+
+  return [];
+}

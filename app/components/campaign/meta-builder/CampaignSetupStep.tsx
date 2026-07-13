@@ -209,7 +209,7 @@ export function CampaignSetupStep({
           <input
             readOnly
             value="Auction"
-            className={`${inputClass} bg-zinc-50 text-zinc-600`}
+            className={`${inputClass} bg-[#f4f8ff] text-slate-500`}
           />
         </BuilderField>
 
@@ -230,15 +230,15 @@ export function CampaignSetupStep({
         </BuilderField>
 
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-zinc-800">
+          <legend className="text-sm font-semibold text-[#07111f]">
             Special ad categories
           </legend>
-          <label className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2.5 text-sm text-zinc-700">
+          <label className="flex items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/50 px-3 py-2.5 text-sm text-slate-600">
             <input
               type="checkbox"
               checked={specialNone}
               onChange={(e) => handleSpecialNone(e.target.checked)}
-              className="size-4 rounded border-zinc-300 text-[#1877F2]"
+              className="size-4 rounded border-[#dbeafe] text-[#1877F2]"
             />
             None (default)
           </label>
@@ -247,13 +247,13 @@ export function CampaignSetupStep({
               {SPECIAL_CATEGORIES.map((cat) => (
                 <label
                   key={cat.value}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm transition hover:border-zinc-300"
+                  className="flex items-center gap-2 rounded-xl border border-[#e8edf5] px-3 py-2.5 text-sm transition hover:border-[#dbeafe]"
                 >
                   <input
                     type="checkbox"
                     checked={specialCategories.includes(cat.value)}
                     onChange={() => toggleCategory(cat.value)}
-                    className="size-4 rounded border-zinc-300 text-[#1877F2]"
+                    className="size-4 rounded border-[#dbeafe] text-[#1877F2]"
                   />
                   {cat.label}
                 </label>
@@ -286,10 +286,10 @@ export function CampaignSetupStep({
         </div>
 
         {cboEnabled ? (
-          <div className="space-y-4 border-t border-zinc-100 pt-4">
+          <div className="space-y-4 border-t border-[#e8edf5] pt-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="block text-sm sm:w-44">
-                <span className="font-medium text-zinc-800">Budget type</span>
+                <span className="font-medium text-[#07111f]">Budget type</span>
                 <select
                   value={campaignBudgetType}
                   onChange={(e) =>
@@ -304,9 +304,9 @@ export function CampaignSetupStep({
                 </select>
               </label>
               <label className="block flex-1 text-sm">
-                <span className="font-medium text-zinc-800">Amount</span>
+                <span className="font-medium text-[#07111f]">Amount</span>
                 <div className="relative mt-1">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                     $
                   </span>
                   <input
@@ -318,7 +318,7 @@ export function CampaignSetupStep({
                     className={`${inputClass} mt-0 pl-7`}
                     placeholder="25.00"
                   />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-500">
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-500">
                     USD
                   </span>
                 </div>
@@ -326,7 +326,7 @@ export function CampaignSetupStep({
             </div>
 
             {budgetHelperText ? (
-              <p className="text-xs leading-relaxed text-zinc-500">
+              <p className="text-xs leading-relaxed text-slate-500">
                 {budgetHelperText}
               </p>
             ) : null}
@@ -340,9 +340,9 @@ export function CampaignSetupStep({
             </button>
 
             {showAdvancedBudget ? (
-              <div className="space-y-4 rounded-xl bg-zinc-50 p-4">
+              <div className="space-y-4 rounded-xl bg-[#f4f8ff] p-4">
                 <label className="block text-sm">
-                  <span className="font-medium text-zinc-800">
+                  <span className="font-medium text-[#07111f]">
                     Campaign bid strategy
                   </span>
                   <select
@@ -364,13 +364,13 @@ export function CampaignSetupStep({
                   </select>
                 </label>
                 <div className="text-sm">
-                  <span className="font-medium text-zinc-800">
+                  <span className="font-medium text-[#07111f]">
                     Budget scheduling
                   </span>
-                  <p className="mt-1 text-zinc-600">None selected</p>
+                  <p className="mt-1 text-slate-500">None selected</p>
                 </div>
                 <label className="block text-sm">
-                  <span className="font-medium text-zinc-800">
+                  <span className="font-medium text-[#07111f]">
                     Campaign spend limit (optional)
                   </span>
                   <input
@@ -387,7 +387,7 @@ export function CampaignSetupStep({
             ) : null}
           </div>
         ) : (
-          <p className="rounded-xl bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+          <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-xs text-slate-500">
             Budget and bid strategy will be set per ad set on Step 2.
           </p>
         )}

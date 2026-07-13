@@ -2,6 +2,7 @@
 
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
+import { userAvatarUrl } from "@/app/lib/user-initials";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { mergeSetupUser, setSetupUser } from "@/app/lib/setup-user";
 import {
@@ -727,6 +728,8 @@ export function OwnerProfileForm({
     </div>
   );
 
+  const hasProfilePhoto = Boolean(userAvatarUrl(profile));
+
   return (
     <div className={`flex flex-col ${isPageLayout ? "gap-0" : "gap-8"}`}>
       {isPageLayout ? (
@@ -740,10 +743,15 @@ export function OwnerProfileForm({
                       <div className="profile-hero-avatar-wrap">
                         <div className="profile-hero-avatar-stack">
                           <span className="profile-hero-avatar-orbit" aria-hidden />
-                          <span className="profile-hero-avatar-frame">
+                          <span
+                            className={`profile-hero-avatar-frame${
+                              hasProfilePhoto ? "" : " profile-hero-avatar-frame--no-photo"
+                            }`}
+                          >
                             <UserAccountAvatar
                               user={profile}
                               className="size-full rounded-full object-cover"
+                              heroFallback={!hasProfilePhoto}
                             />
                           </span>
                         </div>

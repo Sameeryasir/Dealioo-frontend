@@ -425,7 +425,7 @@ export function AdCreativeSetupStep({
               )}
             </select>
             {switchingAccount ? (
-              <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-zinc-400" />
+              <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-slate-400" />
             ) : null}
           </div>
         </BuilderField>
@@ -489,7 +489,7 @@ export function AdCreativeSetupStep({
                 setInstagramProfileMode("custom");
                 setShowInstagramConnect(true);
               }}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
+              className="rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] shadow-sm hover:bg-[#f4f8ff]"
             >
               Connect profile
             </button>
@@ -508,20 +508,20 @@ export function AdCreativeSetupStep({
           label="Branding"
           hint="Optional business name and logo stored on this draft."
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3">
-            <span className="text-sm font-medium text-zinc-600">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/60 px-4 py-3">
+            <span className="text-sm font-medium text-slate-500">
               {brandingEnabled ? "Active" : "Inactive"}
             </span>
             <button
               type="button"
               onClick={() => setBrandingEnabled((prev) => !prev)}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+              className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#07111f] hover:bg-[#f4f8ff]"
             >
               {brandingEnabled ? "Remove" : "Add branding"}
             </button>
           </div>
           {brandingEnabled ? (
-            <div className="mt-3 space-y-3 rounded-xl border border-zinc-200 p-4">
+            <div className="mt-3 space-y-3 rounded-xl border border-[#e8edf5] p-4">
               <input
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
@@ -589,7 +589,7 @@ export function AdCreativeSetupStep({
                 type="button"
                 disabled={uploading}
                 onClick={() => imageInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-3 text-sm font-semibold text-[#07111f] shadow-sm hover:bg-[#f4f8ff] disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
                 {imageUrl ? "Replace image" : "Upload image"}
@@ -603,14 +603,14 @@ export function AdCreativeSetupStep({
 
         {creativeFormat === "SINGLE_VIDEO" ? (
           <div className="space-y-3">
-            {videoUrl ? <p className="text-xs text-zinc-600 break-all">Video uploaded</p> : null}
+            {videoUrl ? <p className="text-xs text-slate-500 break-all">Video uploaded</p> : null}
             <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => void handleVideoUpload(e.target.files?.[0])} />
             <BuilderField label="Ad video" required error={fieldErrors.videoUrl} hint="Short clips (under 60s) work best in feed and stories.">
               <button
                 type="button"
                 disabled={uploading}
                 onClick={() => videoInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-3 text-sm font-semibold text-[#07111f] shadow-sm hover:bg-[#f4f8ff] disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Video className="size-4" />}
                 {videoUrl ? "Replace video" : "Upload video"}
@@ -626,9 +626,9 @@ export function AdCreativeSetupStep({
         {creativeFormat === "CAROUSEL" ? (
           <div className="space-y-4">
             {carouselCards.map((card, index) => (
-              <div key={index} className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-4 space-y-3">
+              <div key={index} className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/40 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-zinc-900">Card {index + 1}</p>
+                  <p className="text-sm font-semibold text-[#07111f]">Card {index + 1}</p>
                   {carouselCards.length > 2 ? (
                     <button type="button" onClick={() => setCarouselCards((prev) => prev.filter((_, i) => i !== index))} className="text-red-600 hover:text-red-700" aria-label={`Remove card ${index + 1}`}>
                       <Trash2 className="size-4" />
@@ -710,7 +710,7 @@ export function AdCreativeSetupStep({
         description="Tell us where to send people immediately after they tap or click your ad."
       >
         {creativeFormat === "CAROUSEL" ? (
-          <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-600">
+          <p className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-4 py-3 text-sm text-slate-500">
             Carousel ads use a destination URL on each card in the Media section above.
           </p>
         ) : (
@@ -737,7 +737,7 @@ export function AdCreativeSetupStep({
                 Instant Experience is not available in Dealioo yet. Select <strong>Website</strong> to send people to your site.
               </p>
             ) : (
-              <div className="space-y-4 border-t border-zinc-100 pt-4">
+              <div className="space-y-4 border-t border-[#e8edf5] pt-4">
                 <BuilderField
                   label="Website URL"
                   required
@@ -758,7 +758,7 @@ export function AdCreativeSetupStep({
                         href={destinationUrl.trim()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 text-zinc-600 shadow-sm hover:bg-zinc-50"
+                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white px-3 text-slate-500 shadow-sm hover:bg-[#f4f8ff]"
                         aria-label="Open website URL"
                       >
                         <ExternalLink className="size-4" />
@@ -779,9 +779,9 @@ export function AdCreativeSetupStep({
                   />
                 </BuilderField>
 
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3">
-                  <p className="text-sm font-semibold text-zinc-800">Browser add-ons</p>
-                  <p className="mt-1 text-xs text-zinc-500">
+                <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/60 px-4 py-3">
+                  <p className="text-sm font-semibold text-[#07111f]">Browser add-ons</p>
+                  <p className="mt-1 text-xs text-slate-500">
                     Optional overlays in the in-app browser, not configured for this draft.
                   </p>
                 </div>
@@ -816,7 +816,7 @@ export function AdCreativeSetupStep({
             <AdCreativePreview placement="reels" primaryText={primaryText} headline={headline} imageUrl={previewImage} callToAction={callToAction} />
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-slate-500">
             Upload an image or video above to preview placements here.
           </p>
         )}

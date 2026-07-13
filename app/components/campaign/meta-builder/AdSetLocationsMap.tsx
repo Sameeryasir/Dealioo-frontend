@@ -83,7 +83,7 @@ export function AdSetLocationsMap({
   const zoom = activePin ? 11 : 4;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-zinc-200">
+    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-[#e8edf5]">
       <MapContainer
         center={center}
         zoom={zoom}
@@ -132,7 +132,7 @@ export function AdSetLocationsMap({
       </MapContainer>
 
       {dropPinMode ? (
-        <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white shadow">
+        <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-[#1877f2] px-3 py-1.5 text-xs font-semibold text-white shadow">
           Click map to drop pin
         </div>
       ) : null}

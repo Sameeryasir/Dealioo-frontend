@@ -3,8 +3,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  BadgeCheck,
+  CirclePause,
   Clock,
   ExternalLink,
+  FilePenLine,
   MoreHorizontal,
   Trash2,
   Plus,
@@ -16,7 +19,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { panelRowMotion, panelStagger, standardEase } from "@/app/lib/motion";
+import { standardEase } from "@/app/lib/motion";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 import { createPortal } from "react-dom";
@@ -33,10 +36,10 @@ import { AutomationFilterDropdown } from "@/app/components/automation/Automation
 import { CreateAutomationModal } from "@/app/components/automation/CreateAutomationModal";
 import { DeleteAutomationDialog } from "@/app/components/automation/DeleteAutomationDialog";
 import { automationStatusBadgeClass } from "@/app/lib/badge-variants";
-import { primaryButtonMdClass } from "@/app/lib/panel-styles";
 import type {
   AutomationFilter,
   AutomationListItem,
+  AutomationStatus,
 } from "@/app/components/automation/types";
 import {
   createAutomation,
@@ -102,21 +105,71 @@ function AutomationsColumnHead({
   );
 }
 
-function AutomationsEmbeddedHeader({ total }: { total: number }) {
+function AutomationsEmbeddedHeader({
+  total,
+  onCreate,
+}: {
+  total: number;
+  onCreate: () => void;
+}) {
   return (
-    <div className="funnel-automations-header">
-      <div className="funnel-automations-header__copy">
-        <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-violet-700 ring-1 ring-violet-500/15">
-          Automations
-        </span>
-        <span className="text-[0.72rem] font-medium text-zinc-500">
-          Workflows for this campaign
-        </span>
+    <div className="funnel-automations-hero-shell">
+      <div className="funnel-automations-hero-shell__glow" aria-hidden />
+      <div className="funnel-automations-header">
+        <div className="funnel-automations-header__lead">
+          <span className="funnel-automations-header__icon" aria-hidden>
+            <Workflow className="size-5" strokeWidth={ICON_STROKE} />
+          </span>
+          <div className="funnel-automations-header__copy">
+            <h2 className="funnel-automations-header__title">Automations</h2>
+            <p className="funnel-automations-header__subtitle">
+              Workflows for this campaign
+            </p>
+          </div>
+        </div>
+        <div className="funnel-automations-header__actions">
+          <span className="funnel-automations-header__total">{total} total</span>
+          <CreateAutomationButton onClick={onCreate} />
+        </div>
       </div>
-      <span className="funnel-automations-header__total rounded-full bg-violet-50 px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-violet-700 ring-1 ring-violet-500/15">
-        {total} total
-      </span>
     </div>
+  );
+}
+
+function AutomationsToolbarHint({ count }: { count: number }) {
+  if (count === 0) return null;
+
+  const message =
+    count === 1
+      ? "Your workflow is ready — open it to configure steps and messages."
+      : `${count} automations in this campaign`;
+
+  return <p className="funnel-automations-toolbar-hint">{message}</p>;
+}
+
+function automationStatusIcon(status: AutomationStatus) {
+  switch (status) {
+    case "active":
+      return BadgeCheck;
+    case "published":
+      return Activity;
+    case "paused":
+      return CirclePause;
+    case "draft":
+    default:
+      return FilePenLine;
+  }
+}
+
+function AutomationStatusBadge({ status }: { status: AutomationStatus }) {
+  const Icon = automationStatusIcon(status);
+  return (
+    <StatusPill
+      className={`funnel-automations-status-pill funnel-automations-status-pill--${status} ${automationStatusBadgeClass(status)}`}
+    >
+      <Icon className="size-3 shrink-0" aria-hidden strokeWidth={ICON_STROKE} />
+      <span className="capitalize">{status}</span>
+    </StatusPill>
   );
 }
 
@@ -131,7 +184,7 @@ function CreateAutomationButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.98] ${primaryButtonMdClass} ${className}`}
+      className={`funnel-automations-create-btn inline-flex shrink-0 items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.98] ${className}`}
     >
       <Plus className="size-4" aria-hidden />
       <span>Create Automation</span>
@@ -340,7 +393,10 @@ export function AutomationListPage({
   const listBody = (
     <div className="funnel-automations-content">
       {embedded ? (
-        <AutomationsEmbeddedHeader total={filtered.length} />
+        <AutomationsEmbeddedHeader
+          total={filtered.length}
+          onCreate={openCreateModal}
+        />
       ) : (
         <div className="funnel-automations-hero flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -372,25 +428,28 @@ export function AutomationListPage({
         </p>
       ) : null}
 
-      <div className="funnel-automations-toolbar">
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Search automations…"
-          className="funnel-automations-toolbar__search w-full sm:max-w-md"
-        />
-        <AutomationFilterDropdown
-          value={filter}
-          options={FILTERS}
-          onChange={setFilter}
-          className="funnel-automations-toolbar__filter w-full sm:w-44"
-        />
-        {embedded ? (
-          <CreateAutomationButton
-            onClick={openCreateModal}
-            className="funnel-automations-toolbar__create w-full sm:w-auto"
+      <div className="funnel-automations-toolbar-card">
+        <div className="funnel-automations-toolbar">
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Search automations…"
+            className="funnel-automations-toolbar__search w-full sm:max-w-md"
           />
-        ) : null}
+          <AutomationFilterDropdown
+            value={filter}
+            options={FILTERS}
+            onChange={setFilter}
+            className="funnel-automations-toolbar__filter w-full sm:w-44"
+          />
+          {!embedded ? (
+            <CreateAutomationButton
+              onClick={openCreateModal}
+              className="funnel-automations-toolbar__create w-full sm:w-auto"
+            />
+          ) : null}
+        </div>
+        {embedded ? <AutomationsToolbarHint count={filtered.length} /> : null}
       </div>
 
       {loadError ? (
@@ -404,9 +463,11 @@ export function AutomationListPage({
 
       {!loading && !loadError && filtered.length > 0 ? (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          key="automations-table"
+          className="funnel-automations-table-stage"
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: standardEase }}
+          transition={{ duration: 0.34, ease: standardEase }}
         >
           <AutomationsTableSection
             rows={filtered}
@@ -482,20 +543,28 @@ function AutomationsTableSection({
 }) {
   return (
     <div className="funnel-automations-surface">
+      <div className="funnel-automations-surface-accent" aria-hidden />
       <p className="funnel-automations-scroll-hint">
         Swipe sideways to see all columns
       </p>
 
       <div className="funnel-automations-table-wrap">
         <table className="funnel-automations-table">
+          <colgroup>
+            <col className="funnel-automations-col funnel-automations-col--name" />
+            <col className="funnel-automations-col funnel-automations-col--trigger" />
+            <col className="funnel-automations-col funnel-automations-col--status" />
+            <col className="funnel-automations-col funnel-automations-col--updated" />
+            <col className="funnel-automations-col funnel-automations-col--actions" />
+          </colgroup>
           <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50/90">
+            <tr className="funnel-automations-table-head">
               <th className={`${thClass} funnel-automations-th--name`}>
                 <AutomationsColumnHead
                   icon={Workflow}
                   longLabel="Automation name"
                   shortLabel="Name"
-                  iconClassName="text-violet-600"
+                  iconClassName="funnel-automations-col-icon funnel-automations-col-icon--primary"
                 />
               </th>
               <th className={`${thClass} funnel-automations-th--trigger`}>
@@ -503,7 +572,7 @@ function AutomationsTableSection({
                   icon={Zap}
                   longLabel="Trigger"
                   shortLabel="Trigger"
-                  iconClassName="text-amber-600"
+                  iconClassName="funnel-automations-col-icon funnel-automations-col-icon--trigger"
                 />
               </th>
               <th className={`${thClass} funnel-automations-th--status`}>
@@ -511,7 +580,7 @@ function AutomationsTableSection({
                   icon={Activity}
                   longLabel="Status"
                   shortLabel="Status"
-                  iconClassName="text-emerald-600"
+                  iconClassName="funnel-automations-col-icon funnel-automations-col-icon--status"
                 />
               </th>
               <th className={`${thClass} funnel-automations-th--updated`}>
@@ -519,7 +588,7 @@ function AutomationsTableSection({
                   icon={Clock}
                   longLabel="Last updated"
                   shortLabel="Updated"
-                  iconClassName="text-orange-600"
+                  iconClassName="funnel-automations-col-icon funnel-automations-col-icon--muted"
                 />
               </th>
               <th className={`${thClass} funnel-automations-th--actions`}>
@@ -527,26 +596,67 @@ function AutomationsTableSection({
               </th>
             </tr>
           </thead>
-          <motion.tbody
-            variants={panelStagger}
-            initial="hidden"
-            animate="show"
-          >
-            {rows.map((row) => (
-              <motion.tr
-                key={row.id}
-                variants={panelRowMotion}
-                className="group border-b border-zinc-100 bg-white transition-colors duration-150 last:border-0 hover:bg-zinc-50/80"
-              >
-                <AutomationTableRowCells
-                  row={row}
-                  href={builderHref(row)}
-                  onOpenBuilder={onOpenBuilder}
-                  onDelete={() => onDelete(row)}
-                />
-              </motion.tr>
-            ))}
-          </motion.tbody>
+          <tbody>
+            {rows.map((row) => {
+              const href = builderHref(row);
+              return (
+                <tr
+                  key={row.id}
+                  className="funnel-automations-table-row border-b border-[#e8edf5] bg-white last:border-0"
+                >
+                  <td className={`${tdClass} funnel-automations-td--name`}>
+                    <Link
+                      href={href}
+                      onClick={() => onOpenBuilder?.(row.id)}
+                      className="funnel-automations-name-link block min-w-0"
+                    >
+                      <span className="funnel-automations-name-row">
+                        <span className="funnel-automations-name-icon" aria-hidden>
+                          <Workflow className="size-3.5" strokeWidth={ICON_STROKE} />
+                        </span>
+                        <span className="min-w-0">
+                          <p className="truncate font-semibold text-[#07111f]">{row.name}</p>
+                          <p
+                            className="funnel-automations-desc mt-0.5 truncate text-xs text-[#64748b]"
+                            title={row.description}
+                          >
+                            {truncateDescription(row.description)}
+                          </p>
+                        </span>
+                      </span>
+                    </Link>
+                  </td>
+                  <td className={`${tdClass} funnel-automations-td--trigger whitespace-nowrap`}>
+                    <Link
+                      href={href}
+                      onClick={() => onOpenBuilder?.(row.id)}
+                      className="funnel-automations-trigger-pill"
+                    >
+                      <Zap className="size-3 shrink-0" aria-hidden strokeWidth={ICON_STROKE} />
+                      {row.trigger}
+                    </Link>
+                  </td>
+                  <td className={`${tdClass} funnel-automations-td--status whitespace-nowrap`}>
+                    <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
+                      <AutomationStatusBadge status={row.status} />
+                    </Link>
+                  </td>
+                  <td className={`${tdClass} funnel-automations-td--updated whitespace-nowrap text-zinc-500`}>
+                    <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
+                      {row.lastUpdated}
+                    </Link>
+                  </td>
+                  <td className={`${tdClass} funnel-automations-td--actions`}>
+                    <AutomationRowMenu
+                      href={href}
+                      onOpenBuilder={() => onOpenBuilder?.(row.id)}
+                      onDelete={() => onDelete(row)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
     </div>
@@ -561,7 +671,7 @@ function AutomationListSkeleton() {
       aria-label="Loading automations"
     >
       <div className="funnel-automations-surface overflow-hidden">
-        <div className="border-b border-zinc-200 bg-zinc-50/90 px-5 py-3.5">
+        <div className="funnel-automations-table-head funnel-automations-skeleton-head px-5 py-3.5">
           <div className="flex gap-8">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} funnel className="h-3 w-16" />
@@ -636,7 +746,7 @@ function AutomationRowMenu({
           className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-900"
         >
           <ExternalLink
-            className="size-4 shrink-0 text-violet-600"
+            className="size-4 shrink-0 text-[#1877f2]"
             aria-hidden
             strokeWidth={ICON_STROKE}
           />
@@ -672,7 +782,7 @@ function AutomationRowMenu({
           e.stopPropagation();
           toggle();
         }}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-600 outline-none transition hover:bg-violet-50 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500/20"
+        className="funnel-automations-row-menu-btn flex size-8 cursor-pointer items-center justify-center rounded-lg text-[#64748b] outline-none transition focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Automation actions"
@@ -681,65 +791,5 @@ function AutomationRowMenu({
       </button>
       {mounted ? createPortal(menu, document.body) : null}
     </div>
-  );
-}
-
-function AutomationTableRowCells({
-  row,
-  href,
-  onOpenBuilder,
-  onDelete,
-}: {
-  row: AutomationListItem;
-  href: string;
-  onOpenBuilder?: (id: string) => void;
-  onDelete?: () => void;
-}) {
-  return (
-    <>
-      <td className={`${tdClass} funnel-automations-td--name`}>
-        <Link
-          href={href}
-          onClick={() => onOpenBuilder?.(row.id)}
-          className="block min-w-0"
-        >
-          <p className="truncate font-semibold text-zinc-900">{row.name}</p>
-          <p
-            className="funnel-automations-desc mt-0.5 truncate text-xs text-zinc-500"
-            title={row.description}
-          >
-            {truncateDescription(row.description)}
-          </p>
-        </Link>
-      </td>
-      <td className={`${tdClass} funnel-automations-td--trigger whitespace-nowrap`}>
-        <Link
-          href={href}
-          onClick={() => onOpenBuilder?.(row.id)}
-          className="text-zinc-700"
-        >
-          {row.trigger}
-        </Link>
-      </td>
-      <td className={`${tdClass} funnel-automations-td--status whitespace-nowrap`}>
-        <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
-          <StatusPill className={automationStatusBadgeClass(row.status)}>
-            {row.status}
-          </StatusPill>
-        </Link>
-      </td>
-      <td className={`${tdClass} funnel-automations-td--updated whitespace-nowrap text-zinc-500`}>
-        <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
-          {row.lastUpdated}
-        </Link>
-      </td>
-      <td className={`${tdClass} funnel-automations-td--actions`}>
-        <AutomationRowMenu
-          href={href}
-          onOpenBuilder={() => onOpenBuilder?.(row.id)}
-          onDelete={onDelete}
-        />
-      </td>
-    </>
   );
 }

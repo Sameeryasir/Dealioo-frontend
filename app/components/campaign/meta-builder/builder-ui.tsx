@@ -13,6 +13,21 @@ export const META_BLUE = "#1877F2";
 export const BRAND_BLUE = "#1877f2";
 export const BRAND_BLUE_HOVER = "#166fe5";
 
+/* Shared Meta Ads Manager theme tokens — use across all meta-builder steps */
+export const metaBuilderShellClass = "meta-builder-theme bg-[#f0f2f5]";
+export const metaBuilderBorderClass = "border-[#e8edf5]";
+export const metaBuilderSurfaceClass = "bg-white";
+export const metaBuilderMutedSurfaceClass = "bg-[#f4f8ff]";
+export const metaBuilderInputSurfaceClass = "bg-[#f8fafc]";
+export const metaBuilderTextClass = "text-[#07111f]";
+export const metaBuilderTextMutedClass = "text-slate-500";
+export const metaBuilderSecondaryButtonClass =
+  "rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]";
+export const metaBuilderChipButtonClass =
+  "rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#07111f] transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]";
+export const metaBuilderPanelClass = `overflow-hidden rounded-xl border ${metaBuilderBorderClass} ${metaBuilderSurfaceClass}`;
+export const metaBuilderMutedPanelClass = `rounded-xl border ${metaBuilderBorderClass} ${metaBuilderMutedSurfaceClass}`;
+
 export const builderInputClass =
   "w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-medium text-[#07111f] shadow-sm transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1877f2]/15";
 
@@ -334,12 +349,12 @@ export function BuilderSummaryCard({
 }: {
   title: string;
   rows: Array<{ label: string; value: string }>;
-  accent?: "blue" | "zinc";
+  accent?: "blue" | "muted";
 }) {
   const accentClass =
-    accent === "blue"
-      ? "border-l-[#1877f2]"
-      : "border-l-[#e8edf5]";
+    accent === "muted"
+      ? "border-l-[#e8edf5]"
+      : "border-l-[#1877f2]";
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">

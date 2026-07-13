@@ -40,7 +40,7 @@ export function AutomationBuilderTabBar({
             {active ? (
               <motion.span
                 layoutId="automation-builder-tab-pill"
-                className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-zinc-950 shadow-[0_4px_14px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-black/25"
+                className="absolute inset-0 rounded-full bg-gradient-to-b from-brand-primary via-brand-primary to-brand-primary-hover shadow-[0_4px_14px_rgba(24,119,242,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] ring-1 ring-brand-primary/25"
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
@@ -78,18 +78,18 @@ export function AutomationBuilderActivateButton({
       disabled={activating}
       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.7rem] font-semibold shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xs ${
         automationActive
-          ? "border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
-          : "bg-zinc-950 text-white hover:bg-black"
+          ? "border border-brand-primary/30 bg-white text-brand-primary hover:bg-[#e8f2ff]"
+          : "bg-brand-primary text-white hover:bg-brand-primary-hover"
       }`}
     >
       {activating ? (
         <Loader2
-          className={`size-3.5 animate-spin ${automationActive ? "text-zinc-900" : "text-white"}`}
+          className={`size-3.5 animate-spin ${automationActive ? "text-brand-primary" : "text-white"}`}
           aria-hidden
         />
       ) : (
         <Zap
-          className={`size-3.5 ${automationActive ? "text-zinc-900" : "text-white"}`}
+          className={`size-3.5 ${automationActive ? "text-brand-primary" : "text-white"}`}
           aria-hidden
         />
       )}

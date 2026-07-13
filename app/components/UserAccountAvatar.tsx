@@ -7,11 +7,14 @@ import { initialsFromUser, userAvatarUrl } from "@/app/lib/user-initials";
 type UserAccountAvatarProps = {
   user: VerifyOtpUser | null;
   className?: string;
+  /** Larger initials styling for the profile hero when no photo is set. */
+  heroFallback?: boolean;
 };
 
 export default function UserAccountAvatar({
   user,
   className = "",
+  heroFallback = false,
 }: UserAccountAvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const avatarUrl = userAvatarUrl(user);
@@ -31,7 +34,11 @@ export default function UserAccountAvatar({
 
   return (
     <span
-      className={`inline-flex size-full items-center justify-center rounded-full bg-white text-[0.7rem] font-extrabold leading-none tracking-tight text-[#0f5ed7] ${className}`.trim()}
+      className={`inline-flex size-full items-center justify-center rounded-full bg-white font-extrabold leading-none tracking-tight text-[#0f5ed7] ${
+        heroFallback
+          ? "text-lg sm:text-xl"
+          : "text-[0.7rem]"
+      } ${className}`.trim()}
       aria-hidden
     >
       {initials}

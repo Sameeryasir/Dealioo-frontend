@@ -27,7 +27,6 @@ import {
   formatMetaDeliveryStatus,
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
-import { getMetaAdsFilterUrl } from "@/app/lib/public-app-url";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import {
   getFacebookAdCampaignStats,
@@ -56,7 +55,7 @@ function statusBadgeClass(status: string | null | undefined): string {
     return "bg-amber-50 text-amber-800 ring-amber-600/20";
   }
   if (normalized.includes("DRAFT") || normalized.includes("PENDING")) {
-    return "bg-zinc-100 text-zinc-600 ring-zinc-500/15";
+    return "bg-[#e8f2ff] text-slate-500 ring-[#1877f2]/15";
   }
   return "bg-blue-50 text-blue-700 ring-blue-600/20";
 }
@@ -85,14 +84,14 @@ function CampaignMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2.5">
-      <div className="flex items-center gap-2 text-zinc-500">
+    <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-3 py-2.5">
+      <div className="flex items-center gap-2 text-[#1877f2]">
         <Icon className="size-3.5 shrink-0" aria-hidden />
         <span className="text-[10px] font-semibold uppercase tracking-wide">
           {label}
         </span>
       </div>
-      <p className="mt-1 text-sm font-semibold text-zinc-900">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-[#07111f]">{value}</p>
     </div>
   );
 }
@@ -154,19 +153,11 @@ export function CampaignAdsPanel({
     [businessId],
   );
 
-  const landingUrlFilter = useMemo(
-    () => getMetaAdsFilterUrl(campaignWebsiteUrl),
-    [campaignWebsiteUrl],
-  );
-
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
     setAdStatsError(null);
     try {
-      const stats = await getFacebookAdCampaignStats(
-        businessId,
-        landingUrlFilter,
-      );
+      const stats = await getFacebookAdCampaignStats(businessId);
       setAdStats(stats);
     } catch (e) {
       setAdStats(null);
@@ -176,7 +167,7 @@ export function CampaignAdsPanel({
     } finally {
       setAdStatsLoading(false);
     }
-  }, [landingUrlFilter, businessId]);
+  }, [businessId]);
 
   const refreshConnection = useCallback(async () => {
     setMetaLoading(true);
@@ -238,7 +229,7 @@ export function CampaignAdsPanel({
       className={
         embedded
           ? "bg-white px-0 py-0"
-          : "bg-zinc-50/50 px-4 py-8 sm:px-8 sm:py-10"
+          : "bg-[#f4f8ff]/50 px-4 py-8 sm:px-8 sm:py-10"
       }
     >
       <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -251,8 +242,8 @@ export function CampaignAdsPanel({
               Meta Ads
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              Run Facebook and Instagram ads for this campaign. Performance below
-              reflects the last 30 days on your linked ad account.
+              All campaigns from your linked Meta ad account. Performance below
+              reflects the last 30 days.
             </p>
           </div>
 
@@ -294,23 +285,23 @@ export function CampaignAdsPanel({
         <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
           <div className="space-y-6 px-5 py-6 sm:px-6">
             {connectionPhase === "loading" ? (
-              <p className="flex items-center gap-2 text-sm text-zinc-600">
+              <p className="flex items-center gap-2 text-sm text-slate-500">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
                 Checking your Meta connection…
               </p>
             ) : null}
 
             {connectionPhase === "not_connected" ? (
-              <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-10 text-center">
-                <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white text-zinc-600 shadow-sm ring-1 ring-zinc-200">
+              <div className="rounded-2xl border border-dashed border-[#e8edf5] bg-[#f4f8ff]/80 px-6 py-10 text-center">
+                <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white text-[#1877f2] shadow-sm ring-1 ring-[#e8edf5]">
                   <Link2 className="size-6" aria-hidden />
                 </span>
-                <p className="mt-4 text-base font-semibold text-zinc-900">
+                <p className="mt-4 text-base font-semibold text-[#07111f]">
                   Connect Facebook to get started
                 </p>
-                <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
                   Open{" "}
-                  <span className="font-semibold text-zinc-900">
+                  <span className="font-semibold text-[#07111f]">
                     Settings → Integrations
                   </span>{" "}
                   from your business dashboard to connect Facebook and unlock
@@ -320,12 +311,12 @@ export function CampaignAdsPanel({
             ) : null}
 
             {connectionPhase === "needs_account" ? (
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 px-6 py-8 sm:flex sm:items-center sm:justify-between sm:gap-6">
+              <div className="rounded-2xl border border-[#e8edf5] bg-[#f4f8ff]/50 px-6 py-8 sm:flex sm:items-center sm:justify-between sm:gap-6">
                 <div>
-                  <p className="font-semibold text-zinc-900">
+                  <p className="font-semibold text-[#07111f]">
                     Choose your ad account
                   </p>
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <p className="mt-1 text-sm text-slate-500">
                     Facebook is connected. Pick which Meta ad account this
                     business should use for campaigns and reporting.
                   </p>
@@ -368,7 +359,7 @@ export function CampaignAdsPanel({
                     {Array.from({ length: 4 }).map((_, i) => (
                       <div
                         key={i}
-                        className="h-28 animate-pulse rounded-2xl bg-zinc-100"
+                        className="h-28 animate-pulse rounded-2xl bg-[#e8f2ff]"
                       />
                     ))}
                   </div>
@@ -399,18 +390,18 @@ export function CampaignAdsPanel({
                         label="Active campaigns"
                         value={`${activeCount} of ${campaigns.length}`}
                         icon={TrendingUp}
-                        tone="zinc"
+                        tone="blue"
                         highlight
                       />
                     </div>
 
                     <div>
                       <div className="mb-4 flex items-center gap-2">
-                        <BarChart3 className="size-4 text-zinc-400" aria-hidden />
-                        <h3 className="text-sm font-semibold text-zinc-900">
-                          Your campaigns
+                        <BarChart3 className="size-4 text-[#1877f2]" aria-hidden />
+                        <h3 className="text-sm font-semibold text-[#07111f]">
+                          Ad account campaigns
                         </h3>
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                        <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-xs font-medium text-slate-500">
                           {adStats.datePreset.replace(/_/g, " ")}
                         </span>
                       </div>
@@ -418,14 +409,14 @@ export function CampaignAdsPanel({
                         {campaigns.map((c) => (
                           <li
                             key={c.id}
-                            className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm transition hover:border-zinc-300"
+                            className="rounded-2xl border border-[#e8edf5]/90 bg-white p-5 shadow-sm transition hover:border-[#1877f2]/30 hover:shadow-[0_8px_22px_rgba(24,119,242,0.08)]"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="truncate text-base font-semibold text-zinc-900">
+                                <p className="truncate text-base font-semibold text-[#07111f]">
                                   {c.name}
                                 </p>
-                                <p className="mt-0.5 font-mono text-[10px] text-zinc-400">
+                                <p className="mt-0.5 font-mono text-[10px] text-slate-400">
                                   {c.id}
                                 </p>
                               </div>
@@ -440,7 +431,7 @@ export function CampaignAdsPanel({
                                   title="Delete campaign"
                                   disabled={deletingCampaignId === c.id}
                                   onClick={() => void handleDeleteCampaign(c)}
-                                  className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                                 >
                                   {deletingCampaignId === c.id ? (
                                     <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -475,9 +466,9 @@ export function CampaignAdsPanel({
                             </div>
 
                             {c.dailyBudget ? (
-                              <p className="mt-3 text-xs text-zinc-500">
+                              <p className="mt-3 text-xs text-slate-500">
                                 Daily budget:{" "}
-                                <span className="font-semibold text-zinc-800">
+                                <span className="font-semibold text-[#07111f]">
                                   {formatMetaDailyBudget(c.dailyBudget, currency)}
                                 </span>
                               </p>
@@ -502,8 +493,9 @@ export function CampaignAdsPanel({
                       No campaigns yet
                     </p>
                     <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                      Create your first Meta campaign with the guided builder.
-                      Published campaigns appear here with performance metrics.
+                      Create a Meta campaign with the guided builder, or run ads
+                      directly in Ads Manager. Campaigns from your ad account
+                      appear here with performance metrics.
                     </p>
                     <button
                       type="button"

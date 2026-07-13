@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { BuilderLoadingBanner } from "@/app/components/campaign/meta-builder/builder-ui";
+import { BuilderLoadingBanner, metaBuilderShellClass } from "@/app/components/campaign/meta-builder/builder-ui";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -349,7 +349,7 @@ export function MetaCampaignBuilder({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#eef2f7]">
+    <div className={`fixed inset-0 z-50 flex flex-col ${metaBuilderShellClass}`}>
       <div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-4">
         <button
           type="button"

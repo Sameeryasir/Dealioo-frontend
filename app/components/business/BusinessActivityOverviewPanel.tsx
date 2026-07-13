@@ -17,15 +17,13 @@ import { Skeleton } from "@/app/components/skeleton";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
-import { funnelPanelItem, funnelPanelStagger } from "@/app/lib/motion";
 import type { ActivityMonthlyPoint } from "@/app/services/activity/get-business-activity";
 import { DollarSign, Megaphone, ScanLine, ShoppingBag, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { motion } from "framer-motion";
 import { useMemo } from "react";
 
 const overviewCardClass =
-  "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+  "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
 function OverviewKpiTile({
   label,
@@ -62,7 +60,7 @@ function OverviewKpiTile({
 
   return (
     <div
-      className={`group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
+      className={`group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
     >
       <span
         className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
@@ -201,11 +199,16 @@ export function BusinessActivityOverviewPanel({
         aria-hidden
       />
 
-      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-2.5 py-3 sm:px-3 sm:py-3.5">
+      <div className="relative shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8faff] via-white to-[#fdf2f8] px-3 py-3.5 sm:px-4 sm:py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-            Business performance
-          </span>
+          <div className="min-w-0">
+            <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              Business performance
+            </span>
+            <p className="m-0 mt-1.5 text-[0.8rem] font-medium text-slate-500">
+              Campaigns, orders, members and revenue at a glance.
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.2)]">
               {displayName}
@@ -227,100 +230,83 @@ export function BusinessActivityOverviewPanel({
           <OverviewSkeleton />
         </div>
       ) : (
-        <div className="px-2.5 py-3.5 sm:px-3 sm:py-4">
-          <motion.div
-            className="space-y-4"
-            variants={funnelPanelStagger}
-            initial="hidden"
-            animate="show"
-          >
-            <motion.section
+        <div className="px-3 py-4 sm:px-4 sm:py-5">
+          <div className="space-y-5">
+            <section
               className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
               aria-label="Business summary"
-              variants={funnelPanelStagger}
             >
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Active campaigns"
-                  value={displayActiveCampaigns}
-                  hint="Published"
-                  icon={Megaphone}
-                  iconBg={DASHBOARD_KPI_ICON.green}
-                  hoverTone="green"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Total orders"
-                  value={displayTotalOrders}
-                  hint="Paid payments"
-                  icon={ShoppingBag}
-                  iconBg={DASHBOARD_KPI_ICON.orange}
-                  hoverTone="orange"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Total members"
-                  value={displayTotalMembers}
-                  hint="Guests with chats"
-                  icon={Users}
-                  iconBg={DASHBOARD_KPI_ICON.pink}
-                  hoverTone="pink"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="QR check-ins"
-                  value={totals.checkIns}
-                  hint="Visits and redemptions"
-                  icon={ScanLine}
-                  iconBg={DASHBOARD_KPI_ICON.blue}
-                  hoverTone="blue"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Revenue"
-                  value={formatCents(totals.revenueCents, "usd")}
-                  hint={`Last ${months} months`}
-                  icon={DollarSign}
-                  iconBg={DASHBOARD_KPI_ICON.pink}
-                  hoverTone="pink"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Today's revenue"
-                  value={formatCents(displayTodayRevenueCents, "usd")}
-                  hint="Paid today"
-                  icon={DollarSign}
-                  iconBg={DASHBOARD_KPI_ICON.orange}
-                  hoverTone="orange"
-                />
-              </motion.div>
-            </motion.section>
+              <OverviewKpiTile
+                label="Active campaigns"
+                value={displayActiveCampaigns}
+                hint="Published"
+                icon={Megaphone}
+                iconBg={DASHBOARD_KPI_ICON.green}
+                hoverTone="green"
+              />
+              <OverviewKpiTile
+                label="Total orders"
+                value={displayTotalOrders}
+                hint="Paid payments"
+                icon={ShoppingBag}
+                iconBg={DASHBOARD_KPI_ICON.orange}
+                hoverTone="orange"
+              />
+              <OverviewKpiTile
+                label="Total members"
+                value={displayTotalMembers}
+                hint="Guests with chats"
+                icon={Users}
+                iconBg={DASHBOARD_KPI_ICON.pink}
+                hoverTone="pink"
+              />
+              <OverviewKpiTile
+                label="QR check-ins"
+                value={totals.checkIns}
+                hint="Visits and redemptions"
+                icon={ScanLine}
+                iconBg={DASHBOARD_KPI_ICON.blue}
+                hoverTone="blue"
+              />
+              <OverviewKpiTile
+                label="Revenue"
+                value={formatCents(totals.revenueCents, "usd")}
+                hint={`Last ${months} months`}
+                icon={DollarSign}
+                iconBg={DASHBOARD_KPI_ICON.pink}
+                hoverTone="pink"
+              />
+              <OverviewKpiTile
+                label="Today's revenue"
+                value={formatCents(displayTodayRevenueCents, "usd")}
+                hint="Paid today"
+                icon={DollarSign}
+                iconBg={DASHBOARD_KPI_ICON.orange}
+                hoverTone="orange"
+              />
+            </section>
 
-            <motion.section
-              className="rd-premium-section"
-              aria-label="Performance charts"
-              variants={funnelPanelItem}
-            >
-              <div className="rd-premium-section-head">
-                <h2>Performance insights</h2>
+            <section className="rd-premium-section" aria-label="Performance charts">
+              <div className="mb-1 px-0.5">
+                <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+                  Performance insights
+                </h2>
+                <p className="m-0 mt-1 text-[0.78rem] font-medium text-slate-500">
+                  Monthly trends for the last {months} months.
+                </p>
               </div>
               <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
-                <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                <div className="min-h-[300px]">
                   <CheckInsBarChart data={checkInsMonthly} months={months} />
-                </motion.div>
-                <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                </div>
+                <div className="min-h-[300px]">
                   <BusinessRevenueMiniChart
                     data={revenueMonthly}
                     totalRevenueCents={totals.revenueCents}
                     months={months}
                   />
-                </motion.div>
-                <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                </div>
+                <div className="min-h-[300px]">
                   <BusinessMonthlyBarChart
                     title="Orders"
                     subtitle="Paid payments"
@@ -332,17 +318,17 @@ export function BusinessActivityOverviewPanel({
                     legendColor={OVERVIEW_CHART_COLORS.orange}
                     months={months}
                   />
-                </motion.div>
-                <motion.div className="min-h-[300px]" variants={funnelPanelItem}>
+                </div>
+                <div className="min-h-[300px]">
                   <BusinessMembersMiniChart
                     data={membersMonthly}
                     total={newMembersInPeriod}
                     months={months}
                   />
-                </motion.div>
+                </div>
               </div>
-            </motion.section>
-          </motion.div>
+            </section>
+          </div>
         </div>
       )}
     </article>

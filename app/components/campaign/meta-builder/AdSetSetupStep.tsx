@@ -369,8 +369,8 @@ export function AdSetSetupStep({
         }
       >
         {cboEnabled ? (
-          <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
-            <p className="font-semibold text-zinc-900">Using campaign budget</p>
+          <div className="rounded-xl bg-[#f4f8ff] px-4 py-3 text-sm text-slate-600">
+            <p className="font-semibold text-[#07111f]">Using campaign budget</p>
             <p className="mt-1">
               {campaignData.campaignBudgetType === "lifetime"
                 ? `Lifetime budget: $${campaignData.campaignLifetimeBudget?.toFixed(2) ?? "N/A"}`
@@ -381,7 +381,7 @@ export function AdSetSetupStep({
                 ? "Highest volume"
                 : campaignData.campaignBidStrategy}
             </p>
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-xs text-slate-500">
               Set on the Campaign step. This ad set inherits campaign-level budget.
             </p>
           </div>
@@ -403,18 +403,18 @@ export function AdSetSetupStep({
             </div>
             {budgetType === "daily" ? (
               <label className="block text-sm">
-                <span className="font-medium text-zinc-800">Daily budget</span>
+                <span className="font-medium text-[#07111f]">Daily budget</span>
                 <input type="number" min={1} value={dailyBudget} onChange={(e) => setDailyBudget(e.target.value)} className={inputClass} />
-                <p className="mt-1 text-xs text-zinc-500">$20 → 2000 minor units on publish</p>
+                <p className="mt-1 text-xs text-slate-500">$20 → 2000 minor units on publish</p>
               </label>
             ) : (
               <label className="block text-sm">
-                <span className="font-medium text-zinc-800">Lifetime budget</span>
+                <span className="font-medium text-[#07111f]">Lifetime budget</span>
                 <input type="number" min={1} value={lifetimeBudget} onChange={(e) => setLifetimeBudget(e.target.value)} className={inputClass} />
               </label>
             )}
             <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Bid strategy</span>
+              <span className="font-medium text-[#07111f]">Bid strategy</span>
               <select value={bidStrategy} onChange={(e) => setBidStrategy(e.target.value as MetaBidStrategy)} className={inputClass}>
                 <option value="LOWEST_COST_WITHOUT_CAP">Lowest cost without cap</option>
                 <option value="LOWEST_COST_WITH_BID_CAP">Lowest cost with bid cap</option>
@@ -423,14 +423,14 @@ export function AdSetSetupStep({
             </label>
             {showBidAmount ? (
               <label className="block text-sm">
-                <span className="font-medium text-zinc-800">Bid amount</span>
+                <span className="font-medium text-[#07111f]">Bid amount</span>
                 <input type="number" min={0.01} step={0.01} value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className={inputClass} />
               </label>
             ) : null}
           </>
         )}
         <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Billing event</span>
+          <span className="font-medium text-[#07111f]">Billing event</span>
           <select value={billingEvent} onChange={(e) => setBillingEvent(e.target.value as MetaBillingEvent)} className={inputClass}>
             <option value="IMPRESSIONS">Impressions</option>
             <option value="LINK_CLICKS">Link clicks</option>
@@ -441,24 +441,24 @@ export function AdSetSetupStep({
       <BuilderCard title="Schedule" description="When your ad set should start and stop delivering.">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">Start date</span>
+            <span className="font-medium text-[#07111f]">Start date</span>
             <input required type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">Start time</span>
+            <span className="font-medium text-[#07111f]">Start time</span>
             <input required type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">End date</span>
+            <span className="font-medium text-[#07111f]">End date</span>
             <input required type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">End time</span>
+            <span className="font-medium text-[#07111f]">End time</span>
             <input required type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClass} />
           </label>
         </div>
         <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Timezone</span>
+          <span className="font-medium text-[#07111f]">Timezone</span>
           <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputClass}>
             {COMMON_TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>{tz}</option>
@@ -472,7 +472,7 @@ export function AdSetSetupStep({
         description="Tell Meta what result you want and where people should go after clicking."
       >
         <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Optimization goal</span>
+          <span className="font-medium text-[#07111f]">Optimization goal</span>
           <select value={optimizationGoal} onChange={(e) => setOptimizationGoal(e.target.value as MetaOptimizationGoal)} className={inputClass}>
             {goalOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -480,7 +480,7 @@ export function AdSetSetupStep({
           </select>
         </label>
         <label className="block text-sm">
-          <span className="font-medium text-zinc-800">Destination type</span>
+          <span className="font-medium text-[#07111f]">Destination type</span>
           <select value={destinationType} onChange={(e) => setDestinationType(e.target.value as MetaDestinationType)} className={inputClass}>
             <option value="WEBSITE">Website</option>
             <option value="MESSENGER">Messenger</option>
@@ -491,15 +491,15 @@ export function AdSetSetupStep({
         {showPromotedObject ? (
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Pixel ID</span>
+              <span className="font-medium text-[#07111f]">Pixel ID</span>
               <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Custom event</span>
+              <span className="font-medium text-[#07111f]">Custom event</span>
               <input value={customEventType} onChange={(e) => setCustomEventType(e.target.value)} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span className="font-medium text-zinc-800">Page ID</span>
+              <span className="font-medium text-[#07111f]">Page ID</span>
               <input value={pageId} onChange={(e) => setPageId(e.target.value)} className={inputClass} />
             </label>
           </div>
@@ -513,15 +513,15 @@ export function AdSetSetupStep({
         <AdSetLocationsBox locations={locations} onChange={setLocations} />
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">Age min</span>
+            <span className="font-medium text-[#07111f]">Age min</span>
             <input type="number" min={18} max={65} value={ageMin} onChange={(e) => setAgeMin(e.target.value)} className={inputClass} />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">Age max</span>
+            <span className="font-medium text-[#07111f]">Age max</span>
             <input type="number" min={18} max={65} value={ageMax} onChange={(e) => setAgeMax(e.target.value)} className={inputClass} />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-zinc-800">Gender</span>
+            <span className="font-medium text-[#07111f]">Gender</span>
             <select value={gender} onChange={(e) => setGender(e.target.value as MetaGender)} className={inputClass}>
               <option value="all">All</option>
               <option value="male">Male</option>
@@ -560,7 +560,7 @@ export function AdSetSetupStep({
         title="Placements"
         description="Where your ads can appear. Advantage+ lets Meta pick the best placements."
       >
-        <label className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-3 text-sm">
+        <label className="flex items-start gap-3 rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/50 px-4 py-3 text-sm">
           <input
             type="checkbox"
             className="mt-0.5"
@@ -573,8 +573,8 @@ export function AdSetSetupStep({
             }
           />
           <span>
-            <span className="font-semibold text-zinc-900">Advantage+ Placements</span>
-            <span className="mt-0.5 block text-xs text-zinc-500">
+            <span className="font-semibold text-[#07111f]">Advantage+ Placements</span>
+            <span className="mt-0.5 block text-xs text-slate-500">
               Recommended. Meta automatically shows ads where they perform best.
             </span>
           </span>
@@ -582,10 +582,10 @@ export function AdSetSetupStep({
         {!placements.advantagePlusPlacements ? (
           <>
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-zinc-500">Device platforms</p>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Device platforms</p>
               <div className="flex flex-wrap gap-2">
                 {(["mobile", "desktop"] as const).map((key) => (
-                  <label key={key} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm capitalize">
+                  <label key={key} className="flex items-center gap-2 rounded-lg border border-[#e8edf5] px-3 py-2 text-sm capitalize">
                     <input type="checkbox" checked={placements.devicePlatforms[key]} onChange={() => togglePlacement("devicePlatforms", key)} />
                     {key}
                   </label>
@@ -593,7 +593,7 @@ export function AdSetSetupStep({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-zinc-500">Publisher platforms</p>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Publisher platforms</p>
               <div className="flex flex-wrap gap-2">
                 {(
                   [
@@ -603,7 +603,7 @@ export function AdSetSetupStep({
                     ["messenger", "Messenger"],
                   ] as const
                 ).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm">
+                  <label key={key} className="flex items-center gap-2 rounded-lg border border-[#e8edf5] px-3 py-2 text-sm">
                     <input
                       type="checkbox"
                       checked={Boolean(placements.publisherPlatforms[key])}
@@ -615,7 +615,7 @@ export function AdSetSetupStep({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-zinc-500">Facebook positions</p>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Facebook positions</p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {(
                   [
@@ -635,7 +635,7 @@ export function AdSetSetupStep({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-zinc-500">Instagram positions</p>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Instagram positions</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {(
                   [

@@ -27,9 +27,10 @@ export function BuilderStepNav({
 
   return (
     <header
-      className="shrink-0 border-b border-[#e8edf5] bg-white"
+      className="meta-builder-theme shrink-0 border-b border-[#e8edf5] bg-white shadow-[0_1px_0_rgba(24,119,242,0.06)]"
       aria-label="Campaign builder progress"
     >
+      <div className="h-0.5 bg-gradient-to-r from-[#1877f2] via-[#0081fb] to-[#e1306c]" aria-hidden />
       <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2.5">

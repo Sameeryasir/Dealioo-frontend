@@ -1,22 +1,62 @@
 "use client";
 
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
-import { getSetupUser } from "@/app/lib/setup-user";
+import { useCredentialContext } from "@/app/contexts/credential-context";
+import { logoutSession } from "@/app/services/auth/logout";
+import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
-import { ArrowLeft, PanelLeft } from "lucide-react";
+import { ArrowLeft, LogOut, PanelLeft, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 
 const ORG_DASHBOARD_HREF = "/dashboard";
+const PROFILE_HREF = "/dashboard/profile";
 
 export default function BusinessNavbar() {
+  const router = useRouter();
+  const { clearPassword } = useCredentialContext();
   const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebarExpand();
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUser(getSetupUser());
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const root = menuRootRef.current;
+      if (root && !root.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const handleLogout = useCallback(async () => {
+    await logoutSession();
+    clearSetupUser();
+    clearPassword();
+    setMenuOpen(false);
+    router.push("/auth/login");
+  }, [clearPassword, router]);
 
   const displayName = user?.name?.trim() || "Account";
 
@@ -55,15 +95,58 @@ export default function BusinessNavbar() {
             id="automation-builder-topbar-actions-host"
             className="automation-builder-topbar-actions-host flex items-center"
           />
-          <div className="flex shrink-0 items-center">
-            <div
-              className="inline-flex rounded-full border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] p-1 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
-              aria-label={`Signed in as ${displayName}`}
+
+          <div ref={menuRootRef} className="rd-topbar-account-menu">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="rd-topbar-account-trigger"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              aria-label={`Account menu for ${displayName}`}
             >
-              <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#e1306c] p-[2px] shadow-[0_4px_10px_rgba(24,119,242,0.22)]">
-                <UserAccountAvatar user={user} className="size-full" />
+              <span className="rd-topbar-account-trigger-ring">
+                <span className="rd-topbar-account-trigger-avatar">
+                  <UserAccountAvatar user={user} className="size-full" />
+                </span>
               </span>
-            </div>
+            </button>
+
+            {menuOpen ? (
+              <div
+                className="rd-topbar-account-dropdown"
+                role="menu"
+                aria-label="Account actions"
+              >
+                <div className="rd-topbar-account-dropdown-accent" aria-hidden />
+
+                <div className="rd-topbar-account-dropdown-body">
+                  <Link
+                    href={PROFILE_HREF}
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    className="rd-topbar-account-dropdown-item"
+                  >
+                    <span className="rd-topbar-account-dropdown-item-icon" aria-hidden>
+                      <UserRound className="size-4" strokeWidth={2} />
+                    </span>
+                    Profile
+                  </Link>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void handleLogout()}
+                    className="rd-topbar-account-dropdown-item rd-topbar-account-dropdown-item--logout"
+                  >
+                    <span className="rd-topbar-account-dropdown-item-icon" aria-hidden>
+                      <LogOut className="size-4" strokeWidth={2} />
+                    </span>
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

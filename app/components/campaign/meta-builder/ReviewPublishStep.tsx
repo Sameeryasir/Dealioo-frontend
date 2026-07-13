@@ -27,6 +27,7 @@ import {
   formatObjective,
   formatPlacements,
   formatSchedule,
+  getCreativeMediaLinks,
   getCreativePreviewUrl,
 } from "@/app/lib/meta-review-helpers";
 
@@ -89,6 +90,7 @@ export function ReviewPublishStep({
   }, [adCreativeData.facebookPageId, businessId]);
 
   const previewUrl = getCreativePreviewUrl(adCreativeData);
+  const mediaLinks = getCreativeMediaLinks(adCreativeData);
   const specialCategories =
     campaignData.specialAdCategories.length > 0
       ? campaignData.specialAdCategories.join(", ")
@@ -215,6 +217,12 @@ export function ReviewPublishStep({
               label: "Tracking parameters",
               value: adCreativeData.urlParameters?.trim() || "N/A",
             },
+            ...(mediaLinks.length > 0
+              ? mediaLinks.map((link) => ({
+                  label: link.label,
+                  value: link.url,
+                }))
+              : [{ label: "Media link", value: "No image/video uploaded yet" }]),
           ]}
         />
 
@@ -261,12 +269,43 @@ export function ReviewPublishStep({
           ]}
         />
 
-        {previewUrl ? (
-          <section className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Media preview
+        <section className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1877f2]">
+            Media sent to Meta
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            This is the HTTPS image/video link Dealioo sends when you publish.
+          </p>
+
+          {mediaLinks.length > 0 ? (
+            <ul className="mt-3 space-y-3">
+              {mediaLinks.map((link) => (
+                <li
+                  key={`${link.label}-${link.url}`}
+                  className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-3.5 py-3"
+                >
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                    {link.label}
+                  </p>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 block break-all text-sm font-medium text-[#1877f2] hover:underline"
+                  >
+                    {link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
+              No image or video link is saved on this draft yet. Go back to Step 3 and upload media.
             </p>
-            <div className="mt-3 max-w-xs">
+          )}
+
+          {previewUrl ? (
+            <div className="mt-4 max-w-xs">
               <AdCreativePreview
                 placement="facebook_feed"
                 primaryText={adCreativeData.primaryText}
@@ -277,8 +316,8 @@ export function ReviewPublishStep({
                 callToAction={adCreativeData.callToAction}
               />
             </div>
-          </section>
-        ) : null}
+          ) : null}
+        </section>
       </div>
 
       {publishError ? (
