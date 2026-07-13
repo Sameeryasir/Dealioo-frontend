@@ -15,6 +15,7 @@ import { getMyProfile } from "@/app/services/user/profile";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   Loader2,
   Mail,
@@ -27,6 +28,7 @@ export type RegisterBusinessInviteStepProps = {
   businessId: number;
   businessName: string;
   onContinue: () => void;
+  onBack?: () => void;
 };
 
 type LocalInvite = {
@@ -51,6 +53,7 @@ export default function RegisterBusinessInviteStep({
   businessId,
   businessName,
   onContinue,
+  onBack,
 }: RegisterBusinessInviteStepProps) {
   const reduced = useReducedMotion();
   const [email, setEmail] = useState("");
@@ -415,6 +418,17 @@ export default function RegisterBusinessInviteStep({
                 </div>
 
                 <div className={inviteStyles.actions}>
+                  {onBack ? (
+                    <button
+                      type="button"
+                      className={inviteStyles.backBtn}
+                      onClick={onBack}
+                      disabled={sending}
+                    >
+                      <ArrowLeft className="h-4 w-4" aria-hidden />
+                      Back
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className={inviteStyles.skipBtn}

@@ -443,6 +443,30 @@
   }
 }
 
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 2.85rem;
+  min-height: 2.85rem;
+  padding: 0 0.85rem;
+  margin-right: auto;
+  border: none;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.backBtn:hover:not(:disabled) {
+  color: #ffffff;
+}
+
 .skipBtn,
 .continueBtn {
   display: inline-flex;
@@ -491,7 +515,8 @@
 }
 
 .skipBtn:disabled,
-.continueBtn:disabled {
+.continueBtn:disabled,
+.backBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   transform: none;
