@@ -3,6 +3,10 @@ import { connectFacebook } from "@/app/services/facebook/connect-facebook";
 /** postMessage type sent from the OAuth popup when connect + ad account step finishes. */
 export const FACEBOOK_OAUTH_COMPLETE_MESSAGE = "facebook-oauth-complete" as const;
 
+/** postMessage when user taps Not now (error=access_denied). */
+export const FACEBOOK_OAUTH_CANCELLED_MESSAGE =
+  "facebook-oauth-cancelled" as const;
+
 export type FacebookOAuthResult =
   | { status: "connected"; businessId: number }
   | { status: "cancelled" };
@@ -51,12 +55,23 @@ function waitForFacebookOAuthPopup(
     };
 
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
-      if ((data as { type?: string }).type !== FACEBOOK_OAUTH_COMPLETE_MESSAGE) {
+
+      const type = (data as { type?: string }).type;
+
+      if (type === FACEBOOK_OAUTH_CANCELLED_MESSAGE) {
+        try {
+          popup.close();
+        } catch {
+          /* ignore */
+        }
+        finish({ status: "cancelled" });
         return;
       }
+
+      if (event.origin !== window.location.origin) return;
+      if (type !== FACEBOOK_OAUTH_COMPLETE_MESSAGE) return;
 
       const businessId = readBusinessIdFromMessage(data);
       if (businessId == null) return;
@@ -64,7 +79,7 @@ function waitForFacebookOAuthPopup(
       try {
         popup.close();
       } catch {
-        /* popup may already be closed */
+        /* ignore */
       }
       finish({ status: "connected", businessId });
     };

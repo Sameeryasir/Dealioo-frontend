@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allow opening the app through the public ngrok frontend URL in local dev.
+  allowedDevOrigins: ["washday-grooving-maximize.ngrok-free.dev"],
   async redirects() {
     return [
       {

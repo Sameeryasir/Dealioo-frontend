@@ -3,8 +3,11 @@
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
+import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
+import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
 import RegisterBusinessIntegrationsStep from "@/app/components/register-business/RegisterBusinessIntegrationsStep";
 import RegisterBusinessInviteStep from "@/app/components/register-business/RegisterBusinessInviteStep";
+import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
@@ -21,6 +24,7 @@ async function userCanRegisterBusiness(): Promise<boolean> {
     const status = await getOnboardingStatus();
     if (status.subscriptionSelected) return true;
   } catch {
+    // Fall through to subscription check.
   }
 
   try {
@@ -38,7 +42,12 @@ type CreatedBusiness = {
   name: string;
 };
 
-type PostCreateStep = "invite" | "integrations";
+type PostCreateStep =
+  | "metaQuestion"
+  | "metaCreate"
+  | "facebook"
+  | "invite"
+  | "integrations";
 
 export default function RegisterBusinessPage() {
   const router = useRouter();
@@ -50,7 +59,7 @@ export default function RegisterBusinessPage() {
     null,
   );
   const [postCreateStep, setPostCreateStep] =
-    useState<PostCreateStep>("invite");
+    useState<PostCreateStep>("metaQuestion");
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +88,22 @@ export default function RegisterBusinessPage() {
   const goToDashboard = useCallback(() => {
     router.replace("/dashboard");
   }, [router]);
+
+  const goToFacebookStep = useCallback(() => {
+    setPostCreateStep("facebook");
+  }, []);
+
+  const goToMetaQuestionStep = useCallback(() => {
+    setPostCreateStep("metaQuestion");
+  }, []);
+
+  const goToMetaCreateStep = useCallback(() => {
+    setPostCreateStep("metaCreate");
+  }, []);
+
+  const goToInviteStep = useCallback(() => {
+    setPostCreateStep("invite");
+  }, []);
 
   const goToIntegrationsStep = useCallback(() => {
     setPostCreateStep("integrations");
@@ -134,7 +159,7 @@ export default function RegisterBusinessPage() {
           id: businessId,
           name: data.name.trim(),
         });
-        setPostCreateStep("invite");
+        setPostCreateStep("metaQuestion");
         setSubmitting(false);
       } catch (error) {
         setErrorMessage(
@@ -147,6 +172,37 @@ export default function RegisterBusinessPage() {
     },
     [accessToken, queryClient],
   );
+
+  if (createdBusiness && postCreateStep === "metaQuestion") {
+    return (
+      <RegisterBusinessMetaAdsQuestionStep
+        onHasAccount={goToFacebookStep}
+        onNoAccount={goToMetaCreateStep}
+        onSkip={goToInviteStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "metaCreate") {
+    return (
+      <RegisterBusinessCreateMetaAdAccountStep
+        onContinue={goToFacebookStep}
+        onBack={goToMetaQuestionStep}
+        onSkip={goToInviteStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "facebook") {
+    return (
+      <RegisterBusinessFacebookConnectStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToInviteStep}
+        onBack={goToMetaQuestionStep}
+      />
+    );
+  }
 
   if (createdBusiness && postCreateStep === "integrations") {
     return (

@@ -16,12 +16,14 @@ function normalizeApiBaseUrl(raw: string): string {
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
-function envApiUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
-  return fromEnv ? normalizeApiBaseUrl(fromEnv) : LOCAL_API_DEFAULT;
-}
-
 export function getApiBaseUrl(): string {
+  // Prefer explicit API URL so ngrok frontend still talks to local Nest (e.g. localhost:4001/api).
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (fromEnv) {
+    return normalizeApiBaseUrl(fromEnv);
+  }
+
+  // Production-style: same origin hosts both app and /api
   if (typeof window !== "undefined") {
     const { hostname, origin } = window.location;
     if (!isLocalHostname(hostname)) {
@@ -29,7 +31,7 @@ export function getApiBaseUrl(): string {
     }
   }
 
-  return envApiUrl();
+  return LOCAL_API_DEFAULT;
 }
 
 export function delay(ms: number): Promise<void> {

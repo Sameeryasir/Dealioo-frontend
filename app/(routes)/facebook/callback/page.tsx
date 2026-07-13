@@ -1,38 +1,21 @@
-"use client";
+import { FacebookOAuthCancelledPanel } from "@/app/components/facebook/FacebookOAuthCancelledPanel";
+import { FacebookOAuthSuccessRedirect } from "@/app/components/facebook/FacebookOAuthSuccessRedirect";
 
-import { Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { getApiBaseUrl } from "@/app/lib/api";
+type Props = {
+  searchParams: Promise<{ error?: string | string[] }>;
+};
 
-function FacebookCallbackRedirectInner() {
-  const searchParams = useSearchParams();
+/**
+ * Server picks cancel vs success from Meta's query string so Not now never
+ * flashes "Connecting Facebook…" while the client hydrates.
+ */
+export default async function FacebookCallbackPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
-  useEffect(() => {
-    const apiBase = getApiBaseUrl().replace(/\/$/, "");
-    const qs = searchParams.toString();
-    const target = qs
-      ? `${apiBase}/facebook/callback/oauth?${qs}`
-      : `${apiBase}/facebook/callback/oauth`;
-    window.location.replace(target);
-  }, [searchParams]);
+  if (error === "access_denied") {
+    return <FacebookOAuthCancelledPanel />;
+  }
 
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-      <p className="text-sm text-zinc-600">Connecting Facebook…</p>
-    </main>
-  );
-}
-
-export default function FacebookCallbackPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-          <p className="text-sm text-zinc-600">Loading…</p>
-        </main>
-      }
-    >
-      <FacebookCallbackRedirectInner />
-    </Suspense>
-  );
+  return <FacebookOAuthSuccessRedirect />;
 }

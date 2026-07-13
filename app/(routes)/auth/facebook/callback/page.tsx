@@ -1,39 +1,23 @@
-"use client";
+import { FacebookOAuthCancelledPanel } from "@/app/components/facebook/FacebookOAuthCancelledPanel";
+import { FacebookOAuthSuccessRedirect } from "@/app/components/facebook/FacebookOAuthSuccessRedirect";
 
-import { Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { getApiBaseUrl } from "@/app/lib/api";
+type Props = {
+  searchParams: Promise<{ error?: string | string[] }>;
+};
 
-/** @deprecated Use /facebook/callback, kept so old Meta redirect URIs still work. */
-function LegacyFacebookCallbackRedirectInner() {
-  const searchParams = useSearchParams();
+/**
+ * @deprecated Use /facebook/callback — kept for FACEBOOK_REDIRECT_URI values.
+ * Server picks cancel vs success so Not now never flashes "Connecting Facebook…".
+ */
+export default async function LegacyFacebookCallbackPage({
+  searchParams,
+}: Props) {
+  const params = await searchParams;
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
-  useEffect(() => {
-    const apiBase = getApiBaseUrl().replace(/\/$/, "");
-    const qs = searchParams.toString();
-    const target = qs
-      ? `${apiBase}/facebook/callback/oauth?${qs}`
-      : `${apiBase}/facebook/callback/oauth`;
-    window.location.replace(target);
-  }, [searchParams]);
+  if (error === "access_denied") {
+    return <FacebookOAuthCancelledPanel />;
+  }
 
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-      <p className="text-sm text-zinc-600">Connecting Facebook…</p>
-    </main>
-  );
-}
-
-export default function LegacyFacebookCallbackPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-          <p className="text-sm text-zinc-600">Loading…</p>
-        </main>
-      }
-    >
-      <LegacyFacebookCallbackRedirectInner />
-    </Suspense>
-  );
+  return <FacebookOAuthSuccessRedirect />;
 }

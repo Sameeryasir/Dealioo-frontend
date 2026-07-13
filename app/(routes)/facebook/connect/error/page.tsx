@@ -1,18 +1,35 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
+import { FACEBOOK_OAUTH_CANCELLED_MESSAGE } from "@/app/lib/facebook-oauth-popup";
 
 function FacebookConnectErrorInner() {
   const searchParams = useSearchParams();
+  const cancelled = searchParams.get("cancelled") === "1";
   const reason =
     searchParams.get("reason")?.trim() ||
     "Facebook connection failed. Please try again.";
 
-  const handleClose = () => {
+  useEffect(() => {
+    if (!cancelled) return;
+    // Not now via API redirect — close quietly, no cancel screen.
+    window.opener?.postMessage(
+      { type: FACEBOOK_OAUTH_CANCELLED_MESSAGE },
+      "*",
+    );
+    try {
+      window.opener?.focus();
+    } catch {
+      /* ignore */
+    }
     window.close();
-  };
+  }, [cancelled]);
+
+  if (cancelled) {
+    return <main className="min-h-dvh bg-zinc-50" aria-hidden />;
+  }
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-zinc-50 px-4">
@@ -24,7 +41,7 @@ function FacebookConnectErrorInner() {
         <p className="mt-2 text-sm text-red-700">{reason}</p>
         <button
           type="button"
-          onClick={handleClose}
+          onClick={() => window.close()}
           className="mt-6 w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white"
         >
           Close
@@ -38,9 +55,7 @@ export default function FacebookConnectErrorPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-          <p className="text-sm text-zinc-600">Loading…</p>
-        </main>
+        <main className="min-h-dvh bg-zinc-50" aria-hidden />
       }
     >
       <FacebookConnectErrorInner />
