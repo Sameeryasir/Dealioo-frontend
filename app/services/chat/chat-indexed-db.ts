@@ -555,7 +555,7 @@ export async function patchChatCustomersFromPusherInIndexedDb(
       record.page,
     );
 
-    if (!next) {
+    if (!next || next === record.data) {
       continue;
     }
 

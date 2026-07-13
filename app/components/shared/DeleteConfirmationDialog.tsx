@@ -33,10 +33,10 @@ export function DeleteConfirmationDialog({
   const resolvedTitle = title ?? `Delete ${itemName}?`;
   const resolvedDescription =
     description ?? (
-      <>
-        <span className="font-medium text-zinc-800">{itemName}</span>,{" "}
-        {DEFAULT_DESCRIPTION}
-      </>
+        <>
+          <span className="font-semibold text-[#1877f2]">{itemName}</span>,{" "}
+          {DEFAULT_DESCRIPTION}
+        </>
     );
   const loadingLabel = "Deleting...";
 
@@ -67,7 +67,7 @@ export function DeleteConfirmationDialog({
         >
           {isLoading ? (
             <div
-              className="absolute inset-0 bg-zinc-950/45 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-[#07111f]/45 backdrop-blur-sm"
               aria-hidden
             />
           ) : (
@@ -75,7 +75,7 @@ export function DeleteConfirmationDialog({
               type="button"
               aria-label="Close dialog"
               onClick={onCancel}
-              className="absolute inset-0 cursor-default bg-zinc-950/45 backdrop-blur-[2px]"
+              className="absolute inset-0 cursor-default bg-[#07111f]/45 backdrop-blur-sm"
             />
           )}
 
@@ -83,13 +83,15 @@ export function DeleteConfirmationDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-2xl ring-1 ring-zinc-950/5"
+            className="relative z-10 w-full max-w-lg overflow-hidden rounded-[1.25rem] border border-[#e8edf5] bg-gradient-to-b from-white via-white to-[#f8faff] shadow-[0_24px_48px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.03]"
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.28, ease: automationEase }}
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="h-1 bg-gradient-to-r from-[#ef4444] via-[#dc2626] to-[#e1306c]" aria-hidden />
+
             <div className="relative px-5 pb-4 pt-5 sm:px-6">
               {!isLoading ? (
                 <button
@@ -104,7 +106,7 @@ export function DeleteConfirmationDialog({
 
               <div className="flex gap-4 pr-8">
                 <span
-                  className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-amber-200/90 bg-amber-50 text-amber-600 shadow-sm"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-red-200/90 bg-gradient-to-br from-red-50 to-[#fdf2f8] text-red-600 shadow-sm"
                   aria-hidden
                 >
                   <AlertTriangle className="size-5" strokeWidth={2} />
@@ -112,23 +114,23 @@ export function DeleteConfirmationDialog({
                 <div className="min-w-0 flex-1">
                   <h2
                     id={titleId}
-                    className="text-base font-semibold leading-snug text-zinc-900"
+                    className="text-[1.02rem] font-bold leading-snug tracking-tight text-slate-900"
                   >
                     {resolvedTitle}
                   </h2>
-                  <div className="mt-2 text-sm leading-relaxed text-zinc-600">
+                  <div className="mt-2 text-sm leading-relaxed text-slate-500">
                     {resolvedDescription}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end border-t border-zinc-100 bg-zinc-50/60 px-5 py-3.5 sm:px-6">
+            <div className="flex justify-end border-t border-[#e8edf5] bg-gradient-to-r from-[#f8faff]/90 to-white px-5 py-3.5 sm:px-6">
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={onConfirm}
-                className="inline-flex h-10 min-w-[7.5rem] cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-black active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 disabled:hover:bg-zinc-200"
+                className="inline-flex h-10 min-w-[7.5rem] cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-[#e1306c] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(220,38,38,0.28)] transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#f1f5f9] disabled:text-slate-400 disabled:shadow-none disabled:hover:brightness-100"
               >
                 {isLoading ? (
                   <>

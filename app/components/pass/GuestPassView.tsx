@@ -64,17 +64,17 @@ export function GuestPassView(props: GuestPassViewProps) {
   const showQr = canShowGuestPassQr(coupon);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-stone-100 via-zinc-100 to-stone-100 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#e8f2ff]/40 via-white to-[#e8f2ff]/25 px-4 py-10">
       <div className="w-full max-w-md">
         {loading ? (
-          <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-zinc-200/80">
-            <div className="bg-black px-6 py-5 text-center">
-              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-white/15">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-[#1877f2]/15">
+            <div className="bg-gradient-to-br from-[#12325f] via-[#15407a] to-[#1877f2] px-6 py-5 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
                 <Loader2 className="size-5 animate-spin text-white" aria-hidden />
               </div>
             </div>
             <div className="px-6 py-10 text-center">
-              <p className="text-base font-semibold text-zinc-900">
+              <p className="text-base font-semibold text-[#07111f]">
                 Preparing your QR code
               </p>
               <p className="mt-1 text-sm text-zinc-500">This only takes a moment…</p>
@@ -93,34 +93,38 @@ export function GuestPassView(props: GuestPassViewProps) {
         ) : null}
 
         {!loading && !loadFailed && showQr ? (
-          <article className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-zinc-900/10 ring-1 ring-stone-200/80">
-            <header className="flex flex-col items-center bg-black px-6 py-6 text-center text-white">
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+          <article className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-[#1877f2]/10 ring-1 ring-[#1877f2]/15">
+            <header className="relative flex flex-col items-center overflow-hidden bg-gradient-to-br from-[#12325f] via-[#15407a] to-[#1877f2] px-6 py-6 text-center text-white">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,255,255,0.18)_0%,transparent_70%)]"
+              />
+              <div className="relative mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
                 <QrCode className="size-5" aria-hidden strokeWidth={2.25} />
               </div>
-              <h1 className="text-xl font-bold tracking-tight">Your QR Code</h1>
-              <p className="mt-1 text-sm text-zinc-300">
+              <h1 className="relative text-xl font-bold tracking-tight">Your QR Code</h1>
+              <p className="relative mt-1 text-sm text-blue-100">
                 You&apos;re all set, ready to redeem
               </p>
             </header>
 
             <div className="flex flex-col items-center px-6 py-7">
               {coupon.customerName ? (
-                <p className="w-full text-center text-base font-semibold text-zinc-900">
+                <p className="w-full text-center text-base font-semibold text-[#07111f]">
                   {coupon.customerName}
                 </p>
               ) : null}
 
               {coupon.campaignName ? (
                 <div className="mt-2 flex w-full justify-center px-2">
-                  <span className="max-w-full truncate rounded-full bg-zinc-100 px-3.5 py-1 text-sm font-medium text-zinc-900 ring-1 ring-zinc-200">
+                  <span className="max-w-full truncate rounded-full bg-[#1877f2]/10 px-3.5 py-1 text-sm font-medium text-[#1877f2] ring-1 ring-[#1877f2]/15">
                     {coupon.campaignName}
                   </span>
                 </div>
               ) : null}
 
               <div className="mt-6 flex justify-center">
-                <div className="rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200/80">
+                <div className="rounded-2xl bg-[#f4f8ff] p-4 ring-1 ring-[#1877f2]/15">
                   <img
                     src={coupon.qr.qrDataUrl}
                     alt="Your redemption QR code"
@@ -130,16 +134,16 @@ export function GuestPassView(props: GuestPassViewProps) {
               </div>
 
               {coupon.paymentConfirmed ? (
-                <div className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-black px-3.5 py-1.5 text-xs font-semibold text-white ring-1 ring-zinc-800">
+                <div className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-[#1877f2]/10 px-3.5 py-1.5 text-xs font-semibold text-[#1877f2] ring-1 ring-[#1877f2]/20">
                   <CheckCircle2 className="size-3.5" aria-hidden />
                   Payment confirmed
                 </div>
               ) : null}
 
-              <div className="mt-6 w-full rounded-xl bg-stone-50 px-4 py-3.5 ring-1 ring-stone-200/80">
+              <div className="mt-6 w-full rounded-xl border border-[#1877f2]/12 bg-[#e8f2ff]/60 px-4 py-3.5">
                 <div className="flex items-start justify-center gap-2.5 text-left">
                   <ScanLine
-                    className="mt-0.5 size-4 shrink-0 text-black"
+                    className="mt-0.5 size-4 shrink-0 text-[#1877f2]"
                     aria-hidden
                   />
                   <p className="text-sm leading-relaxed text-zinc-600">
@@ -150,7 +154,7 @@ export function GuestPassView(props: GuestPassViewProps) {
               </div>
 
               {coupon.expiresAt ? (
-                <p className="mt-5 w-full text-center text-xs font-medium text-stone-400">
+                <p className="mt-5 w-full text-center text-xs font-medium text-[#1877f2]/70">
                   Offer valid until {formatDateTimeShort(coupon.expiresAt)}
                 </p>
               ) : null}

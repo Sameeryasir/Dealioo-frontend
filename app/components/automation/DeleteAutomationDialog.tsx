@@ -22,7 +22,7 @@ export function DeleteAutomationDialog({
       title="Delete automation?"
       description={
         <>
-          <span className="font-medium text-zinc-800">{automationName}</span>{" "}
+          <span className="font-semibold text-[#1877f2]">{automationName}</span>{" "}
           will be removed permanently. This cannot be undone.
         </>
       }

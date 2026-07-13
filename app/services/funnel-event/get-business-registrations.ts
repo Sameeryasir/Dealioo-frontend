@@ -40,8 +40,14 @@ export type BusinessFunnelEvent = {
   receiptUrl: string | null;
   orderStatus: RestaurantOrderPaymentStatus;
   onlineAmountCents: number | null;
-  restaurantAmount: number | null;
-  restaurantVisitedAt: string | null;
+  businessAmount: number | null;
+  businessVisitedAt: string | null;
+  paidAt: string | null;
+  funnelPaymentId: number | null;
+  /** @deprecated Use businessAmount */
+  restaurantAmount?: number | null;
+  /** @deprecated Use businessVisitedAt */
+  restaurantVisitedAt?: string | null;
 };
 
 export type PaginatedBusinessFunnelEventsResponse = {

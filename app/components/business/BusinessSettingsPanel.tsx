@@ -694,7 +694,7 @@ export function BusinessSettingsPanel({
                 </div>
               </div>
             ) : section === "integrations" ? (
-              <div className="max-w-3xl">
+              <div className="w-full max-w-3xl lg:max-w-none">
                 <IntegrationsOverview
                   stripeConnected={stripeConnected}
                   metaConnected={metaConnected}
@@ -705,7 +705,7 @@ export function BusinessSettingsPanel({
                 />
                 <ul className="space-y-4">
                   <IntegrationCardShell theme="stripe">
-                    <div className="flex flex-wrap items-center gap-5">
+                    <div className="flex flex-wrap items-center gap-5 lg:flex-nowrap lg:justify-between">
                       <span
                         aria-hidden
                         className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[#635BFF] shadow-lg shadow-[#635BFF]/30 ring-1 ring-white/20"
@@ -805,7 +805,7 @@ export function BusinessSettingsPanel({
                   </IntegrationCardShell>
 
                   <IntegrationCardShell theme="facebook">
-                    <div className="flex flex-wrap items-center gap-5">
+                    <div className="flex flex-wrap items-center gap-5 lg:flex-nowrap lg:justify-between">
                       <span
                         aria-hidden
                         className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[#1877F2] shadow-lg shadow-[#1877F2]/30 ring-1 ring-white/20"
@@ -935,7 +935,7 @@ export function BusinessSettingsPanel({
                   </IntegrationCardShell>
 
                   <IntegrationCardShell theme="google">
-                    <div className="flex flex-wrap items-center gap-5">
+                    <div className="flex flex-wrap items-center gap-5 lg:flex-nowrap lg:justify-between">
                       <button
                         type="button"
                         onClick={() => {

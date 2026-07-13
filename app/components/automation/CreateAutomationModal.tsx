@@ -345,7 +345,7 @@ export function CreateAutomationModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.16 }}
         >
           <button
             type="button"
@@ -362,7 +362,7 @@ export function CreateAutomationModal({
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              transition={{ duration: 0.28, ease: automationEase }}
+              transition={{ duration: 0.18, ease: automationEase }}
             >
               <div className="create-automation-modal__header flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex min-w-0 items-start gap-3">

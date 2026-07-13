@@ -58,6 +58,17 @@ const ordersHeadIconClass = "text-[#1877f2]";
 const ordersHeadLabelClass = "text-slate-800";
 const ordersHeadBoxClass = "border-[#bfdbfe]/80 bg-[#f4f8ff]";
 
+function formatPaymentStatusLabel(status: string): string {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "paid" || normalized === "succeeded") return "Paid";
+  if (normalized === "failed") return "Failed";
+  if (normalized === "cancelled" || normalized === "canceled") return "Cancelled";
+  if (normalized === "refunded") return "Refunded";
+  if (normalized === "partially_refunded") return "Partial refund";
+  if (normalized === "disputed") return "Disputed";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function OrdersTableSkeleton() {
   return (
     <div className="funnel-orders-table-skeleton overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
@@ -139,9 +150,13 @@ function OrderPaidAt({ payment }: { payment: FunnelPayment }) {
   }
 
   return (
-    <span className="inline-flex flex-col gap-0.5 text-slate-600">
-      <span className="text-sm font-medium">{paid.date}</span>
-      <span className="text-xs tabular-nums text-slate-400">{paid.time}</span>
+    <span className="inline-flex flex-col gap-0.5 whitespace-nowrap">
+      <span className="text-sm font-bold tabular-nums text-[#07111f]">
+        {paid.time}
+      </span>
+      <span className="text-[0.68rem] font-medium tabular-nums text-slate-400">
+        {paid.date}
+      </span>
     </span>
   );
 }
@@ -197,7 +212,7 @@ function OrdersTableSection({
               variants={tableHeaderReveal}
               initial="hidden"
               animate="show"
-              className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
+              className="border-b border-[#dbeafe]/70 bg-gradient-to-r from-[#f4f8ff] via-white to-[#f8fafc]"
             >
               <th className={`${thClass} funnel-orders-th--index`}>
                 <TableColumnHeader
@@ -267,7 +282,7 @@ function OrdersTableSection({
               <motion.tr
                 key={payment.id}
                 variants={tableRowReveal}
-                className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
+                className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 odd:bg-white even:bg-[#fafcff]/80 hover:bg-[#f4f8ff]/45"
               >
                 <td className={`${tdClass} funnel-orders-td--index`}>
                   <span className="text-xs font-semibold tabular-nums text-slate-400">
@@ -286,15 +301,15 @@ function OrdersTableSection({
                   <OrderEmail email={payment.customerEmail} />
                 </td>
                 <td
-                  className={`${tdClass} funnel-orders-td--amount whitespace-nowrap font-bold tabular-nums tracking-tight text-[#07111f]`}
+                  className={`${tdClass} funnel-orders-td--amount whitespace-nowrap font-bold tabular-nums tracking-tight text-[#0d5bbf]`}
                 >
                   {formatCents(payment.amount, payment.currency)}
                 </td>
                 <td className={`${tdClass} funnel-orders-td--status whitespace-nowrap`}>
                   <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold capitalize ring-1 ring-black/5 ${paymentStatusBadgeClass(payment.status)}`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold ${paymentStatusBadgeClass(payment.status)}`}
                   >
-                    {payment.status}
+                    {formatPaymentStatusLabel(payment.status)}
                   </span>
                 </td>
                 <td className={`${tdClass} funnel-orders-td--paid whitespace-nowrap`}>

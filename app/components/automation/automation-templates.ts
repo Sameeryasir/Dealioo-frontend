@@ -378,7 +378,7 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
         value: "Customer visited",
         onFalseLoopWorkflowKind: "prepaid_visit_reminder_wait",
         branchLabelTrue: "Customer visited",
-        branchLabelFalse: "Not visited — wait, then send visit reminder again",
+        branchLabelFalse: "Not visited — send visit reminder again",
       },
     },
     {

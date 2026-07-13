@@ -42,7 +42,6 @@ import {
 } from "@/app/lib/motion";
 import {
   clampWorkflowDropIndex,
-  hasCronTriggerNode,
   isWorkflowNodeReorderLocked,
 } from "@/app/components/automation/workflow-node-order";
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
@@ -492,7 +491,10 @@ export function BuilderCanvas({
       <PrepaidVisitSplitConnector wide />
       <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
         <FlowBranchContainer>
-          <PrepaidLoopBackCard loopTarget={prepaidVisitSplit.loopTarget?.node ?? null} />
+          <PrepaidLoopBackCard
+            loopTarget={prepaidVisitSplit.loopTarget?.node ?? null}
+            flowNodes={flowNodes}
+          />
         </FlowBranchContainer>
         <FlowBranchContainer>
           {renderSegmentList(visitedYesSegments)}
@@ -658,14 +660,6 @@ export function BuilderCanvas({
           )}
         </motion.div>
       </motion.div>
-
-      {canReorder && nodes.length > 0 ? (
-        <p className="pointer-events-none absolute bottom-14 left-0 right-0 px-3 text-center text-[10px] font-medium text-zinc-500 sm:bottom-16 sm:text-[11px]">
-          {hasCronTriggerNode(nodes)
-            ? "Cron Job stays at the start. Press and hold other steps to reorder."
-            : "Press and hold a step, then drag to reorder"}
-        </p>
-      ) : null}
 
       {dragGhost}
     </motion.div>

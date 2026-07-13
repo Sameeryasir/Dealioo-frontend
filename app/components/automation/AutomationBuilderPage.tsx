@@ -131,7 +131,44 @@ export function AutomationBuilderPage({
     isPublished: automationIsPublished,
     status: remoteStatus,
     isLoading: nodesLoading,
+    refetch: refetchAutomation,
   } = useAutomationQuery(automationNumericId);
+
+  const bootstrapping = searchParams.get("bootstrapping") === "1";
+
+  useEffect(() => {
+    if (!bootstrapping || !isPositiveInt(automationNumericId)) {
+      return;
+    }
+
+    if ((remoteAutomation?.nodes?.length ?? 0) > 0) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.has("bootstrapping")) {
+        params.delete("bootstrapping");
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, {
+          scroll: false,
+        });
+      }
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refetchAutomation();
+    }, 400);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    automationNumericId,
+    bootstrapping,
+    pathname,
+    refetchAutomation,
+    remoteAutomation?.nodes?.length,
+    router,
+    searchParams,
+  ]);
 
   useEffect(() => {
     setIsFlowDirty(false);
@@ -699,7 +736,7 @@ export function AutomationBuilderPage({
             canvas={
               <BuilderCanvas
                 nodes={nodes}
-                loading={nodesLoading}
+                loading={nodesLoading || (bootstrapping && nodes.length === 0)}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 editLocked={automationActive}

@@ -29,7 +29,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     }
 
     void warmRestaurantConversationMessageCache(businessId);
-  }, [businessId, rows]);
+  }, [businessId]);
 
   const filteredRows = useMemo(
     () => rows.filter((row) => matchesSearch(row, search)),

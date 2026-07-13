@@ -37,7 +37,10 @@ export function GuestChatConversationPanel({
     hasOlderMessages,
     loadOlderMessages,
     error,
-  } = useCustomerConversationQuery(businessId, row.customerId);
+  } = useCustomerConversationQuery(businessId, row.customerId, {
+    lastMessageAt: row.lastMessageAt,
+    messageCount: row.messageCount,
+  });
   const sendMessage = useSendCustomerMessage(businessId, row);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);

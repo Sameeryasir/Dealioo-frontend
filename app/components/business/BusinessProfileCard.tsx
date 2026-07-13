@@ -91,14 +91,14 @@ function ProfileContactRow({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-xl border border-transparent px-2.5 py-2.5 no-underline transition duration-200 hover:border-[#e8edf5] hover:bg-[#f8faff]"
+        className="block rounded-xl border border-transparent px-2 py-2 no-underline transition duration-200 hover:border-[#e8edf5] hover:bg-[#f8faff]"
       >
         {row}
       </a>
     );
   }
 
-  return <div className="rounded-xl px-2.5 py-2.5">{row}</div>;
+  return <div className="rounded-xl px-2 py-2">{row}</div>;
 }
 
 function ProfileSkeleton() {
@@ -130,7 +130,7 @@ export function BusinessProfileCard({
 
   return (
     <article
-      className="relative flex h-full min-h-[14.5rem] w-full flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-white via-[#f8faff] to-[#eef5ff] px-5 py-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:min-h-[15.5rem] lg:min-h-[16.5rem]"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-white via-[#f8faff] to-[#eef5ff] px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5 sm:py-5"
       aria-label="Business profile"
     >
       <span
@@ -142,12 +142,12 @@ export function BusinessProfileCard({
         Business profile
       </p>
 
-      <div className="relative mt-4 flex flex-1 flex-col">
+      <div className="relative mt-3 flex min-h-0 flex-1 flex-col">
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
           <>
-            <div className="flex flex-1 flex-col justify-center gap-1">
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5">
               <ProfileContactRow
                 icon={Phone}
                 label="Phone"
@@ -169,7 +169,7 @@ export function BusinessProfileCard({
             <button
               type="button"
               onClick={() => openBusinessSettings("general", businessId)}
-              className="mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-4 py-3 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.22)] transition duration-200 hover:brightness-105"
+              className="mt-auto inline-flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.22)] transition duration-200 hover:brightness-105"
             >
               <PencilLine className="size-3.5" strokeWidth={2.25} aria-hidden />
               Edit business

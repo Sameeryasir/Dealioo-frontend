@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardEase } from "@/app/lib/motion";
@@ -44,7 +45,6 @@ import type {
 import {
   createAutomation,
   deleteAutomation,
-  getAutomationById,
   mapAutomationToListItem,
 } from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
@@ -202,10 +202,11 @@ export function AutomationListPage({
   businessId?: number;
   campaignId?: number;
   funnelId?: number | null;
-  onOpenBuilder?: (automationId: string) => void;
+  onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
   embedded?: boolean;
 } = {}) {
   const route = useAutomationRouteContext();
+  const router = useRouter();
   const businessId = route.businessId ?? businessIdProp;
   const campaignId = route.campaignId ?? campaignIdProp;
   const funnelId = funnelIdProp ?? route.funnelId;
@@ -294,6 +295,35 @@ export function AutomationListPage({
     setModalOpen(true);
   }, [createContextInput]);
 
+  const openBuilderAfterCreate = useCallback(
+    (automationId: string, bootstrapping = false) => {
+      if (onOpenBuilder) {
+        onOpenBuilder(automationId, bootstrapping);
+        return;
+      }
+
+      if (businessId == null) {
+        return;
+      }
+
+      const params = new URLSearchParams();
+      if (funnelId != null && funnelId >= 1) {
+        params.set("funnelId", String(funnelId));
+      }
+      if (bootstrapping) {
+        params.set("bootstrapping", "1");
+      }
+
+      const query = params.toString();
+      router.push(
+        `/business/${businessId}/dashboard/automations/${automationId}${
+          query ? `?${query}` : ""
+        }`,
+      );
+    },
+    [businessId, funnelId, onOpenBuilder, router],
+  );
+
   const modals = (
     <>
       <CreateAutomationModal
@@ -315,7 +345,10 @@ export function AutomationListPage({
             toast.error("Could not find that automation template.");
             return;
           }
+
+          setModalOpen(false);
           setCreating(true);
+
           try {
             const created = await createAutomation(
               buildCreateAutomationBody({
@@ -326,13 +359,7 @@ export function AutomationListPage({
                 ids: context.ids,
               }),
             );
-            if (template) {
-              await applyAutomationTemplate(created.id, template);
-              const withNodes = await getAutomationById(created.id);
-              syncAutomationQueryCache(queryClient, withNodes);
-            } else {
-              syncAutomationQueryCache(queryClient, created);
-            }
+
             const next = mapAutomationToListItem(created);
             if (businessId != null) {
               queryClient.setQueryData<AutomationListItem[]>(
@@ -340,16 +367,25 @@ export function AutomationListPage({
                 (prev) => [next, ...(prev ?? [])],
               );
             }
-            setModalOpen(false);
-            toast.success(
-              template
-                ? `"${template.name}" template applied.`
-                : "Automation created.",
-            );
-            const builderId = String(created.id);
-            onOpenBuilder?.(builderId);
+
+            syncAutomationQueryCache(queryClient, created);
+            openBuilderAfterCreate(String(created.id), Boolean(template));
+
+            if (template) {
+              void applyAutomationTemplate(created.id, template)
+                .then((withGraph) => {
+                  syncAutomationQueryCache(queryClient, withGraph);
+                  toast.success(`"${template.name}" is ready.`);
+                })
+                .catch((err) => {
+                  toastApiError(err, "Could not apply the template steps.");
+                });
+            } else {
+              toast.success("Automation created.");
+            }
           } catch (err) {
             toastApiError(err, "Could not create automation.");
+            setModalOpen(true);
           } finally {
             setCreating(false);
           }
@@ -538,7 +574,7 @@ function AutomationsTableSection({
 }: {
   rows: AutomationListItem[];
   builderHref: (row: AutomationListItem) => string;
-  onOpenBuilder?: (automationId: string) => void;
+  onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
   onDelete: (row: AutomationListItem) => void;
 }) {
   return (

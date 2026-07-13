@@ -151,7 +151,13 @@ function resolveDisplayStatus(event: BusinessFunnelEvent): DisplayPaymentStatus 
     return "failed";
   }
 
-  if (event.orderStatus !== "not_paid") {
+  const isPaid =
+    paymentStatus === "paid" ||
+    event.paidAt != null ||
+    event.orderStatus === "paid_walk_in" ||
+    event.orderStatus === "paid_both";
+
+  if (isPaid) {
     return "paid";
   }
 
@@ -186,8 +192,10 @@ function orderStatusDotClass(status: DisplayPaymentStatus): string {
 }
 
 function eventRevenueAmount(event: BusinessFunnelEvent): number {
-  if (event.restaurantAmount != null && event.restaurantAmount > 0) {
-    return event.restaurantAmount;
+  const walkInAmount =
+    event.businessAmount ?? event.restaurantAmount ?? null;
+  if (walkInAmount != null && walkInAmount > 0) {
+    return walkInAmount;
   }
 
   if (event.onlineAmountCents != null && event.onlineAmountCents > 0) {
@@ -199,6 +207,15 @@ function eventRevenueAmount(event: BusinessFunnelEvent): number {
   }
 
   return 0;
+}
+
+function eventPaymentDate(event: BusinessFunnelEvent): string {
+  return (
+    event.paidAt ??
+    event.businessVisitedAt ??
+    event.restaurantVisitedAt ??
+    event.createdAt
+  );
 }
 
 function formatOrderAmountText(
@@ -306,7 +323,7 @@ function OrderEventMobileCard({
               {name}
             </p>
             <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-              #{rowNumber} {formatDateTimeShort(event.createdAt)}
+              #{rowNumber} {formatDateTimeShort(eventPaymentDate(event))}
             </p>
           </div>
         </div>
@@ -421,7 +438,8 @@ function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
   const status = resolveDisplayStatus(event);
   const hasPaid = status === "paid";
   const paymentPending = status === "pending";
-  const hasQrRedeemed = event.restaurantVisitedAt != null;
+  const hasQrRedeemed =
+    event.businessVisitedAt != null || event.restaurantVisitedAt != null;
 
   return [
     { id: "ad", label: "Clicked Ad", state: "complete" },
@@ -675,7 +693,7 @@ function OrderEventDetailDialog({
             </OrderDetailRow>
 
             <OrderDetailRow icon={Calendar} label="Date">
-              {formatDateTimeShort(event.createdAt)}
+              {formatDateTimeShort(eventPaymentDate(event))}
             </OrderDetailRow>
 
             <OrderDetailRow icon={Mail} label="Email" copyValue={email}>
@@ -1041,7 +1059,7 @@ export function BusinessOrdersPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={Calendar}
-                              label="Date"
+                              label="Payment Date"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
@@ -1121,7 +1139,7 @@ export function BusinessOrdersPanel({
                                     className="size-3.5 shrink-0 text-slate-400"
                                     aria-hidden
                                   />
-                                  {formatDateTimeShort(event.createdAt)}
+                                  {formatDateTimeShort(eventPaymentDate(event))}
                                 </span>
                               </td>
                               <td className={tdActionsClass}>

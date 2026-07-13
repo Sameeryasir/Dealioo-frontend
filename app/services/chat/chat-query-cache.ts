@@ -114,6 +114,62 @@ export function getLatestCustomerIdByCreatedAt(
   return latest?.customerId ?? null;
 }
 
+/** Stable newest-first order — tie-break by customerId so Pusher updates do not shuffle rows. */
+export function compareChatCustomersByRecentActivity(
+  left: ChatCustomer,
+  right: ChatCustomer,
+): number {
+  const timeDelta =
+    new Date(right.lastMessageAt).getTime() -
+    new Date(left.lastMessageAt).getTime();
+  if (timeDelta !== 0) {
+    return timeDelta;
+  }
+  return left.customerId - right.customerId;
+}
+
+export function sortChatCustomersByRecentActivity(
+  rows: ChatCustomer[],
+): ChatCustomer[] {
+  return [...rows].sort(compareChatCustomersByRecentActivity);
+}
+
+function isSameChatCustomerSidebarRow(
+  left: ChatCustomer,
+  right: ChatCustomer,
+): boolean {
+  return (
+    left.customerId === right.customerId &&
+    left.lastMessageAt === right.lastMessageAt &&
+    left.lastMessagePreview === right.lastMessagePreview &&
+    left.messageCount === right.messageCount &&
+    left.lastMessageChannel === right.lastMessageChannel
+  );
+}
+
+export function areChatCustomerListsEquivalent(
+  left: ChatCustomer[],
+  right: ChatCustomer[],
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((row, index) => isSameChatCustomerSidebarRow(row, right[index]!));
+}
+
+function isPusherPayloadAlreadyApplied(
+  row: ChatCustomer,
+  payload: ChatMessagePusherPayload,
+): boolean {
+  return (
+    row.lastMessageAt === payload.lastMessageAt &&
+    row.messageCount === payload.messageCount &&
+    row.lastMessagePreview ===
+      sanitizeChatMessagePreview(payload.lastMessagePreview)
+  );
+}
+
 export function mergeCustomersAfterSync(
   previous: PaginatedChatCustomersResponse,
   incoming: ChatCustomer[],
@@ -129,11 +185,10 @@ export function mergeCustomersAfterSync(
     return previous;
   }
 
-  const merged = [...newRows, ...previous.data].sort(
-    (left, right) =>
-      new Date(right.lastMessageAt).getTime() -
-      new Date(left.lastMessageAt).getTime(),
-  );
+  const merged = sortChatCustomersByRecentActivity([
+    ...newRows,
+    ...previous.data,
+  ]);
 
   return {
     ...previous,
@@ -169,15 +224,24 @@ export function patchChatCustomersFromPusher(
   const existingIndex = prev.data.findIndex(
     (row) => row.customerId === payload.customerId,
   );
-  const updatedRow = buildChatCustomerRow(
-    payload,
-    existingIndex >= 0 ? prev.data[existingIndex] : null,
-  );
+  const existingRow = existingIndex >= 0 ? prev.data[existingIndex]! : null;
+
+  if (existingRow && isPusherPayloadAlreadyApplied(existingRow, payload)) {
+    return prev;
+  }
+
+  const updatedRow = buildChatCustomerRow(payload, existingRow);
 
   if (existingIndex >= 0) {
-    const nextData = [...prev.data];
-    nextData.splice(existingIndex, 1);
-    nextData.unshift(updatedRow);
+    const nextData = sortChatCustomersByRecentActivity(
+      prev.data.map((row) =>
+        row.customerId === payload.customerId ? updatedRow : row,
+      ),
+    );
+
+    if (areChatCustomerListsEquivalent(prev.data, nextData)) {
+      return prev;
+    }
 
     return {
       ...prev,
@@ -189,9 +253,11 @@ export function patchChatCustomersFromPusher(
     return prev;
   }
 
+  const nextData = sortChatCustomersByRecentActivity([updatedRow, ...prev.data]);
+
   return {
     ...prev,
-    data: [updatedRow, ...prev.data],
+    data: nextData,
   };
 }
 

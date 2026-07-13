@@ -33,7 +33,7 @@ import {
   isSmsMergeTag,
   splitSmsPreviewParts,
 } from "@/app/components/automation/builder/workflow-node-display";
-import { expandBundledActionsForDisplay, isBundledActionsNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
+import { expandBundledActionsForDisplay, isBundledActionsNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
 import { isCustomerVisitedFilterNode } from "@/app/components/automation/builder/flow-layout";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
@@ -251,28 +251,28 @@ export function FlowFilterCard({
 
 export function PrepaidLoopBackCard({
   loopTarget,
+  flowNodes = [],
 }: {
   loopTarget: WorkflowNode | null;
+  flowNodes?: WorkflowNode[];
 }) {
-  const isWaitLoop = loopTarget?.kind === "wait";
-  const waitSummary = isWaitLoop ? formatWaitSummary(loopTarget.config) : "";
-  const previewSubject =
-    !isWaitLoop && loopTarget != null
-      ? String(loopTarget.config?.subject ?? "").trim()
-      : "";
+  const displayNode =
+    loopTarget?.kind === "wait" || loopTarget?.kind === "delay"
+      ? flowNodes.find(isPrepaidVisitReminderLoopNode) ?? loopTarget
+      : loopTarget;
+
+  const previewSubject = String(displayNode?.config?.subject ?? "").trim();
   const previewMessage =
-    loopTarget?.config?.actions &&
-    Array.isArray(loopTarget.config.actions) &&
-    typeof loopTarget.config.actions[0] === "object" &&
-    loopTarget.config.actions[0] != null
+    displayNode?.config?.actions &&
+    Array.isArray(displayNode.config.actions) &&
+    typeof displayNode.config.actions[0] === "object" &&
+    displayNode.config.actions[0] != null
       ? String(
-          (loopTarget.config.actions[0] as Record<string, unknown>).message ??
+          (displayNode.config.actions[0] as Record<string, unknown>).message ??
             "",
         ).trim()
-      : String(loopTarget?.config?.message ?? "").trim() ||
-        (isWaitLoop
-          ? "After the wait, the visit reminder email is sent again."
-          : PREPAID_FIRST_EMAIL_DEFAULTS.message);
+      : String(displayNode?.config?.message ?? "").trim() ||
+        PREPAID_FIRST_EMAIL_DEFAULTS.message;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
@@ -285,41 +285,22 @@ export function PrepaidLoopBackCard({
             Loop back
           </p>
           <p className="text-[0.65rem] font-medium text-amber-800">
-            {isWaitLoop
-              ? "Customer not visited → wait, then visit reminder"
-              : "Customer not visited → restart from first email"}
+            Customer not visited → send visit reminder again
           </p>
         </div>
       </div>
       <div className="px-5 py-4">
-        {isWaitLoop ? (
-          <>
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-violet-700">
-              Wait until
-            </p>
-            <p className="mt-1 text-xs font-semibold text-zinc-800">
-              {waitSummary || "Delay before next reminder"}
-            </p>
-            <p className="mt-2.5 text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
-              Then send email
-            </p>
-            <p className="mt-1 text-xs text-zinc-700">
-              Visit reminder — your offer is ready
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
-              Send Email
-            </p>
-            {previewSubject ? (
-              <p className="mt-1 text-[0.65rem] font-semibold text-zinc-800">{previewSubject}</p>
-            ) : null}
-            <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
-              {previewMessage || "Restart from the first offer email with pass link."}
-            </p>
-          </>
-        )}
+        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
+          Send Email
+        </p>
+        {previewSubject ? (
+          <p className="mt-1 text-[0.65rem] font-semibold text-zinc-800">
+            {previewSubject}
+          </p>
+        ) : null}
+        <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
+          {previewMessage || "Visit reminder — your offer is ready"}
+        </p>
       </div>
     </div>
   );

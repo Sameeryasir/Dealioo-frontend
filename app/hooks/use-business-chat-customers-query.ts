@@ -5,12 +5,14 @@ import { useBusinessChatPusher } from "@/app/hooks/use-business-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
+  areChatCustomerListsEquivalent,
   getLatestCustomerIdByCreatedAt,
   mergeCustomersAfterSync,
   patchChatCustomersFromPusher,
 } from "@/app/services/chat/chat-query-cache";
 import {
   getStoredChatCustomers,
+  patchChatConversationFromPusher,
   patchChatCustomersFromPusherInIndexedDb,
   saveChatCustomers,
   subscribeChatCustomers,
@@ -141,7 +143,13 @@ export function useBusinessChatCustomersQuery(businessId: number) {
         return;
       }
 
-      setData(customers);
+      // Ignore IndexedDB echo when Pusher already updated in-memory state.
+      setData((prev) => {
+        if (prev && areChatCustomerListsEquivalent(prev.data, customers.data)) {
+          return prev;
+        }
+        return customers;
+      });
     });
   }, [page, businessId]);
 
@@ -186,8 +194,16 @@ export function useBusinessChatCustomersQuery(businessId: number) {
         return;
       }
 
-      setData((prev) => patchChatCustomersFromPusher(prev ?? undefined, payload, page) ?? prev);
+      setData((prev) => {
+        const next = patchChatCustomersFromPusher(prev ?? undefined, payload, page);
+        if (!next || next === prev) {
+          return prev;
+        }
+        return next;
+      });
       void patchChatCustomersFromPusherInIndexedDb(businessId, payload);
+      // Keep conversation storage in sync even when this guest is not open in the panel.
+      void patchChatConversationFromPusher(businessId, payload.customerId, payload);
     },
     [page, businessId],
   );

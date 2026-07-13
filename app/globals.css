@@ -11651,9 +11651,25 @@ body:has(.auth-select-plan-page) {
 
 .funnel-orders-pagination {
   border-top: 1px solid #e8edf5;
-  background: rgba(248, 250, 252, 0.65);
+  background: linear-gradient(180deg, rgba(244, 248, 255, 0.85) 0%, rgba(248, 250, 252, 0.65) 100%);
   padding-inline: clamp(0.65rem, 2.4cqi, 1rem);
   padding-block: 0.55rem;
+}
+
+.funnel-orders-pagination button {
+  border-color: #dbeafe !important;
+  color: #1e4a8c !important;
+  background: #ffffff !important;
+}
+
+.funnel-orders-pagination button:hover:not(:disabled) {
+  background: #f4f8ff !important;
+  border-color: #93c5fd !important;
+}
+
+.funnel-orders-pagination p,
+.funnel-orders-pagination span {
+  color: #64748b !important;
 }
 
 /* --- Funnel guests: container-driven responsive layout --- */

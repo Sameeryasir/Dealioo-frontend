@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
@@ -8,7 +9,7 @@ import { GuestChatAvatar } from "./GuestChatAvatar";
 import { guestChatHoverLift } from "./guest-chats-motion";
 import { guestDisplayName, listItemPreview } from "./guest-chats-utils";
 
-export function GuestChatCard({
+export const GuestChatCard = memo(function GuestChatCard({
   row,
   businessId,
   selected,
@@ -63,4 +64,4 @@ export function GuestChatCard({
       </div>
     </motion.button>
   );
-}
+});

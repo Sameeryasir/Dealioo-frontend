@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-chat";
 
-export const CHAT_SAFETY_SYNC_MS = 30_000;
+export const CHAT_SAFETY_SYNC_MS = 8_000;
 
 const guestCatchUpHandlers = new Set<() => Promise<void>>();
 const conversationCatchUpHandlers = new Set<() => Promise<void>>();

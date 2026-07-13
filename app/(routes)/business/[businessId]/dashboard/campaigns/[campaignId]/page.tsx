@@ -43,12 +43,20 @@ export default function CampaignWelcomePage() {
   }, []);
 
   const openAutomationBuilder = useCallback(
-    (automationId: string) => {
+    (automationId: string, bootstrapping = false) => {
       if (businessId == null) return;
-      const funnelQuery =
-        funnelId != null ? `?funnelId=${encodeURIComponent(String(funnelId))}` : "";
+      const params = new URLSearchParams();
+      if (funnelId != null) {
+        params.set("funnelId", String(funnelId));
+      }
+      if (bootstrapping) {
+        params.set("bootstrapping", "1");
+      }
+      const query = params.toString();
       router.push(
-        `/business/${businessId}/dashboard/automations/${automationId}${funnelQuery}`,
+        `/business/${businessId}/dashboard/automations/${automationId}${
+          query ? `?${query}` : ""
+        }`,
       );
     },
     [router, businessId, funnelId],

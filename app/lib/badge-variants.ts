@@ -38,13 +38,18 @@ export function executionStatusBadgeClass(
 
 export function paymentStatusBadgeClass(status: string): string {
   const s = status.toLowerCase();
-  if (s === "paid" || s === "succeeded") return "bg-zinc-900 text-white";
-  if (s === "failed") return "bg-red-100 text-red-800";
-  if (s === "cancelled" || s === "canceled") return "bg-zinc-100 text-zinc-600";
-  if (s === "refunded" || s === "partially_refunded")
-    return "bg-violet-100 text-violet-900";
-  if (s === "disputed") return "bg-orange-100 text-orange-900";
-  return "bg-amber-100 text-amber-900";
+  if (s === "paid" || s === "succeeded") {
+    return "bg-[#e8f2ff] text-[#0d5bbf] ring-1 ring-[#1877f2]/25";
+  }
+  if (s === "failed") return "bg-red-50 text-red-700 ring-1 ring-red-200/80";
+  if (s === "cancelled" || s === "canceled") {
+    return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+  }
+  if (s === "refunded" || s === "partially_refunded") {
+    return "bg-violet-50 text-violet-800 ring-1 ring-violet-200/80";
+  }
+  if (s === "disputed") return "bg-orange-50 text-orange-800 ring-1 ring-orange-200/80";
+  return "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80";
 }
 
 export function triggerIconClass(trigger: string): string {

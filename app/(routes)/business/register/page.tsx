@@ -3,6 +3,8 @@
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
+import RegisterBusinessIntegrationsStep from "@/app/components/register-business/RegisterBusinessIntegrationsStep";
+import RegisterBusinessInviteStep from "@/app/components/register-business/RegisterBusinessInviteStep";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
@@ -19,7 +21,6 @@ async function userCanRegisterBusiness(): Promise<boolean> {
     const status = await getOnboardingStatus();
     if (status.subscriptionSelected) return true;
   } catch {
-    // Fall through to subscription check.
   }
 
   try {
@@ -32,12 +33,24 @@ async function userCanRegisterBusiness(): Promise<boolean> {
   }
 }
 
+type CreatedBusiness = {
+  id: number;
+  name: string;
+};
+
+type PostCreateStep = "invite" | "integrations";
+
 export default function RegisterBusinessPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [accessToken] = useState(() => getSetupAccessToken());
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [createdBusiness, setCreatedBusiness] = useState<CreatedBusiness | null>(
+    null,
+  );
+  const [postCreateStep, setPostCreateStep] =
+    useState<PostCreateStep>("invite");
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +76,14 @@ export default function RegisterBusinessPage() {
     };
   }, [router]);
 
+  const goToDashboard = useCallback(() => {
+    router.replace("/dashboard");
+  }, [router]);
+
+  const goToIntegrationsStep = useCallback(() => {
+    setPostCreateStep("integrations");
+  }, []);
+
   const onSubmit = useCallback(
     async (data: RegisterBusinessFormValues) => {
       setErrorMessage(null);
@@ -82,9 +103,16 @@ export default function RegisterBusinessPage() {
           branchCount: data.branchCount,
         });
 
+        const businessId =
+          result.business?.id ?? result.id ?? result.businessId ?? null;
+
+        if (businessId == null || !Number.isFinite(businessId) || businessId < 1) {
+          throw new Error("Business was created, but no business id was returned.");
+        }
+
         const businessForCache: AdminBusiness =
           result.business ?? {
-            id: result.id,
+            id: businessId,
             name: data.name.trim(),
             phoneNumber: data.phoneNumber.trim(),
             email: data.email.trim() || null,
@@ -101,7 +129,13 @@ export default function RegisterBusinessPage() {
         await queryClient.invalidateQueries({
           queryKey: businessQueryKeys.myLists(),
         });
-        router.replace("/dashboard");
+
+        setCreatedBusiness({
+          id: businessId,
+          name: data.name.trim(),
+        });
+        setPostCreateStep("invite");
+        setSubmitting(false);
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -111,8 +145,28 @@ export default function RegisterBusinessPage() {
         setSubmitting(false);
       }
     },
-    [accessToken, queryClient, router],
+    [accessToken, queryClient],
   );
+
+  if (createdBusiness && postCreateStep === "integrations") {
+    return (
+      <RegisterBusinessIntegrationsStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToDashboard}
+      />
+    );
+  }
+
+  if (createdBusiness) {
+    return (
+      <RegisterBusinessInviteStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToIntegrationsStep}
+      />
+    );
+  }
 
   return (
     <RegisterBusinessForm

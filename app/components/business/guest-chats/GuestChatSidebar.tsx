@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { LayoutGroup, motion } from "framer-motion";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { RESTAURANT_CHAT_PAGE_SIZE, type ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
 import { GuestChatCard } from "./GuestChatCard";
@@ -9,10 +9,14 @@ import {
   GuestChatNoSearchResultsEmptyState,
   GuestChatNoThreadsEmptyState,
 } from "./GuestChatEmptyStates";
-import { guestChatStagger, guestChatCardReveal } from "./guest-chats-motion";
+import { guestChatEase } from "./guest-chats-motion";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
 import { GuestChatSearchBar } from "./GuestChatSearchBar";
 import { GuestChatSidebarSkeleton } from "./GuestChatSkeletons";
+
+const guestChatListLayoutTransition = {
+  layout: { duration: 0.22, ease: guestChatEase },
+};
 
 export function GuestChatSidebar({
   rows,
@@ -68,23 +72,24 @@ export function GuestChatSidebar({
             <GuestChatNoSearchResultsEmptyState />
           )
         ) : (
-          <motion.div
-            variants={guestChatStagger}
-            initial="hidden"
-            animate="show"
-            className="space-y-2 p-4"
-          >
-            {filteredRows.map((row) => (
-              <motion.div key={row.customerId} variants={guestChatCardReveal}>
-                <GuestChatCard
-                  row={row}
-                  businessId={businessId}
-                  selected={selectedCustomerId === row.customerId}
-                  onSelect={() => onSelect(row.customerId)}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
+          <LayoutGroup id="guest-chat-sidebar">
+            <div className="space-y-2 p-4">
+              {filteredRows.map((row) => (
+                <motion.div
+                  key={row.customerId}
+                  layout="position"
+                  transition={guestChatListLayoutTransition}
+                >
+                  <GuestChatCard
+                    row={row}
+                    businessId={businessId}
+                    selected={selectedCustomerId === row.customerId}
+                    onSelect={() => onSelect(row.customerId)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </LayoutGroup>
         )}
       </GuestChatScrollArea>
 

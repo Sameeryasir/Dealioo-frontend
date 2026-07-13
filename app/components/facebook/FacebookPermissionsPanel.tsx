@@ -85,7 +85,7 @@ export function FacebookPermissionsPanel({
         </div>
       ) : null}
 
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {FACEBOOK_OAUTH_SCOPE_DETAILS.map((scope) => {
           const isGranted = granted.has(scope.id);
           return (

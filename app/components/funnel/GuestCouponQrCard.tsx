@@ -91,25 +91,25 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-xs overflow-hidden rounded-2xl bg-white text-center shadow-2xl ring-1 ring-zinc-200">
-        <div className="bg-black px-4 py-3.5 text-white">
+      <div className="pointer-events-auto w-full max-w-xs overflow-hidden rounded-2xl bg-white text-center shadow-2xl ring-1 ring-[#1877f2]/15">
+        <div className="bg-gradient-to-br from-[#12325f] via-[#15407a] to-[#1877f2] px-4 py-3.5 text-white">
           <p className="flex items-center justify-center gap-2 text-sm font-bold">
             <QrCode className="size-4" aria-hidden />
             Your QR Code
           </p>
-          <p className="mt-0.5 text-xs text-zinc-300">
+          <p className="mt-0.5 text-xs text-blue-100">
             Ready to redeem at the business
           </p>
         </div>
         <div className="p-4">
-          <div className="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200/80">
+          <div className="rounded-xl bg-[#f4f8ff] p-3 ring-1 ring-[#1877f2]/15">
             <img
               src={coupon.qr.qrDataUrl}
               alt="Your redemption QR code"
               className="mx-auto size-44 rounded-lg"
             />
           </div>
-          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1 text-xs font-semibold text-white ring-1 ring-zinc-800">
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2]/10 px-3 py-1 text-xs font-semibold text-[#1877f2] ring-1 ring-[#1877f2]/20">
             <CheckCircle2 className="size-3.5" aria-hidden />
             Your pass is ready
           </div>
