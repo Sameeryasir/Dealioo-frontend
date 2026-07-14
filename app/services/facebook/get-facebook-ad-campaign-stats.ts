@@ -26,18 +26,12 @@ export type FacebookAdCampaignStats = {
 
 export async function getFacebookAdCampaignStats(
   restaurantId: number,
-  websiteUrl?: string | null,
 ): Promise<FacebookAdCampaignStats> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
   }
 
-  const params = new URLSearchParams();
-  if (websiteUrl?.trim()) {
-    params.set("websiteUrl", websiteUrl.trim());
-  }
-  const query = params.toString();
-  const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}${query ? `?${query}` : ""}`;
+  const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}`;
 
   const res = await authenticatedFetch(path, { method: "GET" });
 

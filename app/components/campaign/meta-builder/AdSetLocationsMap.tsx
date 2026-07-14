@@ -31,7 +31,13 @@ function MapViewportSync({
   const map = useMap();
 
   useEffect(() => {
-    map.setView(center, zoom, { animate: true });
+    // Avoid Leaflet `_leaflet_pos` crashes during remount/step changes.
+    try {
+      if (!map.getContainer()?.isConnected) return;
+      map.setView(center, zoom, { animate: false });
+    } catch {
+      /* map may already be torn down */
+    }
   }, [center, map, zoom]);
 
   return null;

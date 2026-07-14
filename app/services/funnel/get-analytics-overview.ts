@@ -11,7 +11,7 @@ export type FunnelAnalyticsOverview = {
   pageViews: number;
   buttonClicks: number;
   uniqueVisitors: number;
-  sessions: number;
+  checkoutOpens: number;
 };
 
 export async function getAnalyticsOverview(

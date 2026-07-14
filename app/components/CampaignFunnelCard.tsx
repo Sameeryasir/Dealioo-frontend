@@ -88,24 +88,24 @@ export default function CampaignFunnelCard({ funnel, businessId }: Props) {
       className="group flex w-full flex-col overflow-hidden rounded-[1.15rem] border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] outline-none ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/40 hover:shadow-[0_16px_36px_rgba(24,119,242,0.14)] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
     >
       <article className="flex flex-col">
-        <div className="relative h-44 w-full shrink-0 overflow-hidden bg-gradient-to-br from-[#eef5ff] to-[#f8fafc]">
+        <div className="relative flex h-44 w-full shrink-0 items-center justify-center overflow-hidden bg-[#18243d]">
           {imageSrc && !imageFailed ? (
             <img
               src={imageSrc}
               alt={title}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+              className="h-full w-full object-contain object-center transition duration-500"
               onError={() => setImageFailed(true)}
             />
           ) : (
             <div
-              className="flex h-full w-full items-center justify-center text-[#1877f2]/35"
+              className="flex h-full w-full items-center justify-center text-[#93c5fd]/70"
               aria-hidden
             >
               <Megaphone className="size-11" strokeWidth={1.75} />
             </div>
           )}
           <span
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07111f]/25 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07111f]/20 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100"
             aria-hidden
           />
           {badgeLabel ? (

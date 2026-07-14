@@ -2,6 +2,7 @@
 
 import { SignupPageShell } from "@/app/components/auth/SignupPageShell";
 import SignupForm from "@/app/components/SignupForm";
+import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
@@ -116,7 +117,9 @@ function SignupPageLoading() {
 export default function SignupPage() {
   return (
     <Suspense fallback={<SignupPageLoading />}>
-      <SignupPageInner />
+      <GuestOnlyRoute>
+        <SignupPageInner />
+      </GuestOnlyRoute>
     </Suspense>
   );
 }

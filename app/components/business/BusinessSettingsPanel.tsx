@@ -309,6 +309,8 @@ export function BusinessSettingsPanel({
   const [metaMissingRequiredScopes, setMetaMissingRequiredScopes] = useState<
     string[]
   >([]);
+  const [metaRequestedScopes, setMetaRequestedScopes] = useState<string[]>([]);
+  const [metaRequiredScopes, setMetaRequiredScopes] = useState<string[]>([]);
   const [metaStatusLoading, setMetaStatusLoading] = useState(true);
   const [metaConnectStatus, setMetaConnectStatus] = useState<ConnectStatus>("idle");
   const [metaDisconnectStatus, setMetaDisconnectStatus] = useState<ConnectStatus>("idle");
@@ -372,6 +374,8 @@ export function BusinessSettingsPanel({
       setMetaAdAccountId(status.metaAdAccountId);
       setMetaOauthScopes(status.metaOauthScopes ?? []);
       setMetaMissingRequiredScopes(status.missingRequiredScopes ?? []);
+      setMetaRequestedScopes(status.requestedScopes ?? []);
+      setMetaRequiredScopes(status.requiredScopes ?? []);
     } catch (e) {
       setMetaError(
         e instanceof Error ? e.message : "Could not check Facebook connection.",
@@ -1010,6 +1014,8 @@ export function BusinessSettingsPanel({
                     <FacebookPermissionsPanel
                       grantedScopes={metaOauthScopes}
                       missingRequiredScopes={metaMissingRequiredScopes}
+                      requestedScopes={metaRequestedScopes}
+                      requiredScopes={metaRequiredScopes}
                       connected={metaConnected}
                       loading={metaStatusLoading}
                     />

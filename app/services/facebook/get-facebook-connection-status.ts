@@ -10,6 +10,8 @@ export type MetaConnectionStatus = {
   metaTokenExpiresAt?: string | null;
   metaOauthScopes?: string[];
   missingRequiredScopes?: string[];
+  requestedScopes?: string[];
+  requiredScopes?: string[];
 };
 
 export async function getFacebookConnectionStatus(

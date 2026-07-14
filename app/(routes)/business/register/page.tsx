@@ -10,13 +10,18 @@ import RegisterBusinessInviteStep from "@/app/components/register-business/Regis
 import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
 import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
+import { UpgradeSubscriptionDialog } from "@/app/components/UpgradeSubscriptionDialog";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
+import { isStarterBusinessLimitReached } from "@/app/lib/subscription-business-limits";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
+import {
+  fetchMyBusinesses,
+  type AdminBusiness,
+} from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
-import type { AdminBusiness } from "@/app/services/business/get-my-business";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -25,9 +30,7 @@ async function userCanRegisterBusiness(): Promise<boolean> {
   try {
     const status = await getOnboardingStatus();
     if (status.subscriptionSelected) return true;
-  } catch {
-    // Fall through to subscription check.
-  }
+  } catch {}
 
   try {
     const subscription = await getMyUserSubscription();
@@ -64,6 +67,7 @@ export default function RegisterBusinessPage() {
   );
   const [postCreateStep, setPostCreateStep] =
     useState<PostCreateStep>("metaQuestion");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +83,24 @@ export default function RegisterBusinessPage() {
 
       if (!canRegister) {
         router.replace("/auth/select-plan");
+        return;
+      }
+
+      try {
+        const [subscription, businesses] = await Promise.all([
+          getMyUserSubscription(),
+          fetchMyBusinesses({ page: 1, limit: 1 }),
+        ]);
+        if (cancelled) return;
+        if (
+          isStarterBusinessLimitReached(
+            subscription,
+            businesses.meta?.total ?? 0,
+          )
+        ) {
+          setUpgradeOpen(true);
+        }
+      } catch {
       }
     }
 
@@ -174,11 +196,20 @@ export default function RegisterBusinessPage() {
         setPostCreateStep("metaQuestion");
         setSubmitting(false);
       } catch (error) {
-        setErrorMessage(
+        const message =
           error instanceof Error
             ? error.message
-            : "Could not add business. Try again.",
-        );
+            : "Could not add business. Try again.";
+        if (
+          /upgrade your subscription|starter plan includes one business/i.test(
+            message,
+          )
+        ) {
+          setUpgradeOpen(true);
+          setErrorMessage(null);
+        } else {
+          setErrorMessage(message);
+        }
         setSubmitting(false);
       }
     },
@@ -260,10 +291,21 @@ export default function RegisterBusinessPage() {
   }
 
   return (
-    <RegisterBusinessForm
-      submitting={submitting}
-      errorMessage={errorMessage}
-      onSubmit={onSubmit}
-    />
+    <>
+      <UpgradeSubscriptionDialog
+        open={upgradeOpen}
+        onOpenChange={(open) => {
+          setUpgradeOpen(open);
+          if (!open) router.replace("/dashboard");
+        }}
+      />
+      {!upgradeOpen ? (
+        <RegisterBusinessForm
+          submitting={submitting}
+          errorMessage={errorMessage}
+          onSubmit={onSubmit}
+        />
+      ) : null}
+    </>
   );
 }

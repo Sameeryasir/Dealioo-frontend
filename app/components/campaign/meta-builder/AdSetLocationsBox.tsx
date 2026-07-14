@@ -74,12 +74,15 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
       setSearching(true);
       setSearchError(null);
       void searchLocations(searchQuery)
-        .then((results) => setSearchResults(results))
-        .catch((error: unknown) => {
-          setSearchResults([]);
+        .then((results) => {
+          setSearchResults(results);
           setSearchError(
-            error instanceof Error ? error.message : "Search failed.",
+            results.length ? null : "No matching locations. Try another search.",
           );
+        })
+        .catch(() => {
+          setSearchResults([]);
+          setSearchError("No matching locations. Try another search.");
         })
         .finally(() => setSearching(false));
     }, 350);
@@ -99,24 +102,74 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
   }, []);
 
   const addLocation = (result: LocationSearchResult) => {
+    if (result.type === "country") {
+      addCountry(result.countryCode);
+      return;
+    }
+
+    const duplicate = locations.some(
+      (loc) =>
+        loc.mode === searchMode &&
+        loc.type === "address" &&
+        loc.latitude != null &&
+        loc.longitude != null &&
+        Math.abs((loc.latitude ?? 0) - result.latitude) < 0.0005 &&
+        Math.abs((loc.longitude ?? 0) - result.longitude) < 0.0005,
+    );
+    if (duplicate) {
+      setSearchQuery(result.label);
+      setSearchResults([]);
+      return;
+    }
+
     const next: AdSetLocationTarget = {
       id: createLocationId(),
       mode: searchMode,
-      type: result.type,
+      type: "address",
       countryCode: result.countryCode,
       countryName: result.countryName,
       label: result.label,
       latitude: result.latitude,
       longitude: result.longitude,
-      radius: result.type === "address" ? 16 : undefined,
-      distanceUnit: result.type === "address" ? "kilometer" : undefined,
+      radius: 16,
+      distanceUnit: "kilometer",
     };
 
-    onChange([...locations, next]);
+    const withoutCountry = locations.filter(
+      (loc) =>
+        !(
+          loc.mode === searchMode &&
+          loc.type === "country" &&
+          loc.countryCode === result.countryCode
+        ),
+    );
+
+    onChange([...withoutCountry, next]);
     setActiveLocationId(next.id);
-    setSearchQuery("");
+    setSearchQuery(result.label);
     setSearchResults([]);
+    setSearchError(null);
     setDropPinMode(false);
+  };
+
+  const commitTypedSearch = async () => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const results = await searchLocations(trimmed);
+      if (results[0]) {
+        addLocation(results[0]);
+        return;
+      }
+      setSearchError("No matching locations. Try another search.");
+    } catch {
+      setSearchError("No matching locations. Try another search.");
+    } finally {
+      setSearching(false);
+    }
   };
 
   const addCountry = (countryCode: string) => {
@@ -140,7 +193,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
 
     onChange([...locations, next]);
     setShowBrowse(false);
-    setSearchQuery("");
+    setSearchQuery(countryName);
   };
 
   const removeLocation = (id: string) => {
@@ -178,11 +231,12 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
 
   const handleDropPin = (latitude: number, longitude: number) => {
     const id = createLocationId();
+    const countryCode = "US";
     const next: AdSetLocationTarget = {
       id,
       mode: searchMode,
       type: "address",
-      countryCode: "US",
+      countryCode,
       countryName: "United States",
       label: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
       latitude,
@@ -191,8 +245,18 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
       distanceUnit: "kilometer",
     };
 
-    onChange([...locations, next]);
+    const withoutCountry = locations.filter(
+      (loc) =>
+        !(
+          loc.mode === searchMode &&
+          loc.type === "country" &&
+          loc.countryCode === countryCode
+        ),
+    );
+
+    onChange([...withoutCountry, next]);
     setActiveLocationId(id);
+    setSearchQuery(next.label);
     setDropPinMode(false);
   };
 
@@ -232,6 +296,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                       type="button"
                       onClick={() => {
                         setActiveLocationId(location.id);
+                        setSearchQuery(location.label);
                         if (location.type === "address") {
                           setRadiusEditorId(
                             radiusEditorId === location.id ? null : location.id,
@@ -345,6 +410,16 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (searchResults[0]) {
+                        addLocation(searchResults[0]);
+                      } else {
+                        void commitTypedSearch();
+                      }
+                    }
+                  }}
                   placeholder="Search locations"
                   className="w-full rounded-lg border border-[#e8edf5] py-2 pl-9 pr-24 text-sm text-[#07111f]"
                 />
@@ -376,7 +451,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
               <p className="text-xs text-slate-500">Searching…</p>
             ) : null}
             {searchError ? (
-              <p className="text-xs text-red-600">{searchError}</p>
+              <p className="text-xs text-slate-500">{searchError}</p>
             ) : null}
 
             {searchResults.length > 0 ? (

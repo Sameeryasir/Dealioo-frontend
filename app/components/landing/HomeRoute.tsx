@@ -28,12 +28,9 @@ export function HomeRoute() {
     void (async () => {
       try {
         const destination = await fetchAuthenticatedOnboardingDestination();
-        if (cancelled) return;
-        router.replace(destination);
+        if (!cancelled) router.replace(destination);
       } catch {
-        if (!cancelled) {
-          router.replace("/dashboard");
-        }
+        if (!cancelled) router.replace("/dashboard");
       }
     })();
 
@@ -42,7 +39,7 @@ export function HomeRoute() {
     };
   }, [isAuthenticated, isAuthReady, router]);
 
-  if (!isAuthReady || redirecting || isAuthenticated) {
+  if (!isAuthReady || isAuthenticated || redirecting) {
     return <HomeRouteFallback />;
   }
 

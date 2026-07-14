@@ -30,7 +30,11 @@ export type MetaOptimizationGoal =
   | "OFFSITE_CONVERSIONS"
   | "POST_ENGAGEMENT"
   | "REACH"
-  | "IMPRESSIONS";
+  | "IMPRESSIONS"
+  | "CONVERSATIONS"
+  | "AD_RECALL_LIFT"
+  | "THRUPLAY"
+  | "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS";
 
 export type MetaDestinationType =
   | "WEBSITE"
@@ -216,6 +220,9 @@ export type MetaCampaignDraft = {
   metaCreativeId: string | null;
   metaAdId: string | null;
   errorMessage: string | null;
+  publishStatus?: string | null;
+  publishJobId?: string | null;
+  publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

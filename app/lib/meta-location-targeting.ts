@@ -22,7 +22,6 @@ export function createLocationId(): string {
   return `loc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** Builds location chips from saved draft audience (legacy fields + new locations array). */
 export function buildLocationsFromAudience(audience?: {
   country?: string;
   region?: string;
@@ -85,7 +84,6 @@ export function buildLocationsFromAudience(audience?: {
   ];
 }
 
-/** Keeps draft payload compatible with existing backend audience fields. */
 export function deriveLegacyAudienceFields(locations: AdSetLocationTarget[]) {
   const included = locations.filter((loc) => loc.mode === "include");
   const primary =
@@ -123,45 +121,68 @@ function formatPhotonLabel(properties: Record<string, string | undefined>): stri
   return parts.join(", ") || properties.name || "Selected location";
 }
 
-/** Search addresses and places via OpenStreetMap Photon (no API key). */
 export async function searchLocations(query: string): Promise<LocationSearchResult[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  const params = new URLSearchParams({
-    q: trimmed,
-    limit: "8",
-    lang: "en",
-  });
+  const countryHits: LocationSearchResult[] = COUNTRIES.filter((country) => {
+    const q = trimmed.toLowerCase();
+    return (
+      country.label.toLowerCase().includes(q) ||
+      country.code.toLowerCase() === q
+    );
+  }).map((country) => ({
+    id: `country-${country.code}`,
+    label: country.label,
+    countryCode: country.code,
+    countryName: country.label,
+    latitude: 0,
+    longitude: 0,
+    type: "country" as const,
+  }));
 
-  const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error("Location search failed. Try again.");
-  }
+  try {
+    const params = new URLSearchParams({
+      q: trimmed,
+      limit: "8",
+      lang: "en",
+    });
 
-  const data = (await response.json()) as {
-    features?: Array<{
-      geometry: { coordinates: [number, number] };
-      properties: Record<string, string | undefined>;
-    }>;
-  };
+    const response = await fetch(
+      `https://photon.komoot.io/api/?${params.toString()}`,
+    );
+    if (!response.ok) {
+      return countryHits;
+    }
 
-  return (data.features ?? []).map((feature, index) => {
-    const [longitude, latitude] = feature.geometry.coordinates;
-    const countryCode = (feature.properties.countrycode ?? "US").toUpperCase();
-    const countryName =
-      feature.properties.country ?? getCountryLabel(countryCode);
-
-    return {
-      id: `search-${index}-${longitude}-${latitude}`,
-      label: formatPhotonLabel(feature.properties),
-      countryCode,
-      countryName,
-      latitude,
-      longitude,
-      type: "address" as const,
+    const data = (await response.json()) as {
+      features?: Array<{
+        geometry: { coordinates: [number, number] };
+        properties: Record<string, string | undefined>;
+      }>;
     };
-  });
+
+    const placeHits = (data.features ?? []).map((feature, index) => {
+      const [longitude, latitude] = feature.geometry.coordinates;
+      const countryCode = (feature.properties.countrycode ?? "US").toUpperCase();
+      const countryName =
+        feature.properties.country ?? getCountryLabel(countryCode);
+
+      return {
+        id: `search-${index}-${longitude}-${latitude}`,
+        label: formatPhotonLabel(feature.properties),
+        countryCode,
+        countryName,
+        latitude,
+        longitude,
+        type: "address" as const,
+      };
+    });
+
+    return [...countryHits, ...placeHits];
+  } catch {
+    return countryHits;
+  }
 }
 
 export function groupLocationsByCountry(

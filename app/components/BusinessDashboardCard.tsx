@@ -1,8 +1,13 @@
 "use client";
 
-import type { AdminBusiness } from "@/app/services/business/get-my-business";
-import { resolveUploadImageUrl, spacesImageLoadProps } from "@/app/lib/resolve-upload-image-url";
+import { BusinessProfileSetupPopover } from "@/app/components/business/BusinessProfileSetupPopover";
+import { getBusinessProfileSetup } from "@/app/lib/business-profile-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import {
+  resolveUploadImageUrl,
+  spacesImageLoadProps,
+} from "@/app/lib/resolve-upload-image-url";
+import type { AdminBusiness } from "@/app/services/business/get-my-business";
 import {
   ArrowUpRight,
   Building2,
@@ -24,14 +29,6 @@ const ACCENT_VARS = [
   "var(--brand-teal)",
   "var(--brand-amber)",
 ] as const;
-
-function setupProgress(business: AdminBusiness): number {
-  let score = 0;
-  if (business.city?.trim()) score += 34;
-  if ((business.branchCount ?? 0) > 0) score += 33;
-  if (business.description?.trim()) score += 33;
-  return Math.min(100, score);
-}
 
 export default function BusinessDashboardCard({
   business,
@@ -61,7 +58,8 @@ export default function BusinessDashboardCard({
       ? `${branchCount} ${branchCount === 1 ? "branch" : "branches"}`
       : "No branches yet";
 
-  const progress = setupProgress(business);
+  const setup = getBusinessProfileSetup(business);
+  const progress = setup.progressPercent;
   const accent = ACCENT_VARS[accentIndex % ACCENT_VARS.length];
   const showSetupStatus = progress < 100;
 
@@ -74,9 +72,18 @@ export default function BusinessDashboardCard({
       >
         <span className="org-biz-card-thumb">
           {logoSrc ? (
-            <img src={logoSrc} alt="" className="h-full w-full object-cover" {...spacesImageLoadProps} />
+            <img
+              src={logoSrc}
+              alt=""
+              className="h-full w-full object-contain object-center"
+              {...spacesImageLoadProps}
+            />
           ) : (
-            <Store className="size-6 text-brand-primary/50" strokeWidth={1.5} aria-hidden />
+            <Store
+              className="size-6 text-brand-primary/50"
+              strokeWidth={1.5}
+              aria-hidden
+            />
           )}
         </span>
 
@@ -113,10 +120,18 @@ export default function BusinessDashboardCard({
       <div className="org-biz-card-inner">
         <div className="org-biz-card-hero">
           {logoSrc ? (
-            <img src={logoSrc} alt="" className="org-biz-card-hero-img" {...spacesImageLoadProps} />
+            <img
+              src={logoSrc}
+              alt=""
+              className="org-biz-card-hero-img"
+              {...spacesImageLoadProps}
+            />
           ) : (
             <span className="org-biz-card-hero-fallback" aria-hidden>
-              <Store className="size-8 text-[#93c5fd] xl:size-10 2xl:size-12" strokeWidth={1.75} />
+              <Store
+                className="size-8 text-[#93c5fd] xl:size-10 2xl:size-12"
+                strokeWidth={1.75}
+              />
             </span>
           )}
           <span className="org-biz-card-hero-overlay" aria-hidden />
@@ -135,7 +150,7 @@ export default function BusinessDashboardCard({
           </div>
 
           <div className="org-biz-card-bento">
-            <div className="org-biz-card-bento-cell org-biz-card-progress-wrap">
+            <BusinessProfileSetupPopover setup={setup}>
               <div className="org-biz-card-progress-copy">
                 <span className="org-biz-card-bento-eyebrow">Profile setup</span>
                 <p className="org-biz-card-setup-status">
@@ -148,7 +163,7 @@ export default function BusinessDashboardCard({
                   style={{ width: `${progress}%` }}
                 />
               </div>
-            </div>
+            </BusinessProfileSetupPopover>
 
             <div className="org-biz-card-bento-cell org-biz-card-location-tile">
               <div className="org-biz-card-location-copy">

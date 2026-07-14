@@ -2,6 +2,7 @@
 
 import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
 import BusinessDashboardCard from "@/app/components/BusinessDashboardCard";
+import { UpgradeSubscriptionDialog } from "@/app/components/UpgradeSubscriptionDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
@@ -10,8 +11,10 @@ import {
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { getSetupUser } from "@/app/lib/setup-user";
+import { isStarterBusinessLimitReached } from "@/app/lib/subscription-business-limits";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
+import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { Filter, Megaphone, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -34,6 +37,8 @@ export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [starterLimitReached, setStarterLimitReached] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,6 +54,23 @@ export default function DashboardPage() {
     error: errorMessage,
     refetch: loadBusinesses,
   } = useMyBusinessesQuery({ page });
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMyUserSubscription()
+      .then((subscription) => {
+        if (cancelled) return;
+        setStarterLimitReached(
+          isStarterBusinessLimitReached(subscription, meta.total),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setStarterLimitReached(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meta.total]);
 
   const sortedBusinesses = useMemo(() => {
     const copy = [...businesses];
@@ -122,13 +144,24 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="org-dashboard-panel-controls">
-                  <Link
-                    href="/business/register"
-                    className="org-dashboard-add-btn"
-                  >
-                    <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-                    Add business
-                  </Link>
+                  {starterLimitReached ? (
+                    <button
+                      type="button"
+                      className="org-dashboard-add-btn"
+                      onClick={() => setUpgradeOpen(true)}
+                    >
+                      <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+                      Add business
+                    </button>
+                  ) : (
+                    <Link
+                      href="/business/register"
+                      className="org-dashboard-add-btn"
+                    >
+                      <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+                      Add business
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -189,6 +222,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <UpgradeSubscriptionDialog
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+      />
     </section>
   );
 }

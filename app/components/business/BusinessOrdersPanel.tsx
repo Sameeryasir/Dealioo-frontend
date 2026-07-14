@@ -436,29 +436,44 @@ type JourneyStep = {
 
 function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
   const status = resolveDisplayStatus(event);
+  const hasSignedUp =
+    event.eventType === "signup" ||
+    event.eventType === "payment" ||
+    event.customer?.id != null ||
+    Boolean(event.customerEmail?.trim());
   const hasPaid = status === "paid";
   const paymentPending = status === "pending";
   const hasQrRedeemed =
     event.businessVisitedAt != null || event.restaurantVisitedAt != null;
 
+  const signupState: JourneyStepState = hasSignedUp
+    ? "complete"
+    : "current";
+  const paymentState: JourneyStepState = !hasSignedUp
+    ? "pending"
+    : hasPaid
+      ? "complete"
+      : paymentPending
+        ? "current"
+        : "pending";
+  const qrState: JourneyStepState = hasQrRedeemed
+    ? "complete"
+    : hasPaid
+      ? "current"
+      : "pending";
+
   return [
-    { id: "ad", label: "Clicked Ad", state: "complete" },
-    { id: "signup", label: "Signed Up", state: "complete" },
+    { id: "signup", label: "Signed Up", state: signupState },
     {
       id: "payment",
       label: hasPaid ? "Paid" : "Payment Pending",
-      state: hasPaid ? "complete" : paymentPending ? "current" : "pending",
+      state: paymentState,
     },
     {
       id: "qr",
       label: "QR Redeemed",
-      state: hasQrRedeemed
-        ? "complete"
-        : hasPaid
-          ? "current"
-          : "pending",
+      state: qrState,
     },
-    { id: "returned", label: "Returned", state: "pending" },
   ];
 }
 
@@ -531,9 +546,9 @@ function getJourneyCurrentStepLabel(steps: JourneyStep[]): string {
       ? "Journey complete"
       : "In progress";
   }
+  if (current.id === "signup") return "Awaiting signup";
   if (current.id === "payment") return "Awaiting payment";
   if (current.id === "qr") return "Awaiting QR redemption";
-  if (current.id === "returned") return "Awaiting return visit";
   return current.label;
 }
 
@@ -545,11 +560,9 @@ function CustomerJourneySection({
   updatedAt: string;
 }) {
   const shortLabel = (step: JourneyStep) => {
-    if (step.id === "ad") return "Ad";
     if (step.id === "signup") return "Signup";
     if (step.id === "payment") return step.state === "complete" ? "Paid" : "Pay";
-    if (step.id === "qr") return "QR";
-    return "Return";
+    return "QR";
   };
 
   return (

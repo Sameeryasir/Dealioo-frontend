@@ -1,9 +1,18 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle,
+  Check,
   CheckCircle2,
   ChevronDown,
   Loader2,
@@ -86,7 +95,7 @@ export function BuilderCard({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] ${className}`}
+      className={`overflow-visible rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] ${className}`}
     >
       <div className="border-b border-[#e8edf5] px-5 py-4">
         <div className="flex items-start gap-3">
@@ -142,6 +151,350 @@ export function BuilderField({
       {error ? (
         <p className="text-xs font-medium text-red-600" role="alert">{error}</p>
       ) : null}
+    </div>
+  );
+}
+
+export function BuilderSelect<T extends string>({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+  "aria-label": ariaLabel,
+}: {
+  id?: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  "aria-label"?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuBox, setMenuBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
+  const selected = options.find((opt) => opt.value === value) ?? options[0];
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setMenuBox(null);
+      return;
+    }
+    const update = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuBox({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const menu =
+    open && menuBox && typeof document !== "undefined"
+      ? createPortal(
+          <ul
+            ref={menuRef}
+            id={listId}
+            role="listbox"
+            aria-activedescendant={
+              selected ? `${listId}-${selected.value}` : undefined
+            }
+            style={{
+              position: "fixed",
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+            }}
+            className="z-[80] max-h-64 overflow-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.16)] ring-1 ring-black/[0.04]"
+          >
+            {options.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <li key={opt.value} role="option" aria-selected={isSelected}>
+                  <button
+                    id={`${listId}-${opt.value}`}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-medium transition ${
+                      isSelected
+                        ? "bg-[#f4f8ff] text-[#1877f2]"
+                        : "text-[#07111f] hover:bg-[#f8fafc]"
+                    }`}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {isSelected ? (
+                      <Check
+                        className="size-4 shrink-0 text-[#1877f2]"
+                        aria-hidden
+                      />
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        ref={buttonRef}
+        id={id}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
+          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
+        }`}
+      >
+        <span className="truncate">{selected?.label ?? "Select"}</span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {menu}
+    </div>
+  );
+}
+
+export function BuilderPerformanceGoalSelect<T extends string>({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+  "aria-label": ariaLabel,
+}: {
+  id?: string;
+  value: T;
+  options: Array<{
+    value: T;
+    label: string;
+    description?: string;
+    group?: "primary" | "other" | "video";
+  }>;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  "aria-label"?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuBox, setMenuBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const selected = options.find((opt) => opt.value === value) ?? options[0];
+  const primaryOptions = options.filter(
+    (opt) => !opt.group || opt.group === "primary",
+  );
+  const otherOptions = options.filter((opt) => opt.group === "other");
+  const videoOptions = options.filter((opt) => opt.group === "video");
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setMenuBox(null);
+      return;
+    }
+    const update = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.max(rect.width, 320);
+      const left = Math.min(rect.left, window.innerWidth - width - 8);
+      setMenuBox({
+        top: rect.bottom + 4,
+        left: Math.max(8, left),
+        width,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const renderOption = (opt: (typeof options)[number]) => {
+    const isSelected = opt.value === value;
+    return (
+      <button
+        key={opt.value}
+        id={`${listId}-${opt.value}`}
+        type="button"
+        role="option"
+        aria-selected={isSelected}
+        onClick={() => {
+          onChange(opt.value);
+          setOpen(false);
+        }}
+        className={`flex w-full items-start gap-3 px-3.5 py-3 text-left transition ${
+          isSelected ? "bg-[#f4f8ff]" : "hover:bg-[#f8fafc]"
+        }`}
+      >
+        <span
+          className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${
+            isSelected
+              ? "border-[#1877f2] bg-[#1877f2]"
+              : "border-slate-300 bg-white"
+          }`}
+          aria-hidden
+        >
+          {isSelected ? (
+            <span className="size-1.5 rounded-full bg-white" />
+          ) : null}
+        </span>
+        <span className="min-w-0">
+          <span
+            className={`block text-sm font-semibold ${
+              isSelected ? "text-[#1877f2]" : "text-[#07111f]"
+            }`}
+          >
+            {opt.label}
+          </span>
+          {opt.description ? (
+            <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+              {opt.description}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    );
+  };
+
+  const menu =
+    open && menuBox && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={menuRef}
+            id={listId}
+            role="listbox"
+            aria-activedescendant={
+              selected ? `${listId}-${selected.value}` : undefined
+            }
+            style={{
+              position: "fixed",
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+            }}
+            className="z-[80] max-h-[28rem] overflow-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.16)] ring-1 ring-black/[0.04]"
+          >
+            {primaryOptions.map(renderOption)}
+            {otherOptions.length ? (
+              <>
+                <div className="px-3.5 pb-1 pt-2 text-xs font-bold text-slate-700">
+                  Other goals
+                </div>
+                {otherOptions.map(renderOption)}
+              </>
+            ) : null}
+            {videoOptions.length ? (
+              <>
+                <div className="px-3.5 pb-1 pt-2 text-xs font-bold text-slate-700">
+                  Video view goals
+                </div>
+                {videoOptions.map(renderOption)}
+              </>
+            ) : null}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        ref={buttonRef}
+        id={id}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
+          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
+        }`}
+      >
+        <span className="truncate">{selected?.label ?? "Select"}</span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {menu}
     </div>
   );
 }

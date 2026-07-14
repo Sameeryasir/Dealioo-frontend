@@ -1,19 +1,17 @@
 "use client";
 
-/**
- * Change: Light-theme Facebook permissions panel for Settings integrations.
- * Why: Matches the white dashboard settings UI instead of the old dark modal styles.
- */
-
 import { AlertCircle, CheckCircle2, Shield } from "lucide-react";
 import {
-  FACEBOOK_OAUTH_SCOPE_DETAILS,
+  buildFacebookScopeDisplayList,
+  formatFacebookScopeLabel,
   parseGrantedScopes,
 } from "@/app/lib/facebook-oauth-scopes";
 
 type FacebookPermissionsPanelProps = {
   grantedScopes: string[];
   missingRequiredScopes: string[];
+  requestedScopes?: string[];
+  requiredScopes?: string[];
   connected: boolean;
   loading?: boolean;
 };
@@ -24,11 +22,20 @@ const panelShellClass =
 export function FacebookPermissionsPanel({
   grantedScopes,
   missingRequiredScopes,
+  requestedScopes = [],
+  requiredScopes = [],
   connected,
   loading = false,
 }: FacebookPermissionsPanelProps) {
   const granted = parseGrantedScopes(grantedScopes);
-  const hasStoredScopes = granted.size > 0;
+  const required = parseGrantedScopes(requiredScopes);
+  const scopeIds = buildFacebookScopeDisplayList({
+    requestedScopes,
+    grantedScopes,
+    requiredScopes,
+    missingRequiredScopes,
+  });
+  const hasStoredScopes = granted.size > 0 || scopeIds.length > 0;
 
   if (loading) {
     return (
@@ -86,11 +93,12 @@ export function FacebookPermissionsPanel({
       ) : null}
 
       <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {FACEBOOK_OAUTH_SCOPE_DETAILS.map((scope) => {
-          const isGranted = granted.has(scope.id);
+        {scopeIds.map((scopeId) => {
+          const isGranted = granted.has(scopeId);
+          const isRequired = required.has(scopeId);
           return (
             <li
-              key={scope.id}
+              key={scopeId}
               className={`rounded-[0.95rem] border px-3 py-2.5 ${
                 isGranted
                   ? "border-emerald-200 bg-emerald-50/80"
@@ -111,15 +119,15 @@ export function FacebookPermissionsPanel({
                 )}
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-900">
-                    {scope.label}
-                    {scope.required ? (
+                    {formatFacebookScopeLabel(scopeId)}
+                    {isRequired ? (
                       <span className="ml-1.5 font-normal text-slate-500">
                         (required)
                       </span>
                     ) : null}
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
-                    {scope.description}
+                  <p className="mt-0.5 break-all text-[11px] leading-relaxed text-slate-500">
+                    {scopeId}
                   </p>
                   <p
                     className={`mt-1 text-[10px] font-bold uppercase tracking-wide ${

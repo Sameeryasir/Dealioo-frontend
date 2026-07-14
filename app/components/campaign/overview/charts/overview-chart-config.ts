@@ -94,16 +94,16 @@ export function sumAnalyticsFromMonthly(points: FunnelAnalyticsMonthlyPoint[]): 
   pageViews: number;
   buttonClicks: number;
   uniqueVisitors: number;
-  sessions: number;
+  checkoutOpens: number;
 } {
   return points.reduce(
     (acc, row) => ({
       pageViews: acc.pageViews + row.pageViews,
       buttonClicks: acc.buttonClicks + row.buttonClicks,
       uniqueVisitors: acc.uniqueVisitors + row.uniqueVisitors,
-      sessions: acc.sessions + row.sessions,
+      checkoutOpens: acc.checkoutOpens + row.checkoutOpens,
     }),
-    { pageViews: 0, buttonClicks: 0, uniqueVisitors: 0, sessions: 0 },
+    { pageViews: 0, buttonClicks: 0, uniqueVisitors: 0, checkoutOpens: 0 },
   );
 }
 
@@ -148,12 +148,23 @@ export function buildSignupBreakdownFromMonthly(
 
 export function buildAnalyticsMonthlySeries(
   points: FunnelAnalyticsMonthlyPoint[],
-  key: "pageViews" | "buttonClicks" | "uniqueVisitors" | "sessions",
+  key: "pageViews" | "buttonClicks" | "uniqueVisitors" | "checkoutOpens",
 ): MonthlyMetricPoint[] {
   return points.map((row) => ({
     month: row.month,
     label: formatMonthLabel(row.month),
     value: row[key],
+  }));
+}
+
+/** Revenue series from funnel monthly stats (`value` = cents). */
+export function buildRevenueMonthlySeries(
+  points: FunnelStatsMonthlyPoint[],
+): MonthlyMetricPoint[] {
+  return points.map((row) => ({
+    month: row.month,
+    label: formatMonthLabel(row.month),
+    value: row.revenue,
   }));
 }
 

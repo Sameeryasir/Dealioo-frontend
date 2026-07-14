@@ -17,6 +17,7 @@ import {
   BuilderField,
   BuilderFooter,
   BuilderRadioCard,
+  BuilderSelect,
   BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
@@ -214,19 +215,12 @@ export function CampaignSetupStep({
         </BuilderField>
 
         <BuilderField label="Objective" hint="What you want people to do when they see your ad.">
-          <select
+          <BuilderSelect
+            aria-label="Objective"
             value={objective}
-            onChange={(e) =>
-              setObjective(e.target.value as MetaCampaignObjective)
-            }
-            className={inputClass}
-          >
-            {OBJECTIVES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            options={OBJECTIVES}
+            onChange={setObjective}
+          />
         </BuilderField>
 
         <fieldset className="space-y-2">

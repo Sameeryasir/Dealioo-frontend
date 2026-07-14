@@ -48,9 +48,16 @@ export function OverviewChartTooltip({
       ) : null}
       <ul className="m-0 space-y-1.5 p-0">
         {rows.map((item, index) => {
-          const title = String(item.name ?? item.dataKey ?? "Value");
           const value = Number(item.value ?? 0);
           const row = item.payload;
+          const title = String(item.name ?? item.dataKey ?? "Value");
+          const isMoney = title.toLowerCase() === "revenue";
+          const valueLabel = isMoney
+            ? new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(value)
+            : value.toLocaleString();
           const dotColor =
             item.color ??
             SERIES_COLORS[title] ??
@@ -79,7 +86,7 @@ export function OverviewChartTooltip({
                 </span>
               </span>
               <span className="text-[0.82rem] font-extrabold tabular-nums text-white">
-                {value.toLocaleString()}
+                {valueLabel}
                 {extra}
               </span>
             </li>

@@ -9,7 +9,7 @@ export function hasAnalyticsMonthlyActivity(
       row.pageViews > 0 ||
       row.buttonClicks > 0 ||
       row.uniqueVisitors > 0 ||
-      row.sessions > 0,
+      row.checkoutOpens > 0,
   );
 }
 

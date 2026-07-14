@@ -2,7 +2,11 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { BuilderLoadingBanner, metaBuilderShellClass } from "@/app/components/campaign/meta-builder/builder-ui";
+import {
+  BuilderLoadingBanner,
+  BuilderSuccessAlert,
+  metaBuilderShellClass,
+} from "@/app/components/campaign/meta-builder/builder-ui";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -71,6 +75,7 @@ export function MetaCampaignBuilder({
   );
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [publishPhase, setPublishPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] =
     useState<PublishMetaCampaignResult | null>(null);
@@ -91,8 +96,29 @@ export function MetaCampaignBuilder({
   );
 
   const [refreshingPublishStatus, setRefreshingPublishStatus] = useState(false);
+  const [postPublishMessage, setPostPublishMessage] = useState<string | null>(
+    null,
+  );
 
   const publishStartedRef = useRef(false);
+
+  const resetToNewCampaignForm = useCallback((successMessage?: string) => {
+    setCurrentStep(1);
+    setDraftId(null);
+    setCampaignData(null);
+    setAdSetData(null);
+    setAdCreativeData(null);
+    setPublishSuccess(null);
+    setPartialMeta(null);
+    setError(null);
+    setPublishPhase(null);
+    setPublishing(false);
+    publishStartedRef.current = false;
+    setPostPublishMessage(
+      successMessage?.trim() ||
+        "Campaign published to Meta. Start a new campaign below.",
+    );
+  }, []);
 
   const maxReachableStep = useMemo(() => {
     if (!draftId || !campaignData) return 1;
@@ -150,7 +176,10 @@ export function MetaCampaignBuilder({
       setSaving(true);
       setError(null);
       try {
-        const draft = await saveAdSetStep(businessId, data);
+        const draft = await saveAdSetStep(businessId, {
+          ...data,
+          draftId,
+        });
         setAdSetData(draft.adSetData);
         setCurrentStep(3);
         onDraftSaved?.(draft);
@@ -175,7 +204,10 @@ export function MetaCampaignBuilder({
       setSaving(true);
       setError(null);
       try {
-        const draft = await saveAdCreativeStep(businessId, data);
+        const draft = await saveAdCreativeStep(businessId, {
+          ...data,
+          draftId,
+        });
         setAdCreativeData(draft.adCreativeData);
         setCurrentStep(4);
         onDraftSaved?.(draft);
@@ -235,7 +267,6 @@ export function MetaCampaignBuilder({
               ? "Campaign published to Meta as Active."
               : "Campaign published successfully to Meta (paused).",
         };
-        setPublishSuccess(result);
         setPartialMeta(null);
         onDraftSaved?.(refreshed);
         if (
@@ -244,6 +275,7 @@ export function MetaCampaignBuilder({
         ) {
           openMetaAdsManager(adsManagerUrl);
         }
+        resetToNewCampaignForm(result.message);
         return;
       }
 
@@ -266,7 +298,7 @@ export function MetaCampaignBuilder({
     } finally {
       setRefreshingPublishStatus(false);
     }
-  }, [campaignData, draftId, onDraftSaved, businessId]);
+  }, [campaignData, draftId, onDraftSaved, businessId, resetToNewCampaignForm]);
 
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
@@ -280,18 +312,37 @@ export function MetaCampaignBuilder({
 
     publishStartedRef.current = true;
     setPublishing(true);
+    setPublishPhase("PENDING");
     setError(null);
 
     try {
-      const result = await publishMetaCampaignDraft(businessId, draftId, {
-        campaignName: campaignData.name,
-        adSetName: adSetData.name,
-        creativeName: adCreativeData.name,
-        facebookPageId: adCreativeData.facebookPageId,
-      });
-      setPublishSuccess(result);
+      const result = await publishMetaCampaignDraft(
+        businessId,
+        draftId,
+        {
+          campaignName: campaignData.name,
+          adSetName: adSetData.name,
+          creativeName: adCreativeData.name,
+          facebookPageId: adCreativeData.facebookPageId,
+        },
+        (draft) => {
+          setPublishPhase(draft.publishStatus ?? draft.status);
+          if (draft.errorMessage?.trim()) {
+            setError(draft.errorMessage);
+          }
+          if (draft.metaCampaignId && !draft.metaAdId) {
+            setPartialMeta({
+              metaCampaignId: draft.metaCampaignId,
+              metaAdsetId: draft.metaAdsetId,
+              metaCreativeId: draft.metaCreativeId,
+              previousError: draft.errorMessage,
+            });
+          }
+        },
+      );
       setPartialMeta(null);
       setError(null);
+      setPublishPhase("PUBLISHED");
       if (
         shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
         result.adsManagerUrl?.trim()
@@ -311,13 +362,16 @@ export function MetaCampaignBuilder({
         metaCreativeId: result.metaCreativeId,
         metaAdId: result.metaAdId,
         errorMessage: null,
+        publishStatus: "PUBLISHED",
         createdAt: "",
         updatedAt: "",
       });
+      resetToNewCampaignForm(result.message);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not publish campaign to Meta.";
       setError(message);
+      setPublishPhase("FAILED");
 
       if (draftId) {
         try {
@@ -329,6 +383,9 @@ export function MetaCampaignBuilder({
               metaCreativeId: refreshed.metaCreativeId,
               previousError: refreshed.errorMessage ?? message,
             });
+          }
+          if (refreshed.errorMessage?.trim()) {
+            setError(refreshed.errorMessage);
           }
         } catch {
         }
@@ -344,6 +401,8 @@ export function MetaCampaignBuilder({
     draftId,
     onDraftSaved,
     businessId,
+    publishSuccess,
+    resetToNewCampaignForm,
   ]);
 
   if (!open) return null;
@@ -374,18 +433,36 @@ export function MetaCampaignBuilder({
           ) : null}
 
           {publishing ? (
-            <BuilderLoadingBanner message="Publishing to Meta… this may take up to a few minutes." />
+            <BuilderLoadingBanner
+              message={`Publishing to Meta… ${
+                publishPhase
+                  ? publishPhase.split("_").join(" ")
+                  : "starting job"
+              }. You can leave this open while the worker finishes.`}
+            />
           ) : null}
 
           {currentStep === 1 ? (
-            <CampaignSetupStep
-              defaultName={defaultName}
-              initialData={campaignData}
-              saving={saving}
-              error={error}
-              onBack={onClose}
-              onSave={handleSaveCampaignStep}
-            />
+            <>
+              {postPublishMessage ? (
+                <BuilderSuccessAlert
+                  title="Published to Meta"
+                  message={postPublishMessage}
+                />
+              ) : null}
+              <CampaignSetupStep
+                key={postPublishMessage ? "new-after-publish" : "campaign-setup"}
+                defaultName={defaultName}
+                initialData={campaignData}
+                saving={saving}
+                error={error}
+                onBack={onClose}
+                onSave={async (data) => {
+                  setPostPublishMessage(null);
+                  await handleSaveCampaignStep(data);
+                }}
+              />
+            </>
           ) : null}
 
           {currentStep === 2 && draftId && campaignData ? (

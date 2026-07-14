@@ -46,7 +46,7 @@ export function BusinessMembersMiniChart({
   return (
     <OverviewChartShell
       title="New members"
-      subtitle={`Guest conversations, last ${months} months`}
+      subtitle={`Customers registered, last ${months} months`}
       minHeightClass="min-h-[220px]"
       className="h-full"
       accent="pink"

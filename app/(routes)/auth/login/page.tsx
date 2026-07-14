@@ -2,6 +2,7 @@
 
 import { LoginPageShell } from "@/app/components/auth/LoginPageShell";
 import LoginForm from "@/app/components/LoginForm";
+import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
   fetchAuthenticatedOnboardingDestination,
@@ -145,7 +146,9 @@ function LoginPageLoading() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<LoginPageLoading />}>
-      <LoginPageInner />
+      <GuestOnlyRoute>
+        <LoginPageInner />
+      </GuestOnlyRoute>
     </Suspense>
   );
 }

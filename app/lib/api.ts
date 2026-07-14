@@ -85,7 +85,16 @@ export async function parseApiErrorMessage(
   fallback: string,
 ): Promise<string> {
   try {
-    const errBody = (await res.json()) as { message?: unknown };
+    const errBody = (await res.json()) as {
+      message?: unknown;
+      metaError?: { message?: string; error_user_msg?: string };
+    };
+    const metaMessage =
+      errBody?.metaError?.error_user_msg?.trim() ||
+      errBody?.metaError?.message?.trim();
+    if (metaMessage) {
+      return metaMessage;
+    }
     return parseApiMessage(errBody?.message, fallback);
   } catch {
     return fallback;

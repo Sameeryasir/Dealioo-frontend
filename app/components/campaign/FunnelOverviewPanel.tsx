@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity,
   ArrowRight,
   DollarSign,
   Eye,
@@ -17,8 +16,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AnalyticsMetricMiniChart } from "@/app/components/campaign/overview/charts/AnalyticsMetricMiniChart";
+import { FunnelRevenueMiniChart } from "@/app/components/campaign/overview/charts/FunnelRevenueMiniChart";
 import {
   buildAnalyticsMonthlySeries,
+  buildRevenueMonthlySeries,
   buildSignupBreakdownFromMonthly,
   buildSignupsPaymentsMonthlyData,
   computeConversionRateFromMonthly,
@@ -333,12 +334,9 @@ export function FunnelOverviewPanel({
     [analyticsPoints],
   );
 
-  const sessionsMonthly = useMemo(
-    () =>
-      analyticsPoints
-        ? buildAnalyticsMonthlySeries(analyticsPoints, "sessions")
-        : [],
-    [analyticsPoints],
+  const revenueMonthly = useMemo(
+    () => (statsPoints ? buildRevenueMonthlySeries(statsPoints) : []),
+    [statsPoints],
   );
 
   const displayName = campaignName?.trim() ? campaignName : "Campaign";
@@ -473,14 +471,14 @@ export function FunnelOverviewPanel({
                 </div>
 
                 <motion.div
-                  className="funnel-overview-kpi-grid"
+                  className="funnel-overview-kpi-grid funnel-overview-kpi-grid--three"
                   variants={funnelPanelStagger}
                 >
                   <motion.div variants={funnelPanelItem}>
                     <OverviewKpiTile
                       label="Page views"
                       value={analyticsTotals.pageViews}
-                      hint="Total"
+                      hint="Funnel pages opened"
                       icon={Eye}
                       iconBg={DASHBOARD_KPI_ICON.blue}
                       hoverTone="blue"
@@ -490,7 +488,7 @@ export function FunnelOverviewPanel({
                     <OverviewKpiTile
                       label="Button clicks"
                       value={analyticsTotals.buttonClicks}
-                      hint="Total"
+                      hint="CTA buttons tapped"
                       icon={MousePointerClick}
                       iconBg={DASHBOARD_KPI_ICON.pink}
                       hoverTone="pink"
@@ -500,20 +498,10 @@ export function FunnelOverviewPanel({
                     <OverviewKpiTile
                       label="Unique visitors"
                       value={analyticsTotals.uniqueVisitors}
-                      hint="Guests"
+                      hint="Different people"
                       icon={Users}
                       iconBg={DASHBOARD_KPI_ICON.green}
                       hoverTone="green"
-                    />
-                  </motion.div>
-                  <motion.div variants={funnelPanelItem}>
-                    <OverviewKpiTile
-                      label="Sessions"
-                      value={analyticsTotals.sessions}
-                      hint="Total"
-                      icon={Activity}
-                      iconBg={DASHBOARD_KPI_ICON.orange}
-                      hoverTone="orange"
                     />
                   </motion.div>
                 </motion.div>
@@ -522,7 +510,7 @@ export function FunnelOverviewPanel({
                   <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Page views by month"
-                      subtitle="Monthly page views"
+                      subtitle="How many funnel pages were opened"
                       total={analyticsTotals.pageViews}
                       data={pageViewsMonthly}
                       strokeColor={OVERVIEW_CHART_COLORS.blue}
@@ -531,7 +519,7 @@ export function FunnelOverviewPanel({
                   <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Button clicks by month"
-                      subtitle="Monthly button clicks"
+                      subtitle="How many buttons were tapped"
                       total={analyticsTotals.buttonClicks}
                       data={buttonClicksMonthly}
                       strokeColor={OVERVIEW_CHART_COLORS.pink}
@@ -540,19 +528,17 @@ export function FunnelOverviewPanel({
                   <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
                     <AnalyticsMetricMiniChart
                       title="Unique visitors by month"
-                      subtitle="Monthly unique visitors"
+                      subtitle="How many different people visited"
                       total={analyticsTotals.uniqueVisitors}
                       data={uniqueVisitorsMonthly}
                       strokeColor={OVERVIEW_CHART_COLORS.green}
                     />
                   </motion.div>
                   <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Sessions by month"
-                      subtitle="Monthly sessions"
-                      total={analyticsTotals.sessions}
-                      data={sessionsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.orange}
+                    <FunnelRevenueMiniChart
+                      data={revenueMonthly}
+                      totalRevenueCents={monthlyStatsTotals?.revenue ?? 0}
+                      currency={statsMonthly?.currency ?? "usd"}
                     />
                   </motion.div>
                 </div>

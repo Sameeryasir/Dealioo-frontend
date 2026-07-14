@@ -11,7 +11,7 @@ export type FunnelAnalyticsMonthlyPoint = {
   pageViews: number;
   buttonClicks: number;
   uniqueVisitors: number;
-  sessions: number;
+  checkoutOpens: number;
 };
 
 export type FunnelAnalyticsMonthly = {

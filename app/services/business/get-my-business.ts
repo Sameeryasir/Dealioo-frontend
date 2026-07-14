@@ -18,6 +18,9 @@ export type AdminBusiness = {
   postalCode?: string | null;
   branchCount?: number | null;
   stripeAccountId?: string | null;
+  metaUserId?: string | null;
+  metaAdAccountId?: string | null;
+  metaConnectionStatus?: string | null;
 };
 
 /** @deprecated Use AdminBusiness */
@@ -165,6 +168,11 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
     branchCount: pickNumber(o, "branchCount", "branch_count") ?? null,
     stripeAccountId:
       pickString(o, "stripeAccountId", "stripe_account_id") ?? null,
+    metaUserId: pickString(o, "metaUserId", "meta_user_id") ?? null,
+    metaAdAccountId:
+      pickString(o, "metaAdAccountId", "meta_ad_account_id") ?? null,
+    metaConnectionStatus:
+      pickString(o, "metaConnectionStatus", "meta_connection_status") ?? null,
   };
 }
 

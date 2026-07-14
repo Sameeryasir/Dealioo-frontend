@@ -108,7 +108,7 @@ export function ReviewPublishStep({
       {partialPublish?.metaCampaignId && !publishSuccess ? (
         <BuilderWarningAlert
           title="Publish did not finish in Dealioo"
-          message="Meta may have already created your campaign while our app was still waiting for a response. Publishing can take 30–90 seconds (image upload, creative, and ad creation). If you already see the campaign in Ads Manager, use “Check status” below or close and reopen this builder."
+          message="Publish runs in the background. Partial Meta IDs below mean earlier steps already succeeded — retry continues from there (no duplicate campaign/ad set). If Meta returned an error, it is shown below."
         >
           <ul className="mt-3 space-y-1 font-mono text-xs text-amber-950">
             {partialPublish.metaCampaignId ? (

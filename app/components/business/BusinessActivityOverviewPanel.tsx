@@ -238,7 +238,7 @@ export function BusinessActivityOverviewPanel({
               <OverviewKpiTile
                 label="Total members"
                 value={displayTotalMembers}
-                hint="Guests with chats"
+                hint="From customers"
                 icon={Users}
                 iconBg={DASHBOARD_KPI_ICON.pink}
                 hoverTone="pink"

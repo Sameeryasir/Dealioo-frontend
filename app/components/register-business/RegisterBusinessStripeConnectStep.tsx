@@ -6,6 +6,7 @@ import styles from "@/app/components/register-business/RegisterBusinessFacebookC
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
+import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -69,6 +70,37 @@ export default function RegisterBusinessStripeConnectStep({
     stripePopupRef.current = null;
     if (message) setErrorMessage(message);
   }, []);
+
+  useEffect(() => {
+    if (!awaitingStripe || linked) return;
+
+    let stopped = false;
+
+    const check = async () => {
+      try {
+        const token = getSetupAccessToken().trim();
+        if (!token) return;
+        const business = await fetchBusinessById(token, businessId);
+        if (stopped) return;
+        if (business.stripeAccountId?.trim()) {
+          setLinked(true);
+          stopWaiting();
+        }
+      } catch {
+        /* keep polling while waiting */
+      }
+    };
+
+    void check();
+    const timer = window.setInterval(() => {
+      void check();
+    }, 2500);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [awaitingStripe, linked, businessId, stopWaiting]);
 
   // If the Stripe popup/tab is closed without finishing, stop the waiting spinner.
   useEffect(() => {

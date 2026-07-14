@@ -3749,12 +3749,14 @@ body {
 
   /* Fixed hero height so cards stay equal with or without a logo image. */
   .org-biz-card-hero {
-    @apply relative -mx-3.5 -mt-3.5 h-[9rem] shrink-0 overflow-hidden leading-[0] sm:-mx-4 sm:-mt-4;
+    @apply relative -mx-3.5 -mt-3.5 flex h-[9rem] shrink-0 items-center justify-center overflow-hidden leading-[0] sm:-mx-4 sm:-mt-4;
     border-radius: 1rem 1rem 0.75rem 0.75rem;
+    background: #18243d;
   }
 
   .org-biz-card-hero-img {
-    @apply absolute inset-0 block h-full w-full object-cover;
+    @apply absolute inset-0 block h-full w-full object-contain object-center;
+    border-radius: inherit;
   }
 
   .org-biz-card-hero-fallback {
@@ -3803,8 +3805,174 @@ body {
     @apply min-w-0;
   }
 
+  .org-biz-card-progress-wrap--interactive {
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .org-biz-card-progress-wrap--interactive:hover,
+  .org-biz-card-progress-wrap--interactive:focus-visible {
+    border-color: rgba(24, 119, 242, 0.45);
+    background: rgba(24, 119, 242, 0.1);
+    box-shadow: 0 0 0 1px rgba(24, 119, 242, 0.2);
+    outline: none;
+  }
+
   .org-biz-card-progress-copy {
     @apply flex min-h-0 flex-1 flex-col gap-1;
+  }
+
+  .org-biz-setup-popover {
+    position: fixed;
+    z-index: 80;
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+    pointer-events: none;
+    transition:
+      opacity 0.16s ease,
+      transform 0.16s ease;
+  }
+
+  .org-biz-setup-popover[data-placement="above"] {
+    transform: translateY(6px) scale(0.97);
+  }
+
+  .org-biz-setup-popover[data-placement="below"] {
+    transform: translateY(-6px) scale(0.97);
+  }
+
+  .org-biz-setup-popover--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .org-biz-setup-popover-inner {
+    max-height: min(70vh, 28rem);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(165deg, #121a2b 0%, #0b1220 100%);
+    box-shadow:
+      0 22px 48px rgba(0, 0, 0, 0.45),
+      0 0 0 1px rgba(24, 119, 242, 0.12);
+  }
+
+  .org-biz-setup-popover-head {
+    padding: 0.85rem 0.95rem 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .org-biz-setup-popover-title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #f8fafc;
+  }
+
+  .org-biz-setup-popover-subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.7rem;
+    line-height: 1.35;
+    color: rgba(148, 163, 184, 0.95);
+  }
+
+  .org-biz-setup-popover-list {
+    margin: 0;
+    padding: 0.45rem 0.55rem;
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .org-biz-setup-popover-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.38rem 0.45rem;
+    border-radius: 0.55rem;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  .org-biz-setup-popover-item--done {
+    color: #86efac;
+  }
+
+  .org-biz-setup-popover-item--todo {
+    color: rgba(226, 232, 240, 0.78);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+
+  .org-biz-setup-popover-item--todo:hover {
+    background: rgba(251, 146, 60, 0.12);
+    color: #fdba74;
+  }
+
+  .org-biz-setup-popover-item--todo svg {
+    color: #fb923c;
+  }
+
+  .org-biz-setup-popover-footer {
+    padding: 0.7rem 0.85rem 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .org-biz-setup-popover-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(226, 232, 240, 0.88);
+  }
+
+  .org-biz-setup-popover-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 2.15rem;
+    border: none;
+    border-radius: 0.65rem;
+    background: #1877f2;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .org-biz-setup-popover-cta:hover {
+    background: #166fe5;
+    transform: translateY(-1px);
+  }
+
+  .org-biz-setup-popover-done-note {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #86efac;
+    text-align: center;
   }
 
   .org-biz-card-location-tile {
@@ -3989,7 +4157,7 @@ body {
   .org-biz-card-thumb {
     @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border;
     border-color: rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.1);
+    background: #18243d;
   }
 
   .org-biz-card-list-main {
@@ -11353,6 +11521,10 @@ body:has(.auth-select-plan-page) {
   .funnel-overview-kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .funnel-overview-kpi-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .funnel-overview-chart-grid {
@@ -11366,6 +11538,21 @@ body:has(.auth-select-plan-page) {
 @container funnel-overview (min-width: 40rem) {
   .funnel-overview-chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Why: 3 charts in a 2-col grid left a blank hole — last chart spans full width. */
+  .funnel-overview-chart-grid--three > .funnel-overview-chart-slot:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container funnel-overview (min-width: 64rem) {
+  .funnel-overview-chart-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .funnel-overview-chart-grid--three > .funnel-overview-chart-slot:last-child {
+    grid-column: auto;
   }
 }
 

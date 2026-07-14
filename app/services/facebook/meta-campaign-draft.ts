@@ -12,7 +12,16 @@ import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 
-const PUBLISH_META_CAMPAIGN_TIMEOUT_MS = 180_000;
+const PUBLISH_POLL_ATTEMPTS = 60;
+const PUBLISH_POLL_DELAY_MS = 2_000;
+
+export type EnqueueMetaPublishResult = {
+  jobId: string;
+  draftId: string;
+  status: string;
+  publishStatus: string;
+  message: string;
+};
 
 export type PublishMetaCampaignResult = {
   draftId: string;
@@ -24,6 +33,8 @@ export type PublishMetaCampaignResult = {
   status: string;
   adsManagerUrl: string;
   message: string;
+  publishStatus?: string | null;
+  errorMessage?: string | null;
 };
 
 function mapDraftToResult(draft: MetaCampaignDraft): PublishMetaCampaignResult | null {
@@ -32,6 +43,13 @@ function mapDraftToResult(draft: MetaCampaignDraft): PublishMetaCampaignResult |
     !draft.metaAdsetId ||
     !draft.metaCreativeId ||
     !draft.metaAdId
+  ) {
+    return null;
+  }
+
+  if (
+    draft.publishStatus !== "PUBLISHED" &&
+    draft.status !== "published"
   ) {
     return null;
   }
@@ -47,6 +65,8 @@ function mapDraftToResult(draft: MetaCampaignDraft): PublishMetaCampaignResult |
     metaAdId: draft.metaAdId,
     status: deliveryStatus,
     adsManagerUrl: "",
+    publishStatus: draft.publishStatus,
+    errorMessage: draft.errorMessage,
     message:
       deliveryStatus === "ACTIVE"
         ? "Campaign published to Meta as Active."
@@ -81,33 +101,43 @@ async function enrichPublishResult(
   }
 }
 
-async function pollDraftAfterPublishIssue(
+export async function pollMetaPublishUntilDone(
   restaurantId: number,
   draftId: string,
-): Promise<PublishMetaCampaignResult | null> {
-  const attempts = 20;
-  const delayMs = 3000;
+  onProgress?: (draft: MetaCampaignDraft) => void,
+): Promise<PublishMetaCampaignResult> {
+  let consecutiveFailed = 0;
 
-  for (let i = 0; i < attempts; i += 1) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    try {
-      const draft = await getMetaCampaignDraft(restaurantId, draftId, 15_000);
-      const result = mapDraftToResult(draft);
-      if (result) return await enrichPublishResult(restaurantId, result);
-      if (draft.status === "failed") {
+  for (let i = 0; i < PUBLISH_POLL_ATTEMPTS; i += 1) {
+    const draft = await getMetaCampaignDraft(restaurantId, draftId, 15_000);
+    onProgress?.(draft);
+
+    const result = mapDraftToResult(draft);
+    if (result) {
+      return enrichPublishResult(restaurantId, result);
+    }
+
+    const looksFailed =
+      draft.publishStatus === "FAILED" || draft.status === "failed";
+    if (looksFailed) {
+      consecutiveFailed += 1;
+      // Allow BullMQ retries to flip the draft back to publishing before giving up.
+      if (consecutiveFailed >= 4) {
         throw new Error(
-          draft.errorMessage ??
+          draft.errorMessage?.trim() ||
             "Publish failed on Meta. Review the error and try again.",
         );
       }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("Publish failed")) {
-        throw err;
-      }
+    } else {
+      consecutiveFailed = 0;
     }
+
+    await new Promise((resolve) => setTimeout(resolve, PUBLISH_POLL_DELAY_MS));
   }
 
-  return null;
+  throw new Error(
+    "Publishing is still running. Use Check status in a moment, or open Ads Manager.",
+  );
 }
 
 export async function publishMetaCampaignDraft(
@@ -120,6 +150,7 @@ export async function publishMetaCampaignDraft(
     adAccountId?: string | null;
     facebookPageId?: string | null;
   },
+  onProgress?: (draft: MetaCampaignDraft) => void,
 ): Promise<PublishMetaCampaignResult> {
   const url = `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}/publish`;
 
@@ -133,58 +164,35 @@ export async function publishMetaCampaignDraft(
     creative: auditContext?.creativeName,
   });
 
-  try {
-    const res = await authenticatedFetch(
-      url,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      },
-      PUBLISH_META_CAMPAIGN_TIMEOUT_MS,
-    );
+  const res = await authenticatedFetch(
+    url,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+    30_000,
+  );
 
-    console.log("Response Status:", res.status, res.statusText);
+  console.log("Response Status:", res.status, res.statusText);
 
-    if (!res.ok) {
-      const errorBody = await res.clone().text();
-      console.log("Response Body (error):", errorBody);
-      console.groupEnd();
-      throw new Error(
-        await parseApiErrorMessage(res, "Could not publish campaign to Meta."),
-      );
-    }
-
-    const data = (await res.json()) as PublishMetaCampaignResult;
-    console.log("Response Body (success):", data);
+  if (!res.ok) {
+    const errorBody = await res.clone().text();
+    console.log("Response Body (error):", errorBody);
     console.groupEnd();
-
-    if (
-      !data.metaCampaignId ||
-      !data.metaAdsetId ||
-      !data.metaCreativeId ||
-      !data.metaAdId
-    ) {
-      throw new Error(
-        "Publish did not complete, Meta ad id was not returned.",
-      );
-    }
-
-    return enrichPublishResult(restaurantId, data);
-  } catch (error) {
-    if (
-      (error instanceof DOMException && error.name === "AbortError") ||
-      (error instanceof Error && error.message.includes("Request timed out"))
-    ) {
-      const recovered = await pollDraftAfterPublishIssue(restaurantId, draftId);
-      if (recovered) {
-        return recovered;
-      }
-      throw new Error(
-        "Publishing timed out. Meta may still be processing, check Ads Manager or use Check status.",
-      );
-    }
-    throw error;
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not publish campaign to Meta."),
+    );
   }
+
+  const enqueued = (await res.json()) as EnqueueMetaPublishResult;
+  console.log("Response Body (enqueued):", enqueued);
+  console.groupEnd();
+
+  if (enqueued.publishStatus === "FAILED") {
+    throw new Error(enqueued.message || "Publish failed.");
+  }
+
+  return pollMetaPublishUntilDone(restaurantId, draftId, onProgress);
 }
 
 export async function saveCampaignStep(
@@ -209,46 +217,9 @@ export async function saveCampaignStep(
   return res.json() as Promise<MetaCampaignDraft>;
 }
 
-export async function getMetaCampaignDraft(
-  restaurantId: number,
-  draftId: string,
-  timeoutMs?: number,
-): Promise<MetaCampaignDraft> {
-  const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}`,
-    { method: "GET" },
-    timeoutMs,
-  );
-
-  if (!res.ok) {
-    throw new Error(
-      await parseApiErrorMessage(res, "Could not load campaign draft."),
-    );
-  }
-
-  return res.json() as Promise<MetaCampaignDraft>;
-}
-
-export async function listMetaCampaignDrafts(
-  restaurantId: number,
-): Promise<MetaCampaignDraft[]> {
-  const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts`,
-    { method: "GET" },
-  );
-
-  if (!res.ok) {
-    throw new Error(
-      await parseApiErrorMessage(res, "Could not load campaign drafts."),
-    );
-  }
-
-  return res.json() as Promise<MetaCampaignDraft[]>;
-}
-
 export async function saveAdSetStep(
   restaurantId: number,
-  payload: SaveAdSetStepPayload,
+  payload: SaveAdSetStepPayload & { draftId: string },
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/adset-step`,
@@ -270,7 +241,7 @@ export async function saveAdSetStep(
 
 export async function saveAdCreativeStep(
   restaurantId: number,
-  payload: AdCreativeStepData,
+  payload: AdCreativeStepData & { draftId: string },
 ): Promise<MetaCampaignDraft> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/ad-creative-step`,
@@ -284,6 +255,43 @@ export async function saveAdCreativeStep(
   if (!res.ok) {
     throw new Error(
       await parseApiErrorMessage(res, "Could not save ad creative step."),
+    );
+  }
+
+  return res.json() as Promise<MetaCampaignDraft>;
+}
+
+export async function listMetaCampaignDrafts(
+  restaurantId: number,
+): Promise<MetaCampaignDraft[]> {
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load Meta campaign drafts."),
+    );
+  }
+
+  return res.json() as Promise<MetaCampaignDraft[]>;
+}
+
+export async function getMetaCampaignDraft(
+  restaurantId: number,
+  draftId: string,
+  timeoutMs = 30_000,
+): Promise<MetaCampaignDraft> {
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/drafts/${encodeURIComponent(draftId)}`,
+    { method: "GET" },
+    timeoutMs,
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load campaign draft."),
     );
   }
 

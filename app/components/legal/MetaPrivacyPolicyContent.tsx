@@ -122,7 +122,7 @@ export function MetaPrivacyPolicyContent() {
                 measure results. When you connect Meta, we act as your authorized
                 tool to manage advertising through the{" "}
                 <strong className="font-medium text-zinc-800">Meta Marketing API</strong>{" "}
-                (Facebook Graph API v23.0), the same infrastructure Meta Ads
+                (Facebook Graph API v24.0), the same infrastructure Meta Ads
                 Manager uses.
               </p>
               <ul className="mt-4 space-y-2 text-sm text-zinc-600">

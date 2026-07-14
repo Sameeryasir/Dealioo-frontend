@@ -13,13 +13,16 @@ import type {
   MetaOptimizationGoal,
 } from "@/app/lib/meta-campaign-builder-types";
 import {
+  addDaysToIsoDate,
   COMMON_TIMEZONES,
   defaultEndDateIso,
   defaultStartDateIso,
   detectTimezone,
+  END_DATE_DURATION_OPTIONS,
   joinCsv,
   OPTIMIZATION_GOALS_BY_OBJECTIVE,
   splitCsv,
+  timezoneAbbreviation,
 } from "@/app/lib/meta-adset-builder-helpers";
 import {
   buildLocationsFromAudience,
@@ -32,6 +35,7 @@ import {
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
+  BuilderPerformanceGoalSelect,
   BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
@@ -113,13 +117,20 @@ export function AdSetSetupStep({
   const [billingEvent, setBillingEvent] = useState<MetaBillingEvent>(
     initialData?.billingEvent ?? "IMPRESSIONS",
   );
-  const [startDate, setStartDate] = useState(
-    initialData?.startDate ?? defaultStartDateIso(),
-  );
+  const initialStart = initialData?.startDate ?? defaultStartDateIso();
+  const initialEnd = initialData?.endDate ?? addDaysToIsoDate(initialStart, 14);
+  const [startDate, setStartDate] = useState(initialStart);
   const [startTime, setStartTime] = useState(initialData?.startTime ?? "09:00");
-  const [endDate, setEndDate] = useState(
-    initialData?.endDate ?? defaultEndDateIso(),
+  const [hasEndDate, setHasEndDate] = useState(true);
+  const [endDurationDays, setEndDurationDays] = useState<number | "custom">(
+    () => {
+      const matched = END_DATE_DURATION_OPTIONS.find(
+        (option) => addDaysToIsoDate(initialStart, option.days) === initialEnd,
+      );
+      return matched?.days ?? "custom";
+    },
   );
+  const [endDate, setEndDate] = useState(initialEnd);
   const [endTime, setEndTime] = useState(initialData?.endTime ?? "23:59");
   const [timezone, setTimezone] = useState(
     initialData?.timezone ?? detectTimezone(),
@@ -277,6 +288,11 @@ export function AdSetSetupStep({
       distanceUnit = legacyLocation.distanceUnit;
     }
 
+    const resolvedEndDate = hasEndDate
+      ? endDate
+      : addDaysToIsoDate(startDate, 30);
+    const resolvedEndTime = hasEndDate ? endTime : "23:59";
+
     await onSave({
       name: trimmedName,
       draftId,
@@ -291,8 +307,8 @@ export function AdSetSetupStep({
       billingEvent,
       startDate,
       startTime,
-      endDate,
-      endTime,
+      endDate: resolvedEndDate,
+      endTime: resolvedEndTime,
       timezone,
       optimizationGoal,
       destinationType,
@@ -442,21 +458,103 @@ export function AdSetSetupStep({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="font-medium text-[#07111f]">Start date</span>
-            <input required type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
+            <input
+              required
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                const nextStart = e.target.value;
+                setStartDate(nextStart);
+                if (hasEndDate && endDurationDays !== "custom") {
+                  setEndDate(addDaysToIsoDate(nextStart, endDurationDays));
+                }
+              }}
+              className={inputClass}
+            />
           </label>
           <label className="block text-sm">
             <span className="font-medium text-[#07111f]">Start time</span>
             <input required type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
           </label>
-          <label className="block text-sm">
-            <span className="font-medium text-[#07111f]">End date</span>
-            <input required type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium text-[#07111f]">End time</span>
-            <input required type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClass} />
-          </label>
         </div>
+
+        <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] p-4">
+          <p className="text-sm font-semibold text-[#07111f]">End date</p>
+          <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm text-[#07111f]">
+            <input
+              type="checkbox"
+              checked={hasEndDate}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setHasEndDate(checked);
+                if (checked && endDurationDays !== "custom") {
+                  setEndDate(addDaysToIsoDate(startDate, endDurationDays));
+                }
+              }}
+              className="size-4 rounded border-[#c5d0e0] text-[#1877f2] focus:ring-[#1877f2]/30"
+            />
+            <span>Set an end date</span>
+          </label>
+
+          {hasEndDate ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-[auto_1fr_1fr]">
+              <select
+                value={endDurationDays === "custom" ? "custom" : String(endDurationDays)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "custom") {
+                    setEndDurationDays("custom");
+                    return;
+                  }
+                  const days = Number.parseInt(value, 10);
+                  setEndDurationDays(days);
+                  setEndDate(addDaysToIsoDate(startDate, days));
+                }}
+                className="rounded-lg border border-[#e8edf5] bg-white px-3 py-2.5 text-sm font-medium text-[#07111f]"
+              >
+                {END_DATE_DURATION_OPTIONS.map((option) => (
+                  <option key={option.days} value={option.days}>
+                    {option.label}
+                  </option>
+                ))}
+                <option value="custom">Custom</option>
+              </select>
+              <label className="relative block text-sm">
+                <span className="sr-only">End date</span>
+                <input
+                  required
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDurationDays("custom");
+                    setEndDate(e.target.value);
+                  }}
+                  className={inputClass}
+                />
+              </label>
+              <label className="relative block text-sm">
+                <span className="sr-only">End time</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    required
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className={inputClass}
+                  />
+                  <span className="shrink-0 text-xs font-semibold text-slate-500">
+                    {timezoneAbbreviation(timezone)}
+                  </span>
+                </div>
+              </label>
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-slate-500">
+              Your ad set will keep running until you turn it off. A default end date is still stored for Meta.
+            </p>
+          )}
+        </div>
+
         <label className="block text-sm">
           <span className="font-medium text-[#07111f]">Timezone</span>
           <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputClass}>
@@ -471,14 +569,17 @@ export function AdSetSetupStep({
         title="Optimization"
         description="Tell Meta what result you want and where people should go after clicking."
       >
-        <label className="block text-sm">
-          <span className="font-medium text-[#07111f]">Optimization goal</span>
-          <select value={optimizationGoal} onChange={(e) => setOptimizationGoal(e.target.value as MetaOptimizationGoal)} className={inputClass}>
-            {goalOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
+        <BuilderField
+          label="Performance goal"
+          hint="How you measure success for your ads."
+        >
+          <BuilderPerformanceGoalSelect
+            aria-label="Performance goal"
+            value={optimizationGoal}
+            options={goalOptions}
+            onChange={setOptimizationGoal}
+          />
+        </BuilderField>
         <label className="block text-sm">
           <span className="font-medium text-[#07111f]">Destination type</span>
           <select value={destinationType} onChange={(e) => setDestinationType(e.target.value as MetaDestinationType)} className={inputClass}>

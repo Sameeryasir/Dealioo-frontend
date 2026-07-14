@@ -3,10 +3,16 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 const UPLOAD_FACEBOOK_CAMPAIGN_IMAGE_TIMEOUT_MS = 60_000;
 
+export type UploadFacebookCampaignImageResponse = {
+  imageUrl: string;
+  imageHash: string;
+  metaImageUrl?: string;
+};
+
 export async function uploadFacebookCampaignImage(
   restaurantId: number,
   file: File,
-): Promise<{ imageUrl: string }> {
+): Promise<UploadFacebookCampaignImageResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -25,5 +31,10 @@ export async function uploadFacebookCampaignImage(
     );
   }
 
-  return res.json() as Promise<{ imageUrl: string }>;
+  const json = (await res.json()) as UploadFacebookCampaignImageResponse;
+  if (!json.imageUrl?.trim() || !json.imageHash?.trim()) {
+    throw new Error("Meta did not return an image hash for this upload.");
+  }
+
+  return json;
 }
