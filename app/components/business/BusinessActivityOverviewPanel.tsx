@@ -1,12 +1,16 @@
 "use client";
 
-import { buildBusinessActivityMock } from "@/app/components/business/business-activity-mock";
+/**
+ * Change: Stop showing mock/preview activity when API totals are 0.
+ * Why: Empty businesses were looking busy with fake "Preview data".
+ * Related: business-activity-mock.ts, dashboard page.tsx
+ */
+
 import {
   buildCheckInsMonthlyData,
   buildMembersMonthlyData,
   buildOrdersMonthlyData,
   buildRevenueMonthlyData,
-  hasBusinessActivityMonthly,
   sumActivityFromMonthly,
 } from "@/app/components/business/business-activity-chart-config";
 import { BusinessMembersMiniChart } from "@/app/components/business/BusinessMembersMiniChart";
@@ -141,28 +145,12 @@ export function BusinessActivityOverviewPanel({
   todayRevenueCents?: number;
   isLoading?: boolean;
 }) {
-  const hasActivity = useMemo(
-    () =>
-      hasBusinessActivityMonthly(data, {
-        activeCampaigns,
-        totalOrders,
-        totalMembers,
-        todayRevenueCents,
-      }),
-    [data, activeCampaigns, totalOrders, totalMembers, todayRevenueCents],
-  );
-
-  const usePreviewData = !isLoading && !hasActivity;
-  const preview = useMemo(
-    () => (usePreviewData ? buildBusinessActivityMock(months) : null),
-    [usePreviewData, months],
-  );
-
-  const chartData = preview?.data ?? data;
-  const displayActiveCampaigns = preview?.activeCampaigns ?? activeCampaigns;
-  const displayTotalOrders = preview?.totalOrders ?? totalOrders;
-  const displayTotalMembers = preview?.totalMembers ?? totalMembers;
-  const displayTodayRevenueCents = preview?.todayRevenueCents ?? todayRevenueCents;
+  // Always use API values — never fall back to mock/preview when totals are 0.
+  const chartData = data;
+  const displayActiveCampaigns = activeCampaigns;
+  const displayTotalOrders = totalOrders;
+  const displayTotalMembers = totalMembers;
+  const displayTodayRevenueCents = todayRevenueCents;
 
   const totals = useMemo(() => sumActivityFromMonthly(chartData), [chartData]);
   const checkInsMonthly = useMemo(
@@ -216,11 +204,6 @@ export function BusinessActivityOverviewPanel({
             <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
               Last {months} months
             </span>
-            {usePreviewData ? (
-              <span className="inline-flex items-center rounded-full bg-[#fff7ed] px-2.5 py-1 text-[0.68rem] font-bold text-[#c2410c] ring-1 ring-[#fed7aa]/80">
-                Preview data
-              </span>
-            ) : null}
           </div>
         </div>
       </div>

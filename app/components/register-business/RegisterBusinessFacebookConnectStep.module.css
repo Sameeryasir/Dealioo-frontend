@@ -313,3 +313,88 @@
   font-weight: 500;
   color: rgba(203, 213, 225, 0.88);
 }
+
+.zoneEmbedded {
+  width: 100%;
+  max-width: 62rem;
+  padding-top: 0.15rem;
+}
+
+.zoneEmbedded .card {
+  border: 1px solid #dbe3ef;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.zoneEmbedded .subtitle,
+.zoneEmbedded .permissionText {
+  color: #475569;
+}
+
+.zoneEmbedded .sidebar {
+  padding-top: 0;
+  top: 0.5rem;
+}
+
+.zoneEmbedded .sidebarInner {
+  border: 1px solid #dbe3ef;
+  background: linear-gradient(165deg, #ffffff 0%, #eef4ff 100%);
+  backdrop-filter: none;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.zoneEmbedded .sidebarEyebrow {
+  color: #1877f2;
+}
+
+.zoneEmbedded .sidebarTitle {
+  color: #07111f;
+}
+
+.zoneEmbedded .sidebarText {
+  color: #475569;
+}
+
+.zoneEmbedded .sidebarIcon {
+  background: #e8f2ff;
+  color: #1877f2;
+}
+
+.zoneEmbeddedStripe .badge {
+  background: #ede9fe;
+  color: #635bff;
+}
+
+.zoneEmbeddedStripe .permissionIcon,
+.zoneEmbeddedStripe .sidebarIcon {
+  background: #ede9fe;
+  color: #635bff;
+}
+
+.zoneEmbeddedStripe .connectBtn {
+  background: linear-gradient(135deg, #635bff 0%, #4f46e5 100%);
+  box-shadow: 0 10px 24px rgba(99, 91, 255, 0.35);
+}
+
+.zoneEmbeddedStripe .connectBtn:hover:not(:disabled) {
+  box-shadow: 0 12px 28px rgba(99, 91, 255, 0.45);
+}
+
+.zoneEmbeddedStripe .privacyBox {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.zoneEmbeddedStripe .privacyBox p {
+  color: #4c1d95;
+}
+
+.zoneEmbeddedStripe .sidebarInner {
+  background: linear-gradient(165deg, #ffffff 0%, #f3f0ff 100%);
+}
+
+.zoneEmbeddedStripe .sidebarEyebrow {
+  color: #635bff;
+}

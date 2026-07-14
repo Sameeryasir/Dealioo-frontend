@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 const STRIPE_CONNECT_COMPLETE_MESSAGE = "stripe-connect-complete" as const;
+const STRIPE_CONNECT_CANCELLED_MESSAGE = "stripe-connect-cancelled" as const;
 
 function StripeWordmark({ className }: { className?: string }) {
   return (
@@ -23,21 +25,51 @@ function StripeWordmark({ className }: { className?: string }) {
   );
 }
 
-export default function StripeConnectSuccessPage() {
-  // If opened from onboarding popup/tab, tell opener and close.
+function StripeConnectSuccessInner() {
+  const searchParams = useSearchParams();
+  const oauthError = searchParams.get("error")?.trim() || null;
+
+  // Tell the Dealioo opener tab, then close this Stripe return window.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const opener = window.opener;
     if (!opener || opener.closed) return;
 
     try {
-      opener.postMessage({ type: STRIPE_CONNECT_COMPLETE_MESSAGE }, "*");
+      opener.postMessage(
+        {
+          type: oauthError
+            ? STRIPE_CONNECT_CANCELLED_MESSAGE
+            : STRIPE_CONNECT_COMPLETE_MESSAGE,
+        },
+        "*",
+      );
       opener.focus();
     } catch {
       /* ignore */
     }
     window.close();
-  }, []);
+  }, [oauthError]);
+
+  if (oauthError) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-zinc-950 px-4 text-zinc-100">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/80 p-8 text-center">
+          <h1 className="text-xl font-semibold">Stripe connection cancelled</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            You can close this window and try again in Dealioo.
+          </p>
+          <button
+            type="button"
+            className="mt-6 w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-900"
+            onClick={() => window.close()}
+          >
+            Close
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative isolate flex min-h-dvh items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12 text-zinc-100">
@@ -98,5 +130,13 @@ export default function StripeConnectSuccessPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function StripeConnectSuccessPage() {
+  return (
+    <Suspense fallback={<main className="min-h-dvh bg-zinc-950" aria-hidden />}>
+      <StripeConnectSuccessInner />
+    </Suspense>
   );
 }

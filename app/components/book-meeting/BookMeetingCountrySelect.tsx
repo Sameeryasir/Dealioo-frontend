@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * Change: Fix country-code dropdown sizing/placement + search ranking.
+ * Why: List forced a min height that covered the Next button on register step 1.
+ * Related: BookMeetingPhoneInput, RegisterBusinessForm, BookMeetingPhoneInput.module.css
+ */
+
 import { getCountryCallingCode } from "react-phone-number-input";
 import type { Country } from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -31,14 +38,15 @@ type DropdownPosition = {
 
 const countryLabels = en as Record<string, string>;
 const DROPDOWN_GAP = 6;
-const VIEWPORT_PADDING = 16;
-const ACTIONS_GAP = 14;
+const VIEWPORT_PADDING = 12;
+const ACTIONS_GAP = 10;
 const SEARCH_HEADER_HEIGHT = 50;
 const LIST_BOTTOM_PAD = 6;
 const COUNTRY_ROW_HEIGHT = 42;
-const PREFERRED_LIST_HEIGHT = 294;
+const PREFERRED_LIST_HEIGHT = 280;
 const DROPDOWN_MIN_WIDTH = 300;
 const DROPDOWN_MAX_WIDTH = 345;
+const MIN_USABLE_BELOW = 160;
 
 export function BookMeetingCountrySelect({
   value,
@@ -49,7 +57,8 @@ export function BookMeetingCountrySelect({
 }: BookMeetingCountrySelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
+  const [dropdownPosition, setDropdownPosition] =
+    useState<DropdownPosition | null>(null);
   const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -61,20 +70,34 @@ export function BookMeetingCountrySelect({
     [options],
   );
 
+  // Prefer names that start with the query so "p" shows Pakistan, not Cape Verde first.
   const filteredOptions = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return countryOptions;
 
-    return countryOptions.filter((option) => {
-      const code = option.value as Country;
-      const name = countryLabels[code] ?? option.label;
-      const calling = getCountryCallingCode(code);
-      return (
-        name.toLowerCase().includes(query) ||
-        code.toLowerCase().includes(query) ||
-        calling.includes(query.replace("+", ""))
-      );
-    });
+    const digits = query.replace(/^\+/, "");
+
+    const scored = countryOptions
+      .map((option) => {
+        const code = option.value as Country;
+        const name = (countryLabels[code] ?? option.label).toLowerCase();
+        const calling = getCountryCallingCode(code);
+        const codeLower = code.toLowerCase();
+
+        let score = -1;
+        if (name.startsWith(query)) score = 0;
+        else if (codeLower.startsWith(query)) score = 1;
+        else if (calling.startsWith(digits)) score = 2;
+        else if (name.includes(query)) score = 3;
+        else if (codeLower.includes(query)) score = 4;
+        else if (calling.includes(digits)) score = 5;
+
+        return score >= 0 ? { option, score, name } : null;
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
+
+    scored.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+    return scored.map((row) => row.option);
   }, [countryOptions, search]);
 
   const updateDropdownPosition = useCallback(() => {
@@ -91,30 +114,62 @@ export function BookMeetingCountrySelect({
       DROPDOWN_MAX_WIDTH,
       window.innerWidth - 32,
     );
-    const top = rect.bottom + DROPDOWN_GAP;
 
     const sheet = anchor.closest("[data-book-meeting-sheet]");
     const actions = sheet?.querySelector("[data-book-meeting-actions]");
     const actionsTop = actions?.getBoundingClientRect().top;
     const sheetRect = sheet?.getBoundingClientRect();
 
+    // Never cover the form's Next / Back actions row.
     const bottomLimit =
-      actionsTop ??
-      (sheetRect ? sheetRect.bottom - 12 : window.innerHeight - VIEWPORT_PADDING);
+      actionsTop != null
+        ? actionsTop - ACTIONS_GAP
+        : sheetRect
+          ? sheetRect.bottom - 12
+          : window.innerHeight - VIEWPORT_PADDING;
 
-    const spaceBelow = bottomLimit - ACTIONS_GAP - top;
-    const rawListHeight = spaceBelow - SEARCH_HEADER_HEIGHT - LIST_BOTTOM_PAD;
-    const rowCount = Math.max(3, Math.floor(rawListHeight / COUNTRY_ROW_HEIGHT));
-    const listMaxHeight = Math.min(
-      PREFERRED_LIST_HEIGHT,
-      rowCount * COUNTRY_ROW_HEIGHT,
+    const topLimit = Math.max(
+      VIEWPORT_PADDING,
+      sheetRect ? sheetRect.top + 8 : VIEWPORT_PADDING,
     );
+
+    const chrome = SEARCH_HEADER_HEIGHT + LIST_BOTTOM_PAD;
+    const spaceBelow = bottomLimit - (rect.bottom + DROPDOWN_GAP);
+    const spaceAbove = rect.top - DROPDOWN_GAP - topLimit;
+
+    const openUp =
+      spaceBelow < MIN_USABLE_BELOW && spaceAbove > spaceBelow;
+
+    const available = Math.max(0, openUp ? spaceAbove : spaceBelow);
+    // Hard-cap to free space so the menu never sits on top of Next.
+    const listMaxHeight = Math.max(
+      0,
+      Math.min(PREFERRED_LIST_HEIGHT, available - chrome),
+    );
+
+    // If both sides are too tight, still show a short scrollable list above.
+    const finalListHeight =
+      listMaxHeight >= COUNTRY_ROW_HEIGHT
+        ? listMaxHeight
+        : Math.min(
+            PREFERRED_LIST_HEIGHT,
+            Math.max(COUNTRY_ROW_HEIGHT * 2, spaceAbove - chrome),
+          );
+
+    const dropdownHeight = finalListHeight + chrome;
+    const top =
+      openUp || listMaxHeight < COUNTRY_ROW_HEIGHT
+        ? Math.max(topLimit, rect.top - DROPDOWN_GAP - dropdownHeight)
+        : rect.bottom + DROPDOWN_GAP;
 
     setDropdownPosition({
       top,
-      left: Math.min(rect.left, window.innerWidth - width - 16),
+      left: Math.min(
+        Math.max(16, rect.left),
+        window.innerWidth - width - 16,
+      ),
       width,
-      listMaxHeight,
+      listMaxHeight: Math.max(COUNTRY_ROW_HEIGHT, finalListHeight),
     });
   }, []);
 
@@ -138,20 +193,39 @@ export function BookMeetingCountrySelect({
     };
   }, [open, updateDropdownPosition]);
 
+  // Recalc when filtered list size changes (search).
+  useEffect(() => {
+    if (!open) return;
+    updateDropdownPosition();
+  }, [open, filteredOptions.length, updateDropdownPosition]);
+
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (rootRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
+      if (
+        rootRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
+      ) {
         return;
       }
       setOpen(false);
       setSearch("");
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      setSearch("");
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [open]);
 
   const SelectedFlag = flags[country];
@@ -165,7 +239,10 @@ export function BookMeetingCountrySelect({
           top: dropdownPosition.top,
           left: dropdownPosition.left,
           width: dropdownPosition.width,
-          maxHeight: dropdownPosition.listMaxHeight + SEARCH_HEADER_HEIGHT + LIST_BOTTOM_PAD,
+          maxHeight:
+            dropdownPosition.listMaxHeight +
+            SEARCH_HEADER_HEIGHT +
+            LIST_BOTTOM_PAD,
         }}
       >
         <div className={styles.countrySearchWrap}>
@@ -185,35 +262,39 @@ export function BookMeetingCountrySelect({
           role="listbox"
           style={{ maxHeight: dropdownPosition.listMaxHeight }}
         >
-          {filteredOptions.map((option) => {
-            const code = option.value as Country;
-            const FlagIcon = flags[code];
-            const name = countryLabels[code] ?? option.label;
-            const calling = `+${getCountryCallingCode(code)}`;
-            const selected = code === country;
+          {filteredOptions.length === 0 ? (
+            <li className={styles.countryEmpty}>No countries found</li>
+          ) : (
+            filteredOptions.map((option) => {
+              const code = option.value as Country;
+              const FlagIcon = flags[code];
+              const name = countryLabels[code] ?? option.label;
+              const calling = `+${getCountryCallingCode(code)}`;
+              const selected = code === country;
 
-            return (
-              <li key={code}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  className={`${styles.countryOption}${selected ? ` ${styles.countryOptionSelected}` : ""}`}
-                  onClick={() => {
-                    onChange(code);
-                    setOpen(false);
-                    setSearch("");
-                  }}
-                >
-                  <span className={styles.countryOptionFlag}>
-                    {FlagIcon ? <FlagIcon title={name} /> : null}
-                  </span>
-                  <span className={styles.countryOptionName}>{name}</span>
-                  <span className={styles.countryOptionCode}>{calling}</span>
-                </button>
-              </li>
-            );
-          })}
+              return (
+                <li key={code}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`${styles.countryOption}${selected ? ` ${styles.countryOptionSelected}` : ""}`}
+                    onClick={() => {
+                      onChange(code);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                  >
+                    <span className={styles.countryOptionFlag}>
+                      {FlagIcon ? <FlagIcon title={name} /> : null}
+                    </span>
+                    <span className={styles.countryOptionName}>{name}</span>
+                    <span className={styles.countryOptionCode}>{calling}</span>
+                  </button>
+                </li>
+              );
+            })
+          )}
         </ul>
       </div>
     ) : null;
@@ -234,7 +315,9 @@ export function BookMeetingCountrySelect({
         aria-label="Select country code"
       >
         <span className={styles.countryFlag}>
-          {SelectedFlag ? <SelectedFlag title={countryLabels[country] ?? country} /> : null}
+          {SelectedFlag ? (
+            <SelectedFlag title={countryLabels[country] ?? country} />
+          ) : null}
         </span>
         <ChevronDown className={styles.countryChevron} aria-hidden />
       </button>

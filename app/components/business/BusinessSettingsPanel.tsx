@@ -15,11 +15,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import { clearSetupUser } from "@/app/lib/setup-user";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
 import { BusinessGeneralSettingsForm } from "@/app/components/business/BusinessGeneralSettingsForm";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
+import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
+import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
+import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
+import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
+import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
+import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
 import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
@@ -27,7 +33,6 @@ import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ad
 import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google-ads";
 import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsCampaignsDialog";
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
-import { connectStripe } from "@/app/services/stripe/connect-stripe";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
@@ -42,6 +47,12 @@ import { logoutSession } from "@/app/services/auth/logout";
 const DASHBOARD_HREF = "/dashboard" as const;
 
 type SectionId = BusinessSettingsSection;
+
+type MetaSetupStep = "question" | "create" | "connect";
+type StripeSetupStep = "question" | "create" | "connect";
+type IntegrationSetup =
+  | { provider: "meta"; step: MetaSetupStep }
+  | { provider: "stripe"; step: StripeSetupStep };
 
 type NavItem = {
   id: SectionId;
@@ -310,6 +321,9 @@ export function BusinessSettingsPanel({
   const [googleDisconnectStatus, setGoogleDisconnectStatus] = useState<ConnectStatus>("idle");
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleCampaignsOpen, setGoogleCampaignsOpen] = useState(false);
+  const [businessName, setBusinessName] = useState("Your business");
+  const [integrationSetup, setIntegrationSetup] =
+    useState<IntegrationSetup | null>(null);
 
   const refreshStripeStatus = useCallback(async () => {
     if (businessId == null) {
@@ -327,6 +341,9 @@ export function BusinessSettingsPanel({
       }
       const business = await fetchBusinessById(token, businessId);
       setStripeConnected(Boolean(business.stripeAccountId?.trim()));
+      if (business.name?.trim()) {
+        setBusinessName(business.name.trim());
+      }
     } catch (e) {
       setStripeError(
         e instanceof Error ? e.message : "Could not check Stripe connection.",
@@ -397,6 +414,10 @@ export function BusinessSettingsPanel({
     void refreshGoogleStatus();
   }, [businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
 
+  useEffect(() => {
+    setIntegrationSetup(null);
+  }, [businessId, section]);
+
   const handleSignOut = useCallback(async () => {
     await logoutSession();
     clearSetupUser();
@@ -413,29 +434,43 @@ export function BusinessSettingsPanel({
     [businessId],
   );
 
-  const handleConnectStripe = async () => {
-    setStripeStatus("loading");
-    setStripeError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) {
-        throw new Error("You're signed out. Sign in again to connect Stripe.");
-      }
-      if (businessId == null) {
-        throw new Error(
-          "Open this from a business page so we know which one to connect.",
-        );
-      }
-      const { url } = await connectStripe(token, businessId);
-      window.open(url, "_blank", "noopener,noreferrer");
-      setStripeStatus("idle");
-    } catch (e) {
-      setStripeStatus("error");
-      setStripeError(
-        e instanceof Error ? e.message : "Could not connect to Stripe.",
+  const startMetaSetup = useCallback(() => {
+    if (businessId == null) {
+      setMetaError(
+        "Open this from a business page so we know which one to connect.",
       );
+      setMetaConnectStatus("error");
+      return;
     }
-  };
+    setMetaError(null);
+    setMetaConnectStatus("idle");
+    setIntegrationSetup({ provider: "meta", step: "question" });
+  }, [businessId]);
+
+  const startStripeSetup = useCallback(() => {
+    if (businessId == null) {
+      setStripeError(
+        "Open this from a business page so we know which one to connect.",
+      );
+      setStripeStatus("error");
+      return;
+    }
+    setStripeError(null);
+    setStripeStatus("idle");
+    setIntegrationSetup({ provider: "stripe", step: "question" });
+  }, [businessId]);
+
+  const exitIntegrationSetup = useCallback(
+    async (provider: "meta" | "stripe") => {
+      setIntegrationSetup(null);
+      if (provider === "meta") {
+        await refreshMetaStatus();
+      } else {
+        await refreshStripeStatus();
+      }
+    },
+    [refreshMetaStatus, refreshStripeStatus],
+  );
 
   const handleDisconnectStripe = async () => {
     if (businessId == null) return;
@@ -459,32 +494,6 @@ export function BusinessSettingsPanel({
       setStripeDisconnectStatus("error");
       setStripeError(
         e instanceof Error ? e.message : "Could not remove Stripe account.",
-      );
-    }
-  };
-
-  const handleConnectFacebook = async () => {
-    setMetaConnectStatus("loading");
-    setMetaError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) {
-        throw new Error("You're signed out. Sign in again to connect Facebook.");
-      }
-      if (businessId == null) {
-        throw new Error(
-          "Open this from a business page so we know which one to connect.",
-        );
-      }
-      const result = await connectFacebookInPopup(token, businessId);
-      if (result.status === "connected") {
-        await refreshMetaStatus();
-      }
-      setMetaConnectStatus("idle");
-    } catch (e) {
-      setMetaConnectStatus("error");
-      setMetaError(
-        e instanceof Error ? e.message : "Could not connect to Facebook.",
       );
     }
   };
@@ -659,7 +668,12 @@ export function BusinessSettingsPanel({
                 {businessId != null ? "Organization" : "Account"}
               </p>
               <h2 className="m-0 mt-1 text-[clamp(1.2rem,2vw,1.5rem)] font-extrabold tracking-tight text-slate-900">
-                {sectionTitles[section]}
+                {section === "integrations" && integrationSetup?.provider === "stripe"
+                  ? "Connect Stripe"
+                  : section === "integrations" &&
+                      integrationSetup?.provider === "meta"
+                    ? "Connect Meta Ads"
+                    : sectionTitles[section]}
               </h2>
             </header>
 
@@ -695,6 +709,118 @@ export function BusinessSettingsPanel({
               </div>
             ) : section === "integrations" ? (
               <div className="w-full max-w-3xl lg:max-w-none">
+                {integrationSetup && businessId != null ? (
+                  <div className="w-full">
+                    {integrationSetup.provider === "meta" &&
+                    integrationSetup.step === "question" ? (
+                      <RegisterBusinessMetaAdsQuestionStep
+                        embedded
+                        onHasAccount={() =>
+                          setIntegrationSetup({
+                            provider: "meta",
+                            step: "connect",
+                          })
+                        }
+                        onNoAccount={() =>
+                          setIntegrationSetup({
+                            provider: "meta",
+                            step: "create",
+                          })
+                        }
+                        onSkip={() => void exitIntegrationSetup("meta")}
+                      />
+                    ) : null}
+                    {integrationSetup.provider === "meta" &&
+                    integrationSetup.step === "create" ? (
+                      <RegisterBusinessCreateMetaAdAccountStep
+                        embedded
+                        onContinue={() =>
+                          setIntegrationSetup({
+                            provider: "meta",
+                            step: "connect",
+                          })
+                        }
+                        onBack={() =>
+                          setIntegrationSetup({
+                            provider: "meta",
+                            step: "question",
+                          })
+                        }
+                        onSkip={() => void exitIntegrationSetup("meta")}
+                      />
+                    ) : null}
+                    {integrationSetup.provider === "meta" &&
+                    integrationSetup.step === "connect" ? (
+                      <RegisterBusinessFacebookConnectStep
+                        embedded
+                        businessId={businessId}
+                        businessName={businessName}
+                        onContinue={() => void exitIntegrationSetup("meta")}
+                        onBack={() =>
+                          setIntegrationSetup({
+                            provider: "meta",
+                            step: "question",
+                          })
+                        }
+                      />
+                    ) : null}
+                    {integrationSetup.provider === "stripe" &&
+                    integrationSetup.step === "question" ? (
+                      <RegisterBusinessStripeQuestionStep
+                        embedded
+                        onHasAccount={() =>
+                          setIntegrationSetup({
+                            provider: "stripe",
+                            step: "connect",
+                          })
+                        }
+                        onNoAccount={() =>
+                          setIntegrationSetup({
+                            provider: "stripe",
+                            step: "create",
+                          })
+                        }
+                        onSkip={() => void exitIntegrationSetup("stripe")}
+                        onBack={() => setIntegrationSetup(null)}
+                      />
+                    ) : null}
+                    {integrationSetup.provider === "stripe" &&
+                    integrationSetup.step === "create" ? (
+                      <RegisterBusinessCreateStripeAccountStep
+                        embedded
+                        onContinue={() =>
+                          setIntegrationSetup({
+                            provider: "stripe",
+                            step: "connect",
+                          })
+                        }
+                        onBack={() =>
+                          setIntegrationSetup({
+                            provider: "stripe",
+                            step: "question",
+                          })
+                        }
+                        onSkip={() => void exitIntegrationSetup("stripe")}
+                      />
+                    ) : null}
+                    {integrationSetup.provider === "stripe" &&
+                    integrationSetup.step === "connect" ? (
+                      <RegisterBusinessStripeConnectStep
+                        embedded
+                        businessId={businessId}
+                        businessName={businessName}
+                        onContinue={() => void exitIntegrationSetup("stripe")}
+                        onBack={() =>
+                          setIntegrationSetup({
+                            provider: "stripe",
+                            step: "question",
+                          })
+                        }
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <>
                 <IntegrationsOverview
                   stripeConnected={stripeConnected}
                   metaConnected={metaConnected}
@@ -758,31 +884,16 @@ export function BusinessSettingsPanel({
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
                           <button
                             type="button"
-                            onClick={() => void handleConnectStripe()}
-                            disabled={
-                              stripeStatus === "loading" || stripeStatusLoading
-                            }
+                            onClick={startStripeSetup}
+                            disabled={stripeStatusLoading}
                             className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#635BFF] px-4 text-xs font-semibold text-white shadow-md shadow-[#635BFF]/25 transition-all hover:bg-[#544ae0] hover:shadow-lg hover:shadow-[#635BFF]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9C95FF] disabled:cursor-not-allowed disabled:opacity-70"
                           >
-                            {stripeStatus === "loading" ? (
-                              <>
-                                <Loader2
-                                  className="size-3.5 animate-spin"
-                                  strokeWidth={2.25}
-                                  aria-hidden
-                                />
-                                Connecting…
-                              </>
-                            ) : (
-                              <>
-                                <ExternalLink
-                                  className="size-3.5"
-                                  strokeWidth={2}
-                                  aria-hidden
-                                />
-                                Connect
-                              </>
-                            )}
+                            <ExternalLink
+                              className="size-3.5"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            Connect
                           </button>
                         </div>
                       )}
@@ -881,31 +992,16 @@ export function BusinessSettingsPanel({
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
                           <button
                             type="button"
-                            onClick={() => void handleConnectFacebook()}
-                            disabled={
-                              metaConnectStatus === "loading" || metaStatusLoading
-                            }
+                            onClick={startMetaSetup}
+                            disabled={metaStatusLoading}
                             className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#1877F2] px-4 text-xs font-semibold text-white shadow-md shadow-[#1877F2]/25 transition-all hover:bg-[#166fe5] hover:shadow-lg hover:shadow-[#1877F2]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/60 disabled:cursor-not-allowed disabled:opacity-70"
                           >
-                            {metaConnectStatus === "loading" ? (
-                              <>
-                                <Loader2
-                                  className="size-3.5 animate-spin"
-                                  strokeWidth={2.25}
-                                  aria-hidden
-                                />
-                                Connecting…
-                              </>
-                            ) : (
-                              <>
-                                <ExternalLink
-                                  className="size-3.5"
-                                  strokeWidth={2}
-                                  aria-hidden
-                                />
-                                Connect with Facebook
-                              </>
-                            )}
+                            <ExternalLink
+                              className="size-3.5"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            Connect with Facebook
                           </button>
                         </div>
                       )}
@@ -1069,6 +1165,8 @@ export function BusinessSettingsPanel({
                     ) : null}
                   </IntegrationCardShell>
                 </ul>
+                  </>
+                )}
               </div>
             ) : (
               <p className="max-w-md text-sm leading-relaxed text-slate-500">

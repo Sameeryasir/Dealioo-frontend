@@ -226,3 +226,11 @@
   font-weight: 600;
   color: #5f6368;
 }
+
+.countryEmpty {
+  padding: 0.85rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #80868b;
+  text-align: center;
+}

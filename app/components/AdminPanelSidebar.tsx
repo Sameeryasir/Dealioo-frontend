@@ -1,6 +1,7 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
@@ -29,13 +30,23 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
+
+type NavIcon = LucideIcon | ComponentType<{ className?: string }>;
 
 type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIcon;
+  /** Brand mark (Meta) — filled SVG, not a Lucide stroke icon. */
+  brandIcon?: boolean;
   activeMatch: "exact" | "prefix";
 };
 
@@ -150,6 +161,15 @@ export default function AdminPanelSidebar() {
       },
       {
         href: businessId
+          ? `${restaurantHomeHref}/meta`
+          : "/dashboard/meta",
+        label: "Meta",
+        icon: MetaLogo,
+        brandIcon: true,
+        activeMatch: "prefix",
+      },
+      {
+        href: businessId
           ? `${restaurantHomeHref}/members`
           : "/dashboard/members",
         label: "Members",
@@ -240,12 +260,22 @@ export default function AdminPanelSidebar() {
         </div>
 
         <nav id="rd-sidebar-nav" className="rd-sidebar-nav">
-          {navItems.map(({ href, label, icon: Icon, activeMatch }) => {
+          {navItems.map(
+            ({ href, label, icon: Icon, brandIcon, activeMatch }) => {
             const active =
               activeMatch === "exact"
                 ? pathname === href
                 : pathname === href || pathname.startsWith(`${href}/`);
             const disabled = scannerUser && label !== "Scanning";
+            const iconNode = brandIcon ? (
+              <Icon className="rd-sidebar-item-icon" aria-hidden />
+            ) : (
+              <Icon
+                className="rd-sidebar-item-icon"
+                aria-hidden
+                strokeWidth={2}
+              />
+            );
 
             if (disabled) {
               return (
@@ -255,7 +285,7 @@ export default function AdminPanelSidebar() {
                   aria-label={`${label} (disabled)`}
                   className="rd-sidebar-item rd-sidebar-item--disabled"
                 >
-                  <Icon className="rd-sidebar-item-icon" aria-hidden strokeWidth={2} />
+                  {iconNode}
                   {expanded ? (
                     <span className="rd-sidebar-item-label">{label}</span>
                   ) : null}
@@ -278,7 +308,7 @@ export default function AdminPanelSidebar() {
                   active ? "rd-sidebar-item--active" : ""
                 }`}
               >
-                <Icon className="rd-sidebar-item-icon" aria-hidden strokeWidth={2} />
+                {iconNode}
                 {expanded ? (
                   <span className="rd-sidebar-item-label">{label}</span>
                 ) : null}
@@ -292,7 +322,8 @@ export default function AdminPanelSidebar() {
                 ) : null}
               </Link>
             );
-          })}
+          },
+          )}
         </nav>
 
         {/* Settings + Logout stay at the bottom of the rail. */}
