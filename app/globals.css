@@ -3604,19 +3604,25 @@ body {
   }
 
   .org-dashboard-grid--cards {
-    @apply items-stretch gap-5 sm:gap-6 xl:gap-7;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    @apply items-stretch gap-4 sm:gap-5 xl:gap-6;
+    grid-template-columns: 1fr;
   }
 
-  @media (min-width: 1280px) {
+  @media (min-width: 640px) {
     .org-dashboard-grid--cards {
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .org-dashboard-grid--cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
   @media (min-width: 1536px) {
     .org-dashboard-grid--cards {
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
 
@@ -3693,136 +3699,186 @@ body {
     @apply relative z-[1] text-brand-primary;
   }
 
+  /* --- Premium org business cards (Stripe/Linear-inspired) --- */
   .org-biz-card {
-    --org-card-accent: var(--brand-primary);
-    @apply relative overflow-hidden transition duration-300;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%);
+    --org-card-blue: #2563eb;
+    --org-card-green: #10b981;
+    --org-card-amber: #f59e0b;
+    @apply relative overflow-visible transition-all duration-200 ease-out;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
     box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.16),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    color: #ffffff;
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 8px 24px rgba(15, 23, 42, 0.04);
+    color: #0f172a;
   }
 
-  .org-biz-card::before {
-    content: "";
-    position: absolute;
-    top: -18%;
-    right: -8%;
-    width: 52%;
-    height: 58%;
-    pointer-events: none;
-    z-index: 0;
-    background: radial-gradient(ellipse, rgba(24, 119, 242, 0.28) 0%, transparent 72%);
-    filter: blur(10px);
-  }
-
+  .org-biz-card::before,
   .org-biz-card::after {
-    content: "";
-    position: absolute;
-    bottom: -22%;
-    left: -10%;
-    width: 48%;
-    height: 56%;
-    pointer-events: none;
-    z-index: 0;
-    background: radial-gradient(ellipse, rgba(244, 114, 182, 0.24) 0%, transparent 70%);
-    filter: blur(12px);
+    display: none;
   }
 
   .org-biz-card-inner {
-    @apply relative z-[1] flex h-full flex-col;
+    @apply relative z-[1] flex h-full flex-col overflow-hidden rounded-[inherit];
   }
 
   .org-biz-card--grid {
-    @apply flex h-full min-h-[22.5rem] flex-col rounded-2xl p-3.5 pb-4 sm:p-4 sm:pb-4;
+    @apply flex h-full min-h-[22rem] flex-col rounded-[1.125rem];
   }
 
   .org-biz-card--grid:hover {
-    @apply -translate-y-0.5;
-    border-color: rgba(244, 114, 182, 0.28);
+    transform: translateY(-4px);
+    border-color: #cbd5e1;
     box-shadow:
-      0 18px 44px rgba(0, 0, 0, 0.24),
-      0 0 32px rgba(24, 119, 242, 0.12),
-      0 0 24px rgba(244, 114, 182, 0.1);
+      0 4px 6px rgba(15, 23, 42, 0.04),
+      0 20px 40px rgba(15, 23, 42, 0.08);
   }
 
-  /* Fixed hero height so cards stay equal with or without a logo image. */
-  .org-biz-card-hero {
-    @apply relative -mx-3.5 -mt-3.5 flex h-[9rem] shrink-0 items-center justify-center overflow-hidden leading-[0] sm:-mx-4 sm:-mt-4;
-    border-radius: 1rem 1rem 0.75rem 0.75rem;
-    background: #18243d;
+  /* Compact soft-gradient banner (~112px) */
+  .org-biz-card-banner {
+    @apply relative flex h-[7rem] shrink-0 items-start justify-end overflow-visible px-4 pt-3.5;
+    background: linear-gradient(145deg, #eff6ff 0%, #f1f5f9 55%, #f8fafc 100%);
   }
 
-  .org-biz-card-hero-img {
-    @apply absolute inset-0 block h-full w-full object-contain object-center;
-    border-radius: inherit;
-  }
-
-  .org-biz-card-hero-fallback {
-    @apply absolute inset-0 flex h-full w-full items-center justify-center;
-    background:
-      linear-gradient(145deg, rgba(24, 119, 242, 0.18) 0%, rgba(244, 114, 182, 0.12) 100%),
-      rgba(255, 255, 255, 0.06);
-  }
-
-  .org-biz-card-hero-overlay {
+  .org-biz-card-banner-glow {
     @apply pointer-events-none absolute inset-0;
-    background: linear-gradient(
-      180deg,
-      rgba(5, 7, 13, 0.04) 0%,
-      transparent 62%,
-      rgba(5, 7, 13, 0.28) 100%
+    background: radial-gradient(
+      ellipse 80% 70% at 20% 0%,
+      rgba(37, 99, 235, 0.1) 0%,
+      transparent 60%
     );
   }
 
-  .org-biz-card-status--hero {
-    @apply absolute right-3 top-3 z-[2];
+  /* Avatar overlaps banner into body */
+  .org-biz-card-avatar {
+    @apply absolute bottom-0 left-5 z-[2] flex size-14 translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border border-white/80 p-1.5;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow:
+      0 4px 14px rgba(15, 23, 42, 0.1),
+      0 0 0 1px rgba(226, 232, 240, 0.8);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .org-biz-card--grid:hover .org-biz-card-avatar {
+    transform: translateY(50%) translateY(-2px);
+    box-shadow:
+      0 8px 20px rgba(37, 99, 235, 0.12),
+      0 0 0 1px rgba(191, 219, 254, 0.9);
+  }
+
+  .org-biz-card-avatar--initial {
+    @apply border-transparent p-0 text-lg font-semibold text-white;
+    background: linear-gradient(145deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+  }
+
+  .org-biz-card-avatar-img {
+    @apply block h-full w-full object-contain object-center;
+  }
+
+  .org-biz-card-avatar-initial {
+    @apply flex size-full items-center justify-center leading-none tracking-tight;
+  }
+
+  .org-biz-card-status--banner {
+    @apply relative z-[2];
   }
 
   .org-biz-card-content {
-    @apply flex flex-1 flex-col pt-3;
+    @apply flex flex-1 flex-col px-5 pb-5 pt-10;
   }
 
   .org-biz-card-bento {
-    @apply mt-2 grid grid-cols-2 gap-2;
+    @apply mt-4 grid grid-cols-2 gap-3;
   }
 
   .org-biz-card-bento-cell {
-    @apply flex min-h-[5.25rem] flex-col justify-between rounded-xl border p-2.5;
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    @apply flex min-h-[5.25rem] flex-col justify-between rounded-xl border p-3;
+    border-color: #e2e8f0;
+    background: #f8fafc;
   }
 
   .org-biz-card-bento-eyebrow {
-    @apply shrink-0 text-[10px] font-bold uppercase tracking-[0.12em];
-    color: rgba(255, 255, 255, 0.52);
+    @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em];
+    color: #64748b;
   }
 
   .org-biz-card-progress-wrap {
     @apply min-w-0;
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
+  .org-biz-card-progress-wrap .org-biz-card-bento-eyebrow {
+    color: #64748b;
   }
 
   .org-biz-card-progress-wrap--interactive {
     cursor: pointer;
     transition:
-      border-color 0.15s ease,
-      background 0.15s ease,
-      box-shadow 0.15s ease;
+      border-color 0.2s ease,
+      background 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
   }
 
   .org-biz-card-progress-wrap--interactive:hover,
   .org-biz-card-progress-wrap--interactive:focus-visible {
-    border-color: rgba(24, 119, 242, 0.45);
-    background: rgba(24, 119, 242, 0.1);
-    box-shadow: 0 0 0 1px rgba(24, 119, 242, 0.2);
+    border-color: #bfdbfe;
+    background: #eff6ff !important;
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
     outline: none;
+    transform: translateY(-1px);
+  }
+
+  .org-biz-card-progress-row {
+    @apply flex h-full min-h-0 flex-1 items-center justify-between gap-2;
   }
 
   .org-biz-card-progress-copy {
-    @apply flex min-h-0 flex-1 flex-col gap-1;
+    @apply flex min-h-0 min-w-0 flex-1 flex-col gap-1;
+  }
+
+  .org-biz-card-progress-ring {
+    @apply relative flex size-11 shrink-0 items-center justify-center;
+  }
+
+  .org-biz-card-progress-svg {
+    @apply absolute inset-0 size-full;
+  }
+
+  .org-biz-card-progress-ring-track {
+    stroke: #e2e8f0;
+  }
+
+  .org-biz-card-progress-ring-fill {
+    stroke: #2563eb;
+    transition: stroke-dashoffset 0.45s ease;
+  }
+
+  .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-fill {
+    stroke: #10b981;
+  }
+
+  .org-biz-card-progress-ring-label {
+    @apply relative z-[1] text-[0.625rem] font-semibold leading-none tabular-nums;
+    color: #2563eb;
+  }
+
+  .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-label {
+    color: #059669;
+  }
+
+  .org-biz-card-location-tile {
+    @apply min-w-0;
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
+  .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
+    color: #64748b;
   }
 
   .org-biz-setup-popover {
@@ -3977,6 +4033,12 @@ body {
 
   .org-biz-card-location-tile {
     @apply min-w-0;
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
+  .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
+    color: #64748b;
   }
 
   .org-biz-card-location-copy {
@@ -3984,40 +4046,71 @@ body {
   }
 
   .org-biz-card-location-value {
-    @apply m-0 line-clamp-2 text-[11px] font-semibold leading-snug sm:text-xs;
-    color: rgba(255, 255, 255, 0.94);
-    overflow-wrap: anywhere;
+    @apply m-0 flex min-w-0 items-center gap-1 text-[13px] font-semibold leading-snug;
+    color: #0f172a;
+  }
+
+  .org-biz-card-location-city {
+    @apply truncate;
+  }
+
+  .org-biz-card-location-value svg {
+    color: #64748b;
   }
 
   .org-biz-card-location-meta {
-    @apply mt-1 shrink-0 text-[10px] font-medium leading-snug;
-    color: rgba(255, 255, 255, 0.52);
+    @apply mt-1 inline-flex shrink-0 items-center gap-1 text-[12px] font-medium leading-snug;
+    color: #64748b;
   }
 
   .org-biz-card-footer--bento {
-    @apply mt-auto justify-center p-0 pt-2.5;
-    border: none;
-    background: transparent;
+    @apply mt-auto flex flex-col items-stretch justify-end gap-3 border-0 bg-transparent p-0 pt-4;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
 
+  .org-biz-card-activity {
+    @apply m-0 flex items-baseline gap-1.5 text-[12px] leading-none;
+  }
+
+  .org-biz-card-activity--spacer {
+    @apply h-3;
+  }
+
+  .org-biz-card-activity-label {
+    color: #94a3b8;
+  }
+
+  .org-biz-card-activity-value {
+    @apply font-medium;
+    color: #64748b;
+  }
+
   .org-biz-card-footer--bento .org-biz-card-cta {
-    @apply w-full justify-center px-4 py-2 text-sm font-semibold;
-    border-color: transparent;
-    background: #1877f2;
+    @apply inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-[14px] font-semibold;
+    border: none;
+    background: #2563eb;
     color: #ffffff;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+    transition:
+      background 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .org-biz-card--grid:hover .org-biz-card-footer--bento .org-biz-card-cta {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
   }
 
   .org-biz-card--list {
-    @apply flex items-center gap-4 rounded-2xl px-4 py-3.5 sm:px-5;
+    @apply flex items-center gap-4 rounded-[1.125rem] px-4 py-3.5 sm:px-5;
   }
 
   .org-biz-card--list:hover {
-    border-color: rgba(244, 114, 182, 0.28);
-    box-shadow:
-      0 14px 32px rgba(0, 0, 0, 0.22),
-      0 0 24px rgba(24, 119, 242, 0.1);
+    border-color: #cbd5e1;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
   }
 
   .org-biz-card-head {
@@ -4026,28 +4119,30 @@ body {
 
   .org-biz-card-logo {
     @apply flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border;
-    border-color: rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 4px 14px rgba(0, 0, 0, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    border-color: #e2e8f0;
+    background: #f8fafc;
   }
 
   .org-biz-card-status {
-    @apply inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] backdrop-blur-sm;
-    color: #fcd34d;
-    background: rgba(251, 191, 36, 0.14);
-    border-color: rgba(251, 191, 36, 0.28);
+    @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide;
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fde68a;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .org-biz-card--grid:hover .org-biz-card-status {
+    transform: translateY(-1px);
   }
 
   .org-biz-card-status--ready {
-    color: #86efac;
-    background: rgba(52, 168, 83, 0.16);
-    border-color: rgba(134, 239, 172, 0.32);
+    color: #047857;
+    background: #ecfdf5;
+    border-color: #a7f3d0;
   }
 
   .org-biz-card-main {
-    @apply flex flex-col;
+    @apply flex min-w-0 flex-col gap-1;
   }
 
   .org-biz-card-title-row {
@@ -4055,9 +4150,8 @@ body {
   }
 
   .org-biz-card-title {
-    @apply m-0 min-w-0 flex-1 truncate text-[1.05rem] font-bold leading-snug sm:text-lg;
-    letter-spacing: -0.025em;
-    color: #ffffff;
+    @apply m-0 min-w-0 truncate text-[18px] font-semibold leading-snug tracking-[-0.02em];
+    color: #0f172a;
   }
 
   .org-biz-card--list .org-biz-card-title {
@@ -4065,10 +4159,8 @@ body {
   }
 
   .org-biz-card-category {
-    @apply inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em];
-    border-color: rgba(147, 197, 253, 0.28);
-    background: rgba(24, 119, 242, 0.14);
-    color: #bfdbfe;
+    @apply m-0 text-[13px] font-medium leading-snug;
+    color: #64748b;
   }
 
   .org-biz-card--list .org-biz-card-category {
@@ -4076,30 +4168,23 @@ body {
   }
 
   .org-biz-card-description {
-    @apply mt-2 line-clamp-2 text-[13px] leading-snug;
-    color: rgba(255, 255, 255, 0.76);
+    @apply mt-1.5 line-clamp-2 text-[13px] leading-snug;
+    color: #475569;
   }
 
   .org-biz-card-setup-status {
-    @apply m-0 line-clamp-1 text-[11px] font-semibold leading-snug sm:text-xs;
-    color: rgba(255, 255, 255, 0.94);
+    @apply m-0 line-clamp-2 text-[13px] font-medium leading-snug;
+    color: #334155;
   }
 
   .org-biz-card-progress-track {
     @apply h-1.5 w-full shrink-0 overflow-hidden rounded-full;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    background: #e2e8f0;
   }
 
   .org-biz-card-progress-fill {
     @apply block h-full rounded-full transition-all duration-500;
-    background: linear-gradient(
-      90deg,
-      var(--brand-primary, #1877f2) 0%,
-      var(--brand-violet, #833aba) 55%,
-      #ea5a8f 100%
-    );
-    box-shadow: 0 0 12px rgba(24, 119, 242, 0.35);
+    background: #2563eb;
   }
 
   .org-biz-card-footer {
@@ -4116,7 +4201,7 @@ body {
 
   .org-biz-card-owner-avatar {
     @apply flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold;
-    background: linear-gradient(135deg, rgba(24, 119, 242, 0.28) 0%, rgba(244, 114, 182, 0.22) 100%);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.28) 0%, rgba(244, 114, 182, 0.22) 100%);
     color: #ffffff;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
@@ -4136,28 +4221,19 @@ body {
   }
 
   .org-biz-card-cta {
-    @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold;
-    border-color: rgba(147, 197, 253, 0.24);
-    background: rgba(24, 119, 242, 0.12);
-    color: #bfdbfe;
-  }
-
-  .org-biz-card--grid:hover .org-biz-card-cta {
-    border-color: rgba(244, 114, 182, 0.32);
-    background: rgba(244, 114, 182, 0.14);
-    color: #fbcfe8;
-  }
-
-  .org-biz-card--grid:hover .org-biz-card-footer--bento .org-biz-card-cta {
-    border-color: transparent;
-    background: #0f5ed7;
+    @apply inline-flex shrink-0 items-center gap-1 text-sm font-semibold;
     color: #ffffff;
   }
 
   .org-biz-card-thumb {
-    @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border;
-    border-color: rgba(255, 255, 255, 0.16);
-    background: #18243d;
+    @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border p-1;
+    border-color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .org-biz-card-thumb--initial {
+    @apply border-transparent p-0 text-sm font-semibold text-white;
+    background: linear-gradient(145deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
   }
 
   .org-biz-card-list-main {
@@ -4170,16 +4246,16 @@ body {
 
   .org-biz-card-meta-inline {
     @apply mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs;
-    color: rgba(255, 255, 255, 0.62);
+    color: #64748b;
   }
 
   .org-biz-card-list-cta {
     @apply relative z-[1] hidden shrink-0 items-center gap-1 text-sm font-semibold sm:inline-flex;
-    color: #bfdbfe;
+    color: #2563eb;
   }
 
   .org-biz-card--list:hover .org-biz-card-list-cta {
-    color: #fbcfe8;
+    color: #1d4ed8;
   }
 
   .org-dashboard-first-run {
@@ -4220,85 +4296,25 @@ body {
 
   @media (min-width: 1280px) {
     .org-biz-card--grid {
-      @apply min-h-[27rem] p-5 pb-5;
-    }
-
-    .org-biz-card-hero {
-      @apply -mx-5 -mt-5 h-[10.5rem];
+      @apply min-h-[22.5rem];
     }
 
     .org-biz-card-content {
-      @apply pt-4;
-    }
-
-    .org-biz-card-title {
-      @apply text-xl;
+      @apply px-5 pb-5 pt-11;
     }
 
     .org-biz-card-bento {
-      @apply mt-3 gap-3;
+      @apply gap-3;
     }
 
     .org-biz-card-bento-cell {
-      @apply min-h-[6.25rem] p-3;
-    }
-
-    .org-biz-card-bento-eyebrow {
-      font-size: 0.6875rem;
-    }
-
-    .org-biz-card-setup-status {
-      @apply text-sm;
-    }
-
-    .org-biz-card-location-value {
-      @apply text-sm;
-    }
-
-    .org-biz-card-location-meta {
-      font-size: 0.6875rem;
-    }
-
-    .org-biz-card-progress-track {
-      @apply h-2;
-    }
-
-    .org-biz-card-footer--bento {
-      @apply pt-3;
-    }
-
-    .org-biz-card-footer--bento .org-biz-card-cta {
-      @apply py-2.5 text-[0.9375rem];
-    }
-
-    .org-biz-card-status--hero {
-      @apply right-4 top-4;
-    }
-
-    .org-biz-card-status {
-      @apply px-3 py-1 text-[11px];
+      @apply min-h-[5.5rem] p-3;
     }
   }
 
   @media (min-width: 1536px) {
     .org-biz-card--grid {
-      @apply min-h-[28.5rem];
-    }
-
-    .org-biz-card-hero {
-      @apply h-[11rem];
-    }
-
-    .org-biz-card-bento-cell {
-      @apply min-h-[6.75rem];
-    }
-
-    .org-biz-card-title {
-      @apply text-[1.35rem];
-    }
-
-    .org-biz-card-footer--bento .org-biz-card-cta {
-      @apply py-3 text-base;
+      @apply min-h-[23rem];
     }
   }
 
@@ -4320,7 +4336,11 @@ body {
     }
 
     .org-biz-card--grid {
-      @apply min-h-[21rem];
+      @apply min-h-[20.5rem];
+    }
+
+    .org-biz-card-banner {
+      @apply h-[6.5rem];
     }
   }
 
