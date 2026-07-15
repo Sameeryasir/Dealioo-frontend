@@ -11,6 +11,7 @@ import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-busin
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
 import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
+import { isStarterPlan } from "@/app/lib/plan-limits";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
@@ -72,13 +73,24 @@ export default function RegisterBusinessPage() {
         return;
       }
 
-      // Still require an active/trialing plan — but no starter “one business” cap.
       const canRegister = await userCanRegisterBusiness();
       if (cancelled) return;
 
       if (!canRegister) {
         router.replace("/auth/select-plan");
         return;
+      }
+
+      if (isStarterPlan()) {
+        try {
+          const status = await getOnboardingStatus();
+          if (cancelled) return;
+          if (status.businessCreated) {
+            router.replace("/dashboard");
+            return;
+          }
+        } catch {
+        }
       }
     }
 

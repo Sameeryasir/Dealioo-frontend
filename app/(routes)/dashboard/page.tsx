@@ -1,7 +1,8 @@
 "use client";
 
-import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
 import BusinessDashboardCard from "@/app/components/BusinessDashboardCard";
+import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
+import { StarterPlanLimitDialog } from "@/app/components/StarterPlanLimitDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
@@ -9,11 +10,12 @@ import {
   SkeletonGrid,
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
+import { isStarterBusinessLimitReached } from "@/app/lib/plan-limits";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
 import { Filter, Megaphone, Plus, Users } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const WORKSPACE_FEATURES = [
@@ -30,10 +32,12 @@ function firstName(fullName: string | null | undefined): string {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [starterLimitOpen, setStarterLimitOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -63,6 +67,14 @@ export default function DashboardPage() {
   const showSkeleton = !isClient || isBusinessListLoading;
   const hasAnyBusinesses = meta.total > 0;
   const showToolbar = !errorMessage;
+
+  function handleAddBusiness() {
+    if (isStarterBusinessLimitReached(meta.total)) {
+      setStarterLimitOpen(true);
+      return;
+    }
+    router.push("/business/register");
+  }
 
   return (
     <section className="org-dashboard-section" aria-label="Your businesses">
@@ -122,13 +134,14 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="org-dashboard-panel-controls">
-                  <Link
-                    href="/business/register"
-                    className="org-dashboard-add-btn"
+                  <button
+                    type="button"
+                    onClick={handleAddBusiness}
+                    className="org-dashboard-add-btn cursor-pointer"
                   >
                     <Plus className="size-4" strokeWidth={2.25} aria-hidden />
                     Add business
-                  </Link>
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -189,6 +202,15 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <StarterPlanLimitDialog
+        open={starterLimitOpen}
+        onClose={() => setStarterLimitOpen(false)}
+        onViewPlans={() => {
+          setStarterLimitOpen(false);
+          router.push("/auth/select-plan");
+        }}
+      />
     </section>
   );
 }

@@ -78,6 +78,7 @@ function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
       createdAt: string | Date;
       updatedAt: string | Date;
       role: { id: number; name: string };
+      plan?: VerifyOtpUser["plan"];
     };
     if (!parsed?.id || !parsed?.email || !parsed?.role?.name) return null;
     return {
@@ -98,6 +99,7 @@ function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
           ? parsed.updatedAt
           : new Date(parsed.updatedAt).toISOString(),
       role: { id: parsed.role.id, name: parsed.role.name },
+      plan: parsed.plan ?? null,
     };
   } catch {
     return null;

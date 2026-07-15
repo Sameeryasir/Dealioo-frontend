@@ -6,13 +6,32 @@ function assertClient(): boolean {
   return typeof window !== "undefined";
 }
 
+function isVerifyOtpUserPlan(value: unknown): value is NonNullable<
+  VerifyOtpUser["plan"]
+> {
+  if (!value || typeof value !== "object") return false;
+  const o = value as Record<string, unknown>;
+  return (
+    typeof o.id === "string" &&
+    typeof o.planId === "string" &&
+    typeof o.planSlug === "string" &&
+    typeof o.planName === "string" &&
+    (o.billingCycle === "monthly" || o.billingCycle === "annual") &&
+    typeof o.status === "string" &&
+    (typeof o.startedAt === "string" || o.startedAt === null)
+  );
+}
+
 function isVerifyOtpUser(value: unknown): value is VerifyOtpUser {
   if (!value || typeof value !== "object") return false;
   const o = value as Record<string, unknown>;
   const role = o.role;
   if (!role || typeof role !== "object") return false;
   const r = role as Record<string, unknown>;
+  const planOk =
+    o.plan === undefined || o.plan === null || isVerifyOtpUserPlan(o.plan);
   return (
+    planOk &&
     typeof o.id === "number" &&
     typeof o.name === "string" &&
     typeof o.email === "string" &&

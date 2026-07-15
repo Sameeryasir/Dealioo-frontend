@@ -6,6 +6,16 @@ export type VerifyOtpUserRole = {
   name: string;
 };
 
+export type VerifyOtpUserPlan = {
+  id: string;
+  planId: string;
+  planSlug: string;
+  planName: string;
+  billingCycle: "monthly" | "annual";
+  status: string;
+  startedAt: string | null;
+};
+
 export type VerifyOtpUser = {
   id: number;
   name: string;
@@ -22,6 +32,7 @@ export type VerifyOtpUser = {
   updatedAt: string;
   lastLoginAt?: string | null;
   role: VerifyOtpUserRole;
+  plan?: VerifyOtpUserPlan | null;
   twoFactorEnabled?: boolean;
   isTwoFactorVerified?: boolean;
 };
