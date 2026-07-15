@@ -39,9 +39,16 @@ export function getBusinessProfileSetup(
       : "/dashboard";
 
   const stripeDone =
-    overrides?.stripeConnected ?? hasText(business.stripeAccountId);
+    overrides?.stripeConnected ??
+    (typeof business.stripeConnected === "boolean"
+      ? business.stripeConnected
+      : hasText(business.stripeAccountId));
   const metaDone =
-    overrides?.metaConnected ?? hasText(business.metaUserId);
+    overrides?.metaConnected ??
+    (typeof business.metaConnected === "boolean"
+      ? business.metaConnected
+      : hasText(business.metaUserId) ||
+        business.metaConnectionStatus?.trim().toUpperCase() === "ACTIVE");
 
   const steps: ProfileSetupStep[] = [
     {

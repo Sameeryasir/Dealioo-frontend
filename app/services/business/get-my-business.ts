@@ -17,13 +17,14 @@ export type AdminBusiness = {
   country?: string | null;
   postalCode?: string | null;
   branchCount?: number | null;
+  stripeConnected?: boolean | null;
   stripeAccountId?: string | null;
+  metaConnected?: boolean | null;
   metaUserId?: string | null;
   metaAdAccountId?: string | null;
   metaConnectionStatus?: string | null;
 };
 
-/** @deprecated Use AdminBusiness */
 export type AdminRestaurant = AdminBusiness;
 
 export type BusinessOwner = {
@@ -40,14 +41,12 @@ export type BusinessOwner = {
   updatedAt?: string | null;
 };
 
-/** @deprecated Use BusinessOwner */
 export type RestaurantOwner = BusinessOwner;
 
 export type BusinessDetail = AdminBusiness & {
   owner?: BusinessOwner | null;
 };
 
-/** @deprecated Use BusinessDetail */
 export type RestaurantDetail = BusinessDetail;
 
 function pickString(
@@ -135,7 +134,6 @@ function coerceBusinessDetail(value: unknown): BusinessDetail | null {
   };
 }
 
-/** @deprecated Use coerceBusinessDetail */
 function coerceRestaurantDetail(value: unknown): BusinessDetail | null {
   return coerceBusinessDetail(value);
 }
@@ -166,8 +164,10 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
     country: pickString(o, "country", "country") ?? null,
     postalCode: pickString(o, "postalCode", "postal_code") ?? null,
     branchCount: pickNumber(o, "branchCount", "branch_count") ?? null,
+    stripeConnected: pickBoolean(o, "stripeConnected", "stripe_connected"),
     stripeAccountId:
       pickString(o, "stripeAccountId", "stripe_account_id") ?? null,
+    metaConnected: pickBoolean(o, "metaConnected", "meta_connected"),
     metaUserId: pickString(o, "metaUserId", "meta_user_id") ?? null,
     metaAdAccountId:
       pickString(o, "metaAdAccountId", "meta_ad_account_id") ?? null,
@@ -176,13 +176,11 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
   };
 }
 
-/** @deprecated Use coerceBusiness */
 function coerceRestaurant(value: unknown): AdminBusiness | null {
   return coerceBusiness(value);
 }
 
 export const MY_BUSINESSES_PAGE_SIZE = 8;
-/** @deprecated Use MY_BUSINESSES_PAGE_SIZE */
 export const MY_RESTAURANTS_PAGE_SIZE = MY_BUSINESSES_PAGE_SIZE;
 
 export type PaginatedMyBusinessesResponse = {
@@ -195,7 +193,6 @@ export type PaginatedMyBusinessesResponse = {
   };
 };
 
-/** @deprecated Use PaginatedMyBusinessesResponse */
 export type PaginatedMyRestaurantsResponse = PaginatedMyBusinessesResponse;
 
 export async function fetchMyBusinesses(
