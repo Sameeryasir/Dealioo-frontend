@@ -295,7 +295,7 @@ function BusinessLogoAvatar({
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        className="group relative size-[5.5rem] cursor-pointer overflow-hidden rounded-2xl border-2 border-white bg-[#e8f2ff] shadow-[0_8px_24px_rgba(24,119,242,0.2)] ring-2 ring-[#bfdbfe] transition hover:ring-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60 sm:size-[6.5rem]"
+        className="group relative size-[5.5rem] cursor-pointer overflow-hidden rounded-full border-2 border-white bg-[#e8f2ff] shadow-[0_8px_24px_rgba(24,119,242,0.2)] ring-2 ring-[#bfdbfe] transition hover:ring-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60 sm:size-[6.5rem]"
         aria-label="Change business logo"
       >
         {displayUrl ? (
@@ -303,7 +303,7 @@ function BusinessLogoAvatar({
           <img
             src={displayUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain p-1.5"
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#1877f2]">

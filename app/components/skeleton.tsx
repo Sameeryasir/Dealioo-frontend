@@ -36,35 +36,26 @@ export function SkeletonGrid({
 }
 
 const restaurantCardShell =
-  "org-biz-card org-biz-card--grid min-h-[22.5rem] rounded-2xl p-4 sm:p-5";
+  "org-biz-card org-biz-card--grid overflow-hidden rounded-[1.25rem] p-5";
 
 export function BusinessCardSkeleton() {
   return (
     <article className={restaurantCardShell} aria-hidden>
       <div className="flex items-start justify-between gap-3">
-        <Skeleton className="size-11 rounded-xl bg-brand-soft" />
-        <Skeleton className="h-6 w-16 rounded-full bg-[#fff7ed]" />
-      </div>
-      <Skeleton className="mt-4 h-5 w-4/5 bg-[#eef3ff]" />
-      <Skeleton className="mt-2 h-3.5 w-1/3 bg-brand-soft" />
-      <Skeleton className="mt-3 h-14 w-full bg-brand-soft/80" />
-      <div className="mt-4 space-y-2">
-        <div className="flex justify-between">
-          <Skeleton className="h-3 w-20 bg-brand-soft" />
-          <Skeleton className="h-3 w-8 bg-brand-soft" />
-        </div>
-        <Skeleton className="h-1.5 w-full rounded-full bg-[#edf2f8]" />
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-[#edf2f8] pt-4">
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="size-8 rounded-full bg-brand-soft" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-3 w-24 bg-brand-soft" />
-            <Skeleton className="h-2.5 w-16 bg-brand-soft" />
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Skeleton className="size-16 shrink-0 rounded-full bg-slate-100" />
+          <div className="min-w-0 space-y-1">
+            <Skeleton className="h-3 w-10 bg-slate-100" />
+            <Skeleton className="h-5 w-24 bg-slate-100" />
           </div>
         </div>
-        <Skeleton className="h-4 w-12 bg-[#dbeafe]" />
+        <Skeleton className="h-5 w-[4.75rem] shrink-0 rounded-full bg-amber-50" />
       </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Skeleton className="h-[5.5rem] w-full rounded-xl bg-blue-50" />
+        <Skeleton className="h-[5.5rem] w-full rounded-xl bg-emerald-50" />
+      </div>
+      <Skeleton className="mt-auto h-11 w-full rounded-xl bg-blue-100" />
     </article>
   );
 }
