@@ -3,7 +3,7 @@
 import { AlertTriangle, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
-export type ConfirmDialogTone = "danger" | "warning";
+export type ConfirmDialogTone = "danger" | "warning" | "primary";
 
 const toneStyles = {
   danger: {
@@ -17,6 +17,12 @@ const toneStyles = {
     icon: "border-amber-200/90 bg-gradient-to-br from-[#fff7ed] to-white text-[#c2410c]",
     confirmEnabled:
       "bg-gradient-to-r from-[#f77737] to-[#fb923c] text-white shadow-[0_8px_20px_rgba(247,119,55,0.28)] hover:brightness-105 active:scale-[0.98]",
+  },
+  primary: {
+    bar: "bg-[#1877f2]",
+    icon: "border-[#bfdbfe] bg-[#e8f2ff] text-[#1877f2]",
+    confirmEnabled:
+      "bg-[#1877f2] text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] hover:bg-[#166fe5] active:scale-[0.98]",
   },
 } as const;
 

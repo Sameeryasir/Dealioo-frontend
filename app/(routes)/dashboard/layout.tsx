@@ -12,8 +12,10 @@ export default function DashboardLayout({
       <OnboardingCompleteGuard>
         <div className="landing-page org-dashboard-page landing-page-shell flex min-h-dvh min-h-0 w-full flex-col">
           <Navbar />
-          <div className="landing-page-content min-h-0 min-w-0 flex-1">
-            <main className="min-h-0 min-w-0 overflow-y-auto">{children}</main>
+          <div className="landing-page-content flex min-h-0 min-w-0 flex-1 flex-col">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+              {children}
+            </main>
           </div>
         </div>
       </OnboardingCompleteGuard>
