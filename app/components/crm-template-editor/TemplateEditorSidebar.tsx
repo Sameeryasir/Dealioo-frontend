@@ -173,6 +173,42 @@ const accordionChevronTransition = {
   ease: accordionEase,
 } as const;
 
+function UpgradePlanNavRow({
+  id,
+  title,
+  hint,
+}: {
+  id: SectionId;
+  title: string;
+  hint?: string;
+}) {
+  const Icon = SECTION_ICONS[id] ?? FileText;
+  const subtitle = hint ?? SECTION_HINTS[id];
+
+  return (
+    <motion.div className={editorAccordionShellClosedClass}>
+      <a
+        href="/dashboard/upgrade-plan"
+        className={editorAccordionHeaderButtonClass}
+        title={`${title} — Upgrade plan to unlock`}
+      >
+        <span className={editorAccordionIconClosedClass} aria-hidden>
+          <Icon className="size-4" strokeWidth={2.25} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={editorAccordionTitleClass}>{title}</span>
+          {subtitle ? (
+            <span className={editorAccordionHintClass}>{subtitle}</span>
+          ) : null}
+        </span>
+        <span className={editorAccordionChevronClosedClass}>
+          <ChevronRight className="size-4" strokeWidth={2.25} aria-hidden />
+        </span>
+      </a>
+    </motion.div>
+  );
+}
+
 function AccordionSection({
   id,
   title,
@@ -817,148 +853,11 @@ export function TemplateEditorSidebar({
               </div>
             </AccordionSection>
 
-            <AccordionSection
+            <UpgradePlanNavRow
               id="checkout-templates"
               title="Checkout templates"
-              open={isOpen("checkout-templates")}
-              onToggle={toggle}
-            >
-              <p className="mb-2 text-xs font-medium text-zinc-500">
-                Choose a checkout layout
-              </p>
-              <div className={editorSidebarPickerPanelClass}>
-                <div className={editorSidebarPickerScrollClass}>
-                  <div className="grid grid-cols-1 gap-2 pb-1">
-                    {CHECKOUT_TEMPLATE_OPTIONS.map((opt) => (
-                      <CheckoutTemplatePickerOption
-                        key={opt.value}
-                        label={opt.label}
-                        description={opt.description}
-                        value={opt.value}
-                        selected={
-                          normalizeCheckoutTemplate(payment.checkoutTemplate) ===
-                          opt.value
-                        }
-                        onSelect={() =>
-                          onChange({
-                            checkoutTemplate: opt.value as CheckoutTemplateType,
-                          })
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className={`mt-4 space-y-3 ${editorSidebarSectionDividerClass} pt-4`}>
-                <p className={editorSidebarCaptionClass}>Display options</p>
-                {(
-                  [
-                    ["showCoupon", "Coupon field"],
-                    ["showPhoneField", "Phone field"],
-                    ["showAddressField", "Billing address"],
-                    ["showOrderSummary", "Order summary"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label
-                    key={key}
-                    className={editorSidebarCheckboxLabelClass}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={payment[key]}
-                      onChange={(e) =>
-                        onChange({ [key]: e.target.checked })
-                      }
-                      className="size-4 rounded border-zinc-300"
-                    />
-                    {label}
-                  </label>
-                ))}
-                <Field
-                  label="Button color"
-                  icon={<MousePointerClick className="size-4 shrink-0" />}
-                >
-                  <input
-                    type="color"
-                    value={payment.checkoutTheme.buttonColor}
-                    onChange={(e) =>
-                      onChange({
-                        checkoutTheme: {
-                          ...payment.checkoutTheme,
-                          buttonColor: e.target.value,
-                        },
-                      })
-                    }
-                    className="h-9 w-full cursor-pointer rounded-lg border border-zinc-200 bg-white transition-[border-color,box-shadow] duration-200 hover:border-zinc-300"
-                  />
-                </Field>
-                <Field
-                  label="Page background"
-                  icon={<ImageIcon className="size-4 shrink-0" />}
-                >
-                  <input
-                    type="color"
-                    value={payment.checkoutTheme.background}
-                    onChange={(e) =>
-                      onChange({
-                        checkoutTheme: {
-                          ...payment.checkoutTheme,
-                          background: e.target.value,
-                        },
-                        backgroundColor: e.target.value,
-                      })
-                    }
-                    className="h-9 w-full cursor-pointer rounded-lg border border-zinc-200 bg-white transition-[border-color,box-shadow] duration-200 hover:border-zinc-300"
-                  />
-                </Field>
-              </div>
-            </AccordionSection>
-
-            <AccordionSection
-              id="form"
-              title="Form design"
-              open={isOpen("form")}
-              onToggle={toggle}
-            >
-              <p className={editorSidebarCaptionClass}>Design preset</p>
-              <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
-                <div className="grid grid-cols-1 gap-2.5">
-                  {FORM_DESIGN_OPTIONS.filter(
-                    (opt) => !formDesignUsesSplitLayout(opt.value),
-                  ).map((opt) => {
-                    const on = payment.formDesign === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          onChange({ formDesign: opt.value as FormDesign })
-                        }
-                        className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
-                          on
-                            ? editorSidebarPickerRowSelectedClass
-                            : editorSidebarPickerRowClass
-                        }`}
-                      >
-                        <FormDesignSwatch design={opt.value} selected={on} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-bold tracking-tight">
-                            {opt.label}
-                          </span>
-                          <span
-                            className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                              on ? "text-slate-600" : "text-zinc-500"
-                            }`}
-                          >
-                            {opt.description}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </AccordionSection>
+            />
+            <UpgradePlanNavRow id="form" title="Form design" />
           </>
         ) : null}
 

@@ -2,16 +2,21 @@
 
 import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
+      if (pathname?.startsWith("/dashboard/upgrade-plan")) {
+        return;
+      }
+
       try {
         const status = await getOnboardingStatus();
         if (cancelled) return;
@@ -20,7 +25,6 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
           router.replace(resolvePostAuthPath(status));
         }
       } catch {
-        // Allow the page to render; onboarding can be retried from the next screen.
       }
     }
 
@@ -29,7 +33,7 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [pathname, router]);
 
   return <>{children}</>;
 }

@@ -223,7 +223,7 @@ export function OwnerSubscriptionSection({
         all of your businesses.
       </p>
       <Link
-        href="/auth/select-plan"
+        href="/dashboard/upgrade-plan"
         className={
           isDark
             ? "mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-sky-500"
@@ -300,8 +300,20 @@ export function OwnerSubscriptionSection({
         }
       >
         This plan applies to your whole account and is shared across every
-        business you own.
+        business you own. Change plans anytime — Stripe charges only the
+        prorated difference on your card on file.
       </p>
+
+      <Link
+        href="/dashboard/upgrade-plan"
+        className={
+          isDark
+            ? "inline-flex h-10 w-fit items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-sky-500"
+            : "inline-flex h-10 w-fit items-center justify-center rounded-full bg-brand-primary px-6 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-colors hover:bg-brand-primary-hover"
+        }
+      >
+        Upgrade subscription
+      </Link>
     </div>
   );
 

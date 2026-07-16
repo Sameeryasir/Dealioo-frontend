@@ -23,7 +23,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       const authed = hasAuthSession();
       setIsAuthenticated(authed);
       if (!authed) {
-        router.replace(
+        window.location.assign(
           `/auth/login?returnTo=${encodeURIComponent(currentReturnTo(pathname))}`,
         );
       }

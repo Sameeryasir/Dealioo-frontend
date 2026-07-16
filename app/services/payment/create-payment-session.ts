@@ -1,7 +1,7 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { isPositiveInt } from "@/app/lib/numbers";
 
-export type CreatePaymentIntentPayload = {
+export type CreatePaymentSessionPayload = {
   funnelId: number;
   businessId: number;
   currency: string;
@@ -10,8 +10,9 @@ export type CreatePaymentIntentPayload = {
   checkoutSessionToken?: string;
 };
 
-export type CreatePaymentIntentResponse = {
+export type CreatePaymentSessionResponse = {
   clientSecret?: string;
+  checkoutSessionId?: string;
   paymentIntentId?: string;
   stripePaymentIntentId?: string;
   paymentId?: number;
@@ -21,7 +22,7 @@ export type CreatePaymentIntentResponse = {
   alreadyCompleted?: boolean;
 };
 
-type CreatePaymentIntentRequestBody = {
+type CreatePaymentSessionRequestBody = {
   funnelId: number;
   businessId: number;
   currency: string;
@@ -30,19 +31,9 @@ type CreatePaymentIntentRequestBody = {
   checkoutSessionToken?: string;
 };
 
-function readPaymentIntentId(
-  res: CreatePaymentIntentResponse,
-): string | undefined {
-  return (
-    res.paymentIntentId?.trim() ||
-    res.stripePaymentIntentId?.trim() ||
-    undefined
-  );
-}
-
 function assertPayload(
-  payload: CreatePaymentIntentPayload,
-): CreatePaymentIntentRequestBody {
+  payload: CreatePaymentSessionPayload,
+): CreatePaymentSessionRequestBody {
   if (!isPositiveInt(payload.funnelId)) {
     throw new Error("Funnel id is required.");
   }
@@ -73,10 +64,10 @@ function assertPayload(
   };
 }
 
-export async function createPaymentIntent(
-  payload: CreatePaymentIntentPayload,
+export async function createPaymentSession(
+  payload: CreatePaymentSessionPayload,
   accessToken?: string,
-): Promise<CreatePaymentIntentResponse> {
+): Promise<CreatePaymentSessionResponse> {
   const body = assertPayload(payload);
 
   const headers: HeadersInit = {
@@ -86,7 +77,7 @@ export async function createPaymentIntent(
     headers.Authorization = `Bearer ${accessToken.trim()}`;
   }
 
-  const res = await fetch(`${getApiBaseUrl()}/payment/intent`, {
+  const res = await fetch(`${getApiBaseUrl()}/payment/session`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -94,15 +85,9 @@ export async function createPaymentIntent(
 
   if (!res.ok) {
     throw new Error(
-      await parseApiErrorMessage(res, "Could not create payment intent."),
+      await parseApiErrorMessage(res, "Could not create payment session."),
     );
   }
 
-  const json = (await res.json()) as CreatePaymentIntentResponse & {
-    checkoutSessionId?: string;
-  };
-  return {
-    ...json,
-    paymentIntentId: readPaymentIntentId(json),
-  };
+  return (await res.json()) as CreatePaymentSessionResponse;
 }

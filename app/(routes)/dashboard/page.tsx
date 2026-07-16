@@ -10,13 +10,14 @@ import {
   SkeletonGrid,
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
-import { isStarterBusinessLimitReached } from "@/app/lib/plan-limits";
+import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
+import { isStarterBusinessLimitReachedForSubscription } from "@/app/lib/plan-limits";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
-import { Filter, Megaphone, Plus, Users } from "lucide-react";
+import { AlertCircle, Filter, Megaphone, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const WORKSPACE_FEATURES = [
   { label: "Campaigns", icon: Megaphone, tone: "blue" },
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [starterLimitOpen, setStarterLimitOpen] = useState(false);
+  const [planCheckError, setPlanCheckError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -54,6 +56,17 @@ export default function DashboardPage() {
     refetch: loadBusinesses,
   } = useMyBusinessesQuery({ page });
 
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    isFetching: subscriptionFetching,
+    isFetched: subscriptionFetched,
+    isSuccess: subscriptionSuccess,
+    isError: subscriptionIsError,
+    error: subscriptionError,
+    refetch: refetchSubscription,
+  } = useMyUserSubscription();
+
   const sortedBusinesses = useMemo(() => {
     const copy = [...businesses];
     copy.sort((a, b) =>
@@ -67,14 +80,54 @@ export default function DashboardPage() {
   const showSkeleton = !isClient || isBusinessListLoading;
   const hasAnyBusinesses = meta.total > 0;
   const showToolbar = !errorMessage;
+  const checkingPlan = subscriptionLoading || subscriptionFetching;
 
-  function handleAddBusiness() {
-    if (isStarterBusinessLimitReached(meta.total)) {
+  const handleAddBusiness = useCallback(async () => {
+    setPlanCheckError(null);
+
+    if (subscriptionIsError && !subscriptionSuccess) {
+      setPlanCheckError(
+        subscriptionError ??
+          "Could not verify your plan. Try again before adding a business.",
+      );
+      return;
+    }
+
+    let currentSubscription = subscription;
+    if (!subscriptionFetched) {
+      const result = await refetchSubscription();
+      if (result.error || result.isError) {
+        setPlanCheckError(
+          result.error instanceof Error
+            ? result.error.message
+            : "Could not verify your plan. Try again before adding a business.",
+        );
+        return;
+      }
+      currentSubscription = result.data ?? null;
+    }
+
+    if (
+      isStarterBusinessLimitReachedForSubscription(
+        currentSubscription,
+        meta.total,
+      )
+    ) {
       setStarterLimitOpen(true);
       return;
     }
+
     router.push("/business/register");
-  }
+  }, [
+    meta.total,
+    refetchSubscription,
+    router,
+    subscription,
+    subscriptionError,
+    subscriptionFetched,
+    subscriptionIsError,
+    subscriptionSuccess,
+  ]);
 
   return (
     <section className="org-dashboard-section" aria-label="Your businesses">
@@ -136,11 +189,37 @@ export default function DashboardPage() {
                 <div className="org-dashboard-panel-controls">
                   <button
                     type="button"
-                    onClick={handleAddBusiness}
-                    className="org-dashboard-add-btn cursor-pointer"
+                    onClick={() => void handleAddBusiness()}
+                    disabled={checkingPlan && subscription == null}
+                    aria-busy={checkingPlan && subscription == null}
+                    className="org-dashboard-add-btn cursor-pointer disabled:cursor-wait disabled:opacity-70"
                   >
                     <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-                    Add business
+                    {checkingPlan && subscription == null
+                      ? "Checking plan…"
+                      : "Add business"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {planCheckError ? (
+              <div
+                className="mx-4 mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p>{planCheckError}</p>
+                  <button
+                    type="button"
+                    className="mt-2 text-sm font-semibold text-red-800 underline"
+                    onClick={() => {
+                      setPlanCheckError(null);
+                      void refetchSubscription();
+                    }}
+                  >
+                    Retry plan check
                   </button>
                 </div>
               </div>
@@ -208,7 +287,7 @@ export default function DashboardPage() {
         onClose={() => setStarterLimitOpen(false)}
         onViewPlans={() => {
           setStarterLimitOpen(false);
-          router.push("/auth/select-plan");
+          window.location.assign("/dashboard/upgrade-plan");
         }}
       />
     </section>

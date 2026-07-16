@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { CheckoutElementsProvider } from "@stripe/react-stripe-js/checkout";
 import { Loader2 } from "lucide-react";
 import { CustomCardCheckoutForm } from "@/app/components/funnel/CustomCardCheckoutForm";
 import type { PaymentTemplatePage } from "@/app/components/crm-template-editor/template-types";
@@ -10,7 +10,7 @@ import type { CheckoutFormStyles } from "@/app/components/payment-templates/shar
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
-import { createPaymentIntent } from "@/app/services/payment/create-payment-intent";
+import { createPaymentSession } from "@/app/services/payment/create-payment-session";
 import { isPositiveInt } from "@/app/lib/numbers";
 
 export type FunnelStripePaymentContext = {
@@ -51,6 +51,9 @@ export function FunnelStripePaymentForm({
   const [creating, setCreating] = useState(false);
   const [intentError, setIntentError] = useState<string | null>(null);
 
+
+  const requestGenerationRef = useRef(0);
+
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   const configError = publishableKey
     ? null
@@ -58,27 +61,16 @@ export function FunnelStripePaymentForm({
 
   const darkInputs = formStyles.isDark;
 
-  const stripePromise = useMemo(() => {
-    if (!publishableKey || !clientSecret) return null;
-    const acct = stripeAccountId?.trim();
-    return loadStripe(
-      publishableKey,
-      acct ? { stripeAccount: acct } : undefined,
-    );
-  }, [publishableKey, clientSecret, stripeAccountId]);
 
-  useEffect(() => {
-    setClientSecret(null);
-    setStripeAccountId(null);
-    setIntentError(null);
-    setPaymentId(context.funnelPaymentId ?? null);
-  }, [
-    context.funnelId,
-    businessId,
-    context.currency,
-    context.customerEmail,
-    context.checkoutToken,
-  ]);
+
+
+
+  const stripePromise = useMemo((): Promise<Stripe | null> | null => {
+    if (!publishableKey || !stripeAccountId?.trim()) return null;
+    return loadStripe(publishableKey, {
+      stripeAccount: stripeAccountId.trim(),
+    });
+  }, [publishableKey, stripeAccountId]);
 
   useEffect(() => {
     if (context.funnelPaymentId != null) {
@@ -86,69 +78,131 @@ export function FunnelStripePaymentForm({
     }
   }, [context.funnelPaymentId]);
 
-  const startPaymentIntent = async () => {
-    if (!publishableKey) return;
-    setIntentError(null);
-    setCreating(true);
-    try {
-      const res = await createPaymentIntent(
-        {
-          funnelId: context.funnelId,
-          businessId,
-          currency: context.currency,
-          customerEmail: context.customerEmail,
-          ...(isPositiveInt(context.customerId)
-            ? { customerId: context.customerId }
-            : {}),
-          ...(context.checkoutToken?.trim()
-            ? { checkoutSessionToken: context.checkoutToken.trim() }
-            : {}),
-        },
-        getSetupAccessToken(),
-      );
-      if (isPositiveInt(res.paymentId)) {
-        setPaymentId(res.paymentId);
-        if (context.checkoutToken?.trim()) {
-          await refreshSession();
+  const startPaymentSession = useCallback(
+    async (opts?: { manual?: boolean }) => {
+      if (!publishableKey) return;
+
+      const generation = ++requestGenerationRef.current;
+      setIntentError(null);
+      setCreating(true);
+
+      try {
+        const res = await createPaymentSession(
+          {
+            funnelId: context.funnelId,
+            businessId,
+            currency: context.currency,
+            customerEmail: context.customerEmail,
+            ...(isPositiveInt(context.customerId)
+              ? { customerId: context.customerId }
+              : {}),
+            ...(context.checkoutToken?.trim()
+              ? { checkoutSessionToken: context.checkoutToken.trim() }
+              : {}),
+          },
+          getSetupAccessToken(),
+        );
+
+
+        if (generation !== requestGenerationRef.current) return;
+
+        if (isPositiveInt(res.paymentId)) {
+          setPaymentId(res.paymentId);
+          if (context.checkoutToken?.trim()) {
+            await refreshSession();
+            if (generation !== requestGenerationRef.current) return;
+          }
+        }
+
+        if (res.alreadyCompleted) {
+          const confirmationPath = buildFunnelPaymentConfirmationPath(
+            context.funnelId,
+            {
+              campaignId: context.campaignId,
+              businessId,
+              checkoutToken: context.checkoutToken,
+            },
+            { redirectStatus: "succeeded", paymentConfirmed: true },
+          );
+          window.location.href = confirmationPath;
+          return;
+        }
+
+        const secret = res.clientSecret?.trim();
+        if (!secret) {
+          throw new Error(
+            "The server did not return a payment session. Please try again.",
+          );
+        }
+
+        const accountId = res.stripeAccountId?.trim();
+        if (!accountId) {
+          throw new Error(
+            "Stripe connected account is missing for this business.",
+          );
+        }
+
+
+
+        setStripeAccountId(accountId);
+        setClientSecret(secret);
+      } catch (e) {
+        if (generation !== requestGenerationRef.current) return;
+        setIntentError(
+          e instanceof Error
+            ? e.message
+            : "We could not start checkout. Please try again.",
+        );
+
+        if (opts?.manual) {
+          setClientSecret(null);
+          setStripeAccountId(null);
+        }
+      } finally {
+        if (generation === requestGenerationRef.current) {
+          setCreating(false);
         }
       }
-      if (res.alreadyCompleted) {
-          const confirmationPath = buildFunnelPaymentConfirmationPath(
-          context.funnelId,
-          {
-            campaignId: context.campaignId,
-            businessId,
-            checkoutToken: context.checkoutToken,
-          },
-          { redirectStatus: "succeeded", paymentConfirmed: true },
-        );
-        window.location.href = confirmationPath;
-        return;
-      }
-      const secret = res.clientSecret?.trim();
-      if (!secret) {
-        throw new Error(
-          "The server did not return a payment session. Please try again.",
-        );
-      }
-      setClientSecret(secret);
-      setStripeAccountId(res.stripeAccountId?.trim() ?? null);
-    } catch (e) {
-      setIntentError(
-        e instanceof Error
-          ? e.message
-          : "We could not start checkout. Please try again.",
-      );
-    } finally {
-      setCreating(false);
-    }
-  };
+    },
+    [
+      publishableKey,
+      context.funnelId,
+      businessId,
+      context.currency,
+      context.customerEmail,
+      context.customerId,
+      context.checkoutToken,
+      context.campaignId,
+      refreshSession,
+    ],
+  );
+
 
   useEffect(() => {
-    if (!publishableKey || clientSecret || creating) return;
-    void startPaymentIntent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load intent once per context
-  }, [publishableKey, context.funnelId, businessId]);
+    requestGenerationRef.current += 1;
+    setClientSecret(null);
+    setStripeAccountId(null);
+    setIntentError(null);
+    setPaymentId(context.funnelPaymentId ?? null);
+    setCreating(false);
+
+    if (!publishableKey) return;
+
+    void startPaymentSession();
+
+    return () => {
+
+      requestGenerationRef.current += 1;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional identity deps
+  }, [
+    publishableKey,
+    context.funnelId,
+    businessId,
+    context.currency,
+    context.customerEmail,
+    context.checkoutToken,
+  ]);
 
   if (configError) {
     return (
@@ -158,7 +212,7 @@ export function FunnelStripePaymentForm({
     );
   }
 
-  if (!clientSecret) {
+  if (!clientSecret || !stripeAccountId || !stripePromise) {
     return (
       <div className="space-y-3">
         {intentError ? (
@@ -168,7 +222,7 @@ export function FunnelStripePaymentForm({
         ) : null}
         <button
           type="button"
-          onClick={() => void startPaymentIntent()}
+          onClick={() => void startPaymentSession({ manual: true })}
           disabled={creating}
           className="w-full cursor-pointer rounded-lg bg-zinc-900 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -178,32 +232,31 @@ export function FunnelStripePaymentForm({
               Preparing checkout…
             </span>
           ) : (
-            "Prepare payment"
+            intentError ? "Try again" : "Prepare payment"
           )}
         </button>
       </div>
     );
   }
 
-  if (!stripePromise) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-6 text-sm text-zinc-500">
-        <Loader2 className="size-5 animate-spin" aria-hidden />
-        Loading secure payment…
-      </div>
-    );
-  }
-
   return (
-    <Elements
-      key={stripeAccountId ?? "platform"}
+    <CheckoutElementsProvider
+      key={clientSecret}
       stripe={stripePromise}
       options={{
         clientSecret,
-        appearance: {
-          theme: darkInputs ? "night" : "stripe",
-          variables: {
-            borderRadius: page.checkoutTheme.borderRadius.replace("px", "") || "8",
+        elementsOptions: {
+          appearance: {
+            theme: darkInputs ? "night" : "stripe",
+            variables: {
+              borderRadius:
+                page.checkoutTheme.borderRadius.replace("px", "") || "8",
+            },
+          },
+
+          savedPaymentMethod: {
+            enableSave: "never",
+            enableRedisplay: "never",
           },
         },
       }}
@@ -212,7 +265,6 @@ export function FunnelStripePaymentForm({
         {page.paymentMethodSectionTitle || "Payment method"}
       </p>
       <CustomCardCheckoutForm
-        clientSecret={clientSecret}
         funnelId={context.funnelId}
         campaignId={context.campaignId}
         businessId={businessId}
@@ -223,6 +275,6 @@ export function FunnelStripePaymentForm({
         page={page}
         formStyles={formStyles}
       />
-    </Elements>
+    </CheckoutElementsProvider>
   );
 }

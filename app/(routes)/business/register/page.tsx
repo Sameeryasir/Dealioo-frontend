@@ -11,8 +11,11 @@ import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-busin
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
 import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
-import { isStarterPlan } from "@/app/lib/plan-limits";
+import { isStarterSubscription } from "@/app/lib/plan-limits";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import {
+  myUserSubscriptionQueryKey,
+} from "@/app/hooks/use-my-user-subscription";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
@@ -22,14 +25,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-async function userCanRegisterBusiness(): Promise<boolean> {
+async function userCanRegisterBusiness(
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<boolean> {
   try {
     const status = await getOnboardingStatus();
     if (status.subscriptionSelected) return true;
   } catch {}
 
   try {
-    const subscription = await getMyUserSubscription();
+    const subscription = await queryClient.fetchQuery({
+      queryKey: myUserSubscriptionQueryKey,
+      queryFn: getMyUserSubscription,
+      staleTime: 5 * 60_000,
+    });
     return (
       subscription?.status === "active" || subscription?.status === "trialing"
     );
@@ -73,7 +82,7 @@ export default function RegisterBusinessPage() {
         return;
       }
 
-      const canRegister = await userCanRegisterBusiness();
+      const canRegister = await userCanRegisterBusiness(queryClient);
       if (cancelled) return;
 
       if (!canRegister) {
@@ -81,15 +90,24 @@ export default function RegisterBusinessPage() {
         return;
       }
 
-      if (isStarterPlan()) {
-        try {
+      try {
+        const subscription = await queryClient.fetchQuery({
+          queryKey: myUserSubscriptionQueryKey,
+          queryFn: getMyUserSubscription,
+          staleTime: 5 * 60_000,
+        });
+        if (cancelled) return;
+        if (isStarterSubscription(subscription)) {
           const status = await getOnboardingStatus();
           if (cancelled) return;
           if (status.businessCreated) {
             router.replace("/dashboard");
             return;
           }
-        } catch {
+        }
+      } catch {
+        if (!cancelled) {
+          router.replace("/dashboard");
         }
       }
     }
@@ -99,7 +117,7 @@ export default function RegisterBusinessPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [queryClient, router]);
 
   const goToDashboard = useCallback(() => {
     router.replace("/dashboard");

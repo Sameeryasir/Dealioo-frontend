@@ -3,28 +3,18 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import {
-  CardCvcElement,
-  CardExpiryElement,
-  CardNumberElement,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js";
+  PaymentElement,
+  useCheckoutElements,
+} from "@stripe/react-stripe-js/checkout";
 import { Loader2 } from "lucide-react";
-import {
-  stripeCardDarkStyle,
-  stripeCardElementStyle,
-} from "@/app/components/payment-templates/shared/stripe-card-styles";
 import type { PaymentTemplatePage } from "@/app/components/crm-template-editor/template-types";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
-import { waitForPaymentPaid } from "@/app/lib/wait-for-payment-paid";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { checkoutFormRootClass } from "@/app/components/payment-templates/shared/checkout-form-classes";
 import type { CheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
-import { checkoutStripeFieldShell } from "@/app/components/payment-templates/shared/checkout-form-styles";
 
 export type CustomCardCheckoutFormProps = {
-  clientSecret: string;
   funnelId: number;
   campaignId?: number | null;
   businessId: number;
@@ -37,26 +27,21 @@ export type CustomCardCheckoutFormProps = {
   submitLabel?: string;
 };
 
-async function trackPaymentSuccessWhenConfirmed(
-  funnelId: number,
-  funnelPaymentId: number,
-  customerId?: number,
-): Promise<void> {
-  const paid = await waitForPaymentPaid(funnelPaymentId);
-  if (!paid) return;
-
-  await trackFunnelEvent({
-    eventType: "payment",
-    funnelId,
-    funnelPaymentId,
-    paymentStatus: "paid",
-    visitorId: getOrCreateVisitorId(),
-    ...(customerId != null ? { customerId } : {}),
-  });
+function errorMessageFromUnknown(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  if (
+    err &&
+    typeof err === "object" &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string"
+  ) {
+    const message = (err as { message: string }).message.trim();
+    if (message) return message;
+  }
+  return "Payment failed. Please check your details and try again.";
 }
 
 export function CustomCardCheckoutForm({
-  clientSecret,
   funnelId,
   campaignId,
   businessId,
@@ -68,114 +53,88 @@ export function CustomCardCheckoutForm({
   formStyles,
   submitLabel,
 }: CustomCardCheckoutFormProps) {
-  const stripe = useStripe();
-  const elements = useElements();
+  const checkoutState = useCheckoutElements();
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const { isDark } = formStyles;
-  const cardStyle = isDark ? stripeCardDarkStyle : stripeCardElementStyle;
-  const stripeShell = checkoutStripeFieldShell(formStyles);
+
   const buttonStyle = {
     backgroundColor: page.checkoutTheme.buttonColor,
     borderRadius: page.checkoutTheme.borderRadius,
     boxShadow: page.checkoutTheme.shadow,
   };
 
+  const confirmationPath = buildFunnelPaymentConfirmationPath(
+    funnelId,
+    { campaignId, businessId, checkoutToken },
+    { redirectStatus: "succeeded", paymentConfirmed: true },
+  );
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
-    if (!stripe || !elements) return;
 
-    const card = elements.getElement(CardNumberElement);
-    if (!card) {
-      setFormError("Card field is not ready. Please wait a moment.");
+    if (checkoutState.type === "loading") {
+      setFormError("Payment form is still loading. Please wait a moment.");
+      return;
+    }
+    if (checkoutState.type === "error") {
+      setFormError(
+        checkoutState.error.message || "Could not load checkout. Try again.",
+      );
       return;
     }
 
-    const fd = new FormData(e.currentTarget);
-    const name = String(fd.get("cardholderName") ?? "").trim();
-    if (!name) {
-      setFormError("Please enter the cardholder name.");
-      return;
-    }
 
+    const successUrl = new URL(confirmationPath, window.location.origin).toString();
     setBusy(true);
+
     try {
-      const confirmationPath = buildFunnelPaymentConfirmationPath(
-        funnelId,
-        { campaignId, businessId, checkoutToken },
-        { redirectStatus: "succeeded", paymentConfirmed: true },
-      );
-      const returnUrl = new URL(confirmationPath, window.location.origin);
 
-      const { error, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card,
-            billing_details: {
-              name,
-              email: customerEmail,
-              phone: page.showPhoneField
-                ? String(fd.get("contactPhone") ?? "").trim() || undefined
-                : undefined,
-              address: page.showAddressField
-                ? {
-                    line1:
-                      String(fd.get("billingLine1") ?? "").trim() || undefined,
-                    country:
-                      String(fd.get("billingCountry") ?? "").trim() ||
-                      undefined,
-                  }
-                : undefined,
-            },
-          },
-          return_url: returnUrl.toString(),
-        },
-      );
 
-      if (error) {
-        const alreadyPaid =
-          error.code === "payment_intent_unexpected_state" ||
-          /already succeeded/i.test(error.message ?? "");
+      const result = await checkoutState.checkout.confirm({
+        redirect: "if_required",
+      });
+
+      if (result.type === "error") {
+        const message = result.error.message ?? "Payment failed.";
+        const alreadyPaid = /already succeeded|already paid/i.test(message);
         if (alreadyPaid) {
-          window.location.href = returnUrl.toString();
+          window.location.assign(successUrl);
           return;
         }
-        setFormError(error.message ?? "Payment failed.");
+        setFormError(message);
         return;
       }
 
-      if (paymentIntent?.status === "succeeded") {
-        setFormError(null);
-        if (funnelPaymentId != null) {
-          const confirmed = await waitForPaymentPaid(funnelPaymentId, {
-            maxAttempts: 20,
-          });
-          if (!confirmed) {
-            setFormError(
-              "Payment is processing. Please wait a moment and refresh, or check your email for confirmation.",
-            );
-            return;
-          }
-        }
-        try {
-          if (funnelPaymentId != null) {
-            await trackPaymentSuccessWhenConfirmed(
-              funnelId,
-              funnelPaymentId,
-              customerId,
-            );
-          }
-        } catch (trackErr) {
+
+      if (funnelPaymentId != null) {
+        void trackFunnelEvent({
+          eventType: "payment",
+          funnelId,
+          funnelPaymentId,
+          paymentStatus: "paid",
+          visitorId: getOrCreateVisitorId(),
+          ...(customerId != null ? { customerId } : {}),
+        }).catch((trackErr) => {
           console.warn("[Funnel] payment track failed", trackErr);
-        }
-        window.location.href = returnUrl.toString();
+        });
       }
+
+      window.location.assign(successUrl);
+    } catch (err) {
+
+      console.error("[Funnel] checkout.confirm failed", err);
+      setFormError(errorMessageFromUnknown(err));
     } finally {
       setBusy(false);
     }
   };
+
+  const checkoutReady = checkoutState.type === "success";
+  const checkoutLoadError =
+    checkoutState.type === "error"
+      ? checkoutState.error.message || "Could not load checkout. Try again."
+      : null;
 
   return (
     <form
@@ -183,66 +142,56 @@ export function CustomCardCheckoutForm({
       className={`${checkoutFormRootClass} ${formStyles.fieldsContainerClass}`}
     >
       <div className={formStyles.rowClass}>
-        <label htmlFor="cardholderName" className={formStyles.labelClass}>
-          Cardholder name
+        <label className={formStyles.labelClass}>
+          {page.paymentNameOnCardPlaceholder
+            ? "Payment details"
+            : "Card details"}
         </label>
-        <input
-          id="cardholderName"
-          name="cardholderName"
-          type="text"
-          autoComplete="cc-name"
-          placeholder={page.paymentNameOnCardPlaceholder || "Full name on card"}
-          className={formStyles.fieldClass}
-        />
-      </div>
-
-      <div className={formStyles.rowClass}>
-        <label className={formStyles.labelClass}>Card number</label>
-        <div className={stripeShell}>
-          <CardNumberElement
-            options={{ style: cardStyle, showIcon: true }}
-            className="w-full min-w-0"
+        {checkoutState.type === "loading" ? (
+          <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Loading card form…
+          </div>
+        ) : null}
+        {checkoutReady ? (
+          <PaymentElement
+            options={{
+              layout: "tabs",
+              paymentMethodOrder: ["card"],
+              wallets: {
+                applePay: "never",
+                googlePay: "never",
+                link: "never",
+              },
+              fields: {
+                billingDetails: {
+                  name: "auto",
+                  email: "never",
+                  phone: page.showPhoneField ? "auto" : "never",
+                  address: page.showAddressField ? "auto" : "never",
+                },
+              },
+            }}
           />
-        </div>
+        ) : null}
       </div>
 
-      <div className="grid w-full min-w-0 grid-cols-2 gap-3">
-        <div className={`min-w-0 ${formStyles.rowClass}`}>
-          <label className={formStyles.labelClass}>Expiry</label>
-          <div className={stripeShell}>
-            <CardExpiryElement
-              options={{ style: cardStyle }}
-              className="w-full min-w-0"
-            />
-          </div>
-        </div>
-        <div className={`min-w-0 ${formStyles.rowClass}`}>
-          <label className={formStyles.labelClass}>CVV</label>
-          <div className={stripeShell}>
-            <CardCvcElement
-              options={{ style: cardStyle }}
-              className="w-full min-w-0"
-            />
-          </div>
-        </div>
-      </div>
-
-      {formError ? (
+      {checkoutLoadError || formError ? (
         <p className="text-xs font-medium text-red-600" role="alert">
-          {formError}
+          {checkoutLoadError || formError}
         </p>
       ) : null}
 
       <button
         type="submit"
-        disabled={busy || !stripe}
+        disabled={busy || !checkoutReady}
         style={buttonStyle}
         className="mt-1 w-full cursor-pointer py-3.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? (
           <span className="inline-flex items-center justify-center gap-2">
             <Loader2 className="size-4 animate-spin" aria-hidden />
-            Confirming payment…
+            Submitting payment…
           </span>
         ) : (
           submitLabel || page.buttonText || "Complete payment"

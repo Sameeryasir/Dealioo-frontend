@@ -4,18 +4,20 @@ import {
   getSignupPlanCta,
   SignupPlanStep,
 } from "@/app/components/auth/SignupPlanStep";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { findPricingPlan } from "@/app/components/landing/pricing-plans";
 import { useSubscriptionPlans } from "@/app/hooks/use-subscription-plans";
 import {
-  appendBillingQuery,
   persistBillingCyclePreference,
   readBillingCyclePreference,
 } from "@/app/lib/billing-cycle";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
+import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
+import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: string }[]): boolean {
@@ -24,8 +26,15 @@ function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: 
   return cta.toLowerCase().includes("contact");
 }
 
-export function SignupSelectPlanPanel() {
+type SignupSelectPlanPanelProps = {
+  mode?: "checkout" | "upgrade";
+};
+
+export function SignupSelectPlanPanel({
+  mode = "checkout",
+}: SignupSelectPlanPanelProps) {
   const router = useRouter();
+  const invalidateMySubscription = useInvalidateMyUserSubscription();
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
@@ -33,6 +42,8 @@ export function SignupSelectPlanPanel() {
   const [selectedPlanId, setSelectedPlanId] = useState("starter");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
+  const [upgradedPlanName, setUpgradedPlanName] = useState<string | null>(null);
 
   useEffect(() => {
     setBillingCycle(readBillingCyclePreference());
@@ -58,6 +69,10 @@ export function SignupSelectPlanPanel() {
     [selectedPlanId],
   );
 
+  const goToDashboard = useCallback(() => {
+    window.location.assign("/dashboard");
+  }, []);
+
   const onContinue = useCallback(async () => {
     if (!selectedPlanId) return;
 
@@ -72,6 +87,28 @@ export function SignupSelectPlanPanel() {
           "support@dealioo.com";
         window.location.href = `mailto:${salesEmail}?subject=${encodeURIComponent("Enterprise plan inquiry")}`;
         setSubmitting(false);
+        return;
+      }
+
+      if (mode === "upgrade") {
+        await upgradeUserSubscription({
+          planSlug: selectedPlanId,
+          billingCycle,
+        });
+
+        saveSelectedSignupPlan({
+          planId: selectedPlanId,
+          billing: billingCycle,
+        });
+
+        const planName =
+          plans.find((plan) => plan.id === selectedPlanId)?.name ??
+          findPricingPlan(selectedPlanId)?.name ??
+          selectedPlanId;
+        setUpgradedPlanName(planName);
+        setUpgradeSuccessOpen(true);
+        setSubmitting(false);
+        void invalidateMySubscription();
         return;
       }
 
@@ -90,9 +127,14 @@ export function SignupSelectPlanPanel() {
       const message =
         error instanceof Error
           ? error.message
-          : "Could not start checkout. Try again.";
+          : mode === "upgrade"
+            ? "Could not upgrade your plan. Try again."
+            : "Could not start checkout. Try again.";
 
-      if (message.toLowerCase().includes("already have an active subscription")) {
+      if (
+        mode === "checkout" &&
+        message.toLowerCase().includes("already have an active subscription")
+      ) {
         router.replace("/business/register");
         return;
       }
@@ -100,7 +142,7 @@ export function SignupSelectPlanPanel() {
       setErrorMessage(message);
       setSubmitting(false);
     }
-  }, [billingCycle, plans, router, selectedPlanId]);
+  }, [billingCycle, invalidateMySubscription, mode, plans, router, selectedPlanId]);
 
   if (loading) {
     return (
@@ -111,6 +153,10 @@ export function SignupSelectPlanPanel() {
   }
 
   const alertMessage = errorMessage ?? plansError;
+  const continueLabel =
+    mode === "upgrade"
+      ? "Upgrade plan"
+      : getSignupPlanCta(selectedPlanId, plans);
 
   return (
     <div className="signup-select-plan-panel mx-auto w-full max-w-[88rem] px-1 sm:px-0">
@@ -146,10 +192,26 @@ export function SignupSelectPlanPanel() {
           {submitting ? (
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
           ) : (
-            getSignupPlanCta(selectedPlanId, plans)
+            continueLabel
           )}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={upgradeSuccessOpen}
+        title="Plan upgraded"
+        description={
+          upgradedPlanName
+            ? `You're now on the ${upgradedPlanName} plan. Your card on file was charged for any prorated difference.`
+            : "Your subscription was updated successfully."
+        }
+        icon={CheckCircle2}
+        tone="primary"
+        cancelLabel="Stay here"
+        confirmLabel="Go to dashboard"
+        onCancel={() => setUpgradeSuccessOpen(false)}
+        onConfirm={goToDashboard}
+      />
     </div>
   );
 }
