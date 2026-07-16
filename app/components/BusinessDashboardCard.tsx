@@ -119,7 +119,7 @@ export default function BusinessDashboardCard({
   const setupStatusText = isCountingProgress
     ? "Calculating…"
     : isReady
-      ? "Complete"
+      ? `${setup.completedCount} steps completed`
       : remainingSteps === 1
         ? "1 step left"
         : `${remainingSteps} steps left`;

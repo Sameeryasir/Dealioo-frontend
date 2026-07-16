@@ -16,6 +16,9 @@ export function buildFacebookScopeDisplayList(params: {
   requiredScopes?: string[];
   missingRequiredScopes?: string[];
 }): string[] {
+
+  const HIDDEN_DISPLAY_SCOPES = new Set(["email"]);
+
   const ordered = [
     ...(params.requestedScopes ?? []),
     ...(params.requiredScopes ?? []),
@@ -23,7 +26,7 @@ export function buildFacebookScopeDisplayList(params: {
     ...(params.missingRequiredScopes ?? []),
   ]
     .map((scope) => scope.trim())
-    .filter(Boolean);
+    .filter((scope) => Boolean(scope) && !HIDDEN_DISPLAY_SCOPES.has(scope));
 
   return [...new Set(ordered)];
 }

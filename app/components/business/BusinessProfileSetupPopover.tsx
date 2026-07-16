@@ -23,11 +23,12 @@ type BusinessProfileSetupPopoverProps = {
 type PopoverPos = {
   top: number;
   left: number;
-  placement: "above" | "below";
+  placement: "above" | "below" | "right" | "left";
 };
 
-const POPOVER_WIDTH = 300;
-const VIEW_PAD = 12;
+const POPOVER_WIDTH = 280;
+const VIEW_PAD = 16;
+const GAP = 10;
 
 export function BusinessProfileSetupPopover({
   setup,
@@ -41,6 +42,9 @@ export function BusinessProfileSetupPopover({
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<PopoverPos | null>(null);
+
+  const isComplete =
+    setup.completedCount >= setup.totalCount && setup.totalCount > 0;
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current != null) {
@@ -78,36 +82,48 @@ export function BusinessProfileSetupPopover({
     if (!trigger || !panel) return;
 
     const rect = trigger.getBoundingClientRect();
-    const panelHeight = panel.offsetHeight || 360;
+    const panelHeight = panel.offsetHeight || (isComplete ? 140 : 320);
     const spaceAbove = rect.top - VIEW_PAD;
     const spaceBelow = window.innerHeight - rect.bottom - VIEW_PAD;
-    const preferAbove = spaceAbove >= panelHeight || spaceAbove >= spaceBelow;
 
-    let top = preferAbove
-      ? rect.top - panelHeight - 10
-      : rect.bottom + 10;
+    let placement: PopoverPos["placement"];
+    let top: number;
+    let left: number;
+
+    if (isComplete) {
+      placement = "above";
+      left = rect.left + (rect.width - POPOVER_WIDTH) / 2;
+      top = rect.top - panelHeight - GAP;
+      if (top < VIEW_PAD) {
+        top = VIEW_PAD;
+      }
+    } else {
+      const nearTop = rect.top < 220;
+      const preferBelow =
+        nearTop ||
+        spaceBelow >= panelHeight ||
+        (spaceBelow >= 160 && spaceBelow >= spaceAbove);
+      placement = preferBelow ? "below" : "above";
+      top = preferBelow ? rect.bottom + GAP : rect.top - panelHeight - GAP;
+      left = rect.left;
+    }
+
     top = Math.max(
       VIEW_PAD,
       Math.min(top, window.innerHeight - panelHeight - VIEW_PAD),
     );
-
-    let left = rect.left + rect.width / 2 - POPOVER_WIDTH / 2;
     left = Math.max(
       VIEW_PAD,
       Math.min(left, window.innerWidth - POPOVER_WIDTH - VIEW_PAD),
     );
 
-    setPos({
-      top,
-      left,
-      placement: preferAbove ? "above" : "below",
-    });
-  }, []);
+    setPos({ top, left, placement });
+  }, [isComplete]);
 
   useLayoutEffect(() => {
     if (!open) return;
     updatePosition();
-  }, [open, setup.completedCount, updatePosition]);
+  }, [open, setup.completedCount, isComplete, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
@@ -160,9 +176,13 @@ export function BusinessProfileSetupPopover({
         ref={panelRef}
         id={`${triggerId}-panel`}
         role="dialog"
-        aria-label="Profile Setup Progress"
-        className={`org-biz-setup-popover${pos ? " org-biz-setup-popover--visible" : ""}`}
-        data-placement={pos?.placement ?? "above"}
+        aria-label={
+          isComplete ? "Profile setup complete" : "Profile setup progress"
+        }
+        className={`org-biz-setup-popover${pos ? " org-biz-setup-popover--visible" : ""}${
+          isComplete ? " org-biz-setup-popover--complete" : ""
+        }`}
+        data-placement={pos?.placement ?? "below"}
         style={
           pos
             ? {
@@ -177,70 +197,82 @@ export function BusinessProfileSetupPopover({
         onClick={stopCardNavigation}
       >
         <div className="org-biz-setup-popover-inner">
-          <header className="org-biz-setup-popover-head">
-            <p className="org-biz-setup-popover-title">Profile Setup Progress</p>
-            <p className="org-biz-setup-popover-subtitle">
-              Finish these steps to complete your business profile.
-            </p>
-          </header>
+          {isComplete ? (
+            <div className="org-biz-setup-popover-complete">
+              <span className="org-biz-setup-popover-complete-icon" aria-hidden>
+                <CheckCircle2 className="size-5" strokeWidth={2.25} />
+              </span>
+              <p className="org-biz-setup-popover-title">Profile complete</p>
+              <p className="org-biz-setup-popover-subtitle">
+                All {setup.totalCount} setup steps are done for this business.
+              </p>
+              <p className="org-biz-setup-popover-complete-meta">
+                {setup.completedCount}/{setup.totalCount} ·{" "}
+                {setup.progressPercent}%
+              </p>
+            </div>
+          ) : (
+            <>
+              <header className="org-biz-setup-popover-head">
+                <p className="org-biz-setup-popover-title">
+                  Finish profile setup
+                </p>
+                <p className="org-biz-setup-popover-subtitle">
+                  {setup.totalCount - setup.completedCount} step
+                  {setup.totalCount - setup.completedCount === 1 ? "" : "s"} left
+                  · {setup.progressPercent}% complete
+                </p>
+              </header>
 
-          <ul className="org-biz-setup-popover-list">
-            {setup.steps.map((step) => (
-              <li key={step.id}>
-                {step.done ? (
-                  <span className="org-biz-setup-popover-item org-biz-setup-popover-item--done">
-                    <CheckCircle2
-                      className="size-3.5 shrink-0"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                    <span>{step.label}</span>
-                  </span>
-                ) : (
+              <ul className="org-biz-setup-popover-list">
+                {setup.steps.map((step) => (
+                  <li key={step.id}>
+                    {step.done ? (
+                      <span className="org-biz-setup-popover-item org-biz-setup-popover-item--done">
+                        <CheckCircle2
+                          className="size-3.5 shrink-0"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span>{step.label}</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="org-biz-setup-popover-item org-biz-setup-popover-item--todo"
+                        onClick={(event) => {
+                          stopCardNavigation(event);
+                          goTo(step.href);
+                        }}
+                      >
+                        <Clock3
+                          className="size-3.5 shrink-0"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span>{step.label}</span>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <footer className="org-biz-setup-popover-footer">
+                {setup.firstIncompleteHref ? (
                   <button
                     type="button"
-                    className="org-biz-setup-popover-item org-biz-setup-popover-item--todo"
+                    className="org-biz-setup-popover-cta"
                     onClick={(event) => {
                       stopCardNavigation(event);
-                      goTo(step.href);
+                      goTo(setup.firstIncompleteHref!);
                     }}
                   >
-                    <Clock3
-                      className="size-3.5 shrink-0"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                    <span>{step.label}</span>
+                    Continue setup
                   </button>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <footer className="org-biz-setup-popover-footer">
-            <div className="org-biz-setup-popover-stats">
-              <span>
-                Completed: {setup.completedCount} / {setup.totalCount}
-              </span>
-              <span>Profile Completion: {setup.progressPercent}%</span>
-            </div>
-            {setup.firstIncompleteHref ? (
-              <button
-                type="button"
-                className="org-biz-setup-popover-cta"
-                onClick={(event) => {
-                  stopCardNavigation(event);
-                  goTo(setup.firstIncompleteHref!);
-                }}
-              >
-                Continue Setup
-              </button>
-            ) : (
-              <p className="org-biz-setup-popover-done-note">
-                All setup steps are complete.
-              </p>
-            )}
-          </footer>
+                ) : null}
+              </footer>
+            </>
+          )}
         </div>
       </div>
     ) : null;

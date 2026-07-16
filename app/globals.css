@@ -3751,9 +3751,8 @@ body {
     background: linear-gradient(
       90deg,
       var(--brand-primary) 0%,
-      var(--brand-violet) 42%,
-      var(--brand-coral) 72%,
-      var(--brand-amber) 100%
+      var(--brand-navy) 48%,
+      var(--brand-coral) 100%
     );
   }
 
@@ -3867,16 +3866,16 @@ body {
 
   .org-biz-card-name-label {
     @apply mb-0.5 block text-[11px] font-semibold uppercase tracking-[0.08em];
-    color: var(--brand-muted);
+    color: color-mix(in srgb, var(--brand-primary) 72%, var(--brand-muted));
   }
 
   .org-biz-card-bento {
     @apply mt-4 grid grid-cols-2 gap-0 overflow-hidden rounded-xl border;
-    border-color: color-mix(in srgb, var(--brand-primary) 18%, transparent);
-    background: transparent;
+    border-color: color-mix(in srgb, var(--brand-primary) 18%, #e8edf5);
+    background: #ffffff;
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.8),
-      0 6px 18px rgba(24, 119, 242, 0.06);
+      inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+      0 4px 14px rgba(24, 119, 242, 0.05);
   }
 
   .org-biz-card-bento-cell {
@@ -3887,22 +3886,17 @@ body {
 
   .org-biz-card-bento-eyebrow {
     @apply inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em];
-    color: var(--brand-muted);
+    color: var(--brand-primary);
   }
 
   .org-biz-card-progress-wrap {
     @apply min-w-0;
-    border-right: 1px solid color-mix(in srgb, var(--brand-primary) 16%, transparent) !important;
-    background: linear-gradient(
-      155deg,
-      #dbeafe 0%,
-      color-mix(in srgb, var(--brand-primary) 18%, white) 42%,
-      color-mix(in srgb, var(--brand-violet) 12%, #eff6ff) 100%
-    ) !important;
+    border-right: 1px solid color-mix(in srgb, var(--brand-primary) 14%, #e8edf5) !important;
+    background: #ffffff !important;
   }
 
   .org-biz-card-progress-wrap .org-biz-card-bento-eyebrow {
-    color: #0f5ed7;
+    color: var(--brand-primary);
   }
 
   .org-biz-card-progress-wrap--interactive {
@@ -3912,6 +3906,7 @@ body {
   .org-biz-card-progress-wrap--interactive:hover,
   .org-biz-card-progress-wrap--interactive:focus-visible {
     outline: none;
+    background: #f8faff !important;
   }
 
   .org-biz-card-progress-row {
@@ -3924,21 +3919,20 @@ body {
 
   .org-biz-card-setup-pct {
     @apply pointer-events-none relative z-[1] m-0 text-center text-[0.72rem] font-bold leading-none tracking-tight tabular-nums;
-    color: var(--brand-navy);
+    color: var(--brand-coral);
   }
 
   .org-biz-card-progress-ring {
     @apply relative flex size-[3.35rem] shrink-0 items-center justify-center;
-    /* Promote a crisp paint layer so the ring anti-aliases cleanly */
     transform: translateZ(0);
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-setup-pct {
-    color: #047857;
+    color: var(--brand-coral);
   }
 
   .org-biz-card-progress-ring:not([data-complete="true"]) .org-biz-card-setup-pct {
-    color: #c2410c;
+    color: var(--brand-coral);
   }
 
   .org-biz-card-progress-svg {
@@ -3954,11 +3948,11 @@ body {
   }
 
   .org-biz-card-progress-ring-track {
-    stroke: color-mix(in srgb, var(--brand-amber) 28%, #ffedd5);
+    stroke: color-mix(in srgb, var(--brand-primary) 28%, #dbeafe);
   }
 
   .org-biz-card-progress-ring-fill {
-    stroke: var(--brand-amber);
+    stroke: var(--brand-primary);
     transition: stroke-dashoffset 0.45s ease, stroke 0.25s ease;
   }
 
@@ -3967,32 +3961,27 @@ body {
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-fill {
-    stroke: #059669;
+    stroke: var(--brand-primary);
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-track {
-    stroke: color-mix(in srgb, #059669 30%, #d1fae5);
+    stroke: color-mix(in srgb, var(--brand-primary) 28%, #dbeafe);
   }
 
   .org-biz-card-location-tile {
     @apply min-w-0;
-    background: linear-gradient(
-      155deg,
-      #d1fae5 0%,
-      color-mix(in srgb, var(--brand-teal) 20%, white) 48%,
-      #ecfdf5 100%
-    ) !important;
+    background: #ffffff !important;
   }
 
   .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
-    color: #047857;
+    color: var(--brand-coral);
   }
 
   .org-biz-setup-popover {
     position: fixed;
     z-index: 80;
     opacity: 0;
-    transform: translateY(6px) scale(0.97);
+    transform: translateY(6px) scale(0.98);
     pointer-events: none;
     transition:
       opacity 0.16s ease,
@@ -4000,30 +3989,73 @@ body {
   }
 
   .org-biz-setup-popover[data-placement="above"] {
-    transform: translateY(6px) scale(0.97);
+    transform: translateY(6px) scale(0.98);
   }
 
   .org-biz-setup-popover[data-placement="below"] {
-    transform: translateY(-6px) scale(0.97);
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  .org-biz-setup-popover[data-placement="right"] {
+    transform: translateX(-6px) scale(0.98);
+  }
+
+  .org-biz-setup-popover[data-placement="left"] {
+    transform: translateX(6px) scale(0.98);
   }
 
   .org-biz-setup-popover--visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(0, 0) scale(1);
     pointer-events: auto;
   }
 
   .org-biz-setup-popover-inner {
-    max-height: min(70vh, 28rem);
+    max-height: min(60vh, 22rem);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     background: linear-gradient(165deg, #121a2b 0%, #0b1220 100%);
     box-shadow:
-      0 22px 48px rgba(0, 0, 0, 0.45),
-      0 0 0 1px rgba(24, 119, 242, 0.12);
+      0 18px 40px rgba(15, 23, 42, 0.35),
+      0 0 0 1px rgba(24, 119, 242, 0.1);
+  }
+
+  .org-biz-setup-popover--complete .org-biz-setup-popover-inner {
+    max-height: none;
+  }
+
+  .org-biz-setup-popover-complete {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.95rem 1rem 1.05rem;
+  }
+
+  .org-biz-setup-popover-complete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.2rem;
+    border-radius: 999px;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.14);
+  }
+
+  .org-biz-setup-popover-complete-meta {
+    margin: 0.45rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(226, 232, 240, 0.9);
+  }
+
+  .org-biz-setup-popover--complete .org-biz-setup-popover-subtitle {
+    color: rgba(203, 213, 225, 0.95);
   }
 
   .org-biz-setup-popover-head {
@@ -4073,22 +4105,22 @@ body {
   }
 
   .org-biz-setup-popover-item--done {
-    color: #86efac;
+    color: rgba(134, 239, 172, 0.72);
   }
 
   .org-biz-setup-popover-item--todo {
-    color: rgba(226, 232, 240, 0.78);
+    color: rgba(226, 232, 240, 0.9);
     cursor: pointer;
     transition: background 0.12s ease, color 0.12s ease;
   }
 
   .org-biz-setup-popover-item--todo:hover {
-    background: rgba(251, 146, 60, 0.12);
-    color: #fdba74;
+    background: rgba(24, 119, 242, 0.14);
+    color: #93c5fd;
   }
 
   .org-biz-setup-popover-item--todo svg {
-    color: #fb923c;
+    color: #60a5fa;
   }
 
   .org-biz-setup-popover-footer {
@@ -4153,7 +4185,7 @@ body {
 
   .org-biz-card-location-meta {
     @apply mt-1 inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold leading-snug;
-    color: #059669;
+    color: color-mix(in srgb, var(--brand-primary) 55%, var(--brand-muted));
   }
 
   .org-biz-card-footer--bento {
@@ -4203,10 +4235,10 @@ body {
 
   .org-biz-card-status {
     @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wide;
-    color: #c2410c;
-    background: linear-gradient(180deg, #fff7ed 0%, #fdba74 100%);
-    border-color: #fb923c;
-    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.18);
+    color: var(--brand-coral);
+    background: #ffffff;
+    border-color: color-mix(in srgb, var(--brand-coral) 35%, #e8edf5);
+    box-shadow: none;
   }
 
   .org-biz-card--grid:hover .org-biz-card-status {
@@ -4214,10 +4246,10 @@ body {
   }
 
   .org-biz-card-status--ready {
-    color: #047857;
-    background: linear-gradient(180deg, #ecfdf5 0%, #6ee7b7 100%);
-    border-color: #34d399;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    color: var(--brand-primary);
+    background: #ffffff;
+    border-color: color-mix(in srgb, var(--brand-primary) 35%, #e8edf5);
+    box-shadow: none;
   }
 
   .org-biz-card-main {
@@ -4239,7 +4271,7 @@ body {
 
   .org-biz-card-category {
     @apply m-0 text-[13px] font-medium leading-snug;
-    color: #64748b;
+    color: color-mix(in srgb, var(--brand-primary) 40%, var(--brand-muted));
   }
 
   .org-biz-card--list .org-biz-card-category {
@@ -4248,16 +4280,23 @@ body {
 
   .org-biz-card-description {
     @apply mt-1.5 line-clamp-2 text-[13px] leading-snug;
-    color: #475569;
+    color: var(--brand-body);
   }
 
   .org-biz-card-setup-status {
     @apply m-0 line-clamp-2 text-[13px] font-semibold leading-snug;
-    color: #64748b;
+    color: var(--brand-primary);
   }
 
   .org-biz-card-progress-wrap .org-biz-card-setup-status {
-    color: #0f5ed7;
+    color: var(--brand-primary);
+  }
+
+  .org-biz-card-progress-row:has(
+      .org-biz-card-progress-ring:not([data-complete="true"])
+    )
+    .org-biz-card-setup-status {
+    color: var(--brand-primary);
   }
 
   .org-biz-card-cta {
@@ -4294,7 +4333,7 @@ body {
 
   .org-biz-card-meta-inline {
     @apply mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs;
-    color: #64748b;
+    color: color-mix(in srgb, var(--brand-primary) 40%, var(--brand-muted));
   }
 
   .org-biz-card-list-cta {

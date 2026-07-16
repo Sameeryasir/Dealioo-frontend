@@ -32,7 +32,7 @@ import { standardEase } from "@/app/lib/motion";
 import {
   getDefaultPermissionsForRole,
   getPermissionLabel,
-  PERMISSION_OPTIONS,
+  getPermissionOptionsForRole,
 } from "@/app/lib/member-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -191,6 +191,11 @@ function InviteMemberModal({
     [role],
   );
 
+  const permissionOptions = useMemo(
+    () => getPermissionOptionsForRole(role),
+    [role],
+  );
+
   const emailPreview = email.trim();
   const canSubmit =
     emailPreview.length > 0 &&
@@ -211,7 +216,7 @@ function InviteMemberModal({
   };
 
   const selectAllPermissions = () => {
-    setPermissions(PERMISSION_OPTIONS.map((option) => option.value));
+    setPermissions(permissionOptions.map((option) => option.value));
   };
 
   const clearAllPermissions = () => {
@@ -407,7 +412,7 @@ function InviteMemberModal({
                 </p>
 
                 <div className="grid gap-2.5 sm:grid-cols-2">
-                  {PERMISSION_OPTIONS.map((option) => {
+                  {permissionOptions.map((option) => {
                     const enabled = permissions.includes(option.value);
                     const Icon = option.icon;
 
