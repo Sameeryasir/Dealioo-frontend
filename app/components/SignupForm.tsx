@@ -43,11 +43,21 @@ type SignupFormValues = {
 
 export type SignupRegisterValues = Omit<SignupFormValues, "confirmPassword">;
 
+export type SignupInvitationContext = {
+  token: string;
+  email: string;
+  businessName: string;
+  role: string;
+};
+
 export type SignupFormProps = {
   submitting: boolean;
   errorMessage: string | null;
   loginHref?: string;
-  onRegister: (values: SignupRegisterValues) => Promise<void>;
+  invitation?: SignupInvitationContext | null;
+  onRegister: (
+    values: SignupRegisterValues,
+  ) => Promise<void | { skipOtp?: boolean; redirectToLogin?: boolean }>;
   onVerifyOtp: (otp: number) => Promise<void>;
   onResendOtp: () => Promise<void>;
 };
@@ -105,6 +115,7 @@ export default function SignupForm({
   submitting,
   errorMessage,
   loginHref = "/auth/login",
+  invitation = null,
   onRegister,
   onVerifyOtp,
   onResendOtp,
@@ -120,6 +131,8 @@ export default function SignupForm({
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
   const [otpLoading, setOtpLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const isInviteSignup = Boolean(invitation?.token && invitation.email);
+  const totalSteps = isInviteSignup ? 2 : STEPS.length;
 
   const {
     register,
@@ -127,12 +140,13 @@ export default function SignupForm({
     watch,
     getValues,
     reset,
+    setValue,
     trigger,
     formState: { errors },
   } = useForm<SignupFormValues>({
     defaultValues: {
       name: "",
-      email: "",
+      email: invitation?.email ?? "",
       phone: "",
       password: "",
       confirmPassword: "",
@@ -146,11 +160,15 @@ export default function SignupForm({
   const phoneValue = watch("phone");
   const strength = useMemo(() => passwordStrength(passwordValue ?? ""), [passwordValue]);
   const currentStep = STEPS[step];
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const progress = ((step + 1) / totalSteps) * 100;
   const stepSubtitle =
     step === 2 && emailValue.trim()
       ? `Enter the 6-digit code we sent to ${emailValue.trim()}.`
-      : currentStep.subtitle;
+      : isInviteSignup && invitation
+        ? step === 0
+          ? `Join ${invitation.businessName || "the team"} as ${invitation.role}.`
+          : currentStep.subtitle
+        : currentStep.subtitle;
 
   const handleVerifyOtp = async (otp: number) => {
     await onVerifyOtp(otp);
@@ -161,6 +179,22 @@ export default function SignupForm({
   };
 
   useEffect(() => {
+    if (invitation?.email) {
+      clearSignupProgress();
+      reset({
+        name: "",
+        email: invitation.email,
+        phone: "",
+        password: "",
+        confirmPassword: "",
+      });
+      setStep(0);
+      setAccountCreated(false);
+      setEmailVerified(false);
+      setHydrated(true);
+      return;
+    }
+
     const saved = readSignupProgress();
     if (saved) {
       const restored = resolveSignupStep(saved);
@@ -185,7 +219,13 @@ export default function SignupForm({
     }
 
     setHydrated(true);
-  }, [rememberCredentials, reset]);
+  }, [invitation, rememberCredentials, reset]);
+
+  useEffect(() => {
+    if (invitation?.email) {
+      setValue("email", invitation.email);
+    }
+  }, [invitation?.email, setValue]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -250,8 +290,19 @@ export default function SignupForm({
 
       const { confirmPassword: _confirmPassword, ...data } = getValues();
       try {
-        await onRegister(data);
+        const result = await onRegister(data);
         setAccountCreated(true);
+        if (result?.skipOtp) {
+          clearSignupProgress();
+          // Invited users create the account, then sign in on the login page.
+          if (result.redirectToLogin) {
+            router.push("/auth/login");
+            return;
+          }
+          const destination = await fetchAuthenticatedOnboardingDestination();
+          router.push(destination);
+          return;
+        }
         setStep(2);
       } catch {
       }
@@ -294,7 +345,7 @@ export default function SignupForm({
       >
         <div className="auth-signup-progress-block">
           <p className="auth-signup-step-meta">
-            Step {step + 1} of {STEPS.length}
+            Step {step + 1} of {totalSteps}
           </p>
 
           <div className="auth-signup-progress-track" aria-hidden>
@@ -408,11 +459,15 @@ export default function SignupForm({
                       id="signup-email"
                       type="email"
                       autoComplete="email"
-                      disabled={submitting}
-                      readOnly={ignoreAutofill}
-                      onFocus={() => setIgnoreAutofill(false)}
+                      disabled={submitting || isInviteSignup}
+                      readOnly={isInviteSignup || ignoreAutofill}
+                      onFocus={() => {
+                        if (!isInviteSignup) setIgnoreAutofill(false);
+                      }}
                       aria-invalid={!!errors.email}
-                      className={inputClass(!!errors.email)}
+                      className={`${inputClass(!!errors.email)}${
+                        isInviteSignup ? " cursor-not-allowed bg-[#f8faff]" : ""
+                      }`}
                       placeholder="name@company.com"
                       {...register("email", {
                         required: "Enter your email.",
@@ -422,6 +477,11 @@ export default function SignupForm({
                         },
                       })}
                     />
+                    {isInviteSignup ? (
+                      <p className="mt-1.5 text-xs text-brand-muted">
+                        Email comes from your invitation and can&apos;t be changed.
+                      </p>
+                    ) : null}
                     <FieldError message={errors.email?.message} />
                   </div>
                 </motion.div>
@@ -582,7 +642,7 @@ export default function SignupForm({
       </div>
 
       <div className="auth-signup-mobile-dock">
-        {step === 0 ? (
+        {step === 0 && !isInviteSignup ? (
           <div className="mb-3 flex w-full flex-col gap-3">
             <GoogleAuthButton
               disabled={submitting}
@@ -627,6 +687,8 @@ export default function SignupForm({
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              ) : isInviteSignup && step === 1 ? (
+                "Create account"
               ) : (
                 "Next"
               )}

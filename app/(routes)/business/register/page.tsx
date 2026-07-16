@@ -11,6 +11,7 @@ import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-busin
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
 import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
+import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { isStarterSubscription } from "@/app/lib/plan-limits";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import {
@@ -79,6 +80,11 @@ export default function RegisterBusinessPage() {
     async function verifyAccess() {
       if (!hasAuthSession()) {
         router.replace("/auth/login");
+        return;
+      }
+
+      if (isInvitedTeamUser()) {
+        router.replace("/dashboard");
         return;
       }
 

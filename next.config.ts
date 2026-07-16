@@ -1,6 +1,11 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep Turbopack rooted on this app so parent lockfiles cannot steal resolution.
+  turbopack: {
+    root: path.join(__dirname),
+  },
   // Allow opening the app through the public ngrok frontend URL in local dev.
   allowedDevOrigins: ["washday-grooving-maximize.ngrok-free.dev"],
   async redirects() {

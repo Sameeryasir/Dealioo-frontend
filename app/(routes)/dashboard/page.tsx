@@ -11,6 +11,7 @@ import {
 } from "@/app/components/skeleton";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
+import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { isStarterBusinessLimitReachedForSubscription } from "@/app/lib/plan-limits";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
@@ -41,10 +42,14 @@ export default function DashboardPage() {
   const [starterLimitOpen, setStarterLimitOpen] = useState(false);
   const [planCheckError, setPlanCheckError] = useState<string | null>(null);
 
+  const [canAddBusiness, setCanAddBusiness] = useState(true);
+
   useEffect(() => {
     setIsClient(true);
     setUserName(getSetupUser()?.name ?? null);
     setUserRole(getUserRoleLabel());
+    // Invited Manager/Staff join an existing business — they must not start owner onboarding.
+    setCanAddBusiness(!isInvitedTeamUser());
   }, []);
 
   const {
@@ -186,20 +191,22 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="org-dashboard-panel-controls">
-                  <button
-                    type="button"
-                    onClick={() => void handleAddBusiness()}
-                    disabled={checkingPlan && subscription == null}
-                    aria-busy={checkingPlan && subscription == null}
-                    className="org-dashboard-add-btn cursor-pointer disabled:cursor-wait disabled:opacity-70"
-                  >
-                    <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-                    {checkingPlan && subscription == null
-                      ? "Checking plan…"
-                      : "Add business"}
-                  </button>
-                </div>
+                {canAddBusiness ? (
+                  <div className="org-dashboard-panel-controls">
+                    <button
+                      type="button"
+                      onClick={() => void handleAddBusiness()}
+                      disabled={checkingPlan && subscription == null}
+                      aria-busy={checkingPlan && subscription == null}
+                      className="org-dashboard-add-btn cursor-pointer disabled:cursor-wait disabled:opacity-70"
+                    >
+                      <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+                      {checkingPlan && subscription == null
+                        ? "Checking plan…"
+                        : "Add business"}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -242,11 +249,27 @@ export default function DashboardPage() {
               ) : isClient && !hasAnyBusinesses ? (
                 <div className="org-dashboard-first-run">
                   <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
-                    <p className="org-dashboard-first-run-title">Start with your first business</p>
-                    <p className="org-dashboard-first-run-text">
-                      Use Add business above to register your first location and unlock
-                      campaigns, deal funnels, QR tracking, and customer growth tools.
-                    </p>
+                    {canAddBusiness ? (
+                      <>
+                        <p className="org-dashboard-first-run-title">
+                          Start with your first business
+                        </p>
+                        <p className="org-dashboard-first-run-text">
+                          Use Add business above to register your first location and unlock
+                          campaigns, deal funnels, QR tracking, and customer growth tools.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="org-dashboard-first-run-title">
+                          Waiting for business access
+                        </p>
+                        <p className="org-dashboard-first-run-text">
+                          Accept your invitation link, then refresh this page to open the
+                          business you were invited to.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (

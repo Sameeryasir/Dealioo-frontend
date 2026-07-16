@@ -1,11 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Eye,
   Megaphone,
   MessageSquare,
   ScanLine,
   ShoppingBag,
-  Users,
 } from "lucide-react";
 import type {
   BusinessMemberPermission,
@@ -14,6 +14,8 @@ import type {
 
 export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
+  "meta_ads",
+  "meta_campaigns",
   "orders",
   "activity",
   "chats",
@@ -26,11 +28,18 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
   BusinessMemberRole,
   BusinessMemberPermission[]
 > = {
-  Manager: ["campaigns", "orders", "activity", "chats", "scanning"],
+  Manager: [
+    "campaigns",
+    "meta_ads",
+    "meta_campaigns",
+    "orders",
+    "activity",
+    "chats",
+    "scanning",
+  ],
   Staff: ["orders", "activity", "chats", "scanning"],
 };
 
-// Invite UI options — Settings is owner-only, so it is not offered here.
 export const PERMISSION_OPTIONS: {
   value: BusinessMemberPermission;
   label: string;
@@ -41,6 +50,18 @@ export const PERMISSION_OPTIONS: {
     value: "campaigns",
     label: "Campaigns",
     description: "View and manage marketing campaigns.",
+    icon: Megaphone,
+  },
+  {
+    value: "meta_ads",
+    label: "Read Meta Campaigns",
+    description: "View Meta Ads campaigns and performance.",
+    icon: Eye,
+  },
+  {
+    value: "meta_campaigns",
+    label: "Create Meta Campaigns",
+    description: "Create and manage Meta Ads campaigns.",
     icon: Megaphone,
   },
   {
@@ -67,12 +88,6 @@ export const PERMISSION_OPTIONS: {
     description: "Scan and redeem customer QR passes.",
     icon: ScanLine,
   },
-  {
-    value: "members",
-    label: "Members",
-    description: "View the team list for this business.",
-    icon: Users,
-  },
 ];
 
 const STAFF_PERMISSION_VALUES = new Set<BusinessMemberPermission>(
@@ -85,6 +100,7 @@ export function getPermissionOptionsForRole(role: BusinessMemberRole) {
       STAFF_PERMISSION_VALUES.has(option.value),
     );
   }
+
   return PERMISSION_OPTIONS;
 }
 

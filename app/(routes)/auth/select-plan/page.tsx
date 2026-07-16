@@ -4,6 +4,7 @@ import { AuthLandingNav } from "@/app/components/auth/AuthLandingNav";
 import { SignupSelectPlanPanel } from "@/app/components/SignupSelectPlanPanel";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { hasAuthSession } from "@/app/lib/auth-session";
+import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,12 @@ function SelectPlanPageInner() {
     async function run() {
       if (!hasAuthSession()) {
         router.replace("/auth/signup");
+        return;
+      }
+
+      // Invited Manager/Staff must never see owner plan selection.
+      if (isInvitedTeamUser()) {
+        router.replace("/dashboard");
         return;
       }
 

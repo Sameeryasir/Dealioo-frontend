@@ -1,16 +1,11 @@
 "use client";
 
-/**
- * Change: Business team members list + invite flow.
- * Why: Owners can invite Manager/Staff users and manage active members.
- * Related: business-members.ts, members/page.tsx, BusinessSettingsPanel.tsx
- */
-
 import {
   AlertCircle,
   Briefcase,
   Check,
   Clock3,
+  Eye,
   KeyRound,
   Loader2,
   Mail,
@@ -27,6 +22,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import { standardEase } from "@/app/lib/motion";
 import {
@@ -186,11 +182,6 @@ function InviteMemberModal({
     },
   });
 
-  const selectedRole = useMemo(
-    () => ROLE_OPTIONS.find((option) => option.value === role) ?? ROLE_OPTIONS[0],
-    [role],
-  );
-
   const permissionOptions = useMemo(
     () => getPermissionOptionsForRole(role),
     [role],
@@ -208,11 +199,28 @@ function InviteMemberModal({
   };
 
   const togglePermission = (permission: BusinessMemberPermission) => {
-    setPermissions((current) =>
-      current.includes(permission)
-        ? current.filter((item) => item !== permission)
-        : [...current, permission],
-    );
+    setPermissions((current) => {
+      const isOn = current.includes(permission);
+
+      if (isOn && permission === "meta_ads") {
+        return current.filter(
+          (item) => item !== "meta_ads" && item !== "meta_campaigns",
+        );
+      }
+
+      if (isOn) {
+        return current.filter((item) => item !== permission);
+      }
+
+      if (permission === "meta_campaigns") {
+        const next = new Set<BusinessMemberPermission>(current);
+        next.add("meta_ads");
+        next.add("meta_campaigns");
+        return [...next];
+      }
+
+      return [...current, permission];
+    });
   };
 
   const selectAllPermissions = () => {
@@ -469,53 +477,6 @@ function InviteMemberModal({
                 ) : null}
               </div>
 
-              <div className="rounded-2xl border border-[#e8edf5] bg-gradient-to-br from-[#f8fafc] to-white p-4">
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-500">
-                  Invitation preview
-                </p>
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-sm font-bold text-white">
-                    {(emailPreview.split("@")[0] || "?").charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#07111f]">
-                      {emailPreview || "teammate@company.com"}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Will join as{" "}
-                      <span className="font-semibold text-[#1877f2]">
-                        {selectedRole.label}
-                      </span>{" "}
-                      with {permissions.length} access area
-                      {permissions.length === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                  <span className="hidden rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe] sm:inline-flex">
-                    {permissions.length} enabled
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {permissions.length > 0 ? (
-                    permissions.map((permission) => (
-                      <span
-                        key={permission}
-                        className="inline-flex rounded-full bg-white px-2.5 py-1 text-[0.68rem] font-semibold text-[#1877f2] ring-1 ring-[#bfdbfe]"
-                      >
-                        {getPermissionLabel(permission)}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs font-medium text-amber-700">
-                      No access selected yet
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                  <Clock3 className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
-                  Secure link expires in 7 days after sending.
-                </div>
-              </div>
-
               {error ? (
                 <div
                   role="alert"
@@ -583,6 +544,229 @@ function MembersTableSkeleton() {
   );
 }
 
+function formatMemberDate(value?: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function MemberDetailsModal({
+  member,
+  open,
+  onClose,
+  onRemove,
+  isRemoving,
+}: {
+  member: BusinessMemberListItem | null;
+  open: boolean;
+  onClose: () => void;
+  onRemove: () => void;
+  isRemoving: boolean;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  if (!member) return null;
+
+  const initial = member.name.trim().charAt(0).toUpperCase() || "?";
+  const canRemove =
+    member.status !== "owner" && member.id != null && member.id > 0;
+  const RoleIcon = member.role === "Staff" ? UserCog : Briefcase;
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          key="member-details-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: standardEase }}
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/50 p-4 backdrop-blur-[4px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="member-details-title"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: standardEase }}
+            className="relative w-full max-w-lg overflow-hidden rounded-[1.6rem] border border-[#dbe7f5] bg-white shadow-[0_28px_70px_rgba(15,23,42,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(24,119,242,0.12),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(13,91,184,0.06),transparent_46%)]"
+            />
+
+            <div className="relative border-b border-[#d7e6f8] bg-gradient-to-br from-[#0f172a] via-[#123a73] to-[#1877f2] px-5 py-5 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold text-white shadow-inner ring-1 ring-white/25 backdrop-blur-sm">
+                    {initial}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-white/70">
+                      Member details
+                    </p>
+                    <p
+                      id="member-details-title"
+                      className="mt-1 truncate text-lg font-bold tracking-tight"
+                    >
+                      {member.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm text-white/75">
+                      {member.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+                  aria-label="Close member details"
+                >
+                  <X className="size-4" strokeWidth={2.25} aria-hidden />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative space-y-3.5 px-5 py-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-br from-[#eef5ff] to-white px-3.5 py-3.5 shadow-sm shadow-[#1877f2]/5">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
+                    Role
+                  </p>
+                  <p className="mt-2 flex items-center gap-2 text-sm font-bold text-[#0b1f3a]">
+                    <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+                      <RoleIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    </span>
+                    {member.role}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#f0e2c8] bg-gradient-to-br from-[#fff8ee] to-white px-3.5 py-3.5 shadow-sm shadow-amber-500/5">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#9a7b4a]">
+                    Status
+                  </p>
+                  <span
+                    className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold ring-1 ${memberStatusBadge(member.status)}`}
+                  >
+                    {memberStatusLabel(member.status)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-r from-[#f5f9ff] to-white px-3.5 py-3.5">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
+                  Email
+                </p>
+                <p className="mt-2 flex items-center gap-2.5 text-sm font-semibold text-[#0b1f3a]">
+                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+                    <Mail className="size-3.5" strokeWidth={2.25} aria-hidden />
+                  </span>
+                  <span className="truncate">{member.email}</span>
+                </p>
+              </div>
+
+              {(member.invitedAt || member.expiresAt) && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[#d9e8fb] bg-[#f7faff] px-3.5 py-3.5">
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
+                      Invited
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0b1f3a]">
+                      <Clock3
+                        className="size-3.5 shrink-0 text-[#1877f2]"
+                        aria-hidden
+                      />
+                      {formatMemberDate(member.invitedAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[#f0e2c8] bg-[#fffaf2] px-3.5 py-3.5">
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#9a7b4a]">
+                      Expires
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0b1f3a]">
+                      <Clock3
+                        className="size-3.5 shrink-0 text-amber-600"
+                        aria-hidden
+                      />
+                      {formatMemberDate(member.expiresAt)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fbff] px-3.5 py-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
+                    <Shield className="size-3.5 text-[#1877f2]" aria-hidden />
+                    Access permissions
+                  </p>
+                  <span className="rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                    {member.permissions.length} enabled
+                  </span>
+                </div>
+                {member.permissions.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {member.permissions.map((permission) => (
+                      <span
+                        key={permission}
+                        className="inline-flex rounded-full bg-white px-2.5 py-1 text-[0.72rem] font-semibold text-[#1565c9] shadow-sm ring-1 ring-[#c5dbf7]"
+                      >
+                        {getPermissionLabel(permission)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">No access set</p>
+                )}
+              </div>
+            </div>
+
+            <div className="relative flex flex-col-reverse gap-2 border-t border-[#e4eef9] bg-[#f7faff] px-5 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 cursor-pointer rounded-xl border border-[#d5e4f7] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-[#eef5ff]"
+              >
+                Close
+              </button>
+              {canRemove ? (
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  disabled={isRemoving}
+                  className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 px-5 text-sm font-semibold text-red-700 shadow-sm transition hover:from-red-100 hover:to-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isRemoving ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Trash2 className="size-4" aria-hidden />
+                  )}
+                  {member.status === "pending" ? "Remove access" : "Remove"}
+                </button>
+              ) : null}
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export function BusinessMembersPanel({
   businessId,
   embedded = false,
@@ -592,6 +776,11 @@ export function BusinessMembersPanel({
 }) {
   const queryClient = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [detailsMember, setDetailsMember] =
+    useState<BusinessMemberListItem | null>(null);
+  // Ask before remove so owners do not revoke access by accident.
+  const [memberToRemove, setMemberToRemove] =
+    useState<BusinessMemberListItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
 
@@ -608,6 +797,8 @@ export function BusinessMembersPanel({
       setActionError(null);
     },
     onSuccess: async () => {
+      setDetailsMember(null);
+      setMemberToRemove(null);
       await queryClient.invalidateQueries({
         queryKey: businessMemberQueryKeys.list(businessId),
       });
@@ -619,6 +810,12 @@ export function BusinessMembersPanel({
       setRemovingMemberId(null);
     },
   });
+
+  const isPendingInvite = memberToRemove?.status === "pending";
+  const removeTargetLabel =
+    memberToRemove?.name?.trim() ||
+    memberToRemove?.email ||
+    "this teammate";
 
   const members = membersQuery.data?.members ?? [];
   const isLoading = membersQuery.isLoading;
@@ -739,8 +936,9 @@ export function BusinessMembersPanel({
                   {members.map((member) => {
                     const initial =
                       member.name.trim().charAt(0).toUpperCase() || "?";
+                    const canViewDetails = member.status !== "owner";
                     const canRemove =
-                      member.status === "active" &&
+                      member.status !== "owner" &&
                       member.id != null &&
                       member.id > 0;
                     const isRemoving =
@@ -780,26 +978,41 @@ export function BusinessMembersPanel({
                           <MemberAccessPills member={member} />
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          {canRemove ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (member.id == null) return;
-                                removeMutation.mutate(member.id);
-                              }}
-                              disabled={isRemoving || removeMutation.isPending}
-                              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {isRemoving ? (
-                                <Loader2
-                                  className="size-3.5 animate-spin"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Trash2 className="size-3.5" aria-hidden />
-                              )}
-                              Remove
-                            </button>
+                          {canViewDetails || canRemove ? (
+                            <div className="inline-flex items-center justify-end gap-2">
+                              {canViewDetails ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailsMember(member)}
+                                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f8fafc]"
+                                >
+                                  <Eye className="size-3.5" aria-hidden />
+                                  Details
+                                </button>
+                              ) : null}
+                              {canRemove ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setMemberToRemove(member)}
+                                  disabled={
+                                    isRemoving || removeMutation.isPending
+                                  }
+                                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isRemoving ? (
+                                    <Loader2
+                                      className="size-3.5 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Trash2 className="size-3.5" aria-hidden />
+                                  )}
+                                  {member.status === "pending"
+                                    ? "Remove access"
+                                    : "Remove"}
+                                </button>
+                              ) : null}
+                            </div>
                           ) : (
                             <span className="text-xs text-slate-400">—</span>
                           )}
@@ -822,6 +1035,60 @@ export function BusinessMembersPanel({
           void queryClient.invalidateQueries({
             queryKey: businessMemberQueryKeys.list(businessId),
           });
+        }}
+      />
+
+      <MemberDetailsModal
+        member={detailsMember}
+        open={detailsMember != null}
+        onClose={() => setDetailsMember(null)}
+        isRemoving={
+          detailsMember?.id != null &&
+          removingMemberId === detailsMember.id
+        }
+        onRemove={() => {
+          if (detailsMember == null) return;
+          setMemberToRemove(detailsMember);
+        }}
+      />
+
+      <ConfirmDialog
+        open={memberToRemove != null}
+        titleId="remove-member-confirm-title"
+        title={isPendingInvite ? "Remove access?" : "Remove member?"}
+        description={
+          isPendingInvite ? (
+            <>
+              Cancel the invitation for{" "}
+              <span className="font-semibold text-[#07111f]">
+                {removeTargetLabel}
+              </span>
+              ? They will no longer be able to join with this invite.
+            </>
+          ) : (
+            <>
+              Remove{" "}
+              <span className="font-semibold text-[#07111f]">
+                {removeTargetLabel}
+              </span>{" "}
+              from this business? They will lose access immediately.
+            </>
+          )
+        }
+        tone="danger"
+        confirmLabel={isPendingInvite ? "Remove access" : "Remove"}
+        loadingLabel="Removing…"
+        isLoading={
+          memberToRemove?.id != null &&
+          removingMemberId === memberToRemove.id
+        }
+        onCancel={() => {
+          if (removeMutation.isPending) return;
+          setMemberToRemove(null);
+        }}
+        onConfirm={() => {
+          if (memberToRemove?.id == null) return;
+          removeMutation.mutate(memberToRemove.id);
         }}
       />
     </>

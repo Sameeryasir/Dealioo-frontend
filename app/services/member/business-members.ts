@@ -3,6 +3,7 @@ import { parseApiMessage } from "@/app/lib/api";
 import { authAxios } from "@/app/lib/auth-axios";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { createBusinessInvitation } from "@/app/services/invitation/business-invitations";
 import type {
   BusinessMemberListItem,
   BusinessMembersResponse,
@@ -137,65 +138,54 @@ export async function getBusinessMembers(
   return { members };
 }
 
+export type BusinessMembershipAccess = {
+  businessId: number;
+  access: "owner" | "member" | "super_admin";
+  role: string;
+  permissions: BusinessMemberPermission[];
+};
+
+export async function getMyBusinessMembershipAccess(
+  businessId: number,
+): Promise<BusinessMembershipAccess> {
+  if (!isPositiveInt(businessId)) {
+    throw new Error("Invalid business.");
+  }
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+
+  const response = await authAxios.get<unknown>("/members/me", {
+    params: { businessId },
+  });
+  const data = (response.data ?? {}) as Record<string, unknown>;
+  const accessRaw = data.access;
+  const access =
+    accessRaw === "owner" ||
+    accessRaw === "member" ||
+    accessRaw === "super_admin"
+      ? accessRaw
+      : "member";
+
+  return {
+    businessId:
+      typeof data.businessId === "number" && Number.isFinite(data.businessId)
+        ? data.businessId
+        : businessId,
+    access,
+    role: typeof data.role === "string" ? data.role : "Staff",
+    permissions: parseMemberPermissions(data.permissions),
+  };
+}
+
 export async function inviteBusinessMember(input: {
   businessId: number;
   email: string;
   role: string;
   permissions: BusinessMemberPermission[];
 }): Promise<{ message: string; inviteId: number }> {
-  if (!hasAuthSession()) {
-    throw new Error("Missing access token. Sign in again.");
-  }
-
-  try {
-    const response = await authAxios.post<unknown>("/members/invite", input);
-    const data = response.data as Record<string, unknown> | null;
-    const message =
-      typeof data?.message === "string"
-        ? data.message
-        : "Invitation sent successfully.";
-    const inviteIdRaw = data?.inviteId ?? data?.invite_id;
-    const inviteId =
-      typeof inviteIdRaw === "number" && Number.isFinite(inviteIdRaw)
-        ? inviteIdRaw
-        : 0;
-
-    return { message, inviteId };
-  } catch (error) {
-    throw new Error(
-      readApiErrorMessage(error, "Could not send the invitation."),
-    );
-  }
-}
-
-export async function acceptBusinessMemberInvite(
-  token: string,
-): Promise<{ message: string; businessId: number }> {
-  if (!hasAuthSession()) {
-    throw new Error("Missing access token. Sign in again.");
-  }
-
-  try {
-    const response = await authAxios.post<unknown>("/members/accept", {
-      token,
-    });
-    const data = response.data as Record<string, unknown> | null;
-    const message =
-      typeof data?.message === "string"
-        ? data.message
-        : "Invitation accepted successfully.";
-    const businessIdRaw = data?.businessId ?? data?.business_id;
-    const businessId =
-      typeof businessIdRaw === "number" && Number.isFinite(businessIdRaw)
-        ? businessIdRaw
-        : 0;
-
-    return { message, businessId };
-  } catch (error) {
-    throw new Error(
-      readApiErrorMessage(error, "Could not accept the invitation."),
-    );
-  }
+  const result = await createBusinessInvitation(input);
+  return { message: result.message, inviteId: result.invitationId };
 }
 
 export async function removeBusinessMember(

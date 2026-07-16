@@ -14459,3 +14459,296 @@ body:has(.auth-select-plan-page) {
     0 10px 24px rgba(24, 119, 242, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
+
+/* --- Delete business dialog --- */
+@keyframes delete-biz-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes delete-biz-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.delete-biz-dialog__backdrop {
+  border: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 40%, rgba(234, 67, 53, 0.18), transparent 70%),
+    rgba(7, 17, 31, 0.62);
+  backdrop-filter: blur(8px);
+  animation: delete-biz-backdrop-in 0.22s ease-out;
+}
+
+.delete-biz-dialog__panel {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(248, 180, 180, 0.55);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fffafa 48%, #fff5f5 100%);
+  box-shadow:
+    0 28px 60px rgba(15, 23, 42, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+  animation: delete-biz-dialog-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.delete-biz-dialog__glow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ea4335 0%, #e1306c 55%, #f77737 100%);
+}
+
+.delete-biz-dialog__icon {
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(248, 180, 180, 0.9);
+  background: linear-gradient(160deg, #fff1f1 0%, #ffe4e6 100%);
+  color: #dc2626;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.12);
+}
+
+.delete-biz-dialog__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e1306c;
+}
+
+.delete-biz-dialog__title {
+  margin: 0.2rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #07111f;
+}
+
+.delete-biz-dialog__close {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  border: 1px solid #e8edf5;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.delete-biz-dialog__close:hover:not(:disabled) {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
+.delete-biz-dialog__close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-biz-dialog__target {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.95rem;
+  border: 1px solid #fecaca;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 241, 242, 0.95)),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 8px,
+      rgba(225, 48, 108, 0.03) 8px,
+      rgba(225, 48, 108, 0.03) 9px
+    );
+  padding: 0.8rem 0.9rem;
+}
+
+.delete-biz-dialog__target-icon {
+  display: flex;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  background: #07111f;
+  color: #ffffff;
+}
+
+.delete-biz-dialog__target-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.delete-biz-dialog__target-name {
+  margin: 0.1rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #07111f;
+}
+
+.delete-biz-dialog__lead {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.delete-biz-dialog__list {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.9rem 0.75rem 1.7rem;
+  list-style: disc;
+  border-radius: 0.85rem;
+  border: 1px solid #f1e4e4;
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.delete-biz-dialog__list li + li {
+  margin-top: 0.35rem;
+}
+
+.delete-biz-dialog__field-label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #475569;
+}
+
+.delete-biz-dialog__field-label span {
+  font-weight: 800;
+  color: #07111f;
+}
+
+.delete-biz-dialog__input {
+  width: 100%;
+  height: 2.65rem;
+  border-radius: 0.8rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 0 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #07111f;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.delete-biz-dialog__input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.delete-biz-dialog__input:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+.delete-biz-dialog__input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.delete-biz-dialog__cancel,
+.delete-biz-dialog__confirm {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.85rem;
+  padding: 0 1.05rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.delete-biz-dialog__cancel {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+}
+
+.delete-biz-dialog__cancel:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.delete-biz-dialog__confirm {
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, #f04343 0%, #dc2626 55%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow:
+    0 10px 22px rgba(220, 38, 38, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.delete-biz-dialog__confirm:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.delete-biz-dialog__confirm:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.delete-biz-dialog__confirm:disabled {
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #94a3b8;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+@media (min-width: 640px) {
+  .delete-biz-dialog__cancel,
+  .delete-biz-dialog__confirm {
+    min-width: 8.5rem;
+  }
+}

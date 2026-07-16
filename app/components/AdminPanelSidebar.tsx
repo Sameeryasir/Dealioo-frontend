@@ -4,7 +4,9 @@ import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import type { BusinessMemberPermission } from "@/app/services/member/types";
 import {
   businessSettingsHref,
   defaultBusinessSettingsSection,
@@ -48,6 +50,7 @@ type NavItem = {
   /** Brand mark (Meta) — filled SVG, not a Lucide stroke icon. */
   brandIcon?: boolean;
   activeMatch: "exact" | "prefix";
+  permission?: BusinessMemberPermission | "owner";
 };
 
 export default function AdminPanelSidebar() {
@@ -64,6 +67,10 @@ export default function AdminPanelSidebar() {
     typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
       ? businessIdParam
       : null;
+  const businessIdNumber =
+    businessId != null ? Number.parseInt(businessId, 10) : null;
+  const { can, isOwnerLike } =
+    useBusinessMembershipPermissions(businessIdNumber);
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -122,92 +129,113 @@ export default function AdminPanelSidebar() {
   }, [expanded]);
 
   const navItems = useMemo<NavItem[]>(
-    () => [
-      {
-        href: restaurantHomeHref,
-        label: "Home",
-        icon: Home,
-        activeMatch: "exact",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/orders`
-          : "/dashboard/orders",
-        label: "Orders",
-        icon: ShoppingBag,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/activity`
-          : "/dashboard/activity",
-        label: "Activity",
-        icon: Activity,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/scanning`
-          : "/dashboard/scanning",
-        label: "Scanning",
-        icon: ScanLine,
-        activeMatch: "prefix",
-      },
-      {
-        href: `${restaurantHomeHref}/campaigns`,
-        label: "Campaigns",
-        icon: Megaphone,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/meta`
-          : "/dashboard/meta",
-        label: "Meta",
-        icon: MetaLogo,
-        brandIcon: true,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/members`
-          : "/dashboard/members",
-        label: "Members",
-        icon: Users,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/program`
-          : "/dashboard/program",
-        label: "Program",
-        icon: Gift,
-        activeMatch: "prefix",
-      },
-      {
-        href: chatsHref,
-        label: "Chats",
-        icon: MessageSquare,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/ad-library`
-          : "/dashboard/ad-library",
-        label: "Ad library",
-        icon: Library,
-        activeMatch: "prefix",
-      },
-      {
-        href: businessId
-          ? `${restaurantHomeHref}/website-builder`
-          : "/dashboard/website-builder",
-        label: "Website builder",
-        icon: LayoutTemplate,
-        activeMatch: "prefix",
-      },
-    ],
-    [restaurantHomeHref, businessId, chatsHref],
+    () => {
+      const items: NavItem[] = [
+        {
+          href: restaurantHomeHref,
+          label: "Home",
+          icon: Home,
+          activeMatch: "exact",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/orders`
+            : "/dashboard/orders",
+          label: "Orders",
+          icon: ShoppingBag,
+          activeMatch: "prefix",
+          permission: "orders",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/activity`
+            : "/dashboard/activity",
+          label: "Activity",
+          icon: Activity,
+          activeMatch: "prefix",
+          permission: "activity",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/scanning`
+            : "/dashboard/scanning",
+          label: "Scanning",
+          icon: ScanLine,
+          activeMatch: "prefix",
+          permission: "scanning",
+        },
+        {
+          href: `${restaurantHomeHref}/campaigns`,
+          label: "Campaigns",
+          icon: Megaphone,
+          activeMatch: "prefix",
+          permission: "campaigns",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/meta`
+            : "/dashboard/meta",
+          label: "Meta",
+          icon: MetaLogo,
+          brandIcon: true,
+          activeMatch: "prefix",
+          permission: "meta_ads",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/members`
+            : "/dashboard/members",
+          label: "Members",
+          icon: Users,
+          activeMatch: "prefix",
+          permission: "owner",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/program`
+            : "/dashboard/program",
+          label: "Program",
+          icon: Gift,
+          activeMatch: "prefix",
+          permission: "campaigns",
+        },
+        {
+          href: chatsHref,
+          label: "Chats",
+          icon: MessageSquare,
+          activeMatch: "prefix",
+          permission: "chats",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/ad-library`
+            : "/dashboard/ad-library",
+          label: "Ad library",
+          icon: Library,
+          activeMatch: "prefix",
+          permission: "meta_ads",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/website-builder`
+            : "/dashboard/website-builder",
+          label: "Website builder",
+          icon: LayoutTemplate,
+          activeMatch: "prefix",
+          permission: "campaigns",
+        },
+      ];
+
+      return items.filter((item) => {
+        if (!item.permission) return true;
+        if (item.permission === "owner") return isOwnerLike;
+        if (item.permission === "meta_ads") {
+          return can("meta_ads") || can("meta_campaigns");
+        }
+        return can(item.permission);
+      });
+    },
+    [restaurantHomeHref, businessId, chatsHref, can, isOwnerLike],
   );
 
   return (
@@ -334,26 +362,32 @@ export default function AdminPanelSidebar() {
             </p>
           ) : null}
 
-          <Link
-            href={settingsHref}
-            onClick={closeMobile}
-            className={`rd-sidebar-item group ${
-              settingsActive ? "rd-sidebar-item--active" : ""
-            }`}
-            aria-current={settingsActive ? "page" : undefined}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <Settings className="rd-sidebar-item-icon" aria-hidden strokeWidth={2} />
-            {expanded ? (
-              <span className="rd-sidebar-item-label">Settings</span>
-            ) : null}
-            {!expanded ? (
-              <span role="tooltip" className="rd-sidebar-tooltip">
-                Settings
-              </span>
-            ) : null}
-          </Link>
+          {isOwnerLike || can("settings") ? (
+            <Link
+              href={settingsHref}
+              onClick={closeMobile}
+              className={`rd-sidebar-item group ${
+                settingsActive ? "rd-sidebar-item--active" : ""
+              }`}
+              aria-current={settingsActive ? "page" : undefined}
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings
+                className="rd-sidebar-item-icon"
+                aria-hidden
+                strokeWidth={2}
+              />
+              {expanded ? (
+                <span className="rd-sidebar-item-label">Settings</span>
+              ) : null}
+              {!expanded ? (
+                <span role="tooltip" className="rd-sidebar-tooltip">
+                  Settings
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
 
           <button
             type="button"

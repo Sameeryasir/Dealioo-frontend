@@ -4,6 +4,8 @@ export type BusinessMemberRole = (typeof BUSINESS_MEMBER_ROLES)[number];
 
 export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
+  "meta_ads",
+  "meta_campaigns",
   "orders",
   "activity",
   "chats",
