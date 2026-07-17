@@ -46,7 +46,11 @@ export default function BusinessDashboardCard({
   const [isCountingProgress, setIsCountingProgress] = useState(true);
 
   const fullAddress = [city, state, country].filter(Boolean).join(", ");
-  const cityLabel = city?.trim() || "Add location";
+  const cityLabel =
+    [city, state]
+      .map((part) => part?.trim())
+      .filter(Boolean)
+      .join(" / ") || "Add location";
   const logoSrc = resolveUploadImageUrl(logoUrl);
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;

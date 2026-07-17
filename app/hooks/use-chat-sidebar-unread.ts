@@ -10,7 +10,7 @@ import {
 import { getSetupUser } from "@/app/lib/setup-user";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useBusinessChatPusher } from "@/app/hooks/use-business-chat-pusher";
+import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
 
 function isOnChatsRoute(pathname: string, chatsPathPrefix: string | null): boolean {
   if (!chatsPathPrefix) return false;
@@ -119,7 +119,7 @@ export function useChatSidebarUnread(
     return () => window.removeEventListener("focus", onFocus);
   }, [businessId, userId, onChatsPage, refreshUnreadFromServer]);
 
-  useBusinessChatPusher(businessId ?? 0, (payload) => {
+  useBusinessConversationsPusher(businessId ?? 0, (payload) => {
     const business = businessIdRef.current;
     const user = userIdRef.current;
     if (business == null || business < 1 || user == null) return;

@@ -4,6 +4,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
+import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
 import { prefetchConversationMessageCache } from "@/app/services/chat/chat-indexed-db";
 import { GuestChatAvatar } from "./GuestChatAvatar";
 import { guestChatHoverLift } from "./guest-chats-motion";
@@ -23,16 +24,18 @@ export const GuestChatCard = memo(function GuestChatCard({
   const name = guestDisplayName(row);
   const preview = listItemPreview(row);
 
+  function warmCache() {
+    if (CHAT_USE_INDEXED_DB) {
+      prefetchConversationMessageCache(businessId, row.customerId);
+    }
+  }
+
   return (
     <motion.button
       type="button"
-      onMouseDown={() =>
-        prefetchConversationMessageCache(businessId, row.customerId)
-      }
+      onMouseDown={warmCache}
       onClick={onSelect}
-      onMouseEnter={() =>
-        prefetchConversationMessageCache(businessId, row.customerId)
-      }
+      onMouseEnter={warmCache}
       variants={guestChatHoverLift}
       initial="rest"
       animate={selected ? "selected" : "rest"}

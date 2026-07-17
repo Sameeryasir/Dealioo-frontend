@@ -7,17 +7,26 @@ import { isPusherConfigured } from "@/app/lib/pusher-execution";
 export { isPusherConfigured };
 
 export const PUSHER_CHAT_EVENT = {
+  CONVERSATION_UPDATED: "chat-conversation-updated",
   MESSAGE_SENT: "chat-message-sent",
 } as const;
 
 export const PUSHER_PRIVATE_CHANNEL_PREFIX = "private-";
 
-export function pusherBusinessChatChannel(businessId: number): string {
-  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-chat-${businessId}`;
+export function pusherBusinessConversationsChannel(businessId: number): string {
+  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-conversations-${businessId}`;
+}
+
+export function pusherConversationMessagesChannel(
+  businessId: number,
+  conversationId: number,
+): string {
+  return `${PUSHER_PRIVATE_CHANNEL_PREFIX}business-conversation-messages-${businessId}-${conversationId}`;
 }
 
 export type ChatMessagePusherPayload = {
   businessId: number;
+  conversationId: number;
   customerId: number;
   customerName: string | null;
   customerEmail: string | null;
@@ -78,10 +87,19 @@ export function parseChatMessagePusherPayload(
 
   const businessId = Number(row.businessId ?? row.restaurantId);
   const customerId = Number(row.customerId);
+  const messageRaw = row.message;
+  const messageConversationId =
+    messageRaw && typeof messageRaw === "object"
+      ? Number((messageRaw as Record<string, unknown>).conversationId)
+      : NaN;
+  const conversationId = Number(
+    row.conversationId ??
+      (Number.isFinite(messageConversationId) ? messageConversationId : NaN),
+  );
   if (!Number.isFinite(businessId) || businessId < 1) return null;
+  if (!Number.isFinite(conversationId) || conversationId < 1) return null;
   if (!Number.isFinite(customerId) || customerId < 1) return null;
 
-  const messageRaw = row.message;
   if (!messageRaw || typeof messageRaw !== "object") return null;
   const messageRow = messageRaw as Record<string, unknown>;
   const messageId = Number(messageRow.id);
@@ -97,6 +115,7 @@ export function parseChatMessagePusherPayload(
 
   return {
     businessId,
+    conversationId,
     customerId,
     customerName: row.customerName == null ? null : String(row.customerName),
     customerEmail: row.customerEmail == null ? null : String(row.customerEmail),

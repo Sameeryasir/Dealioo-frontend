@@ -1,31 +1,33 @@
+/**
+ * Change summary:
+ * - What: Removed shared `customers` list store. Each guest thread uses its own IndexedDB
+ *   named `dealioo-chat-{businessId}-{customerId}` with a `messages` store.
+ * - Why: Guest list should not live in IndexedDB; messaging cache is per conversation.
+ * - Related: use-business-chat-customers-query (API-only list), clear-retention-indexed-db.
+ */
+
+import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
-import {
-  sanitizeChatMessageBody,
-  sanitizeChatMessagePreview,
-} from "@/app/lib/strip-email-signoff-for-chat";
+import { sanitizeChatMessageBody } from "@/app/lib/strip-email-signoff-for-chat";
 import {
   appendConversationMessage,
-  patchChatCustomersAfterSend,
-  patchChatCustomersFromPusher,
   patchConversationFromPusher,
 } from "@/app/services/chat/chat-query-cache";
-import type {
-  ChatCustomer,
-  PaginatedChatCustomersResponse,
-} from "@/app/services/chat/get-business-chat-customers";
+import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
 import type {
   ConversationMessage,
   CustomerConversationDetail,
 } from "@/app/services/chat/get-business-conversation";
 
-const DB_NAME = "retention-chat";
-const DB_VERSION = 5;
-const CONVERSATIONS_STORE = "conversations";
-const CUSTOMERS_STORE = "customers";
-const LEGACY_CONVERSATION_LIST_STORE = "conversation-list";
-const LEGACY_CONVERSATION_MESSAGES_STORE = "conversation-messages";
+// --- Per-conversation messaging DB (one IndexedDB database per guest thread) ---
+const MESSAGE_STORE = "messages";
+const MESSAGE_DB_VERSION = 1;
+const THREAD_KEY = "thread";
 
 export const CHAT_MESSAGE_PAGE_SIZE = 10;
+
+/** Prefix used so clear tools can find every conversation DB. */
+export const DEALIOO_CHAT_DB_PREFIX = "dealioo-chat-";
 
 export type StoredChatMessagePage = {
   customerId: number;
@@ -45,7 +47,50 @@ type ConversationMessageCacheEntry = {
   messages: ConversationMessage[];
 };
 
+type ConversationRecord = {
+  key: typeof THREAD_KEY;
+  restaurantId: number;
+  customerId: number;
+  data: CustomerConversationDetail;
+  updatedAt: string;
+};
+
+type ConversationListener = (
+  restaurantId: number,
+  customerId: number,
+  conversation: CustomerConversationDetail,
+) => void;
+
 const conversationMessageCache = new Map<string, ConversationMessageCacheEntry>();
+const conversationListeners = new Set<ConversationListener>();
+
+function conversationCacheKey(restaurantId: number, customerId: number) {
+  return `${restaurantId}:${customerId}`;
+}
+
+/** One IndexedDB database per conversation, e.g. dealioo-chat-155-203 */
+export function conversationMessageDbName(
+  restaurantId: number,
+  customerId: number,
+): string {
+  return `${DEALIOO_CHAT_DB_PREFIX}${restaurantId}-${customerId}`;
+}
+
+function sanitizeStoredMessage(message: ConversationMessage): ConversationMessage {
+  return {
+    ...message,
+    body: sanitizeChatMessageBody(message.body),
+  };
+}
+
+function sanitizeStoredConversation(
+  conversation: CustomerConversationDetail,
+): CustomerConversationDetail {
+  return {
+    ...conversation,
+    messages: conversation.messages.map(sanitizeStoredMessage),
+  };
+}
 
 function setConversationMessageCacheEntry(
   restaurantId: number,
@@ -53,7 +98,7 @@ function setConversationMessageCacheEntry(
   conversation: CustomerConversationDetail,
 ) {
   const sanitized = sanitizeStoredConversation(conversation);
-  conversationMessageCache.set(conversationKey(restaurantId, customerId), {
+  conversationMessageCache.set(conversationCacheKey(restaurantId, customerId), {
     customerId: sanitized.customerId,
     customerName: sanitized.customerName,
     customerEmail: sanitized.customerEmail,
@@ -61,11 +106,139 @@ function setConversationMessageCacheEntry(
   });
 }
 
+function buildMessagePage(
+  entry: ConversationMessageCacheEntry,
+  startIndex: number,
+): StoredChatMessagePage {
+  return {
+    customerId: entry.customerId,
+    customerName: entry.customerName,
+    customerEmail: entry.customerEmail,
+    messages: entry.messages.slice(startIndex),
+    startIndex,
+    totalMessages: entry.messages.length,
+    hasOlder: startIndex > 0,
+    lastMessageId: entry.messages.at(-1)?.id ?? null,
+  };
+}
+
+function deleteLegacySharedChatDatabases(): void {
+  if (typeof indexedDB === "undefined") {
+    return;
+  }
+  // Old shared DBs that held a `customers` table — no longer used.
+  for (const name of ["dealioo-chat", "retention-chat"]) {
+    try {
+      indexedDB.deleteDatabase(name);
+    } catch {
+      // best-effort
+    }
+  }
+}
+
+function openConversationMessageDb(
+  restaurantId: number,
+  customerId: number,
+): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB is not available."));
+      return;
+    }
+
+    deleteLegacySharedChatDatabases();
+
+    const request = indexedDB.open(
+      conversationMessageDbName(restaurantId, customerId),
+      MESSAGE_DB_VERSION,
+    );
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
+        db.createObjectStore(MESSAGE_STORE, { keyPath: "key" });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () =>
+      reject(request.error ?? new Error("Could not open conversation message storage."));
+  });
+}
+
+function runConversationTransaction<T>(
+  restaurantId: number,
+  customerId: number,
+  mode: IDBTransactionMode,
+  run: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
+  return openConversationMessageDb(restaurantId, customerId).then(
+    (db) =>
+      new Promise<T>((resolve, reject) => {
+        const transaction = db.transaction(MESSAGE_STORE, mode);
+        const store = transaction.objectStore(MESSAGE_STORE);
+        const request = run(store);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () =>
+          reject(request.error ?? new Error("Chat storage request failed."));
+        transaction.onerror = () =>
+          reject(
+            transaction.error ?? new Error("Chat storage transaction failed."),
+          );
+        transaction.oncomplete = () => {
+          db.close();
+        };
+      }),
+  );
+}
+
+function notifyConversationListeners(
+  restaurantId: number,
+  customerId: number,
+  conversation: CustomerConversationDetail,
+) {
+  for (const listener of conversationListeners) {
+    listener(restaurantId, customerId, conversation);
+  }
+}
+
+export function subscribeChatConversation(listener: ConversationListener) {
+  conversationListeners.add(listener);
+  return () => {
+    conversationListeners.delete(listener);
+  };
+}
+
+async function getStoredChatConversationRecord(
+  restaurantId: number,
+  customerId: number,
+): Promise<ConversationRecord | undefined> {
+  return runConversationTransaction<ConversationRecord | undefined>(
+    restaurantId,
+    customerId,
+    "readonly",
+    (store) => store.get(THREAD_KEY),
+  );
+}
+
+export async function getStoredChatConversation(
+  restaurantId: number,
+  customerId: number,
+): Promise<CustomerConversationDetail | null> {
+  try {
+    const record = await getStoredChatConversationRecord(restaurantId, customerId);
+    return record?.data ? sanitizeStoredConversation(record.data) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadConversationMessageCache(
   restaurantId: number,
   customerId: number,
 ): Promise<ConversationMessageCacheEntry | null> {
-  const key = conversationKey(restaurantId, customerId);
+  const key = conversationCacheKey(restaurantId, customerId);
   const cached = conversationMessageCache.get(key);
   if (cached) {
     return cached;
@@ -87,249 +260,13 @@ async function loadConversationMessageCache(
   return entry;
 }
 
-function buildMessagePage(
-  entry: ConversationMessageCacheEntry,
-  startIndex: number,
-): StoredChatMessagePage {
-  return {
-    customerId: entry.customerId,
-    customerName: entry.customerName,
-    customerEmail: entry.customerEmail,
-    messages: entry.messages.slice(startIndex),
-    startIndex,
-    totalMessages: entry.messages.length,
-    hasOlder: startIndex > 0,
-    lastMessageId: entry.messages.at(-1)?.id ?? null,
-  };
-}
-
-type ConversationRecord = {
-  key: string;
-  restaurantId: number;
-  customerId: number;
-  data: CustomerConversationDetail;
-  updatedAt: string;
-};
-
-type CustomersRecord = {
-  key: string;
-  restaurantId: number;
-  page: number;
-  data: PaginatedChatCustomersResponse;
-  updatedAt: string;
-};
-
-type ConversationListener = (
-  restaurantId: number,
-  customerId: number,
-  conversation: CustomerConversationDetail,
-) => void;
-
-type CustomersListener = (
-  restaurantId: number,
-  page: number,
-  customers: PaginatedChatCustomersResponse,
-) => void;
-
-const conversationListeners = new Set<ConversationListener>();
-const customersListeners = new Set<CustomersListener>();
-
-function conversationKey(restaurantId: number, customerId: number) {
-  return `${restaurantId}:${customerId}`;
-}
-
-function sanitizeStoredMessage(message: ConversationMessage): ConversationMessage {
-  return {
-    ...message,
-    body: sanitizeChatMessageBody(message.body),
-  };
-}
-
-function sanitizeStoredConversation(
-  conversation: CustomerConversationDetail,
-): CustomerConversationDetail {
-  return {
-    ...conversation,
-    messages: conversation.messages.map(sanitizeStoredMessage),
-  };
-}
-
-function sanitizeStoredCustomerRow(row: ChatCustomer): ChatCustomer {
-  return {
-    ...row,
-    lastMessagePreview: sanitizeChatMessagePreview(row.lastMessagePreview),
-  };
-}
-
-function sanitizeStoredCustomers(
-  customers: PaginatedChatCustomersResponse,
-): PaginatedChatCustomersResponse {
-  return {
-    ...customers,
-    data: customers.data.map(sanitizeStoredCustomerRow),
-  };
-}
-
-function customersKey(restaurantId: number, page: number) {
-  return `${restaurantId}:${page}`;
-}
-
-function migrateObjectStore(
-  transaction: IDBTransaction,
-  fromStore: string,
-  toStore: string,
-): void {
-  const source = transaction.objectStore(fromStore);
-  const target = transaction.objectStore(toStore);
-  const request = source.getAll();
-
-  request.onsuccess = () => {
-    for (const record of request.result) {
-      target.put(record);
-    }
-  };
-}
-
-function openChatDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === "undefined") {
-      reject(new Error("IndexedDB is not available."));
-      return;
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = request.result;
-      const transaction = request.transaction;
-
-      if (!db.objectStoreNames.contains(CONVERSATIONS_STORE)) {
-        db.createObjectStore(CONVERSATIONS_STORE, { keyPath: "key" });
-      }
-      if (!db.objectStoreNames.contains(CUSTOMERS_STORE)) {
-        db.createObjectStore(CUSTOMERS_STORE, { keyPath: "key" });
-      }
-
-      if (event.oldVersion < 5 && transaction) {
-        for (const storeName of [CONVERSATIONS_STORE, CUSTOMERS_STORE]) {
-          if (db.objectStoreNames.contains(storeName)) {
-            db.deleteObjectStore(storeName);
-            db.createObjectStore(storeName, { keyPath: "key" });
-          }
-        }
-      }
-
-      if (event.oldVersion < 4 && transaction) {
-        if (db.objectStoreNames.contains(LEGACY_CONVERSATION_LIST_STORE)) {
-          migrateObjectStore(
-            transaction,
-            LEGACY_CONVERSATION_LIST_STORE,
-            CUSTOMERS_STORE,
-          );
-          db.deleteObjectStore(LEGACY_CONVERSATION_LIST_STORE);
-        }
-        if (db.objectStoreNames.contains(LEGACY_CONVERSATION_MESSAGES_STORE)) {
-          migrateObjectStore(
-            transaction,
-            LEGACY_CONVERSATION_MESSAGES_STORE,
-            CONVERSATIONS_STORE,
-          );
-          db.deleteObjectStore(LEGACY_CONVERSATION_MESSAGES_STORE);
-        }
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
-      reject(request.error ?? new Error("Could not open chat storage."));
-  });
-}
-
-function runTransaction<T>(
-  storeName: string,
-  mode: IDBTransactionMode,
-  run: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  return openChatDb().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const transaction = db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        const request = run(store);
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () =>
-          reject(request.error ?? new Error("Chat storage request failed."));
-        transaction.onerror = () =>
-          reject(
-            transaction.error ?? new Error("Chat storage transaction failed."),
-          );
-      }),
-  );
-}
-
-function notifyConversationListeners(
-  restaurantId: number,
-  customerId: number,
-  conversation: CustomerConversationDetail,
-) {
-  for (const listener of conversationListeners) {
-    listener(restaurantId, customerId, conversation);
-  }
-}
-
-function notifyCustomersListeners(
-  restaurantId: number,
-  page: number,
-  customers: PaginatedChatCustomersResponse,
-) {
-  for (const listener of customersListeners) {
-    listener(restaurantId, page, customers);
-  }
-}
-
-export function subscribeChatConversation(listener: ConversationListener) {
-  conversationListeners.add(listener);
-  return () => {
-    conversationListeners.delete(listener);
-  };
-}
-
-export function subscribeChatCustomers(listener: CustomersListener) {
-  customersListeners.add(listener);
-  return () => {
-    customersListeners.delete(listener);
-  };
-}
-
-export async function getStoredChatConversation(
-  restaurantId: number,
-  customerId: number,
-): Promise<CustomerConversationDetail | null> {
-  try {
-    const record = await getStoredChatConversationRecord(restaurantId, customerId);
-    return record?.data ? sanitizeStoredConversation(record.data) : null;
-  } catch {
-    return null;
-  }
-}
-
-async function getStoredChatConversationRecord(
-  restaurantId: number,
-  customerId: number,
-): Promise<ConversationRecord | undefined> {
-  return runTransaction<ConversationRecord | undefined>(
-    CONVERSATIONS_STORE,
-    "readonly",
-    (store) => store.get(conversationKey(restaurantId, customerId)),
-  );
-}
-
 export function peekStoredChatMessagesLatestPage(
   restaurantId: number,
   customerId: number,
 ): StoredChatMessagePage | null {
-  const entry = conversationMessageCache.get(conversationKey(restaurantId, customerId));
+  const entry = conversationMessageCache.get(
+    conversationCacheKey(restaurantId, customerId),
+  );
   if (!entry) {
     return null;
   }
@@ -337,32 +274,48 @@ export function peekStoredChatMessagesLatestPage(
   return buildMessagePage(entry, 0);
 }
 
+/**
+ * Warm in-memory cache from any already-open per-conversation DBs for this business.
+ * Uses indexedDB.databases() when available.
+ */
 export async function warmRestaurantConversationMessageCache(
   restaurantId: number,
 ): Promise<void> {
-  if (restaurantId < 1) {
+  if (restaurantId < 1 || typeof indexedDB === "undefined") {
     return;
   }
 
-  try {
-    const records = await runTransaction<ConversationRecord[]>(
-      CONVERSATIONS_STORE,
-      "readonly",
-      (store) => store.getAll(),
-    );
+  deleteLegacySharedChatDatabases();
 
-    for (const record of records) {
-      if (record.restaurantId !== restaurantId) {
+  try {
+    const databasesFn = (
+      indexedDB as IDBFactory & {
+        databases?: () => Promise<Array<{ name?: string }>>;
+      }
+    ).databases;
+
+    if (typeof databasesFn !== "function") {
+      return;
+    }
+
+    const prefix = `${DEALIOO_CHAT_DB_PREFIX}${restaurantId}-`;
+    const dbs = await databasesFn.call(indexedDB);
+    for (const info of dbs) {
+      const name = info.name;
+      if (!name || !name.startsWith(prefix)) {
         continue;
       }
-
-      setConversationMessageCacheEntry(
-        restaurantId,
-        record.customerId,
-        record.data,
-      );
+      const customerId = Number(name.slice(prefix.length));
+      if (!Number.isFinite(customerId) || customerId < 1) {
+        continue;
+      }
+      const stored = await getStoredChatConversation(restaurantId, customerId);
+      if (stored) {
+        setConversationMessageCacheEntry(restaurantId, customerId, stored);
+      }
     }
   } catch {
+    // best-effort warm
   }
 }
 
@@ -412,82 +365,31 @@ export async function getStoredChatMessagesOlderPage(
   }
 }
 
-export async function getStoredChatCustomers(
-  restaurantId: number,
-  page: number,
-): Promise<PaginatedChatCustomersResponse | null> {
-  try {
-    const record = await runTransaction<CustomersRecord | undefined>(
-      CUSTOMERS_STORE,
-      "readonly",
-      (store) => store.get(customersKey(restaurantId, page)),
-    );
-
-    return record?.data ? sanitizeStoredCustomers(record.data) : null;
-  } catch {
-    return null;
-  }
-}
-
-async function getAllStoredChatCustomerRecords(
-  restaurantId: number,
-): Promise<CustomersRecord[]> {
-  try {
-    const records = await runTransaction<CustomersRecord[]>(
-      CUSTOMERS_STORE,
-      "readonly",
-      (store) => store.getAll(),
-    );
-
-    return records.filter((record) => record.restaurantId === restaurantId);
-  } catch {
-    return [];
-  }
-}
-
 export async function saveChatConversation(
   restaurantId: number,
   customerId: number,
   conversation: CustomerConversationDetail,
 ): Promise<void> {
-  const sanitized = sanitizeStoredConversation(conversation);
+  const sanitized = sanitizeStoredConversation({
+    ...conversation,
+    customerId,
+  });
   const record: ConversationRecord = {
-    key: conversationKey(restaurantId, customerId),
+    key: THREAD_KEY,
     restaurantId,
     customerId,
     data: sanitized,
     updatedAt: new Date().toISOString(),
   };
 
-  await runTransaction<IDBValidKey>(
-    CONVERSATIONS_STORE,
+  await runConversationTransaction<IDBValidKey>(
+    restaurantId,
+    customerId,
     "readwrite",
     (store) => store.put(record),
   );
   setConversationMessageCacheEntry(restaurantId, customerId, sanitized);
   notifyConversationListeners(restaurantId, customerId, sanitized);
-}
-
-export async function saveChatCustomers(
-  restaurantId: number,
-  page: number,
-  customers: PaginatedChatCustomersResponse,
-): Promise<void> {
-  const sanitized = sanitizeStoredCustomers(customers);
-  const record: CustomersRecord = {
-    key: customersKey(restaurantId, page),
-    restaurantId,
-    page,
-    data: sanitized,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await runTransaction<IDBValidKey>(
-    CUSTOMERS_STORE,
-    "readwrite",
-    (store) => store.put(record),
-  );
-  notifyCustomersListeners(restaurantId, page, sanitized);
 }
 
 export async function appendChatConversationMessage(
@@ -534,56 +436,21 @@ export async function patchChatConversationFromPusher(
   return next;
 }
 
+/** Guest list is no longer stored in IndexedDB — kept as a no-op for callers. */
 export async function patchChatCustomersFromPusherInIndexedDb(
-  restaurantId: number,
-  payload: ChatMessagePusherPayload,
+  _restaurantId: number,
+  _payload: ChatMessagePusherPayload,
 ): Promise<void> {
-  const records = await getAllStoredChatCustomerRecords(restaurantId);
-
-  if (records.length === 0) {
-    const next = patchChatCustomersFromPusher(undefined, payload, 1);
-    if (next) {
-      await saveChatCustomers(restaurantId, 1, next);
-    }
-    return;
-  }
-
-  for (const record of records) {
-    const next = patchChatCustomersFromPusher(
-      record.data,
-      payload,
-      record.page,
-    );
-
-    if (!next || next === record.data) {
-      continue;
-    }
-
-    await saveChatCustomers(restaurantId, record.page, next);
-  }
+  return;
 }
 
+/** Guest list is no longer stored in IndexedDB — kept as a no-op for callers. */
 export async function patchChatCustomersAfterSendInIndexedDb(
-  restaurantId: number,
-  guest: ChatCustomer,
-  message: ConversationMessage,
+  _restaurantId: number,
+  _guest: ChatCustomer,
+  _message: ConversationMessage,
 ): Promise<void> {
-  const records = await getAllStoredChatCustomerRecords(restaurantId);
-
-  for (const record of records) {
-    const next = patchChatCustomersAfterSend(
-      record.data,
-      guest,
-      message,
-      record.page,
-    );
-
-    if (!next) {
-      continue;
-    }
-
-    await saveChatCustomers(restaurantId, record.page, next);
-  }
+  return;
 }
 
 export async function clearChatIndexedDbCache(): Promise<void> {
@@ -592,4 +459,106 @@ export async function clearChatIndexedDbCache(): Promise<void> {
     "@/app/lib/clear-retention-indexed-db"
   );
   await clearAllRetentionIndexedDb();
+}
+
+function deleteIndexedDbByName(name: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") {
+      resolve();
+      return;
+    }
+    const request = indexedDB.deleteDatabase(name);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
+/**
+ * Delete every per-conversation message DB for one business
+ * (e.g. dealioo-chat-155-204 … dealioo-chat-155-223).
+ */
+export async function clearConversationMessageDatabasesForBusiness(
+  restaurantId: number,
+): Promise<void> {
+  if (restaurantId < 1 || typeof indexedDB === "undefined") {
+    return;
+  }
+
+  // Drop in-memory entries for this business too.
+  for (const key of [...conversationMessageCache.keys()]) {
+    if (key.startsWith(`${restaurantId}:`)) {
+      conversationMessageCache.delete(key);
+    }
+  }
+
+  deleteLegacySharedChatDatabases();
+
+  const databasesFn = (
+    indexedDB as IDBFactory & {
+      databases?: () => Promise<Array<{ name?: string }>>;
+    }
+  ).databases;
+
+  if (typeof databasesFn !== "function") {
+    return;
+  }
+
+  const prefix = `${DEALIOO_CHAT_DB_PREFIX}${restaurantId}-`;
+  try {
+    const dbs = await databasesFn.call(indexedDB);
+    await Promise.all(
+      dbs
+        .map((info) => info.name)
+        .filter((name): name is string => !!name && name.startsWith(prefix))
+        .map((name) => deleteIndexedDbByName(name)),
+    );
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Keep only message DBs for guests that still exist; drop the rest.
+ */
+export async function pruneConversationMessageDatabases(
+  restaurantId: number,
+  keepCustomerIds: number[],
+): Promise<void> {
+  if (restaurantId < 1 || typeof indexedDB === "undefined") {
+    return;
+  }
+
+  const keep = new Set(keepCustomerIds.filter((id) => id > 0));
+  const databasesFn = (
+    indexedDB as IDBFactory & {
+      databases?: () => Promise<Array<{ name?: string }>>;
+    }
+  ).databases;
+
+  if (typeof databasesFn !== "function") {
+    return;
+  }
+
+  const prefix = `${DEALIOO_CHAT_DB_PREFIX}${restaurantId}-`;
+  try {
+    const dbs = await databasesFn.call(indexedDB);
+    await Promise.all(
+      dbs
+        .map((info) => info.name)
+        .filter((name): name is string => !!name && name.startsWith(prefix))
+        .map(async (name) => {
+          const customerId = Number(name.slice(prefix.length));
+          if (!Number.isFinite(customerId) || keep.has(customerId)) {
+            return;
+          }
+          conversationMessageCache.delete(
+            conversationCacheKey(restaurantId, customerId),
+          );
+          await deleteIndexedDbByName(name);
+        }),
+    );
+  } catch {
+    // best-effort
+  }
 }

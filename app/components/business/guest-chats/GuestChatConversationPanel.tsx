@@ -37,7 +37,7 @@ export function GuestChatConversationPanel({
     hasOlderMessages,
     loadOlderMessages,
     error,
-  } = useCustomerConversationQuery(businessId, row.customerId, {
+  } = useCustomerConversationQuery(businessId, row.customerId, row.conversationId, {
     lastMessageAt: row.lastMessageAt,
     messageCount: row.messageCount,
   });
@@ -57,10 +57,9 @@ export function GuestChatConversationPanel({
   const lastMessageId = messages.at(-1)?.id ?? null;
   const isSwitchingGuest =
     conversation != null && conversation.customerId !== row.customerId;
-  const showMessageSkeleton =
-    messages.length === 0 &&
-    memoryPage == null &&
-    (loading || awaitingCache || isSwitchingGuest);
+  const stillLoadingMessages =
+    loading || awaitingCache || isSwitchingGuest || (syncing && messages.length === 0);
+  const showMessageSkeleton = messages.length === 0 && !error && stillLoadingMessages;
 
   const scrollToLatestMessage = useCallback(() => {
     const container = scrollAreaRef.current;
@@ -180,7 +179,7 @@ export function GuestChatConversationPanel({
                 const groupStackPositions = getMessageStackPositions(group.messages);
 
                 return (
-                <div key={group.day} className="mb-4 last:mb-0">
+                <div key={group.dayKey} className="mb-4 last:mb-0">
                   <GuestChatDayDivider label={group.day} />
                   <div className="mt-2">
                   {group.messages.map((message, index) => (

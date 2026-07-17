@@ -1,82 +1,74 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useBusinessChatPusher } from "@/app/hooks/use-business-chat-pusher";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
-  areChatCustomerListsEquivalent,
-  getLatestCustomerIdByCreatedAt,
+  appendChatCustomersPage,
+  getLatestConversationIdByCreatedAt,
   mergeCustomersAfterSync,
+  mergePageOneIntoLoadedCustomers,
   patchChatCustomersFromPusher,
 } from "@/app/services/chat/chat-query-cache";
-import {
-  getStoredChatCustomers,
-  patchChatConversationFromPusher,
-  patchChatCustomersFromPusherInIndexedDb,
-  saveChatCustomers,
-  subscribeChatCustomers,
-} from "@/app/services/chat/chat-indexed-db";
 import {
   getRestaurantChatCustomers,
   RESTAURANT_CHAT_PAGE_SIZE,
   syncRestaurantChatCustomers,
   type PaginatedChatCustomersResponse,
 } from "@/app/services/chat/get-business-chat-customers";
-import { useGuestChatCatchUpRegistration } from "@/app/hooks/use-business-chat-catch-up-sync";
 
 export function useBusinessChatCustomersQuery(businessId: number) {
-  const [page, setPageState] = useState(1);
   const [data, setData] = useState<PaginatedChatCustomersResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadedPageRef = useRef(1);
+  const loadingMoreRef = useRef(false);
 
   useEffect(() => {
-    setPageState(1);
+    loadedPageRef.current = 1;
+    setData(null);
+    setError(null);
   }, [businessId]);
 
-  const fetchAndStoreCustomers = useCallback(async () => {
-    const fresh = await getRestaurantChatCustomers(businessId, {
-      page,
-      limit: RESTAURANT_CHAT_PAGE_SIZE,
-    });
-    await saveChatCustomers(businessId, page, fresh);
-    setData(fresh);
-    setError(null);
-    return fresh;
-  }, [page, businessId]);
+  const fetchPage = useCallback(
+    async (page: number) => {
+      return getRestaurantChatCustomers(businessId, {
+        page,
+        limit: RESTAURANT_CHAT_PAGE_SIZE,
+      });
+    },
+    [businessId],
+  );
 
   const syncCustomersFromApi = useCallback(
-    async (cached: PaginatedChatCustomersResponse) => {
-      if (page !== 1) {
-        await fetchAndStoreCustomers();
-        return;
-      }
-
-      const afterCustomerId = getLatestCustomerIdByCreatedAt(cached);
-      if (!afterCustomerId) {
-        await fetchAndStoreCustomers();
+    async (current: PaginatedChatCustomersResponse) => {
+      const afterConversationId = getLatestConversationIdByCreatedAt(current);
+      if (!afterConversationId) {
+        const fresh = await fetchPage(1);
+        setData((prev) => mergePageOneIntoLoadedCustomers(prev, fresh));
+        loadedPageRef.current = Math.max(loadedPageRef.current, 1);
+        setError(null);
         return;
       }
 
       const delta = await syncRestaurantChatCustomers(
         businessId,
-        afterCustomerId,
-        { limit: RESTAURANT_CHAT_PAGE_SIZE },
+        afterConversationId,
       );
 
       if (delta.data.length === 0) {
         return;
       }
 
-      const merged = mergeCustomersAfterSync(cached, delta.data);
-      await saveChatCustomers(businessId, page, merged);
-      setData(merged);
+      const merged = mergeCustomersAfterSync(current, delta.data);
+      setData((prev) => mergePageOneIntoLoadedCustomers(prev, merged));
       setError(null);
     },
-    [fetchAndStoreCustomers, page, businessId],
+    [businessId, fetchPage],
   );
 
   useEffect(() => {
@@ -87,71 +79,70 @@ export function useBusinessChatCustomersQuery(businessId: number) {
     }
 
     let cancelled = false;
+    loadedPageRef.current = 1;
 
-    async function loadFromDbAndSync() {
-      setSyncing(false);
+    async function loadFirstPage() {
+      setLoading(true);
+      setSyncing(true);
       setError(null);
 
-      const cached = await getStoredChatCustomers(businessId, page);
-      if (cancelled) {
-        return;
-      }
-
-      const hadCachedCustomers = Boolean(cached);
-
-      if (cached) {
-        setData(cached);
-      } else {
-        setData(null);
-        setLoading(true);
-      }
-
-      setSyncing(true);
-
       try {
-        if (cached) {
-          await syncCustomersFromApi(cached);
-        } else {
-          await fetchAndStoreCustomers();
+        const fresh = await fetchPage(1);
+        if (cancelled) {
+          return;
         }
-      } catch (syncError) {
-        if (!cancelled && !hadCachedCustomers) {
+        setData(fresh);
+        loadedPageRef.current = 1;
+        await syncCustomersFromApi(fresh);
+      } catch (loadError) {
+        if (!cancelled) {
           setError(
-            getApiErrorMessage(syncError, "Could not load guest conversations."),
+            getApiErrorMessage(loadError, "Could not load guest conversations."),
           );
         }
       } finally {
         if (!cancelled) {
           setSyncing(false);
-          if (!hadCachedCustomers) {
-            setLoading(false);
-          }
+          setLoading(false);
         }
       }
     }
 
-    void loadFromDbAndSync();
+    void loadFirstPage();
 
     return () => {
       cancelled = true;
     };
-  }, [fetchAndStoreCustomers, page, businessId, syncCustomersFromApi]);
+  }, [businessId, fetchPage, syncCustomersFromApi]);
 
-  useEffect(() => {
-    return subscribeChatCustomers((storedRestaurantId, storedPage, customers) => {
-      if (storedRestaurantId !== businessId || storedPage !== page) {
-        return;
-      }
+  const loadMore = useCallback(async () => {
+    if (businessId < 1 || loadingMoreRef.current) {
+      return;
+    }
 
-      // Ignore IndexedDB echo when Pusher already updated in-memory state.
-      setData((prev) => {
-        if (prev && areChatCustomerListsEquivalent(prev.data, customers.data)) {
-          return prev;
-        }
-        return customers;
-      });
-    });
-  }, [page, businessId]);
+    const totalPages = data?.meta.totalPages ?? 0;
+    const nextPage = loadedPageRef.current + 1;
+    if (totalPages < 1 || nextPage > totalPages) {
+      return;
+    }
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setError(null);
+
+    try {
+      const next = await fetchPage(nextPage);
+      setData((prev) => appendChatCustomersPage(prev, next));
+      loadedPageRef.current = nextPage;
+    } catch (loadError) {
+      setError(
+        getApiErrorMessage(loadError, "Could not load more guest conversations."),
+      );
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [businessId, data?.meta.totalPages, fetchPage]);
 
   const refetch = useCallback(async () => {
     if (businessId < 1) {
@@ -159,9 +150,12 @@ export function useBusinessChatCustomersQuery(businessId: number) {
     }
 
     setRefreshing(true);
+    loadedPageRef.current = 1;
 
     try {
-      await fetchAndStoreCustomers();
+      const fresh = await fetchPage(1);
+      setData(fresh);
+      setError(null);
     } catch (refetchError) {
       setError(
         getApiErrorMessage(refetchError, "Could not load guest conversations."),
@@ -169,24 +163,7 @@ export function useBusinessChatCustomersQuery(businessId: number) {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAndStoreCustomers, businessId]);
-
-  const catchUpSync = useCallback(async () => {
-    if (businessId < 1) {
-      return;
-    }
-
-    try {
-      await fetchAndStoreCustomers();
-    } catch {
-    }
-  }, [fetchAndStoreCustomers, businessId]);
-
-  useGuestChatCatchUpRegistration(catchUpSync);
-
-  const setPage = useCallback((nextPage: number) => {
-    setPageState(nextPage);
-  }, []);
+  }, [fetchPage, businessId]);
 
   const applyPusherMessage = useCallback(
     (payload: ChatMessagePusherPayload) => {
@@ -194,32 +171,48 @@ export function useBusinessChatCustomersQuery(businessId: number) {
         return;
       }
 
-      setData((prev) => {
-        const next = patchChatCustomersFromPusher(prev ?? undefined, payload, page);
-        if (!next || next === prev) {
-          return prev;
-        }
-        return next;
-      });
-      void patchChatCustomersFromPusherInIndexedDb(businessId, payload);
-      // Keep conversation storage in sync even when this guest is not open in the panel.
-      void patchChatConversationFromPusher(businessId, payload.customerId, payload);
+      try {
+        setData((prev) => {
+          const next = patchChatCustomersFromPusher(
+            prev ?? undefined,
+            payload,
+            1,
+          );
+          if (!next || next === prev) {
+            return prev;
+          }
+          return next;
+        });
+      } catch (error) {
+        console.warn("[Chat Pusher] Failed to apply conversation list update", {
+          businessId,
+          conversationId: payload.conversationId,
+          customerId: payload.customerId,
+          error,
+        });
+      }
     },
-    [page, businessId],
+    [businessId],
   );
 
-  useBusinessChatPusher(businessId, applyPusherMessage);
+  useBusinessConversationsPusher(businessId, applyPusherMessage);
+
+  const loadedPage = data?.meta.page ?? loadedPageRef.current;
+  const totalPages = data?.meta.totalPages ?? 0;
+  const hasMore = totalPages > 0 && loadedPage < totalPages;
 
   return {
     rows: data?.data ?? [],
-    totalPages: data?.meta.totalPages ?? 0,
+    totalPages,
     total: data?.meta.total ?? 0,
     loading,
+    loadingMore,
+    hasMore,
     syncing,
     refreshing,
     error,
-    page,
-    setPage,
+    page: loadedPage,
+    loadMore,
     refetch,
   };
 }

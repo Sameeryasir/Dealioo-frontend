@@ -218,19 +218,49 @@ export function formatMessageDayLabel(sentAt: string): string {
   });
 }
 
+function messageDayBucketKey(sentAt: string): string {
+  const date = new Date(sentAt);
+  if (Number.isNaN(date.getTime())) {
+    return "invalid";
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function groupMessagesByDay(
   messages: ConversationMessage[],
-): Array<{ day: string; messages: ConversationMessage[] }> {
-  const groups: Array<{ day: string; messages: ConversationMessage[] }> = [];
-  for (const message of messages) {
-    const day = formatMessageDayLabel(message.sentAt);
-    const last = groups[groups.length - 1];
-    if (last?.day === day) {
-      last.messages.push(message);
-    } else {
-      groups.push({ day, messages: [message] });
+): Array<{ day: string; dayKey: string; messages: ConversationMessage[] }> {
+  const sorted = [...messages].sort((a, b) => {
+    const timeDiff =
+      new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime();
+    if (timeDiff !== 0) {
+      return timeDiff;
     }
+    return a.id - b.id;
+  });
+
+  const groups: Array<{ day: string; dayKey: string; messages: ConversationMessage[] }> =
+    [];
+  const indexByDayKey = new Map<string, number>();
+
+  for (const message of sorted) {
+    const dayKey = messageDayBucketKey(message.sentAt);
+    const existingIndex = indexByDayKey.get(dayKey);
+    if (existingIndex != null) {
+      groups[existingIndex]!.messages.push(message);
+      continue;
+    }
+
+    indexByDayKey.set(dayKey, groups.length);
+    groups.push({
+      dayKey,
+      day: formatMessageDayLabel(message.sentAt),
+      messages: [message],
+    });
   }
+
   return groups;
 }
 

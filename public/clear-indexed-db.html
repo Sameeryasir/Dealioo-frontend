@@ -24,9 +24,12 @@
     <h1>Clearing local cache…</h1>
     <p id="status">Working…</p>
     <script>
-      const CHAT_DB = "retention-chat";
-      const FUNNEL_DB = "retention-funnel-templates";
-      const PREFIXES = ["retention:funnel-template:", "retention-chat"];
+      const CHAT_DB = "dealioo-chat";
+      const LEGACY_CHAT_DB = "retention-chat";
+      const FUNNEL_DB = "dealioo-funnel-templates";
+      const LEGACY_FUNNEL_DB = "retention-funnel-templates";
+      const CHAT_MSG_PREFIX = "dealioo-chat-";
+      const PREFIXES = ["retention:funnel-template:", "retention-chat", "dealioo-chat"];
 
       function deleteDb(name) {
         return new Promise(function (resolve, reject) {
@@ -60,12 +63,38 @@
         });
       }
 
-      Promise.all([deleteDb(CHAT_DB), deleteDb(FUNNEL_DB)])
+      function deletePerConversationChatDbs() {
+        if (!indexedDB.databases) {
+          return Promise.resolve();
+        }
+        return indexedDB.databases().then(function (dbs) {
+          return Promise.all(
+            dbs
+              .map(function (info) {
+                return info.name;
+              })
+              .filter(function (name) {
+                return name && name.indexOf(CHAT_MSG_PREFIX) === 0;
+              })
+              .map(function (name) {
+                return deleteDb(name);
+              }),
+          );
+        });
+      }
+
+      Promise.all([
+        deleteDb(CHAT_DB),
+        deleteDb(LEGACY_CHAT_DB),
+        deletePerConversationChatDbs(),
+        deleteDb(FUNNEL_DB),
+        deleteDb(LEGACY_FUNNEL_DB),
+      ])
         .then(function () {
           clearLocalStorage();
           document.getElementById("status").className = "ok";
           document.getElementById("status").textContent =
-            "Done. Chat IndexedDB, funnel template IndexedDB, and related localStorage entries were cleared. You can close this tab and refresh Guest Chats.";
+            "Done. Cleared shared chat DBs, per-conversation dealioo-chat-* DBs, and funnel templates. Refresh Guest Chats.";
         })
         .catch(function (error) {
           document.getElementById("status").className = "err";

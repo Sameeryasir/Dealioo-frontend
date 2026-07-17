@@ -13,7 +13,8 @@ import {
 import {
   PUSHER_CHAT_EVENT,
   parseChatMessagePusherPayload,
-  pusherBusinessChatChannel,
+  pusherBusinessConversationsChannel,
+  pusherConversationMessagesChannel,
   type ChatMessagePusherPayload,
 } from "@/app/lib/pusher-chat";
 
@@ -366,26 +367,46 @@ function subscribeChannelEvent<T>(
   };
 }
 
+export function subscribeBusinessConversations(
+  businessId: number,
+  onUpdate: (payload: ChatMessagePusherPayload) => void,
+): () => void {
+  return subscribeChannelEvent(
+    pusherBusinessConversationsChannel(businessId),
+    PUSHER_CHAT_EVENT.CONVERSATION_UPDATED,
+    onUpdate,
+    parseChatMessagePusherPayload,
+    `business-conversations-${businessId}`,
+  );
+}
+
+export function subscribeConversationMessages(
+  businessId: number,
+  conversationId: number,
+  onMessage: (payload: ChatMessagePusherPayload) => void,
+): () => void {
+  if (businessId < 1 || conversationId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherConversationMessagesChannel(businessId, conversationId),
+    PUSHER_CHAT_EVENT.MESSAGE_SENT,
+    onMessage,
+    parseChatMessagePusherPayload,
+    `conversation-messages-${businessId}-${conversationId}`,
+  );
+}
+
 export function subscribeBusinessChatMessages(
   businessId: number,
   onMessage: (payload: ChatMessagePusherPayload) => void,
 ): () => void {
-  return subscribeChannelEvent(
-    pusherBusinessChatChannel(businessId),
-    PUSHER_CHAT_EVENT.MESSAGE_SENT,
-    onMessage,
-    parseChatMessagePusherPayload,
-    `business-${businessId}`,
-  );
+  return subscribeBusinessConversations(businessId, onMessage);
 }
 
-/** @deprecated Use subscribeBusinessChatMessages */
 export const subscribeRestaurantChatMessages = subscribeBusinessChatMessages;
 
-/**
- * Subscribes each automation channel once for the session (list view).
- * Stays subscribed after leaving the Automations tab.
- */
 export function ensureAutomationListSubscriptions(
   automationIds: number[],
   onTerminal: (payload: ExecutionTerminalPusherPayload) => void,

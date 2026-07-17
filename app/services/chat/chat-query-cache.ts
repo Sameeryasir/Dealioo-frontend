@@ -77,6 +77,7 @@ function buildChatCustomerRow(
   existing?: ChatCustomer | null,
 ): ChatCustomer {
   return sanitizeStoredCustomerRow({
+    conversationId: payload.conversationId || existing?.conversationId || 0,
     customerId: payload.customerId,
     customerName: payload.customerName,
     customerEmail: payload.customerEmail,
@@ -89,7 +90,7 @@ function buildChatCustomerRow(
   });
 }
 
-export function getLatestCustomerIdByCreatedAt(
+export function getLatestConversationIdByCreatedAt(
   customers: PaginatedChatCustomersResponse,
 ): number | null {
   if (customers.data.length === 0) {
@@ -111,10 +112,15 @@ export function getLatestCustomerIdByCreatedAt(
     }
   }
 
-  return latest?.customerId ?? null;
+  return latest?.conversationId ?? null;
 }
 
-/** Stable newest-first order — tie-break by customerId so Pusher updates do not shuffle rows. */
+export function getLatestCustomerIdByCreatedAt(
+  customers: PaginatedChatCustomersResponse,
+): number | null {
+  return getLatestConversationIdByCreatedAt(customers);
+}
+
 export function compareChatCustomersByRecentActivity(
   left: ChatCustomer,
   right: ChatCustomer,
@@ -140,6 +146,7 @@ function isSameChatCustomerSidebarRow(
 ): boolean {
   return (
     left.customerId === right.customerId &&
+    left.conversationId === right.conversationId &&
     left.lastMessageAt === right.lastMessageAt &&
     left.lastMessagePreview === right.lastMessagePreview &&
     left.messageCount === right.messageCount &&
@@ -163,6 +170,7 @@ function isPusherPayloadAlreadyApplied(
   payload: ChatMessagePusherPayload,
 ): boolean {
   return (
+    row.conversationId === payload.conversationId &&
     row.lastMessageAt === payload.lastMessageAt &&
     row.messageCount === payload.messageCount &&
     row.lastMessagePreview ===
@@ -185,6 +193,7 @@ export function mergeCustomersAfterSync(
     return previous;
   }
 
+  // Keep every already-loaded row (infinite scroll may hold multiple pages).
   const merged = sortChatCustomersByRecentActivity([
     ...newRows,
     ...previous.data,
@@ -192,10 +201,67 @@ export function mergeCustomersAfterSync(
 
   return {
     ...previous,
-    data: merged.slice(0, previous.meta.limit),
+    data: merged,
     meta: {
       ...previous.meta,
       total: previous.meta.total + newRows.length,
+    },
+  };
+}
+
+/**
+ * Append the next page of guests onto the list already on screen.
+ * Dedupes by customerId so sync/Pusher overlaps do not create duplicates.
+ */
+export function appendChatCustomersPage(
+  previous: PaginatedChatCustomersResponse | null,
+  nextPage: PaginatedChatCustomersResponse,
+): PaginatedChatCustomersResponse {
+  if (!previous) {
+    return nextPage;
+  }
+
+  const existingIds = new Set(previous.data.map((row) => row.customerId));
+  const appended = nextPage.data.filter(
+    (row) => !existingIds.has(row.customerId),
+  );
+
+  return {
+    data: [...previous.data, ...appended],
+    meta: {
+      ...nextPage.meta,
+      // meta.page = highest page loaded so far (for infinite scroll)
+      page: Math.max(previous.meta.page, nextPage.meta.page),
+    },
+  };
+}
+
+/**
+ * Apply a page-1 IndexedDB update without dropping later pages already loaded.
+ */
+export function mergePageOneIntoLoadedCustomers(
+  previous: PaginatedChatCustomersResponse | null,
+  pageOne: PaginatedChatCustomersResponse,
+): PaginatedChatCustomersResponse {
+  if (!previous || previous.data.length === 0) {
+    return pageOne;
+  }
+
+  const byCustomerId = new Map(
+    previous.data.map((row) => [row.customerId, row] as const),
+  );
+
+  for (const row of pageOne.data) {
+    byCustomerId.set(row.customerId, row);
+  }
+
+  return {
+    data: sortChatCustomersByRecentActivity([...byCustomerId.values()]),
+    meta: {
+      ...previous.meta,
+      total: pageOne.meta.total,
+      totalPages: pageOne.meta.totalPages,
+      limit: pageOne.meta.limit,
     },
   };
 }
@@ -222,7 +288,10 @@ export function patchChatCustomersFromPusher(
   }
 
   const existingIndex = prev.data.findIndex(
-    (row) => row.customerId === payload.customerId,
+    (row) =>
+      row.customerId === payload.customerId ||
+      (payload.conversationId > 0 &&
+        row.conversationId === payload.conversationId),
   );
   const existingRow = existingIndex >= 0 ? prev.data[existingIndex]! : null;
 
@@ -234,8 +303,8 @@ export function patchChatCustomersFromPusher(
 
   if (existingIndex >= 0) {
     const nextData = sortChatCustomersByRecentActivity(
-      prev.data.map((row) =>
-        row.customerId === payload.customerId ? updatedRow : row,
+      prev.data.map((row, index) =>
+        index === existingIndex ? updatedRow : row,
       ),
     );
 
@@ -263,31 +332,40 @@ export function patchChatCustomersFromPusher(
 
 export function mergeConversationAfterSync(
   previous: CustomerConversationDetail | null | undefined,
-  incoming: CustomerConversationDetail,
+  incoming: Pick<CustomerConversationDetail, "customerId" | "messages"> &
+    Partial<Pick<CustomerConversationDetail, "customerName" | "customerEmail" | "conversationId">>,
 ): CustomerConversationDetail {
-  const sanitizedIncoming = sanitizeStoredConversation(incoming);
+  const sanitizedIncomingMessages = incoming.messages.map(sanitizeStoredMessage);
 
   if (!previous) {
-    return sanitizedIncoming;
+    return {
+      conversationId: incoming.conversationId,
+      customerId: incoming.customerId,
+      customerName: incoming.customerName ?? null,
+      customerEmail: incoming.customerEmail ?? null,
+      messages: sanitizedIncomingMessages,
+    };
   }
 
   const sanitizedPrevious = sanitizeStoredConversation(previous);
-  const newMessages = sanitizedIncoming.messages.filter(
+  const newMessages = sanitizedIncomingMessages.filter(
     (message) => !messageExistsById(sanitizedPrevious.messages, message.id),
   );
 
   if (newMessages.length === 0) {
     return {
       ...sanitizedPrevious,
-      customerName: sanitizedIncoming.customerName ?? sanitizedPrevious.customerName,
-      customerEmail: sanitizedIncoming.customerEmail ?? sanitizedPrevious.customerEmail,
+      conversationId: incoming.conversationId ?? sanitizedPrevious.conversationId,
+      customerName: incoming.customerName ?? sanitizedPrevious.customerName,
+      customerEmail: incoming.customerEmail ?? sanitizedPrevious.customerEmail,
     };
   }
 
   return {
-    customerId: sanitizedIncoming.customerId,
-    customerName: sanitizedIncoming.customerName ?? sanitizedPrevious.customerName,
-    customerEmail: sanitizedIncoming.customerEmail ?? sanitizedPrevious.customerEmail,
+    conversationId: incoming.conversationId ?? sanitizedPrevious.conversationId,
+    customerId: incoming.customerId,
+    customerName: incoming.customerName ?? sanitizedPrevious.customerName,
+    customerEmail: incoming.customerEmail ?? sanitizedPrevious.customerEmail,
     messages: [...sanitizedPrevious.messages, ...newMessages],
   };
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ReactNode, type UIEventHandler } from "react";
 
 export const GuestChatScrollArea = forwardRef<
   HTMLDivElement,
   {
     children: ReactNode;
     className?: string;
-    onScroll?: () => void;
+    onScroll?: UIEventHandler<HTMLDivElement>;
   }
 >(function GuestChatScrollArea({ children, className = "", onScroll }, ref) {
   return (

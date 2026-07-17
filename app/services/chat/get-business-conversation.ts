@@ -47,7 +47,27 @@ export type ConversationDetail = {
   messages: ConversationMessage[];
 };
 
+export type GuestConversation = {
+  conversationId: number;
+  customerId: number;
+  customerName: string | null;
+  customerEmail: string | null;
+  messageCount: number;
+  lastMessagePreview: string;
+  lastMessageChannel: ConversationMessageKind | null;
+  lastMessageAt: string | null;
+  lastAutomationName: string | null;
+  createdAt: string;
+};
+
+export type CustomerConversationMessages = {
+  conversationId: number;
+  customerId: number;
+  messages: ConversationMessage[];
+};
+
 export type CustomerConversationDetail = {
+  conversationId?: number;
   customerId: number;
   customerName: string | null;
   customerEmail: string | null;
@@ -85,10 +105,41 @@ export async function getRestaurantConversation(
   return (await res.json()) as ConversationDetail;
 }
 
-export async function getCustomerConversation(
+export async function getGuestConversation(
+  restaurantId: number,
+  conversationId: number,
+): Promise<GuestConversation> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(restaurantId)) {
+    throw new Error("Valid business id is required.");
+  }
+  if (!isPositiveInt(conversationId)) {
+    throw new Error("Valid conversation id is required.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/conversation/${encodeURIComponent(String(conversationId))}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load this conversation."),
+    );
+  }
+
+  return (await res.json()) as GuestConversation;
+}
+
+export async function getCustomerConversationMessages(
   restaurantId: number,
   customerId: number,
-): Promise<CustomerConversationDetail> {
+): Promise<CustomerConversationMessages> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -113,14 +164,30 @@ export async function getCustomerConversation(
     );
   }
 
-  return (await res.json()) as CustomerConversationDetail;
+  return (await res.json()) as CustomerConversationMessages;
+}
+
+export async function getCustomerConversation(
+  restaurantId: number,
+  _conversationId: number,
+  customerId: number,
+): Promise<CustomerConversationDetail> {
+  const chats = await getCustomerConversationMessages(restaurantId, customerId);
+
+  return {
+    conversationId: chats.conversationId,
+    customerId: chats.customerId,
+    customerName: null,
+    customerEmail: null,
+    messages: chats.messages,
+  };
 }
 
 export async function syncCustomerConversationMessages(
   restaurantId: number,
   customerId: number,
   afterMessageId: number,
-): Promise<CustomerConversationDetail> {
+): Promise<CustomerConversationMessages> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -152,5 +219,5 @@ export async function syncCustomerConversationMessages(
     );
   }
 
-  return (await res.json()) as CustomerConversationDetail;
+  return (await res.json()) as CustomerConversationMessages;
 }

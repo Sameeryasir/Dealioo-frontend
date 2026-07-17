@@ -8,9 +8,10 @@ const STORAGE_PREFIX = "retention:funnel-template:v1:";
 const SAVED_EVENT = "retention:funnel-template-saved";
 const BROADCAST_NAME = "retention-funnel-template-sync";
 
-const IDB_NAME = "retention-funnel-templates";
+const IDB_NAME = "dealioo-funnel-templates";
 const IDB_STORE = "pages";
 const IDB_VERSION = 1;
+const LEGACY_IDB_NAME = "retention-funnel-templates";
 
 export function funnelTemplateStorageKey(campaignId: string): string {
   return `${STORAGE_PREFIX}${campaignId}`;
@@ -44,6 +45,13 @@ function loadFromLocalStorage(campaignId: string): TemplatePagesState | null {
 
 function openIdb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    // Drop the old DB name so leftover funnel cache does not stick around after rename.
+    try {
+      indexedDB.deleteDatabase(LEGACY_IDB_NAME);
+    } catch {
+      // ignore — best-effort cleanup only
+    }
+
     const req = indexedDB.open(IDB_NAME, IDB_VERSION);
     req.onerror = () => reject(req.error ?? new Error("indexedDB.open failed"));
     req.onsuccess = () => resolve(req.result);
