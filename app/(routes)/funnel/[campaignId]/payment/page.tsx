@@ -9,12 +9,14 @@ import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelS
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
+import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 
 function FunnelCampaignPaymentPageInner() {
   const searchParams = useSearchParams();
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
+  useFunnelStepGuard(funnelId, "payment");
   const { checkoutToken, session, ready, error: checkoutError } =
     useCheckoutContext();
 

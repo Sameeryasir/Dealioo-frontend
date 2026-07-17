@@ -30,6 +30,7 @@ import {
   createCheckoutSession,
 } from "@/app/services/payment/checkout-session";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
+import { markFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { useFunnelAnalyticsTracking } from "@/app/hooks/use-funnel-analytics-tracking";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
@@ -274,7 +275,8 @@ export function TemplatePreview({
           await new Promise<void>((resolve) => {
             window.setTimeout(resolve, 1000);
           });
-          router.push(checkoutUrlToAppPath(checkout.checkoutUrl));
+          markFunnelLockedStep(trackingFunnelId, "payment");
+          router.replace(checkoutUrlToAppPath(checkout.checkoutUrl));
           return;
         }
 
@@ -285,7 +287,8 @@ export function TemplatePreview({
           window.setTimeout(resolve, 1000);
         });
         if (signupNextAsLink) {
-          router.push(signupNextAsLink);
+          markFunnelLockedStep(trackingFunnelId, "payment");
+          router.replace(signupNextAsLink);
         }
       } catch (err) {
         toast.error(

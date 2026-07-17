@@ -10,6 +10,7 @@ import type { CheckoutFormStyles } from "@/app/components/payment-templates/shar
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
+import { markFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { createPaymentSession } from "@/app/services/payment/create-payment-session";
 import { isPositiveInt } from "@/app/lib/numbers";
 
@@ -124,7 +125,8 @@ export function FunnelStripePaymentForm({
             },
             { redirectStatus: "succeeded", paymentConfirmed: true },
           );
-          window.location.href = confirmationPath;
+          markFunnelLockedStep(context.funnelId, "confirmation");
+          window.location.replace(confirmationPath);
           return;
         }
 

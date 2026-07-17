@@ -15,7 +15,7 @@ export function prependBusinessToMyListCache(
     return;
   }
 
-  const listKey = businessQueryKeys.myList(1, "");
+  const listKey = businessQueryKeys.myList(1, "", MY_RESTAURANTS_PAGE_SIZE);
   queryClient.setQueryData<PaginatedMyRestaurantsResponse>(
     listKey,
     (current) => {

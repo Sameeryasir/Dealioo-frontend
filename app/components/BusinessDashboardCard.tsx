@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { BusinessProfileSetupPopover } from "@/app/components/business/BusinessProfileSetupPopover";
-import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { getBusinessProfileSetup } from "@/app/lib/business-profile-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import {
@@ -16,8 +16,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Building2,
-  Check,
-  Clock,
   ImageIcon,
   Loader2,
   MapPin,
@@ -70,7 +68,6 @@ export default function BusinessDashboardCard({
   const progress = setup.progressPercent;
   const remainingSteps = Math.max(0, setup.totalCount - setup.completedCount);
   const isReady = progress >= 100;
-  const showSetupStatus = !isReady;
 
   // Count the % from 0 → target so users see progress being calculated on load
   useEffect(() => {
@@ -181,50 +178,34 @@ export default function BusinessDashboardCard({
       disabled={deleting}
     >
       {deleting ? (
-        <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
+        <Loader2 className="size-4 animate-spin" strokeWidth={2.5} />
       ) : (
-        <Trash2 className="size-3.5" strokeWidth={2.25} />
+        <Trash2 className="size-4" strokeWidth={2.5} />
       )}
     </button>
   ) : null;
 
-  const statusBadge = isReady ? (
-    <span className="org-biz-card-status org-biz-card-status--ready">
-      <Check className="size-3" strokeWidth={2.75} aria-hidden />
-      Ready
-    </span>
-  ) : (
-    <span className="org-biz-card-status">
-      <Clock className="size-3" strokeWidth={2.5} aria-hidden />
-      In setup
-    </span>
-  );
-
   const confirmDialog = (
-    <ConfirmDialog
+    <DeleteConfirmationDialog
       open={confirmOpen}
-      title="Are you sure?"
-      titleId={`delete-business-${businessId ?? "x"}`}
-      tone="primary"
-      panelClassName="max-w-[32rem]"
+      itemName={name}
+      title="Delete this business?"
       description={
         <>
-          You are about to delete{" "}
-          <span className="font-semibold text-slate-800">{name}</span>. This
-          action cannot be reverted.
+          This permanently deletes{" "}
+          <span className="font-semibold text-[#1877f2]">{name}</span>, including
+          its locations, campaigns, funnels, and customer data. This cannot be
+          undone.
         </>
       }
-      confirmLabel="Delete business"
-      loadingLabel="Deleting…"
+      confirmText="Delete business"
+      checkboxLabel={`Are you sure you want to delete ${name}?`}
       isLoading={deleting}
-      confirmCheckbox={{
-        label: "I understand this will permanently delete this business",
+      onConfirm={() => {
+        void handleDelete();
       }}
       onCancel={() => {
         if (!deleting) setConfirmOpen(false);
-      }}
-      onConfirm={() => {
-        void handleDelete();
       }}
     />
   );
@@ -247,19 +228,6 @@ export default function BusinessDashboardCard({
             <span className="org-biz-card-list-main">
               <span className="org-biz-card-list-top">
                 <span className="org-biz-card-title">{name}</span>
-                <span className="org-biz-card-head-actions">
-                  {showSetupStatus ? (
-                    <span className="org-biz-card-status">
-                      <Clock className="size-3" strokeWidth={2.5} aria-hidden />
-                      In setup
-                    </span>
-                  ) : (
-                    <span className="org-biz-card-status org-biz-card-status--ready">
-                      <Check className="size-3" strokeWidth={2.75} aria-hidden />
-                      Ready
-                    </span>
-                  )}
-                </span>
               </span>
               <span className="org-biz-card-meta-inline">
                 <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
@@ -307,10 +275,7 @@ export default function BusinessDashboardCard({
                 <h2 className="org-biz-card-title">{name}</h2>
               </div>
             </Link>
-            <div className="org-biz-card-head-actions">
-              {statusBadge}
-              {deleteButton}
-            </div>
+            <div className="org-biz-card-head-actions">{deleteButton}</div>
           </div>
 
           <Link
@@ -338,6 +303,20 @@ export default function BusinessDashboardCard({
                       className="org-biz-card-progress-svg"
                       aria-hidden
                     >
+                      {/* Blue → pink stroke (same accent pair as dashboard banner glows) */}
+                      <defs>
+                        <linearGradient
+                          id={`org-biz-progress-grad-${businessId ?? "x"}`}
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop offset="0%" stopColor="#1877f2" />
+                          <stop offset="55%" stopColor="#8b5cf6" />
+                          <stop offset="100%" stopColor="#e1306c" />
+                        </linearGradient>
+                      </defs>
                       <circle
                         className="org-biz-card-progress-ring-track"
                         cx={ringCenter}
@@ -353,6 +332,7 @@ export default function BusinessDashboardCard({
                         cy={ringCenter}
                         r={circleRadius}
                         fill="none"
+                        stroke={`url(#org-biz-progress-grad-${businessId ?? "x"})`}
                         strokeWidth={circleStroke}
                         strokeDasharray={circleCircumference}
                         strokeDashoffset={circleOffset}
@@ -380,13 +360,13 @@ export default function BusinessDashboardCard({
                     <span className="org-biz-card-location-city">{cityLabel}</span>
                   </p>
                 </div>
-                <span className="org-biz-card-location-meta">
+                <span className="org-biz-card-location-meta text-white">
                   <Building2
-                    className="size-3 shrink-0"
+                    className="size-3 shrink-0 text-white"
                     strokeWidth={2.25}
                     aria-hidden
                   />
-                  {branchLabel}
+                  <span className="text-white">{branchLabel}</span>
                 </span>
               </div>
             </div>

@@ -7,11 +7,13 @@ import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePr
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
+import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { buildFunnelPublicPath } from "@/app/lib/funnel-public-path";
 
 function FunnelCampaignSignupInner() {
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
+  useFunnelStepGuard(funnelId, "signup");
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
   const funnelLinkQuery = {
@@ -33,15 +35,6 @@ function FunnelCampaignSignupInner() {
         })
       : undefined;
 
-  const signupBackHref =
-    funnelId != null
-      ? buildFunnelPublicPath({
-          funnelId,
-          step: "landing",
-          query: funnelLinkQuery,
-        })
-      : undefined;
-
   if (isLoading) {
     return <FunnelPreviewSkeleton />;
   }
@@ -51,7 +44,6 @@ function FunnelCampaignSignupInner() {
       page={signup}
       landingPage={landing}
       signupNextHref={signupNextHref}
-      signupBackHref={signupBackHref}
       interactiveForms
       submitCustomerOnSignupNext
       fullPageShellChrome

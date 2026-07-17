@@ -61,6 +61,13 @@ export default function DashboardPage() {
     refetch: loadBusinesses,
   } = useMyBusinessesQuery({ page });
 
+  // If a business was deleted and fewer pages remain, snap back to a valid page.
+  useEffect(() => {
+    if (meta.totalPages > 0 && page > meta.totalPages) {
+      setPage(meta.totalPages);
+    }
+  }, [meta.totalPages, page]);
+
   const {
     subscription,
     isLoading: subscriptionLoading,
@@ -291,7 +298,7 @@ export default function DashboardPage() {
                         page={meta.page}
                         totalPages={meta.totalPages}
                         total={meta.total}
-                        limit={MY_BUSINESSES_PAGE_SIZE}
+                        limit={meta.limit || MY_BUSINESSES_PAGE_SIZE}
                         loading={isFetching}
                         onPageChange={setPage}
                         itemLabel="businesses"

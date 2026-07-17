@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import type { PaymentTemplatePage } from "@/app/components/crm-template-editor/template-types";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
+import { markFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { checkoutFormRootClass } from "@/app/components/payment-templates/shared/checkout-form-classes";
 import type { CheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
@@ -99,7 +100,8 @@ export function CustomCardCheckoutForm({
         const message = result.error.message ?? "Payment failed.";
         const alreadyPaid = /already succeeded|already paid/i.test(message);
         if (alreadyPaid) {
-          window.location.assign(successUrl);
+          markFunnelLockedStep(funnelId, "confirmation");
+          window.location.replace(successUrl);
           return;
         }
         setFormError(message);
@@ -120,7 +122,8 @@ export function CustomCardCheckoutForm({
         });
       }
 
-      window.location.assign(successUrl);
+      markFunnelLockedStep(funnelId, "confirmation");
+      window.location.replace(successUrl);
     } catch (err) {
 
       console.error("[Funnel] checkout.confirm failed", err);

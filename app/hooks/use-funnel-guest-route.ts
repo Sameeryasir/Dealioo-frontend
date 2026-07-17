@@ -12,10 +12,6 @@ function readRouteSegment(raw: string | string[] | undefined): string {
   return "";
 }
 
-/**
- * Guest funnel pages live at `/funnel/[funnelId]/…`.
- * The dynamic segment is the funnel record id; `campaignId` is an optional query param.
- */
 export function useFunnelGuestRoute() {
   const params = useParams();
   const searchParams = useSearchParams();

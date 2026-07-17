@@ -6,7 +6,7 @@ import {
   Circle,
   Copy,
   ExternalLink,
-  Info,
+  Sparkles,
   Link2,
   Megaphone,
   PanelLeft,
@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
@@ -22,6 +23,7 @@ import {
   buildFunnelPublicPath,
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
+import { automationEase } from "@/app/lib/motion";
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;
@@ -133,6 +135,15 @@ export default function CampaignHeader({
     return `${trackingOrigin}${landingTrackingPath}`;
   }, [landingTrackingPath, trackingOrigin]);
 
+  const handleGenerate = useCallback(() => {
+    onGenerateTrackingLink?.();
+    if (typeof window !== "undefined") {
+      setTrackingOrigin(window.location.origin);
+    }
+    setCopyDone(false);
+    setTrackingDialogOpen(true);
+  }, [onGenerateTrackingLink]);
+
   useEffect(() => {
     if (!trackingDialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -156,15 +167,6 @@ export default function CampaignHeader({
       behavior: "smooth",
     });
   }, [activeTabId]);
-
-  const handleGenerate = useCallback(() => {
-    onGenerateTrackingLink?.();
-    if (typeof window !== "undefined") {
-      setTrackingOrigin(window.location.origin);
-    }
-    setCopyDone(false);
-    setTrackingDialogOpen(true);
-  }, [onGenerateTrackingLink]);
 
   const handleCopyLandingUrl = useCallback(async () => {
     if (!landingTrackingUrl) return;
@@ -388,167 +390,205 @@ export default function CampaignHeader({
       )}
     </header>
 
-    {trackingDialogOpen ? (
-      <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
-        role="presentation"
-        onClick={() => setTrackingDialogOpen(false)}
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="tracking-link-dialog-title"
-          className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#0a1628]/15 bg-white shadow-2xl shadow-[#07111f]/20"
-          onClick={(e) => e.stopPropagation()}
+    <AnimatePresence>
+      {trackingDialogOpen ? (
+        <motion.div
+          key="tracking-link-dialog"
+          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center sm:p-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          role="presentation"
         >
-          <div className="relative overflow-hidden bg-gradient-to-b from-[#07111f] via-[#0a1628] to-[#0f1f3d] px-6 pb-6 pt-6 text-white">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_40%_at_50%_0%,rgba(24,119,242,0.28)_0%,transparent_70%),radial-gradient(ellipse_120%_35%_at_50%_100%,rgba(244,114,182,0.16)_0%,transparent_70%)]"
-            />
-            <div className="relative flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                  <Megaphone className="size-3" strokeWidth={2.5} aria-hidden />
-                  Meta ads
-                </span>
-                <div className="mt-4 flex items-center gap-3.5">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-white ring-1 ring-white/10">
-                    <Link2 className="size-5" strokeWidth={2.25} aria-hidden />
+          <button
+            type="button"
+            aria-label="Close dialog"
+            onClick={() => setTrackingDialogOpen(false)}
+            className="absolute inset-0 cursor-default bg-[#07111f]/55 backdrop-blur-[8px]"
+          />
+
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tracking-link-dialog-title"
+            className="relative z-10 w-full max-w-xl overflow-hidden rounded-[1.35rem] border border-white/10 bg-white shadow-[0_28px_64px_rgba(7,17,31,0.35),0_0_0_1px_rgba(24,119,242,0.08)]"
+            initial={{ opacity: 0, scale: 0.96, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: 0.28, ease: automationEase }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative overflow-hidden px-6 pb-7 pt-6 text-white sm:px-7 sm:pb-8 sm:pt-7">
+              <div
+                aria-hidden
+                className="absolute inset-0 bg-gradient-to-br from-[#05070d] via-[#0a1628] to-[#0f1f3d]"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-8 -top-10 size-48 rounded-full bg-[#1877f2]/30 blur-3xl"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -bottom-12 -left-6 size-44 rounded-full bg-[#e1306c]/22 blur-3xl"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+              />
+
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                    <Megaphone className="size-3" strokeWidth={2.5} aria-hidden />
+                    Meta ads
                   </span>
-                  <div className="min-w-0">
-                    <h2
-                      id="tracking-link-dialog-title"
-                      className="text-xl font-bold tracking-tight text-white"
-                    >
-                      Tracking link
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-white/62">
-                      Paste as the website destination in your Facebook / Meta
-                      ad landing step.
+                  <div className="mt-5 flex items-center gap-4">
+                    <span className="relative flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#e1306c] text-white shadow-[0_12px_28px_rgba(24,119,242,0.35)]">
+                      <span
+                        aria-hidden
+                        className="absolute inset-[1px] rounded-[0.9rem] bg-gradient-to-br from-[#0a1628]/40 to-[#07111f]/20"
+                      />
+                      <Link2
+                        className="relative size-6"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <h2
+                        id="tracking-link-dialog-title"
+                        className="text-[1.35rem] font-extrabold tracking-tight text-white sm:text-[1.5rem]"
+                      >
+                        Tracking link
+                      </h2>
+                      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-white/65">
+                        Paste this as the website destination in your Facebook /
+                        Meta ad.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => setTrackingDialogOpen(false)}
+                  className="relative shrink-0 rounded-xl p-2 text-white/65 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X className="size-5" strokeWidth={2} aria-hidden />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative bg-gradient-to-b from-[#f7faff] via-white to-white px-6 py-6 sm:px-7 sm:py-7">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(24,119,242,0.08),transparent)]"
+              />
+
+              {campaignId != null && landingTrackingUrl ? (
+                <div className="relative space-y-5">
+                  <div className="overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-start gap-3.5 border-b border-[#eef2f8] px-4 py-4 sm:px-5">
+                      <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#e8f2ff] to-[#fdf2f8] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                        <Sparkles className="size-4" strokeWidth={2.25} aria-hidden />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#e1306c]">
+                          Campaign
+                        </p>
+                        <p className="mt-1 truncate text-base font-bold tracking-tight text-[#07111f]">
+                          {campaignTitle}
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                          {funnelId != null && funnelId >= 1
+                            ? "Funnel is live — copy the link below for your ads."
+                            : "Save your funnel first so this link points to your live pages."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="px-4 py-4 sm:px-5">
+                      <label
+                        htmlFor="tracking-landing-url"
+                        className="mb-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"
+                      >
+                        <Link2 className="size-3.5 text-[#1877f2]" strokeWidth={2.5} aria-hidden />
+                        Landing URL
+                      </label>
+                      <div className="overflow-hidden rounded-xl border border-[#dbeafe] bg-gradient-to-br from-[#f8fbff] to-[#fff8fb] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                        <div className="px-4 py-3.5">
+                          <input
+                            id="tracking-landing-url"
+                            readOnly
+                            value={landingTrackingUrl}
+                            className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[12.5px] leading-relaxed text-[#07111f] outline-none sm:text-[13px]"
+                          />
+                        </div>
+                        <div className="flex justify-center border-t border-[#e8edf5]/90 bg-white/80 px-4 py-3.5">
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyLandingUrl()}
+                            className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition active:scale-[0.98] sm:w-auto ${
+                              copyDone
+                                ? "bg-gradient-to-r from-[#34a853] to-[#2d9248] shadow-[0_10px_22px_rgba(52,168,83,0.28)]"
+                                : "bg-gradient-to-r from-[#1877f2] via-[#166fe5] to-[#e1306c] shadow-[0_10px_22px_rgba(24,119,242,0.3)] hover:brightness-105"
+                            }`}
+                          >
+                            {copyDone ? (
+                              <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                            ) : (
+                              <Copy className="size-4" strokeWidth={2} aria-hidden />
+                            )}
+                            {copyDone ? "Copied" : "Copy link"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 rounded-2xl border border-[#dbeafe] bg-gradient-to-r from-[#f0f7ff] via-white to-[#fff5f9] px-4 py-3.5">
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+                      <Megaphone className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    </span>
+                    <p className="text-xs leading-relaxed text-slate-600">
+                      In Meta Ads Manager, set this URL as the website destination
+                      for your ad. Guests land on your funnel landing page.
                     </p>
                   </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setTrackingDialogOpen(false)}
-                className="relative shrink-0 rounded-lg p-2 text-white/70 transition hover:bg-white/8 hover:text-white"
-              >
-                <X className="size-5" strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          </div>
+              ) : (
+                <p className="relative rounded-2xl border border-[#e8edf5] bg-white px-4 py-4 text-sm text-slate-700 shadow-sm">
+                  This campaign is not ready yet, so a tracking link cannot be
+                  built.
+                </p>
+              )}
 
-          <div className="bg-white px-6 py-6">
-            {campaignId != null && landingTrackingUrl ? (
-              <div className="space-y-5">
-                <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                    Campaign
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-[#07111f]">
-                    {campaignTitle}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {funnelId != null && funnelId >= 1
-                      ? "Funnel is ready — copy the link below for your ads."
-                      : "Save your funnel first so this link points to your live pages."}
-                  </p>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="tracking-landing-url"
-                    className="mb-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    <Link2 className="size-3.5" strokeWidth={2.5} aria-hidden />
-                    Landing URL
-                  </label>
-                  <div className="overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc]">
-                    <div className="px-4 py-4">
-                      <input
-                        id="tracking-landing-url"
-                        readOnly
-                        value={landingTrackingUrl}
-                        className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[13px] leading-relaxed text-[#07111f] outline-none sm:text-sm"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-3 border-t border-[#e8edf5] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="min-w-0 text-[11px] leading-relaxed text-slate-500">
-                        Origin
-                        <span className="mt-0.5 block break-all font-mono text-slate-700">
-                          {trackingOrigin || "—"}
-                        </span>
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => void handleCopyLandingUrl()}
-                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-[0.85rem] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition sm:w-auto ${
-                          copyDone
-                            ? "bg-gradient-to-br from-[#2b8fff] via-[#1877f2] to-[#1468e8] shadow-[0_8px_18px_rgba(24,119,242,0.32)]"
-                            : "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] shadow-[0_8px_18px_rgba(24,119,242,0.32)] hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8]"
-                        }`}
-                      >
-                        {copyDone ? (
-                          <Check className="size-4" strokeWidth={2.5} aria-hidden />
-                        ) : (
-                          <Copy className="size-4" strokeWidth={2} aria-hidden />
-                        )}
-                        {copyDone ? "Copied" : "Copy link"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5">
-                  <Info
-                    className="mt-0.5 size-4 shrink-0 text-[#1877f2]"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  <p className="text-xs leading-relaxed text-slate-600">
-                    Dev server on port{" "}
-                    <span className="font-mono font-semibold text-[#07111f]">
-                      3002
-                    </span>
-                    . Uses your current browser origin — works with ngrok and
-                    local testing.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5 text-sm text-slate-700">
-                This campaign is not ready yet, so a tracking link cannot be
-                built.
-              </p>
-            )}
-
-            <div className="mt-7 flex flex-col-reverse gap-2.5 border-t border-[#e8edf5] pt-5 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setTrackingDialogOpen(false)}
-                className="rounded-[0.85rem] border border-[#e8edf5] bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fafc] hover:text-[#07111f]"
-              >
-                Done
-              </button>
-              {campaignId != null && landingTrackingUrl ? (
-                <Link
-                  href={landingTrackingPath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-[0.85rem] bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.32)] transition hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8]"
+              <div className="relative mt-6 flex flex-col-reverse gap-2.5 border-t border-[#eef2f8] pt-5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setTrackingDialogOpen(false)}
+                  className="rounded-xl border border-[#e8edf5] bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
                 >
-                  <ExternalLink className="size-4" strokeWidth={2.25} aria-hidden />
-                  Open preview
-                </Link>
-              ) : null}
+                  Done
+                </button>
+                {campaignId != null && landingTrackingUrl ? (
+                  <Link
+                    href={landingTrackingPath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.32)] transition hover:brightness-105 active:scale-[0.98]"
+                  >
+                    <ExternalLink className="size-4" strokeWidth={2.25} aria-hidden />
+                    Open preview
+                  </Link>
+                ) : null}
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-    ) : null}
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
 
     <EditCampaignModal
       open={editCampaignOpen}

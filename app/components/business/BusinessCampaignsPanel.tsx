@@ -30,11 +30,13 @@ import {
   createCampaign,
   extractCampaignIdFromCreateResponse,
 } from "@/app/services/funnel/create-campaign";
+import { deleteCampaign } from "@/app/services/funnel/delete-campaign";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import {
   CAMPAIGNS_PAGE_SIZE,
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-business";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 
 const CAMPAIGNS_FETCH_LIMIT = 200;
 const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
@@ -177,6 +179,9 @@ export function BusinessCampaignsPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const [campaignPendingDelete, setCampaignPendingDelete] =
+    useState<Funnel | null>(null);
+  const [isDeletingCampaign, setIsDeletingCampaign] = useState(false);
 
   const {
     data: campaigns,
@@ -246,6 +251,31 @@ export function BusinessCampaignsPanel({
   function clearFilters() {
     setStatusFilter("all");
     setSearchQuery("");
+  }
+
+  async function handleConfirmDeleteCampaign() {
+    if (!campaignPendingDelete || isDeletingCampaign) {
+      return;
+    }
+
+    setIsDeletingCampaign(true);
+    try {
+      await deleteCampaign(campaignPendingDelete.id);
+      setCampaignPendingDelete(null);
+      toast.success("Campaign deleted.");
+      await queryClient.invalidateQueries({
+        queryKey: [...funnelQueryKeys.campaigns(), businessId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: automationQueryKeys.list(businessId),
+      });
+    } catch (deleteError) {
+      toast.error(
+        getApiErrorMessage(deleteError, "Could not delete campaign."),
+      );
+    } finally {
+      setIsDeletingCampaign(false);
+    }
   }
 
   const campaignsToolbar = showToolbar ? (
@@ -394,6 +424,47 @@ export function BusinessCampaignsPanel({
         onClose={() => setAlertDismissed(true)}
       />
 
+      <DeleteConfirmationDialog
+        open={campaignPendingDelete != null}
+        itemName={
+          campaignPendingDelete?.campaignName?.trim() ||
+          campaignPendingDelete?.offer?.trim() ||
+          "this campaign"
+        }
+        title="Delete this campaign?"
+        description={
+          <>
+            This permanently deletes{" "}
+            <span className="font-semibold text-[#1877f2]">
+              {campaignPendingDelete?.campaignName?.trim() ||
+                campaignPendingDelete?.offer?.trim() ||
+                "this campaign"}
+            </span>
+            , including its funnel, orders, and guests for this campaign. This
+            cannot be undone.
+          </>
+        }
+        confirmText="Delete campaign"
+        checkboxLabel={
+          campaignPendingDelete
+            ? `Are you sure you want to delete ${
+                campaignPendingDelete.campaignName?.trim() ||
+                campaignPendingDelete.offer?.trim() ||
+                "this campaign"
+              }?`
+            : "Are you sure you want to delete this campaign?"
+        }
+        isLoading={isDeletingCampaign}
+        onConfirm={() => {
+          void handleConfirmDeleteCampaign();
+        }}
+        onCancel={() => {
+          if (!isDeletingCampaign) {
+            setCampaignPendingDelete(null);
+          }
+        }}
+      />
+
       <div className="rd-premium-page">
         <article className={`${campaignsCardClass} rd-premium-panel`}>
           {campaignsToolbar}
@@ -436,6 +507,7 @@ export function BusinessCampaignsPanel({
                       <CampaignFunnelCard
                         funnel={funnel}
                         businessId={businessId}
+                        onDeleteRequest={setCampaignPendingDelete}
                       />
                     </div>
                   ))}

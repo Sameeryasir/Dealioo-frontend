@@ -62,14 +62,16 @@ function ProfileDetailBoardCell({
   value,
   icon: Icon,
   mono,
+  tone = "blue",
 }: {
   label: string;
   value: string;
   icon: typeof UserRound;
   mono?: boolean;
+  tone?: "blue" | "pink" | "teal";
 }) {
   return (
-    <div className="profile-details-board-cell">
+    <div className={`profile-details-board-cell profile-details-board-cell--${tone}`}>
       <span className="profile-details-board-icon">
         <Icon className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
@@ -112,7 +114,8 @@ function BannerStatCard({
 }
 
 const editButtonLight =
-  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-[#d8e3f2] bg-white px-5 text-sm font-semibold text-brand-navy shadow-sm transition-all hover:border-[#c5d4ea] hover:bg-[#f8faff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-[#1877f2]/25 bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+
 const editButtonDark =
   "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-5 text-sm font-semibold text-zinc-100 transition-all hover:border-zinc-600 hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 const cancelButtonLight =
@@ -454,7 +457,7 @@ export function OwnerProfileForm({
   const [isEditingContact, setIsEditingContact] = useState(false);
 
   const { meta: businessesMeta, isPending: businessesLoading } =
-    useMyBusinessesQuery({ page: 1, limit: 1 });
+    useMyBusinessesQuery({ page: 1 });
 
   const inputClass = variant === "dark" ? inputDark : inputLight;
   const labelClass =
@@ -601,42 +604,55 @@ export function OwnerProfileForm({
   );
 
   const pageAccountDetails = (
-    <div>
-      <h3 className="profile-section-heading">Account details</h3>
-      <p className="profile-section-copy">
-        Identity, access, and activity for your Dealioo account.
-      </p>
+    <div className="profile-details-panel">
+      <div className="profile-details-panel-head">
+        <span className="profile-details-panel-badge" aria-hidden>
+          <Shield className="size-4" strokeWidth={2.25} />
+        </span>
+        <div className="min-w-0">
+          <h3 className="profile-section-heading">Account details</h3>
+          <p className="profile-section-copy">
+            Identity, access, and activity for your Dealioo account.
+          </p>
+        </div>
+      </div>
 
-      <div className="profile-details-board mt-4">
+      <div className="profile-details-board mt-5">
         <ProfileDetailBoardCell
           icon={Shield}
           label="Role"
           value={profile.role.name}
+          tone="blue"
         />
         <ProfileDetailBoardCell
           icon={BadgeCheck}
           label="Sign-in method"
           value={signInMethodLabel(profile.provider)}
+          tone="pink"
         />
         <ProfileDetailBoardCell
           icon={Building2}
           label="Businesses owned"
           value={businessCountLabel}
+          tone="teal"
         />
         <ProfileDetailBoardCell
           icon={CalendarDays}
           label="Member since"
           value={formatProfileDate(profile.createdAt)}
+          tone="blue"
         />
         <ProfileDetailBoardCell
           icon={Clock3}
           label="Last login"
           value={formatProfileDate(profile.lastLoginAt)}
+          tone="pink"
         />
         <ProfileDetailBoardCell
           icon={Clock3}
           label="Last updated"
           value={formatProfileDate(profile.updatedAt)}
+          tone="teal"
         />
       </div>
     </div>
@@ -846,18 +862,19 @@ export function OwnerProfileForm({
           </div>
 
           <div className="org-dashboard-panel profile-page-panel">
-            <div className="org-dashboard-panel-toolbar">
+            <div className="org-dashboard-panel-toolbar profile-page-toolbar">
               <div className="org-dashboard-panel-heading">
                 <div className="org-dashboard-panel-title-row">
                   <h2 className="org-dashboard-panel-title">Account overview</h2>
                 </div>
-                <p className="mt-1 text-sm text-brand-muted">
-                  Review your account information and keep your contact details up to date.
+                <p className="profile-page-toolbar-copy">
+                  Review your account information and keep your contact details up to
+                  date.
                 </p>
               </div>
             </div>
 
-            <div className="org-dashboard-panel-body">
+            <div className="org-dashboard-panel-body profile-page-body">
               <div className="profile-page-grid">
                 {pageAccountDetails}
                 {pageEditForm}

@@ -5,9 +5,11 @@ import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/Funn
 import { FunnelConfirmationView } from "@/app/components/funnel/FunnelConfirmationView";
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
+import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 
 function FunnelCampaignConfirmationInner() {
   const { funnelIdSegment, funnelId } = useFunnelGuestRoute();
+  useFunnelStepGuard(funnelId, "confirmation");
 
   return (
     <FunnelConfirmationView

@@ -23,7 +23,7 @@ export function useMyBusinessesQuery(options: UseMyRestaurantsQueryOptions = {})
   const limit = options.limit ?? MY_RESTAURANTS_PAGE_SIZE;
 
   const query = useQuery({
-    queryKey: businessQueryKeys.myList(page, search),
+    queryKey: businessQueryKeys.myList(page, search, limit),
     queryFn: () => fetchMyBusinesses({ page, search, limit }),
     enabled: hasAuthSession(),
     staleTime: 120_000,

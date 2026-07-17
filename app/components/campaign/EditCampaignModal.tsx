@@ -25,35 +25,28 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
-import { primaryButtonMdClass } from "@/app/lib/panel-styles";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { updateCampaign } from "@/app/services/funnel/update-campaign";
 
 const inputClassName =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-2 focus:ring-zinc-900/10";
+  "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/55 focus:ring-2 focus:ring-[#1877f2]/20";
 
 function FieldLabel({
   icon: Icon,
   htmlFor,
-  iconClassName = "text-zinc-500",
-  iconBoxClassName = "border-zinc-200 bg-white",
   children,
 }: {
   icon: LucideIcon;
   htmlFor: string;
-  iconClassName?: string;
-  iconBoxClassName?: string;
   children: ReactNode;
 }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="mb-1.5 flex items-center gap-2 text-xs font-medium text-zinc-700"
+      className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-700"
     >
-      <span
-        className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md border ${iconBoxClassName}`}
-      >
-        <Icon className={`size-3.5 ${iconClassName}`} strokeWidth={2.25} aria-hidden />
+      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg border border-[#dbeafe] bg-gradient-to-br from-[#eef5ff] to-[#f5f0ff] text-[#1877f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
       </span>
       {children}
     </label>
@@ -191,7 +184,7 @@ export function EditCampaignModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-zinc-900/55 p-3 backdrop-blur-[3px]"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/55 p-3 backdrop-blur-[6px]"
       role="presentation"
       onClick={() => {
         if (!isSaving) onOpenChange(false);
@@ -201,38 +194,55 @@ export function EditCampaignModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-md rounded-xl border border-zinc-200 bg-white shadow-xl"
+        className="relative w-full max-w-md overflow-hidden rounded-[1.25rem] border border-[#e2eaf5] bg-white shadow-[0_24px_56px_rgba(7,17,31,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-violet-600 text-white shadow-sm">
-              <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
-            </span>
-            <h2 id={titleId} className="text-base font-semibold text-zinc-900">
-              Edit campaign
-            </h2>
+        <div className="relative overflow-hidden border-b border-[#eef2f8] px-5 py-4">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#f4f8ff] via-white to-[#faf5ff]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-[#833aba]/12 blur-2xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-4 top-0 size-24 rounded-full bg-[#1877f2]/12 blur-2xl"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1877f2] to-[#833aba] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
+                <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+              <div>
+                <h2
+                  id={titleId}
+                  className="text-base font-extrabold tracking-tight text-[#07111f]"
+                >
+                  Edit campaign
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Update name, offer, price, and image
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              disabled={isSaving}
+              onClick={() => onOpenChange(false)}
+              className="flex size-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+            >
+              <X className="size-4" strokeWidth={2} aria-hidden />
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            disabled={isSaving}
-            onClick={() => onOpenChange(false)}
-            className="flex size-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
-          >
-            <X className="size-4" strokeWidth={2} aria-hidden />
-          </button>
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)}>
-          <div className="space-y-4 px-5 py-4">
+          <div className="space-y-4 bg-gradient-to-b from-[#f8fbff]/80 to-white px-5 py-4">
             <div>
-              <FieldLabel
-                htmlFor="edit-campaign-name"
-                icon={Megaphone}
-                iconClassName="text-blue-600"
-                iconBoxClassName="border-blue-200 bg-blue-50"
-              >
+              <FieldLabel htmlFor="edit-campaign-name" icon={Megaphone}>
                 Campaign name
               </FieldLabel>
               <input
@@ -247,12 +257,7 @@ export function EditCampaignModal({
 
             <div className="grid grid-cols-[1fr_7rem] gap-3">
               <div>
-                <FieldLabel
-                  htmlFor="edit-campaign-offer"
-                  icon={Gift}
-                  iconClassName="text-violet-600"
-                  iconBoxClassName="border-violet-200 bg-violet-50"
-                >
+                <FieldLabel htmlFor="edit-campaign-offer" icon={Gift}>
                   Offer
                 </FieldLabel>
                 <input
@@ -265,12 +270,7 @@ export function EditCampaignModal({
                 />
               </div>
               <div>
-                <FieldLabel
-                  htmlFor="edit-campaign-price"
-                  icon={CircleDollarSign}
-                  iconClassName="text-amber-600"
-                  iconBoxClassName="border-amber-200 bg-amber-50"
-                >
+                <FieldLabel htmlFor="edit-campaign-price" icon={CircleDollarSign}>
                   Price
                 </FieldLabel>
                 <input
@@ -286,12 +286,7 @@ export function EditCampaignModal({
             </div>
 
             <div>
-              <FieldLabel
-                htmlFor="edit-campaign-image"
-                icon={ImageIcon}
-                iconClassName="text-rose-600"
-                iconBoxClassName="border-rose-200 bg-rose-50"
-              >
+              <FieldLabel htmlFor="edit-campaign-image" icon={ImageIcon}>
                 Offer image
               </FieldLabel>
               <input
@@ -304,24 +299,24 @@ export function EditCampaignModal({
               />
 
               {previewUrl ? (
-                <div className="overflow-hidden rounded-xl border border-zinc-200/90 bg-gradient-to-b from-zinc-50 to-white shadow-sm ring-1 ring-zinc-950/5">
-                  <div className="relative aspect-[16/9] w-full bg-zinc-100/80">
+                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white shadow-[0_8px_20px_rgba(24,119,242,0.06)]">
+                  <div className="relative aspect-[16/9] w-full bg-[#eef5ff]/80">
                     <img
                       src={previewUrl}
                       alt="Campaign offer preview"
                       className="h-full w-full object-contain"
                     />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pb-3 pt-10">
-                      <p className="flex items-center gap-1 text-xs font-medium text-white/90">
-                        <ImageIcon className="size-3.5 text-rose-300" aria-hidden />
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-[#07111f]/80 via-[#0a1628]/35 to-transparent px-3 pb-3 pt-10">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
+                        <ImageIcon className="size-3.5 text-[#93c5fd]" aria-hidden />
                         Current offer image
                       </p>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-zinc-900 shadow-md transition hover:bg-zinc-100"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#07111f] shadow-md transition hover:bg-[#eef5ff]"
                       >
-                        <Upload className="size-3.5 text-blue-600" aria-hidden />
+                        <Upload className="size-3.5 text-[#1877f2]" aria-hidden />
                         Replace
                       </button>
                     </div>
@@ -335,30 +330,30 @@ export function EditCampaignModal({
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`flex w-full flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-all ${
+                  className={`flex w-full flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-all ${
                     isDragging
-                      ? "scale-[1.01] border-zinc-900 bg-zinc-100 shadow-md ring-2 ring-zinc-900/10"
-                      : "border-zinc-200 bg-gradient-to-b from-zinc-50/80 to-white hover:border-zinc-300 hover:bg-zinc-50"
+                      ? "scale-[1.01] border-[#1877f2] bg-[#eef5ff] shadow-md ring-2 ring-[#1877f2]/15"
+                      : "border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white hover:border-[#1877f2]/45 hover:bg-[#f4f8ff]"
                   }`}
                 >
                   <span
-                    className={`flex size-12 items-center justify-center rounded-xl shadow-sm ring-1 transition-colors ${
+                    className={`flex size-12 items-center justify-center rounded-xl shadow-sm transition-colors ${
                       isDragging
-                        ? "bg-rose-600 text-white ring-rose-600"
-                        : "bg-rose-50 text-rose-600 ring-rose-200"
+                        ? "bg-gradient-to-br from-[#1877f2] to-[#833aba] text-white"
+                        : "bg-gradient-to-br from-[#eef5ff] to-[#f5f0ff] text-[#1877f2] ring-1 ring-[#dbeafe]"
                     }`}
                   >
                     <ImagePlus className="size-6" strokeWidth={1.5} aria-hidden />
                   </span>
                   <span>
-                    <span className="block text-sm font-semibold text-zinc-900">
+                    <span className="block text-sm font-semibold text-[#07111f]">
                       {isDragging ? "Drop image here" : "Upload offer image"}
                     </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500">
-                      Drag & drop or click to browse, PNG, JPG, WebP
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      Drag & drop or click to browse · PNG, JPG, WebP
                     </span>
                   </span>
-                  <span className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
+                  <span className="rounded-full bg-gradient-to-r from-[#1877f2] to-[#833aba] px-3.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(24,119,242,0.25)]">
                     Browse files
                   </span>
                 </button>
@@ -367,7 +362,7 @@ export function EditCampaignModal({
 
             {error ? (
               <p
-                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
                 role="alert"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -376,22 +371,22 @@ export function EditCampaignModal({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-zinc-100 px-5 py-3">
+          <div className="flex justify-end gap-2 border-t border-[#eef2f8] bg-gradient-to-r from-white via-[#f8fbff] to-white px-5 py-3.5">
             <button
               type="button"
               disabled={isSaving}
               onClick={() => onOpenChange(false)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
             >
-              <X className="size-4 text-red-500" aria-hidden />
+              <X className="size-4" aria-hidden />
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className={`${primaryButtonMdClass} inline-flex h-9 items-center gap-1.5 px-4 text-sm`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#833aba] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Check className="size-4 text-emerald-300" aria-hidden />
+              <Check className="size-4" aria-hidden />
               {isSaving ? "Saving…" : "Save changes"}
             </button>
           </div>
