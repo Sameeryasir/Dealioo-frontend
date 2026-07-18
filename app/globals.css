@@ -3874,7 +3874,7 @@ body {
     pointer-events: none;
     z-index: 0;
     display: block;
-    background: radial-gradient(ellipse, rgba(225, 48, 108, 0.16) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(23, 119, 242, 0.16) 0%, transparent 70%);
   }
 
   .org-biz-card-inner {
@@ -4006,7 +4006,7 @@ body {
 
   .org-biz-card-bento-eyebrow {
     @apply inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em];
-    color: #f472b6;
+    color: #1777f2;
   }
 
   .org-biz-card-progress-wrap {
@@ -4016,7 +4016,7 @@ body {
   }
 
   .org-biz-card-progress-wrap .org-biz-card-bento-eyebrow {
-    color: #f472b6;
+    color: #1777f2;
   }
 
   .org-biz-card-progress-wrap--interactive {
@@ -4039,7 +4039,7 @@ body {
 
   .org-biz-card-setup-pct {
     @apply pointer-events-none relative z-[1] m-0 text-center text-[0.72rem] font-bold leading-none tracking-tight tabular-nums;
-    color: #f9a8d4;
+    color: #93c5fd;
   }
 
   .org-biz-card-progress-ring {
@@ -4048,7 +4048,7 @@ body {
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-setup-pct {
-    color: #f9a8d4;
+    color: #93c5fd;
   }
 
   .org-biz-card-progress-ring:not([data-complete="true"]) .org-biz-card-setup-pct {
@@ -4071,7 +4071,6 @@ body {
     stroke: rgba(255, 255, 255, 0.14);
   }
 
-  /* Fill stroke color comes from SVG linearGradient (blue → pink) */
   .org-biz-card-progress-ring-fill {
     transition: stroke-dashoffset 0.45s ease;
   }
@@ -4081,7 +4080,7 @@ body {
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-track {
-    stroke: rgba(225, 48, 108, 0.2);
+    stroke: rgba(23, 119, 242, 0.2);
   }
 
   .org-biz-card-location-tile {
@@ -4090,7 +4089,7 @@ body {
   }
 
   .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
-    color: #f472b6;
+    color: #1777f2;
   }
 
   .org-biz-setup-popover {
@@ -4317,18 +4316,18 @@ body {
   .org-biz-card-footer--bento .org-biz-card-cta {
     @apply inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-[14px] font-semibold;
     border: none;
-    background: linear-gradient(135deg, var(--brand-primary) 0%, #0f5ed7 100%);
+    background: #1777f2;
     color: var(--brand-white);
     box-shadow:
-      0 4px 14px rgba(24, 119, 242, 0.28),
+      0 4px 14px rgba(23, 119, 242, 0.28),
       0 1px 0 rgba(255, 255, 255, 0.2) inset;
   }
 
   .org-biz-card--grid:hover .org-biz-card-footer--bento .org-biz-card-cta {
-    background: linear-gradient(135deg, #0f5ed7 0%, #0b4fbf 100%);
+    background: #1468d6;
     transform: none;
     box-shadow:
-      0 6px 18px rgba(24, 119, 242, 0.34),
+      0 6px 18px rgba(23, 119, 242, 0.34),
       0 1px 0 rgba(255, 255, 255, 0.2) inset;
   }
 

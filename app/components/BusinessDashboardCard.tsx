@@ -303,7 +303,6 @@ export default function BusinessDashboardCard({
                       className="org-biz-card-progress-svg"
                       aria-hidden
                     >
-                      {/* Blue → pink stroke (same accent pair as dashboard banner glows) */}
                       <defs>
                         <linearGradient
                           id={`org-biz-progress-grad-${businessId ?? "x"}`}
@@ -312,9 +311,8 @@ export default function BusinessDashboardCard({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="#1877f2" />
-                          <stop offset="55%" stopColor="#8b5cf6" />
-                          <stop offset="100%" stopColor="#e1306c" />
+                          <stop offset="0%" stopColor="#1777f2" />
+                          <stop offset="100%" stopColor="#1777f2" />
                         </linearGradient>
                       </defs>
                       <circle

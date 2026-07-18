@@ -1,9 +1,14 @@
 "use client";
 
+import { AuthLandingNav } from "@/app/components/auth/AuthLandingNav";
 import {
   getSignupPlanCta,
   SignupPlanStep,
 } from "@/app/components/auth/SignupPlanStep";
+import {
+  PlanFitQuestionnaire,
+  type PlanFitResult,
+} from "@/app/components/auth/PlanFitQuestionnaire";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { findPricingPlan } from "@/app/components/landing/pricing-plans";
@@ -17,7 +22,7 @@ import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscri
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: string }[]): boolean {
@@ -44,6 +49,10 @@ export function SignupSelectPlanPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
   const [upgradedPlanName, setUpgradedPlanName] = useState<string | null>(null);
+  const [quizDone, setQuizDone] = useState(mode !== "checkout");
+  const [recommendation, setRecommendation] = useState<PlanFitResult | null>(
+    null,
+  );
 
   useEffect(() => {
     setBillingCycle(readBillingCyclePreference());
@@ -51,10 +60,10 @@ export function SignupSelectPlanPanel({
   }, []);
 
   useEffect(() => {
-    if (!loading && plans.length > 0) {
+    if (!loading && plans.length > 0 && !recommendation) {
       setSelectedPlanId(defaultPlanId);
     }
-  }, [defaultPlanId, loading, plans.length]);
+  }, [defaultPlanId, loading, plans.length, recommendation]);
 
   useEffect(() => {
     if (!billingReady) return;
@@ -68,6 +77,28 @@ export function SignupSelectPlanPanel({
     },
     [selectedPlanId],
   );
+
+  const [savedQuizAnswers, setSavedQuizAnswers] =
+    useState<PlanFitResult["answers"] | null>(null);
+
+  const handleQuizComplete = useCallback(
+    (result: PlanFitResult) => {
+      const availableIds = new Set(plans.map((plan) => plan.id));
+      const planId = availableIds.has(result.planId)
+        ? result.planId
+        : defaultPlanId;
+      setRecommendation({ ...result, planId: planId as PlanFitResult["planId"] });
+      setSavedQuizAnswers(result.answers);
+      setSelectedPlanId(planId);
+      setQuizDone(true);
+    },
+    [defaultPlanId, plans],
+  );
+
+  const handleRetakeQuiz = useCallback(() => {
+    setQuizDone(false);
+    setRecommendation(null);
+  }, []);
 
   const goToDashboard = useCallback(() => {
     window.location.assign("/dashboard");
@@ -152,13 +183,26 @@ export function SignupSelectPlanPanel({
     );
   }
 
+  if (mode === "checkout" && !quizDone) {
+    return (
+      <PlanFitQuestionnaire
+        onComplete={handleQuizComplete}
+        initialAnswers={savedQuizAnswers}
+      />
+    );
+  }
+
   const alertMessage = errorMessage ?? plansError;
   const continueLabel =
     mode === "upgrade"
       ? "Upgrade plan"
       : getSignupPlanCta(selectedPlanId, plans);
+  const recommendedName =
+    plans.find((plan) => plan.id === recommendation?.planId)?.name ??
+    findPricingPlan(recommendation?.planId ?? "")?.name ??
+    null;
 
-  return (
+  const plansPanel = (
     <div className="signup-select-plan-panel mx-auto w-full max-w-[88rem] px-1 sm:px-0">
       {alertMessage ? (
         <div
@@ -170,6 +214,26 @@ export function SignupSelectPlanPanel({
         </div>
       ) : null}
 
+      {mode === "checkout" && recommendation ? (
+        <div className="mb-5 flex flex-col items-center gap-2 text-center sm:mb-6">
+          <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
+            Based on your answers, we suggest{" "}
+            <span className="font-bold text-[#1877f2]">
+              {recommendedName ?? recommendation.planId}
+            </span>
+            . {recommendation.reason} You can still pick any plan below.
+          </p>
+          <button
+            type="button"
+            onClick={handleRetakeQuiz}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-[#1877f2]"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+            Retake questions
+          </button>
+        </div>
+      ) : null}
+
       <div className="select-plan-panel__plans">
         <SignupPlanStep
           billing={billingCycle}
@@ -178,6 +242,7 @@ export function SignupSelectPlanPanel({
           onSelectPlan={setSelectedPlanId}
           plans={plans}
           layout="single-row"
+          recommendedPlanId={recommendation?.planId ?? null}
         />
       </div>
 
@@ -212,6 +277,32 @@ export function SignupSelectPlanPanel({
         onCancel={() => setUpgradeSuccessOpen(false)}
         onConfirm={goToDashboard}
       />
+    </div>
+  );
+
+  if (mode === "upgrade") {
+    return plansPanel;
+  }
+
+  return (
+    <div className="auth-select-plan-page">
+      <AuthLandingNav
+        loginHref="/auth/login"
+        signupHref="/auth/signup"
+        showGetStarted={false}
+      />
+      <main className="auth-select-plan-main">
+        <div className="auth-select-plan-header mx-auto max-w-3xl text-center">
+          <h1 className="brand-landing-display auth-signup-step-title">
+            Choose your <span className="landing-hero-accent-blue">plan</span>
+          </h1>
+          <p className="auth-signup-step-sub mt-1.5">
+            We’ve highlighted a suggestion from your answers. Pick that plan or
+            any other one.
+          </p>
+        </div>
+        {plansPanel}
+      </main>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import {
   AlertCircle,
   Briefcase,
   Check,
-  Clock3,
   Eye,
   KeyRound,
   Loader2,
@@ -578,10 +577,16 @@ function MemberDetailsModal({
 
   if (!member) return null;
 
+  // --- Member details dialog: simplified layout (less nested cards) ---
+  // What: Flattened role/status/permissions; email only in header.
+  // Why: Easier to scan; remove duplicate email block and heavy card chrome.
   const initial = member.name.trim().charAt(0).toUpperCase() || "?";
   const canRemove =
     member.status !== "owner" && member.id != null && member.id > 0;
-  const RoleIcon = member.role === "Staff" ? UserCog : Briefcase;
+  const permissionLabels =
+    member.permissions.length > 0
+      ? member.permissions.map((permission) => getPermissionLabel(permission))
+      : [];
 
   return (
     <AnimatePresence>
@@ -592,155 +597,98 @@ function MemberDetailsModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: standardEase }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/50 p-4 backdrop-blur-[4px]"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/45 p-4 backdrop-blur-[3px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="member-details-title"
           onClick={onClose}
         >
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: standardEase }}
-            className="relative w-full max-w-lg overflow-hidden rounded-[1.6rem] border border-[#dbe7f5] bg-white shadow-[0_28px_70px_rgba(15,23,42,0.28)]"
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: standardEase }}
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_20px_48px_rgba(15,23,42,0.22)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(24,119,242,0.12),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(13,91,184,0.06),transparent_46%)]"
-            />
-
-            <div className="relative border-b border-[#d7e6f8] bg-gradient-to-br from-[#0f172a] via-[#123a73] to-[#1877f2] px-5 py-5 text-white">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3.5">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold text-white shadow-inner ring-1 ring-white/25 backdrop-blur-sm">
-                    {initial}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-white/70">
-                      Member details
-                    </p>
-                    <p
-                      id="member-details-title"
-                      className="mt-1 truncate text-lg font-bold tracking-tight"
-                    >
-                      {member.name}
-                    </p>
-                    <p className="mt-0.5 truncate text-sm text-white/75">
-                      {member.email}
-                    </p>
-                  </div>
+            <div className="flex items-start justify-between gap-3 border-b border-[#eef2f8] px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white">
+                  {initial}
+                </span>
+                <div className="min-w-0">
+                  <p
+                    id="member-details-title"
+                    className="truncate text-base font-bold text-[#07111f]"
+                  >
+                    {member.name}
+                  </p>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">
+                    {member.email}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
-                  aria-label="Close member details"
-                >
-                  <X className="size-4" strokeWidth={2.25} aria-hidden />
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Close member details"
+              >
+                <X className="size-4" strokeWidth={2.25} aria-hidden />
+              </button>
             </div>
 
-            <div className="relative space-y-3.5 px-5 py-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-br from-[#eef5ff] to-white px-3.5 py-3.5 shadow-sm shadow-[#1877f2]/5">
-                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
-                    Role
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-sm font-bold text-[#0b1f3a]">
-                    <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
-                      <RoleIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
-                    </span>
+            <div className="space-y-4 px-5 py-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <p className="text-slate-600">
+                  <span className="text-slate-400">Role</span>{" "}
+                  <span className="font-semibold text-[#07111f]">
                     {member.role}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#f0e2c8] bg-gradient-to-br from-[#fff8ee] to-white px-3.5 py-3.5 shadow-sm shadow-amber-500/5">
-                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#9a7b4a]">
-                    Status
-                  </p>
-                  <span
-                    className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold ring-1 ${memberStatusBadge(member.status)}`}
-                  >
-                    {memberStatusLabel(member.status)}
                   </span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-r from-[#f5f9ff] to-white px-3.5 py-3.5">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
-                  Email
                 </p>
-                <p className="mt-2 flex items-center gap-2.5 text-sm font-semibold text-[#0b1f3a]">
-                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
-                    <Mail className="size-3.5" strokeWidth={2.25} aria-hidden />
-                  </span>
-                  <span className="truncate">{member.email}</span>
-                </p>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${memberStatusBadge(member.status)}`}
+                >
+                  {memberStatusLabel(member.status)}
+                </span>
               </div>
 
               {(member.invitedAt || member.expiresAt) && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[#d9e8fb] bg-[#f7faff] px-3.5 py-3.5">
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
-                      Invited
-                    </p>
-                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0b1f3a]">
-                      <Clock3
-                        className="size-3.5 shrink-0 text-[#1877f2]"
-                        aria-hidden
-                      />
+                <div className="space-y-1 text-sm text-slate-600">
+                  {member.invitedAt ? (
+                    <p>
+                      <span className="text-slate-400">Invited</span>{" "}
                       {formatMemberDate(member.invitedAt)}
                     </p>
-                  </div>
-                  <div className="rounded-2xl border border-[#f0e2c8] bg-[#fffaf2] px-3.5 py-3.5">
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#9a7b4a]">
-                      Expires
-                    </p>
-                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0b1f3a]">
-                      <Clock3
-                        className="size-3.5 shrink-0 text-amber-600"
-                        aria-hidden
-                      />
+                  ) : null}
+                  {member.expiresAt ? (
+                    <p>
+                      <span className="text-slate-400">Expires</span>{" "}
                       {formatMemberDate(member.expiresAt)}
                     </p>
-                  </div>
+                  ) : null}
                 </div>
               )}
 
-              <div className="rounded-2xl border border-[#d9e8fb] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fbff] px-3.5 py-3.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5b7aa8]">
-                    <Shield className="size-3.5 text-[#1877f2]" aria-hidden />
-                    Access permissions
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Access
+                </p>
+                {permissionLabels.length > 0 ? (
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#07111f]">
+                    {permissionLabels.join(" · ")}
                   </p>
-                  <span className="rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
-                    {member.permissions.length} enabled
-                  </span>
-                </div>
-                {member.permissions.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {member.permissions.map((permission) => (
-                      <span
-                        key={permission}
-                        className="inline-flex rounded-full bg-white px-2.5 py-1 text-[0.72rem] font-semibold text-[#1565c9] shadow-sm ring-1 ring-[#c5dbf7]"
-                      >
-                        {getPermissionLabel(permission)}
-                      </span>
-                    ))}
-                  </div>
                 ) : (
-                  <p className="mt-2 text-sm text-slate-500">No access set</p>
+                  <p className="mt-1.5 text-sm text-slate-500">No access set</p>
                 )}
               </div>
             </div>
 
-            <div className="relative flex flex-col-reverse gap-2 border-t border-[#e4eef9] bg-[#f7faff] px-5 py-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 border-t border-[#eef2f8] px-5 py-3.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="h-11 cursor-pointer rounded-xl border border-[#d5e4f7] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-[#eef5ff]"
+                className="h-10 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Close
               </button>
@@ -749,7 +697,7 @@ function MemberDetailsModal({
                   type="button"
                   onClick={onRemove}
                   disabled={isRemoving}
-                  className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 px-5 text-sm font-semibold text-red-700 shadow-sm transition hover:from-red-100 hover:to-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isRemoving ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden />

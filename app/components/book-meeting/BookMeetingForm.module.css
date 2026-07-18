@@ -1,5 +1,5 @@
-:global(html:has([data-book-meeting-page], [data-register-business-page])),
-:global(body:has([data-book-meeting-page], [data-register-business-page])) {
+:global(html:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page])),
+:global(body:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page])) {
   overflow-x: hidden;
   background: #04060c !important;
 }

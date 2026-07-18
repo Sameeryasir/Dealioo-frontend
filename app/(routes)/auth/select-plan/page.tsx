@@ -23,7 +23,6 @@ function SelectPlanPageInner() {
         return;
       }
 
-      // Invited Manager/Staff must never see owner plan selection.
       if (isInvitedTeamUser()) {
         router.replace("/dashboard");
         return;
@@ -69,24 +68,7 @@ function SelectPlanPageInner() {
     return <AuthPageLoading />;
   }
 
-  return (
-    <div className="auth-select-plan-page">
-      <AuthLandingNav loginHref="/auth/login" signupHref="/auth/signup" />
-
-      <main className="auth-select-plan-main">
-        <div className="auth-select-plan-header mx-auto max-w-3xl text-center">
-          <h1 className="brand-landing-display auth-signup-step-title">
-            Choose your <span className="landing-hero-accent-blue">plan</span>
-          </h1>
-          <p className="auth-signup-step-sub mt-1.5">
-            Pick the plan that fits your business. You can change it later.
-          </p>
-        </div>
-
-        <SignupSelectPlanPanel />
-      </main>
-    </div>
-  );
+  return <SignupSelectPlanPanel />;
 }
 
 export default function SelectPlanPage() {

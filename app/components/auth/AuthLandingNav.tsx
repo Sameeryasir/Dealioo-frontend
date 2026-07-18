@@ -21,12 +21,14 @@ export type AuthLandingNavProps = {
   loginHref?: string;
   signupHref?: string;
   onMenuOpenChange?: (open: boolean) => void;
+  showGetStarted?: boolean;
 };
 
 export function AuthLandingNav({
   loginHref: loginHrefProp,
   signupHref: signupHrefProp,
   onMenuOpenChange,
+  showGetStarted = true,
 }: AuthLandingNavProps) {
   const signupHref = signupHrefProp ?? landingSignupHref(null);
   const loginHref = loginHrefProp ?? landingLoginHref(null);
@@ -89,9 +91,11 @@ export function AuthLandingNav({
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link href={signupHref} className="landing-btn-primary px-6 py-2.5 text-sm font-bold">
-              Get Started
-            </Link>
+            {showGetStarted ? (
+              <Link href={signupHref} className="landing-btn-primary px-6 py-2.5 text-sm font-bold">
+                Get Started
+              </Link>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-2 md:hidden">
@@ -144,13 +148,15 @@ export function AuthLandingNav({
                   </li>
                 ))}
               </ul>
-              <Link
-                href={signupHref}
-                className="landing-btn-primary landing-mobile-nav-cta"
-                onClick={() => setMenuOpen(false)}
-              >
-                Get Started
-              </Link>
+              {showGetStarted ? (
+                <Link
+                  href={signupHref}
+                  className="landing-btn-primary landing-mobile-nav-cta"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Get Started
+                </Link>
+              ) : null}
             </motion.nav>
           </>
         ) : null}

@@ -35,8 +35,6 @@ export function FacebookPermissionsPanel({
     requiredScopes,
     missingRequiredScopes,
   });
-  const hasStoredScopes = granted.size > 0 || scopeIds.length > 0;
-
   if (loading) {
     return (
       <div className={panelShellClass}>
@@ -45,14 +43,9 @@ export function FacebookPermissionsPanel({
     );
   }
 
-  if (!hasStoredScopes && !connected) {
-    return (
-      <div className={panelShellClass}>
-        <p className="text-xs leading-relaxed text-slate-500">
-          Connect Facebook to see which ad permissions Dealioo can use.
-        </p>
-      </div>
-    );
+  // Only show after connect — listing requested scopes as "Not granted" is confusing.
+  if (!connected) {
+    return null;
   }
 
   return (
@@ -70,27 +63,6 @@ export function FacebookPermissionsPanel({
           </p>
         </div>
       </div>
-
-      {missingRequiredScopes.length > 0 ? (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5"
-        >
-          <AlertCircle
-            className="mt-0.5 size-4 shrink-0 text-amber-600"
-            aria-hidden
-          />
-          <p className="text-xs leading-relaxed text-amber-900">
-            Required permission
-            {missingRequiredScopes.length === 1 ? "" : "s"} missing:{" "}
-            <span className="font-semibold">
-              {missingRequiredScopes.join(", ")}
-            </span>
-            . Remove Facebook and connect again, approving every ad permission
-            Meta shows.
-          </p>
-        </div>
-      ) : null}
 
       <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {scopeIds.map((scopeId) => {

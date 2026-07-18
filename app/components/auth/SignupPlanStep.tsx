@@ -17,8 +17,8 @@ type SignupPlanStepProps = {
   selectedPlanId: string;
   onSelectPlan: (planId: string) => void;
   plans?: readonly PricingPlan[];
-  /** Full-width select-plan page: all cards in one row, no scroll hint. */
   layout?: "signup" | "single-row";
+  recommendedPlanId?: string | null;
 };
 
 function SignupPlanFeatures({ plan }: { plan: PricingPlan }) {
@@ -118,12 +118,14 @@ function SignupPlanCard({
   selected,
   onSelect,
   cardRef,
+  recommended,
 }: {
   plan: PricingPlan;
   billing: BillingCycle;
   selected: boolean;
   onSelect: (planId: string) => void;
   cardRef?: Ref<HTMLButtonElement>;
+  recommended?: boolean;
 }) {
   const tier = getPlanTier(plan, billing);
 
@@ -140,11 +142,15 @@ function SignupPlanCard({
           : "border-[#dbe3ef] bg-white hover:border-[#b8c9e4] hover:bg-[#fafbfd]"
       } ${plan.highlighted ? "auth-signup-plan-card--featured" : ""} ${
         plan.id === "growth-expert" ? "auth-signup-plan-card--expert" : ""
-      }`}
+      } ${recommended ? "ring-2 ring-[#1877f2]/25" : ""}`}
     >
       <div className="auth-signup-plan-card-top flex items-start justify-between gap-1">
         <div className="flex min-h-[0.875rem] flex-wrap items-center gap-0.5">
-          {plan.badge ? (
+          {recommended ? (
+            <span className="auth-signup-plan-card-badge inline-flex max-w-full rounded-full bg-[#1877f2] font-bold uppercase leading-tight tracking-wide text-white">
+              Recommended for you
+            </span>
+          ) : plan.badge ? (
             <span
               className={`auth-signup-plan-card-badge inline-flex max-w-full rounded-full font-bold leading-tight tracking-wide ${
                 plan.highlighted
@@ -239,6 +245,7 @@ export function SignupPlanStep({
   onSelectPlan,
   plans = PRICING_PLANS,
   layout = "signup",
+  recommendedPlanId = null,
 }: SignupPlanStepProps) {
   const singleRow = layout === "single-row";
   const billingNote = useMemo(
@@ -314,6 +321,7 @@ export function SignupPlanStep({
                       billing={billing}
                       selected={selectedPlanId === plan.id}
                       onSelect={onSelectPlan}
+                      recommended={recommendedPlanId === plan.id}
                     />
                   ))
                 : (
@@ -325,6 +333,7 @@ export function SignupPlanStep({
                         billing={billing}
                         selected={selectedPlanId === plan.id}
                         onSelect={onSelectPlan}
+                        recommended={recommendedPlanId === plan.id}
                       />
                     ))}
 
@@ -341,6 +350,7 @@ export function SignupPlanStep({
                         billing={billing}
                         selected={selectedPlanId === plan.id}
                         onSelect={onSelectPlan}
+                        recommended={recommendedPlanId === plan.id}
                       />
                     ))}
                   </>
