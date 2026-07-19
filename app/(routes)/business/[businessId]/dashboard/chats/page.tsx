@@ -18,8 +18,11 @@ export default function BusinessChatsPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <section
+      className="rd-premium rd-premium--fill"
+      aria-label="Guest Chats"
+    >
       <BusinessChatsPanel businessId={businessId} />
-    </div>
+    </section>
   );
 }

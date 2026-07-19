@@ -2,12 +2,29 @@
 
 import { formatTimeShort } from "@/app/lib/datetime";
 import type { ConversationMessage } from "@/app/services/chat/get-business-conversation";
+import { GuestChatAutomationBadge } from "./GuestChatAutomationBadge";
 import {
   isGuestInboundMessage,
   messagePreview,
   type GuestChatBubbleStackPosition,
 } from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
+
+function automationSourceLabel(message: ConversationMessage): string | null {
+  const funnel =
+    message.funnelName?.trim() || message.campaignName?.trim() || "";
+  const automation = message.automationName?.trim() || "";
+  if (funnel && automation) {
+    return `Funnel: ${funnel} · ${automation}`;
+  }
+  if (funnel) {
+    return `Funnel: ${funnel}`;
+  }
+  if (automation) {
+    return automation;
+  }
+  return null;
+}
 
 export type { GuestChatBubbleStackPosition };
 
@@ -72,6 +89,8 @@ export function GuestChatMessageBubble({
   const isError = message.kind === "error";
   const isGuestMessage = !isError && isGuestInboundMessage(message);
   const body = messagePreview(message);
+  const sourceLabel =
+    !isError && !isGuestMessage ? automationSourceLabel(message) : null;
   const isStackEnd = stackPosition === "single" || stackPosition === "last";
   const rowSpacing =
     stackPosition === "first" || stackPosition === "middle" ? "mb-2" : "mb-4";
@@ -118,6 +137,11 @@ export function GuestChatMessageBubble({
         ) : null}
 
         <div className="relative z-[1] min-w-0">
+          {sourceLabel ? (
+            <div className="mb-1.5">
+              <GuestChatAutomationBadge label={sourceLabel} compact />
+            </div>
+          ) : null}
           <LinkifiedText
             text={body}
             className={textClass}

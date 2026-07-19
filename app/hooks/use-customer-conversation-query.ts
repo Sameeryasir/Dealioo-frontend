@@ -553,7 +553,32 @@ export function useCustomerConversationQuery(
           }
 
           if (messageExistsById(prev.messages, payload.message.id)) {
-            return prev;
+            return {
+              ...prev,
+              customerName: payload.customerName ?? prev.customerName,
+              customerEmail: payload.customerEmail ?? prev.customerEmail,
+              messages: prev.messages.map((message) =>
+                message.id === payload.message.id
+                  ? {
+                      ...message,
+                      automationName:
+                        message.automationName ??
+                        payload.message.automationName ??
+                        null,
+                      campaignName:
+                        message.campaignName ??
+                        payload.message.campaignName ??
+                        null,
+                      funnelName:
+                        message.funnelName ??
+                        payload.message.funnelName ??
+                        null,
+                      funnelId:
+                        message.funnelId ?? payload.message.funnelId ?? null,
+                    }
+                  : message,
+              ),
+            };
           }
 
           return {

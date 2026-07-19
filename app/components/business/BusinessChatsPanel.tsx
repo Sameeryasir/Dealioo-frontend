@@ -138,8 +138,8 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 w-full flex-col overflow-hidden bg-[#e8f2ff]/35">
-      <div className="flex h-full min-h-0 w-full overflow-hidden rounded-none border border-[#e8edf5] bg-white shadow-sm lg:rounded-2xl lg:shadow-[0_8px_30px_rgba(24,119,242,0.08)]">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+      <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden border-0 bg-white">
         <div
           className={`h-full min-h-0 shrink-0 overflow-hidden ${
             mobileShowList

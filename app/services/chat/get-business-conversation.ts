@@ -30,6 +30,10 @@ export type ConversationMessage = {
   stepType: string | null;
   sentAt: string;
   error: string | null;
+  automationName?: string | null;
+  campaignName?: string | null;
+  funnelName?: string | null;
+  funnelId?: number | null;
 };
 
 export type ConversationDetail = {

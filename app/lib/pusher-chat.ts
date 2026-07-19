@@ -113,6 +113,10 @@ export function parseChatMessagePusherPayload(
   const lastMessageAt = parseIsoTimestamp(row.lastMessageAt);
   if (!lastMessageAt) return null;
 
+  const funnelIdRaw = Number(messageRow.funnelId);
+  const funnelId =
+    Number.isFinite(funnelIdRaw) && funnelIdRaw > 0 ? funnelIdRaw : null;
+
   return {
     businessId,
     conversationId,
@@ -130,6 +134,19 @@ export function parseChatMessagePusherPayload(
         messageRow.stepType == null ? null : String(messageRow.stepType),
       sentAt,
       error: messageRow.error == null ? null : String(messageRow.error),
+      automationName:
+        messageRow.automationName == null
+          ? null
+          : String(messageRow.automationName).trim() || null,
+      campaignName:
+        messageRow.campaignName == null
+          ? null
+          : String(messageRow.campaignName).trim() || null,
+      funnelName:
+        messageRow.funnelName == null
+          ? null
+          : String(messageRow.funnelName).trim() || null,
+      funnelId,
     },
     lastMessagePreview: String(row.lastMessagePreview ?? "").trim(),
     lastMessageChannel: parseMessageKind(row.lastMessageChannel),

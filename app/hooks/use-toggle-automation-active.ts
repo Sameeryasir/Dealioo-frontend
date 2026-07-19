@@ -24,7 +24,7 @@ export function useToggleAutomationActive(automationId: number) {
         syncAutomationQueryCache(queryClient, updated);
         toast.success(
           isActive
-            ? "Automation resumed. Scheduled runs will continue."
+            ? "Automation resumed. Sending now, then on the schedule."
             : "Automation paused and unpublished. Scheduled runs are stopped.",
         );
       } catch (err) {

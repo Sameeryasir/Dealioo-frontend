@@ -95,12 +95,12 @@ export function GuestChatSidebar({
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[#e8edf5] bg-white lg:w-[380px] lg:shrink-0">
-      <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-gradient-to-br from-[#e8f2ff] via-white to-white px-5 pb-4 pt-5">
+      <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-gradient-to-br from-[#e8f2ff] via-white to-white px-5 pb-3 pt-3">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(24,119,242,0.14)_0%,transparent_70%)]"
         />
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <h1 className="text-2xl font-bold tracking-tight text-[#07111f]">Guest Chats</h1>
         </div>
         <GuestChatSearchBar value={search} onChange={onSearchChange} />

@@ -3986,7 +3986,7 @@ body {
 
   .org-biz-card-name-label {
     @apply mb-0.5 block text-[11px] font-semibold uppercase tracking-[0.08em];
-    color: rgba(255, 255, 255, 0.5);
+    color: #1777f2;
   }
 
   .org-biz-card-bento {
@@ -4088,8 +4088,14 @@ body {
     background: transparent !important;
   }
 
+  /* Location label stays pink; Profile setup / Name stay blue */
+  .org-biz-card-location-eyebrow,
   .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
-    color: #1777f2;
+    color: #f472b6 !important;
+  }
+
+  .org-biz-card-location-eyebrow svg {
+    color: #f472b6 !important;
   }
 
   .org-biz-setup-popover {
@@ -11328,6 +11334,38 @@ body:has(.auth-select-plan-page) {
   padding-left: 0;
   padding-right: 0;
   padding-bottom: 0;
+}
+
+.rd-shell--guest-chats .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-main-scroll.rd-main-scroll--guest-chats,
+.rd-main-scroll.rd-main-scroll--guest-chats.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--guest-chats.rd-main-scroll--sidebar-expanded,
+.rd-main-scroll.rd-main-scroll--guest-chats:has(> .rd-premium--fill) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  background: #ffffff;
+}
+
+.rd-main-scroll.rd-main-scroll--guest-chats > .rd-premium.rd-premium--fill,
+.rd-main-scroll.rd-main-scroll--guest-chats:has(> .rd-premium--fill)
+  > .rd-premium.rd-premium--fill {
+  --rd-shell-v-pad: 0;
+  --rd-main-pad-top: 0;
+  --rd-premium-pad-top: 0;
+  flex: 1 1 0%;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .rd-shell--campaign-immersive .campaign-immersive-patti {

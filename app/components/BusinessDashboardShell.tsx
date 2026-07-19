@@ -9,17 +9,19 @@ import {
   useSidebarExpand,
 } from "@/app/contexts/sidebar-expand-context";
 import { isCampaignImmersivePath } from "@/app/lib/campaign-immersive-route";
+import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
 
 function DashboardShellInner({ children }: { children: ReactNode }) {
   const { expanded } = useSidebarExpand();
   const pathname = usePathname();
   const immersiveCampaign = isCampaignImmersivePath(pathname);
+  const guestChatsFullPage = isGuestChatsPath(pathname);
 
   return (
     <div
       className={`rd-shell rd-shell--app ${
         immersiveCampaign ? "rd-shell--campaign-immersive" : ""
-      }`}
+      } ${guestChatsFullPage ? "rd-shell--guest-chats" : ""}`}
     >
       <div
         className={`rd-shell-frame ${expanded ? "rd-shell-frame--sidebar-expanded" : "rd-shell-frame--sidebar-collapsed"}`}
@@ -37,6 +39,8 @@ function DashboardShellInner({ children }: { children: ReactNode }) {
           <main
             className={`rd-main-scroll ${
               immersiveCampaign ? "rd-main-scroll--campaign-immersive" : ""
+            } ${
+              guestChatsFullPage ? "rd-main-scroll--guest-chats" : ""
             } ${expanded ? "rd-main-scroll--sidebar-expanded" : "rd-main-scroll--sidebar-collapsed"}`}
           >
             {children}

@@ -311,8 +311,9 @@ export default function BusinessDashboardCard({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="#1777f2" />
-                          <stop offset="100%" stopColor="#1777f2" />
+                          <stop offset="0%" stopColor="#0a84ff" />
+                          <stop offset="45%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#ff2d95" />
                         </linearGradient>
                       </defs>
                       <circle
@@ -350,7 +351,7 @@ export default function BusinessDashboardCard({
                 title={fullAddress || undefined}
               >
                 <div className="org-biz-card-location-copy">
-                  <span className="org-biz-card-bento-eyebrow">
+                  <span className="org-biz-card-bento-eyebrow org-biz-card-location-eyebrow">
                     <MapPin className="size-3" strokeWidth={2.5} aria-hidden />
                     Location
                   </span>
