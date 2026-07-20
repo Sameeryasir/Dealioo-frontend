@@ -52,7 +52,7 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     ],
     cta: "Get Started",
     highlighted: false,
-    color: BRAND_COLORS.blue,
+    color: BRAND_COLORS.pink,
   },
   {
     id: "growth-ai",

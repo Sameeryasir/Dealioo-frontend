@@ -135,6 +135,10 @@ const PLAN_REASONS: Record<PlanFitPlanId, string> = {
   enterprise: "Best fit for multi-business brands that need a custom plan.",
 };
 
+export function getPlanFitReason(planId: PlanFitPlanId): string {
+  return PLAN_REASONS[planId];
+}
+
 export function recommendPlanFromAnswers(
   answers: PlanFitAnswers,
 ): { planId: PlanFitPlanId; reason: string } {
@@ -249,6 +253,14 @@ export function writePlanFitProgress(progress: PlanFitProgress): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(PLAN_FIT_STORAGE_KEY, JSON.stringify(progress));
+  } catch {
+  }
+}
+
+export function clearPlanFitProgress(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(PLAN_FIT_STORAGE_KEY);
   } catch {
   }
 }

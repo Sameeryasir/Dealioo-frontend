@@ -5,11 +5,10 @@ import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css
 import { easeOut } from "@/app/components/landing/landing-motion";
 import {
   PLAN_FIT_QUESTIONS,
+  clearPlanFitProgress,
   createEmptyPlanFitAnswers,
   isPlanFitComplete,
-  readPlanFitProgress,
   recommendPlanFromAnswers,
-  writePlanFitProgress,
   type PlanFitAnswers,
   type PlanFitPlanId,
   type PlanFitQuestionId,
@@ -26,46 +25,20 @@ export type PlanFitResult = {
 
 type PlanFitQuestionnaireProps = {
   onComplete: (result: PlanFitResult) => void;
-  initialAnswers?: Partial<PlanFitAnswers> | null;
 };
-
-function loadInitialState(initialAnswers?: Partial<PlanFitAnswers> | null): {
-  stepIndex: number;
-  answers: Partial<PlanFitAnswers>;
-} {
-  const saved = readPlanFitProgress();
-  const answers = {
-    ...createEmptyPlanFitAnswers(),
-    ...(saved?.answers ?? {}),
-    ...(initialAnswers ?? {}),
-  };
-
-  let stepIndex = saved?.stepIndex ?? 0;
-  if (initialAnswers && isPlanFitComplete(initialAnswers)) {
-    stepIndex = 0;
-  }
-
-  const maxIndex = Math.max(0, PLAN_FIT_QUESTIONS.length - 1);
-  return {
-    stepIndex: Math.min(maxIndex, Math.max(0, stepIndex)),
-    answers,
-  };
-}
 
 export function PlanFitQuestionnaire({
   onComplete,
-  initialAnswers = null,
 }: PlanFitQuestionnaireProps) {
   const reduced = useReducedMotion();
-  const [initial] = useState(() => loadInitialState(initialAnswers));
-  const [stepIndex, setStepIndex] = useState(initial.stepIndex);
-  const [answers, setAnswers] = useState<Partial<PlanFitAnswers>>(
-    initial.answers,
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<Partial<PlanFitAnswers>>(() =>
+    createEmptyPlanFitAnswers(),
   );
 
   useEffect(() => {
-    writePlanFitProgress({ stepIndex, answers });
-  }, [answers, stepIndex]);
+    clearPlanFitProgress();
+  }, []);
 
   const question = PLAN_FIT_QUESTIONS[stepIndex];
   const totalSteps = PLAN_FIT_QUESTIONS.length;
@@ -93,7 +66,7 @@ export function PlanFitQuestionnaire({
     }
 
     if (!isPlanFitComplete(answers)) return;
-    writePlanFitProgress({ stepIndex, answers });
+    clearPlanFitProgress();
     const recommendation = recommendPlanFromAnswers(answers);
     onComplete({
       ...recommendation,

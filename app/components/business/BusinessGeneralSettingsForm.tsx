@@ -14,7 +14,15 @@ import {
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
+import {
+  locationFieldMessage,
+  validateBusinessLocation,
+} from "@/app/lib/business-location";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import {
+  isValidOptionalHttpsWebsiteUrl,
+  optionalHttpsWebsiteUrlMessage,
+} from "@/app/lib/website-url";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { updateBusiness } from "@/app/services/business/update-business";
 import { useQueryClient } from "@tanstack/react-query";
@@ -110,14 +118,7 @@ function isImageMime(mime: string): boolean {
 }
 
 function isValidOptionalUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return true;
-  try {
-    new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    return true;
-  } catch {
-    return false;
-  }
+  return isValidOptionalHttpsWebsiteUrl(value);
 }
 
 function snapshotFromBusiness(
@@ -143,6 +144,7 @@ function ColoredFormField({
   icon: Icon,
   tone,
   hint,
+  error,
   children,
   className = "",
 }: {
@@ -151,6 +153,7 @@ function ColoredFormField({
   icon: typeof Building2;
   tone: keyof typeof DASHBOARD_KPI_ICON;
   hint?: string;
+  error?: string | null;
   children: ReactNode;
   className?: string;
 }) {
@@ -172,7 +175,11 @@ function ColoredFormField({
         </label>
       </div>
       {children}
-      {hint ? (
+      {error ? (
+        <p className="m-0 mt-2 text-[0.72rem] leading-relaxed text-red-600" role="alert">
+          {error}
+        </p>
+      ) : hint ? (
         <p className="m-0 mt-2 text-[0.72rem] leading-relaxed text-slate-400">
           {hint}
         </p>
@@ -407,6 +414,16 @@ export function BusinessGeneralSettingsForm({
       return false;
     }
     if (!isValidOptionalUrl(form.websiteUrl)) return false;
+    if (
+      validateBusinessLocation({
+        city: form.city,
+        state: form.state,
+        postalCode: form.postalCode,
+        country: form.country,
+      })
+    ) {
+      return false;
+    }
     const branches = Number.parseInt(form.branchCount, 10);
     if (!Number.isFinite(branches) || branches < 1) return false;
     return hasChanges;
@@ -421,6 +438,26 @@ export function BusinessGeneralSettingsForm({
 
   const handleSave = async () => {
     if (!canSave || saving) return;
+
+    const websiteError = optionalHttpsWebsiteUrlMessage(form.websiteUrl);
+    if (websiteError) {
+      setFormError(websiteError);
+      toast.error(websiteError);
+      return;
+    }
+
+    const locationError = validateBusinessLocation({
+      city: form.city,
+      state: form.state,
+      postalCode: form.postalCode,
+      country: form.country,
+    });
+    if (locationError) {
+      setFormError(locationError);
+      toast.error(locationError);
+      return;
+    }
+
     setSaving(true);
     setFormError(null);
 
@@ -628,13 +665,18 @@ export function BusinessGeneralSettingsForm({
           htmlFor="business-settings-website"
           icon={Globe}
           tone="blue"
+          hint="Must start with https:// (e.g. https://example.com)."
+          error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
         >
           <input
             id="business-settings-website"
+            type="url"
+            inputMode="url"
             className={inputClass}
             value={form.websiteUrl}
             onChange={(e) => patchForm({ websiteUrl: e.target.value })}
             placeholder="https://yourbusiness.com"
+            aria-invalid={optionalHttpsWebsiteUrlMessage(form.websiteUrl) != null}
           />
         </ColoredFormField>
       </SettingsSection>
@@ -651,6 +693,7 @@ export function BusinessGeneralSettingsForm({
             htmlFor="business-settings-city"
             icon={MapPin}
             tone="blue"
+            error={locationFieldMessage("city", form.city)}
           >
             <input
               id="business-settings-city"
@@ -658,6 +701,8 @@ export function BusinessGeneralSettingsForm({
               value={form.city}
               onChange={(e) => patchForm({ city: e.target.value })}
               placeholder="Islamabad"
+              autoComplete="address-level2"
+              aria-invalid={locationFieldMessage("city", form.city) != null}
             />
           </ColoredFormField>
 
@@ -666,6 +711,7 @@ export function BusinessGeneralSettingsForm({
             htmlFor="business-settings-state"
             icon={MapPin}
             tone="green"
+            error={locationFieldMessage("state", form.state)}
           >
             <input
               id="business-settings-state"
@@ -673,6 +719,8 @@ export function BusinessGeneralSettingsForm({
               value={form.state}
               onChange={(e) => patchForm({ state: e.target.value })}
               placeholder="Punjab"
+              autoComplete="address-level1"
+              aria-invalid={locationFieldMessage("state", form.state) != null}
             />
           </ColoredFormField>
 
@@ -681,6 +729,7 @@ export function BusinessGeneralSettingsForm({
             htmlFor="business-settings-country"
             icon={MapPin}
             tone="pink"
+            error={locationFieldMessage("country", form.country)}
           >
             <input
               id="business-settings-country"
@@ -688,6 +737,8 @@ export function BusinessGeneralSettingsForm({
               value={form.country}
               onChange={(e) => patchForm({ country: e.target.value })}
               placeholder="Pakistan"
+              autoComplete="country-name"
+              aria-invalid={locationFieldMessage("country", form.country) != null}
             />
           </ColoredFormField>
 
@@ -696,6 +747,7 @@ export function BusinessGeneralSettingsForm({
             htmlFor="business-settings-postal"
             icon={MapPin}
             tone="orange"
+            error={locationFieldMessage("postalCode", form.postalCode)}
           >
             <input
               id="business-settings-postal"
@@ -703,6 +755,10 @@ export function BusinessGeneralSettingsForm({
               value={form.postalCode}
               onChange={(e) => patchForm({ postalCode: e.target.value })}
               placeholder="44000"
+              autoComplete="postal-code"
+              aria-invalid={
+                locationFieldMessage("postalCode", form.postalCode) != null
+              }
             />
           </ColoredFormField>
         </div>

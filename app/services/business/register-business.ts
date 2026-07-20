@@ -5,6 +5,7 @@ import {
 } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { compressImageForUpload } from "@/app/lib/compress-image-file";
+import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import {
   parseBusinessFromApi,
   type AdminBusiness,
@@ -42,13 +43,12 @@ function optionalUrl(value: string | undefined): string | undefined {
   if (value == null) return undefined;
   const trimmed = value.trim();
   if (trimmed.length === 0) return undefined;
-  try {
-    const normalized = trimmed.includes("://") ? trimmed : `https://${trimmed}`;
-    new URL(normalized);
-    return normalized;
-  } catch {
-    return undefined;
+  if (!isValidOptionalHttpsWebsiteUrl(trimmed)) {
+    throw new Error(
+      "Website must be a valid https:// URL (e.g. https://example.com).",
+    );
   }
+  return trimmed;
 }
 
 function extractBusinessPayload(data: unknown): unknown {

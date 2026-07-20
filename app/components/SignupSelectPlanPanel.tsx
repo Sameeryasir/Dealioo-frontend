@@ -12,6 +12,7 @@ import {
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { findPricingPlan } from "@/app/components/landing/pricing-plans";
+import { BRAND_COLORS } from "@/app/components/landing/landing-brand";
 import { useSubscriptionPlans } from "@/app/hooks/use-subscription-plans";
 import {
   persistBillingCyclePreference,
@@ -19,11 +20,18 @@ import {
 } from "@/app/lib/billing-cycle";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
+import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
+import {
+  getPlanFitReason,
+  isPlanFitComplete,
+  recommendPlanFromAnswers,
+  type PlanFitPlanId,
+} from "@/app/lib/plan-fit-questionnaire";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: string }[]): boolean {
   const fromList = plans.find((plan) => plan.id === planId);
@@ -53,6 +61,8 @@ export function SignupSelectPlanPanel({
   const [recommendation, setRecommendation] = useState<PlanFitResult | null>(
     null,
   );
+  const [planFitReady, setPlanFitReady] = useState(mode !== "checkout");
+  const restoredPlanFitRef = useRef(false);
 
   useEffect(() => {
     setBillingCycle(readBillingCyclePreference());
@@ -60,10 +70,72 @@ export function SignupSelectPlanPanel({
   }, []);
 
   useEffect(() => {
+    if (mode !== "checkout") return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const saved = await getPlanFit();
+        if (cancelled || restoredPlanFitRef.current) return;
+
+        if (saved.planFitAnswers && isPlanFitComplete(saved.planFitAnswers)) {
+          const rec = recommendPlanFromAnswers(saved.planFitAnswers);
+          const savedSlug = saved.planFitRecommendedPlan;
+          const recommended: PlanFitPlanId =
+            savedSlug === "starter" ||
+            savedSlug === "growth-ai" ||
+            savedSlug === "growth-expert" ||
+            savedSlug === "enterprise"
+              ? savedSlug
+              : rec.planId;
+          setRecommendation({
+            planId: recommended,
+            reason: getPlanFitReason(recommended),
+            answers: saved.planFitAnswers,
+          });
+          setSelectedPlanId(recommended);
+          setQuizDone(true);
+        }
+      } catch {
+      } finally {
+        if (!cancelled) {
+          restoredPlanFitRef.current = true;
+          setPlanFitReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
+  useEffect(() => {
     if (!loading && plans.length > 0 && !recommendation) {
       setSelectedPlanId(defaultPlanId);
     }
   }, [defaultPlanId, loading, plans.length, recommendation]);
+
+  useEffect(() => {
+    if (!recommendation || plans.length === 0) return;
+    const availableIds = new Set(plans.map((plan) => plan.id));
+    if (!availableIds.has(recommendation.planId)) {
+      const fallback = availableIds.has(defaultPlanId)
+        ? defaultPlanId
+        : (plans[0]?.id ?? defaultPlanId);
+      setRecommendation((prev) =>
+        prev
+          ? { ...prev, planId: fallback as PlanFitPlanId }
+          : prev,
+      );
+      setSelectedPlanId(fallback);
+      return;
+    }
+    setSelectedPlanId((current) =>
+      availableIds.has(current) ? current : recommendation.planId,
+    );
+  }, [defaultPlanId, plans, recommendation]);
 
   useEffect(() => {
     if (!billingReady) return;
@@ -78,19 +150,29 @@ export function SignupSelectPlanPanel({
     [selectedPlanId],
   );
 
-  const [savedQuizAnswers, setSavedQuizAnswers] =
-    useState<PlanFitResult["answers"] | null>(null);
-
   const handleQuizComplete = useCallback(
-    (result: PlanFitResult) => {
+    async (result: PlanFitResult) => {
       const availableIds = new Set(plans.map((plan) => plan.id));
       const planId = availableIds.has(result.planId)
         ? result.planId
         : defaultPlanId;
       setRecommendation({ ...result, planId: planId as PlanFitResult["planId"] });
-      setSavedQuizAnswers(result.answers);
       setSelectedPlanId(planId);
       setQuizDone(true);
+      setErrorMessage(null);
+
+      try {
+        await savePlanFit({
+          answers: result.answers,
+          recommendedPlanSlug: planId,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not save your quiz answers. You can still choose a plan.";
+        setErrorMessage(message);
+      }
     },
     [defaultPlanId, plans],
   );
@@ -175,7 +257,7 @@ export function SignupSelectPlanPanel({
     }
   }, [billingCycle, invalidateMySubscription, mode, plans, router, selectedPlanId]);
 
-  if (loading) {
+  if (loading || (mode === "checkout" && !planFitReady)) {
     return (
       <div className="flex min-h-[20rem] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-hidden />
@@ -184,12 +266,7 @@ export function SignupSelectPlanPanel({
   }
 
   if (mode === "checkout" && !quizDone) {
-    return (
-      <PlanFitQuestionnaire
-        onComplete={handleQuizComplete}
-        initialAnswers={savedQuizAnswers}
-      />
-    );
+    return <PlanFitQuestionnaire onComplete={handleQuizComplete} />;
   }
 
   const alertMessage = errorMessage ?? plansError;
@@ -201,6 +278,12 @@ export function SignupSelectPlanPanel({
     plans.find((plan) => plan.id === recommendation?.planId)?.name ??
     findPricingPlan(recommendation?.planId ?? "")?.name ??
     null;
+  const recommendedColor =
+    recommendation?.planId === "starter"
+      ? BRAND_COLORS.pink
+      : (plans.find((plan) => plan.id === recommendation?.planId)?.color ??
+        findPricingPlan(recommendation?.planId ?? "")?.color ??
+        BRAND_COLORS.pink);
 
   const plansPanel = (
     <div className="signup-select-plan-panel mx-auto w-full max-w-[88rem] px-1 sm:px-0">
@@ -218,7 +301,10 @@ export function SignupSelectPlanPanel({
         <div className="mb-5 flex flex-col items-center gap-2 text-center sm:mb-6">
           <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
             Based on your answers, we suggest{" "}
-            <span className="font-bold text-[#1877f2]">
+            <span
+              className="font-bold"
+              style={{ color: recommendedColor }}
+            >
               {recommendedName ?? recommendation.planId}
             </span>
             . {recommendation.reason} You can still pick any plan below.
@@ -290,16 +376,13 @@ export function SignupSelectPlanPanel({
         loginHref="/auth/login"
         signupHref="/auth/signup"
         showGetStarted={false}
+        showNavLinks={false}
       />
       <main className="auth-select-plan-main">
         <div className="auth-select-plan-header mx-auto max-w-3xl text-center">
           <h1 className="brand-landing-display auth-signup-step-title">
             Choose your <span className="landing-hero-accent-blue">plan</span>
           </h1>
-          <p className="auth-signup-step-sub mt-1.5">
-            We’ve highlighted a suggestion from your answers. Pick that plan or
-            any other one.
-          </p>
         </div>
         {plansPanel}
       </main>

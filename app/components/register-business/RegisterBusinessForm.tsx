@@ -13,6 +13,8 @@ import {
 } from "@/app/components/register-business/register-business-ui";
 import logoStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
+import { validateBusinessLocation } from "@/app/lib/business-location";
+import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
@@ -66,14 +68,7 @@ function isValidEmail(value: string): boolean {
 }
 
 function isValidOptionalUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return true;
-  try {
-    new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    return true;
-  } catch {
-    return false;
-  }
+  return isValidOptionalHttpsWebsiteUrl(value);
 }
 
 type LogoDropProps = {
@@ -273,11 +268,16 @@ export default function RegisterBusinessForm({
         case "about":
           if (!isValidEmail(snapshot.email)) return "Please enter a valid email address.";
           if (!isValidOptionalUrl(snapshot.websiteUrl)) {
-            return "Enter a valid website (e.g. https://example.com).";
+            return "Enter a full website URL starting with https:// (e.g. https://example.com).";
           }
           return null;
         case "location":
-          return null;
+          return validateBusinessLocation({
+            city: snapshot.city,
+            state: snapshot.state,
+            postalCode: snapshot.postalCode,
+            country: snapshot.country,
+          });
         default:
           return null;
       }
@@ -460,7 +460,11 @@ export default function RegisterBusinessForm({
                               className={bookStyles.input}
                               placeholder="Enter city"
                               value={values.city}
-                              onChange={(event) => patchValues({ city: event.target.value })}
+                              onChange={(event) => {
+                                patchValues({ city: event.target.value });
+                                setStepError(null);
+                              }}
+                              autoComplete="address-level2"
                             />
                           </label>
 
@@ -471,7 +475,11 @@ export default function RegisterBusinessForm({
                               className={bookStyles.input}
                               placeholder="Enter state or region"
                               value={values.state}
-                              onChange={(event) => patchValues({ state: event.target.value })}
+                              onChange={(event) => {
+                                patchValues({ state: event.target.value });
+                                setStepError(null);
+                              }}
+                              autoComplete="address-level1"
                             />
                           </label>
 
@@ -483,7 +491,10 @@ export default function RegisterBusinessForm({
                               className={bookStyles.input}
                               placeholder="Enter postal code"
                               value={values.postalCode}
-                              onChange={(event) => patchValues({ postalCode: event.target.value })}
+                              onChange={(event) => {
+                                patchValues({ postalCode: event.target.value });
+                                setStepError(null);
+                              }}
                             />
                           </label>
 
@@ -495,7 +506,10 @@ export default function RegisterBusinessForm({
                               className={bookStyles.input}
                               placeholder="Enter country"
                               value={values.country}
-                              onChange={(event) => patchValues({ country: event.target.value })}
+                              onChange={(event) => {
+                                patchValues({ country: event.target.value });
+                                setStepError(null);
+                              }}
                             />
                           </label>
 

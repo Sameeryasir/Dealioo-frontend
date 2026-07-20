@@ -7,6 +7,7 @@ import {
   type BillingCycle,
   type PricingPlan,
 } from "@/app/components/landing/pricing-plans";
+import { BRAND_COLORS } from "@/app/components/landing/landing-brand";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
 import { useCallback, useMemo, useRef, type Ref } from "react";
@@ -132,6 +133,8 @@ function SignupPlanCard({
     tier.originalPrice ??
     (plan.id === "growth-expert" && billing === "monthly" ? "$500" : null);
 
+  const accentColor = selected || recommended ? BRAND_COLORS.blue : null;
+
   return (
     <button
       ref={cardRef}
@@ -141,37 +144,47 @@ function SignupPlanCard({
       onClick={() => onSelect(plan.id)}
       className={`auth-signup-plan-card flex h-full w-full flex-col text-left transition ${
         selected
-          ? "auth-signup-plan-card--selected border-brand-primary bg-[#f8faff] shadow-[0_0_0_1px_rgba(24,119,242,0.35)]"
+          ? "auth-signup-plan-card--selected bg-[#f8faff]"
           : "border-[#dbe3ef] bg-white hover:border-[#b8c9e4] hover:bg-[#fafbfd]"
       } ${plan.highlighted ? "auth-signup-plan-card--featured" : ""} ${
         plan.id === "growth-expert" ? "auth-signup-plan-card--expert" : ""
-      } ${recommended ? "ring-2 ring-[#1877f2]/25" : ""}`}
+      }`}
+      style={
+        accentColor
+          ? {
+              borderColor: accentColor,
+              boxShadow: `0 0 0 2px color-mix(in srgb, ${accentColor} 35%, transparent)`,
+            }
+          : undefined
+      }
     >
-      <div className="auth-signup-plan-card-top flex items-start justify-between gap-1">
-        <div className="flex min-h-[0.875rem] flex-wrap items-center gap-0.5">
-          {recommended ? (
-            <span className="auth-signup-plan-card-badge inline-flex max-w-full rounded-full bg-[#1877f2] font-bold uppercase leading-tight tracking-wide text-white">
-              Recommended for you
-            </span>
-          ) : plan.badge ? (
-            <span
-              className={`auth-signup-plan-card-badge inline-flex max-w-full rounded-full font-bold leading-tight tracking-wide ${
-                plan.highlighted
-                  ? "uppercase text-white"
-                  : "border border-[#e8edf5] bg-[#f8faff] text-brand-navy"
-              }`}
-              style={plan.highlighted ? { backgroundColor: plan.color } : undefined}
-            >
-              {plan.badge}
-            </span>
-          ) : null}
-        </div>
+        <div className="auth-signup-plan-card-top flex items-start justify-between gap-1">
+          <div className="flex min-h-[0.875rem] flex-wrap items-center gap-0.5">
+            {plan.badge ? (
+              <span
+                className={`auth-signup-plan-card-badge inline-flex max-w-full rounded-full font-bold leading-tight tracking-wide ${
+                  plan.highlighted
+                    ? "uppercase text-white"
+                    : "border border-[#e8edf5] bg-[#f8faff] text-brand-navy"
+                }`}
+                style={plan.highlighted ? { backgroundColor: plan.color } : undefined}
+              >
+                {plan.badge}
+              </span>
+            ) : null}
+          </div>
         <span
           className={`auth-signup-plan-card-radio flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 lg:h-4 lg:w-4 ${
-            selected
-              ? "border-brand-primary bg-brand-primary text-white"
-              : "border-[#cbd5e1] bg-white"
+            selected ? "text-white" : "border-[#cbd5e1] bg-white"
           }`}
+          style={
+            selected && accentColor
+              ? {
+                  borderColor: accentColor,
+                  backgroundColor: accentColor,
+                }
+              : undefined
+          }
           aria-hidden
         >
           {selected ? (

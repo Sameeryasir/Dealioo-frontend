@@ -22,6 +22,7 @@ export type AuthLandingNavProps = {
   signupHref?: string;
   onMenuOpenChange?: (open: boolean) => void;
   showGetStarted?: boolean;
+  showNavLinks?: boolean;
 };
 
 export function AuthLandingNav({
@@ -29,10 +30,13 @@ export function AuthLandingNav({
   signupHref: signupHrefProp,
   onMenuOpenChange,
   showGetStarted = true,
+  showNavLinks = true,
 }: AuthLandingNavProps) {
   const signupHref = signupHrefProp ?? landingSignupHref(null);
   const loginHref = loginHrefProp ?? landingLoginHref(null);
-  const navLinks = [...NAV_LINKS, ["Login", loginHref] as const] as const;
+  const navLinks = showNavLinks
+    ? ([...NAV_LINKS, ["Login", loginHref] as const] as const)
+    : [];
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -82,13 +86,17 @@ export function AuthLandingNav({
             />
           </Link>
 
-          <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
-            {navLinks.map(([label, href]) => (
-              <Link key={href} href={href} className="landing-nav-link text-sm font-medium transition-colors">
-                {label}
-              </Link>
-            ))}
-          </nav>
+          {showNavLinks ? (
+            <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
+              {navLinks.map(([label, href]) => (
+                <Link key={href} href={href} className="landing-nav-link text-sm font-medium transition-colors">
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <span className="hidden flex-1 md:block" aria-hidden />
+          )}
 
           <div className="hidden items-center gap-3 md:flex">
             {showGetStarted ? (
@@ -98,22 +106,24 @@ export function AuthLandingNav({
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2 md:hidden">
-            <button
-              type="button"
-              className="landing-theme-toggle inline-flex h-10 w-10 items-center justify-center rounded-xl border"
-              aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileNavOpen}
-              onClick={() => setMenuOpen(!mobileNavOpen)}
-            >
-              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
+          {showNavLinks || showGetStarted ? (
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                type="button"
+                className="landing-theme-toggle inline-flex h-10 w-10 items-center justify-center rounded-xl border"
+                aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMenuOpen(!mobileNavOpen)}
+              >
+                {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
 
       <AnimatePresence>
-        {mobileNavOpen ? (
+        {mobileNavOpen && (showNavLinks || showGetStarted) ? (
           <>
             <motion.button
               type="button"
