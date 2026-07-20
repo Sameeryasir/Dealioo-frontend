@@ -21,6 +21,15 @@ export const DASHBOARD_EVENT_BADGE = {
   messageSent:
     "inline-flex items-center gap-1.5 rounded-full bg-[#fdf2f8] px-2.5 py-1 text-[0.72rem] font-bold text-[#be185d] ring-1 ring-[#fbcfe8]/80",
   messageSentDot: "size-2 rounded-full bg-[#e1306c]",
+  campaignCreated:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#eef2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#4338ca] ring-1 ring-[#c7d2fe]/80",
+  campaignCreatedDot: "size-2 rounded-full bg-[#6366f1]",
+  campaignUpdated:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#f5f3ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#6d28d9] ring-1 ring-[#ddd6fe]/80",
+  campaignUpdatedDot: "size-2 rounded-full bg-[#8b5cf6]",
+  campaignDeleted:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#fef2f2] px-2.5 py-1 text-[0.72rem] font-bold text-[#b91c1c] ring-1 ring-[#fecaca]/80",
+  campaignDeletedDot: "size-2 rounded-full bg-[#ef4444]",
   default:
     "inline-flex items-center gap-1.5 rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.72rem] font-bold text-slate-600 ring-1 ring-[#e8edf5]",
 } as const;

@@ -60,6 +60,9 @@ const EVENT_FILTERS: { id: EventFilter; label: string }[] = [
   { id: "redeemed_reward", label: "Redemptions" },
   { id: "prepaid_for_offer", label: "Prepaid" },
   { id: "message_sent", label: "Texts" },
+  { id: "campaign_created", label: "Campaign created" },
+  { id: "campaign_updated", label: "Campaign updated" },
+  { id: "campaign_deleted", label: "Campaign deleted" },
 ];
 
 const tableHeaderReveal = {
@@ -97,7 +100,14 @@ function activityDescription(event: RestaurantActivityEvent): string {
 }
 
 function guestName(event: RestaurantActivityEvent): string {
-  return event.customerName?.trim() || "Guest";
+  if (
+    event.eventType === "campaign_created" ||
+    event.eventType === "campaign_updated" ||
+    event.eventType === "campaign_deleted"
+  ) {
+    return event.customerName?.trim() || "Team";
+  }
+  return event.customerName?.trim() || "User";
 }
 
 function guestInitial(name: string): string {
@@ -116,6 +126,12 @@ function eventTypeLabel(type: ActivityEventType): string {
       return "Prepaid";
     case "message_sent":
       return "Text sent";
+    case "campaign_created":
+      return "Campaign created";
+    case "campaign_updated":
+      return "Campaign updated";
+    case "campaign_deleted":
+      return "Campaign deleted";
     default:
       return type;
   }
@@ -149,6 +165,36 @@ function EventTypeBadge({ type }: { type: ActivityEventType }) {
         <span className={DASHBOARD_EVENT_BADGE.messageSent}>
           <span className={DASHBOARD_EVENT_BADGE.messageSentDot} aria-hidden />
           Text sent
+        </span>
+      );
+    case "campaign_created":
+      return (
+        <span className={DASHBOARD_EVENT_BADGE.campaignCreated}>
+          <span
+            className={DASHBOARD_EVENT_BADGE.campaignCreatedDot}
+            aria-hidden
+          />
+          Campaign created
+        </span>
+      );
+    case "campaign_updated":
+      return (
+        <span className={DASHBOARD_EVENT_BADGE.campaignUpdated}>
+          <span
+            className={DASHBOARD_EVENT_BADGE.campaignUpdatedDot}
+            aria-hidden
+          />
+          Campaign updated
+        </span>
+      );
+    case "campaign_deleted":
+      return (
+        <span className={DASHBOARD_EVENT_BADGE.campaignDeleted}>
+          <span
+            className={DASHBOARD_EVENT_BADGE.campaignDeletedDot}
+            aria-hidden
+          />
+          Campaign deleted
         </span>
       );
     default:
@@ -689,7 +735,7 @@ export function BusinessActivityPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={UserRound}
-                              label="Guest"
+                              label="User"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />

@@ -24,6 +24,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { updateCampaign } from "@/app/services/funnel/update-campaign";
@@ -70,6 +71,7 @@ export function EditCampaignModal({
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void | Promise<void>;
 }) {
+  const queryClient = useQueryClient();
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [campaignName, setCampaignName] = useState("");
@@ -170,6 +172,12 @@ export function EditCampaignModal({
         offer: offer.trim(),
         price: parseOfferPrice(price),
         image: imageFile,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-events", campaign.businessId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-summary", campaign.businessId],
       });
       await onSaved?.();
       onOpenChange(false);

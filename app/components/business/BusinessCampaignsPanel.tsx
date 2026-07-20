@@ -269,6 +269,12 @@ export function BusinessCampaignsPanel({
       await queryClient.invalidateQueries({
         queryKey: automationQueryKeys.list(businessId),
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-events", businessId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-summary", businessId],
+      });
     } catch (deleteError) {
       toast.error(
         getApiErrorMessage(deleteError, "Could not delete campaign."),
@@ -383,6 +389,12 @@ export function BusinessCampaignsPanel({
       skipPostCreateNavRef.current = true;
       await queryClient.invalidateQueries({
         queryKey: [...funnelQueryKeys.campaigns(), businessId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-events", businessId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["business-activity-summary", businessId],
       });
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
       if (campaignId != null) {
