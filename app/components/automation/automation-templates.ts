@@ -451,11 +451,17 @@ export const POST_PAYMENT_JOURNEY_TEMPLATE: AutomationTemplate = {
   ],
 };
 
+const HIDDEN_TEMPLATE_PURPOSES = new Set<AutomationPurpose>([
+  "manual",
+  "funnel_signup",
+  "funnel_payment",
+]);
+
 export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   ABANDONED_CART_TEMPLATE,
   PAYMENT_REMINDER_TEMPLATE,
   POST_PAYMENT_JOURNEY_TEMPLATE,
-];
+].filter((template) => !HIDDEN_TEMPLATE_PURPOSES.has(template.purpose));
 
 export function getAutomationTemplateById(
   templateId: string,

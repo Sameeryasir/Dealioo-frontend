@@ -13,7 +13,7 @@ import {
 } from "@/app/components/register-business/register-business-ui";
 import logoStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
-import { slugifyBusinessName } from "@/app/lib/business-slug";
+
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from "react";
@@ -256,10 +256,6 @@ export default function RegisterBusinessForm({
   const stepUi = REGISTER_BUSINESS_STEP_UI[currentStep.id as RegisterBusinessStepId];
   const progress = ((stepIndex + 1) / REGISTER_BUSINESS_STEPS.length) * 100;
   const isLastStep = stepIndex >= REGISTER_BUSINESS_STEPS.length - 1;
-  const slugPreview = useMemo(
-    () => slugifyBusinessName(values.name),
-    [values.name],
-  );
 
   const patchValues = useCallback((patch: Partial<RegisterBusinessFormValues>) => {
     setValues((prev) => ({ ...prev, ...patch }));
@@ -392,19 +388,6 @@ export default function RegisterBusinessForm({
                                 patchValues({ name: event.target.value });
                                 setStepError(null);
                               }}
-                            />
-                          </label>
-
-                          <label className={`${bookStyles.fieldFull} ${logoStyles.slugField}`}>
-                            <span className={bookStyles.fieldLabel}>Business slug</span>
-                            <input
-                              type="text"
-                              readOnly
-                              tabIndex={-1}
-                              className={`${bookStyles.input} ${logoStyles.slugInput}`}
-                              value={slugPreview}
-                              placeholder="Auto-generated"
-                              aria-readonly="true"
                             />
                           </label>
 

@@ -38,13 +38,7 @@ import {
   type AutomationPurpose,
 } from "@/app/services/automation/types";
 
-const TRIGGERS = [
-  "Signup",
-  "Payment",
-  "Funnel Complete",
-  "Cron Job",
-  "Tag Added",
-];
+const TRIGGERS = ["Cron Job", "Payment", "Abandoned Checkout"];
 
 type ModalStep = "choose" | "import-list" | "import-preview" | "create-blank";
 

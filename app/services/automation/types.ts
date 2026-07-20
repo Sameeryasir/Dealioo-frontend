@@ -9,13 +9,10 @@ export const AUTOMATION_PURPOSE_OPTIONS: {
   value: AutomationPurpose;
   label: string;
 }[] = [
-  { value: "manual", label: "Manual" },
   {
     value: "funnel_signup_payment_reminder",
     label: "Funnel signup payment reminder",
   },
-  { value: "funnel_signup", label: "Funnel signup" },
-  { value: "funnel_payment", label: "Funnel payment" },
   {
     value: "funnel_abandoned_checkout_reminder",
     label: "Funnel abandoned checkout reminder",
