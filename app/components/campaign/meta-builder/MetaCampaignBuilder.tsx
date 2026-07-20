@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import {
   BuilderLoadingBanner,
-  BuilderSuccessAlert,
   metaBuilderShellClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
 import type {
@@ -96,29 +95,13 @@ export function MetaCampaignBuilder({
   );
 
   const [refreshingPublishStatus, setRefreshingPublishStatus] = useState(false);
-  const [postPublishMessage, setPostPublishMessage] = useState<string | null>(
-    null,
-  );
 
   const publishStartedRef = useRef(false);
+  const stepScrollRef = useRef<HTMLElement | null>(null);
 
-  const resetToNewCampaignForm = useCallback((successMessage?: string) => {
-    setCurrentStep(1);
-    setDraftId(null);
-    setCampaignData(null);
-    setAdSetData(null);
-    setAdCreativeData(null);
-    setPublishSuccess(null);
-    setPartialMeta(null);
-    setError(null);
-    setPublishPhase(null);
-    setPublishing(false);
-    publishStartedRef.current = false;
-    setPostPublishMessage(
-      successMessage?.trim() ||
-        "Campaign published to Meta. Start a new campaign below.",
-    );
-  }, []);
+  useEffect(() => {
+    stepScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep]);
 
   const maxReachableStep = useMemo(() => {
     if (!draftId || !campaignData) return 1;
@@ -275,7 +258,7 @@ export function MetaCampaignBuilder({
         ) {
           openMetaAdsManager(adsManagerUrl);
         }
-        resetToNewCampaignForm(result.message);
+        onClose();
         return;
       }
 
@@ -298,7 +281,7 @@ export function MetaCampaignBuilder({
     } finally {
       setRefreshingPublishStatus(false);
     }
-  }, [campaignData, draftId, onDraftSaved, businessId, resetToNewCampaignForm]);
+  }, [campaignData, draftId, onDraftSaved, businessId, onClose]);
 
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
@@ -366,7 +349,7 @@ export function MetaCampaignBuilder({
         createdAt: "",
         updatedAt: "",
       });
-      resetToNewCampaignForm(result.message);
+      onClose();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not publish campaign to Meta.";
@@ -402,8 +385,25 @@ export function MetaCampaignBuilder({
     onDraftSaved,
     businessId,
     publishSuccess,
-    resetToNewCampaignForm,
+    onClose,
   ]);
+
+  useEffect(() => {
+    if (open) return;
+    setCurrentStep(1);
+    setDraftId(initialDraftId ?? initialDraft?.id ?? null);
+    setCampaignData(initialDraft?.campaignData ?? null);
+    setAdSetData(initialDraft?.adSetData ?? null);
+    setAdCreativeData(initialDraft?.adCreativeData ?? null);
+    setSaving(false);
+    setPublishing(false);
+    setPublishPhase(null);
+    setError(null);
+    setPublishSuccess(null);
+    setPartialMeta(null);
+    setRefreshingPublishStatus(false);
+    publishStartedRef.current = false;
+  }, [open, initialDraft, initialDraftId]);
 
   if (!open) return null;
 
@@ -426,7 +426,7 @@ export function MetaCampaignBuilder({
         onStepClick={handleStepClick}
       />
 
-      <main className="flex-1 overflow-y-auto">
+      <main ref={stepScrollRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
           {saving && !publishing ? (
             <BuilderLoadingBanner message="Saving draft…" />
@@ -443,26 +443,15 @@ export function MetaCampaignBuilder({
           ) : null}
 
           {currentStep === 1 ? (
-            <>
-              {postPublishMessage ? (
-                <BuilderSuccessAlert
-                  title="Published to Meta"
-                  message={postPublishMessage}
-                />
-              ) : null}
-              <CampaignSetupStep
-                key={postPublishMessage ? "new-after-publish" : "campaign-setup"}
-                defaultName={defaultName}
-                initialData={campaignData}
-                saving={saving}
-                error={error}
-                onBack={onClose}
-                onSave={async (data) => {
-                  setPostPublishMessage(null);
-                  await handleSaveCampaignStep(data);
-                }}
-              />
-            </>
+            <CampaignSetupStep
+              key="campaign-setup"
+              defaultName={defaultName}
+              initialData={campaignData}
+              saving={saving}
+              error={error}
+              onBack={onClose}
+              onSave={handleSaveCampaignStep}
+            />
           ) : null}
 
           {currentStep === 2 && draftId && campaignData ? (

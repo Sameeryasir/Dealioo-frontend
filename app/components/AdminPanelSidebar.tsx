@@ -16,7 +16,6 @@ import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
   Activity,
-  Gift,
   Home,
   LayoutTemplate,
   Library,
@@ -26,6 +25,7 @@ import {
   ScanLine,
   Settings,
   ShoppingBag,
+  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -186,7 +186,7 @@ export default function AdminPanelSidebar() {
             ? `${restaurantHomeHref}/members`
             : "/dashboard/members",
           label: "Members",
-          icon: Users,
+          icon: UserPlus,
           activeMatch: "prefix",
           permission: "owner",
         },
@@ -195,7 +195,7 @@ export default function AdminPanelSidebar() {
             ? `${restaurantHomeHref}/program`
             : "/dashboard/program",
           label: "Program",
-          icon: Gift,
+          icon: Users,
           activeMatch: "prefix",
           permission: "campaigns",
         },

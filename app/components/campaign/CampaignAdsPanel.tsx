@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import {
   formatMetaCount,
@@ -111,6 +112,8 @@ export function CampaignAdsPanel({
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [campaignPendingDelete, setCampaignPendingDelete] =
+    useState<FacebookAdCampaign | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
     null,
   );
@@ -123,35 +126,31 @@ export function CampaignAdsPanel({
         ? "needs_account"
         : "ready";
 
-  const handleDeleteCampaign = useCallback(
-    async (campaign: FacebookAdCampaign) => {
-      const confirmed = window.confirm(
-        `Delete "${campaign.name}" from Meta Ads Manager? This cannot be undone.`,
-      );
-      if (!confirmed) return;
+  const handleConfirmDeleteCampaign = useCallback(async () => {
+    if (!campaignPendingDelete) return;
 
-      setDeletingCampaignId(campaign.id);
-      setAdStatsError(null);
-      try {
-        await deleteFacebookCampaign(businessId, campaign.id);
-        setAdStats((prev) =>
-          prev
-            ? {
-                ...prev,
-                campaigns: prev.campaigns.filter((c) => c.id !== campaign.id),
-              }
-            : prev,
-        );
-      } catch (e) {
-        setAdStatsError(
-          e instanceof Error ? e.message : "Could not delete campaign.",
-        );
-      } finally {
-        setDeletingCampaignId(null);
-      }
-    },
-    [businessId],
-  );
+    const campaign = campaignPendingDelete;
+    setDeletingCampaignId(campaign.id);
+    setAdStatsError(null);
+    try {
+      await deleteFacebookCampaign(businessId, campaign.id);
+      setAdStats((prev) =>
+        prev
+          ? {
+              ...prev,
+              campaigns: prev.campaigns.filter((c) => c.id !== campaign.id),
+            }
+          : prev,
+      );
+      setCampaignPendingDelete(null);
+    } catch (e) {
+      setAdStatsError(
+        e instanceof Error ? e.message : "Could not delete campaign.",
+      );
+    } finally {
+      setDeletingCampaignId(null);
+    }
+  }, [businessId, campaignPendingDelete]);
 
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
@@ -430,7 +429,7 @@ export function CampaignAdsPanel({
                                   type="button"
                                   title="Delete campaign"
                                   disabled={deletingCampaignId === c.id}
-                                  onClick={() => void handleDeleteCampaign(c)}
+                                  onClick={() => setCampaignPendingDelete(c)}
                                   className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                                 >
                                   {deletingCampaignId === c.id ? (
@@ -542,6 +541,39 @@ export function CampaignAdsPanel({
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationDialog
+        open={campaignPendingDelete != null}
+        itemName={campaignPendingDelete?.name?.trim() || "this campaign"}
+        title="Delete this campaign?"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-[#1877f2]">
+              {campaignPendingDelete?.name?.trim() || "this campaign"}
+            </span>
+            ? It will also be deleted from your Meta ads account. This cannot be
+            undone.
+          </>
+        }
+        confirmText="Delete campaign"
+        checkboxLabel={
+          campaignPendingDelete
+            ? `Are you sure you want to delete ${
+                campaignPendingDelete.name?.trim() || "this campaign"
+              }? It will also be deleted from the Meta ads account.`
+            : "Are you sure you want to delete it? It will also be deleted from the Meta ads account."
+        }
+        isLoading={deletingCampaignId != null}
+        onConfirm={() => {
+          void handleConfirmDeleteCampaign();
+        }}
+        onCancel={() => {
+          if (deletingCampaignId == null) {
+            setCampaignPendingDelete(null);
+          }
+        }}
+      />
 
       <MetaCampaignBuilder
         open={createOpen}

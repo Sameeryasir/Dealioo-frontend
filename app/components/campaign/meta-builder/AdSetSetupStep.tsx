@@ -269,6 +269,22 @@ export function AdSetSetupStep({
       return;
     }
 
+    const addressWithoutRadius = locations.find(
+      (loc) =>
+        loc.type === "address" &&
+        (loc.latitude == null ||
+          loc.longitude == null ||
+          loc.radius == null ||
+          loc.radius < 1 ||
+          loc.radius > 80),
+    );
+    if (addressWithoutRadius) {
+      setLocalError(
+        `Set a radius between 1 and 80 for "${addressWithoutRadius.label}".`,
+      );
+      return;
+    }
+
     const legacyLocation = deriveLegacyAudienceFields(locations);
 
     if (legacyLocation.city) {

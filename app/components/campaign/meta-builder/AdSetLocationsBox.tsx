@@ -7,7 +7,6 @@ import {
   ChevronUp,
   Info,
   MapPin,
-  MoreHorizontal,
   Search,
   X,
 } from "lucide-react";
@@ -144,7 +143,30 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
         ),
     );
 
-    onChange([...withoutCountry, next]);
+    let nextLocations = [...withoutCountry, next];
+
+    // Drop leftover default US country when targeting a pin outside the US.
+    if (
+      searchMode === "include" &&
+      result.countryCode !== "US" &&
+      !nextLocations.some(
+        (loc) =>
+          loc.mode === "include" &&
+          loc.type === "address" &&
+          loc.countryCode === "US",
+      )
+    ) {
+      nextLocations = nextLocations.filter(
+        (loc) =>
+          !(
+            loc.mode === "include" &&
+            loc.type === "country" &&
+            loc.countryCode === "US"
+          ),
+      );
+    }
+
+    onChange(nextLocations);
     setActiveLocationId(next.id);
     setSearchQuery(result.label);
     setSearchResults([]);
@@ -280,6 +302,24 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
 
       {expanded ? (
         <div className="space-y-3 p-4">
+          <div className="rounded-lg border border-[#bfdbfe] bg-[#f4f8ff] px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+            <p className="font-semibold text-[#07111f]">How locations publish to Meta</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              <li>
+                <span className="font-semibold">Include</span> countries and
+                address pins (with radius) are all sent to Ads Manager.
+              </li>
+              <li>
+                <span className="font-semibold">Exclude</span> locations are sent
+                as exclusions so Meta will not show ads there.
+              </li>
+              <li>
+                A whole country includes everyone in that country. Remove the
+                country row if you only want the pin + radius.
+              </li>
+            </ul>
+          </div>
+
           {Array.from(grouped.entries()).map(([countryName, countryLocations]) => (
             <div key={countryName} className="space-y-2">
               <p className="text-sm font-semibold text-[#07111f]">{countryName}</p>
@@ -287,9 +327,11 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                 <div key={location.id} className="space-y-2">
                   <div
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                      activeLocationId === location.id
-                        ? "border-[#1877F2] bg-[#1877F2]/5"
-                        : "border-[#e8edf5] bg-white"
+                      location.mode === "exclude"
+                        ? "border-red-200 bg-red-50/70"
+                        : activeLocationId === location.id
+                          ? "border-[#1877F2] bg-[#1877F2]/5"
+                          : "border-[#e8edf5] bg-white"
                     }`}
                   >
                     <button
@@ -305,19 +347,37 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                       }}
                       className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-emerald-50">
-                        <MapPin className="size-4 text-emerald-600" />
+                      <span
+                        className={`flex size-7 shrink-0 items-center justify-center rounded-md ${
+                          location.mode === "exclude"
+                            ? "bg-red-100"
+                            : "bg-emerald-50"
+                        }`}
+                      >
+                        <MapPin
+                          className={`size-4 ${
+                            location.mode === "exclude"
+                              ? "text-red-600"
+                              : "text-emerald-600"
+                          }`}
+                        />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm text-[#07111f]">
                           {location.label}
                         </span>
                         {location.mode === "exclude" ? (
-                          <span className="text-xs text-red-600">Excluded</span>
+                          <span className="text-xs font-semibold text-red-600">
+                            Excluded
+                          </span>
                         ) : location.type === "address" && location.radius ? (
                           <span className="text-xs text-slate-500">
                             {location.radius}{" "}
                             {location.distanceUnit === "mile" ? "mi" : "km"} radius
+                          </span>
+                        ) : location.type === "country" ? (
+                          <span className="text-xs text-slate-500">
+                            Entire country
                           </span>
                         ) : null}
                       </span>
@@ -325,13 +385,19 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                         <ChevronDown className="size-4 shrink-0 text-slate-400" />
                       ) : null}
                     </button>
-                    <button
-                      type="button"
-                      className="rounded p-1 text-slate-400 hover:bg-[#e8f2ff] hover:text-slate-500"
-                      aria-label="More options"
+                    <select
+                      value={location.mode}
+                      onChange={(e) =>
+                        updateLocation(location.id, {
+                          mode: e.target.value as MetaLocationTargetMode,
+                        })
+                      }
+                      className="rounded-md border border-[#e8edf5] bg-white px-2 py-1 text-xs font-semibold text-[#07111f]"
+                      aria-label={`Include or exclude ${location.label}`}
                     >
-                      <MoreHorizontal className="size-4" />
-                    </button>
+                      <option value="include">Include</option>
+                      <option value="exclude">Exclude</option>
+                    </select>
                     <button
                       type="button"
                       onClick={() => removeLocation(location.id)}
@@ -345,7 +411,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                   {radiusEditorId === location.id && location.type === "address" ? (
                     <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff] p-4">
                       <p className="mb-2 text-xs font-semibold text-slate-500">
-                        Radius around this address
+                        Radius around this address (sent to Meta)
                       </p>
                       <div className="flex flex-wrap items-center gap-3">
                         <input
