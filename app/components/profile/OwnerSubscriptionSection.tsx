@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { cancelUserSubscription } from "@/app/services/subscription/cancel-user-subscription";
 import {
   getMyUserSubscription,
   type UserSubscription,
@@ -19,6 +21,17 @@ type OwnerSubscriptionSectionProps = {
   variant?: "light" | "dark";
   layout?: "page" | "compact";
 };
+
+const CANCEL_REASON_OPTIONS = [
+  { value: "too_expensive", label: "It’s too expensive" },
+  { value: "missing_features", label: "Missing features I need" },
+  { value: "not_using_enough", label: "I’m not using it enough" },
+  { value: "switching_product", label: "Switching to another product" },
+  { value: "temporary_pause", label: "Taking a break / temporary pause" },
+  { value: "other", label: "Other" },
+] as const;
+
+type CancelReasonValue = (typeof CANCEL_REASON_OPTIONS)[number]["value"];
 
 function formatSubscriptionDate(value: string | null | undefined): string {
   if (!value?.trim()) return "Not available";
@@ -135,9 +148,20 @@ export function OwnerSubscriptionSection({
   const [subscription, setSubscription] = useState<UserSubscription | null>(
     null,
   );
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState<CancelReasonValue | "">("");
+  const [cancelComment, setCancelComment] = useState("");
 
   const isDark = variant === "dark";
   const isPage = layout === "page" && !isDark;
+
+  const resetCancelForm = useCallback(() => {
+    setCancelReason("");
+    setCancelComment("");
+    setCancelError(null);
+  }, []);
 
   const loadSubscription = useCallback(async () => {
     setLoading(true);
@@ -159,6 +183,39 @@ export function OwnerSubscriptionSection({
   useEffect(() => {
     void loadSubscription();
   }, [loadSubscription]);
+
+  const handleCancelSubscription = useCallback(async () => {
+    if (!cancelReason) {
+      setCancelError("Please tell us why you’re cancelling.");
+      return;
+    }
+    if (cancelReason === "other" && !cancelComment.trim()) {
+      setCancelError("Please add a short note for “Other”.");
+      return;
+    }
+
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await cancelUserSubscription({
+        reason: cancelReason,
+        ...(cancelComment.trim()
+          ? { comment: cancelComment.trim() }
+          : {}),
+      });
+      setCancelOpen(false);
+      resetCancelForm();
+      await loadSubscription();
+    } catch (error) {
+      setCancelError(
+        error instanceof Error
+          ? error.message
+          : "Could not cancel your subscription.",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }, [cancelComment, cancelReason, loadSubscription, resetCancelForm]);
 
   const headingClass = isDark
     ? "text-base font-semibold text-white"
@@ -246,6 +303,13 @@ export function OwnerSubscriptionSection({
           tone="neutral"
           variant={variant}
         />
+        {subscription.cancelAtPeriodEnd ? (
+          <SubscriptionStatusPill
+            label="Cancels at period end"
+            tone="warning"
+            variant={variant}
+          />
+        ) : null}
       </div>
 
       {isPage ? (
@@ -299,44 +363,77 @@ export function OwnerSubscriptionSection({
             : "text-xs leading-relaxed text-brand-muted"
         }
       >
-        This plan applies to your whole account and is shared across every
-        business you own. Change plans anytime — Stripe charges only the
-        prorated difference on your card on file.
+        {subscription.cancelAtPeriodEnd
+          ? `Cancellation is scheduled${
+              subscription.cancellationDate
+                ? ` for ${formatSubscriptionDate(subscription.cancellationDate)}`
+                : ""
+            }. You keep full access until then.`
+          : "This plan applies to your whole account and is shared across every business you own. Change plans anytime — Stripe charges only the prorated difference on your card on file."}
       </p>
 
-      <Link
-        href="/dashboard/upgrade-plan"
-        className={
-          isDark
-            ? "inline-flex h-10 w-fit items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-sky-500"
-            : "inline-flex h-10 w-fit items-center justify-center rounded-full bg-brand-primary px-6 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-colors hover:bg-brand-primary-hover"
-        }
-      >
-        Upgrade subscription
-      </Link>
+      {cancelError ? (
+        <div
+          role="alert"
+          className={
+            isDark
+              ? "flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200"
+              : "flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800"
+          }
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>{cancelError}</span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          href="/dashboard/upgrade-plan"
+          className={
+            isDark
+              ? "inline-flex h-10 w-fit items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-sky-500"
+              : "inline-flex h-10 w-fit items-center justify-center rounded-full bg-brand-primary px-6 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-colors hover:bg-brand-primary-hover"
+          }
+        >
+          Upgrade subscription
+        </Link>
+        {!subscription.cancelAtPeriodEnd ? (
+          <button
+            type="button"
+            onClick={() => {
+              resetCancelForm();
+              setCancelOpen(true);
+            }}
+            disabled={cancelling}
+            className={
+              isDark
+                ? "inline-flex h-10 w-fit items-center justify-center rounded-lg border border-red-500/40 bg-transparent px-5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-60"
+                : "inline-flex h-10 w-fit items-center justify-center rounded-full border border-red-200 bg-white px-6 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60"
+            }
+          >
+            Cancel subscription
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 
-  if (isPage) {
-    return (
-      <div className="profile-subscription-section mt-8 border-t border-[#e8edf5] pt-8">
-        <div className="flex items-start gap-3.5">
-          <span className="profile-edit-card-icon">
-            <CreditCard className="size-5" strokeWidth={2.25} aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className={headingClass}>Subscription</h3>
-            <p className={copyClass}>
-              Your Dealioo plan, billing cycle, and account-wide access.
-            </p>
-            <div className="mt-4">{body}</div>
-          </div>
+  const section = isPage ? (
+    <div className="profile-subscription-section mt-8 border-t border-[#e8edf5] pt-8">
+      <div className="flex items-start gap-3.5">
+        <span className="profile-edit-card-icon">
+          <CreditCard className="size-5" strokeWidth={2.25} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className={headingClass}>Subscription</h3>
+          <p className={copyClass}>
+            Your Dealioo plan, billing cycle, and account-wide access.
+          </p>
+          <div className="mt-4">{body}</div>
         </div>
       </div>
-    );
-  }
-
-  return (
+    </div>
+  ) : (
     <div className="flex flex-col gap-4">
       <div>
         <h3 className={headingClass}>Subscription</h3>
@@ -346,5 +443,90 @@ export function OwnerSubscriptionSection({
       </div>
       {body}
     </div>
+  );
+
+  return (
+    <>
+      {section}
+      <ConfirmDialog
+        open={cancelOpen}
+        onCancel={() => {
+          if (cancelling) return;
+          setCancelOpen(false);
+          resetCancelForm();
+        }}
+        title="Cancel subscription?"
+        description={
+          <div className="flex flex-col gap-4">
+            <p>
+              Your plan stays active until the end of the current billing
+              period. After that, it ends automatically and you can subscribe
+              again later.
+            </p>
+            <fieldset className="m-0 min-w-0 border-0 p-0">
+              <legend className="mb-2 text-sm font-semibold text-inherit">
+                Why are you cancelling?
+              </legend>
+              <div className="flex flex-col gap-2">
+                {CANCEL_REASON_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-start gap-2.5 text-sm"
+                  >
+                    <input
+                      type="radio"
+                      name="cancel-reason"
+                      value={option.value}
+                      checked={cancelReason === option.value}
+                      disabled={cancelling}
+                      onChange={() => {
+                        setCancelReason(option.value);
+                        setCancelError(null);
+                      }}
+                      className="mt-1"
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {cancelReason === "other" ? (
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="font-semibold">Please tell us more</span>
+                <textarea
+                  value={cancelComment}
+                  disabled={cancelling}
+                  onChange={(e) => {
+                    setCancelComment(e.target.value);
+                    setCancelError(null);
+                  }}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="What made you decide to cancel?"
+                  className="w-full resize-y rounded-xl border border-[#d8e3f2] bg-white px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-primary"
+                />
+              </label>
+            ) : null}
+            {cancelError ? (
+              <p className="text-sm font-medium text-red-700" role="alert">
+                {cancelError}
+              </p>
+            ) : null}
+          </div>
+        }
+        confirmLabel="Cancel at period end"
+        loadingLabel="Scheduling…"
+        cancelLabel="Keep plan"
+        tone="danger"
+        isLoading={cancelling}
+        confirmDisabled={
+          !cancelReason ||
+          (cancelReason === "other" && !cancelComment.trim())
+        }
+        onConfirm={() => {
+          void handleCancelSubscription();
+        }}
+      />
+    </>
   );
 }

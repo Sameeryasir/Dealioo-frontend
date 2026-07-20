@@ -1,8 +1,17 @@
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
+export type CancelUserSubscriptionInput = {
+  reason: string;
+  comment?: string;
+};
+
 export type CancelUserSubscriptionResponse = {
-  cancelled: true;
+  success: true;
+  alreadyScheduled?: boolean;
+  subscriptionStatus: string;
+  cancelAtPeriodEnd: boolean;
+  cancellationDate: string | null;
 };
 
 async function parseApiMessageFromResponse(
@@ -22,13 +31,25 @@ async function parseApiMessageFromResponse(
   return fallback;
 }
 
-export async function cancelUserSubscription(): Promise<CancelUserSubscriptionResponse> {
+export async function cancelUserSubscription(
+  input: CancelUserSubscriptionInput = { reason: "user_requested" },
+): Promise<CancelUserSubscriptionResponse> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/user-subscriptions/cancel`,
     {
       method: "POST",
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reason: input.reason.trim() || "user_requested",
+        ...(input.comment?.trim()
+          ? { comment: input.comment.trim() }
+          : {}),
+      }),
     },
+    60_000,
   );
 
   if (!res.ok) {

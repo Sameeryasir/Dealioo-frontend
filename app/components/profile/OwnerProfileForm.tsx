@@ -473,13 +473,6 @@ export function OwnerProfileForm({
     return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
   }, [profile?.createdAt]);
 
-  const lastLoginShort = useMemo(() => {
-    if (!profile?.lastLoginAt) return "Never";
-    const date = new Date(profile.lastLoginAt);
-    if (Number.isNaN(date.getTime())) return "Never";
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  }, [profile?.lastLoginAt]);
-
   const loadProfile = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -644,12 +637,6 @@ export function OwnerProfileForm({
         />
         <ProfileDetailBoardCell
           icon={Clock3}
-          label="Last login"
-          value={formatProfileDate(profile.lastLoginAt)}
-          tone="pink"
-        />
-        <ProfileDetailBoardCell
-          icon={Clock3}
           label="Last updated"
           value={formatProfileDate(profile.updatedAt)}
           tone="teal"
@@ -711,12 +698,6 @@ export function OwnerProfileForm({
           icon={CalendarDays}
           label="Member since"
           value={formatProfileDate(profile.createdAt)}
-        />
-        <ProfileDetailCard
-          variant={variant}
-          icon={Clock3}
-          label="Last login"
-          value={formatProfileDate(profile.lastLoginAt)}
         />
         <ProfileDetailCard
           variant={variant}
@@ -847,12 +828,6 @@ export function OwnerProfileForm({
                         icon={CalendarDays}
                         label="Member since"
                         value={memberSinceShort}
-                      />
-                      <BannerStatCard
-                        tone="pink"
-                        icon={Clock3}
-                        label="Last login"
-                        value={lastLoginShort}
                       />
                     </div>
                   </div>

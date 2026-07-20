@@ -9,6 +9,8 @@ export type UserSubscription = {
   billingCycle: "monthly" | "annual";
   status: string;
   startedAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  cancellationDate: string | null;
 };
 
 export type SelectUserPlanInput = {
@@ -41,6 +43,11 @@ function normalizeUserSubscription(raw: unknown): UserSubscription | null {
     status: typeof record.status === "string" ? record.status : "active",
     startedAt:
       typeof record.startedAt === "string" ? record.startedAt : null,
+    cancelAtPeriodEnd: record.cancelAtPeriodEnd === true,
+    cancellationDate:
+      typeof record.cancellationDate === "string"
+        ? record.cancellationDate
+        : null,
   };
 }
 

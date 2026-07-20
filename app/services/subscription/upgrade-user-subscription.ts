@@ -37,17 +37,21 @@ async function parseApiMessageFromResponse(
 export async function upgradeUserSubscription(
   input: UpgradeUserSubscriptionInput,
 ): Promise<UpgradeUserSubscriptionResult> {
-  const res = await authenticatedFetch(`${getApiBaseUrl()}/billing/upgrade`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/billing/upgrade`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        planSlug: input.planSlug,
+        billingCycle: input.billingCycle,
+      }),
     },
-    body: JSON.stringify({
-      planSlug: input.planSlug,
-      billingCycle: input.billingCycle,
-    }),
-  });
+    60_000,
+  );
 
   if (!res.ok) {
     throw new Error(
