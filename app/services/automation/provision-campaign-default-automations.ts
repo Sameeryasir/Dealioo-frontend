@@ -17,12 +17,16 @@ export async function provisionCampaignDefaultAutomations(
   campaignId: number,
 ): Promise<void> {
   const existing = await getAutomations(businessId);
-  const alreadyProvisioned = existing.some(
-    (automation) => automation.campaignId === campaignId,
+  const purposesAlreadyOnCampaign = new Set(
+    existing
+      .filter((automation) => automation.campaignId === campaignId)
+      .map((automation) => automation.purpose)
+      .filter((purpose): purpose is string => Boolean(purpose)),
   );
-  if (alreadyProvisioned) return;
 
   for (const template of DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES) {
+    if (purposesAlreadyOnCampaign.has(template.purpose)) continue;
+
     const created = await createAutomation(
       buildCreateAutomationBody({
         name: template.name,
@@ -33,5 +37,6 @@ export async function provisionCampaignDefaultAutomations(
       }),
     );
     await applyAutomationTemplate(created.id, template);
+    purposesAlreadyOnCampaign.add(template.purpose);
   }
 }
