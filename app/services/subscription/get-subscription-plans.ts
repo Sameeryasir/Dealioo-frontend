@@ -3,6 +3,8 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 export type SubscriptionPlanPricingTier = {
   price: string;
   period: string;
+  /** Struck-through list price shown next to the discounted `price`. */
+  originalPrice: string | null;
   promo: string | null;
   subline: string | null;
 };
@@ -88,12 +90,14 @@ function coerceDescription(value: unknown): SubscriptionPlanDescription | null {
         monthly: {
           price: "Custom",
           period: "",
+          originalPrice: null,
           promo: null,
           subline: null,
         },
         annual: {
           price: "Custom",
           period: "",
+          originalPrice: null,
           promo: null,
           subline: null,
         },
@@ -122,13 +126,21 @@ function coerceDescription(value: unknown): SubscriptionPlanDescription | null {
 
 function coerceTier(value: unknown): SubscriptionPlanPricingTier {
   if (!value || typeof value !== "object") {
-    return { price: "Custom", period: "", promo: null, subline: null };
+    return {
+      price: "Custom",
+      period: "",
+      originalPrice: null,
+      promo: null,
+      subline: null,
+    };
   }
 
   const row = value as Record<string, unknown>;
   return {
     price: typeof row.price === "string" ? row.price : "Custom",
     period: typeof row.period === "string" ? row.period : "",
+    originalPrice:
+      typeof row.originalPrice === "string" ? row.originalPrice : null,
     promo: typeof row.promo === "string" ? row.promo : null,
     subline: typeof row.subline === "string" ? row.subline : null,
   };

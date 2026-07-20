@@ -4729,6 +4729,12 @@ body {
     gap: 0.125rem;
   }
 
+  .landing-page .landing-pricing-original-price {
+    text-decoration: line-through !important;
+    text-decoration-thickness: 1.5px;
+    color: #94a3b8;
+  }
+
   .landing-page .landing-editorial-section {
     background: #ffffff;
   }

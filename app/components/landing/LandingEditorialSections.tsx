@@ -575,6 +575,10 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
             {plans.map((plan, i) => {
               const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";
+              // Growth Expert monthly: always show $500 list price with $299 discounted.
+              const originalPrice =
+                tier.originalPrice ??
+                (isExpertPlan && billing === "monthly" ? "$500" : null);
 
               return (
                 <Reveal key={plan.id} delay={i * 0.06} className="h-full">
@@ -604,8 +608,18 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                     </div>
                     <h3 className="text-base font-bold text-brand-navy sm:text-lg">{plan.name}</h3>
                     <p className="mt-0.5 text-[11px] text-brand-muted sm:text-xs">{plan.tagline}</p>
-                    <div className="mt-2 flex items-baseline gap-1">
-                      <span className="text-2xl font-black tracking-tight text-brand-navy sm:text-3xl">{tier.price}</span>
+                    <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      {originalPrice ? (
+                        <span
+                          className="landing-pricing-original-price text-lg font-bold tracking-tight text-[#94a3b8] sm:text-xl"
+                          style={{ textDecoration: "line-through" }}
+                        >
+                          {originalPrice}
+                        </span>
+                      ) : null}
+                      <span className="text-2xl font-black tracking-tight text-brand-navy sm:text-3xl">
+                        {tier.price}
+                      </span>
                       {tier.period ? (
                         <span className="text-xs text-brand-muted">{tier.period}</span>
                       ) : null}

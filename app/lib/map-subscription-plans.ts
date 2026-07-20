@@ -2,6 +2,7 @@ import type {
   BillingCycle,
   PricingPlan,
 } from "@/app/components/landing/pricing-plans";
+import { PRICING_PLANS } from "@/app/components/landing/pricing-plans";
 import type { SubscriptionPlanListItem } from "@/app/services/subscription/get-subscription-plans";
 
 export function mapSubscriptionPlansToPricingPlans(
@@ -9,31 +10,50 @@ export function mapSubscriptionPlansToPricingPlans(
 ): PricingPlan[] {
   return plans.map((plan) => {
     const details = plan.description;
+    const fallback = PRICING_PLANS.find((item) => item.id === plan.slug);
+    const monthly = {
+      ...(fallback?.monthly ?? {
+        price: "Custom",
+        period: "",
+        originalPrice: null,
+        promo: null,
+        subline: null,
+      }),
+      ...(details?.monthly ?? {}),
+      originalPrice:
+        details?.monthly?.originalPrice ??
+        fallback?.monthly.originalPrice ??
+        null,
+    };
+    const annual = {
+      ...(fallback?.annual ?? {
+        price: "Custom",
+        period: "",
+        originalPrice: null,
+        promo: null,
+        subline: null,
+      }),
+      ...(details?.annual ?? {}),
+      originalPrice:
+        details?.annual?.originalPrice ??
+        fallback?.annual.originalPrice ??
+        null,
+    };
 
     return {
       id: plan.slug,
       name: plan.name,
-      badge: details?.badge ?? null,
-      tagline: details?.tagline ?? "",
-      description: details?.summary ?? "",
-      monthly: details?.monthly ?? {
-        price: "Custom",
-        period: "",
-        promo: null,
-        subline: null,
-      },
-      annual: details?.annual ?? {
-        price: "Custom",
-        period: "",
-        promo: null,
-        subline: null,
-      },
-      features: details?.features,
-      featureGroups: details?.featureGroups,
-      salesEmail: details?.salesEmail ?? undefined,
-      cta: details?.cta ?? "Continue",
-      highlighted: details?.highlighted ?? false,
-      color: details?.color ?? "#1877F2",
+      badge: details?.badge ?? fallback?.badge ?? null,
+      tagline: details?.tagline ?? fallback?.tagline ?? "",
+      description: details?.summary ?? fallback?.description ?? "",
+      monthly,
+      annual,
+      features: details?.features ?? fallback?.features,
+      featureGroups: details?.featureGroups ?? fallback?.featureGroups,
+      salesEmail: details?.salesEmail ?? fallback?.salesEmail ?? undefined,
+      cta: details?.cta ?? fallback?.cta ?? "Continue",
+      highlighted: details?.highlighted ?? fallback?.highlighted ?? false,
+      color: details?.color ?? fallback?.color ?? "#1877F2",
     };
   });
 }

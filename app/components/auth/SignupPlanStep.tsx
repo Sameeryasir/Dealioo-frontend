@@ -128,6 +128,9 @@ function SignupPlanCard({
   recommended?: boolean;
 }) {
   const tier = getPlanTier(plan, billing);
+  const originalPrice =
+    tier.originalPrice ??
+    (plan.id === "growth-expert" && billing === "monthly" ? "$500" : null);
 
   return (
     <button
@@ -185,7 +188,15 @@ function SignupPlanCard({
           {plan.tagline}
         </p>
 
-        <div className="auth-signup-plan-card-price mt-1 flex items-baseline gap-0.5 lg:mt-1.5">
+        <div className="auth-signup-plan-card-price mt-1 flex flex-wrap items-baseline gap-1 lg:mt-1.5">
+          {originalPrice ? (
+            <span
+              className="auth-signup-plan-card-price-original text-sm font-bold tracking-tight text-[#94a3b8]"
+              style={{ textDecoration: "line-through" }}
+            >
+              {originalPrice}
+            </span>
+          ) : null}
           <span className="auth-signup-plan-card-price-value font-black tracking-tight text-brand-navy">
             {tier.price}
           </span>

@@ -5,6 +5,8 @@ export type BillingCycle = "monthly" | "annual";
 export type PricingTier = {
   price: string;
   period: string;
+  /** Struck-through list price shown next to the discounted `price`. */
+  originalPrice: string | null;
   promo: string | null;
   subline: string | null;
 };
@@ -37,8 +39,8 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     badge: "Perfect for small businesses",
     tagline: "Perfect for businesses getting started.",
     description: "Ideal for businesses managing marketing in-house.",
-    monthly: { price: "$29", period: "/ month", promo: null, subline: "Billed monthly" },
-    annual: { price: "$24", period: "/ mo", promo: null, subline: "Billed annually ($290/year)" },
+    monthly: { price: "$29", period: "/ month", originalPrice: null, promo: null, subline: "Billed monthly" },
+    annual: { price: "$24", period: "/ mo", originalPrice: null, promo: null, subline: "Billed annually ($290/year)" },
     features: [
       "One location",
       "DIY Campaign Builder",
@@ -58,8 +60,8 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     badge: "Most Popular ⭐",
     tagline: "Everything you need to grow with AI.",
     description: "Everything in Starter, powered by AI.",
-    monthly: { price: "$99", period: "/ month", promo: null, subline: "Billed monthly" },
-    annual: { price: "$82", period: "/ mo", promo: null, subline: "Billed annually ($990/year)" },
+    monthly: { price: "$99", period: "/ month", originalPrice: null, promo: null, subline: "Billed monthly" },
+    annual: { price: "$82", period: "/ mo", originalPrice: null, promo: null, subline: "Billed annually ($990/year)" },
     features: [
       "Everything in Starter",
       "AI Deal Generator",
@@ -81,8 +83,20 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     badge: "Best ROI",
     tagline: "AI plus a dedicated marketing expert.",
     description: "Everything in Growth AI—with a dedicated marketing expert.",
-    monthly: { price: "$299", period: "/ month", promo: null, subline: "Billed monthly" },
-    annual: { price: "$249", period: "/ mo", promo: null, subline: "Billed annually ($2,990/year)" },
+    monthly: {
+      price: "$299",
+      period: "/ month",
+      originalPrice: "$500",
+      promo: null,
+      subline: "Billed monthly",
+    },
+    annual: {
+      price: "$249",
+      period: "/ mo",
+      originalPrice: null,
+      promo: null,
+      subline: "Billed annually ($2,990/year)",
+    },
     salesEmail: "support@dealioo.com",
     featureGroups: [
       { label: "Included", items: ["Everything in Growth AI"] },
@@ -110,8 +124,8 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     badge: "Contact Sales",
     tagline: "Built for multi-location businesses.",
     description: "Custom plans for multi-location brands and franchises.",
-    monthly: { price: "Custom", period: "", promo: null, subline: null },
-    annual: { price: "Custom", period: "", promo: null, subline: null },
+    monthly: { price: "Custom", period: "", originalPrice: null, promo: null, subline: null },
+    annual: { price: "Custom", period: "", originalPrice: null, promo: null, subline: null },
     salesEmail: "support@dealioo.com",
     features: [
       "Unlimited locations",

@@ -29,10 +29,10 @@ export function useSubscriptionPlans(options: UseSubscriptionPlansOptions = {}) 
   const { enabled = true } = options;
 
   const query = useQuery({
-    queryKey: subscriptionPlansQueryKey,
+    queryKey: [...subscriptionPlansQueryKey, "v2-original-price"] as const,
     queryFn: fetchSubscriptionPlans,
     enabled,
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
   });
 
   const plans = useMemo(() => {
