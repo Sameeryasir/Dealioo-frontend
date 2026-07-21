@@ -5,9 +5,6 @@ import { OverviewChartShell } from "@/app/components/campaign/overview/charts/Ov
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
-import {
-  TABLE_HEAD_LABEL_CLASS,
-} from "@/app/lib/dashboard-brand-tones";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   BUSINESS_CUSTOMERS_PAGE_SIZE,
