@@ -25,6 +25,7 @@ import { Skeleton } from "@/app/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { formatDateTimeShort, formatRelativeTimeAgo } from "@/app/lib/datetime";
 import {
+  DASHBOARD_CAMPAIGN_TAG,
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
 } from "@/app/lib/dashboard-brand-tones";
@@ -36,6 +37,10 @@ import {
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
+import {
+  getCustomerJourney,
+  type CustomerJourneyStep as ApiJourneyStep,
+} from "@/app/services/funnel-event/get-customer-journey";
 import { Fragment, useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
@@ -315,7 +320,7 @@ function OrderEventMobileCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.7rem] font-bold text-white">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
             {initial}
           </span>
           <div className="min-w-0">
@@ -340,7 +345,7 @@ function OrderEventMobileCard({
 
       <div className="mt-3 flex items-center justify-between gap-2">
         <span
-          className="inline-flex max-w-[70%] items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15"
+          className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[70%] gap-1 text-[0.72rem]`}
           title={event.campaignName}
           onClick={(e) => e.stopPropagation()}
         >
@@ -443,8 +448,8 @@ function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
     Boolean(event.customerEmail?.trim());
   const hasPaid = status === "paid";
   const paymentPending = status === "pending";
-  const hasQrRedeemed =
-    event.businessVisitedAt != null || event.restaurantVisitedAt != null;
+  // QR must be payment/pass scoped — never infer from campaign-level visit.
+  const hasQrRedeemed = false;
 
   const signupState: JourneyStepState = hasSignedUp
     ? "complete"
@@ -615,17 +620,62 @@ function CustomerJourneySection({
   );
 }
 
+function mapApiJourneySteps(steps: ApiJourneyStep[]): JourneyStep[] {
+  return steps.map((step) => ({
+    id:
+      step.step === "qr_redeemed"
+        ? "qr"
+        : step.step === "payment"
+          ? "payment"
+          : "signup",
+    label: step.label,
+    state: step.state,
+  }));
+}
+
 function OrderEventDetailDialog({
   event,
   open,
   onClose,
   baseHref,
+  businessId,
 }: {
   event: BusinessFunnelEvent | null;
   open: boolean;
   onClose: () => void;
   baseHref: string;
+  businessId: number;
 }) {
+  const customerId = event?.customer?.id ?? null;
+  const campaignId = event?.campaignId ?? null;
+  const funnelId = event?.funnelId ?? null;
+  const funnelPaymentId = event?.funnelPaymentId ?? null;
+
+  const journeyQuery = useQuery({
+    queryKey: [
+      "customer-journey",
+      businessId,
+      customerId,
+      campaignId,
+      funnelId,
+      funnelPaymentId,
+    ],
+    queryFn: () =>
+      getCustomerJourney({
+        businessId,
+        customerId: customerId!,
+        campaignId: campaignId!,
+        funnelId,
+        funnelPaymentId,
+      }),
+    enabled:
+      open &&
+      businessId > 0 &&
+      customerId != null &&
+      campaignId != null &&
+      campaignId > 0,
+  });
+
   if (!open || !event) return null;
 
   const name = displayName(event);
@@ -633,7 +683,13 @@ function OrderEventDetailDialog({
   const status = resolveDisplayStatus(event);
   const email = getCustomerEmail(event);
   const phone = getCustomerPhone(event);
-  const journeySteps = buildCustomerJourney(event);
+  const fallbackSteps = buildCustomerJourney(event);
+  const journeySteps =
+    journeyQuery.data != null
+      ? mapApiJourneySteps(journeyQuery.data.steps)
+      : fallbackSteps;
+  const journeyUpdatedAt =
+    journeyQuery.data?.lastUpdatedAt ?? event.createdAt;
   const campaignLabel = formatTitleCase(event.campaignName);
   const amountDisplay = formatOrderAmountText(event, status);
 
@@ -652,7 +708,7 @@ function OrderEventDetailDialog({
         <div className="border-b border-[#e8edf5] px-4 py-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.8rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.8rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
                 {initial}
               </span>
               <div className="min-w-0">
@@ -689,12 +745,12 @@ function OrderEventDetailDialog({
         <div className="grid gap-2.5 px-4 py-3">
           <CustomerJourneySection
             steps={journeySteps}
-            updatedAt={event.createdAt}
+            updatedAt={journeyUpdatedAt}
           />
 
           <dl className="m-0 flex flex-col gap-2 rounded-[0.9rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-3.5 py-3">
             <OrderDetailRow icon={Megaphone} label="Campaign">
-              <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.8rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              <span className={`${DASHBOARD_CAMPAIGN_TAG} max-w-full gap-1 text-[0.8rem]`}>
                 <span className="truncate">{campaignLabel}</span>
               </span>
             </OrderDetailRow>
@@ -888,6 +944,7 @@ export function BusinessOrdersPanel({
         open={selectedEvent != null}
         onClose={() => setSelectedEvent(null)}
         baseHref={baseHref}
+        businessId={businessId}
       />
 
       <div className="rd-premium-page">
@@ -1095,7 +1152,7 @@ export function BusinessOrdersPanel({
 
                           return (
                             <motion.tr
-                              key={event.id}
+                              key={event.rowKey ?? `event:${event.id}`}
                               variants={tableRowReveal}
                               onClick={() => setSelectedEvent(event)}
                               className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
@@ -1118,7 +1175,7 @@ export function BusinessOrdersPanel({
                               </td>
                               <td className={tdClass}>
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.7rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
                                     {initial}
                                   </span>
                                   <span className="truncate font-semibold text-[#07111f]">
@@ -1132,7 +1189,7 @@ export function BusinessOrdersPanel({
                               >
                                 <span
                                   title={event.campaignName}
-                                  className="inline-flex max-w-[14rem] items-center truncate rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.75rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15"
+                                  className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[14rem]`}
                                 >
                                   <span className="truncate">
                                     {event.campaignName}
@@ -1177,7 +1234,7 @@ export function BusinessOrdersPanel({
                   <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
                     {events.map((event, index) => (
                       <OrderEventMobileCard
-                        key={event.id}
+                        key={event.rowKey ?? `event:${event.id}`}
                         event={event}
                         rowNumber={rowOffset + index + 1}
                         baseHref={baseHref}

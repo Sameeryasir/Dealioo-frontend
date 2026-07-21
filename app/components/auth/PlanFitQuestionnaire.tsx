@@ -8,7 +8,6 @@ import {
   clearPlanFitProgress,
   createEmptyPlanFitAnswers,
   isPlanFitComplete,
-  recommendPlanFromAnswers,
   type PlanFitAnswers,
   type PlanFitPlanId,
   type PlanFitQuestionId,
@@ -21,14 +20,18 @@ export type PlanFitResult = {
   planId: PlanFitPlanId;
   reason: string;
   answers: PlanFitAnswers;
+  confidence?: string;
+  scores?: Record<string, number>;
 };
 
 type PlanFitQuestionnaireProps = {
-  onComplete: (result: PlanFitResult) => void;
+  onComplete: (answers: PlanFitAnswers) => void | Promise<void>;
+  submitting?: boolean;
 };
 
 export function PlanFitQuestionnaire({
   onComplete,
+  submitting = false,
 }: PlanFitQuestionnaireProps) {
   const reduced = useReducedMotion();
   const [stepIndex, setStepIndex] = useState(0);
@@ -46,11 +49,11 @@ export function PlanFitQuestionnaire({
     ? answers[question.id as PlanFitQuestionId]
     : undefined;
   const progress = ((stepIndex + 1) / totalSteps) * 100;
-  const canContinue = currentValue != null;
+  const canContinue = currentValue != null && !submitting;
   const isLastStep = stepIndex >= totalSteps - 1;
 
   const handleSelect = (value: string) => {
-    if (!question) return;
+    if (!question || submitting) return;
     setAnswers((prev) => ({
       ...prev,
       [question.id]: value,
@@ -67,15 +70,11 @@ export function PlanFitQuestionnaire({
 
     if (!isPlanFitComplete(answers)) return;
     clearPlanFitProgress();
-    const recommendation = recommendPlanFromAnswers(answers);
-    onComplete({
-      ...recommendation,
-      answers,
-    });
+    void onComplete(answers);
   };
 
   const handleBack = () => {
-    if (stepIndex === 0) return;
+    if (stepIndex === 0 || submitting) return;
     setStepIndex((prev) => prev - 1);
   };
 
@@ -134,8 +133,6 @@ export function PlanFitQuestionnaire({
                         </span>
                       </h2>
 
-                      <p className={bookStyles.hint}>{question.subtitle}</p>
-
                       <div
                         className={bookStyles.choiceStack}
                         role="radiogroup"
@@ -158,17 +155,6 @@ export function PlanFitQuestionnaire({
                             >
                               <span className={bookStyles.choiceTileLabel}>
                                 {option.label}
-                                <span
-                                  style={{
-                                    display: "block",
-                                    marginTop: "0.15rem",
-                                    fontSize: "0.75rem",
-                                    fontWeight: 500,
-                                    color: "var(--bm-muted, #64748b)",
-                                  }}
-                                >
-                                  {option.hint}
-                                </span>
                               </span>
                               <span
                                 className={`${bookStyles.choiceTileCheck}${
@@ -210,7 +196,11 @@ export function PlanFitQuestionnaire({
                         onClick={handleNext}
                         disabled={!canContinue}
                       >
-                        {isLastStep ? "See my plan" : "Next"}
+                        {isLastStep
+                          ? submitting
+                            ? "Finding your plan…"
+                            : "See my plan"
+                          : "Next"}
                       </button>
                     </div>
                   </motion.div>

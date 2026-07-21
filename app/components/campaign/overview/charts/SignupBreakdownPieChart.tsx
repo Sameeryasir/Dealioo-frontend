@@ -69,6 +69,13 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
     [data],
   );
 
+  const pieData = hasData
+    ? data
+    : [
+        { name: "Signup Only", value: 1 },
+        { name: "Paid After Signup", value: 1 },
+      ];
+
   const legendItems = data.map((entry, index) => {
     const percent =
       total > 0 ? `${((entry.value / total) * 100).toFixed(0)}%` : "0%";
@@ -89,61 +96,57 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
       minHeightClass="min-h-0"
       accent="orange"
     >
-      {hasData ? (
-        <>
-          <OverviewChartCanvas>
-            {({ width, height }) => (
-              <ResponsiveContainer width={width} height={height}>
-                <PieChart margin={PIE_CHART_MARGIN}>
-                  <OverviewChartGradientDefs stops={gradients.stops} />
-                  <Pie
-                    data={data}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="54%"
-                    outerRadius="78%"
-                    paddingAngle={3}
-                    cornerRadius={6}
-                    stroke="#ffffff"
-                    strokeWidth={3}
-                  >
-                    {data.map((entry, index) => (
-                      <Cell
-                        key={entry.name}
-                        fill={`url(#${sliceIds[index] ?? sliceIds[0]})`}
+      <OverviewChartCanvas>
+        {({ width, height }) => (
+          <ResponsiveContainer width={width} height={height}>
+            <PieChart margin={PIE_CHART_MARGIN}>
+              <OverviewChartGradientDefs stops={gradients.stops} />
+              <Pie
+                data={pieData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius="54%"
+                outerRadius="78%"
+                paddingAngle={hasData ? 3 : 0}
+                cornerRadius={hasData ? 6 : 0}
+                stroke="#ffffff"
+                strokeWidth={3}
+              >
+                {pieData.map((entry, index) => (
+                  <Cell
+                    key={entry.name}
+                    fill={
+                      hasData
+                        ? `url(#${sliceIds[index] ?? sliceIds[0]})`
+                        : "#e8edf5"
+                    }
+                  />
+                ))}
+                <Label
+                  position="center"
+                  content={({ viewBox }) => {
+                    if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
+                      return null;
+                    }
+                    return (
+                      <PieCenterLabel
+                        cx={viewBox.cx}
+                        cy={viewBox.cy}
+                        total={total}
                       />
-                    ))}
-                    <Label
-                      position="center"
-                      content={({ viewBox }) => {
-                        if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
-                          return null;
-                        }
-                        return (
-                          <PieCenterLabel
-                            cx={viewBox.cx}
-                            cy={viewBox.cy}
-                            total={total}
-                          />
-                        );
-                      }}
-                    />
-                  </Pie>
-                  <Tooltip content={<OverviewChartTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </OverviewChartCanvas>
+                    );
+                  }}
+                />
+              </Pie>
+              {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </OverviewChartCanvas>
 
-          <OverviewChartLegend items={legendItems} />
-        </>
-      ) : (
-        <p className="flex flex-1 items-center justify-center text-[0.82rem] font-medium text-slate-500">
-          No signup breakdown in this period.
-        </p>
-      )}
+      <OverviewChartLegend items={legendItems} />
     </OverviewChartShell>
   );
 }

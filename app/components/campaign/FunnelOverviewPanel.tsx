@@ -36,10 +36,6 @@ import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
-import {
-  hasAnalyticsMonthlyActivity,
-  hasStatsMonthlyActivity,
-} from "@/app/components/campaign/overview/charts/overview-monthly-activity";
 
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -141,19 +137,6 @@ function OverviewSkeleton() {
   );
 }
 
-function NoRecordsFoundCard() {
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-14 text-center sm:py-16">
-      <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-        No records found
-      </p>
-      <p className="m-0 mt-1.5 max-w-sm text-[0.82rem] font-medium text-slate-500">
-        No signups or payments yet for this campaign.
-      </p>
-    </div>
-  );
-}
-
 function NoFunnelEmptyState({
   onCreateFunnel,
 }: {
@@ -250,24 +233,6 @@ export function FunnelOverviewPanel({
     return analyticsMonthly?.data ?? [];
   }, [showSkeleton, funnelId, analyticsMonthly]);
 
-  const hasStatsActivity = useMemo(
-    () => (statsPoints ? hasStatsMonthlyActivity(statsPoints) : false),
-    [statsPoints],
-  );
-
-  const hasAnalyticsActivity = useMemo(
-    () => (analyticsPoints ? hasAnalyticsMonthlyActivity(analyticsPoints) : false),
-    [analyticsPoints],
-  );
-
-  const showNoRecords =
-    !showSkeleton &&
-    funnelId != null &&
-    statsPoints != null &&
-    analyticsPoints != null &&
-    !hasStatsActivity &&
-    !hasAnalyticsActivity;
-
   useEffect(() => {
     if (showSkeleton) return;
 
@@ -340,8 +305,7 @@ export function FunnelOverviewPanel({
   );
 
   const displayName = campaignName?.trim() ? campaignName : "Campaign";
-  const hasMonthlyCharts = hasStatsActivity && signupsPaymentsMonthly.length > 0;
-  const hasAnalyticsMonthly = hasAnalyticsActivity;
+  const hasMonthlyCharts = signupsPaymentsMonthly.length > 0;
 
   const performanceBandClass = embedded
     ? "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white"
@@ -376,10 +340,6 @@ export function FunnelOverviewPanel({
       ) : showSkeleton ? (
         <div className={`rd-premium-panel__body ${panelSkeletonPadClass}`}>
           <OverviewSkeleton />
-        </div>
-      ) : showNoRecords ? (
-        <div className="rd-premium-panel__body rd-premium-panel__body--center">
-          <NoRecordsFoundCard />
         </div>
       ) : monthlyStatsTotals ? (
         <div className={`rd-premium-panel__body ${panelBodyPadClass}`}>
@@ -460,7 +420,7 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {analyticsTotals && hasAnalyticsMonthly ? (
+            {analyticsTotals ? (
               <motion.section
                 className="rd-premium-section"
                 aria-label="Behavior analytics"

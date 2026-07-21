@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
 
     return [
       {
+        source: "/api/:path*",
+        destination: `${apiBase}/:path*`,
+      },
+      {
         source: "/sms/twilio/:path*",
         destination: `${apiBase}/sms/twilio/:path*`,
       },

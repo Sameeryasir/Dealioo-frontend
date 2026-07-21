@@ -11,6 +11,7 @@ import {
   Shield,
   Sparkles,
   UserCog,
+  UserPlus,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -177,14 +178,12 @@ export function InviteMemberForm({
         />
         <div className="relative flex items-start justify-between gap-3 sm:gap-4">
           <div className="flex min-w-0 items-start gap-2.5 sm:gap-3.5">
-            <img
-              src="/add-member-icon.png"
-              alt=""
-              width={48}
-              height={45}
-              className="size-10 shrink-0 object-contain sm:size-12"
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-white shadow-sm sm:size-12"
               aria-hidden
-            />
+            >
+              <UserPlus className="size-5 sm:size-6" strokeWidth={2.25} />
+            </span>
             <div className="min-w-0">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:px-2.5 sm:py-1 sm:text-[0.68rem]">
                 <Sparkles className="size-3" aria-hidden />

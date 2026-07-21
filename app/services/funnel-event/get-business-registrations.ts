@@ -22,6 +22,7 @@ export type RestaurantOrderPaymentStatus =
 
 export type BusinessFunnelEvent = {
   id: number;
+  rowKey?: string;
   eventType: "signup" | "payment";
   createdAt: string;
   funnelId: number;

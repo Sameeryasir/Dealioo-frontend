@@ -2,10 +2,12 @@
 
 import {
   CheckCircle2,
+  Gift,
   Loader2,
   ScanLine,
   Sparkles,
   UserCheck,
+  Users,
   Wallet,
   XCircle,
 } from "lucide-react";
@@ -64,6 +66,109 @@ const SCAN_STEPS = [
     description: "Apply the deal and complete the order.",
   },
 ] as const;
+
+function ScannerSuccessState({
+  result,
+  onScanAnother,
+}: {
+  result: ScanRedemptionSuccess;
+  onScanAnother: () => void;
+}) {
+  return (
+    <div className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-[#bbf7d0]/90 bg-gradient-to-b from-[#ecfdf5] via-white to-white shadow-[0_16px_40px_rgba(16,185,129,0.12)] ring-1 ring-emerald-500/10">
+      <span
+        className="pointer-events-none absolute -top-16 left-1/2 size-48 -translate-x-1/2 rounded-full bg-emerald-400/20 blur-3xl"
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute -right-10 top-24 size-28 rounded-full bg-[#1877f2]/10 blur-2xl"
+        aria-hidden
+      />
+
+      <div className="relative px-5 pb-6 pt-8 text-center sm:px-8 sm:pb-8 sm:pt-10">
+        <div className="mx-auto mb-5 flex size-[4.5rem] items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_12px_28px_rgba(16,185,129,0.35)] ring-4 ring-white">
+          <CheckCircle2
+            className="size-9 text-white"
+            strokeWidth={2.5}
+            aria-hidden
+          />
+        </div>
+
+        <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700 ring-1 ring-emerald-500/15">
+          <Sparkles className="size-3" aria-hidden />
+          Success
+        </p>
+        <h3 className="m-0 mt-3 text-[1.45rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.6rem]">
+          Redeemed!
+        </h3>
+        <p className="m-0 mt-1.5 text-[0.88rem] font-medium text-slate-500">
+          Offer successfully applied at the counter.
+        </p>
+
+        <div className="mt-6 rounded-[1.2rem] border border-[#e8edf5] bg-white/90 px-4 py-4 text-left shadow-sm sm:px-5">
+          <div className="flex items-start gap-3 border-b border-[#f1f5f9] pb-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2]/10 text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              <UserCheck className="size-5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-[0.7rem] font-bold uppercase tracking-wide text-slate-400">
+                Customer
+              </p>
+              <p className="m-0 mt-0.5 truncate text-[1.05rem] font-extrabold text-[#07111f]">
+                {result.customerName}
+              </p>
+              <p className="m-0 mt-1.5 inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-[#1877f2]/10 px-2.5 py-0.5 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                <Gift className="size-3 shrink-0" aria-hidden />
+                <span className="truncate">{result.campaignName}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <div className="rounded-xl bg-[#f8fafc] px-3 py-3 ring-1 ring-[#e8edf5]">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Users className="size-3.5" aria-hidden />
+                <p className="m-0 text-[0.65rem] font-bold uppercase tracking-wide">
+                  Total visits
+                </p>
+              </div>
+              <p className="m-0 mt-1.5 text-[1.35rem] font-extrabold tabular-nums text-[#07111f]">
+                {result.totalVisits}
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#f8fafc] px-3 py-3 ring-1 ring-[#e8edf5]">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Gift className="size-3.5" aria-hidden />
+                <p className="m-0 text-[0.65rem] font-bold uppercase tracking-wide">
+                  Rewards left
+                </p>
+              </div>
+              <p className="m-0 mt-1.5 text-[1.35rem] font-extrabold tabular-nums text-[#07111f]">
+                {result.rewardsAvailable}
+              </p>
+            </div>
+          </div>
+
+          <p className="m-0 mt-4 text-center text-[0.75rem] font-medium text-slate-500">
+            Redeemed at{" "}
+            <span className="font-bold text-slate-700">
+              {formatDateTimeShort(result.redeemedAt)}
+            </span>
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onScanAnother}
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1877f2] px-6 py-3.5 text-[0.9rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] sm:w-auto sm:min-w-[12rem]"
+        >
+          <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
+          Scan another
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ScannerIdleState({ onStart }: { onStart: () => void }) {
   return (
@@ -525,56 +630,10 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "success" && successResult ? (
-            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#bbf7d0] bg-gradient-to-b from-[#f0fdf4] to-white px-4 py-8 text-center shadow-[0_10px_28px_rgba(34,197,94,0.08)]">
-              <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#bbf7d0]/80 shadow-sm">
-                <CheckCircle2 className="size-10 text-[#22c55e]" aria-hidden />
-              </div>
-              <div>
-                <p className="m-0 text-[1.05rem] font-extrabold text-[#07111f]">Redeemed!</p>
-                <p className="m-0 mt-1 text-[0.82rem] text-slate-600">
-                  Offer successfully applied.
-                </p>
-              </div>
-              <dl className="w-full rounded-[1rem] border border-[#e8edf5] bg-white px-4 py-3 text-left text-sm shadow-sm">
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-slate-700">Customer</dt>
-                  <dd className="font-bold text-black">
-                    {successResult.customerName}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-slate-700">Campaign</dt>
-                  <dd className="font-bold text-black">
-                    {successResult.campaignName}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-slate-700">Total visits</dt>
-                  <dd className="font-bold text-black">
-                    {successResult.totalVisits}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-slate-700">Rewards available</dt>
-                  <dd className="font-bold text-black">
-                    {successResult.rewardsAvailable}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-slate-700">Redeemed at</dt>
-                  <dd className="font-bold text-black">
-                    {formatDateTimeShort(successResult.redeemedAt)}
-                  </dd>
-                </div>
-              </dl>
-              <button
-                type="button"
-                onClick={() => void resetScan()}
-                className="rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-              >
-                Scan another
-              </button>
-            </div>
+            <ScannerSuccessState
+              result={successResult}
+              onScanAnother={() => void resetScan()}
+            />
           ) : null}
 
           {scanState === "error" ? (

@@ -419,138 +419,103 @@ export default function CampaignHeader({
             transition={{ duration: 0.28, ease: automationEase }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative overflow-hidden px-6 pb-7 pt-6 text-white sm:px-7 sm:pb-8 sm:pt-7">
-              <div
-                aria-hidden
-                className="absolute inset-0 bg-gradient-to-br from-[#05070d] via-[#0a1628] to-[#0f1f3d]"
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -right-8 -top-10 size-48 rounded-full bg-[#1877f2]/30 blur-3xl"
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -bottom-12 -left-6 size-44 rounded-full bg-[#e1306c]/22 blur-3xl"
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
-              />
-
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
-                    <Megaphone className="size-3" strokeWidth={2.5} aria-hidden />
-                    Meta ads
+            <div className="relative bg-[#0d192e] px-5 py-3.5 text-white sm:px-6 sm:py-4">
+              <div className="relative flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+                    <Link2 className="size-4" strokeWidth={2.25} aria-hidden />
                   </span>
-                  <div className="mt-5 flex items-center gap-4">
-                    <span className="relative flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#e1306c] text-white shadow-[0_12px_28px_rgba(24,119,242,0.35)]">
-                      <span
-                        aria-hidden
-                        className="absolute inset-[1px] rounded-[0.9rem] bg-gradient-to-br from-[#0a1628]/40 to-[#07111f]/20"
-                      />
-                      <Link2
-                        className="relative size-6"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </span>
-                    <div className="min-w-0">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h2
                         id="tracking-link-dialog-title"
-                        className="text-[1.35rem] font-extrabold tracking-tight text-white sm:text-[1.5rem]"
+                        className="text-base font-extrabold tracking-tight text-white sm:text-lg"
                       >
                         Tracking link
                       </h2>
-                      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-white/65">
-                        Paste this as the website destination in your Facebook /
-                        Meta ad.
-                      </p>
+                      <span className="inline-flex items-center gap-1 rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/90">
+                        <Megaphone className="size-2.5" strokeWidth={2.5} aria-hidden />
+                        Meta ads
+                      </span>
                     </div>
+                    <p className="mt-0.5 truncate text-xs leading-snug text-white/80 sm:text-[13px]">
+                      Paste this as the website destination in your Facebook /
+                      Meta ad.
+                    </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   aria-label="Close"
                   onClick={() => setTrackingDialogOpen(false)}
-                  className="relative shrink-0 rounded-xl p-2 text-white/65 transition hover:bg-white/10 hover:text-white"
+                  className="relative shrink-0 rounded-md p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
                 >
-                  <X className="size-5" strokeWidth={2} aria-hidden />
+                  <X className="size-4" strokeWidth={2} aria-hidden />
                 </button>
               </div>
             </div>
 
-            <div className="relative bg-gradient-to-b from-[#f7faff] via-white to-white px-6 py-6 sm:px-7 sm:py-7">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(24,119,242,0.08),transparent)]"
-              />
-
+            <div className="relative bg-white px-6 py-5 sm:px-7 sm:py-6">
               {campaignId != null && landingTrackingUrl ? (
-                <div className="relative space-y-5">
-                  <div className="overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-                    <div className="flex items-start gap-3.5 border-b border-[#eef2f8] px-4 py-4 sm:px-5">
-                      <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#e8f2ff] to-[#fdf2f8] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                        <Sparkles className="size-4" strokeWidth={2.25} aria-hidden />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#e1306c]">
-                          Campaign
-                        </p>
-                        <p className="mt-1 truncate text-base font-bold tracking-tight text-[#07111f]">
-                          {campaignTitle}
-                        </p>
-                        <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                          {funnelId != null && funnelId >= 1
-                            ? "Funnel is live — copy the link below for your ads."
-                            : "Save your funnel first so this link points to your live pages."}
-                        </p>
-                      </div>
+                <div className="relative space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#f472b6] text-white">
+                      <Sparkles className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#f472b6]">
+                        Campaign
+                      </p>
+                      <p className="truncate text-[15px] font-bold tracking-tight text-[#07111f]">
+                        {campaignTitle}
+                      </p>
                     </div>
+                    <p className="hidden shrink-0 text-xs text-slate-400 sm:block">
+                      {funnelId != null && funnelId >= 1
+                        ? "Funnel live"
+                        : "Save funnel first"}
+                    </p>
+                  </div>
 
-                    <div className="px-4 py-4 sm:px-5">
-                      <label
-                        htmlFor="tracking-landing-url"
-                        className="mb-2.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"
-                      >
-                        <Link2 className="size-3.5 text-[#1877f2]" strokeWidth={2.5} aria-hidden />
-                        Landing URL
-                      </label>
-                      <div className="overflow-hidden rounded-xl border border-[#dbeafe] bg-gradient-to-br from-[#f8fbff] to-[#fff8fb] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                        <div className="px-4 py-3.5">
-                          <input
-                            id="tracking-landing-url"
-                            readOnly
-                            value={landingTrackingUrl}
-                            className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[12.5px] leading-relaxed text-[#07111f] outline-none sm:text-[13px]"
-                          />
-                        </div>
-                        <div className="flex justify-center border-t border-[#e8edf5]/90 bg-white/80 px-4 py-3.5">
-                          <button
-                            type="button"
-                            onClick={() => void handleCopyLandingUrl()}
-                            className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition active:scale-[0.98] sm:w-auto ${
-                              copyDone
-                                ? "bg-gradient-to-r from-[#34a853] to-[#2d9248] shadow-[0_10px_22px_rgba(52,168,83,0.28)]"
-                                : "bg-gradient-to-r from-[#1877f2] via-[#166fe5] to-[#e1306c] shadow-[0_10px_22px_rgba(24,119,242,0.3)] hover:brightness-105"
-                            }`}
-                          >
-                            {copyDone ? (
-                              <Check className="size-4" strokeWidth={2.5} aria-hidden />
-                            ) : (
-                              <Copy className="size-4" strokeWidth={2} aria-hidden />
-                            )}
-                            {copyDone ? "Copied" : "Copy link"}
-                          </button>
-                        </div>
+                  <div>
+                    <label
+                      htmlFor="tracking-landing-url"
+                      className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"
+                    >
+                      <Link2 className="size-3.5 text-[#1877f2]" strokeWidth={2.5} aria-hidden />
+                      Landing URL
+                    </label>
+                    <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-[#f8fafc]">
+                      <div className="px-3.5 py-3">
+                        <input
+                          id="tracking-landing-url"
+                          readOnly
+                          value={landingTrackingUrl}
+                          className="w-full cursor-text select-all border-0 bg-transparent font-mono text-[12.5px] leading-relaxed text-[#07111f] outline-none sm:text-[13px]"
+                        />
+                      </div>
+                      <div className="border-t border-[#e2e8f0] bg-white px-3.5 py-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleCopyLandingUrl()}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition active:scale-[0.98] sm:w-auto ${
+                            copyDone
+                              ? "bg-[#34a853] hover:bg-[#2d9348]"
+                              : "bg-[#1877f2] hover:bg-[#166fe5]"
+                          }`}
+                        >
+                          {copyDone ? (
+                            <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                          ) : (
+                            <Copy className="size-4" strokeWidth={2} aria-hidden />
+                          )}
+                          {copyDone ? "Copied" : "Copy link"}
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-3 rounded-2xl border border-[#dbeafe] bg-gradient-to-r from-[#f0f7ff] via-white to-[#fff5f9] px-4 py-3.5">
-                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
-                      <Megaphone className="size-3.5" strokeWidth={2.25} aria-hidden />
-                    </span>
+                  <div className="flex gap-3 border-l-[3px] border-[#f472b6] bg-[#f8fafc] py-3 pl-3.5 pr-3">
                     <p className="text-xs leading-relaxed text-slate-600">
                       In Meta Ads Manager, set this URL as the website destination
                       for your ad. Guests land on your funnel landing page.
@@ -558,17 +523,17 @@ export default function CampaignHeader({
                   </div>
                 </div>
               ) : (
-                <p className="relative rounded-2xl border border-[#e8edf5] bg-white px-4 py-4 text-sm text-slate-700 shadow-sm">
+                <p className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3.5 text-sm text-slate-700">
                   This campaign is not ready yet, so a tracking link cannot be
                   built.
                 </p>
               )}
 
-              <div className="relative mt-6 flex flex-col-reverse gap-2.5 border-t border-[#eef2f8] pt-5 sm:flex-row sm:justify-end">
+              <div className="relative mt-5 flex flex-col-reverse gap-2.5 border-t border-[#eef2f8] pt-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setTrackingDialogOpen(false)}
-                  className="rounded-xl border border-[#e8edf5] bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+                  className="rounded-lg border border-[#e2e8f0] bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-[#1877f2]/40 hover:text-[#1877f2]"
                 >
                   Done
                 </button>
@@ -577,7 +542,7 @@ export default function CampaignHeader({
                     href={landingTrackingPath}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.32)] transition hover:brightness-105 active:scale-[0.98]"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1877f2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#166fe5] active:scale-[0.98]"
                   >
                     <ExternalLink className="size-4" strokeWidth={2.25} aria-hidden />
                     Open preview

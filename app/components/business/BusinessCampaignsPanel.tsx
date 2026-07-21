@@ -457,15 +457,7 @@ export function BusinessCampaignsPanel({
           </>
         }
         confirmText="Delete campaign"
-        checkboxLabel={
-          campaignPendingDelete
-            ? `Are you sure you want to delete ${
-                campaignPendingDelete.campaignName?.trim() ||
-                campaignPendingDelete.offer?.trim() ||
-                "this campaign"
-              }?`
-            : "Are you sure you want to delete this campaign?"
-        }
+        checkboxLabel="Are you sure? This can't be undone."
         isLoading={isDeletingCampaign}
         onConfirm={() => {
           void handleConfirmDeleteCampaign();

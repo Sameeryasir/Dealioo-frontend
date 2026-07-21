@@ -376,7 +376,7 @@ function ActivityEventMobileCard({
     <article className="rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.7rem] font-bold text-white">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
             {guestInitial(name)}
           </span>
           <div className="min-w-0">
@@ -783,7 +783,7 @@ export function BusinessActivityPanel({
                               </td>
                               <td className={tdClass}>
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.72rem] font-bold text-white">
+                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.72rem] font-bold text-white">
                                     {guestInitial(name)}
                                   </span>
                                   <div className="min-w-0">

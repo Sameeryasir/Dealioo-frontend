@@ -1,5 +1,7 @@
 export type FunnelLockedStep = "signup" | "payment" | "confirmation";
 
+export type FunnelGuardStep = FunnelLockedStep | "landing";
+
 const STEP_RANK: Record<FunnelLockedStep, number> = {
   signup: 1,
   payment: 2,
@@ -27,6 +29,33 @@ export function getFunnelLockedStep(
   return null;
 }
 
+export function clearFunnelLockedStep(
+  funnelId: number | null | undefined,
+): void {
+  if (funnelId == null || funnelId < 1 || typeof window === "undefined") {
+    return;
+  }
+  try {
+    sessionStorage.removeItem(storageKey(funnelId));
+  } catch {
+    // ignore
+  }
+}
+
+export function forceFunnelLockedStep(
+  funnelId: number | null | undefined,
+  step: FunnelLockedStep,
+): void {
+  if (funnelId == null || funnelId < 1 || typeof window === "undefined") {
+    return;
+  }
+  try {
+    sessionStorage.setItem(storageKey(funnelId), step);
+  } catch {
+    // ignore
+  }
+}
+
 export function markFunnelLockedStep(
   funnelId: number | null | undefined,
   step: FunnelLockedStep,
@@ -38,11 +67,7 @@ export function markFunnelLockedStep(
   if (current && STEP_RANK[current] >= STEP_RANK[step]) {
     return;
   }
-  try {
-    sessionStorage.setItem(storageKey(funnelId), step);
-  } catch {
-    // ignore
-  }
+  forceFunnelLockedStep(funnelId, step);
 }
 
 export function funnelStepIsAtLeast(

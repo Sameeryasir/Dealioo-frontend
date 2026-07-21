@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import { updateAutomation } from "@/app/services/automation/automation-api";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
+import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 
 export function useToggleAutomationActive(automationId: number) {
   const queryClient = useQueryClient();
@@ -22,6 +23,12 @@ export function useToggleAutomationActive(automationId: number) {
             : { isActive: false, published: false },
         );
         syncAutomationQueryCache(queryClient, updated);
+        void queryClient.invalidateQueries({
+          queryKey: automationQueryKeys.executionsRoot(automationId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: [...automationQueryKeys.all, "execution-logs"],
+        });
         toast.success(
           isActive
             ? "Automation resumed. Sending now, then on the schedule."

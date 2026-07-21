@@ -5,6 +5,9 @@ export const DASHBOARD_KPI_ICON = {
   pink: "bg-[#fdf2f8] text-[#e1306c]",
 } as const;
 
+export const DASHBOARD_CAMPAIGN_TAG =
+  "inline-flex items-center truncate rounded-full bg-[#fdf2f8] px-2.5 py-1 text-[0.75rem] font-bold text-[#f472b6] ring-1 ring-[#f9a8d4]/80";
+
 export const TABLE_HEAD_ICON_CLASS = "text-slate-600";
 export const TABLE_HEAD_LABEL_CLASS = "text-slate-800";
 

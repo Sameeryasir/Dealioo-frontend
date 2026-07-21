@@ -20,14 +20,8 @@ export function DeleteExecutionDialog({
       open={open}
       itemName={itemName}
       title="Delete this run?"
-      description={
-        <>
-          You are about to remove{" "}
-          <span className="font-medium text-zinc-900">{itemName}</span> from your
-          runs list. This cannot be undone, the run record and its activity
-          logs will be permanently deleted.
-        </>
-      }
+      description="Are you sure you want to delete this run only?"
+      checkboxLabel="Yes, delete this run only"
       confirmText="Delete"
       isLoading={isDeleting}
       onCancel={onCancel}

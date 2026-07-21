@@ -2477,6 +2477,30 @@ body {
     color: var(--landing-text);
   }
 
+  /* Wider shell + equal card widths (height unchanged). */
+  @media (min-width: 1280px) {
+    .landing-pricing-section > .brand-landing-section {
+      max-width: min(96rem, calc(100vw - 1.5rem));
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    .landing-page .landing-pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    /* Same width rules for every pricing card in the row. */
+    .landing-page .landing-pricing-grid > *,
+    .landing-page .landing-pricing-grid .landing-pricing-card {
+      width: 100%;
+      min-width: 0;
+      max-width: none;
+      box-sizing: border-box;
+    }
+  }
+
   .landing-compact-section {
     @apply relative overflow-hidden py-16 sm:py-20;
     background: #ffffff;
@@ -4696,8 +4720,14 @@ body {
   }
 
   @media (min-width: 1280px) {
-    .landing-pricing-grid .landing-pricing-card {
-      padding: 0.75rem 0.75rem;
+    /* Shared padding for every card — horizontal only; keep vertical the same. */
+    .landing-pricing-grid .landing-pricing-card,
+    .landing-pricing-grid .landing-pricing-card-featured,
+    .landing-pricing-grid .landing-pricing-card-expert {
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
 
     .landing-pricing-grid .landing-pricing-card h3 {
@@ -7429,7 +7459,7 @@ body {
 }
 
 .auth-signup-page--plan-only .auth-signup-inner {
-  max-width: min(72rem, calc(100vw - clamp(1.25rem, 5vw, 2rem)));
+  max-width: min(96rem, calc(100vw - clamp(1.25rem, 5vw, 2rem)));
 }
 
 .auth-select-plan-page {
@@ -7477,7 +7507,7 @@ body:has(.auth-select-plan-page) {
 
 .auth-select-plan-main {
   width: 100%;
-  max-width: min(88rem, calc(100vw - 2rem));
+  max-width: min(96rem, calc(100vw - 1.5rem));
   margin-inline: auto;
   padding: calc(5rem + 1.25rem) clamp(0.75rem, 2.5vw, 1.5rem)
     calc(3.5rem + env(safe-area-inset-bottom, 0px));
@@ -7521,7 +7551,11 @@ body:has(.auth-select-plan-page) {
   padding: 0;
 }
 
-.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card {
+/* Same width CSS for every select-plan pricing card (height unchanged). */
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card,
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--featured,
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--expert,
+.auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--selected {
   width: 100%;
   min-width: 0;
   max-width: none;
@@ -7532,7 +7566,8 @@ body:has(.auth-select-plan-page) {
   border: 1px solid #dbe3ef;
   border-radius: 0.875rem;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  padding: 0.875rem 0.75rem 1rem;
+  padding: 0.875rem 1rem 1rem;
+  box-sizing: border-box;
 }
 
 .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card-features-wrap {
@@ -8668,14 +8703,21 @@ body:has(.auth-select-plan-page) {
     gap: 0.75rem;
   }
 
-  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card {
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card,
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--featured,
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--expert,
+  .auth-select-plan-page .auth-signup-plan-step--single-row .auth-signup-plan-card--selected {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
     border: 1px solid #dbe3ef;
     border-top: 1px solid #dbe3ef;
     border-radius: 0.875rem;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     min-height: 0;
     height: auto;
-    padding: 0.875rem 0.75rem 1rem;
+    padding: 0.875rem 1rem 1rem;
+    box-sizing: border-box;
   }
 }
 
@@ -10018,6 +10060,10 @@ body:has(.auth-select-plan-page) {
 .automation-builder-topbar-actions-host:not(:empty) {
   display: flex;
   align-items: center;
+}
+
+.automation-builder-topbar-actions-host:not(:empty) ~ .rd-topbar-account-menu {
+  display: none;
 }
 
 @media (max-width: 639px) {

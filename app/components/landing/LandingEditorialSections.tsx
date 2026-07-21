@@ -571,7 +571,7 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
               <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-hidden />
             </div>
           ) : (
-          <div className="landing-pricing-grid grid md:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#e8edf5]">
+          <div className="landing-pricing-grid grid md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-[#e8edf5]">
             {plans.map((plan, i) => {
               const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";

@@ -24,9 +24,9 @@ import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
 import {
-  getPlanFitReason,
   isPlanFitComplete,
-  recommendPlanFromAnswers,
+  isPlanFitPlanId,
+  type PlanFitAnswers,
   type PlanFitPlanId,
 } from "@/app/lib/plan-fit-questionnaire";
 import { useRouter } from "next/navigation";
@@ -62,6 +62,7 @@ export function SignupSelectPlanPanel({
     null,
   );
   const [planFitReady, setPlanFitReady] = useState(mode !== "checkout");
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
   const restoredPlanFitRef = useRef(false);
 
   useEffect(() => {
@@ -79,20 +80,21 @@ export function SignupSelectPlanPanel({
         const saved = await getPlanFit();
         if (cancelled || restoredPlanFitRef.current) return;
 
-        if (saved.planFitAnswers && isPlanFitComplete(saved.planFitAnswers)) {
-          const rec = recommendPlanFromAnswers(saved.planFitAnswers);
-          const savedSlug = saved.planFitRecommendedPlan;
+        if (saved.answers && isPlanFitComplete(saved.answers)) {
+          const rec = saved.recommendation;
           const recommended: PlanFitPlanId =
-            savedSlug === "starter" ||
-            savedSlug === "growth-ai" ||
-            savedSlug === "growth-expert" ||
-            savedSlug === "enterprise"
-              ? savedSlug
-              : rec.planId;
+            rec && isPlanFitPlanId(rec.planSlug)
+              ? rec.planSlug
+              : saved.planFitRecommendedPlan &&
+                  isPlanFitPlanId(saved.planFitRecommendedPlan)
+                ? saved.planFitRecommendedPlan
+                : "starter";
           setRecommendation({
             planId: recommended,
-            reason: getPlanFitReason(recommended),
-            answers: saved.planFitAnswers,
+            reason: rec?.reason ?? "",
+            answers: saved.answers,
+            confidence: rec?.confidence,
+            scores: rec?.scores,
           });
           setSelectedPlanId(recommended);
           setQuizDone(true);
@@ -151,27 +153,35 @@ export function SignupSelectPlanPanel({
   );
 
   const handleQuizComplete = useCallback(
-    async (result: PlanFitResult) => {
-      const availableIds = new Set(plans.map((plan) => plan.id));
-      const planId = availableIds.has(result.planId)
-        ? result.planId
-        : defaultPlanId;
-      setRecommendation({ ...result, planId: planId as PlanFitResult["planId"] });
-      setSelectedPlanId(planId);
-      setQuizDone(true);
+    async (answers: PlanFitAnswers) => {
+      setQuizSubmitting(true);
       setErrorMessage(null);
 
       try {
-        await savePlanFit({
-          answers: result.answers,
-          recommendedPlanSlug: planId,
+        const saved = await savePlanFit(answers);
+        const availableIds = new Set(plans.map((plan) => plan.id));
+        const recommendedSlug = saved.recommendation.planSlug;
+        const planId = availableIds.has(recommendedSlug)
+          ? recommendedSlug
+          : defaultPlanId;
+
+        setRecommendation({
+          planId: planId as PlanFitPlanId,
+          reason: saved.recommendation.reason,
+          answers: saved.answers,
+          confidence: saved.recommendation.confidence,
+          scores: saved.recommendation.scores,
         });
+        setSelectedPlanId(planId);
+        setQuizDone(true);
       } catch (error) {
         const message =
           error instanceof Error
             ? error.message
-            : "Could not save your quiz answers. You can still choose a plan.";
+            : "Could not save your quiz answers. Please try again.";
         setErrorMessage(message);
+      } finally {
+        setQuizSubmitting(false);
       }
     },
     [defaultPlanId, plans],
@@ -266,7 +276,23 @@ export function SignupSelectPlanPanel({
   }
 
   if (mode === "checkout" && !quizDone) {
-    return <PlanFitQuestionnaire onComplete={handleQuizComplete} />;
+    return (
+      <div>
+        {errorMessage ? (
+          <div
+            className="mx-auto mb-4 flex max-w-xl items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>{errorMessage}</span>
+          </div>
+        ) : null}
+        <PlanFitQuestionnaire
+          onComplete={handleQuizComplete}
+          submitting={quizSubmitting}
+        />
+      </div>
+    );
   }
 
   const alertMessage = errorMessage ?? plansError;

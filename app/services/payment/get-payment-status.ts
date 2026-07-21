@@ -26,16 +26,28 @@ export async function getPaymentStatus(
     throw new Error("Payment id is required.");
   }
 
-  const res = await fetch(
-    `${getApiBaseUrl()}/payment/${encodeURIComponent(String(paymentId))}/status`,
-    { method: "GET", cache: "no-store" },
-  );
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
 
-  if (!res.ok) {
-    throw new Error(
-      await parseApiErrorMessage(res, "Could not load payment status."),
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/payment/${encodeURIComponent(String(paymentId))}/status`,
+      { method: "GET", cache: "no-store", signal: controller.signal },
     );
-  }
 
-  return res.json() as Promise<PaymentStatusResponse>;
+    if (!res.ok) {
+      throw new Error(
+        await parseApiErrorMessage(res, "Could not load payment status."),
+      );
+    }
+
+    return res.json() as Promise<PaymentStatusResponse>;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Payment confirmation is taking longer than expected.");
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }

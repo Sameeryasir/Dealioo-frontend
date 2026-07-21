@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Stop confirmation page from hanging on “Confirming your payment…”.
- * Why: Spinner stayed up when payment id was missing or status poll hung on automation.
- * Related: use-payment-status-poll.ts, checkout-resume.service.ts, payment.service.ts
- */
-
 import { useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -40,21 +34,19 @@ export function FunnelConfirmationView({
   const { isPaid, loading, error, status } = usePaymentStatusPoll({
     paymentId,
     enabled: expectsPayment && ready && paymentId != null,
-    maxAttempts: 12,
-    intervalMs: 1000,
+    maxAttempts: expectsPayment ? 8 : 12,
+    intervalMs: 800,
   });
 
-  // URL already says payment succeeded — don't keep spinner forever.
   const confirmedByUrl = expectsPayment;
   const confirmedByServer = isPaid || status === "paid";
   const showConfirming =
     expectsPayment &&
     paymentId != null &&
     loading &&
-    !confirmedByServer;
-  const celebrate =
-    confirmedByServer ||
-    (confirmedByUrl && ready && (paymentId == null || !loading || Boolean(error)));
+    !confirmedByServer &&
+    !confirmedByUrl;
+  const celebrate = confirmedByServer || (confirmedByUrl && ready);
 
   const { pages, isLoading } = useFunnelTemplatePagesFromStorage(templateStorageKey);
 
@@ -65,7 +57,6 @@ export function FunnelConfirmationView({
     if (paymentId == null) return;
     const customerId = session?.customerId;
     if (customerId == null) return;
-    // Only track once server confirms paid — avoids false automation starts.
     if (!confirmedByServer) return;
 
     trackedRef.current = true;
@@ -107,7 +98,7 @@ export function FunnelConfirmationView({
           </span>
         </div>
       ) : null}
-      {expectsPayment && error && !confirmedByServer ? (
+      {expectsPayment && error && !confirmedByServer && !confirmedByUrl ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="alert"

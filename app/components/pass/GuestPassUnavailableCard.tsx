@@ -85,11 +85,11 @@ const VARIANT_STYLES: Record<
     hintLabel: "text-red-700/90",
   },
   success: {
-    header: "bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800",
-    iconWrap: "bg-white/15 ring-white/25 text-white",
-    hintBox: "border-emerald-100 bg-emerald-50/80",
-    hintIcon: "bg-emerald-700 text-white",
-    hintLabel: "text-emerald-800/80",
+    header: "bg-[#1877f2]",
+    iconWrap: "bg-white/20 ring-white/25 text-white",
+    hintBox: "border-[#f9a8d4]/70 bg-[#fdf2f8]",
+    hintIcon: "bg-[#f472b6] text-white",
+    hintLabel: "text-[#f472b6]",
   },
   warning: {
     header: "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600",

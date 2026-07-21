@@ -29,179 +29,107 @@ export type PlanFitQuestion = {
 
 export const PLAN_FIT_QUESTIONS: readonly PlanFitQuestion[] = [
   {
+    // Maps to Starter "One location" vs Enterprise "Unlimited location / Multi-location & franchise"
     id: "businesses",
     lead: "How many ",
-    accent: "businesses?",
-    subtitle: "This helps match single-business vs multi-business plans.",
+    accent: "locations?",
+    subtitle: "Starter is built for one location; Enterprise for multi-location brands.",
     options: [
       {
         value: "one",
-        label: "Just one",
-        hint: "One business",
+        label: "Just one location",
+        hint: "One location",
       },
       {
         value: "few",
-        label: "2–5 businesses",
+        label: "A few locations (2–5)",
         hint: "Growing brand",
       },
       {
         value: "many",
-        label: "6 or more",
-        hint: "Multi-business or franchise",
+        label: "Many locations or a franchise",
+        hint: "Multi-location or franchise",
       },
     ],
   },
   {
+    // Maps to DIY Campaign Builder vs AI Campaign Builder / automation (not image generation)
     id: "paidMarketing",
-    lead: "Are you aware of paid marketing — ",
-    accent: "Google or Meta ads?",
-    subtitle: "This helps us recommend the right growth tools for you.",
+    lead: "What kind of ",
+    accent: "campaign tools do you want?",
+    subtitle: "Matches DIY tools on Starter vs AI campaign tools on Growth AI.",
     options: [
       {
         value: "yes",
-        label: "Yes, I run Google or Meta ads",
-        hint: "Already using paid ads",
+        label: "AI Campaign Builder + follow-ups",
+        hint: "AI campaigns and automation",
       },
       {
         value: "somewhat",
-        label: "I’ve heard of them, but don’t run ads yet",
-        hint: "Aware, not advertising yet",
+        label: "Some AI help, but keep it simple",
+        hint: "Light AI support",
       },
       {
         value: "no",
-        label: "Not really",
-        hint: "New to paid marketing",
+        label: "DIY Campaign Builder is enough",
+        hint: "In-house DIY tools",
       },
     ],
   },
   {
+    // Maps to Starter DIY / Growth AI / Growth Expert dedicated marketing expert
     id: "helpStyle",
     lead: "How do you want to run ",
     accent: "campaigns?",
-    subtitle: "Pick the level of help that fits your team.",
+    subtitle: "Pick DIY, AI help, or a dedicated marketing expert.",
     options: [
       {
         value: "diy",
-        label: "I’ll do it myself",
-        hint: "DIY tools are enough",
+        label: "I’ll do it myself (DIY)",
+        hint: "DIY Campaign Builder",
       },
       {
         value: "ai",
         label: "I want AI to help",
-        hint: "Copy, deals, and automation",
+        hint: "AI Campaign Builder, chat, automation",
       },
       {
         value: "expert",
-        label: "I want a marketing expert",
-        hint: "Strategy calls and reviews",
+        label: "I want a dedicated marketing expert",
+        hint: "Strategy calls and campaign reviews",
       },
     ],
   },
   {
+    // Maps to Starter QR/landing / Growth AI automation / Growth Expert guidance / Enterprise scale
     id: "priority",
     lead: "What’s your top ",
     accent: "priority?",
-    subtitle: "We’ll recommend the plan that matches this goal.",
+    subtitle: "We’ll match this to what each plan includes.",
     options: [
       {
         value: "simple",
-        label: "Simple deals & QR offers",
-        hint: "Get started quickly",
+        label: "Landing pages, QR offers & Stripe checkout",
+        hint: "Starter essentials",
       },
       {
         value: "automation",
-        label: "AI + email / SMS follow-ups",
-        hint: "Grow without more busywork",
+        label: "AI follow-ups + email / SMS / WhatsApp",
+        hint: "Growth AI automation",
       },
       {
         value: "guidance",
-        label: "Hands-on growth guidance",
-        hint: "Expert support each month",
+        label: "Strategy calls & campaign reviews",
+        hint: "Growth Expert services",
       },
       {
         value: "scale",
-        label: "Scale across businesses",
-        hint: "Custom / enterprise needs",
+        label: "Multi-location, white label & custom setup",
+        hint: "Enterprise scale",
       },
     ],
   },
 ] as const;
-
-const PLAN_REASONS: Record<PlanFitPlanId, string> = {
-  starter: "Best fit for a single business that wants simple DIY campaigns.",
-  "growth-ai": "Best fit when you want AI tools and automated follow-ups.",
-  "growth-expert":
-    "Best fit when you want AI plus a dedicated marketing expert.",
-  enterprise: "Best fit for multi-business brands that need a custom plan.",
-};
-
-export function getPlanFitReason(planId: PlanFitPlanId): string {
-  return PLAN_REASONS[planId];
-}
-
-export function recommendPlanFromAnswers(
-  answers: PlanFitAnswers,
-): { planId: PlanFitPlanId; reason: string } {
-  const scores: Record<PlanFitPlanId, number> = {
-    starter: 0,
-    "growth-ai": 0,
-    "growth-expert": 0,
-    enterprise: 0,
-  };
-
-  if (answers.businesses === "one") {
-    scores.starter += 3;
-    scores["growth-ai"] += 1;
-  } else if (answers.businesses === "few") {
-    scores["growth-ai"] += 2;
-    scores["growth-expert"] += 2;
-    scores.enterprise += 1;
-  } else {
-    scores.enterprise += 4;
-    scores["growth-expert"] += 1;
-  }
-
-  if (answers.paidMarketing === "yes") {
-    scores["growth-ai"] += 3;
-    scores["growth-expert"] += 2;
-  } else if (answers.paidMarketing === "somewhat") {
-    scores["growth-ai"] += 2;
-    scores.starter += 1;
-  } else {
-    scores.starter += 3;
-  }
-
-  if (answers.helpStyle === "diy") {
-    scores.starter += 3;
-    scores["growth-ai"] += 1;
-  } else if (answers.helpStyle === "ai") {
-    scores["growth-ai"] += 4;
-    scores["growth-expert"] += 1;
-  } else {
-    scores["growth-expert"] += 4;
-    scores.enterprise += 1;
-  }
-
-  if (answers.priority === "simple") {
-    scores.starter += 4;
-  } else if (answers.priority === "automation") {
-    scores["growth-ai"] += 4;
-  } else if (answers.priority === "guidance") {
-    scores["growth-expert"] += 4;
-  } else {
-    scores.enterprise += 4;
-  }
-
-  const ranked = (
-    Object.entries(scores) as [PlanFitPlanId, number][]
-  ).sort((a, b) => b[1] - a[1]);
-
-  const planId = ranked[0]?.[0] ?? "starter";
-  return {
-    planId,
-    reason: PLAN_REASONS[planId],
-  };
-}
 
 export function createEmptyPlanFitAnswers(): Partial<PlanFitAnswers> {
   return {};
@@ -215,6 +143,15 @@ export function isPlanFitComplete(
     answers.paidMarketing != null &&
     answers.helpStyle != null &&
     answers.priority != null
+  );
+}
+
+export function isPlanFitPlanId(value: string): value is PlanFitPlanId {
+  return (
+    value === "starter" ||
+    value === "growth-ai" ||
+    value === "growth-expert" ||
+    value === "enterprise"
   );
 }
 

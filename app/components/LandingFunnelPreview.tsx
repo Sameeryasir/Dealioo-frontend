@@ -5,11 +5,13 @@ import { useFunnelTemplatePagesFromStorage } from "@/app/components/crm-template
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
+import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { buildFunnelPublicPath } from "@/app/lib/funnel-public-path";
 
 export function LandingFunnelPreview() {
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
+  useFunnelStepGuard(funnelId, "landing");
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 

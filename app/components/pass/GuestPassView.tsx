@@ -64,12 +64,12 @@ export function GuestPassView(props: GuestPassViewProps) {
   const showQr = canShowGuestPassQr(coupon);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#e8f2ff]/40 via-white to-[#e8f2ff]/25 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#e8f2ff] via-[#ecfdf5] to-[#fdf2f8] px-4 py-10">
       <div className="w-full max-w-md">
         {loading ? (
           <div className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-[#1877f2]/15">
-            <div className="bg-gradient-to-br from-[#12325f] via-[#15407a] to-[#1877f2] px-6 py-5 text-center">
-              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+            <div className="bg-[#1877f2] px-6 py-5 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/25">
                 <Loader2 className="size-5 animate-spin text-white" aria-hidden />
               </div>
             </div>
@@ -93,17 +93,17 @@ export function GuestPassView(props: GuestPassViewProps) {
         ) : null}
 
         {!loading && !loadFailed && showQr ? (
-          <article className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-[#1877f2]/10 ring-1 ring-[#1877f2]/15">
-            <header className="relative flex flex-col items-center overflow-hidden bg-gradient-to-br from-[#12325f] via-[#15407a] to-[#1877f2] px-6 py-6 text-center text-white">
+          <article className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-[#1877f2]/12 ring-1 ring-[#1877f2]/15">
+            <header className="relative flex flex-col items-center overflow-hidden bg-[#1877f2] px-6 py-6 text-center text-white">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,255,255,0.18)_0%,transparent_70%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,255,255,0.22)_0%,transparent_70%)]"
               />
-              <div className="relative mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+              <div className="relative mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/25">
                 <QrCode className="size-5" aria-hidden strokeWidth={2.25} />
               </div>
               <h1 className="relative text-xl font-bold tracking-tight">Your QR Code</h1>
-              <p className="relative mt-1 text-sm text-blue-100">
+              <p className="relative mt-1 text-sm text-white/90">
                 You&apos;re all set, ready to redeem
               </p>
             </header>
@@ -117,14 +117,14 @@ export function GuestPassView(props: GuestPassViewProps) {
 
               {coupon.campaignName ? (
                 <div className="mt-2 flex w-full justify-center px-2">
-                  <span className="max-w-full truncate rounded-full bg-[#1877f2]/10 px-3.5 py-1 text-sm font-medium text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                  <span className="max-w-full truncate rounded-full bg-[#fdf2f8] px-3.5 py-1 text-sm font-medium text-[#f472b6] ring-1 ring-[#f9a8d4]/80">
                     {coupon.campaignName}
                   </span>
                 </div>
               ) : null}
 
               <div className="mt-6 flex justify-center">
-                <div className="rounded-2xl bg-[#f4f8ff] p-4 ring-1 ring-[#1877f2]/15">
+                <div className="rounded-2xl bg-gradient-to-br from-[#e8f2ff] via-[#ecfdf5] to-[#fdf2f8] p-4 ring-1 ring-[#1877f2]/15">
                   <img
                     src={coupon.qr.qrDataUrl}
                     alt="Your redemption QR code"
@@ -134,13 +134,13 @@ export function GuestPassView(props: GuestPassViewProps) {
               </div>
 
               {coupon.paymentConfirmed ? (
-                <div className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-[#1877f2]/10 px-3.5 py-1.5 text-xs font-semibold text-[#1877f2] ring-1 ring-[#1877f2]/20">
+                <div className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-[#ecfdf5] px-3.5 py-1.5 text-xs font-semibold text-[#16a34a] ring-1 ring-[#86efac]/70">
                   <CheckCircle2 className="size-3.5" aria-hidden />
                   Payment confirmed
                 </div>
               ) : null}
 
-              <div className="mt-6 w-full rounded-xl border border-[#1877f2]/12 bg-[#e8f2ff]/60 px-4 py-3.5">
+              <div className="mt-6 w-full rounded-xl border border-[#1877f2]/12 bg-gradient-to-r from-[#e8f2ff]/80 via-[#ecfdf5]/50 to-[#fdf2f8]/80 px-4 py-3.5">
                 <div className="flex items-start justify-center gap-2.5 text-left">
                   <ScanLine
                     className="mt-0.5 size-4 shrink-0 text-[#1877f2]"
@@ -154,7 +154,7 @@ export function GuestPassView(props: GuestPassViewProps) {
               </div>
 
               {coupon.expiresAt ? (
-                <p className="mt-5 w-full text-center text-xs font-medium text-[#1877f2]/70">
+                <p className="mt-5 w-full text-center text-xs font-medium text-[#1877f2]/80">
                   Offer valid until {formatDateTimeShort(coupon.expiresAt)}
                 </p>
               ) : null}

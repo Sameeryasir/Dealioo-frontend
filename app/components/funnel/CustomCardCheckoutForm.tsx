@@ -108,6 +108,10 @@ export function CustomCardCheckoutForm({
         return;
       }
 
+      if (result.type !== "success") {
+        setFormError("Payment was not completed. Please try again.");
+        return;
+      }
 
       if (funnelPaymentId != null) {
         void trackFunnelEvent({

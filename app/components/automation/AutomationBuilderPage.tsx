@@ -27,6 +27,7 @@ import {
   updateAutomation,
 } from "@/app/services/automation/automation-api";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
+import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { useAutomationQuery } from "@/app/hooks/use-automation-query";
 import { BuilderShell } from "@/app/components/builder/BuilderShell";
 import {
@@ -434,6 +435,12 @@ export function AutomationBuilderPage({
         published: false,
       });
       syncAutomationQueryCache(queryClient, updated);
+      void queryClient.invalidateQueries({
+        queryKey: automationQueryKeys.executionsRoot(automationNumericId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: [...automationQueryKeys.all, "execution-logs"],
+      });
       setAutomation(mapAutomationToListItem(updated));
       setStatus("draft");
       setAutomationPublished(false);
