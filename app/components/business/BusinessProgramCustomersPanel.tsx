@@ -4,6 +4,10 @@ import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/O
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import {
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   BUSINESS_CUSTOMERS_PAGE_SIZE,
@@ -16,9 +20,11 @@ import { motion } from "framer-motion";
 import {
   AlertCircle,
   CalendarDays,
+  Footprints,
   Loader2,
   Mail,
   Phone,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -124,10 +130,10 @@ function JoiningTrendChart({ businessId }: { businessId: number }) {
                 barCategoryGap="22%"
               >
                 <defs>
+                  {/* Brand blue only — #1877f2 (opacity for depth, not other blue hexes) */}
                   <linearGradient id="programJoinBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4da3ff" stopOpacity={1} />
-                    <stop offset="55%" stopColor="#1877f2" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#0d5bb8" stopOpacity={0.92} />
+                    <stop offset="0%" stopColor="#1877f2" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#1877f2" stopOpacity={0.85} />
                   </linearGradient>
                   <linearGradient
                     id="programJoinBarMuted"
@@ -136,8 +142,8 @@ function JoiningTrendChart({ businessId }: { businessId: number }) {
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="0%" stopColor="#93c5fd" stopOpacity={0.85} />
-                    <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.55} />
+                    <stop offset="0%" stopColor="#1877f2" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#1877f2" stopOpacity={0.18} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -326,21 +332,47 @@ export function BusinessProgramCustomersPanel({
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/80">
-                    <th className="px-5 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Guest
+                  {/* Column accents: blue #1877f2 · green #34a853 · pink #f472b6 */}
+                  <tr className="border-b border-[#e8edf5] bg-gradient-to-r from-[#e8f2ff]/80 via-[#f4f8ff]/55 to-white">
+                    <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={UserRound}
+                        label="Guest"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Email
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={Mail}
+                        label="Email"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Phone
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={Phone}
+                        label="Phone"
+                        iconClassName="text-[#34a853]"
+                        labelClassName="text-[#34a853]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Visits
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={Footprints}
+                        label="Visits"
+                        iconClassName="text-[#f472b6]"
+                        labelClassName="text-[#f472b6]"
+                      />
                     </th>
-                    <th className="px-5 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Joining date
+                    <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={CalendarDays}
+                        label="Joining date"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
+                      />
                     </th>
                   </tr>
                 </thead>
@@ -354,7 +386,7 @@ export function BusinessProgramCustomersPanel({
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-sm font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] ring-2 ring-white">
+                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] ring-2 ring-white">
                             {customerInitial(customer)}
                           </span>
                           <div className="min-w-0">
@@ -368,19 +400,23 @@ export function BusinessProgramCustomersPanel({
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
+                        {/* Lucide Mail — icon only, no bg box */}
                         <p className="flex min-w-0 items-center gap-1.5 truncate text-sm text-slate-700">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f4f8ff] text-[#1877f2] ring-1 ring-[#e8edf5]">
-                            <Mail className="size-3.5" aria-hidden />
-                          </span>
+                          <Mail
+                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            aria-hidden
+                          />
                           <span className="truncate">{customer.email}</span>
                         </p>
                       </td>
                       <td className="px-4 py-3.5">
                         {customer.phone ? (
+                          // Lucide Phone — icon only, no bg box
                           <p className="flex min-w-0 items-center gap-1.5 truncate text-sm text-slate-700">
-                            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#ecfdf5] text-[#34a853] ring-1 ring-[#d1fae5]">
-                              <Phone className="size-3.5" aria-hidden />
-                            </span>
+                            <Phone
+                              className="size-3.5 shrink-0 text-[#34a853]"
+                              aria-hidden
+                            />
                             <span className="truncate">{customer.phone}</span>
                           </p>
                         ) : (
@@ -388,14 +424,16 @@ export function BusinessProgramCustomersPanel({
                         )}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="inline-flex min-w-[2.75rem] items-center justify-center rounded-full bg-gradient-to-r from-[#e8f2ff] to-[#f4f8ff] px-2.5 py-1 text-sm font-extrabold tabular-nums text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                        {/* Visit count — number only in #f472b6 (no pill background) */}
+                        <span className="text-sm font-extrabold tabular-nums text-[#f472b6]">
                           {customer.visitCount}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f8fafc] px-2.5 py-1 text-sm font-semibold text-slate-700 ring-1 ring-[#e8edf5]">
+                        {/* Lucide CalendarDays — icon + date, no pill bg */}
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
                           <CalendarDays
-                            className="size-3.5 text-[#1877f2]"
+                            className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           {formatJoiningDate(customer.joiningDate)}

@@ -9,10 +9,7 @@ export type ActivityEventType =
   | "visited"
   | "redeemed_reward"
   | "prepaid_for_offer"
-  | "message_sent"
-  | "campaign_created"
-  | "campaign_updated"
-  | "campaign_deleted";
+  | "message_sent";
 
 export type ActivityEventFilter = "all" | ActivityEventType;
 

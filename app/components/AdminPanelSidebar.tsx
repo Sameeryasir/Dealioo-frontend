@@ -5,6 +5,7 @@ import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import type { BusinessMemberPermission } from "@/app/services/member/types";
 import {
@@ -16,6 +17,7 @@ import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
   Activity,
+  History,
   Home,
   LayoutTemplate,
   Library,
@@ -51,6 +53,7 @@ type NavItem = {
   brandIcon?: boolean;
   activeMatch: "exact" | "prefix";
   permission?: BusinessMemberPermission | "owner";
+  adminOnly?: boolean;
 };
 
 export default function AdminPanelSidebar() {
@@ -157,6 +160,15 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
+            ? `${restaurantHomeHref}/history`
+            : "/dashboard/history",
+          label: "History",
+          icon: History,
+          activeMatch: "prefix",
+          adminOnly: true,
+        },
+        {
+          href: businessId
             ? `${restaurantHomeHref}/scanning`
             : "/dashboard/scanning",
           label: "Scanning",
@@ -227,6 +239,7 @@ export default function AdminPanelSidebar() {
       ];
 
       return items.filter((item) => {
+        if (item.adminOnly && !isAdminOrSuperAdminUser()) return false;
         if (!item.permission) return true;
         if (item.permission === "owner") return isOwnerLike;
         if (item.permission === "meta_ads") {
