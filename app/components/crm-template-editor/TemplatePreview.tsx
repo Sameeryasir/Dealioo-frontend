@@ -242,7 +242,15 @@ export function TemplatePreview({
       }
       setSignupSubmitting(true);
       try {
-        const customer = await createCustomer({ name, email, phone });
+        const customer = await createCustomer({
+          name,
+          email,
+          phone,
+          ...(resolvedCheckoutBusinessId != null &&
+          resolvedCheckoutBusinessId >= 1
+            ? { businessId: resolvedCheckoutBusinessId }
+            : {}),
+        });
 
         if (trackingFunnelId != null && trackingFunnelId >= 1) {
           try {

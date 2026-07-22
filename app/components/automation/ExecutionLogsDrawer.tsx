@@ -167,7 +167,13 @@ export function ExecutionLogsDrawer({
             exit={{ x: "100%" }}
             transition={{ duration: 0.3, ease: automationEase }}
           >
-            <header className="w-full shrink-0 bg-gradient-to-b from-[#0a0a0a] to-[#111111] px-6 pb-5 pt-5 text-white shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
+            <header
+              className="w-full shrink-0 px-6 pb-5 pt-5 text-white shadow-[0_4px_24px_rgba(7,17,31,0.35)]"
+              style={{
+                background:
+                  "linear-gradient(180deg, #07111f 0%, #0a1628 52%, #0f1f3d 100%)",
+              }}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

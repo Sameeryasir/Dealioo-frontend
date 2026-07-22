@@ -194,6 +194,7 @@ export function ScannerCreateGuestPanel({
         email,
         phone,
         rejectDuplicateEmail: true,
+        businessId,
       });
       setCreatedGuestId(result.id);
       setCreatedGuestName(name.trim());
