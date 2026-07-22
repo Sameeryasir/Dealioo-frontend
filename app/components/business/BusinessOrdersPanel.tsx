@@ -196,13 +196,7 @@ function orderStatusDotClass(status: DisplayPaymentStatus): string {
   return "bg-[#f97316]";
 }
 
-function eventRevenueAmount(event: BusinessFunnelEvent): number {
-  const walkInAmount =
-    event.businessAmount ?? event.restaurantAmount ?? null;
-  if (walkInAmount != null && walkInAmount > 0) {
-    return walkInAmount;
-  }
-
+function eventCampaignAmount(event: BusinessFunnelEvent): number {
   if (event.onlineAmountCents != null && event.onlineAmountCents > 0) {
     return event.onlineAmountCents / 100;
   }
@@ -211,6 +205,15 @@ function eventRevenueAmount(event: BusinessFunnelEvent): number {
     return event.amount / 100;
   }
 
+  return 0;
+}
+
+function eventNetAmount(event: BusinessFunnelEvent): number {
+  const visitSubtotal =
+    event.businessAmount ?? event.restaurantAmount ?? null;
+  if (visitSubtotal != null && visitSubtotal > 0) {
+    return visitSubtotal;
+  }
   return 0;
 }
 
@@ -228,7 +231,7 @@ function formatOrderAmountText(
   status: DisplayPaymentStatus,
 ): { text: string; muted: boolean } {
   const currency = event.currency ?? "USD";
-  const amount = eventRevenueAmount(event);
+  const amount = eventCampaignAmount(event);
 
   if (status === "paid") {
     return {
@@ -249,12 +252,33 @@ function formatOrderAmountText(
   return { text: "—", muted: true };
 }
 
+function formatNetAmountText(event: BusinessFunnelEvent): string {
+  const currency = event.currency ?? "USD";
+  const net = eventNetAmount(event);
+  return net > 0 ? formatDollars(net, currency) : "—";
+}
+
 function OrderAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
   const status = resolveDisplayStatus(event);
   const { text, muted } = formatOrderAmountText(event, status);
 
   return (
     <span className={muted ? "text-slate-400" : "font-semibold text-[#07111f]"}>
+      {text}
+    </span>
+  );
+}
+
+function OrderNetAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
+  const text = formatNetAmountText(event);
+  return (
+    <span
+      className={
+        text === "—"
+          ? "text-slate-400"
+          : "font-semibold tabular-nums text-[#07111f]"
+      }
+    >
       {text}
     </span>
   );
@@ -345,15 +369,20 @@ function OrderEventMobileCard({
 
       <div className="mt-3 flex items-center justify-between gap-2">
         <span
-          className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[70%] gap-1 text-[0.72rem]`}
+          className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[55%] gap-1 text-[0.72rem]`}
           title={event.campaignName}
           onClick={(e) => e.stopPropagation()}
         >
           <span className="truncate">{event.campaignName}</span>
         </span>
-        <span className="shrink-0 text-[0.82rem] font-bold text-[#07111f]">
-          <OrderAmountDisplay event={event} />
-        </span>
+        <div className="shrink-0 text-right">
+          <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+            <OrderAmountDisplay event={event} />
+          </p>
+          <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-500">
+            Net <OrderNetAmountDisplay event={event} />
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -448,9 +477,11 @@ function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
     Boolean(event.customerEmail?.trim());
   const hasPaid = status === "paid";
   const paymentPending = status === "pending";
-  const hasQrRedeemed = Boolean(
-    event.businessVisitedAt ?? event.restaurantVisitedAt,
-  );
+  const isScannerCheckout =
+    (event.paymentSource ?? "").toUpperCase() === "SCANNER";
+  const hasQrRedeemed =
+    !isScannerCheckout &&
+    Boolean(event.businessVisitedAt ?? event.restaurantVisitedAt);
 
   const signupState: JourneyStepState = hasSignedUp
     ? "complete"
@@ -468,19 +499,24 @@ function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
       ? "current"
       : "pending";
 
-  return [
+  const steps: JourneyStep[] = [
     { id: "signup", label: "Signed Up", state: signupState },
     {
       id: "payment",
       label: hasPaid ? "Paid" : "Payment Pending",
       state: paymentState,
     },
-    {
+  ];
+
+  if (!isScannerCheckout) {
+    steps.push({
       id: "qr",
       label: "QR Redeemed",
       state: qrState,
-    },
-  ];
+    });
+  }
+
+  return steps;
 }
 
 function CopyValueButton({ value }: { value: string }) {
@@ -706,6 +742,7 @@ function OrderEventDetailDialog({
     event.createdAt;
   const campaignLabel = formatTitleCase(event.campaignName);
   const amountDisplay = formatOrderAmountText(event, status);
+  const netAmountText = formatNetAmountText(event);
 
   return (
     <div
@@ -772,6 +809,11 @@ function OrderEventDetailDialog({
             <OrderDetailRow icon={CircleDollarSign} label="Amount">
               <span className={amountDisplay.muted ? "text-slate-400" : "text-black"}>
                 {amountDisplay.text}
+              </span>
+            </OrderDetailRow>
+            <OrderDetailRow icon={CircleDollarSign} label="Net amount">
+              <span className={netAmountText === "—" ? "text-slate-400" : "text-black"}>
+                {netAmountText}
               </span>
             </OrderDetailRow>
 
@@ -1148,6 +1190,14 @@ export function BusinessOrdersPanel({
                           </th>
                           <th className={thClass}>
                             <TableColumnHeader
+                              icon={CircleDollarSign}
+                              label="Net amount"
+                              iconClassName={TABLE_HEAD_ICON_CLASS}
+                              labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            />
+                          </th>
+                          <th className={thClass}>
+                            <TableColumnHeader
                               icon={Calendar}
                               label="Payment Date"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
@@ -1220,6 +1270,11 @@ export function BusinessOrdersPanel({
                                 className={`${tdClass} whitespace-nowrap tabular-nums`}
                               >
                                 <OrderAmountDisplay event={event} />
+                              </td>
+                              <td
+                                className={`${tdClass} whitespace-nowrap tabular-nums`}
+                              >
+                                <OrderNetAmountDisplay event={event} />
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap text-slate-600`}

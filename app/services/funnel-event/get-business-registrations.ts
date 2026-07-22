@@ -45,6 +45,8 @@ export type BusinessFunnelEvent = {
   businessVisitedAt: string | null;
   paidAt: string | null;
   funnelPaymentId: number | null;
+  orderId?: number | null;
+  paymentSource?: string | null;
   /** @deprecated Use businessAmount */
   restaurantAmount?: number | null;
   /** @deprecated Use businessVisitedAt */
