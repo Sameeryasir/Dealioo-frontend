@@ -448,8 +448,9 @@ function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
     Boolean(event.customerEmail?.trim());
   const hasPaid = status === "paid";
   const paymentPending = status === "pending";
-  // QR must be payment/pass scoped — never infer from campaign-level visit.
-  const hasQrRedeemed = false;
+  const hasQrRedeemed = Boolean(
+    event.businessVisitedAt ?? event.restaurantVisitedAt,
+  );
 
   const signupState: JourneyStepState = hasSignedUp
     ? "complete"
@@ -674,6 +675,8 @@ function OrderEventDetailDialog({
       customerId != null &&
       campaignId != null &&
       campaignId > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   if (!open || !event) return null;
@@ -684,12 +687,23 @@ function OrderEventDetailDialog({
   const email = getCustomerEmail(event);
   const phone = getCustomerPhone(event);
   const fallbackSteps = buildCustomerJourney(event);
-  const journeySteps =
+  const apiSteps =
     journeyQuery.data != null
       ? mapApiJourneySteps(journeyQuery.data.steps)
-      : fallbackSteps;
+      : null;
+  const hasQrRedeemed = Boolean(
+    event.businessVisitedAt ?? event.restaurantVisitedAt,
+  );
+  const journeySteps = (apiSteps ?? fallbackSteps).map((step) =>
+    step.id === "qr" && hasQrRedeemed
+      ? { ...step, state: "complete" as const }
+      : step,
+  );
   const journeyUpdatedAt =
-    journeyQuery.data?.lastUpdatedAt ?? event.createdAt;
+    journeyQuery.data?.lastUpdatedAt ??
+    event.businessVisitedAt ??
+    event.restaurantVisitedAt ??
+    event.createdAt;
   const campaignLabel = formatTitleCase(event.campaignName);
   const amountDisplay = formatOrderAmountText(event, status);
 
@@ -892,7 +906,10 @@ export function BusinessOrdersPanel({
         search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
-    placeholderData: (previousData) => previousData,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const events = eventsQuery.data?.data ?? [];
@@ -979,7 +996,10 @@ export function BusinessOrdersPanel({
                       key={filter.id}
                       label={filter.label}
                       active={statusFilter === filter.id}
-                      onClick={() => setStatusFilter(filter.id)}
+                      onClick={() => {
+                        setPage(1);
+                        setStatusFilter(filter.id);
+                      }}
                     />
                   ))}
                 </div>

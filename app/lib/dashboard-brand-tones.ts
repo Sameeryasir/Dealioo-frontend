@@ -15,12 +15,18 @@ export const DASHBOARD_EVENT_BADGE = {
   visited:
     "inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[0.72rem] font-bold text-[#166534] ring-1 ring-[#bbf7d0]/80",
   visitedDot: "size-2 rounded-full bg-[#34a853]",
+  scanned:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#ecfeff] px-2.5 py-1 text-[0.72rem] font-bold text-[#0e7490] ring-1 ring-[#a5f3fc]/80",
+  scannedDot: "size-2 rounded-full bg-[#06b6d4]",
   redeemed:
     "inline-flex items-center gap-1.5 rounded-full bg-[#fff7ed] px-2.5 py-1 text-[0.72rem] font-bold text-[#c2410c] ring-1 ring-[#fed7aa]/80",
   redeemedDot: "size-2 rounded-full bg-[#f77737]",
   prepaid:
     "inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]/80",
   prepaidDot: "size-2 rounded-full bg-[#1877f2]",
+  inStore:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#f0fdfa] px-2.5 py-1 text-[0.72rem] font-bold text-[#0f766e] ring-1 ring-[#99f6e4]/80",
+  inStoreDot: "size-2 rounded-full bg-[#14b8a6]",
   messageSent:
     "inline-flex items-center gap-1.5 rounded-full bg-[#fdf2f8] px-2.5 py-1 text-[0.72rem] font-bold text-[#be185d] ring-1 ring-[#fbcfe8]/80",
   messageSentDot: "size-2 rounded-full bg-[#e1306c]",

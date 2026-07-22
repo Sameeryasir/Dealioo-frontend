@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -12,7 +12,6 @@ import {
   Layers,
   MapPin,
   MessageSquare,
-  Search,
   TrendingUp,
   UserRound,
 } from "lucide-react";
@@ -106,14 +105,18 @@ function guestInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
-function eventTypeLabel(type: ActivityEventType): string {
+function eventTypeLabel(
+  type: ActivityEventType,
+  paymentChannel?: "online" | "in_store" | null,
+  visitChannel?: "scanned" | null,
+): string {
   switch (type) {
     case "visited":
-      return "Visited";
+      return visitChannel === "scanned" ? "Scanned" : "Visited";
     case "redeemed_reward":
       return "Redeemed";
     case "prepaid_for_offer":
-      return "Prepaid";
+      return paymentChannel === "in_store" ? "In-person" : "Prepaid";
     case "message_sent":
       return "Text sent";
     default:
@@ -121,9 +124,25 @@ function eventTypeLabel(type: ActivityEventType): string {
   }
 }
 
-function EventTypeBadge({ type }: { type: ActivityEventType }) {
+function EventTypeBadge({
+  type,
+  paymentChannel,
+  visitChannel,
+}: {
+  type: ActivityEventType;
+  paymentChannel?: "online" | "in_store" | null;
+  visitChannel?: "scanned" | null;
+}) {
   switch (type) {
     case "visited":
+      if (visitChannel === "scanned") {
+        return (
+          <span className={DASHBOARD_EVENT_BADGE.scanned}>
+            <span className={DASHBOARD_EVENT_BADGE.scannedDot} aria-hidden />
+            Scanned
+          </span>
+        );
+      }
       return (
         <span className={DASHBOARD_EVENT_BADGE.visited}>
           <span className={DASHBOARD_EVENT_BADGE.visitedDot} aria-hidden />
@@ -138,6 +157,14 @@ function EventTypeBadge({ type }: { type: ActivityEventType }) {
         </span>
       );
     case "prepaid_for_offer":
+      if (paymentChannel === "in_store") {
+        return (
+          <span className={DASHBOARD_EVENT_BADGE.inStore}>
+            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
+            In-person
+          </span>
+        );
+      }
       return (
         <span className={DASHBOARD_EVENT_BADGE.prepaid}>
           <span className={DASHBOARD_EVENT_BADGE.prepaidDot} aria-hidden />
@@ -154,7 +181,7 @@ function EventTypeBadge({ type }: { type: ActivityEventType }) {
     default:
       return (
         <span className={DASHBOARD_EVENT_BADGE.default}>
-          {eventTypeLabel(type)}
+          {eventTypeLabel(type, paymentChannel, visitChannel)}
         </span>
       );
   }
@@ -342,7 +369,11 @@ function ActivityEventMobileCard({
             </p>
           </div>
         </div>
-        <EventTypeBadge type={event.eventType} />
+        <EventTypeBadge
+          type={event.eventType}
+          paymentChannel={event.paymentChannel}
+          visitChannel={event.visitChannel}
+        />
       </div>
       <p className="m-0 mt-3 text-[0.8rem] font-medium leading-snug text-slate-600">
         {activityDescription(event)}
@@ -361,8 +392,6 @@ export function BusinessActivityPanel({
   const [page, setPage] = useState(1);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
   const [monthFilter, setMonthFilter] = useState(ACTIVITY_ALL_MONTHS_ID);
-  const [searchQuery, setSearchQuery] = useState("");
-  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
@@ -378,9 +407,7 @@ export function BusinessActivityPanel({
   );
 
   const hasActiveFilters =
-    eventFilter !== "all" ||
-    monthFilter !== ACTIVITY_ALL_MONTHS_ID ||
-    deferredSearchQuery.trim().length > 0;
+    eventFilter !== "all" || monthFilter !== ACTIVITY_ALL_MONTHS_ID;
 
   const eventsQuery = useQuery({
     queryKey: [
@@ -389,7 +416,6 @@ export function BusinessActivityPanel({
       page,
       eventFilter,
       monthFilter,
-      deferredSearchQuery,
       range.from,
       range.to,
     ],
@@ -400,7 +426,6 @@ export function BusinessActivityPanel({
         eventType: eventFilter,
         from: range.from,
         to: range.to,
-        search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
     placeholderData: (previousData) => previousData,
@@ -439,7 +464,7 @@ export function BusinessActivityPanel({
 
   useEffect(() => {
     setPage(1);
-  }, [eventFilter, monthFilter, deferredSearchQuery]);
+  }, [eventFilter, monthFilter]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -460,22 +485,18 @@ export function BusinessActivityPanel({
   const applyAllFilter = () => {
     setEventFilter("all");
     setMonthFilter(ACTIVITY_ALL_MONTHS_ID);
-    setSearchQuery("");
   };
 
   const applyVisitedFilter = () => {
     setEventFilter("visited");
-    setSearchQuery("");
   };
 
   const applyRedeemedFilter = () => {
     setEventFilter("redeemed_reward");
-    setSearchQuery("");
   };
 
   const applyPrepaidFilter = () => {
     setEventFilter("prepaid_for_offer");
-    setSearchQuery("");
   };
 
   return (
@@ -491,10 +512,6 @@ export function BusinessActivityPanel({
           <h1 className="m-0 text-[clamp(1.15rem,2vw,1.45rem)] font-extrabold tracking-tight text-[#07111f]">
             Activity Log
           </h1>
-          <p className="m-0 mt-1 max-w-[42ch] text-[0.8rem] font-medium leading-snug text-slate-500">
-            Track visits, redemptions, prepaid offers and messages from your
-            guests.
-          </p>
         </header>
 
         {!loading && !error && summary && (summary.totalEvents ?? 0) > 0 ? (
@@ -588,38 +605,6 @@ export function BusinessActivityPanel({
                   compact
                 />
               </div>
-
-              <div className="relative min-w-0">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
-                  aria-hidden
-                />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search guest or description..."
-                  className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] py-2 pr-4 pl-9 text-[0.82rem] font-medium text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-[#07111f]">
-                    Activity
-                  </h2>
-                  <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                    {hasActiveFilters
-                      ? `${totalEvents} matching events`
-                      : "Visits, redemptions and guest actions"}
-                  </p>
-                </div>
-                <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                  {hasActiveFilters
-                    ? `${totalEvents} shown`
-                    : `${allEventsTotal} total`}
-                </span>
-              </div>
             </div>
 
             <div className="rd-premium-panel__body">
@@ -639,14 +624,13 @@ export function BusinessActivityPanel({
                     No matching events
                   </p>
                   <p className="m-0 mt-1 max-w-sm text-[0.8rem] font-medium text-slate-500">
-                    Try a different filter or search term.
+                    Try a different filter or month.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
                       setEventFilter("all");
                       setMonthFilter(ACTIVITY_ALL_MONTHS_ID);
-                      setSearchQuery("");
                     }}
                     className="mt-4 cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
                   >
@@ -657,7 +641,7 @@ export function BusinessActivityPanel({
 
               {showTable ? (
                 <motion.div
-                  key={`activity-page-${page}-${eventFilter}-${monthFilter}-${deferredSearchQuery}`}
+                  key={`activity-page-${page}-${eventFilter}-${monthFilter}`}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: standardEase }}
@@ -733,7 +717,11 @@ export function BusinessActivityPanel({
                                 </span>
                               </td>
                               <td className={`${tdClass} whitespace-nowrap`}>
-                                <EventTypeBadge type={event.eventType} />
+                                <EventTypeBadge
+                                  type={event.eventType}
+                                  paymentChannel={event.paymentChannel}
+                                  visitChannel={event.visitChannel}
+                                />
                               </td>
                               <td className={tdClass}>
                                 <div className="flex min-w-0 items-center gap-2.5">

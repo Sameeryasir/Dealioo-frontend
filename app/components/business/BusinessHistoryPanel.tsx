@@ -108,6 +108,8 @@ function eventTypeLabel(type: BusinessHistoryEventType): string {
       return "Automation updated";
     case "automation_activated":
       return "Automation activated";
+    case "automation_deactivated":
+      return "Automation deactivated";
     case "automation_deleted":
       return "Automation deleted";
     case "funnel_updated":
@@ -150,6 +152,7 @@ function EventTypeBadge({ type }: { type: BusinessHistoryEventType }) {
       );
     case "campaign_deleted":
     case "business_deleted":
+    case "automation_deactivated":
     case "automation_deleted":
     case "funnel_deleted":
       return (

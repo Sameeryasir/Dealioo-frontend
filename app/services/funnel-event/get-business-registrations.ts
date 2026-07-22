@@ -100,6 +100,7 @@ export async function getBusinessFunnelEvents(
     `${getApiBaseUrl()}/funnel-event/business/${encodeURIComponent(String(restaurantId))}/events?${q.toString()}`,
     {
       method: "GET",
+      cache: "no-store",
       headers: { Accept: "application/json" },
     },
   );

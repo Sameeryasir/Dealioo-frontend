@@ -25,22 +25,24 @@ type ScanCustomerConfirmDialogProps = {
 };
 
 function canEnableRedeem(preview: ScanPreviewSuccess): boolean {
+  const hasSelectableReward =
+    preview.availableRewards?.some((reward) => reward.canSelect) === true;
+
+  if (hasSelectableReward) {
+    return true;
+  }
+
   const activeAndValid =
     preview.couponStatus === "ACTIVE" && !preview.couponExpired;
 
   if (!activeAndValid) return false;
 
   if (preview.paymentStatus === "PAID") {
-    return (
-      preview.canRedeem ||
-      preview.availableRewards?.some((reward) => reward.canSelect) === true
-    );
+    return preview.canRedeem;
   }
 
   if (preview.requiresWalkInPayment) {
-    return (
-      preview.availableRewards?.some((reward) => reward.canSelect) === true
-    );
+    return false;
   }
 
   return false;

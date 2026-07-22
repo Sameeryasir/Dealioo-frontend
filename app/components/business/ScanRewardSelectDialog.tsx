@@ -1,7 +1,7 @@
 "use client";
 
 import { Info } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RedeemableReward } from "@/app/services/redemption/scan-redemption";
 
 type ScanRewardSelectDialogProps = {
@@ -35,8 +35,23 @@ export function ScanRewardSelectDialog({
     setSelectedIds(firstSelectable ? [firstSelectable.couponId] : []);
   }, [rewards]);
 
+  const selectedPaymentLabel = useMemo(() => {
+    const selected = rewards.find((reward) =>
+      selectedIds.includes(reward.couponId),
+    );
+    return selected?.paymentLabel ?? null;
+  }, [rewards, selectedIds]);
+
   const toggleReward = (reward: RedeemableReward) => {
     if (!reward.canSelect || confirming) return;
+
+    if (
+      selectedPaymentLabel &&
+      reward.paymentLabel !== selectedPaymentLabel &&
+      !selectedIds.includes(reward.couponId)
+    ) {
+      return;
+    }
 
     setSelectedIds((current) =>
       current.includes(reward.couponId)
@@ -69,7 +84,7 @@ export function ScanRewardSelectDialog({
 
         <p className="mt-3 inline-flex items-center gap-2 text-sm text-zinc-600">
           <Info className="size-4 shrink-0" aria-hidden />
-          Click a reward again to deselect it.
+          Paid and unpaid offers cannot be redeemed together.
         </p>
 
         <ul className="mt-5 space-y-3">
@@ -80,7 +95,11 @@ export function ScanRewardSelectDialog({
           ) : (
             rewards.map((reward) => {
               const checked = selectedIds.includes(reward.couponId);
-              const disabled = !reward.canSelect;
+              const typeBlocked =
+                selectedPaymentLabel != null &&
+                reward.paymentLabel !== selectedPaymentLabel &&
+                !checked;
+              const disabled = !reward.canSelect || typeBlocked;
 
               return (
                 <li key={reward.couponId}>

@@ -14,6 +14,7 @@ export type BusinessHistoryEventType =
   | "business_deleted"
   | "automation_updated"
   | "automation_activated"
+  | "automation_deactivated"
   | "automation_deleted"
   | "funnel_updated"
   | "funnel_deleted";

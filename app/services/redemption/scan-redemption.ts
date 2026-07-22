@@ -18,6 +18,7 @@ export type RedeemableReward = {
   couponId: number;
   label: string;
   paymentLabel: "PREPAID" | "UNPAID";
+  campaignPrice?: number | null;
   isScannedCoupon: boolean;
   canSelect: boolean;
 };
@@ -92,6 +93,7 @@ async function postScanPayload(
   couponIds?: number[],
   orderSubtotal?: number,
   idempotencyKey?: string,
+  channel: "qr_scan" | "staff_lookup" = "qr_scan",
 ): Promise<Response> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -116,6 +118,7 @@ async function postScanPayload(
         couponIds: couponIds?.length ? couponIds : undefined,
         orderSubtotal,
         idempotencyKey,
+        channel: pathSuffix === "" ? channel : undefined,
         deviceInfo:
           typeof navigator !== "undefined" ? navigator.userAgent : undefined,
       }),
@@ -144,6 +147,7 @@ export async function scanRedemptionQr(
   couponIds?: number[],
   orderSubtotal?: number,
   idempotencyKey: string = createRedemptionIdempotencyKey(),
+  channel: "qr_scan" | "staff_lookup" = "qr_scan",
 ): Promise<ScanRedemptionResponse> {
   const res = await postScanPayload(
     restaurantId,
@@ -152,6 +156,7 @@ export async function scanRedemptionQr(
     couponIds,
     orderSubtotal,
     idempotencyKey,
+    channel,
   );
 
   if (!res.ok) {
@@ -196,10 +201,14 @@ export async function getRedemptionStats(
 
 export type GuestActiveDeal = {
   couponId: number;
+  funnelId?: number | null;
+  campaignId?: number | null;
   campaignName: string;
   offerName: string;
   paymentLabel: "PREPAID" | "UNPAID";
+  paymentBadge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
   paymentStatus: string;
+  campaignPrice?: number | null;
   expiresAt: string | null;
   canSelect?: boolean;
   qrToken?: string;

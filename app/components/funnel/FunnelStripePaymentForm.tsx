@@ -52,8 +52,8 @@ export function FunnelStripePaymentForm({
   const [creating, setCreating] = useState(false);
   const [intentError, setIntentError] = useState<string | null>(null);
 
-
   const requestGenerationRef = useRef(0);
+  const createInFlightRef = useRef(false);
 
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   const configError = publishableKey
@@ -61,10 +61,6 @@ export function FunnelStripePaymentForm({
     : "Payments are not configured yet. Please add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.";
 
   const darkInputs = formStyles.isDark;
-
-
-
-
 
   const stripePromise = useMemo((): Promise<Stripe | null> | null => {
     if (!publishableKey || !stripeAccountId?.trim()) return null;
@@ -82,8 +78,10 @@ export function FunnelStripePaymentForm({
   const startPaymentSession = useCallback(
     async (opts?: { manual?: boolean }) => {
       if (!publishableKey) return;
+      if (createInFlightRef.current) return;
 
       const generation = ++requestGenerationRef.current;
+      createInFlightRef.current = true;
       setIntentError(null);
       setCreating(true);
 
@@ -103,7 +101,6 @@ export function FunnelStripePaymentForm({
           },
           getSetupAccessToken(),
         );
-
 
         if (generation !== requestGenerationRef.current) return;
 
@@ -144,8 +141,6 @@ export function FunnelStripePaymentForm({
           );
         }
 
-
-
         setStripeAccountId(accountId);
         setClientSecret(secret);
       } catch (e) {
@@ -164,6 +159,7 @@ export function FunnelStripePaymentForm({
         if (generation === requestGenerationRef.current) {
           setCreating(false);
         }
+        createInFlightRef.current = false;
       }
     },
     [
@@ -179,7 +175,6 @@ export function FunnelStripePaymentForm({
     ],
   );
 
-
   useEffect(() => {
     requestGenerationRef.current += 1;
     setClientSecret(null);
@@ -187,13 +182,13 @@ export function FunnelStripePaymentForm({
     setIntentError(null);
     setPaymentId(context.funnelPaymentId ?? null);
     setCreating(false);
+    createInFlightRef.current = false;
 
     if (!publishableKey) return;
 
     void startPaymentSession();
 
     return () => {
-
       requestGenerationRef.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional identity deps
@@ -224,7 +219,10 @@ export function FunnelStripePaymentForm({
         ) : null}
         <button
           type="button"
-          onClick={() => void startPaymentSession({ manual: true })}
+          onClick={() => {
+            if (createInFlightRef.current || creating) return;
+            void startPaymentSession({ manual: true });
+          }}
           disabled={creating}
           className="w-full cursor-pointer rounded-lg bg-zinc-900 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -233,8 +231,10 @@ export function FunnelStripePaymentForm({
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Preparing checkout…
             </span>
+          ) : intentError ? (
+            "Try again"
           ) : (
-            intentError ? "Try again" : "Prepare payment"
+            "Prepare payment"
           )}
         </button>
       </div>
@@ -255,7 +255,6 @@ export function FunnelStripePaymentForm({
                 page.checkoutTheme.borderRadius.replace("px", "") || "8",
             },
           },
-
           savedPaymentMethod: {
             enableSave: "never",
             enableRedisplay: "never",

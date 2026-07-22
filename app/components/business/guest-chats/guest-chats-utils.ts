@@ -175,6 +175,37 @@ export function messagePreview(message: ConversationMessage): string {
   return sanitizeChatMessageBody(message.body);
 }
 
+/** Pull "View my pass: url" out of chat text so we can show a button instead (no duplicate line). */
+export function extractPassCtaFromMessageBody(body: string): {
+  text: string;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+} {
+  const lines = body.replace(/\r\n/g, "\n").split("\n");
+  let ctaLabel: string | null = null;
+  let ctaUrl: string | null = null;
+  const kept: string[] = [];
+
+  for (const line of lines) {
+    const match = line
+      .trim()
+      .match(/^(View my pass|View your pass online|Open link)\s*:\s*(https?:\/\/\S+)\s*$/i);
+    if (match && !ctaUrl) {
+      ctaLabel = match[1] ?? "View my pass";
+      ctaUrl = match[2] ?? null;
+      continue;
+    }
+    kept.push(line);
+  }
+
+  const text = kept
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return { text, ctaLabel, ctaUrl };
+}
+
 export function participantLabel(
   participant: ConversationMessageParticipant | null,
   fallback: string,

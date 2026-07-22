@@ -6,6 +6,7 @@ import { GuestChatAutomationBadge } from "./GuestChatAutomationBadge";
 import {
   isGuestInboundMessage,
   messagePreview,
+  extractPassCtaFromMessageBody,
   type GuestChatBubbleStackPosition,
 } from "./guest-chats-utils";
 import { LinkifiedText } from "./LinkifiedText";
@@ -88,7 +89,11 @@ export function GuestChatMessageBubble({
 }) {
   const isError = message.kind === "error";
   const isGuestMessage = !isError && isGuestInboundMessage(message);
-  const body = messagePreview(message);
+  const rawBody = messagePreview(message);
+  const passCta = !isGuestMessage
+    ? extractPassCtaFromMessageBody(rawBody)
+    : { text: rawBody, ctaLabel: null, ctaUrl: null };
+  const body = passCta.text || rawBody;
   const sourceLabel =
     !isError && !isGuestMessage ? automationSourceLabel(message) : null;
   const isStackEnd = stackPosition === "single" || stackPosition === "last";
@@ -142,15 +147,27 @@ export function GuestChatMessageBubble({
               <GuestChatAutomationBadge label={sourceLabel} compact />
             </div>
           ) : null}
-          <LinkifiedText
-            text={body}
-            className={textClass}
-            linkClassName={
-              isGuestMessage
-                ? "font-medium text-blue-50 underline decoration-blue-200/80 underline-offset-2"
-                : "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
-            }
-          />
+          {body ? (
+            <LinkifiedText
+              text={body}
+              className={textClass}
+              linkClassName={
+                isGuestMessage
+                  ? "font-medium text-blue-50 underline decoration-blue-200/80 underline-offset-2"
+                  : "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
+              }
+            />
+          ) : null}
+          {passCta.ctaUrl ? (
+            <a
+              href={passCta.ctaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-2.5 inline-flex items-center justify-center rounded-lg bg-[#1877f2] px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-[#166fe5] ${body ? "" : "mt-0"}`}
+            >
+              {passCta.ctaLabel || "View my pass"}
+            </a>
+          ) : null}
           <div
             className={`mt-1 flex ${isGuestMessage ? "justify-start" : "justify-end"}`}
           >

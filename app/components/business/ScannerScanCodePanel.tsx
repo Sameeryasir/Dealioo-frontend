@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScanCompleteOrderDialog } from "@/app/components/business/ScanCompleteOrderDialog";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
@@ -25,6 +26,7 @@ import {
   type ScanRedemptionSuccess,
 } from "@/app/services/redemption/scan-redemption";
 import { formatDateTimeShort } from "@/app/lib/datetime";
+import { standardEase } from "@/app/lib/motion";
 
 type ScanState = "idle" | "scanning" | "loading" | "preview" | "success" | "error";
 type DialogStep = "confirm" | "selectRewards" | "completeOrder" | "enterSubtotal";
@@ -172,84 +174,127 @@ function ScannerSuccessState({
 
 function ScannerIdleState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
-      <div className="relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] p-6 shadow-[0_12px_32px_rgba(24,119,242,0.08)] ring-1 ring-black/[0.02] sm:p-8">
-        <span
-          className="pointer-events-none absolute -top-10 -right-8 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
-          aria-hidden
-        />
-        <span
-          className="pointer-events-none absolute -bottom-12 -left-10 size-32 rounded-full bg-[#6366f1]/8 blur-2xl"
-          aria-hidden
-        />
-
-        <div className="relative flex flex-col items-center text-center">
-          <div className="relative mb-5 flex size-32 items-center justify-center">
-            <span
-              className="absolute inset-2 rounded-[1.5rem] border-2 border-dashed border-[#1877f2]/25"
-              aria-hidden
-            />
-            <span className="absolute left-3 top-3 size-5 border-l-2 border-t-2 border-[#1877f2]" aria-hidden />
-            <span className="absolute right-3 top-3 size-5 border-r-2 border-t-2 border-[#1877f2]" aria-hidden />
-            <span className="absolute bottom-3 left-3 size-5 border-b-2 border-l-2 border-[#1877f2]" aria-hidden />
-            <span className="absolute bottom-3 right-3 size-5 border-b-2 border-r-2 border-[#1877f2]" aria-hidden />
-            <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-white shadow-[0_12px_32px_rgba(24,119,242,0.14)]">
-              <ScanLine
-                className="size-9 text-[#1877f2]"
-                strokeWidth={1.75}
-                aria-hidden
-              />
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: standardEase }}
+        className="overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
+      >
+        <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
             </span>
+            <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
+              Camera standby
+            </p>
           </div>
-
-          <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
-            <Sparkles className="size-3" aria-hidden />
-            Ready to scan
+          <p className="m-0 hidden text-[0.7rem] font-medium text-white/50 sm:block">
+            Counter scan mode
           </p>
-          <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#07111f]">
-            Scan a guest pass
-          </h3>
-          <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
-            Use your device camera to read a customer QR code, confirm their
-            details, and redeem rewards at the counter.
-          </p>
-
-          <button
-            type="button"
-            onClick={onStart}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1877f2] px-6 py-3 text-[0.85rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-          >
-            <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
-            Start camera
-          </button>
         </div>
-      </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="px-5 py-5 sm:px-7 sm:py-6">
+          <div className="mx-auto flex max-w-sm flex-col items-center text-center">
+            <div className="relative mb-4 aspect-square w-full max-w-[11rem]">
+              <div className="absolute inset-0 overflow-hidden rounded-[1.25rem] border border-[#e2e8f0] bg-[#f8fafc]">
+                <motion.span
+                  aria-hidden
+                  className="absolute left-3.5 right-3.5 z-10 h-0.5 rounded-full bg-[#1877f2]"
+                  initial={{ top: "14%" }}
+                  animate={{ top: ["14%", "86%", "14%"] }}
+                  transition={{
+                    duration: 2.4,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                  }}
+                />
+                <span
+                  className="absolute left-0 top-0 size-6 border-l-[3px] border-t-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute right-0 top-0 size-6 border-r-[3px] border-t-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute bottom-0 left-0 size-6 border-b-[3px] border-l-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute bottom-0 right-0 size-6 border-b-[3px] border-r-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <div className="flex h-full items-center justify-center">
+                  <span className="flex size-14 items-center justify-center rounded-xl bg-[#0e182b] shadow-[0_8px_20px_rgba(14,24,43,0.2)]">
+                    <ScanLine
+                      className="size-7 text-white"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              <Sparkles className="size-3" aria-hidden />
+              Ready to scan
+            </p>
+            <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
+              Scan a guest pass
+            </h3>
+            <p className="m-0 mt-1 max-w-[18rem] text-[0.78rem] font-medium leading-relaxed text-slate-500">
+              Point the camera at the QR, confirm the guest, and redeem at the
+              counter.
+            </p>
+
+            <button
+              type="button"
+              onClick={onStart}
+              className="mt-4 inline-flex min-w-[11rem] items-center justify-center gap-2 rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5]"
+            >
+              <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
+              Start camera
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid gap-2.5 sm:grid-cols-3">
         {SCAN_STEPS.map((step, index) => {
           const Icon = step.icon;
           return (
-            <div
+            <motion.div
               key={step.title}
-              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.02]"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.35,
+                delay: 0.08 + index * 0.06,
+                ease: standardEase,
+              }}
+              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5"
             >
-              <div className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] text-[0.72rem] font-bold text-[#1877f2]">
+              <div className="flex items-start gap-2.5">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2] text-[0.7rem] font-bold text-white">
                   {index + 1}
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 pt-0.5">
                   <div className="flex items-center gap-1.5">
-                    <Icon className="size-3.5 text-[#1877f2]" aria-hidden />
-                    <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+                    <Icon className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
+                    <p className="m-0 text-[0.8rem] font-bold text-[#0e182b]">
                       {step.title}
                     </p>
                   </div>
-                  <p className="m-0 mt-1 text-[0.72rem] leading-relaxed text-slate-500">
+                  <p className="m-0 mt-1 text-[0.7rem] leading-snug text-slate-500">
                     {step.description}
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -361,6 +406,9 @@ export function ScannerScanCodePanel({
       try {
         const result = await previewRedemptionQr(businessId, rawToken);
         if (result.success) {
+          if (result.qrToken?.trim()) {
+            pendingTokenRef.current = result.qrToken.trim();
+          }
           setPreviewResult(result);
           setScanState("preview");
         } else {
@@ -402,6 +450,7 @@ export function ScannerScanCodePanel({
           couponIds,
           orderSubtotal,
           idempotencyKeyRef.current,
+          "qr_scan",
         );
         if (result.success) {
           idempotencyKeyRef.current = "";
@@ -555,9 +604,11 @@ export function ScannerScanCodePanel({
           selectedRewards={(previewResult.availableRewards ?? []).filter(
             (reward) => pendingCouponIds.includes(reward.couponId),
           )}
-          confirming={false}
+          confirming={confirmingRedemption}
           onBack={() => setDialogStep("selectRewards")}
-          onContinue={() => setDialogStep("enterSubtotal")}
+          onContinue={() => {
+            setDialogStep("enterSubtotal");
+          }}
           onDismiss={() => void resetScan()}
         />
       ) : null}
@@ -567,12 +618,45 @@ export function ScannerScanCodePanel({
       dialogStep === "enterSubtotal" ? (
         <ScanOrderSubtotalDialog
           confirming={confirmingRedemption}
-          requirePositiveAmount={pendingCouponIds.some((couponId) => {
-            const reward = previewResult.availableRewards?.find(
-              (item) => item.couponId === couponId,
+          requirePositiveAmount={(() => {
+            const selectedRewards = (
+              previewResult.availableRewards ?? []
+            ).filter((reward) => pendingCouponIds.includes(reward.couponId));
+            return !(
+              selectedRewards.length > 0 &&
+              selectedRewards.every((reward) => reward.paymentLabel === "PREPAID")
             );
-            return reward?.paymentLabel === "UNPAID";
-          })}
+          })()}
+          extraPurchaseMode={(() => {
+            const selectedRewards = (
+              previewResult.availableRewards ?? []
+            ).filter((reward) => pendingCouponIds.includes(reward.couponId));
+            return (
+              selectedRewards.length > 0 &&
+              selectedRewards.every((reward) => reward.paymentLabel === "PREPAID")
+            );
+          })()}
+          expectedAmount={(() => {
+            const selectedRewards = (
+              previewResult.availableRewards ?? []
+            ).filter((reward) => pendingCouponIds.includes(reward.couponId));
+            if (
+              selectedRewards.length > 0 &&
+              selectedRewards.every((reward) => reward.paymentLabel === "PREPAID")
+            ) {
+              return null;
+            }
+            if (selectedRewards.length === 0) return null;
+            let total = 0;
+            for (const reward of selectedRewards) {
+              const price = reward.campaignPrice;
+              if (price == null || !Number.isFinite(price) || price < 0) {
+                return null;
+              }
+              total += price;
+            }
+            return Math.round(total * 100) / 100;
+          })()}
           onBack={() => setDialogStep("completeOrder")}
           onDone={(orderSubtotal) =>
             void handleConfirmRedeem(pendingCouponIds, orderSubtotal)
@@ -581,14 +665,14 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="mx-auto w-full max-w-2xl pb-6">
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}
             onScanAgain={() => void resetScan()}
           />
         ) : (
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
+        <div className="flex w-full flex-col">
           {scanState === "idle" ? (
             <ScannerIdleState onStart={startScanner} />
           ) : null}

@@ -11314,6 +11314,11 @@ body:has(.auth-select-plan-page) {
   flex-shrink: 0;
 }
 
+.rd-premium--fill > .rd-premium-page > .rd-premium-panel {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
 .rd-premium-panel {
   display: flex;
   flex: 1 1 0%;

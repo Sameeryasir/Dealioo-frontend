@@ -13,7 +13,9 @@ export async function purchaseScannerDeals(params: {
   restaurantId?: number;
   customerId: number;
   funnelIds: number[];
-  orderSubtotal: number;
+  orderSubtotal?: number;
+  extraItemsAmount?: number;
+  idempotencyKey?: string;
 }): Promise<ScannerPurchasedDeal[]> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -28,7 +30,15 @@ export async function purchaseScannerDeals(params: {
     `/funnel-event/business/${businessId}/guest/${params.customerId}/purchase-deals`,
     {
       funnelIds: params.funnelIds,
-      orderSubtotal: params.orderSubtotal,
+      ...(params.orderSubtotal != null
+        ? { orderSubtotal: params.orderSubtotal }
+        : {}),
+      ...(params.extraItemsAmount != null && params.extraItemsAmount > 0
+        ? { extraItemsAmount: params.extraItemsAmount }
+        : {}),
+      ...(params.idempotencyKey?.trim()
+        ? { idempotencyKey: params.idempotencyKey.trim() }
+        : {}),
     },
   );
 

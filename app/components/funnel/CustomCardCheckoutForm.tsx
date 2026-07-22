@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   PaymentElement,
   useCheckoutElements,
@@ -57,6 +57,7 @@ export function CustomCardCheckoutForm({
   const checkoutState = useCheckoutElements();
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const submitInFlightRef = useRef(false);
 
   const buttonStyle = {
     backgroundColor: page.checkoutTheme.buttonColor,
@@ -74,6 +75,8 @@ export function CustomCardCheckoutForm({
     e.preventDefault();
     setFormError(null);
 
+    if (busy || submitInFlightRef.current) return;
+
     if (checkoutState.type === "loading") {
       setFormError("Payment form is still loading. Please wait a moment.");
       return;
@@ -85,13 +88,11 @@ export function CustomCardCheckoutForm({
       return;
     }
 
-
     const successUrl = new URL(confirmationPath, window.location.origin).toString();
+    submitInFlightRef.current = true;
     setBusy(true);
 
     try {
-
-
       const result = await checkoutState.checkout.confirm({
         redirect: "if_required",
       });
@@ -129,10 +130,10 @@ export function CustomCardCheckoutForm({
       markFunnelLockedStep(funnelId, "confirmation");
       window.location.replace(successUrl);
     } catch (err) {
-
       console.error("[Funnel] checkout.confirm failed", err);
       setFormError(errorMessageFromUnknown(err));
     } finally {
+      submitInFlightRef.current = false;
       setBusy(false);
     }
   };
