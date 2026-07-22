@@ -54,9 +54,9 @@ const tableBodyStagger = {
   },
 };
 
-const ordersHeadIconClass = "text-[#1877f2]";
-const ordersHeadLabelClass = "text-slate-800";
-const ordersHeadBoxClass = "border-[#bfdbfe]/80 bg-[#f4f8ff]";
+const ordersHeadIconClass = "text-white/90";
+const ordersHeadLabelClass = "text-white";
+const ordersHeadBoxClass = "border-white/20 bg-white/10";
 
 function formatPaymentStatusLabel(status: string): string {
   const normalized = status.trim().toLowerCase();
@@ -206,13 +206,16 @@ function OrdersTableSection({
       </p>
 
       <div className="funnel-orders-table-wrap">
+        <div className="funnel-orders-sidebar-head" aria-hidden>
+          <div className="funnel-orders-sidebar-head__glow" />
+        </div>
         <table className="funnel-orders-table">
           <thead>
             <motion.tr
               variants={tableHeaderReveal}
               initial="hidden"
               animate="show"
-              className="border-b border-[#dbeafe]/70 bg-gradient-to-r from-[#f4f8ff] via-white to-[#f8fafc]"
+              className="funnel-orders-head-row"
             >
               <th className={`${thClass} funnel-orders-th--index`}>
                 <TableColumnHeader

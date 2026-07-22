@@ -21,8 +21,8 @@ const guestsCardClass =
 const thClass = "funnel-guests-th whitespace-nowrap text-left align-middle";
 const tdClass = "funnel-guests-td text-left align-middle text-slate-700";
 
-const guestsHeadIconClass = "text-[#1877f2]";
-const guestsHeadLabelClass = "text-[#1877f2]";
+const guestsHeadIconClass = "text-white/90";
+const guestsHeadLabelClass = "text-white";
 
 const tableHeaderReveal = {
   hidden: { opacity: 0, y: -10 },
@@ -150,13 +150,16 @@ function GuestsTableSection({
       </p>
 
       <div className="funnel-guests-table-wrap">
+        <div className="funnel-guests-sidebar-head" aria-hidden>
+          <div className="funnel-guests-sidebar-head__glow" />
+        </div>
         <table className="funnel-guests-table">
           <thead>
             <motion.tr
               variants={tableHeaderReveal}
               initial="hidden"
               animate="show"
-              className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
+              className="funnel-guests-head-row"
             >
               <th className={`${thClass} funnel-guests-th--index`}>
                 <TableColumnHeader
@@ -221,9 +224,7 @@ function GuestsTableSection({
                   </td>
                   <td className={`${tdClass} funnel-guests-td--name`}>
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className="funnel-guests-avatar flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(24,119,242,0.28)]"
-                      >
+                      <span className="funnel-guests-avatar flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(24,119,242,0.28)]">
                         {initials}
                       </span>
                       <span className="truncate font-semibold text-[#07111f]">

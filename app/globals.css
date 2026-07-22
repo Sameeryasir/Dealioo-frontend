@@ -12034,10 +12034,41 @@ body:has(.auth-select-plan-page) {
   color: #94a3b8;
 }
 
+.funnel-orders-sidebar-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: max(100%, 42rem);
+  height: 3.35rem;
+  overflow: hidden;
+  pointer-events: none;
+  background: #113266;
+}
+
+.funnel-orders-sidebar-head__glow {
+  display: none;
+}
+
 .funnel-orders-table {
+  position: relative;
+  z-index: 1;
   width: 100%;
   min-width: 42rem;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.funnel-orders-table thead tr.funnel-orders-head-row {
+  background: transparent;
+}
+
+.funnel-orders-table thead th.funnel-orders-th {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .funnel-orders-th,
@@ -12123,7 +12154,7 @@ body:has(.auth-select-plan-page) {
 
   .funnel-orders-th:first-child {
     z-index: 3;
-    background: #f8fafc;
+    background: #113266;
   }
 
   .funnel-orders-th:last-child,
@@ -12293,10 +12324,41 @@ body:has(.auth-select-plan-page) {
   color: #94a3b8;
 }
 
+.funnel-guests-sidebar-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: max(100%, 38rem);
+  height: 3.35rem;
+  overflow: hidden;
+  pointer-events: none;
+  background: #113266;
+}
+
+.funnel-guests-sidebar-head__glow {
+  display: none;
+}
+
 .funnel-guests-table {
+  position: relative;
+  z-index: 1;
   width: 100%;
   min-width: 38rem;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.funnel-guests-table thead tr.funnel-guests-head-row {
+  background: transparent;
+}
+
+.funnel-guests-table thead th.funnel-guests-th {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .funnel-guests-th,
@@ -12378,7 +12440,8 @@ body:has(.auth-select-plan-page) {
 
   .funnel-guests-th:first-child {
     z-index: 3;
-    background: #f8fafc;
+    background: transparent;
+    box-shadow: none;
   }
 
   .funnel-guests-th:last-child,

@@ -5,31 +5,30 @@ import { BusinessHistoryPanel } from "@/app/components/business/BusinessHistoryP
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function BusinessHistoryPage() {
   const params = useParams();
   const router = useRouter();
-  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   const businessId = useMemo(
     () => parseRoutePositiveInt(params.businessId),
     [params.businessId],
   );
 
+  const canAccess = isAdminOrSuperAdminUser();
+
   useEffect(() => {
-    const canAccess = isAdminOrSuperAdminUser();
-    setAllowed(canAccess);
     if (!canAccess && businessId != null) {
       router.replace(`/business/${businessId}/dashboard`);
     }
-  }, [businessId, router]);
+  }, [businessId, canAccess, router]);
 
   if (businessId == null) {
     return <InvalidRouteMessage />;
   }
 
-  if (allowed !== true) {
+  if (!canAccess) {
     return null;
   }
 

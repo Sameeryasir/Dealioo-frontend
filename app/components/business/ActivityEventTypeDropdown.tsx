@@ -7,13 +7,14 @@ import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import { automationEase } from "@/app/lib/motion";
 import type { ActivityEventType } from "@/app/services/activity/get-business-activity";
 
-export type ActivityEventFilter = "all" | ActivityEventType;
+export type ActivityEventFilter = "all" | ActivityEventType | "in_person";
 
 const EVENT_TYPE_OPTIONS: { id: ActivityEventFilter; label: string }[] = [
   { id: "all", label: "All types" },
   { id: "visited", label: "Visited" },
   { id: "redeemed_reward", label: "Redeemed reward" },
   { id: "prepaid_for_offer", label: "Prepaid for offer" },
+  { id: "in_person", label: "In person" },
   { id: "message_sent", label: "Text sent" },
 ];
 

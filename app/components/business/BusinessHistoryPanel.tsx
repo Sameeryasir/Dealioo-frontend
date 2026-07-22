@@ -233,7 +233,9 @@ export function BusinessHistoryPanel({
     queryFn: () => getBusinessHistory(businessId, { page }),
     enabled: businessId > 0,
     staleTime: 0,
+    gcTime: 0,
     refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     placeholderData: (previousData) => previousData,
   });
 

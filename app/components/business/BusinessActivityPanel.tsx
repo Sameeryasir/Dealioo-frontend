@@ -51,13 +51,14 @@ const thClass =
 const tdClass =
   "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
-type EventFilter = "all" | ActivityEventType;
+type EventFilter = "all" | ActivityEventType | "in_person";
 
 const EVENT_FILTERS: { id: EventFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "visited", label: "Visits" },
   { id: "redeemed_reward", label: "Redemptions" },
   { id: "prepaid_for_offer", label: "Prepaid" },
+  { id: "in_person", label: "In person" },
   { id: "message_sent", label: "Texts" },
 ];
 

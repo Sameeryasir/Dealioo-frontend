@@ -11,7 +11,7 @@ export type ActivityEventType =
   | "prepaid_for_offer"
   | "message_sent";
 
-export type ActivityEventFilter = "all" | ActivityEventType;
+export type ActivityEventFilter = "all" | ActivityEventType | "in_person";
 
 export type ActivityQueryFilters = {
   eventType?: ActivityEventFilter;
