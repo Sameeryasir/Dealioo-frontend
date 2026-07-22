@@ -15005,9 +15005,7 @@ body:has(.auth-select-plan-page) {
   animation: rp-confirm-backdrop-in 0.22s ease-out;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  background:
-    radial-gradient(ellipse 75% 50% at 50% 40%, rgba(24, 119, 242, 0.18), transparent 70%),
-    rgba(15, 35, 64, 0.42);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 .rp-confirm-dialog__panel {

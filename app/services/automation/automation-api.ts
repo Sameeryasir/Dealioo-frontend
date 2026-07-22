@@ -116,3 +116,17 @@ export async function updateAutomation(
     body: JSON.stringify(body),
   });
 }
+
+export async function activateAutomation(id: number): Promise<Automation> {
+  return automationFetch<Automation>(
+    `/${encodeURIComponent(String(id))}/activate`,
+    { method: "POST" },
+  );
+}
+
+export async function publishAutomation(id: number): Promise<Automation> {
+  return automationFetch<Automation>(
+    `/${encodeURIComponent(String(id))}/publish`,
+    { method: "POST" },
+  );
+}

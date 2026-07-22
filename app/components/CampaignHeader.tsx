@@ -420,14 +420,20 @@ export default function CampaignHeader({
             transition={{ duration: 0.28, ease: automationEase }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — same slate→blue gradient + pink orb as ScanCustomerConfirmDialog */}
-            <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6">
+            {/* Header — same navy as business sidebar */}
+            <div
+              className="relative shrink-0 overflow-hidden px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6"
+              style={{
+                background:
+                  "linear-gradient(180deg, #07111f 0%, #0a1628 52%, #0f1f3d 100%)",
+              }}
+            >
               <div
-                className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-blue-400/20 blur-2xl"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute -bottom-12 left-8 size-32 rounded-full bg-[#e1306c]/15 blur-2xl"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 120% 40% at 50% 0%, rgba(24, 119, 242, 0.28) 0%, transparent 70%), radial-gradient(ellipse 120% 35% at 50% 100%, rgba(244, 114, 182, 0.16) 0%, transparent 70%)",
+                }}
                 aria-hidden
               />
 
@@ -436,7 +442,7 @@ export default function CampaignHeader({
                   <Link2 className="size-6" strokeWidth={2.25} aria-hidden />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">
+                  <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#93c5fd]">
                     <Megaphone className="size-3.5" aria-hidden />
                     Meta ads
                   </p>
@@ -456,7 +462,7 @@ export default function CampaignHeader({
                       <X className="size-4" strokeWidth={2} aria-hidden />
                     </button>
                   </div>
-                  <p className="mt-0.5 text-sm text-slate-300">
+                  <p className="mt-0.5 text-sm text-white/70">
                     Paste this as the website destination in your Facebook /
                     Meta ad.
                   </p>
@@ -521,7 +527,7 @@ export default function CampaignHeader({
                         className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition active:scale-[0.98] sm:w-auto ${
                           copyDone
                             ? "bg-[#34a853] shadow-emerald-500/25 hover:bg-[#2d9348]"
-                            : "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700"
+                            : "bg-[#1877f2] shadow-[0_8px_18px_rgba(24,119,242,0.28)] hover:bg-[#166fe5]"
                         }`}
                       >
                         {copyDone ? (
@@ -573,7 +579,7 @@ export default function CampaignHeader({
                     href={landingTrackingPath}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-w-24 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-700 hover:to-indigo-700 sm:min-w-28"
+                    className="inline-flex min-w-24 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] sm:min-w-28"
                   >
                     <ExternalLink
                       className="size-4"

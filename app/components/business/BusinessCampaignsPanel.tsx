@@ -387,16 +387,20 @@ export function BusinessCampaignsPanel({
         price: parseOfferPrice(payload.offerPrice),
       });
       skipPostCreateNavRef.current = true;
-      await queryClient.invalidateQueries({
-        queryKey: [...funnelQueryKeys.campaigns(), businessId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["business-activity-events", businessId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["business-activity-summary", businessId],
-      });
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
+
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [...funnelQueryKeys.campaigns(), businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["business-activity-events", businessId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["business-activity-summary", businessId],
+        }),
+      ]);
+
       if (campaignId != null) {
         void provisionCampaignDefaultAutomations(businessId, campaignId)
           .then(async () => {

@@ -73,6 +73,7 @@ export async function createCampaign(
   form.append("image", payload.image, payload.image.name);
   form.append("offer", payload.offer.trim());
   form.append("price", String(price));
+  form.append("status", "published");
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/campaign/create`,

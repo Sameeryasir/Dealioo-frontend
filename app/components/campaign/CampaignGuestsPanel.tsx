@@ -22,7 +22,7 @@ const thClass = "funnel-guests-th whitespace-nowrap text-left align-middle";
 const tdClass = "funnel-guests-td text-left align-middle text-slate-700";
 
 const guestsHeadIconClass = "text-[#1877f2]";
-const guestsHeadLabelClass = "text-slate-800";
+const guestsHeadLabelClass = "text-[#1877f2]";
 
 const tableHeaderReveal = {
   hidden: { opacity: 0, y: -10 },
@@ -48,13 +48,6 @@ const tableBodyStagger = {
     transition: { staggerChildren: 0.05, delayChildren: 0.06 },
   },
 };
-
-const AVATAR_COLORS = [
-  "from-[#1877f2] to-[#4f9cf9]",
-  "from-[#166fe5] to-[#60a5fa]",
-  "from-[#0ea5e9] to-[#7dd3fc]",
-  "from-[#2563eb] to-[#93c5fd]",
-] as const;
 
 function GuestsTableSkeleton() {
   return (
@@ -115,10 +108,6 @@ function guestInitials(name: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-function guestAvatarColor(seed: number): string {
-  return AVATAR_COLORS[Math.abs(seed) % AVATAR_COLORS.length];
 }
 
 function GuestsPanelHeader({ total }: { total: number }) {
@@ -218,7 +207,6 @@ function GuestsTableSection({
             {guests.map((guest, index) => {
               const rowNumber = rowOffset + index + 1;
               const initials = guestInitials(guest.name);
-              const avatarColor = guestAvatarColor(guest.id * 13 + index * 7);
 
               return (
                 <motion.tr
@@ -234,7 +222,7 @@ function GuestsTableSection({
                   <td className={`${tdClass} funnel-guests-td--name`}>
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span
-                        className={`funnel-guests-avatar flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor} text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]`}
+                        className="funnel-guests-avatar flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(24,119,242,0.28)]"
                       >
                         {initials}
                       </span>
