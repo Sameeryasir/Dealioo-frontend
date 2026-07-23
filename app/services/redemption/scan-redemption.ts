@@ -94,6 +94,7 @@ async function postScanPayload(
   orderSubtotal?: number,
   idempotencyKey?: string,
   channel: "qr_scan" | "staff_lookup" = "qr_scan",
+  extraItemsAmount?: number,
 ): Promise<Response> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -117,6 +118,9 @@ async function postScanPayload(
         qrToken: qrToken.trim(),
         couponIds: couponIds?.length ? couponIds : undefined,
         orderSubtotal,
+        ...(extraItemsAmount != null && extraItemsAmount > 0
+          ? { extraItemsAmount }
+          : {}),
         idempotencyKey,
         channel: pathSuffix === "" ? channel : undefined,
         deviceInfo:
@@ -148,6 +152,7 @@ export async function scanRedemptionQr(
   orderSubtotal?: number,
   idempotencyKey: string = createRedemptionIdempotencyKey(),
   channel: "qr_scan" | "staff_lookup" = "qr_scan",
+  extraItemsAmount?: number,
 ): Promise<ScanRedemptionResponse> {
   const res = await postScanPayload(
     restaurantId,
@@ -157,6 +162,7 @@ export async function scanRedemptionQr(
     orderSubtotal,
     idempotencyKey,
     channel,
+    extraItemsAmount,
   );
 
   if (!res.ok) {

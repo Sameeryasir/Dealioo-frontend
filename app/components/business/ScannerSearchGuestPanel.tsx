@@ -286,7 +286,7 @@ function DealPaymentBadge({
       : badge === "PAID_AT_COUNTER"
         ? "Paid at Counter"
         : badge === "PENDING"
-          ? "Pending"
+          ? "Not paid"
           : label;
   const isPaid = badge === "PAID_ONLINE" || badge === "PAID_AT_COUNTER" || label === "PREPAID";
   return (
@@ -438,10 +438,13 @@ export function ScannerSearchGuestPanel({
   const [deleting, setDeleting] = useState(false);
   const [selectedDealIds, setSelectedDealIds] = useState<number[]>([]);
   const [redeemStep, setRedeemStep] = useState<
-    null | "completeOrder" | "enterSubtotal"
+    null | "completeOrder" | "enterSubtotal" | "enterExtra"
   >(null);
   const [confirmingRedemption, setConfirmingRedemption] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<ScanRedemptionSuccess | null>(
+    null,
+  );
+  const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
     null,
   );
   const [businessDeals, setBusinessDeals] = useState<RestaurantFunnelDeal[]>([]);
@@ -743,7 +746,11 @@ export function ScannerSearchGuestPanel({
   );
 
   const handleConfirmRedeem = useCallback(
-    async (couponIds: number[], orderSubtotal?: number) => {
+    async (
+      couponIds: number[],
+      orderSubtotal?: number,
+      extraItemsAmount = 0,
+    ) => {
       if (!selectedProfile || couponIds.length === 0) return;
 
       const anchorDeal = activeDeals.find(
@@ -772,11 +779,13 @@ export function ScannerSearchGuestPanel({
           orderSubtotal,
           idempotencyKeyRef.current,
           "staff_lookup",
+          extraItemsAmount,
         );
 
         if (result.success) {
           idempotencyKeyRef.current = "";
           setRedeemStep(null);
+          setPendingRedeemAmount(null);
           setSelectedDealIds([]);
           setRedeemSuccess(result);
 
@@ -790,12 +799,14 @@ export function ScannerSearchGuestPanel({
         } else {
           setErrorMessage(result.message);
           setRedeemStep(null);
+          setPendingRedeemAmount(null);
         }
       } catch (err) {
         setErrorMessage(
           err instanceof Error ? err.message : "Redemption failed. Try again.",
         );
         setRedeemStep(null);
+        setPendingRedeemAmount(null);
       } finally {
         setConfirmingRedemption(false);
       }
@@ -967,11 +978,46 @@ export function ScannerSearchGuestPanel({
               ? null
               : sumCampaignPrices(selectedDeals)
           }
-          onBack={() => setRedeemStep("completeOrder")}
-          onDone={(orderSubtotal) =>
-            void handleConfirmRedeem(selectedDealIds, orderSubtotal)
+          onBack={() => {
+            setRedeemStep("completeOrder");
+            setPendingRedeemAmount(null);
+          }}
+          onDone={(orderSubtotal) => {
+            const allPrepaid =
+              selectedDeals.length > 0 &&
+              selectedDeals.every((deal) => deal.paymentLabel === "PREPAID");
+            if (allPrepaid) {
+              void handleConfirmRedeem(selectedDealIds, orderSubtotal);
+              return;
+            }
+            setPendingRedeemAmount(orderSubtotal);
+            setRedeemStep("enterExtra");
+          }}
+          onDismiss={() => {
+            setRedeemStep(null);
+            setPendingRedeemAmount(null);
+          }}
+        />
+      ) : null}
+
+      {selectedProfile &&
+      redeemStep === "enterExtra" &&
+      pendingRedeemAmount != null ? (
+        <ScanOrderSubtotalDialog
+          confirming={confirmingRedemption}
+          extraPurchaseMode
+          onBack={() => setRedeemStep("enterSubtotal")}
+          onDone={(extraItemsAmount) =>
+            void handleConfirmRedeem(
+              selectedDealIds,
+              pendingRedeemAmount,
+              extraItemsAmount,
+            )
           }
-          onDismiss={() => setRedeemStep(null)}
+          onDismiss={() => {
+            setRedeemStep(null);
+            setPendingRedeemAmount(null);
+          }}
         />
       ) : null}
 
@@ -1043,6 +1089,7 @@ export function ScannerSearchGuestPanel({
                   setSelectedDealIds([]);
                   setRedeemStep(null);
                   setRedeemSuccess(null);
+                  setPendingRedeemAmount(null);
                   setSelectedFunnelIds([]);
                   setPurchaseStep(null);
                   setPendingDealAmount(null);

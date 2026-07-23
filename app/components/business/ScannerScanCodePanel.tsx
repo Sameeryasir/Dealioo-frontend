@@ -29,7 +29,12 @@ import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
 
 type ScanState = "idle" | "scanning" | "loading" | "preview" | "success" | "error";
-type DialogStep = "confirm" | "selectRewards" | "completeOrder" | "enterSubtotal";
+type DialogStep =
+  | "confirm"
+  | "selectRewards"
+  | "completeOrder"
+  | "enterSubtotal"
+  | "enterExtra";
 
 function pickCameraId(cameras: CameraDevice[]): string {
   const backCamera = cameras.find((camera) =>
@@ -368,6 +373,9 @@ export function ScannerScanCodePanel({
   const [showPreviousRedemptions, setShowPreviousRedemptions] = useState(false);
   const [dialogStep, setDialogStep] = useState<DialogStep>("confirm");
   const [pendingCouponIds, setPendingCouponIds] = useState<number[]>([]);
+  const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
+    null,
+  );
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -428,7 +436,11 @@ export function ScannerScanCodePanel({
   );
 
   const handleConfirmRedeem = useCallback(
-    async (couponIds: number[], orderSubtotal: number) => {
+    async (
+      couponIds: number[],
+      orderSubtotal: number,
+      extraItemsAmount = 0,
+    ) => {
       if (!previewResult || !pendingTokenRef.current || couponIds.length === 0) {
         return;
       }
@@ -451,12 +463,14 @@ export function ScannerScanCodePanel({
           orderSubtotal,
           idempotencyKeyRef.current,
           "qr_scan",
+          extraItemsAmount,
         );
         if (result.success) {
           idempotencyKeyRef.current = "";
           setPreviewResult(null);
           setDialogStep("confirm");
           setPendingCouponIds([]);
+          setPendingRedeemAmount(null);
           setSuccessResult(result);
           setScanState("success");
         } else {
@@ -464,6 +478,7 @@ export function ScannerScanCodePanel({
           setScanState("error");
           setPreviewResult(null);
           setDialogStep("confirm");
+          setPendingRedeemAmount(null);
         }
       } catch (err) {
         setErrorMessage(
@@ -472,6 +487,7 @@ export function ScannerScanCodePanel({
         setScanState("error");
         setPreviewResult(null);
         setDialogStep("confirm");
+        setPendingRedeemAmount(null);
       } finally {
         setConfirmingRedemption(false);
       }
@@ -657,9 +673,44 @@ export function ScannerScanCodePanel({
             }
             return Math.round(total * 100) / 100;
           })()}
-          onBack={() => setDialogStep("completeOrder")}
-          onDone={(orderSubtotal) =>
-            void handleConfirmRedeem(pendingCouponIds, orderSubtotal)
+          onBack={() => {
+            setDialogStep("completeOrder");
+            setPendingRedeemAmount(null);
+          }}
+          onDone={(orderSubtotal) => {
+            const selectedRewards = (
+              previewResult.availableRewards ?? []
+            ).filter((reward) => pendingCouponIds.includes(reward.couponId));
+            const allPrepaid =
+              selectedRewards.length > 0 &&
+              selectedRewards.every(
+                (reward) => reward.paymentLabel === "PREPAID",
+              );
+            if (allPrepaid) {
+              void handleConfirmRedeem(pendingCouponIds, orderSubtotal);
+              return;
+            }
+            setPendingRedeemAmount(orderSubtotal);
+            setDialogStep("enterExtra");
+          }}
+          onDismiss={() => void resetScan()}
+        />
+      ) : null}
+
+      {scanState === "preview" &&
+      previewResult &&
+      dialogStep === "enterExtra" &&
+      pendingRedeemAmount != null ? (
+        <ScanOrderSubtotalDialog
+          confirming={confirmingRedemption}
+          extraPurchaseMode
+          onBack={() => setDialogStep("enterSubtotal")}
+          onDone={(extraItemsAmount) =>
+            void handleConfirmRedeem(
+              pendingCouponIds,
+              pendingRedeemAmount,
+              extraItemsAmount,
+            )
           }
           onDismiss={() => void resetScan()}
         />

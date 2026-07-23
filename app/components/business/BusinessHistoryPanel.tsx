@@ -116,6 +116,12 @@ function eventTypeLabel(type: BusinessHistoryEventType): string {
       return "Funnel updated";
     case "funnel_deleted":
       return "Funnel deleted";
+    case "scanner_redeemed":
+      return "Scanner redeemed";
+    case "scanner_payment":
+      return "Scanner payment";
+    case "scanner_purchase":
+      return "Scanner purchase";
     default:
       return "History";
   }
@@ -127,6 +133,9 @@ function EventTypeBadge({ type }: { type: BusinessHistoryEventType }) {
   switch (type) {
     case "campaign_created":
     case "business_created":
+    case "scanner_redeemed":
+    case "scanner_payment":
+    case "scanner_purchase":
       return (
         <span className={DASHBOARD_EVENT_BADGE.campaignCreated}>
           <span

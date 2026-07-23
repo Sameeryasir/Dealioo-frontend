@@ -17,7 +17,10 @@ export type BusinessHistoryEventType =
   | "automation_deactivated"
   | "automation_deleted"
   | "funnel_updated"
-  | "funnel_deleted";
+  | "funnel_deleted"
+  | "scanner_redeemed"
+  | "scanner_payment"
+  | "scanner_purchase";
 
 export type BusinessHistoryEvent = {
   id: number;

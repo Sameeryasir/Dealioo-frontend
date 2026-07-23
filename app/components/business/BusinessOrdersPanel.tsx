@@ -156,6 +156,10 @@ function resolveDisplayStatus(event: BusinessFunnelEvent): DisplayPaymentStatus 
     return "failed";
   }
 
+  if (paymentStatus === "pending") {
+    return "pending";
+  }
+
   const isPaid =
     paymentStatus === "paid" ||
     event.paidAt != null ||
@@ -380,7 +384,7 @@ function OrderEventMobileCard({
             <OrderAmountDisplay event={event} />
           </p>
           <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-500">
-            Net <OrderNetAmountDisplay event={event} />
+            Paid <OrderNetAmountDisplay event={event} />
           </p>
         </div>
       </div>
@@ -806,12 +810,12 @@ function OrderEventDetailDialog({
               </span>
             </OrderDetailRow>
 
-            <OrderDetailRow icon={CircleDollarSign} label="Amount">
+            <OrderDetailRow icon={CircleDollarSign} label="Offer amount">
               <span className={amountDisplay.muted ? "text-slate-400" : "text-black"}>
                 {amountDisplay.text}
               </span>
             </OrderDetailRow>
-            <OrderDetailRow icon={CircleDollarSign} label="Net amount">
+            <OrderDetailRow icon={CircleDollarSign} label="Guest paid">
               <span className={netAmountText === "—" ? "text-slate-400" : "text-black"}>
                 {netAmountText}
               </span>
@@ -919,7 +923,7 @@ export function BusinessOrdersPanel({
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("paid");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -952,11 +956,15 @@ export function BusinessOrdersPanel({
     gcTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
+    // Keep prior page meta/rows while the next page loads so totalPages
+    // does not briefly fall back to 1 and snap the user back to page 1.
+    placeholderData: (previous) => previous,
   });
 
   const events = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta ?? null;
-  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const loading = eventsQuery.isLoading;
+  const fetchingPage = eventsQuery.isFetching && !eventsQuery.isLoading;
   const error = eventsQuery.error
     ? getApiErrorMessage(eventsQuery.error, "Could not load funnel events.")
     : null;
@@ -971,10 +979,12 @@ export function BusinessOrdersPanel({
   }, [statusFilter, dateFilter, deferredSearchQuery]);
 
   useEffect(() => {
+    // Only clamp after real meta is known — never while a page fetch is in flight.
+    if (eventsQuery.isFetching || !meta) return;
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, meta, eventsQuery.isFetching]);
 
   useEffect(() => {
     if (loading || !error || alertDismissed) return;
@@ -1095,7 +1105,7 @@ export function BusinessOrdersPanel({
                 <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
                   {hasActiveFilters
                     ? `${totalEvents} shown`
-                    : `${allEventsTotal} total`}
+                    : `${totalEvents} total`}
                 </span>
               </div>
             </div>
@@ -1183,7 +1193,7 @@ export function BusinessOrdersPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={CircleDollarSign}
-                              label="Amount"
+                              label="Offer amount"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
@@ -1191,7 +1201,7 @@ export function BusinessOrdersPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={CircleDollarSign}
-                              label="Net amount"
+                              label="Guest paid"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
@@ -1335,7 +1345,7 @@ export function BusinessOrdersPanel({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={loading || page <= 1}
+                      disabled={loading || fetchingPage || page <= 1}
                       onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -1346,11 +1356,9 @@ export function BusinessOrdersPanel({
                     </span>
                     <button
                       type="button"
-                      disabled={loading || page >= totalPages}
+                      disabled={loading || fetchingPage || page >= totalPages}
                       onClick={() =>
-                        setPage((prev) =>
-                          Math.min(totalPages, prev + 1),
-                        )
+                        setPage((prev) => Math.min(totalPages, prev + 1))
                       }
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                     >

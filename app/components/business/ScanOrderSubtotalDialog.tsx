@@ -110,8 +110,8 @@ export function ScanOrderSubtotalDialog({
 
         {extraPurchaseMode ? (
           <p className="mt-3 text-sm font-medium text-slate-600">
-            This deal is already paid. Enter what they paid for any other items
-            today (exclude tax & tip), or leave blank / enter 0 if nothing else.
+            Enter what they paid for any other items today (exclude tax & tip),
+            or leave blank / enter 0 if nothing else.
           </p>
         ) : null}
 
