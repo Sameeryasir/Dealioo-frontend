@@ -236,6 +236,61 @@ export type GuestProfile = {
   activeDeals: GuestActiveDeal[];
 };
 
+export type GuestPreviousRedemption = {
+  campaignName: string;
+  redeemedAt: string;
+};
+
+export const GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE = 10;
+
+export type GuestPreviousRedemptionsResult = {
+  data: GuestPreviousRedemption[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export async function getGuestPreviousRedemptions(
+  businessId: number,
+  customerId: number,
+  page = 1,
+  limit = GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
+): Promise<GuestPreviousRedemptionsResult> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(businessId) || !isPositiveInt(customerId)) {
+    throw new Error("Valid business and guest ids are required.");
+  }
+
+  const params = new URLSearchParams({
+    page: String(Math.max(1, page)),
+    limit: String(Math.max(1, limit)),
+  });
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/redemption/business/${encodeURIComponent(String(businessId))}/guests/${encodeURIComponent(String(customerId))}/previous-redemptions?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(
+        res,
+        "Could not load previously redeemed rewards.",
+      ),
+    );
+  }
+
+  return (await res.json()) as GuestPreviousRedemptionsResult;
+}
+
 export async function getGuestProfile(
   restaurantId: number,
   customerId: number,

@@ -46,8 +46,11 @@ import {
 } from "@/app/services/funnel/purchase-scanner-deals";
 import {
   getGuestProfile,
+  getGuestPreviousRedemptions,
+  GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
   scanRedemptionQr,
   type GuestActiveDeal,
+  type GuestPreviousRedemption,
   type GuestProfile,
   type RedeemableReward,
   type ScanRedemptionSuccess,
@@ -235,19 +238,19 @@ function BusinessDealCheckboxRow({
         type="button"
         disabled={disabled}
         onClick={onToggle}
-        className={`flex w-full items-start gap-3 rounded-[1rem] border px-4 py-3.5 text-left transition ${
-          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:shadow-sm"
+        className={`group flex w-full items-start gap-3.5 rounded-[1.15rem] border px-4 py-4 text-left transition duration-200 ${
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         } ${
           checked
-            ? "border-[#1877f2]/35 bg-[#f4f8ff] shadow-[0_6px_16px_rgba(24,119,242,0.1)] ring-1 ring-[#1877f2]/20"
-            : "border-[#e8edf5] bg-white hover:border-[#dbeafe] hover:bg-[#f8fafc]"
+            ? "border-[#1877f2]/40 bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_10px_28px_rgba(24,119,242,0.14)] ring-1 ring-[#1877f2]/20"
+            : "border-[#e8edf5] bg-white hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
         }`}
       >
         <span
-          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border ${
+          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition ${
             checked
-              ? "border-[#1877f2] bg-[#1877f2] text-xs text-white"
-              : "border-zinc-300 bg-white"
+              ? "border-[#1877f2] bg-[#1877f2] text-xs text-white shadow-[0_4px_10px_rgba(24,119,242,0.35)]"
+              : "border-zinc-300 bg-white group-hover:border-[#1877f2]/50"
           }`}
           aria-hidden
         >
@@ -255,15 +258,17 @@ function BusinessDealCheckboxRow({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-[#0e182b]">{deal.campaignName}</span>
+            <span className="text-[0.92rem] font-extrabold tracking-tight text-[#0e182b]">
+              {deal.campaignName}
+            </span>
             {alreadyOnGuest ? (
-              <span className="rounded-full bg-[#f4f8ff] px-2 py-0.5 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              <span className="rounded-full bg-[#1877f2]/10 px-2.5 py-0.5 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#1877f2] ring-1 ring-[#1877f2]/20">
                 On guest
               </span>
             ) : null}
           </span>
           {priceLabel ? (
-            <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[0.7rem] font-bold text-emerald-700 ring-1 ring-emerald-100">
+            <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[0.72rem] font-extrabold text-emerald-700 ring-1 ring-emerald-100">
               {priceLabel}
             </span>
           ) : null}
@@ -361,11 +366,11 @@ function DealSelectRow({
   const cardClass =
     tone === "prepaid"
       ? checked
-        ? "border-emerald-300 bg-white ring-1 ring-emerald-200"
-        : "border-[#e8edf5] bg-white"
+        ? "border-emerald-300 bg-gradient-to-br from-emerald-50/90 to-white shadow-[0_10px_28px_rgba(16,185,129,0.14)] ring-1 ring-emerald-200"
+        : "border-[#e8edf5] bg-white hover:border-emerald-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
       : checked
-        ? "border-zinc-400 bg-white ring-1 ring-zinc-300"
-        : "border-[#e8edf5] bg-white";
+        ? "border-slate-400 bg-gradient-to-br from-slate-50 to-white shadow-[0_10px_28px_rgba(15,23,42,0.1)] ring-1 ring-slate-300"
+        : "border-[#e8edf5] bg-white hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]";
 
   return (
     <li>
@@ -373,30 +378,37 @@ function DealSelectRow({
         type="button"
         disabled={disabled || !deal.canSelect}
         onClick={onToggle}
-        className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition ${
-          deal.canSelect ? "cursor-pointer hover:bg-[#f8fafc]" : "cursor-not-allowed opacity-60"
+        className={`group flex w-full items-center gap-3 rounded-[1rem] border px-3.5 py-3 text-left transition duration-200 ${
+          deal.canSelect
+            ? "cursor-pointer hover:bg-[#f8fafc]"
+            : "cursor-not-allowed opacity-60"
         } ${cardClass}`}
       >
         {deal.canSelect ? (
           <span
-            className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border ${
+            className={`flex size-5 shrink-0 items-center justify-center rounded-md border transition ${
               checked
-                ? "border-zinc-900 bg-zinc-900 text-xs text-white"
-                : "border-zinc-300 bg-white"
+                ? tone === "prepaid"
+                  ? "border-emerald-600 bg-emerald-600 text-xs text-white"
+                  : "border-slate-800 bg-slate-800 text-xs text-white"
+                : "border-zinc-300 bg-white group-hover:border-slate-400"
             }`}
             aria-hidden
           >
             {checked ? "✓" : ""}
           </span>
         ) : (
-          <span className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <span className="size-5 shrink-0" aria-hidden />
         )}
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-slate-800">{deal.offerName}</span>
-            <DealPaymentBadge label={deal.paymentLabel} badge={deal.paymentBadge} />
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-[0.88rem] font-extrabold tracking-tight text-[#0e182b]">
+            {deal.offerName}
           </span>
-          <span className="mt-1 block text-xs text-slate-700">
+          <DealPaymentBadge
+            label={deal.paymentLabel}
+            badge={deal.paymentBadge}
+          />
+          <span className="truncate text-[0.72rem] font-medium text-slate-500">
             {deal.campaignName}
             {deal.expiresAt ? (
               <>, Expires {formatDateTimeShort(deal.expiresAt)}</>
@@ -411,9 +423,11 @@ function DealSelectRow({
 export function ScannerSearchGuestPanel({
   businessId,
   onCreateGuest,
+  onHideScannerTabsChange,
 }: {
   businessId: number;
   onCreateGuest?: () => void;
+  onHideScannerTabsChange?: (hide: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -434,8 +448,19 @@ export function ScannerSearchGuestPanel({
   const [selectedProfile, setSelectedProfile] = useState<GuestProfile | null>(
     null,
   );
-  const [showPreviousRedemptions, setShowPreviousRedemptions] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [previousRedemptions, setPreviousRedemptions] = useState<
+    GuestPreviousRedemption[]
+  >([]);
+  const [previousRedemptionsMeta, setPreviousRedemptionsMeta] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  } | null>(null);
+  const [previousRedemptionsPage, setPreviousRedemptionsPage] = useState(1);
+  const [loadingPreviousRedemptions, setLoadingPreviousRedemptions] =
+    useState(false);
   const [selectedDealIds, setSelectedDealIds] = useState<number[]>([]);
   const [redeemStep, setRedeemStep] = useState<
     null | "completeOrder" | "enterSubtotal" | "enterExtra"
@@ -472,8 +497,6 @@ export function ScannerSearchGuestPanel({
       setErrorMessage(null);
       setGuestNotInDatabaseQuery(null);
       setSelectedProfile(null);
-      setShowPreviousRedemptions(false);
-
       try {
         const response = await searchCustomers(
           trimmed,
@@ -518,7 +541,6 @@ export function ScannerSearchGuestPanel({
       setLoadingProfile(true);
       setErrorMessage(null);
       setGuestNotInDatabaseQuery(null);
-      setShowPreviousRedemptions(false);
       setSelectedDealIds([]);
       setRedeemStep(null);
       setRedeemSuccess(null);
@@ -527,6 +549,9 @@ export function ScannerSearchGuestPanel({
       setPendingDealAmount(null);
       setPurchaseSuccess(null);
       setBusinessDeals([]);
+      setPreviousRedemptions([]);
+      setPreviousRedemptionsMeta(null);
+      setPreviousRedemptionsPage(1);
       idempotencyKeyRef.current = "";
 
       try {
@@ -550,6 +575,50 @@ export function ScannerSearchGuestPanel({
     },
     [businessId, activeQuery],
   );
+
+  useEffect(() => {
+    if (!selectedProfile) {
+      setPreviousRedemptions([]);
+      setPreviousRedemptionsMeta(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadPreviousRedemptions = async () => {
+      setLoadingPreviousRedemptions(true);
+      try {
+        const result = await getGuestPreviousRedemptions(
+          businessId,
+          selectedProfile.customerId,
+          previousRedemptionsPage,
+          GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
+        );
+        if (!cancelled) {
+          setPreviousRedemptions(result.data);
+          setPreviousRedemptionsMeta(result.meta);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPreviousRedemptions([]);
+          setPreviousRedemptionsMeta(null);
+          setErrorMessage(
+            err instanceof Error
+              ? err.message
+              : "Could not load previously redeemed rewards.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingPreviousRedemptions(false);
+        }
+      }
+    };
+
+    void loadPreviousRedemptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, selectedProfile, previousRedemptionsPage]);
 
   useEffect(() => {
     if (!selectedProfile) return;
@@ -598,8 +667,6 @@ export function ScannerSearchGuestPanel({
     try {
       await deleteCustomer(selectedProfile.customerId);
       setSelectedProfile(null);
-      setShowPreviousRedemptions(false);
-
       if (activeQuery) {
         await runSearch(activeQuery, page);
       }
@@ -834,6 +901,13 @@ export function ScannerSearchGuestPanel({
     [meta, page],
   );
 
+  const hideScannerTabs =
+    showTable || selectedProfile != null || loadingProfile;
+  useEffect(() => {
+    onHideScannerTabsChange?.(hideScannerTabs);
+    return () => onHideScannerTabsChange?.(false);
+  }, [hideScannerTabs, onHideScannerTabsChange]);
+
   return (
     <>
       {selectedProfile && purchaseStep === "confirm" ? (
@@ -1021,631 +1095,154 @@ export function ScannerSearchGuestPanel({
         />
       ) : null}
 
-    <div className="w-full pb-6">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      {!selectedProfile &&
-      !loadingProfile &&
-      activeQuery.length === 0 &&
-      !searching &&
-      !showGuestNotFound ? (
-        <SearchHeroCard
-          query={query}
-          searching={searching}
-          onQueryChange={setQuery}
-          onSearch={handleSearch}
-        />
-      ) : null}
-
-      {!selectedProfile && searching && !showTable ? (
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-10 text-sm font-medium text-slate-600">
-          <Loader2 className="size-4 animate-spin text-[#1877f2]" aria-hidden />
-          Searching guests…
-        </div>
-      ) : null}
-
-      {errorMessage && !showGuestNotFound ? (
-        <div className="mx-auto w-full max-w-2xl rounded-[1.1rem] border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#dc2626]">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {loadingProfile ? (
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 rounded-[1.5rem] border border-[#e2e8f0] bg-white px-6 py-14 text-center shadow-[0_14px_40px_rgba(14,24,43,0.08)]">
-          <Loader2 className="size-10 animate-spin text-[#1877f2]" aria-hidden />
-          <div>
-            <p className="m-0 text-[0.95rem] font-extrabold text-[#0e182b]">
-              Loading guest
-            </p>
-            <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
-              Fetching profile and active deals…
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      {selectedProfile ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.28, ease: standardEase }}
-          className="w-full overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
-              </span>
-              <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
-                Guest profile
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      {showTable ? (
+        <article className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] px-4 py-3.5 sm:px-6">
+            <div className="min-w-0">
+              <h3 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+                Search results
+              </h3>
+              <p className="m-0 mt-0.5 text-[0.75rem] font-medium text-slate-500">
+                {meta?.total ?? 0} guest
+                {(meta?.total ?? 0) === 1 ? "" : "s"} found — tap a row to open
+                profile
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                {meta?.total ?? 0} found
+              </span>
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedProfile(null);
-                  setShowPreviousRedemptions(false);
-                  setSelectedDealIds([]);
-                  setRedeemStep(null);
-                  setRedeemSuccess(null);
-                  setPendingRedeemAmount(null);
-                  setSelectedFunnelIds([]);
-                  setPurchaseStep(null);
-                  setPendingDealAmount(null);
-                  setPurchaseSuccess(null);
-                  setBusinessDeals([]);
-                  idempotencyKeyRef.current = "";
+                  setActiveQuery("");
+                  setResults([]);
+                  setMeta(null);
+                  setQuery("");
+                  setErrorMessage(null);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-white/15"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-[0.72rem] font-bold text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff]"
               >
                 <ArrowLeft className="size-3.5" aria-hidden />
-                Back to results
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => void handleDeleteGuest()}
-                className="inline-flex items-center gap-1.5 rounded-full border border-red-400/40 bg-red-500/15 px-3 py-1.5 text-[0.72rem] font-bold text-red-200 transition hover:bg-red-500/25 disabled:opacity-50"
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-                {deleting ? "Deleting…" : "Delete"}
+                Search again
               </button>
             </div>
           </div>
 
-          <div className="border-b border-[#e8edf5] bg-white px-5 py-5 sm:px-6">
-            <div className="flex min-w-0 items-start gap-4">
-              <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[1.1rem] font-bold text-white">
-                {guestInitials(selectedProfile.customerName)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                  <UserCheck className="size-3" aria-hidden />
-                  Ready to redeem
-                </p>
-                <h2 className="m-0 mt-2 text-[1.25rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.35rem]">
-                  {selectedProfile.customerName}
-                </h2>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-1.5 text-[0.76rem] font-medium text-slate-600">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f4f8ff] text-[#1877f2]">
-                      <Mail className="size-3.5" aria-hidden />
-                    </span>
-                    <span className="truncate">{selectedProfile.email}</span>
-                  </span>
-                  {selectedProfile.phone ? (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-3 py-1.5 text-[0.76rem] font-medium text-slate-600">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f4f8ff] text-[#1877f2]">
-                        <Phone className="size-3.5" aria-hidden />
-                      </span>
-                      {selectedProfile.phone}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-5 p-5 pb-6 sm:p-6 sm:pb-7">
-            {redeemSuccess ? (
-              <div className="flex items-start gap-3 rounded-[1.1rem] border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-4">
-                <CheckCircle2
-                  className="mt-0.5 size-5 shrink-0 text-emerald-600"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-sm font-extrabold text-emerald-900">
-                    Redeemed successfully
-                  </p>
-                  <p className="m-0 mt-0.5 text-sm text-emerald-800">
-                    {redeemSuccess.campaignName} ·{" "}
-                    {formatDateTimeShort(redeemSuccess.redeemedAt)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRedeemSuccess(null)}
-                  className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-                >
-                  Dismiss
-                </button>
-              </div>
-            ) : null}
-
-            {purchaseSuccess ? (
-              <div className="flex items-start gap-3 rounded-[1.1rem] border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-4">
-                <CheckCircle2
-                  className="mt-0.5 size-5 shrink-0 text-emerald-600"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-sm font-extrabold text-emerald-900">
-                    Deals attached
-                  </p>
-                  <p className="m-0 mt-0.5 text-sm text-emerald-800">
-                    {purchaseSuccess.length === 1
-                      ? purchaseSuccess[0].campaignName
-                      : `${purchaseSuccess.length} deals`}{" "}
-                    added for this guest.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPurchaseSuccess(null)}
-                  className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-                >
-                  Dismiss
-                </button>
-              </div>
-            ) : null}
-
-            <section className="rounded-[1.15rem] border border-[#e8edf5] bg-[#f8fafc]/70 p-4 sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex items-start gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#0e182b] text-white shadow-[0_6px_14px_rgba(14,24,43,0.18)]">
-                    <Gift className="size-4" aria-hidden />
-                  </span>
-                  <div>
-                    <h3 className="m-0 text-[0.92rem] font-extrabold text-[#0e182b]">
-                      Guest deals
-                    </h3>
-                    <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                      Redeem deals already on this guest
-                    </p>
-                  </div>
-                </div>
-                {activeDeals.some((deal) => deal.canSelect) ? (
-                  <p className="max-w-[14rem] text-right text-[0.7rem] font-medium text-slate-500">
-                    Select paid or unpaid deals — not both together.
-                  </p>
-                ) : null}
-              </div>
-
-              {activeDeals.length === 0 ? (
-                <div className="mt-3 rounded-[1rem] border border-dashed border-[#dbe3ef] bg-white px-4 py-5 text-center">
-                  <Wallet className="mx-auto size-5 text-slate-300" aria-hidden />
-                  <p className="m-0 mt-2 text-[0.8rem] font-semibold text-slate-600">
-                    No active deals on this guest yet
-                  </p>
-                  <p className="m-0 mt-1 text-[0.72rem] font-medium text-slate-400">
-                    Attach a business deal below to get started.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-3 space-y-4">
-                  <div>
-                    <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-emerald-700 ring-1 ring-emerald-100">
-                      Paid ({prepaidDeals.length})
-                    </p>
-                    {prepaidDeals.length > 0 ? (
-                      <ul className="mt-2 space-y-2">
-                        {prepaidDeals.map((deal) => (
-                          <DealSelectRow
-                            key={deal.couponId}
-                            deal={deal}
-                            checked={selectedDealIds.includes(deal.couponId)}
-                            disabled={
-                              confirmingRedemption ||
-                              purchasing ||
-                              (selectedPaymentLabel === "UNPAID" &&
-                                !selectedDealIds.includes(deal.couponId))
-                            }
-                            tone="prepaid"
-                            onToggle={() => toggleDealSelection(deal)}
-                          />
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
-                        No paid deals.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-slate-600 ring-1 ring-slate-200">
-                      Not paid yet ({unpaidDeals.length})
-                    </p>
-                    {unpaidDeals.length > 0 ? (
-                      <ul className="mt-2 space-y-2">
-                        {unpaidDeals.map((deal) => (
-                          <DealSelectRow
-                            key={deal.couponId}
-                            deal={deal}
-                            checked={selectedDealIds.includes(deal.couponId)}
-                            disabled={
-                              confirmingRedemption ||
-                              purchasing ||
-                              (selectedPaymentLabel === "PREPAID" &&
-                                !selectedDealIds.includes(deal.couponId))
-                            }
-                            tone="unpaid"
-                            onToggle={() => toggleDealSelection(deal)}
-                          />
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
-                        No unpaid deals.
-                      </p>
-                    )}
-                  </div>
-
-                  {selectedDealIds.length > 0 ? (
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="button"
-                        disabled={confirmingRedemption || purchasing}
-                        onClick={() => setRedeemStep("completeOrder")}
-                        className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
-                      >
-                        {confirmingRedemption
-                          ? "Redeeming…"
-                          : `Redeem selected (${selectedDealIds.length})`}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-[1.15rem] border border-[#e8edf5] bg-white p-4 sm:p-5">
-              <div className="flex items-start gap-2.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
-                  <Gift className="size-4" aria-hidden />
-                </span>
-                <div>
-                  <h3 className="m-0 text-[0.92rem] font-extrabold text-[#0e182b]">
-                    Business deals
-                  </h3>
-                  <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                    Active campaigns you can attach to this guest
-                  </p>
-                </div>
-              </div>
-
-              {loadingBusinessDeals ? (
-                <div className="mt-3 flex items-center gap-2 rounded-[1rem] border border-[#e8edf5] bg-[#f8fafc] px-4 py-3 text-sm font-medium text-slate-600">
-                  <Loader2
-                    className="size-4 animate-spin text-[#1877f2]"
-                    aria-hidden
-                  />
-                  Loading business deals…
-                </div>
-              ) : null}
-
-              {!loadingBusinessDeals && businessDeals.length > 0 ? (
-                <>
-                  <ul className="mt-3 space-y-2">
-                    {businessDeals.map((deal) => (
-                      <BusinessDealCheckboxRow
-                        key={deal.id}
-                        deal={deal}
-                        checked={selectedFunnelIds.includes(deal.id)}
-                        alreadyOnGuest={guestFunnelIds.has(deal.id)}
-                        disabled={purchasing || confirmingRedemption}
-                        onToggle={() => toggleBusinessDealSelection(deal.id)}
-                      />
-                    ))}
-                  </ul>
-                  {selectedFunnelIds.length > 0 ? (
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        disabled={
-                          purchasing ||
-                          confirmingRedemption ||
-                          expectedPurchaseAmount == null
-                        }
-                        onClick={() => setPurchaseStep("confirm")}
-                        className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-50"
-                      >
-                        Confirm ({selectedFunnelIds.length})
-                      </button>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-
-              {!loadingBusinessDeals && businessDeals.length === 0 ? (
-                <div className="mt-3 rounded-[1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-5 text-center">
-                  <p className="m-0 text-[0.8rem] font-semibold text-slate-600">
-                    No active deals for this business.
-                  </p>
-                </div>
-              ) : null}
-            </section>
-
-            {selectedProfile.previouslyRedeemedCount > 0 ? (
-              <section className="rounded-[1.15rem] border border-[#e8edf5] bg-white p-4 sm:p-5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowPreviousRedemptions((current) => !current)
-                  }
-                  className="flex w-full items-start justify-between gap-3 text-left"
-                >
-                  <div className="flex min-w-0 items-start gap-2.5">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#0e182b] text-white">
-                      <History className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="m-0 text-[0.92rem] font-extrabold text-[#0e182b]">
-                        Previously redeemed
-                      </h3>
-                      <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                        Past rewards this guest has already used
-                      </p>
-                    </div>
-                  </div>
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.72rem] font-bold tabular-nums text-white">
-                    {selectedProfile.previouslyRedeemedCount}
-                    <ChevronRight
-                      className={`size-3.5 transition ${
-                        showPreviousRedemptions ? "rotate-90" : ""
-                      }`}
-                      aria-hidden
+          <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+            <table className="w-full min-w-[40rem] border-collapse">
+              <thead className="sticky top-0 z-[1]">
+                <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
+                  <th className={`${thClass} w-12`}>
+                    <TableColumnHeader
+                      label="#"
+                      iconClassName={TABLE_HEAD_ICON_CLASS}
+                      labelClassName={TABLE_HEAD_LABEL_CLASS}
                     />
-                  </span>
-                </button>
-
-                {showPreviousRedemptions ? (
-                  <ul className="mt-3 space-y-2">
-                    {selectedProfile.previousRedemptions.map((item, index) => (
-                      <li
-                        key={`${item.campaignName}-${item.redeemedAt}-${index}`}
-                        className="flex items-start gap-3 rounded-[1rem] border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3"
-                      >
-                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
-                          <CheckCircle2 className="size-4" aria-hidden />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="m-0 text-[0.84rem] font-bold text-[#0e182b]">
-                            {item.campaignName}
-                          </p>
-                          {item.redeemedAt ? (
-                            <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                              Redeemed {formatDateTimeShort(item.redeemedAt)}
-                            </p>
-                          ) : null}
-                        </div>
-                        <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[0.66rem] font-bold tabular-nums text-slate-500 ring-1 ring-[#e8edf5]">
-                          #{index + 1}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ) : null}
-          </div>
-        </motion.div>
-      ) : null}
-
-      {showGuestNotFound ? (
-        <GuestNotInDatabasePanel
-          searchQuery={guestNotFoundQuery}
-          onCreateGuest={onCreateGuest}
-          onSearchAgain={() => {
-            setActiveQuery("");
-            setResults([]);
-            setMeta(null);
-            setQuery("");
-            setGuestNotInDatabaseQuery(null);
-            setErrorMessage(null);
-          }}
-        />
-      ) : null}
-
-      {showTable ? (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: standardEase }}
-          className="mx-auto w-full max-w-2xl overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
-        >
-          <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="relative flex size-2 shrink-0">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
-              </span>
-              <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
-                Search results
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveQuery("");
-                setResults([]);
-                setMeta(null);
-                setQuery("");
-                setErrorMessage(null);
-              }}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[0.72rem] font-bold text-white transition hover:bg-white/15"
-            >
-              <ArrowLeft className="size-3.5" aria-hidden />
-              Search again
-            </button>
-          </div>
-
-          <div className="relative overflow-hidden border-b border-[#e8edf5] px-5 py-4 sm:px-6">
-            <span
-              className="pointer-events-none absolute -top-10 -right-8 size-32 rounded-full bg-[#1877f2]/10 blur-2xl"
-              aria-hidden
-            />
-            <div className="relative flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                  <Sparkles className="size-3" aria-hidden />
-                  Matches ready
-                </p>
-                <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
-                  {meta?.total ?? 0} guest
-                  {(meta?.total ?? 0) === 1 ? "" : "s"} found
-                </h3>
-                <p className="m-0 mt-1 text-[0.78rem] font-medium text-slate-500">
-                  Tap a guest to open their profile and redeem deals.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-1.5 text-[0.72rem] font-bold tabular-nums text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)]">
-                <UserRound className="size-3.5" aria-hidden />
-                {meta?.total ?? 0} found
-              </span>
-            </div>
-          </div>
-
-          <div className="p-2.5 sm:p-3">
-            <div className="overflow-x-auto overscroll-x-contain rounded-[1.1rem] ring-1 ring-[#e8edf5]">
-              <table className="w-full min-w-[36rem] border-collapse">
-                <thead>
-                  <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
-                    <th className={`${thClass} w-12`}>
-                      <TableColumnHeader
-                        label="#"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                  </th>
+                  <th className={thClass}>
+                    <TableColumnHeader
+                      icon={UserRound}
+                      label="Name"
+                      iconClassName={TABLE_HEAD_ICON_CLASS}
+                      labelClassName={TABLE_HEAD_LABEL_CLASS}
+                    />
+                  </th>
+                  <th className={thClass}>
+                    <TableColumnHeader
+                      icon={Mail}
+                      label="Email"
+                      iconClassName={TABLE_HEAD_ICON_CLASS}
+                      labelClassName={TABLE_HEAD_LABEL_CLASS}
+                    />
+                  </th>
+                  <th className={thClass}>
+                    <TableColumnHeader
+                      icon={Phone}
+                      label="Phone"
+                      iconClassName={TABLE_HEAD_ICON_CLASS}
+                      labelClassName={TABLE_HEAD_LABEL_CLASS}
+                    />
+                  </th>
+                  <th className={`${thClass} w-24 text-right`}>
+                    <span className={TABLE_HEAD_LABEL_CLASS}>Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {searching && results.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-14 text-center">
+                      <Loader2
+                        className="mx-auto size-6 animate-spin text-[#1877f2]"
+                        aria-hidden
                       />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={UserRound}
-                        label="Guest"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={Mail}
-                        label="Email"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
-                      />
-                    </th>
-                    <th className={thClass}>
-                      <TableColumnHeader
-                        icon={Phone}
-                        label="Phone"
-                        iconClassName={TABLE_HEAD_ICON_CLASS}
-                        labelClassName={TABLE_HEAD_LABEL_CLASS}
-                      />
-                    </th>
-                    <th className={`${thClass} w-20 text-right`}>
-                      <span className="sr-only">View</span>
-                    </th>
+                      <p className="mt-3 text-sm font-medium text-slate-600">
+                        Searching guests…
+                      </p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {searching && results.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-14 text-center">
-                        <Loader2
-                          className="mx-auto size-6 animate-spin text-[#1877f2]"
-                          aria-hidden
-                        />
-                        <p className="mt-3 text-sm font-medium text-slate-600">
-                          Searching guests…
-                        </p>
-                      </td>
-                    </tr>
-                  ) : null}
+                ) : null}
 
-                  {!searching || results.length > 0
-                    ? results.map((guest, index) => {
-                        const rowNumber = rowOffset + index + 1;
-                        const displayName = guest.name?.trim() || "Guest";
-                        const initials = guestInitials(displayName);
+                {!searching || results.length > 0
+                  ? results.map((guest, index) => {
+                      const rowNumber = rowOffset + index + 1;
+                      const displayName = guest.name?.trim() || "Guest";
+                      const initials = guestInitials(displayName);
 
-                        return (
-                          <motion.tr
-                            key={guest.id}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                              duration: 0.28,
-                              delay: Math.min(index * 0.04, 0.24),
-                              ease: standardEase,
-                            }}
-                            className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/80"
-                            onClick={() => void handleSelectGuest(guest)}
-                          >
-                            <td className={tdClass}>
-                              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#f1f5f9] text-[0.7rem] font-bold tabular-nums text-slate-500 transition group-hover:bg-[#1877f2]/10 group-hover:text-[#1877f2]">
-                                {rowNumber}
+                      return (
+                        <tr
+                          key={guest.id}
+                          className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
+                          onClick={() => void handleSelectGuest(guest)}
+                        >
+                          <td className={tdClass}>
+                            <span className="text-xs font-semibold tabular-nums text-slate-400">
+                              {rowNumber}
+                            </span>
+                          </td>
+                          <td className={tdClass}>
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
+                                {initials}
                               </span>
-                            </td>
-                            <td className={tdClass}>
-                              <div className="flex min-w-0 items-center gap-3">
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.75rem] font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] ring-2 ring-white">
-                                  {initials}
-                                </span>
-                                <span className="truncate text-[0.9rem] font-bold text-[#0e182b]">
-                                  {displayName}
-                                </span>
-                              </div>
-                            </td>
-                            <td className={`${tdClass} max-w-[12rem] sm:max-w-xs`}>
-                              <span className="inline-flex min-w-0 items-center gap-2 text-slate-600">
-                                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f4f8ff] text-[#1877f2]/70">
-                                  <Mail className="size-3.5" aria-hidden />
-                                </span>
-                                <span className="truncate" title={guest.email}>
-                                  {guest.email}
-                                </span>
+                              <span className="truncate font-bold text-[#07111f]">
+                                {displayName}
                               </span>
-                            </td>
-                            <td className={tdClass}>
-                              {guest.phone?.trim() ? (
-                                <span className="inline-flex items-center gap-2 text-slate-600">
-                                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f4f8ff] text-[#1877f2]/70">
-                                    <Phone className="size-3.5" aria-hidden />
-                                  </span>
-                                  {guest.phone}
-                                </span>
-                              ) : (
-                                <span className="text-zinc-300">N/A</span>
-                              )}
-                            </td>
-                            <td className={`${tdClass} text-right`}>
-                              <span className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[0.72rem] font-bold text-slate-400 transition group-hover:border-[#dbeafe] group-hover:bg-white group-hover:text-[#1877f2] group-hover:shadow-sm">
-                                Open
-                                <ChevronRight className="size-3.5" aria-hidden />
-                              </span>
-                            </td>
-                          </motion.tr>
-                        );
-                      })
-                    : null}
-                </tbody>
-              </table>
-            </div>
+                            </div>
+                          </td>
+                          <td className={`${tdClass} max-w-[14rem]`}>
+                            <span
+                              className="block truncate text-slate-600"
+                              title={guest.email}
+                            >
+                              {guest.email}
+                            </span>
+                          </td>
+                          <td className={tdClass}>
+                            {guest.phone?.trim() ? (
+                              <span className="text-slate-600">{guest.phone}</span>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                          <td className={`${tdClass} text-right`}>
+                            <span className="inline-flex items-center gap-1 text-[0.75rem] font-bold text-[#1877f2]">
+                              Open
+                              <ChevronRight className="size-3.5" aria-hidden />
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : null}
+              </tbody>
+            </table>
           </div>
 
           {meta && meta.totalPages > 1 ? (
-            <div className="border-t border-[#e8edf5] px-5 py-3 sm:px-6">
+            <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-6">
               <OffsetPagination
                 page={page}
                 totalPages={meta.totalPages}
@@ -1657,9 +1254,682 @@ export function ScannerSearchGuestPanel({
               />
             </div>
           ) : null}
-        </motion.div>
-      ) : null}
-      </div>
+        </article>
+      ) : selectedProfile || loadingProfile ? (
+        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+          {loadingProfile ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+              <Loader2
+                className="size-10 animate-spin text-[#1877f2]"
+                aria-hidden
+              />
+              <div>
+                <p className="m-0 text-[0.95rem] font-extrabold text-[#0e182b]">
+                  Loading guest
+                </p>
+                <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
+                  Fetching profile and active deals…
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {selectedProfile ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.32, ease: standardEase }}
+              className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+            >
+              <div className="relative shrink-0 overflow-hidden border-b border-white/10 bg-[#0b1220] px-5 py-4 sm:px-7">
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-80"
+                  aria-hidden
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 70% 120% at 0% 0%, rgba(24,119,242,0.35), transparent 55%), radial-gradient(ellipse 50% 80% at 100% 100%, rgba(16,185,129,0.18), transparent 50%)",
+                  }}
+                />
+                <div className="relative flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="relative flex size-2.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/55">
+                        Guest profile
+                      </p>
+                      <p className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-white">
+                        {selectedProfile.customerName}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedProfile(null);
+                        setSelectedDealIds([]);
+                        setRedeemStep(null);
+                        setRedeemSuccess(null);
+                        setPendingRedeemAmount(null);
+                        setSelectedFunnelIds([]);
+                        setPurchaseStep(null);
+                        setPendingDealAmount(null);
+                        setPurchaseSuccess(null);
+                        setBusinessDeals([]);
+                        setPreviousRedemptions([]);
+                        setPreviousRedemptionsMeta(null);
+                        setPreviousRedemptionsPage(1);
+                        idempotencyKeyRef.current = "";
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[0.72rem] font-bold text-white backdrop-blur-sm transition hover:bg-white/18"
+                    >
+                      <ArrowLeft className="size-3.5" aria-hidden />
+                      Back to results
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => void handleDeleteGuest()}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-400/45 bg-red-500/20 px-3.5 py-2 text-[0.72rem] font-bold text-red-100 transition hover:bg-red-500/30 disabled:opacity-50"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                      {deleting ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: standardEase }}
+                  className="relative overflow-hidden border-b border-[#e8edf5] bg-white px-5 py-7 sm:px-7 sm:py-8"
+                >
+                  <div className="relative flex min-w-0 flex-wrap items-start gap-5 sm:gap-6">
+                    <span className="flex size-[4.75rem] shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[1.45rem] font-bold text-white shadow-[0_12px_28px_rgba(24,119,242,0.28)] sm:size-[5.25rem] sm:text-[1.6rem]">
+                      {guestInitials(selectedProfile.customerName)}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)]">
+                        <UserCheck className="size-3.5" aria-hidden />
+                        Ready to redeem
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <h2 className="m-0 text-[1.65rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.9rem]">
+                          {selectedProfile.customerName}
+                        </h2>
+                        <span className="inline-flex max-w-[16rem] items-center gap-1.5 text-[0.78rem] font-medium text-slate-600 sm:max-w-[20rem]">
+                          <Mail
+                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            aria-hidden
+                          />
+                          <span className="truncate">
+                            {selectedProfile.email}
+                          </span>
+                        </span>
+                        {selectedProfile.phone ? (
+                          <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-medium text-slate-600">
+                            <Phone
+                              className="size-3.5 shrink-0 text-[#1877f2]"
+                              aria-hidden
+                            />
+                            {selectedProfile.phone}
+                          </span>
+                        ) : null}
+                        <span
+                          className="hidden h-5 w-px shrink-0 bg-[#e2e8f0] sm:block"
+                          aria-hidden
+                        />
+                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-[#0e182b]">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-400">
+                            Guest deals
+                          </span>
+                          <span className="tabular-nums font-extrabold">
+                            {activeDeals.length}
+                          </span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-emerald-800">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-600/80">
+                            Paid
+                          </span>
+                          <span className="tabular-nums font-extrabold">
+                            {prepaidDeals.length}
+                          </span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-[#0e3a8a]">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#1877f2]/80">
+                            Redeemed
+                          </span>
+                          <span className="tabular-nums font-extrabold">
+                            {previousRedemptionsMeta?.total ??
+                              selectedProfile.previouslyRedeemedCount}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
+                  {redeemSuccess ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-gradient-to-br from-[#ecfdf5] to-white px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
+                    >
+                      <CheckCircle2
+                        className="mt-0.5 size-5 shrink-0 text-emerald-600"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-sm font-extrabold text-emerald-900">
+                          Redeemed successfully
+                        </p>
+                        <p className="m-0 mt-0.5 text-sm text-emerald-800">
+                          {redeemSuccess.campaignName} ·{" "}
+                          {formatDateTimeShort(redeemSuccess.redeemedAt)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRedeemSuccess(null)}
+                        className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
+                      >
+                        Dismiss
+                      </button>
+                    </motion.div>
+                  ) : null}
+
+                  {purchaseSuccess ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-gradient-to-br from-[#ecfdf5] to-white px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
+                    >
+                      <CheckCircle2
+                        className="mt-0.5 size-5 shrink-0 text-emerald-600"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-sm font-extrabold text-emerald-900">
+                          Deals attached
+                        </p>
+                        <p className="m-0 mt-0.5 text-sm text-emerald-800">
+                          {purchaseSuccess.length === 1
+                            ? purchaseSuccess[0].campaignName
+                            : `${purchaseSuccess.length} deals`}{" "}
+                          added for this guest.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseSuccess(null)}
+                        className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
+                      >
+                        Dismiss
+                      </button>
+                    </motion.div>
+                  ) : null}
+
+                  <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+                    <motion.section
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.38,
+                        delay: 0.06,
+                        ease: standardEase,
+                      }}
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
+                    >
+                      <div className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#0e182b] to-[#1a2744] px-4 py-4 sm:px-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex items-start gap-3">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
+                              <Gift className="size-[1.1rem]" aria-hidden />
+                            </span>
+                            <div>
+                              <h3 className="m-0 text-[1rem] font-extrabold text-white">
+                                Guest deals
+                              </h3>
+                              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-white/60">
+                                Redeem deals already on this guest
+                              </p>
+                            </div>
+                          </div>
+                          {activeDeals.some((deal) => deal.canSelect) ? (
+                            <p className="max-w-[13rem] text-right text-[0.68rem] font-medium leading-snug text-white/50">
+                              Select paid or unpaid deals — not both together.
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+                        {activeDeals.length === 0 ? (
+                          <div className="flex flex-1 flex-col items-center justify-center rounded-[1.1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                            <Wallet
+                              className="mx-auto size-6 text-slate-300"
+                              aria-hidden
+                            />
+                            <p className="m-0 mt-2.5 text-[0.84rem] font-semibold text-slate-600">
+                              No active deals on this guest yet
+                            </p>
+                            <p className="m-0 mt-1 text-[0.72rem] font-medium text-slate-400">
+                              Attach a business deal to get started.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex min-h-0 flex-1 flex-col space-y-4">
+                            <div className="min-h-0 flex-1">
+                              <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-emerald-700 ring-1 ring-emerald-100">
+                                Paid ({prepaidDeals.length})
+                              </p>
+                              {prepaidDeals.length > 0 ? (
+                                <div className="mt-2.5">
+                                  <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+                                    {prepaidDeals.map((deal) => (
+                                      <DealSelectRow
+                                        key={deal.couponId}
+                                        deal={deal}
+                                        checked={selectedDealIds.includes(
+                                          deal.couponId,
+                                        )}
+                                        disabled={
+                                          confirmingRedemption ||
+                                          purchasing ||
+                                          (selectedPaymentLabel === "UNPAID" &&
+                                            !selectedDealIds.includes(
+                                              deal.couponId,
+                                            ))
+                                        }
+                                        tone="prepaid"
+                                        onToggle={() =>
+                                          toggleDealSelection(deal)
+                                        }
+                                      />
+                                    ))}
+                                  </ul>
+                                  {prepaidDeals.length > 3 ? (
+                                    <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
+                                      Scroll to view more
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
+                                  No paid deals.
+                                </p>
+                              )}
+                            </div>
+
+                            <div>
+                              <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-slate-600 ring-1 ring-slate-200">
+                                Not paid yet ({unpaidDeals.length})
+                              </p>
+                              {unpaidDeals.length > 0 ? (
+                                <div className="mt-2.5">
+                                  <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+                                    {unpaidDeals.map((deal) => (
+                                      <DealSelectRow
+                                        key={deal.couponId}
+                                        deal={deal}
+                                        checked={selectedDealIds.includes(
+                                          deal.couponId,
+                                        )}
+                                        disabled={
+                                          confirmingRedemption ||
+                                          purchasing ||
+                                          (selectedPaymentLabel === "PREPAID" &&
+                                            !selectedDealIds.includes(
+                                              deal.couponId,
+                                            ))
+                                        }
+                                        tone="unpaid"
+                                        onToggle={() =>
+                                          toggleDealSelection(deal)
+                                        }
+                                      />
+                                    ))}
+                                  </ul>
+                                  {unpaidDeals.length > 3 ? (
+                                    <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
+                                      Scroll to view more
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
+                                  No unpaid deals.
+                                </p>
+                              )}
+                            </div>
+
+                            {selectedDealIds.length > 0 ? (
+                              <div className="mt-auto flex justify-end border-t border-[#f1f5f9] pt-4">
+                                <button
+                                  type="button"
+                                  disabled={confirmingRedemption || purchasing}
+                                  onClick={() => setRedeemStep("completeOrder")}
+                                  className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_28px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] hover:shadow-[0_12px_32px_rgba(24,119,242,0.4)] disabled:opacity-50"
+                                >
+                                  {confirmingRedemption
+                                    ? "Redeeming…"
+                                    : `Redeem selected (${selectedDealIds.length})`}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    </motion.section>
+
+                    <motion.section
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.38,
+                        delay: 0.12,
+                        ease: standardEase,
+                      }}
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
+                    >
+                      <div className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#0e182b] to-[#1a2744] px-4 py-4 sm:px-5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
+                            <Sparkles className="size-[1.1rem]" aria-hidden />
+                          </span>
+                          <div>
+                            <h3 className="m-0 text-[1rem] font-extrabold text-white">
+                              Business deals
+                            </h3>
+                            <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-white/60">
+                              Active campaigns you can attach to this guest
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+                        {loadingBusinessDeals ? (
+                          <div className="flex flex-1 items-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-600">
+                            <Loader2
+                              className="size-4 animate-spin text-[#1877f2]"
+                              aria-hidden
+                            />
+                            Loading business deals…
+                          </div>
+                        ) : null}
+
+                        {!loadingBusinessDeals && businessDeals.length > 0 ? (
+                          <div className="flex min-h-0 flex-1 flex-col">
+                            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+                              {businessDeals.map((deal) => (
+                                <BusinessDealCheckboxRow
+                                  key={deal.id}
+                                  deal={deal}
+                                  checked={selectedFunnelIds.includes(deal.id)}
+                                  alreadyOnGuest={guestFunnelIds.has(deal.id)}
+                                  disabled={purchasing || confirmingRedemption}
+                                  onToggle={() =>
+                                    toggleBusinessDealSelection(deal.id)
+                                  }
+                                />
+                              ))}
+                            </ul>
+                            {businessDeals.length > 3 ? (
+                              <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
+                                Scroll to view more
+                              </p>
+                            ) : null}
+                            {selectedFunnelIds.length > 0 ? (
+                              <div className="mt-auto flex justify-end border-t border-[#f1f5f9] pt-4">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    purchasing ||
+                                    confirmingRedemption ||
+                                    expectedPurchaseAmount == null
+                                  }
+                                  onClick={() => setPurchaseStep("confirm")}
+                                  className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_28px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] disabled:opacity-50"
+                                >
+                                  Confirm ({selectedFunnelIds.length})
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {!loadingBusinessDeals && businessDeals.length === 0 ? (
+                          <div className="flex flex-1 flex-col items-center justify-center rounded-[1.1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                            <p className="m-0 text-[0.84rem] font-semibold text-slate-600">
+                              No active deals for this business.
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </motion.section>
+                  </div>
+
+                  {(previousRedemptionsMeta?.total ??
+                    selectedProfile.previouslyRedeemedCount) > 0 ||
+                  loadingPreviousRedemptions ? (
+                    <motion.section
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.38,
+                        delay: 0.16,
+                        ease: standardEase,
+                      }}
+                      className="-mx-5 overflow-hidden border-t border-[#e8edf5] bg-white sm:-mx-7"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8fafc] to-white px-5 py-4 sm:px-7">
+                        <div className="min-w-0">
+                          <h3 className="m-0 flex items-center gap-2.5 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+                            <span className="flex size-9 items-center justify-center rounded-xl bg-[#0e182b] text-white shadow-[0_6px_14px_rgba(14,24,43,0.2)]">
+                              <History className="size-4" aria-hidden />
+                            </span>
+                            Previously redeemed
+                          </h3>
+                          <p className="m-0 mt-1 pl-[2.9rem] text-[0.75rem] font-medium text-slate-500">
+                            Past rewards this guest has already used
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.72rem] font-bold tabular-nums text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)]">
+                          {previousRedemptionsMeta?.total ??
+                            selectedProfile.previouslyRedeemedCount}{" "}
+                          redeemed
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto overscroll-x-contain">
+                        <table className="w-full min-w-[32rem] border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
+                              <th className={`${thClass} w-12`}>
+                                <TableColumnHeader
+                                  label="#"
+                                  iconClassName={TABLE_HEAD_ICON_CLASS}
+                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
+                                />
+                              </th>
+                              <th className={thClass}>
+                                <TableColumnHeader
+                                  icon={Gift}
+                                  label="Campaign"
+                                  iconClassName={TABLE_HEAD_ICON_CLASS}
+                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
+                                />
+                              </th>
+                              <th className={thClass}>
+                                <TableColumnHeader
+                                  icon={History}
+                                  label="Redeemed at"
+                                  iconClassName={TABLE_HEAD_ICON_CLASS}
+                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
+                                />
+                              </th>
+                              <th className={`${thClass} w-28 text-right`}>
+                                <span className={TABLE_HEAD_LABEL_CLASS}>
+                                  Status
+                                </span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingPreviousRedemptions &&
+                            previousRedemptions.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="px-6 py-10 text-center">
+                                  <Loader2
+                                    className="mx-auto size-5 animate-spin text-[#1877f2]"
+                                    aria-hidden
+                                  />
+                                  <p className="mt-2 text-sm font-medium text-slate-500">
+                                    Loading redeemed rewards…
+                                  </p>
+                                </td>
+                              </tr>
+                            ) : null}
+
+                            {!loadingPreviousRedemptions &&
+                            previousRedemptions.length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className="px-6 py-8 text-center text-sm font-medium text-slate-500"
+                                >
+                                  No previously redeemed rewards.
+                                </td>
+                              </tr>
+                            ) : null}
+
+                            {previousRedemptions.map((item, index) => {
+                              const rowNumber =
+                                ((previousRedemptionsMeta?.page ??
+                                  previousRedemptionsPage) -
+                                  1) *
+                                  (previousRedemptionsMeta?.limit ??
+                                    GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE) +
+                                index +
+                                1;
+                              return (
+                                <tr
+                                  key={`${item.campaignName}-${item.redeemedAt}-${rowNumber}`}
+                                  className="border-b border-[#f1f5f9] transition-colors last:border-0 hover:bg-[#f8fafc]"
+                                >
+                                  <td className={tdClass}>
+                                    <span className="text-xs font-semibold tabular-nums text-slate-400">
+                                      {rowNumber}
+                                    </span>
+                                  </td>
+                                  <td className={tdClass}>
+                                    <span className="font-extrabold text-[#07111f]">
+                                      {item.campaignName}
+                                    </span>
+                                  </td>
+                                  <td className={tdClass}>
+                                    {item.redeemedAt ? (
+                                      <span className="font-medium text-slate-600">
+                                        {formatDateTimeShort(item.redeemedAt)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
+                                  </td>
+                                  <td className={`${tdClass} text-right`}>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-700 ring-1 ring-emerald-100">
+                                      <CheckCircle2
+                                        className="size-3"
+                                        aria-hidden
+                                      />
+                                      Used
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {previousRedemptionsMeta &&
+                      previousRedemptionsMeta.totalPages > 1 ? (
+                        <div className="border-t border-[#e8edf5] px-5 py-3 sm:px-7">
+                          <OffsetPagination
+                            page={previousRedemptionsMeta.page}
+                            totalPages={previousRedemptionsMeta.totalPages}
+                            total={previousRedemptionsMeta.total}
+                            limit={previousRedemptionsMeta.limit}
+                            loading={loadingPreviousRedemptions}
+                            onPageChange={setPreviousRedemptionsPage}
+                            itemLabel="rewards"
+                          />
+                        </div>
+                      ) : null}
+                    </motion.section>
+                  ) : null}
+                </div>
+              </div>
+            </motion.div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="w-full overflow-y-auto overscroll-contain px-4 py-4 pb-6 sm:px-5 sm:py-5">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+            {!selectedProfile &&
+            !loadingProfile &&
+            activeQuery.length === 0 &&
+            !searching &&
+            !showGuestNotFound ? (
+              <SearchHeroCard
+                query={query}
+                searching={searching}
+                onQueryChange={setQuery}
+                onSearch={handleSearch}
+              />
+            ) : null}
+
+            {!selectedProfile && searching && !showTable ? (
+              <div className="mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-10 text-sm font-medium text-slate-600">
+                <Loader2
+                  className="size-4 animate-spin text-[#1877f2]"
+                  aria-hidden
+                />
+                Searching guests…
+              </div>
+            ) : null}
+
+            {errorMessage && !showGuestNotFound ? (
+              <div className="mx-auto w-full max-w-2xl rounded-[1.1rem] border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#dc2626]">
+                {errorMessage}
+              </div>
+            ) : null}
+
+            {showGuestNotFound ? (
+              <GuestNotInDatabasePanel
+                searchQuery={guestNotFoundQuery}
+                onCreateGuest={onCreateGuest}
+                onSearchAgain={() => {
+                  setActiveQuery("");
+                  setResults([]);
+                  setMeta(null);
+                  setQuery("");
+                  setGuestNotInDatabaseQuery(null);
+                  setErrorMessage(null);
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
     </>
   );

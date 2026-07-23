@@ -54,33 +54,37 @@ export function BusinessQrScannerPanel({
   businessId: number;
 }) {
   const [activeTab, setActiveTab] = useState<ScannerTabId>("scan");
+  const [hideScannerTabs, setHideScannerTabs] = useState(false);
 
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Scan and redeem">
       <div className="rd-premium-page">
         <article className={`${scannerCardClass} rd-premium-panel`}>
-          <div
-            className="shrink-0 border-b border-[#e8edf5] bg-white pl-6 pr-5 pt-5 pb-3.5 sm:pl-7 sm:pr-6 sm:pt-5 sm:pb-4"
-            aria-label="Scanner actions"
-          >
+          {!hideScannerTabs ? (
             <div
-              className="flex flex-wrap items-center gap-2"
-              role="tablist"
+              className="shrink-0 border-b border-[#e8edf5] bg-white pl-6 pr-5 pt-5 pb-3.5 sm:pl-7 sm:pr-6 sm:pt-5 sm:pb-4"
+              aria-label="Scanner actions"
             >
-              {SCANNER_TABS.map(({ id, label, icon }) => (
-                <FilterPill
-                  key={id}
-                  label={label}
-                  icon={icon}
-                  active={id === activeTab}
-                  onClick={() => setActiveTab(id)}
-                />
-              ))}
+              <div className="flex flex-wrap items-center gap-2" role="tablist">
+                {SCANNER_TABS.map(({ id, label, icon }) => (
+                  <FilterPill
+                    key={id}
+                    label={label}
+                    icon={icon}
+                    active={id === activeTab}
+                    onClick={() => setActiveTab(id)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div
-            className="rd-premium-panel__body min-h-0 flex-1 !block overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5"
+            className={
+              activeTab === "search"
+                ? "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+                : "rd-premium-panel__body min-h-0 flex-1 !block overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5"
+            }
             role="tabpanel"
           >
             {activeTab === "scan" ? (
@@ -94,6 +98,7 @@ export function BusinessQrScannerPanel({
               <ScannerSearchGuestPanel
                 businessId={businessId}
                 onCreateGuest={() => setActiveTab("create")}
+                onHideScannerTabsChange={setHideScannerTabs}
               />
             ) : null}
 
