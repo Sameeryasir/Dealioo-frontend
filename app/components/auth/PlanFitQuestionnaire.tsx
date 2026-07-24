@@ -12,6 +12,8 @@ import {
   type PlanFitPlanId,
   type PlanFitQuestionId,
 } from "@/app/lib/plan-fit-questionnaire";
+import { savePlanFitProgress } from "@/app/services/onboarding/save-plan-fit";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,21 +29,59 @@ export type PlanFitResult = {
 type PlanFitQuestionnaireProps = {
   onComplete: (answers: PlanFitAnswers) => void | Promise<void>;
   submitting?: boolean;
+  /** Server draft so users resume at the last unanswered question. */
+  initialDraftAnswers?: Partial<PlanFitAnswers> | null;
+  initialDraftQuestionIndex?: number | null;
 };
+
+function resolveResumeIndex(
+  draft: Partial<PlanFitAnswers> | null | undefined,
+  questionIndex: number | null | undefined,
+): number {
+  if (
+    typeof questionIndex === "number" &&
+    questionIndex >= 0 &&
+    questionIndex < PLAN_FIT_QUESTIONS.length
+  ) {
+    return questionIndex;
+  }
+  if (!draft) return 0;
+  for (let i = 0; i < PLAN_FIT_QUESTIONS.length; i += 1) {
+    const id = PLAN_FIT_QUESTIONS[i]?.id;
+    if (id && draft[id] == null) return i;
+  }
+  return Math.max(0, PLAN_FIT_QUESTIONS.length - 1);
+}
 
 export function PlanFitQuestionnaire({
   onComplete,
   submitting = false,
+  initialDraftAnswers = null,
+  initialDraftQuestionIndex = null,
 }: PlanFitQuestionnaireProps) {
   const reduced = useReducedMotion();
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<PlanFitAnswers>>(() =>
-    createEmptyPlanFitAnswers(),
+  const [stepIndex, setStepIndex] = useState(() =>
+    resolveResumeIndex(initialDraftAnswers, initialDraftQuestionIndex),
   );
+  const [answers, setAnswers] = useState<Partial<PlanFitAnswers>>(() => ({
+    ...createEmptyPlanFitAnswers(),
+    ...(initialDraftAnswers ?? {}),
+  }));
 
   useEffect(() => {
     clearPlanFitProgress();
   }, []);
+
+  // If parent restores draft after first paint, apply once without a loader flash.
+  useEffect(() => {
+    if (!initialDraftAnswers || Object.keys(initialDraftAnswers).length === 0) {
+      return;
+    }
+    setAnswers((prev) => ({ ...prev, ...initialDraftAnswers }));
+    setStepIndex(
+      resolveResumeIndex(initialDraftAnswers, initialDraftQuestionIndex),
+    );
+  }, [initialDraftAnswers, initialDraftQuestionIndex]);
 
   const question = PLAN_FIT_QUESTIONS[stepIndex];
   const totalSteps = PLAN_FIT_QUESTIONS.length;
@@ -52,19 +92,36 @@ export function PlanFitQuestionnaire({
   const canContinue = currentValue != null && !submitting;
   const isLastStep = stepIndex >= totalSteps - 1;
 
+  const persistProgress = (
+    nextAnswers: Partial<PlanFitAnswers>,
+    nextIndex: number,
+  ) => {
+    // Fire-and-forget: UX must not block on draft save failures.
+    void savePlanFitProgress({
+      answers: nextAnswers,
+      questionIndex: nextIndex,
+    }).catch(() => {
+      /* keep local answers; user can retry */
+    });
+  };
+
   const handleSelect = (value: string) => {
     if (!question || submitting) return;
-    setAnswers((prev) => ({
-      ...prev,
+    const next = {
+      ...answers,
       [question.id]: value,
-    }));
+    };
+    setAnswers(next);
+    persistProgress(next, stepIndex);
   };
 
   const handleNext = () => {
     if (!canContinue || !question) return;
 
     if (!isLastStep) {
-      setStepIndex((prev) => prev + 1);
+      const nextIndex = stepIndex + 1;
+      setStepIndex(nextIndex);
+      persistProgress(answers, nextIndex);
       return;
     }
 
@@ -75,10 +132,14 @@ export function PlanFitQuestionnaire({
 
   const handleBack = () => {
     if (stepIndex === 0 || submitting) return;
-    setStepIndex((prev) => prev - 1);
+    const nextIndex = stepIndex - 1;
+    setStepIndex(nextIndex);
+    persistProgress(answers, nextIndex);
   };
 
-  if (!question) return null;
+  if (!question) {
+    return <OnboardingPageLoading />;
+  }
 
   return (
     <div

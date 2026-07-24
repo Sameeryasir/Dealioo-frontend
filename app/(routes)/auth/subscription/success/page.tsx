@@ -1,9 +1,11 @@
 "use client";
 
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
+import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
 import {
   completeUserPlanCheckout,
   waitForActiveUserSubscription,
@@ -14,9 +16,7 @@ import { Suspense, useEffect, useState } from "react";
 function SubscriptionSuccessInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message, setMessage] = useState(
-    "Payment received. Activating your subscription…",
-  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,13 +47,15 @@ function SubscriptionSuccessInner() {
           billing: subscription.billingCycle,
         });
 
+        invalidateOnboardingStatusCache();
+
         const destination = await fetchAuthenticatedOnboardingDestination();
         if (cancelled) return;
 
         router.replace(destination);
       } catch (error) {
         if (cancelled) return;
-        setMessage(
+        setErrorMessage(
           error instanceof Error
             ? error.message
             : "Could not activate your subscription.",
@@ -68,11 +70,15 @@ function SubscriptionSuccessInner() {
     };
   }, [router, searchParams]);
 
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-brand-soft px-4">
-      <p className="max-w-md text-center text-sm text-brand-muted">{message}</p>
-    </main>
-  );
+  if (errorMessage) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-brand-soft px-4">
+        <p className="max-w-md text-center text-sm text-red-600">{errorMessage}</p>
+      </main>
+    );
+  }
+
+  return <OnboardingPageLoading />;
 }
 
 export default function SubscriptionSuccessPage() {

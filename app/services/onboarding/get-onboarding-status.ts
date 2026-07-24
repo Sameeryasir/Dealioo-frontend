@@ -3,15 +3,37 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type OnboardingNextStep = "plan_selection" | "business_creation" | null;
 
+export type OnboardingChecklistItem = {
+  id: string;
+  label: string;
+  completed: boolean;
+  required: boolean;
+};
+
 export type OnboardingStatus = {
   businessId: number | null;
   twoFactorCompleted: boolean;
+  /** @deprecated Prefer subscriptionCompleted */
   subscriptionSelected: boolean;
+  subscriptionCompleted: boolean;
   businessCreated: boolean;
+  metaConnected: boolean;
+  stripeConnected: boolean;
+  teamInvited: boolean;
+  firstCampaignCreated: boolean;
+  customersImported: boolean;
+  hasBusinessDraft: boolean;
   onboardingCompleted: boolean;
+  onboardingVersion: string;
   nextStep: OnboardingNextStep;
   redirectPath: string;
+  progress: number;
+  checklist: OnboardingChecklistItem[];
 };
+
+const STATUS_CACHE_TTL_MS = 8_000;
+const statusCache = new Map<string, { at: number; value: OnboardingStatus }>();
+const statusInflight = new Map<string, Promise<OnboardingStatus>>();
 
 function normalizeNextStep(value: unknown): OnboardingNextStep {
   if (value === "plan_selection" || value === "business_creation") {
@@ -22,11 +44,11 @@ function normalizeNextStep(value: unknown): OnboardingNextStep {
 
 function normalizeRedirectPath(
   value: unknown,
-  subscriptionSelected: boolean,
+  subscriptionCompleted: boolean,
   businessCreated: boolean,
 ): string {
   if (typeof value !== "string" || !value.trim()) {
-    if (!subscriptionSelected) return "/auth/select-plan";
+    if (!subscriptionCompleted) return "/auth/select-plan";
     return businessCreated ? "/dashboard" : "/business/register";
   }
 
@@ -50,56 +72,133 @@ function parseOptionalId(value: unknown): number | null {
   return null;
 }
 
+function normalizeChecklist(raw: unknown): OnboardingChecklistItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((row) => {
+      if (!row || typeof row !== "object") return null;
+      const item = row as Record<string, unknown>;
+      if (typeof item.id !== "string" || typeof item.label !== "string") {
+        return null;
+      }
+      return {
+        id: item.id,
+        label: item.label,
+        completed: Boolean(item.completed),
+        required: Boolean(item.required),
+      };
+    })
+    .filter((item): item is OnboardingChecklistItem => item != null);
+}
+
 function normalizeOnboardingStatus(raw: unknown): OnboardingStatus {
   const record =
     raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 
   const businessId = parseOptionalId(record.businessId);
   const businessCreated = Boolean(record.businessCreated);
-  const subscriptionSelected = Boolean(record.subscriptionSelected);
+  const subscriptionCompleted = Boolean(
+    record.subscriptionCompleted ?? record.subscriptionSelected,
+  );
+
+  const progressRaw = record.progress;
+  const progress =
+    typeof progressRaw === "number" && Number.isFinite(progressRaw)
+      ? Math.max(0, Math.min(100, Math.round(progressRaw)))
+      : subscriptionCompleted
+        ? businessCreated
+          ? 65
+          : 40
+        : 15;
 
   return {
     businessId,
     twoFactorCompleted: Boolean(record.twoFactorCompleted ?? true),
-    subscriptionSelected,
+    subscriptionSelected: subscriptionCompleted,
+    subscriptionCompleted,
     businessCreated,
+    metaConnected: Boolean(record.metaConnected),
+    stripeConnected: Boolean(record.stripeConnected),
+    teamInvited: Boolean(record.teamInvited),
+    firstCampaignCreated: Boolean(record.firstCampaignCreated),
+    customersImported: Boolean(record.customersImported),
+    hasBusinessDraft: Boolean(record.hasBusinessDraft),
     onboardingCompleted: Boolean(record.onboardingCompleted),
+    onboardingVersion:
+      typeof record.onboardingVersion === "string" && record.onboardingVersion
+        ? record.onboardingVersion
+        : "2026-v1",
     nextStep: normalizeNextStep(record.nextStep),
     redirectPath: normalizeRedirectPath(
       record.redirectPath,
-      subscriptionSelected,
+      subscriptionCompleted,
       businessCreated,
     ),
+    progress,
+    checklist: normalizeChecklist(record.checklist),
   };
 }
 
 export async function getOnboardingStatus(
   businessId?: number,
 ): Promise<OnboardingStatus> {
-  const params = new URLSearchParams();
-  if (businessId != null && Number.isFinite(businessId) && businessId >= 1) {
-    params.set("businessId", String(businessId));
+  const cacheKey =
+    businessId != null && Number.isFinite(businessId) && businessId >= 1
+      ? `id:${businessId}`
+      : "default";
+
+  const cached = statusCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < STATUS_CACHE_TTL_MS) {
+    return cached.value;
   }
 
-  const query = params.toString();
-  const url = `${getApiBaseUrl()}/onboarding/status${query ? `?${query}` : ""}`;
-
-  const res = await authenticatedFetch(url, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error(
-      await parseApiMessageFromResponse(
-        res,
-        "Could not load onboarding status.",
-      ),
-    );
+  // Reuse an in-flight request so parallel gates (redirect + guard) don't lag.
+  const existing = statusInflight.get(cacheKey);
+  if (existing) {
+    return existing;
   }
 
-  const data: unknown = await res.json();
-  return normalizeOnboardingStatus(data);
+  const request = (async () => {
+    const params = new URLSearchParams();
+    if (businessId != null && Number.isFinite(businessId) && businessId >= 1) {
+      params.set("businessId", String(businessId));
+    }
+
+    const query = params.toString();
+    const url = `${getApiBaseUrl()}/onboarding/status${query ? `?${query}` : ""}`;
+
+    const res = await authenticatedFetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        await parseApiMessageFromResponse(
+          res,
+          "Could not load onboarding status.",
+        ),
+      );
+    }
+
+    const data: unknown = await res.json();
+    const normalized = normalizeOnboardingStatus(data);
+    statusCache.set(cacheKey, { at: Date.now(), value: normalized });
+    return normalized;
+  })();
+
+  statusInflight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    statusInflight.delete(cacheKey);
+  }
+}
+
+/** Call after create-business / checkout so the next gate reads fresh state. */
+export function invalidateOnboardingStatusCache(): void {
+  statusCache.clear();
+  statusInflight.clear();
 }
 
 async function parseApiMessageFromResponse(

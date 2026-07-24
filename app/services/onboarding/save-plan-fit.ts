@@ -27,6 +27,8 @@ export type GetPlanFitResponse = {
   planFitAnswers: PlanFitAnswers | null;
   planFitRecommendedPlan: string | null;
   planFitCompletedAt: string | null;
+  draftAnswers: Partial<PlanFitAnswers> | null;
+  draftQuestionIndex: number | null;
 };
 
 async function parseApiMessageFromResponse(
@@ -108,6 +110,57 @@ export async function getPlanFit(): Promise<GetPlanFitResponse> {
       typeof record.planFitCompletedAt === "string"
         ? record.planFitCompletedAt
         : null,
+    draftAnswers:
+      record.draftAnswers && typeof record.draftAnswers === "object"
+        ? (record.draftAnswers as Partial<PlanFitAnswers>)
+        : null,
+    draftQuestionIndex:
+      typeof record.draftQuestionIndex === "number"
+        ? record.draftQuestionIndex
+        : null,
+  };
+}
+
+export async function savePlanFitProgress(input: {
+  answers: Partial<PlanFitAnswers>;
+  questionIndex?: number;
+}): Promise<{
+  draftAnswers: Partial<PlanFitAnswers>;
+  draftQuestionIndex: number | null;
+}> {
+  const url = `${getApiBaseUrl()}/onboarding/plan-fit/progress`;
+
+  const res = await authenticatedFetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiMessageFromResponse(
+        res,
+        "Could not save quiz progress.",
+      ),
+    );
+  }
+
+  const data: unknown = await res.json();
+  const record =
+    data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  return {
+    draftAnswers:
+      record.draftAnswers && typeof record.draftAnswers === "object"
+        ? (record.draftAnswers as Partial<PlanFitAnswers>)
+        : input.answers,
+    draftQuestionIndex:
+      typeof record.draftQuestionIndex === "number"
+        ? record.draftQuestionIndex
+        : input.questionIndex ?? null,
   };
 }
 

@@ -28,6 +28,8 @@ function SelectPlanPageInner() {
         return;
       }
 
+      // Show the plan UI as soon as we know this is the right step (cached status
+      // keeps this fast). Plan-fit restore continues inside the panel.
       try {
         const destination = await fetchAuthenticatedOnboardingDestination();
         if (cancelled) return;
@@ -43,7 +45,10 @@ function SelectPlanPageInner() {
           const subscription = await getMyUserSubscription();
           if (cancelled) return;
 
-          if (subscription?.status === "active" || subscription?.status === "trialing") {
+          if (
+            subscription?.status === "active" ||
+            subscription?.status === "trialing"
+          ) {
             router.replace("/business/register");
             return;
           }

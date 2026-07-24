@@ -2,6 +2,7 @@
 
 import { LoginPageShell } from "@/app/components/auth/LoginPageShell";
 import LoginForm from "@/app/components/LoginForm";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import {
@@ -136,11 +137,7 @@ function LoginPageInner() {
 }
 
 function LoginPageLoading() {
-  return (
-    <div className="landing-page auth-signup-page flex min-h-screen items-center justify-center bg-white">
-      <p className="text-sm text-brand-muted">Loading…</p>
-    </div>
-  );
+  return <OnboardingPageLoading />;
 }
 
 export default function LoginPage() {

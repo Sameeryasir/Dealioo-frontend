@@ -52,11 +52,22 @@ export function resolvePostAuthPath(
     return invitedTeamDashboardPath(returnTo);
   }
 
+  // Prefer server redirectPath as single source of truth.
+  if (status.redirectPath) {
+    if (status.onboardingCompleted) {
+      return resolvePostLoginPath(status, returnTo);
+    }
+    return status.redirectPath;
+  }
+
   if (status.onboardingCompleted) {
     return resolvePostLoginPath(status, returnTo);
   }
 
-  if (!status.subscriptionSelected) {
+  const hasSubscription =
+    status.subscriptionCompleted || status.subscriptionSelected;
+
+  if (!hasSubscription) {
     return "/auth/select-plan";
   }
 
@@ -77,7 +88,7 @@ export async function fetchAuthenticatedOnboardingDestination(
   try {
     const status = await getOnboardingStatus();
 
-    if (status.onboardingCompleted || status.subscriptionSelected) {
+    if (status.onboardingCompleted || status.subscriptionCompleted || status.subscriptionSelected) {
       return resolvePostAuthPath(status, returnTo);
     }
   } catch {
@@ -112,7 +123,7 @@ export function resolveCompletedStepRedirect(
     return "/dashboard";
   }
 
-  if (step === "plan_selection" && status.subscriptionSelected) {
+  if (step === "plan_selection" && (status.subscriptionCompleted || status.subscriptionSelected)) {
     return status.businessCreated ? null : "/business/register";
   }
 

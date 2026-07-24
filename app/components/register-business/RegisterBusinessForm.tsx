@@ -15,6 +15,10 @@ import logoStyles from "@/app/components/register-business/RegisterBusinessForm.
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { validateBusinessLocation } from "@/app/lib/business-location";
 import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
+import {
+  getBusinessOnboardingDraft,
+  saveBusinessOnboardingDraft,
+} from "@/app/services/onboarding/business-draft";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
@@ -56,6 +60,7 @@ const DEFAULT_VALUES: RegisterBusinessFormValues = {
 
 const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
+const DRAFT_DEBOUNCE_MS = 700;
 
 function isImageMime(mime: string): boolean {
   return mime === "image/png" || mime === "image/jpeg" || mime === "image/webp";
@@ -246,11 +251,86 @@ export default function RegisterBusinessForm({
   const [stepIndex, setStepIndex] = useState(0);
   const [values, setValues] = useState<RegisterBusinessFormValues>(DEFAULT_VALUES);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(true);
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextAutosaveRef = useRef(true);
 
   const currentStep = REGISTER_BUSINESS_STEPS[stepIndex];
   const stepUi = REGISTER_BUSINESS_STEP_UI[currentStep.id as RegisterBusinessStepId];
   const progress = ((stepIndex + 1) / REGISTER_BUSINESS_STEPS.length) * 100;
   const isLastStep = stepIndex >= REGISTER_BUSINESS_STEPS.length - 1;
+
+  // Restore server draft in the background (no second full-screen loader).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const draft = await getBusinessOnboardingDraft();
+        if (cancelled || !draft) return;
+        const payload = draft.payload ?? {};
+        setValues((prev) => ({
+          ...prev,
+          name: payload.name ?? prev.name,
+          phoneNumber: payload.phoneNumber ?? prev.phoneNumber,
+          email: payload.email ?? prev.email,
+          description: payload.description ?? prev.description,
+          websiteUrl: payload.websiteUrl ?? prev.websiteUrl,
+          city: payload.city ?? prev.city,
+          state: payload.state ?? prev.state,
+          postalCode: payload.postalCode ?? prev.postalCode,
+          country: payload.country ?? prev.country,
+          branchCount: payload.branchCount ?? prev.branchCount,
+        }));
+        const stepId = draft.step;
+        const idx = REGISTER_BUSINESS_STEPS.findIndex((s) => s.id === stepId);
+        if (idx >= 0) setStepIndex(idx);
+      } catch {
+        /* draft restore is best-effort */
+      } finally {
+        if (!cancelled) {
+          skipNextAutosaveRef.current = false;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced server autosave (survives crash / new device).
+  useEffect(() => {
+    if (!draftReady || skipNextAutosaveRef.current) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+
+    draftTimerRef.current = setTimeout(() => {
+      void saveBusinessOnboardingDraft({
+        step: currentStep.id,
+        payload: {
+          name: values.name,
+          phoneNumber: values.phoneNumber,
+          email: values.email,
+          description: values.description,
+          websiteUrl: values.websiteUrl,
+          city: values.city,
+          state: values.state,
+          postalCode: values.postalCode,
+          country: values.country,
+          branchCount: values.branchCount,
+        },
+      })
+        .then(() => setDraftSaveError(null))
+        .catch(() =>
+          setDraftSaveError(
+            "Draft could not be saved. Your answers stay on this screen — try again or continue.",
+          ),
+        );
+    }, DRAFT_DEBOUNCE_MS);
+
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [currentStep.id, draftReady, values]);
 
   const patchValues = useCallback((patch: Partial<RegisterBusinessFormValues>) => {
     setValues((prev) => ({ ...prev, ...patch }));
@@ -340,6 +420,12 @@ export default function RegisterBusinessForm({
               </span>
               <span className={bookStyles.progressPct}>{Math.round(progress)}%</span>
             </div>
+
+            {draftSaveError ? (
+              <p className={bookStyles.hint} role="status">
+                {draftSaveError}
+              </p>
+            ) : null}
 
             <div className={bookStyles.progressTrack} aria-hidden>
               <motion.div

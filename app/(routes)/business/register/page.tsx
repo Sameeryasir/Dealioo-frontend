@@ -1,18 +1,18 @@
 "use client";
 
+/**
+ * Change summary: After business create, go to dashboard with setup checklist
+ * instead of blocking optional Meta/Stripe/invite wizards.
+ * Why: optional integrations must not gate access (production onboarding #7).
+ */
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
-import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
-import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
-import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
-import RegisterBusinessInviteStep from "@/app/components/register-business/RegisterBusinessInviteStep";
-import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
-import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
-import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { isStarterSubscription } from "@/app/lib/plan-limits";
+import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import {
   myUserSubscriptionQueryKey,
@@ -22,6 +22,7 @@ import { prependBusinessToMyListCache } from "@/app/services/business/business-q
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { type AdminBusiness } from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
+import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -31,7 +32,7 @@ async function userCanRegisterBusiness(
 ): Promise<boolean> {
   try {
     const status = await getOnboardingStatus();
-    if (status.subscriptionSelected) return true;
+    if (status.subscriptionCompleted || status.subscriptionSelected) return true;
   } catch {}
 
   try {
@@ -48,31 +49,13 @@ async function userCanRegisterBusiness(
   }
 }
 
-type CreatedBusiness = {
-  id: number;
-  name: string;
-};
-
-type PostCreateStep =
-  | "metaQuestion"
-  | "metaCreate"
-  | "facebook"
-  | "stripeQuestion"
-  | "stripeCreate"
-  | "stripe"
-  | "invite";
-
 export default function RegisterBusinessPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [accessToken] = useState(() => getSetupAccessToken());
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [createdBusiness, setCreatedBusiness] = useState<CreatedBusiness | null>(
-    null,
-  );
-  const [postCreateStep, setPostCreateStep] =
-    useState<PostCreateStep>("metaQuestion");
+  const [gateReady, setGateReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,38 +66,46 @@ export default function RegisterBusinessPage() {
         return;
       }
 
+      // Manager / Staff must never enter owner onboarding.
       if (isInvitedTeamUser()) {
         router.replace("/dashboard");
         return;
       }
 
-      const canRegister = await userCanRegisterBusiness(queryClient);
-      if (cancelled) return;
-
-      if (!canRegister) {
-        router.replace("/auth/select-plan");
-        return;
-      }
-
       try {
-        const subscription = await queryClient.fetchQuery({
-          queryKey: myUserSubscriptionQueryKey,
-          queryFn: getMyUserSubscription,
-          staleTime: 5 * 60_000,
-        });
+        const [status, subscription] = await Promise.all([
+          getOnboardingStatus(),
+          queryClient
+            .fetchQuery({
+              queryKey: myUserSubscriptionQueryKey,
+              queryFn: getMyUserSubscription,
+              staleTime: 5 * 60_000,
+            })
+            .catch(() => null),
+        ]);
         if (cancelled) return;
-        if (isStarterSubscription(subscription)) {
-          const status = await getOnboardingStatus();
-          if (cancelled) return;
-          if (status.businessCreated) {
-            router.replace("/dashboard");
-            return;
-          }
+
+        if (!status.subscriptionCompleted && !status.subscriptionSelected) {
+          router.replace("/auth/select-plan");
+          return;
         }
+
+        // Only Starter is limited to one business. Growth AI / other plans may
+        // open /business/register again to add another location.
+        if (status.businessCreated && isStarterSubscription(subscription)) {
+          router.replace(resolvePostAuthPath(status));
+          return;
+        }
+
+        if (!cancelled) setGateReady(true);
       } catch {
-        if (!cancelled) {
-          router.replace("/dashboard");
+        const canRegister = await userCanRegisterBusiness(queryClient);
+        if (cancelled) return;
+        if (!canRegister) {
+          router.replace("/auth/select-plan");
+          return;
         }
+        setGateReady(true);
       }
     }
 
@@ -125,37 +116,9 @@ export default function RegisterBusinessPage() {
     };
   }, [queryClient, router]);
 
-  const goToDashboard = useCallback(() => {
-    router.replace("/dashboard");
-  }, [router]);
-
-  const goToFacebookStep = useCallback(() => {
-    setPostCreateStep("facebook");
-  }, []);
-
-  const goToMetaQuestionStep = useCallback(() => {
-    setPostCreateStep("metaQuestion");
-  }, []);
-
-  const goToMetaCreateStep = useCallback(() => {
-    setPostCreateStep("metaCreate");
-  }, []);
-
-  const goToStripeQuestionStep = useCallback(() => {
-    setPostCreateStep("stripeQuestion");
-  }, []);
-
-  const goToStripeCreateStep = useCallback(() => {
-    setPostCreateStep("stripeCreate");
-  }, []);
-
-  const goToStripeConnectStep = useCallback(() => {
-    setPostCreateStep("stripe");
-  }, []);
-
-  const goToInviteStep = useCallback(() => {
-    setPostCreateStep("invite");
-  }, []);
+  if (!gateReady) {
+    return <OnboardingPageLoading />;
+  }
 
   const onSubmit = useCallback(
     async (data: RegisterBusinessFormValues) => {
@@ -202,98 +165,21 @@ export default function RegisterBusinessPage() {
         await queryClient.invalidateQueries({
           queryKey: businessQueryKeys.myLists(),
         });
+        invalidateOnboardingStatusCache();
 
-        setCreatedBusiness({
-          id: businessId,
-          name: data.name.trim(),
-        });
-        setPostCreateStep("metaQuestion");
-        setSubmitting(false);
+        // Optional integrations move to the dashboard checklist — do not block.
+        router.replace("/dashboard?setup=1");
       } catch (error) {
         const message =
           error instanceof Error
             ? error.message
-            : "Could not add business. Try again.";
+            : "Could not add business. Your form data is still here — try again.";
         setErrorMessage(message);
         setSubmitting(false);
       }
     },
-    [accessToken, queryClient],
+    [accessToken, queryClient, router],
   );
-
-  if (createdBusiness && postCreateStep === "metaQuestion") {
-    return (
-      <RegisterBusinessMetaAdsQuestionStep
-        onHasAccount={goToFacebookStep}
-        onNoAccount={goToMetaCreateStep}
-        onSkip={goToStripeQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "metaCreate") {
-    return (
-      <RegisterBusinessCreateMetaAdAccountStep
-        onContinue={goToFacebookStep}
-        onBack={goToMetaQuestionStep}
-        onSkip={goToStripeQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "facebook") {
-    return (
-      <RegisterBusinessFacebookConnectStep
-        businessId={createdBusiness.id}
-        businessName={createdBusiness.name}
-        onContinue={goToStripeQuestionStep}
-        onBack={goToMetaQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "stripeQuestion") {
-    return (
-      <RegisterBusinessStripeQuestionStep
-        onHasAccount={goToStripeConnectStep}
-        onNoAccount={goToStripeCreateStep}
-        onSkip={goToInviteStep}
-        onBack={goToFacebookStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "stripeCreate") {
-    return (
-      <RegisterBusinessCreateStripeAccountStep
-        onContinue={goToStripeConnectStep}
-        onBack={goToStripeQuestionStep}
-        onSkip={goToInviteStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "stripe") {
-    return (
-      <RegisterBusinessStripeConnectStep
-        businessId={createdBusiness.id}
-        businessName={createdBusiness.name}
-        onContinue={goToInviteStep}
-        onBack={goToStripeQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness) {
-    return (
-      <RegisterBusinessInviteStep
-        businessId={createdBusiness.id}
-        businessName={createdBusiness.name}
-        onContinue={goToDashboard}
-        onBack={goToStripeQuestionStep}
-      />
-    );
-  }
 
   return (
     <RegisterBusinessForm

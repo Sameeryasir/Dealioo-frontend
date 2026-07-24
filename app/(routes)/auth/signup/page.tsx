@@ -2,6 +2,7 @@
 
 import { SignupPageShell } from "@/app/components/auth/SignupPageShell";
 import SignupForm from "@/app/components/SignupForm";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { setAuthTokens } from "@/app/lib/auth-session";
@@ -202,11 +203,7 @@ function SignupPageInner() {
 }
 
 function SignupPageLoading() {
-  return (
-    <div className="landing-page flex min-h-screen items-center justify-center bg-white">
-      <p className="text-sm text-brand-muted">Loading…</p>
-    </div>
-  );
+  return <OnboardingPageLoading />;
 }
 
 export default function SignupPage() {

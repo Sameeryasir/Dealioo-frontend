@@ -56,11 +56,7 @@ function VerifyOtpPageInner() {
   }, [email, isSignupFlow]);
 
   if (isSignupFlow) {
-    return (
-      <AuthPageShell>
-        <p className="text-center text-sm text-brand-muted">Returning to sign up…</p>
-      </AuthPageShell>
-    );
+    return <AuthPageLoading />;
   }
 
   return (

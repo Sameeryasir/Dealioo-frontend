@@ -20,6 +20,7 @@ import {
 } from "@/app/lib/billing-cycle";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
@@ -63,6 +64,12 @@ export function SignupSelectPlanPanel({
   );
   const [planFitReady, setPlanFitReady] = useState(mode !== "checkout");
   const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [draftAnswers, setDraftAnswers] = useState<Partial<PlanFitAnswers> | null>(
+    null,
+  );
+  const [draftQuestionIndex, setDraftQuestionIndex] = useState<number | null>(
+    null,
+  );
   const restoredPlanFitRef = useRef(false);
 
   useEffect(() => {
@@ -98,6 +105,9 @@ export function SignupSelectPlanPanel({
           });
           setSelectedPlanId(recommended);
           setQuizDone(true);
+        } else if (saved.draftAnswers) {
+          setDraftAnswers(saved.draftAnswers);
+          setDraftQuestionIndex(saved.draftQuestionIndex);
         }
       } catch {
       } finally {
@@ -108,8 +118,14 @@ export function SignupSelectPlanPanel({
       }
     })();
 
+    // Cap wait so the quiz never feels stuck behind a slow network.
+    const maxWait = window.setTimeout(() => {
+      if (!cancelled) setPlanFitReady(true);
+    }, 450);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(maxWait);
     };
   }, [mode]);
 
@@ -268,11 +284,7 @@ export function SignupSelectPlanPanel({
   }, [billingCycle, invalidateMySubscription, mode, plans, router, selectedPlanId]);
 
   if (loading || (mode === "checkout" && !planFitReady)) {
-    return (
-      <div className="flex min-h-[20rem] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-hidden />
-      </div>
-    );
+    return <OnboardingPageLoading />;
   }
 
   if (mode === "checkout" && !quizDone) {
@@ -290,6 +302,8 @@ export function SignupSelectPlanPanel({
         <PlanFitQuestionnaire
           onComplete={handleQuizComplete}
           submitting={quizSubmitting}
+          initialDraftAnswers={draftAnswers}
+          initialDraftQuestionIndex={draftQuestionIndex}
         />
       </div>
     );

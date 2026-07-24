@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
@@ -55,11 +57,7 @@ function GoogleAuthCompleteInner() {
     };
   }, [router]);
 
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-brand-soft">
-      <p className="text-sm text-brand-muted">Loading…</p>
-    </main>
-  );
+  return <OnboardingPageLoading />;
 }
 
 function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
@@ -108,13 +106,7 @@ function parseGoogleUser(raw: string | undefined): VerifyOtpUser | null {
 
 export default function GoogleAuthCompletePage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-brand-soft">
-          <p className="text-sm text-brand-muted">Loading…</p>
-        </main>
-      }
-    >
+    <Suspense fallback={<AuthPageLoading />}>
       <GoogleAuthCompleteInner />
     </Suspense>
   );

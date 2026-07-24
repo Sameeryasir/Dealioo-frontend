@@ -4,6 +4,7 @@ import {
   AUTH_SESSION_CHANGED_EVENT,
   hasAuthSession,
 } from "@/app/lib/auth-session";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -39,15 +40,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }, [pathname, router]);
 
   if (isAuthenticated !== true) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <p className="text-sm text-slate-500">
-          {isAuthenticated === false
-            ? "Redirecting to sign in…"
-            : "Loading…"}
-        </p>
-      </div>
-    );
+    return <OnboardingPageLoading />;
   }
 
   return <>{children}</>;
@@ -57,7 +50,6 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [allowed, setAllowed] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Loading…");
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +57,6 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
     async function resolve() {
       if (!hasAuthSession()) {
         if (!cancelled) {
-          setStatusMessage("Loading…");
           setAllowed(true);
         }
         return;
@@ -73,7 +64,6 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
 
       if (!cancelled) {
         setAllowed(false);
-        setStatusMessage("Taking you to your workspace…");
       }
 
       const returnTo = searchParams.get("returnTo");
@@ -107,11 +97,7 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
   }, [router, searchParams]);
 
   if (!allowed) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <p className="text-sm text-slate-500">{statusMessage}</p>
-      </div>
-    );
+    return <OnboardingPageLoading />;
   }
 
   return <>{children}</>;

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 
 type AuthPageShellProps = {
   children: ReactNode;
@@ -22,10 +23,7 @@ export default function AuthPageShell({ children, wide = false }: AuthPageShellP
   );
 }
 
-export function AuthPageLoading() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-soft">
-      <p className="text-sm text-brand-muted">Loading…</p>
-    </div>
-  );
+/** Full-viewport centered spinner used across auth + onboarding gates. */
+export function AuthPageLoading(_props?: { message?: string }) {
+  return <OnboardingPageLoading />;
 }
