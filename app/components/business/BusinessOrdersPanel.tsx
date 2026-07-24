@@ -41,7 +41,7 @@ import {
   getCustomerJourney,
   type CustomerJourneyStep as ApiJourneyStep,
 } from "@/app/services/funnel-event/get-customer-journey";
-import { Fragment, useDeferredValue, useEffect, useState, type ReactNode } from "react";
+import { Fragment, startTransition, useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
@@ -74,31 +74,6 @@ const DATE_FILTERS: { id: Exclude<DateFilter, "all">; label: string }[] = [
   { id: "week", label: "This Week" },
   { id: "month", label: "This Month" },
 ];
-
-const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease: standardEase },
-  },
-};
-
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.32, ease: standardEase },
-  },
-};
-
-const tableBodyStagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
-  },
-};
 
 function OrdersTableBodySkeleton() {
   return (
@@ -212,13 +187,13 @@ function eventCampaignAmount(event: BusinessFunnelEvent): number {
   return 0;
 }
 
-function eventNetAmount(event: BusinessFunnelEvent): number {
-  const visitSubtotal =
-    event.businessAmount ?? event.restaurantAmount ?? null;
-  if (visitSubtotal != null && visitSubtotal > 0) {
-    return visitSubtotal;
+function eventCounterExtrasAmount(event: BusinessFunnelEvent): number {
+  const extras = event.businessAmount ?? event.restaurantAmount ?? null;
+  if (extras == null || !(extras > 0)) {
+    return 0;
   }
-  return 0;
+  // order_subtotal now stores counter extras only (not deal price).
+  return extras;
 }
 
 function eventPaymentDate(event: BusinessFunnelEvent): string {
@@ -256,10 +231,10 @@ function formatOrderAmountText(
   return { text: "—", muted: true };
 }
 
-function formatNetAmountText(event: BusinessFunnelEvent): string {
+function formatCounterExtrasText(event: BusinessFunnelEvent): string {
   const currency = event.currency ?? "USD";
-  const net = eventNetAmount(event);
-  return net > 0 ? formatDollars(net, currency) : "—";
+  const extras = eventCounterExtrasAmount(event);
+  return extras > 0 ? formatDollars(extras, currency) : "—";
 }
 
 function OrderAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
@@ -274,7 +249,7 @@ function OrderAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
 }
 
 function OrderNetAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
-  const text = formatNetAmountText(event);
+  const text = formatCounterExtrasText(event);
   return (
     <span
       className={
@@ -746,7 +721,7 @@ function OrderEventDetailDialog({
     event.createdAt;
   const campaignLabel = formatTitleCase(event.campaignName);
   const amountDisplay = formatOrderAmountText(event, status);
-  const netAmountText = formatNetAmountText(event);
+  const netAmountText = formatCounterExtrasText(event);
 
   return (
     <div
@@ -815,7 +790,7 @@ function OrderEventDetailDialog({
                 {amountDisplay.text}
               </span>
             </OrderDetailRow>
-            <OrderDetailRow icon={CircleDollarSign} label="Guest paid">
+            <OrderDetailRow icon={CircleDollarSign} label="Counter extras">
               <span className={netAmountText === "—" ? "text-slate-400" : "text-black"}>
                 {netAmountText}
               </span>
@@ -952,19 +927,18 @@ export function BusinessOrdersPanel({
         search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    // Keep prior page meta/rows while the next page loads so totalPages
-    // does not briefly fall back to 1 and snap the user back to page 1.
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
   });
 
   const events = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta ?? null;
   const loading = eventsQuery.isLoading;
-  const fetchingPage = eventsQuery.isFetching && !eventsQuery.isLoading;
+  const fetchingResults =
+    eventsQuery.isFetching && !eventsQuery.isLoading;
   const error = eventsQuery.error
     ? getApiErrorMessage(eventsQuery.error, "Could not load funnel events.")
     : null;
@@ -1049,8 +1023,10 @@ export function BusinessOrdersPanel({
                       label={filter.label}
                       active={statusFilter === filter.id}
                       onClick={() => {
-                        setPage(1);
-                        setStatusFilter(filter.id);
+                        startTransition(() => {
+                          setPage(1);
+                          setStatusFilter(filter.id);
+                        });
                       }}
                     />
                   ))}
@@ -1067,11 +1043,14 @@ export function BusinessOrdersPanel({
                       key={filter.id}
                       label={filter.label}
                       active={dateFilter === filter.id}
-                      onClick={() =>
-                        setDateFilter((prev) =>
-                          prev === filter.id ? "all" : filter.id,
-                        )
-                      }
+                      onClick={() => {
+                        startTransition(() => {
+                          setPage(1);
+                          setDateFilter((prev) =>
+                            prev === filter.id ? "all" : filter.id,
+                          );
+                        });
+                      }}
                     />
                   ))}
                 </div>
@@ -1144,21 +1123,16 @@ export function BusinessOrdersPanel({
               ) : null}
 
               {showTable ? (
-                <motion.div
-                  key={`orders-page-${page}-${statusFilter}-${dateFilter}-${searchQuery}`}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: standardEase }}
+                <div
+                  className={`transition-opacity duration-200 ease-out ${
+                    fetchingResults ? "opacity-55" : "opacity-100"
+                  }`}
+                  aria-busy={fetchingResults}
                 >
                   <div className="hidden overflow-x-auto overscroll-x-contain md:block">
                     <table className="w-full min-w-[48rem] border-collapse">
                       <thead>
-                        <motion.tr
-                          variants={tableHeaderReveal}
-                          initial="hidden"
-                          animate="show"
-                          className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-                        >
+                        <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                           <th className={`${thClass} w-12`}>
                             <TableColumnHeader
                               label="#"
@@ -1201,7 +1175,7 @@ export function BusinessOrdersPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={CircleDollarSign}
-                              label="Guest paid"
+                              label="Counter extras"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
@@ -1217,13 +1191,9 @@ export function BusinessOrdersPanel({
                           <th className={thActionsClass}>
                             Actions
                           </th>
-                        </motion.tr>
+                        </tr>
                       </thead>
-                      <motion.tbody
-                        variants={tableBodyStagger}
-                        initial="hidden"
-                        animate="show"
-                      >
+                      <tbody>
                         {events.map((event, index) => {
                           const rowNumber = rowOffset + index + 1;
                           const name = displayName(event);
@@ -1231,9 +1201,8 @@ export function BusinessOrdersPanel({
                           const status = resolveDisplayStatus(event);
 
                           return (
-                            <motion.tr
+                            <tr
                               key={event.rowKey ?? `event:${event.id}`}
-                              variants={tableRowReveal}
                               onClick={() => setSelectedEvent(event)}
                               className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                             >
@@ -1309,10 +1278,10 @@ export function BusinessOrdersPanel({
                                   />
                                 </div>
                               </td>
-                            </motion.tr>
+                            </tr>
                           );
                         })}
-                      </motion.tbody>
+                      </tbody>
                     </table>
                   </div>
 
@@ -1327,7 +1296,7 @@ export function BusinessOrdersPanel({
                       />
                     ))}
                   </div>
-                </motion.div>
+                </div>
               ) : null}
             </div>
 
@@ -1345,7 +1314,7 @@ export function BusinessOrdersPanel({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={loading || fetchingPage || page <= 1}
+                      disabled={loading || fetchingResults || page <= 1}
                       onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -1356,7 +1325,7 @@ export function BusinessOrdersPanel({
                     </span>
                     <button
                       type="button"
-                      disabled={loading || fetchingPage || page >= totalPages}
+                      disabled={loading || fetchingResults || page >= totalPages}
                       onClick={() =>
                         setPage((prev) => Math.min(totalPages, prev + 1))
                       }

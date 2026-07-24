@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
@@ -19,34 +18,21 @@ export function FunnelConfirmationView({
   funnelId: number | null;
   templateStorageKey: string;
 }) {
-  const searchParams = useSearchParams();
   const trackedRef = useRef(false);
   const { session, ready } = useCheckoutContext();
 
   const paymentId = session?.funnelPaymentId ?? null;
 
-  const expectsPayment = useMemo(() => {
-    if (searchParams.get("redirect_status") === "succeeded") return true;
-    if (searchParams.get("payment_confirmed") === "1") return true;
-    return false;
-  }, [searchParams]);
-
   const { isPaid, loading, error, status } = usePaymentStatusPoll({
     paymentId,
-    enabled: expectsPayment && ready && paymentId != null,
-    maxAttempts: expectsPayment ? 8 : 12,
-    intervalMs: 800,
+    enabled: ready && paymentId != null,
+    maxAttempts: 90,
+    intervalMs: 1500,
   });
 
-  const confirmedByUrl = expectsPayment;
   const confirmedByServer = isPaid || status === "paid";
-  const showConfirming =
-    expectsPayment &&
-    paymentId != null &&
-    loading &&
-    !confirmedByServer &&
-    !confirmedByUrl;
-  const celebrate = confirmedByServer || (confirmedByUrl && ready);
+  const showConfirming = paymentId != null && loading && !confirmedByServer;
+  const celebrate = confirmedByServer;
 
   const { pages, isLoading } = useFunnelTemplatePagesFromStorage(templateStorageKey);
 
@@ -98,7 +84,7 @@ export function FunnelConfirmationView({
           </span>
         </div>
       ) : null}
-      {expectsPayment && error && !confirmedByServer && !confirmedByUrl ? (
+      {paymentId != null && error && !confirmedByServer ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="alert"

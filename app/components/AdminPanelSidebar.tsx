@@ -160,15 +160,6 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
-            ? `${restaurantHomeHref}/history`
-            : "/dashboard/history",
-          label: "History",
-          icon: History,
-          activeMatch: "prefix",
-          adminOnly: true,
-        },
-        {
-          href: businessId
             ? `${restaurantHomeHref}/scanning`
             : "/dashboard/scanning",
           label: "Scanning",
@@ -235,6 +226,15 @@ export default function AdminPanelSidebar() {
           icon: LayoutTemplate,
           activeMatch: "prefix",
           permission: "campaigns",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/history`
+            : "/dashboard/history",
+          label: "History",
+          icon: History,
+          activeMatch: "prefix",
+          adminOnly: true,
         },
       ];
 

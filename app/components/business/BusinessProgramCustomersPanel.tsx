@@ -61,10 +61,69 @@ function customerInitial(customer: BusinessCustomerRecord): string {
 
 function CustomersTableSkeleton() {
   return (
-    <div className="space-y-3 px-5 py-5">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton key={index} className="h-14 w-full rounded-xl" />
-      ))}
+    <div className="overflow-x-auto" aria-busy="true">
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr className="border-b border-[#e8edf5] bg-gradient-to-r from-[#e8f2ff]/80 via-[#f4f8ff]/55 to-white">
+            <th className="whitespace-nowrap px-5 py-3 text-left">
+              <Skeleton className="h-3 w-14" />
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-left">
+              <Skeleton className="h-3 w-12" />
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-left">
+              <Skeleton className="h-3 w-12" />
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-left">
+              <Skeleton className="h-3 w-12" />
+            </th>
+            <th className="whitespace-nowrap px-5 py-3 text-left">
+              <Skeleton className="h-3 w-20" />
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <tr
+              key={index}
+              className={`border-b border-[#f1f5f9] last:border-b-0 ${
+                index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
+              }`}
+            >
+              <td className="px-5 py-3.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Skeleton className="size-10 shrink-0 rounded-full" />
+                  <div className="min-w-0 space-y-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="size-3.5 shrink-0 rounded" />
+                  <Skeleton className="h-4 w-40" />
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="size-3.5 shrink-0 rounded" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <Skeleton className="h-4 w-8" />
+              </td>
+              <td className="px-5 py-3.5">
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="size-3.5 shrink-0 rounded" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -383,7 +442,7 @@ export function BusinessProgramCustomersPanel({
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] ring-2 ring-white">
+                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
                             {customerInitial(customer)}
                           </span>
                           <div className="min-w-0">

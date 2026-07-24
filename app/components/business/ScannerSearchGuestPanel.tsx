@@ -386,7 +386,7 @@ function DealSelectRow({
       >
         {deal.canSelect ? (
           <span
-            className={`flex size-5 shrink-0 items-center justify-center rounded-md border transition ${
+            className={`flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
               checked
                 ? tone === "prepaid"
                   ? "border-emerald-600 bg-emerald-600 text-xs text-white"
@@ -696,29 +696,15 @@ export function ScannerSearchGuestPanel({
     if (!deal.canSelect || confirmingRedemption || purchasing) return;
 
     setSelectedFunnelIds([]);
-    setSelectedDealIds((current) => {
-      if (current.includes(deal.couponId)) {
-        return current.filter((id) => id !== deal.couponId);
-      }
-
-      const selectedType = activeDeals.find((item) =>
-        current.includes(item.couponId),
-      )?.paymentLabel;
-
-      if (selectedType && selectedType !== deal.paymentLabel) {
-        return current;
-      }
-
-      return [...current, deal.couponId];
-    });
-  }, [activeDeals, confirmingRedemption, purchasing]);
+    setSelectedDealIds((current) =>
+      current.includes(deal.couponId) ? [] : [deal.couponId],
+    );
+  }, [confirmingRedemption, purchasing]);
 
   const selectedDeals = useMemo(
     () => activeDeals.filter((deal) => selectedDealIds.includes(deal.couponId)),
     [activeDeals, selectedDealIds],
   );
-
-  const selectedPaymentLabel = selectedDeals[0]?.paymentLabel ?? null;
 
   const guestFunnelIds = useMemo(() => {
     const ids = new Set<number>();
@@ -1363,7 +1349,7 @@ export function ScannerSearchGuestPanel({
                         <h2 className="m-0 text-[1.65rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.9rem]">
                           {selectedProfile.customerName}
                         </h2>
-                        <span className="inline-flex max-w-[16rem] items-center gap-1.5 text-[0.78rem] font-medium text-slate-600 sm:max-w-[20rem]">
+                        <span className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-medium text-slate-600 ring-1 ring-[#e2e8f0] sm:max-w-[20rem]">
                           <Mail
                             className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
@@ -1373,7 +1359,7 @@ export function ScannerSearchGuestPanel({
                           </span>
                         </span>
                         {selectedProfile.phone ? (
-                          <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-medium text-slate-600">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-medium text-slate-600 ring-1 ring-[#e2e8f0]">
                             <Phone
                               className="size-3.5 shrink-0 text-[#1877f2]"
                               aria-hidden
@@ -1385,24 +1371,24 @@ export function ScannerSearchGuestPanel({
                           className="hidden h-5 w-px shrink-0 bg-[#e2e8f0] sm:block"
                           aria-hidden
                         />
-                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-[#0e182b]">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-semibold text-[#0e182b] ring-1 ring-[#e2e8f0]">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
                             Guest deals
                           </span>
                           <span className="tabular-nums font-extrabold">
                             {activeDeals.length}
                           </span>
                         </span>
-                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-emerald-800">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-600/80">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.78rem] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-600">
                             Paid
                           </span>
                           <span className="tabular-nums font-extrabold">
                             {prepaidDeals.length}
                           </span>
                         </span>
-                        <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-[#0e3a8a]">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#1877f2]/80">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.78rem] font-semibold text-[#0e3a8a] ring-1 ring-[#dbeafe]">
+                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#1877f2]">
                             Redeemed
                           </span>
                           <span className="tabular-nums font-extrabold">
@@ -1504,7 +1490,7 @@ export function ScannerSearchGuestPanel({
                           </div>
                           {activeDeals.some((deal) => deal.canSelect) ? (
                             <p className="max-w-[13rem] text-right text-[0.68rem] font-medium leading-snug text-white/50">
-                              Select paid or unpaid deals — not both together.
+                              Redeem one guest deal at a time.
                             </p>
                           ) : null}
                         </div>
@@ -1541,12 +1527,7 @@ export function ScannerSearchGuestPanel({
                                           deal.couponId,
                                         )}
                                         disabled={
-                                          confirmingRedemption ||
-                                          purchasing ||
-                                          (selectedPaymentLabel === "UNPAID" &&
-                                            !selectedDealIds.includes(
-                                              deal.couponId,
-                                            ))
+                                          confirmingRedemption || purchasing
                                         }
                                         tone="prepaid"
                                         onToggle={() =>
@@ -1583,12 +1564,7 @@ export function ScannerSearchGuestPanel({
                                           deal.couponId,
                                         )}
                                         disabled={
-                                          confirmingRedemption ||
-                                          purchasing ||
-                                          (selectedPaymentLabel === "PREPAID" &&
-                                            !selectedDealIds.includes(
-                                              deal.couponId,
-                                            ))
+                                          confirmingRedemption || purchasing
                                         }
                                         tone="unpaid"
                                         onToggle={() =>
@@ -1620,7 +1596,7 @@ export function ScannerSearchGuestPanel({
                                 >
                                   {confirmingRedemption
                                     ? "Redeeming…"
-                                    : `Redeem selected (${selectedDealIds.length})`}
+                                    : "Redeem deal"}
                                 </button>
                               </div>
                             ) : null}

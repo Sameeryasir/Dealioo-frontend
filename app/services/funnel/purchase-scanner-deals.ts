@@ -4,7 +4,7 @@ import { authAxios } from "@/app/lib/auth-axios";
 export type ScannerPurchasedDeal = {
   funnelId: number;
   campaignName: string;
-  couponId: number;
+  couponId: number | null;
 };
 
 export async function purchaseScannerDeals(params: {

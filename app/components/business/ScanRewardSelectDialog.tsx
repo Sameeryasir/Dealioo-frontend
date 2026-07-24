@@ -1,7 +1,7 @@
 "use client";
 
 import { Info } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { RedeemableReward } from "@/app/services/redemption/scan-redemption";
 
 type ScanRewardSelectDialogProps = {
@@ -19,44 +19,25 @@ export function ScanRewardSelectDialog({
   onConfirm,
   onDismiss,
 }: ScanRewardSelectDialogProps) {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
-    const preselected = rewards
-      .filter((reward) => reward.isScannedCoupon && reward.canSelect)
-      .map((reward) => reward.couponId);
-
-    if (preselected.length > 0) {
-      setSelectedIds(preselected);
+    const preselected = rewards.find(
+      (reward) => reward.isScannedCoupon && reward.canSelect,
+    );
+    if (preselected) {
+      setSelectedId(preselected.couponId);
       return;
     }
 
     const firstSelectable = rewards.find((reward) => reward.canSelect);
-    setSelectedIds(firstSelectable ? [firstSelectable.couponId] : []);
+    setSelectedId(firstSelectable ? firstSelectable.couponId : null);
   }, [rewards]);
 
-  const selectedPaymentLabel = useMemo(() => {
-    const selected = rewards.find((reward) =>
-      selectedIds.includes(reward.couponId),
-    );
-    return selected?.paymentLabel ?? null;
-  }, [rewards, selectedIds]);
-
-  const toggleReward = (reward: RedeemableReward) => {
+  const selectReward = (reward: RedeemableReward) => {
     if (!reward.canSelect || confirming) return;
-
-    if (
-      selectedPaymentLabel &&
-      reward.paymentLabel !== selectedPaymentLabel &&
-      !selectedIds.includes(reward.couponId)
-    ) {
-      return;
-    }
-
-    setSelectedIds((current) =>
-      current.includes(reward.couponId)
-        ? current.filter((id) => id !== reward.couponId)
-        : [...current, reward.couponId],
+    setSelectedId((current) =>
+      current === reward.couponId ? null : reward.couponId,
     );
   };
 
@@ -79,12 +60,12 @@ export function ScanRewardSelectDialog({
           id="scan-reward-select-title"
           className="text-2xl font-semibold tracking-tight text-zinc-900"
         >
-          Select the reward(s) they are redeeming now:
+          Select the reward they are redeeming now:
         </h2>
 
         <p className="mt-3 inline-flex items-center gap-2 text-sm text-zinc-600">
           <Info className="size-4 shrink-0" aria-hidden />
-          Paid and unpaid offers cannot be redeemed together.
+          Redeem one guest deal at a time.
         </p>
 
         <ul className="mt-5 space-y-3">
@@ -94,19 +75,15 @@ export function ScanRewardSelectDialog({
             </li>
           ) : (
             rewards.map((reward) => {
-              const checked = selectedIds.includes(reward.couponId);
-              const typeBlocked =
-                selectedPaymentLabel != null &&
-                reward.paymentLabel !== selectedPaymentLabel &&
-                !checked;
-              const disabled = !reward.canSelect || typeBlocked;
+              const checked = selectedId === reward.couponId;
+              const disabled = !reward.canSelect;
 
               return (
                 <li key={reward.couponId}>
                   <button
                     type="button"
                     disabled={disabled || confirming}
-                    onClick={() => toggleReward(reward)}
+                    onClick={() => selectReward(reward)}
                     className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                       checked
                         ? "border-zinc-900 bg-zinc-50"
@@ -114,7 +91,7 @@ export function ScanRewardSelectDialog({
                     } ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                   >
                     <span
-                      className={`flex size-5 shrink-0 items-center justify-center rounded border ${
+                      className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
                         checked
                           ? "border-zinc-900 bg-zinc-900 text-white"
                           : "border-zinc-300 bg-white"
@@ -150,11 +127,13 @@ export function ScanRewardSelectDialog({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(selectedIds)}
-            disabled={selectedIds.length === 0 || confirming}
+            onClick={() =>
+              selectedId != null ? onConfirm([selectedId]) : undefined
+            }
+            disabled={selectedId == null || confirming}
             className="rounded-lg bg-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-600 enabled:bg-blue-600 enabled:text-white enabled:hover:bg-blue-700 disabled:cursor-not-allowed"
           >
-            {confirming ? "Redeeming…" : "Select rewards to redeem"}
+            {confirming ? "Redeeming…" : "Redeem deal"}
           </button>
         </div>
       </div>
