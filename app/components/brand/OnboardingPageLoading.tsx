@@ -1,13 +1,8 @@
 "use client";
 
-/**
- * Change summary: Instant full-viewport loader (no blank flash, soft fade-in).
- * Why: Smooth onboarding UX — spinner + "Loading…" only.
- */
 import { Loader2 } from "lucide-react";
 
 type OnboardingPageLoadingProps = {
-  /** Kept for call-site compatibility; UI always shows general "Loading…". */
   message?: string;
   compact?: boolean;
 };

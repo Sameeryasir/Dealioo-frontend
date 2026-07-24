@@ -261,7 +261,6 @@ export default function RegisterBusinessForm({
   const progress = ((stepIndex + 1) / REGISTER_BUSINESS_STEPS.length) * 100;
   const isLastStep = stepIndex >= REGISTER_BUSINESS_STEPS.length - 1;
 
-  // Restore server draft in the background (no second full-screen loader).
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -286,7 +285,6 @@ export default function RegisterBusinessForm({
         const idx = REGISTER_BUSINESS_STEPS.findIndex((s) => s.id === stepId);
         if (idx >= 0) setStepIndex(idx);
       } catch {
-        /* draft restore is best-effort */
       } finally {
         if (!cancelled) {
           skipNextAutosaveRef.current = false;
@@ -298,7 +296,6 @@ export default function RegisterBusinessForm({
     };
   }, []);
 
-  // Debounced server autosave (survives crash / new device).
   useEffect(() => {
     if (!draftReady || skipNextAutosaveRef.current) return;
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);

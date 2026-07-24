@@ -29,7 +29,6 @@ export type PlanFitResult = {
 type PlanFitQuestionnaireProps = {
   onComplete: (answers: PlanFitAnswers) => void | Promise<void>;
   submitting?: boolean;
-  /** Server draft so users resume at the last unanswered question. */
   initialDraftAnswers?: Partial<PlanFitAnswers> | null;
   initialDraftQuestionIndex?: number | null;
 };
@@ -72,7 +71,6 @@ export function PlanFitQuestionnaire({
     clearPlanFitProgress();
   }, []);
 
-  // If parent restores draft after first paint, apply once without a loader flash.
   useEffect(() => {
     if (!initialDraftAnswers || Object.keys(initialDraftAnswers).length === 0) {
       return;
@@ -96,12 +94,10 @@ export function PlanFitQuestionnaire({
     nextAnswers: Partial<PlanFitAnswers>,
     nextIndex: number,
   ) => {
-    // Fire-and-forget: UX must not block on draft save failures.
     void savePlanFitProgress({
       answers: nextAnswers,
       questionIndex: nextIndex,
     }).catch(() => {
-      /* keep local answers; user can retry */
     });
   };
 

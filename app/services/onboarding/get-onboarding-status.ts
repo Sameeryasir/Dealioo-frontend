@@ -13,7 +13,6 @@ export type OnboardingChecklistItem = {
 export type OnboardingStatus = {
   businessId: number | null;
   twoFactorCompleted: boolean;
-  /** @deprecated Prefer subscriptionCompleted */
   subscriptionSelected: boolean;
   subscriptionCompleted: boolean;
   businessCreated: boolean;
@@ -152,7 +151,6 @@ export async function getOnboardingStatus(
     return cached.value;
   }
 
-  // Reuse an in-flight request so parallel gates (redirect + guard) don't lag.
   const existing = statusInflight.get(cacheKey);
   if (existing) {
     return existing;
@@ -195,7 +193,6 @@ export async function getOnboardingStatus(
   }
 }
 
-/** Call after create-business / checkout so the next gate reads fresh state. */
 export function invalidateOnboardingStatusCache(): void {
   statusCache.clear();
   statusInflight.clear();

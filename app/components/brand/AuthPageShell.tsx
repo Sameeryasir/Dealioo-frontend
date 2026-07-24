@@ -6,7 +6,6 @@ type AuthPageShellProps = {
   wide?: boolean;
 };
 
-/** Auth/onboarding page, clean centered layout, no top bar. */
 export default function AuthPageShell({ children, wide = false }: AuthPageShellProps) {
   return (
     <div className="brand-auth-page flex min-h-screen flex-col">
@@ -23,7 +22,6 @@ export default function AuthPageShell({ children, wide = false }: AuthPageShellP
   );
 }
 
-/** Full-viewport centered spinner used across auth + onboarding gates. */
 export function AuthPageLoading(_props?: { message?: string }) {
   return <OnboardingPageLoading />;
 }

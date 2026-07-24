@@ -52,7 +52,6 @@ export function resolvePostAuthPath(
     return invitedTeamDashboardPath(returnTo);
   }
 
-  // Prefer server redirectPath as single source of truth.
   if (status.redirectPath) {
     if (status.onboardingCompleted) {
       return resolvePostLoginPath(status, returnTo);
@@ -92,7 +91,6 @@ export async function fetchAuthenticatedOnboardingDestination(
       return resolvePostAuthPath(status, returnTo);
     }
   } catch {
-    // Fall back to direct subscription lookup below.
   }
 
   if (isInvitedTeamUser()) {
@@ -105,7 +103,6 @@ export async function fetchAuthenticatedOnboardingDestination(
       return "/business/register";
     }
   } catch {
-    // Ignore and send user to plan selection.
   }
 
   if (isInvitedTeamUser()) {

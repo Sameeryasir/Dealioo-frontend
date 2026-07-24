@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * Change summary: After business create, go to dashboard with setup checklist
- * instead of blocking optional Meta/Stripe/invite wizards.
- * Why: optional integrations must not gate access (production onboarding #7).
- */
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
@@ -66,7 +61,6 @@ export default function RegisterBusinessPage() {
         return;
       }
 
-      // Manager / Staff must never enter owner onboarding.
       if (isInvitedTeamUser()) {
         router.replace("/dashboard");
         return;
@@ -90,8 +84,6 @@ export default function RegisterBusinessPage() {
           return;
         }
 
-        // Only Starter is limited to one business. Growth AI / other plans may
-        // open /business/register again to add another location.
         if (status.businessCreated && isStarterSubscription(subscription)) {
           router.replace(resolvePostAuthPath(status));
           return;
@@ -167,7 +159,6 @@ export default function RegisterBusinessPage() {
         });
         invalidateOnboardingStatusCache();
 
-        // Optional integrations move to the dashboard checklist — do not block.
         router.replace("/dashboard?setup=1");
       } catch (error) {
         const message =

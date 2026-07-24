@@ -118,7 +118,6 @@ export function SignupSelectPlanPanel({
       }
     })();
 
-    // Cap wait so the quiz never feels stuck behind a slow network.
     const maxWait = window.setTimeout(() => {
       if (!cancelled) setPlanFitReady(true);
     }, 450);

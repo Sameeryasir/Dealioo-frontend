@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - Skip onboarding redirects for invited Manager/Staff.
- * - Show centered Loading… once on entry; do not re-flash loader on every
- *   dashboard sub-route (that felt like lag).
- * Related: onboarding-redirect.ts, get-onboarding-status.ts
- */
-
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
@@ -36,7 +28,6 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Already cleared for this session — keep UI smooth across dashboard links.
       if (verifiedRef.current) {
         if (!cancelled) setAllowed(true);
         return;
