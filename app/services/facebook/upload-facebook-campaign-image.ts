@@ -1,40 +1,27 @@
-import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
-import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
-
-const UPLOAD_FACEBOOK_CAMPAIGN_IMAGE_TIMEOUT_MS = 60_000;
+import { uploadMetaCampaignMedia } from "@/app/services/facebook/upload-meta-campaign-media";
 
 export type UploadFacebookCampaignImageResponse = {
   imageUrl: string;
-  imageHash: string;
+  
+  imageHash?: string;
+  mediaId?: string;
   metaImageUrl?: string;
 };
 
 export async function uploadFacebookCampaignImage(
   restaurantId: number,
   file: File,
+  options?: { draftId?: string },
 ): Promise<UploadFacebookCampaignImageResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
+  const result = await uploadMetaCampaignMedia(restaurantId, file, {
+    draftId: options?.draftId,
+    mediaType: "image",
+  });
 
-  const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/ad-image`,
-    {
-      method: "POST",
-      body: formData,
-    },
-    UPLOAD_FACEBOOK_CAMPAIGN_IMAGE_TIMEOUT_MS,
-  );
-
-  if (!res.ok) {
-    throw new Error(
-      await parseApiErrorMessage(res, "Could not upload ad image."),
-    );
-  }
-
-  const json = (await res.json()) as UploadFacebookCampaignImageResponse;
-  if (!json.imageUrl?.trim() || !json.imageHash?.trim()) {
-    throw new Error("Meta did not return an image hash for this upload.");
-  }
-
-  return json;
+  return {
+    imageUrl: result.url,
+    imageHash: result.imageHash,
+    mediaId: result.mediaId,
+    metaImageUrl: result.url,
+  };
 }

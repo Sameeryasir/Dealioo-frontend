@@ -24,16 +24,37 @@ export type FacebookAdCampaignStats = {
   campaigns: FacebookAdCampaign[];
 };
 
+const FACEBOOK_CAMPAIGN_STATS_TIMEOUT_MS = 45_000;
+
 export async function getFacebookAdCampaignStats(
   restaurantId: number,
+  options?: {
+    includeInsights?: boolean;
+    refresh?: boolean;
+  },
 ): Promise<FacebookAdCampaignStats> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
   }
 
-  const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}`;
+  const params = new URLSearchParams();
+  if (options?.includeInsights === false) {
+    params.set("insights", "0");
+  }
+  if (options?.refresh) {
+    params.set("refresh", "1");
+  }
 
-  const res = await authenticatedFetch(path, { method: "GET" });
+  const query = params.toString();
+  const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}${
+    query ? `?${query}` : ""
+  }`;
+
+  const res = await authenticatedFetch(
+    path,
+    { method: "GET" },
+    FACEBOOK_CAMPAIGN_STATS_TIMEOUT_MS,
+  );
 
   if (!res.ok) {
     throw new Error(

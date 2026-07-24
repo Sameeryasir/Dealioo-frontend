@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { Check, ExternalLink, Loader2 } from "lucide-react";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -31,6 +31,23 @@ import {
   getCreativePreviewUrl,
 } from "@/app/lib/meta-review-helpers";
 
+export const PUBLISH_PROGRESS_STEPS = [
+  { key: "preparing", label: "Preparing" },
+  { key: "campaign", label: "Creating Campaign" },
+  { key: "adset", label: "Creating Ad Set" },
+  { key: "media", label: "Uploading Image" },
+  { key: "creative", label: "Creating Creative" },
+  { key: "ad", label: "Creating Ad" },
+  { key: "done", label: "Done" },
+] as const;
+
+function resolveActiveStepIndex(publishStep: string | null | undefined): number {
+  const normalized = (publishStep ?? "").toLowerCase();
+  if (!normalized || normalized === "queued") return 0;
+  const idx = PUBLISH_PROGRESS_STEPS.findIndex((s) => s.key === normalized);
+  return idx >= 0 ? idx : 0;
+}
+
 type ReviewPublishStepProps = {
   businessId: number;
   draftId: string;
@@ -39,6 +56,8 @@ type ReviewPublishStepProps = {
   adCreativeData: AdCreativeStepData;
   publishing: boolean;
   publishError: string | null;
+  publishStep?: string | null;
+  publishProgress?: number;
   partialPublish?: {
     metaCampaignId?: string | null;
     metaAdsetId?: string | null;
@@ -68,6 +87,8 @@ export function ReviewPublishStep({
   adCreativeData,
   publishing,
   publishError,
+  publishStep = null,
+  publishProgress = 0,
   partialPublish,
   publishSuccess,
   onBack,
@@ -96,6 +117,14 @@ export function ReviewPublishStep({
       ? campaignData.specialAdCategories.join(", ")
       : "None";
 
+  const activeStepIndex = resolveActiveStepIndex(publishStep);
+  const clampedProgress = Math.min(100, Math.max(0, publishProgress || 0));
+  const showProgress = publishing || (clampedProgress > 0 && !publishSuccess);
+  const showRetry =
+    Boolean(publishError || partialPublish?.metaCampaignId) &&
+    !publishing &&
+    !publishSuccess;
+
   return (
     <div className="space-y-5 pb-2">
       <BuilderStepHeader
@@ -104,6 +133,73 @@ export function ReviewPublishStep({
         description="Review your campaign, ad set, and creative. Nothing goes live on Meta until you publish."
         badge="Final step"
       />
+
+      {showProgress ? (
+        <section className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-[#f4f8ff] p-5 shadow-sm ring-1 ring-[#1877f2]/10">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-[#07111f]">
+              {publishing ? "Publishing to Meta…" : "Publish progress"}
+            </p>
+            <span className="text-xs font-bold tabular-nums text-[#1877f2]">
+              {clampedProgress}%
+            </span>
+          </div>
+
+          <div
+            className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-[#1877f2]/15"
+            role="progressbar"
+            aria-valuenow={clampedProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full bg-[#1877f2] transition-[width] duration-500 ease-out"
+              style={{ width: `${clampedProgress}%` }}
+            />
+          </div>
+
+          <ol className="mt-4 space-y-2">
+            {PUBLISH_PROGRESS_STEPS.map((step, index) => {
+              const done =
+                index < activeStepIndex ||
+                (step.key === "done" && clampedProgress >= 100) ||
+                (index === activeStepIndex && clampedProgress >= 100);
+              const current = index === activeStepIndex && !done && publishing;
+              return (
+                <li
+                  key={step.key}
+                  className={`flex items-center gap-2.5 text-sm ${
+                    done
+                      ? "font-semibold text-emerald-700"
+                      : current
+                        ? "font-semibold text-[#1877f2]"
+                        : "text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-full ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : current
+                          ? "bg-[#1877f2] text-white"
+                          : "bg-white ring-1 ring-[#dbeafe] text-slate-400"
+                    }`}
+                  >
+                    {done ? (
+                      <Check className="size-3" aria-hidden />
+                    ) : current ? (
+                      <Loader2 className="size-3 animate-spin" aria-hidden />
+                    ) : (
+                      <span className="text-[10px] font-bold">{index + 1}</span>
+                    )}
+                  </span>
+                  {step.label}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
 
       {partialPublish?.metaCampaignId && !publishSuccess ? (
         <BuilderWarningAlert
@@ -329,7 +425,13 @@ export function ReviewPublishStep({
           onBack={onBack}
           secondaryLabel="Back"
           onSecondary={onPrevious}
-          primaryLabel={publishing ? "Publishing to Meta…" : "Publish to Meta"}
+          primaryLabel={
+            publishing
+              ? "Publishing to Meta…"
+              : showRetry
+                ? "Retry Publish"
+                : "Publish to Meta"
+          }
           primaryLoading={publishing}
           primaryDisabled={publishing}
           primaryDisabledReason={

@@ -22,7 +22,6 @@ export const META_BLUE = "#1877F2";
 export const BRAND_BLUE = "#1877f2";
 export const BRAND_BLUE_HOVER = "#166fe5";
 
-/* Shared Meta Ads Manager theme tokens — use across all meta-builder steps */
 export const metaBuilderShellClass = "meta-builder-theme bg-[#f0f2f5]";
 export const metaBuilderBorderClass = "border-[#e8edf5]";
 export const metaBuilderSurfaceClass = "bg-white";

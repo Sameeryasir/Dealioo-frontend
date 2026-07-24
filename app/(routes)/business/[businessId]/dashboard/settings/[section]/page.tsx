@@ -20,11 +20,11 @@ export default function BusinessSettingsSectionPage() {
       ? Number(businessIdParam)
       : null;
 
-  const section: BusinessSettingsSection = isBusinessSettingsSection(
-    typeof sectionParam === "string" ? sectionParam : null,
-  )
-    ? sectionParam
-    : defaultBusinessSettingsSection(businessId);
+  const section: BusinessSettingsSection =
+    typeof sectionParam === "string" &&
+    isBusinessSettingsSection(sectionParam)
+      ? sectionParam
+      : defaultBusinessSettingsSection(businessId);
 
   const displaySection: BusinessSettingsSection =
     businessId != null && section === "account" ? "general" : section;

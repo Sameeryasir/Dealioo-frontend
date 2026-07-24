@@ -15,11 +15,11 @@ export default function OrgSettingsSectionPage() {
   const params = useParams();
   const sectionParam = params?.section;
 
-  const section: BusinessSettingsSection = isBusinessSettingsSection(
-    typeof sectionParam === "string" ? sectionParam : null,
-  )
-    ? sectionParam
-    : defaultBusinessSettingsSection(null);
+  const section: BusinessSettingsSection =
+    typeof sectionParam === "string" &&
+    isBusinessSettingsSection(sectionParam)
+      ? sectionParam
+      : defaultBusinessSettingsSection(null);
 
   useEffect(() => {
     if (

@@ -79,10 +79,12 @@ function CampaignMetric({
   icon: Icon,
   label,
   value,
+  loading,
 }: {
   icon: typeof Eye;
   label: string;
   value: string;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-3 py-2.5">
@@ -92,7 +94,11 @@ function CampaignMetric({
           {label}
         </span>
       </div>
-      <p className="mt-1 text-sm font-semibold text-[#07111f]">{value}</p>
+      {loading ? (
+        <div className="mt-1.5 h-4 w-16 animate-pulse rounded bg-[#dbeafe]" />
+      ) : (
+        <p className="mt-1 text-sm font-semibold text-[#07111f]">{value}</p>
+      )}
     </div>
   );
 }
@@ -110,6 +116,7 @@ export function CampaignAdsPanel({
   const [metaError, setMetaError] = useState<string | null>(null);
   const [adStats, setAdStats] = useState<FacebookAdCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [campaignPendingDelete, setCampaignPendingDelete] =
@@ -152,19 +159,35 @@ export function CampaignAdsPanel({
     }
   }, [businessId, campaignPendingDelete]);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (opts?: { refresh?: boolean }) => {
     setAdStatsLoading(true);
+    setInsightsLoading(true);
     setAdStatsError(null);
+    let listed = false;
     try {
-      const stats = await getFacebookAdCampaignStats(businessId);
-      setAdStats(stats);
+      const list = await getFacebookAdCampaignStats(businessId, {
+        includeInsights: false,
+        refresh: opts?.refresh,
+      });
+      listed = true;
+      setAdStats(list);
+      setAdStatsLoading(false);
+
+      const full = await getFacebookAdCampaignStats(businessId, {
+        includeInsights: true,
+        refresh: opts?.refresh,
+      });
+      setAdStats(full);
     } catch (e) {
-      setAdStats(null);
+      if (!listed) {
+        setAdStats(null);
+      }
       setAdStatsError(
         e instanceof Error ? e.message : "Could not load Facebook ads.",
       );
     } finally {
       setAdStatsLoading(false);
+      setInsightsLoading(false);
     }
   }, [businessId]);
 
@@ -258,7 +281,7 @@ export function CampaignAdsPanel({
               </button>
               <button
                 type="button"
-                onClick={() => void loadStats()}
+                onClick={() => void loadStats({ refresh: true })}
                 disabled={adStatsLoading}
                 className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-60 sm:w-auto"
               >
@@ -369,19 +392,31 @@ export function CampaignAdsPanel({
                     <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-4">
                       <MetricStatCardAccent
                         label="Total spend"
-                        value={formatMetaSpend(String(totalSpend), currency)}
+                        value={
+                          insightsLoading
+                            ? "…"
+                            : formatMetaSpend(String(totalSpend), currency)
+                        }
                         icon={Wallet}
                         tone="blue"
                       />
                       <MetricStatCardAccent
                         label="Impressions"
-                        value={formatMetaCount(String(totalImpressions))}
+                        value={
+                          insightsLoading
+                            ? "…"
+                            : formatMetaCount(String(totalImpressions))
+                        }
                         icon={Eye}
                         tone="violet"
                       />
                       <MetricStatCardAccent
                         label="Reach"
-                        value={formatMetaCount(String(totalReach))}
+                        value={
+                          insightsLoading
+                            ? "…"
+                            : formatMetaCount(String(totalReach))
+                        }
                         icon={Users}
                         tone="emerald"
                       />
@@ -445,21 +480,25 @@ export function CampaignAdsPanel({
                               <CampaignMetric
                                 icon={Wallet}
                                 label="Spent"
+                                loading={insightsLoading}
                                 value={formatMetaSpend(c.insights?.spend, currency)}
                               />
                               <CampaignMetric
                                 icon={Eye}
                                 label="Impressions"
+                                loading={insightsLoading}
                                 value={formatMetaCount(c.insights?.impressions)}
                               />
                               <CampaignMetric
                                 icon={Users}
                                 label="Reach"
+                                loading={insightsLoading}
                                 value={formatMetaCount(c.insights?.reach)}
                               />
                               <CampaignMetric
                                 icon={MousePointerClick}
                                 label="Clicks"
+                                loading={insightsLoading}
                                 value={formatMetaCount(c.insights?.clicks)}
                               />
                             </div>
@@ -519,7 +558,7 @@ export function CampaignAdsPanel({
                   <p className="font-medium">{adStatsError}</p>
                   <button
                     type="button"
-                    onClick={() => void loadStats()}
+                    onClick={() => void loadStats({ refresh: true })}
                     disabled={adStatsLoading}
                     className="mt-2 text-xs font-semibold underline hover:no-underline disabled:opacity-60"
                   >
@@ -582,8 +621,12 @@ export function CampaignAdsPanel({
         defaultName={campaignName}
         defaultWebsiteUrl={campaignWebsiteUrl}
         onDraftSaved={(draft) => {
-          if (draft.status === "published" && draft.metaAdId) {
-            void loadStats();
+          if (
+            (draft.status === "published" ||
+              draft.publishStatus === "PUBLISHED") &&
+            draft.metaAdId
+          ) {
+            void loadStats({ refresh: true });
           }
         }}
       />

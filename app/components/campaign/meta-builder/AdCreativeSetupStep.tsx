@@ -231,7 +231,11 @@ export function AdCreativeSetupStep({
     setUploading(true);
     setLocalError(null);
     try {
-      const { imageUrl: url } = await uploadFacebookCampaignImage(businessId, file);
+      const { imageUrl: url } = await uploadFacebookCampaignImage(
+        businessId,
+        file,
+        { draftId },
+      );
       const resolved = resolveMetaImageUrl(url);
       if (target === "main") setImageUrl(resolved);
       else if (target === "thumb") setThumbnailUrl(resolved);
@@ -252,7 +256,11 @@ export function AdCreativeSetupStep({
     setUploading(true);
     setLocalError(null);
     try {
-      const { videoUrl: url } = await uploadFacebookCampaignVideo(businessId, file);
+      const { videoUrl: url } = await uploadFacebookCampaignVideo(
+        businessId,
+        file,
+        { draftId },
+      );
       setVideoUrl(url);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not upload video.");

@@ -208,7 +208,7 @@ export type AdCreativeStepData = {
 export type MetaCampaignDraft = {
   id: string;
   businessId: number;
-  /** @deprecated Use businessId */
+  
   restaurantId?: number;
   currentStep: number;
   status: string;
@@ -220,8 +220,14 @@ export type MetaCampaignDraft = {
   metaCreativeId: string | null;
   metaAdId: string | null;
   errorMessage: string | null;
+  
+  version: number;
+  completedSteps: number[];
+  lastSavedAt: string | null;
   publishStatus?: string | null;
   publishJobId?: string | null;
+  publishStep?: string | null;
+  publishProgress?: number;
   publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -245,7 +251,6 @@ export const BUILDER_STEPS = [
   { id: 4, label: "Review & Publish" },
 ] as const;
 
-/** Ads Manager deep link for the restaurant's linked ad account. */
 export function buildMetaAdsManagerUrl(adAccountId: string): string {
   const numeric = adAccountId.replace(/^act_/, "").trim();
   if (!numeric) {
@@ -254,7 +259,6 @@ export function buildMetaAdsManagerUrl(adAccountId: string): string {
   return `https://www.facebook.com/adsmanager/manage/campaigns?act=${numeric}`;
 }
 
-/** Open Ads Manager after publish when the owner chose Active delivery in the builder. */
 export function shouldOpenMetaAdsManagerAfterPublish(
   campaign: Pick<CampaignStepData, "status">,
 ): boolean {

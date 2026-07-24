@@ -108,10 +108,6 @@ export default function RegisterBusinessPage() {
     };
   }, [queryClient, router]);
 
-  if (!gateReady) {
-    return <OnboardingPageLoading />;
-  }
-
   const onSubmit = useCallback(
     async (data: RegisterBusinessFormValues) => {
       setErrorMessage(null);
@@ -171,6 +167,10 @@ export default function RegisterBusinessPage() {
     },
     [accessToken, queryClient, router],
   );
+
+  if (!gateReady) {
+    return <OnboardingPageLoading />;
+  }
 
   return (
     <RegisterBusinessForm

@@ -435,6 +435,7 @@ export function patchChatCustomersAfterSend(
 
   const payload: ChatMessagePusherPayload = {
     businessId: 0,
+    conversationId: guest.conversationId,
     customerId: guest.customerId,
     customerName: guest.customerName,
     customerEmail: guest.customerEmail,

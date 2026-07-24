@@ -18,6 +18,8 @@ import {
   shouldOpenMetaAdsManagerAfterPublish,
 } from "@/app/lib/meta-campaign-builder-types";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { isPusherConfigured } from "@/app/lib/pusher-meta-publish";
+import { subscribeMetaPublishProgress } from "@/app/lib/pusher-client";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { AdCreativeSetupStep } from "@/app/components/campaign/meta-builder/AdCreativeSetupStep";
 import { AdSetSetupStep } from "@/app/components/campaign/meta-builder/AdSetSetupStep";
@@ -26,13 +28,19 @@ import { CampaignSetupStep } from "@/app/components/campaign/meta-builder/Campai
 import { PlaceholderBuilderStep } from "@/app/components/campaign/meta-builder/PlaceholderBuilderStep";
 import { ReviewPublishStep } from "@/app/components/campaign/meta-builder/ReviewPublishStep";
 import {
+  autosaveMetaCampaignDraft,
   getMetaCampaignDraft,
+  getMetaPublishStatus,
+  MetaDraftConflictError,
+  pollMetaPublishUntilDone,
   publishMetaCampaignDraft,
   saveAdCreativeStep,
   saveAdSetStep,
   saveCampaignStep,
   type PublishMetaCampaignResult,
 } from "@/app/services/facebook/meta-campaign-draft";
+
+type AutosaveUiState = "idle" | "saving" | "saved" | "error";
 
 type MetaCampaignBuilderProps = {
   open: boolean;
@@ -41,9 +49,49 @@ type MetaCampaignBuilderProps = {
   defaultWebsiteUrl?: string;
   draftId?: string | null;
   initialDraft?: MetaCampaignDraft | null;
+  
+  autoStartPublish?: boolean;
   onClose: () => void;
   onDraftSaved?: (draft: MetaCampaignDraft) => void;
 };
+
+function initialStepFromDraft(draft: MetaCampaignDraft | null | undefined): number {
+  if (!draft) return 1;
+  const status = (draft.status ?? "").toLowerCase();
+  const publishStatus = (draft.publishStatus ?? "").toUpperCase();
+  const isPublishing =
+    status === "publishing" ||
+    publishStatus === "QUEUED" ||
+    publishStatus === "PUBLISHING" ||
+    publishStatus === "RUNNING";
+  const isFailed =
+    status === "failed" || publishStatus === "FAILED";
+  
+  if (
+    (isPublishing || isFailed) &&
+    draft.campaignData &&
+    draft.adSetData &&
+    draft.adCreativeData
+  ) {
+    return 4;
+  }
+  if (draft.currentStep && draft.currentStep > 1) {
+    return Math.min(draft.currentStep, 4);
+  }
+  return 1;
+}
+
+function applyDraftToPartialMeta(draft: MetaCampaignDraft) {
+  if (draft.metaCampaignId && !draft.metaAdId) {
+    return {
+      metaCampaignId: draft.metaCampaignId,
+      metaAdsetId: draft.metaAdsetId,
+      metaCreativeId: draft.metaCreativeId,
+      previousError: draft.errorMessage,
+    };
+  }
+  return null;
+}
 
 export function MetaCampaignBuilder({
   open,
@@ -52,16 +100,18 @@ export function MetaCampaignBuilder({
   defaultWebsiteUrl,
   draftId: initialDraftId = null,
   initialDraft = null,
+  autoStartPublish = false,
   onClose,
   onDraftSaved,
 }: MetaCampaignBuilderProps) {
-  const [currentStep, setCurrentStep] = useState(
-    initialDraft?.currentStep && initialDraft.currentStep > 1
-      ? initialDraft.currentStep
-      : 1,
+  const [currentStep, setCurrentStep] = useState(() =>
+    initialStepFromDraft(initialDraft),
   );
   const [draftId, setDraftId] = useState<string | null>(
     initialDraftId ?? initialDraft?.id ?? null,
+  );
+  const [draftVersion, setDraftVersion] = useState<number>(
+    initialDraft?.version ?? 1,
   );
   const [campaignData, setCampaignData] = useState<CampaignStepData | null>(
     initialDraft?.campaignData ?? null,
@@ -73,9 +123,20 @@ export function MetaCampaignBuilder({
     initialDraft?.adCreativeData ?? null,
   );
   const [saving, setSaving] = useState(false);
+  const [autosaveState, setAutosaveState] = useState<AutosaveUiState>("idle");
   const [publishing, setPublishing] = useState(false);
-  const [publishPhase, setPublishPhase] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [publishPhase, setPublishPhase] = useState<string | null>(
+    initialDraft?.publishStatus ?? null,
+  );
+  const [publishStep, setPublishStep] = useState<string | null>(
+    initialDraft?.publishStep ?? null,
+  );
+  const [publishProgress, setPublishProgress] = useState(
+    initialDraft?.publishProgress ?? 0,
+  );
+  const [error, setError] = useState<string | null>(
+    initialDraft?.status === "failed" ? initialDraft.errorMessage : null,
+  );
   const [publishSuccess, setPublishSuccess] =
     useState<PublishMetaCampaignResult | null>(null);
   const [partialMeta, setPartialMeta] = useState<{
@@ -84,24 +145,66 @@ export function MetaCampaignBuilder({
     metaCreativeId?: string | null;
     previousError?: string | null;
   } | null>(
-    initialDraft?.metaCampaignId && !initialDraft?.metaAdId
-      ? {
-          metaCampaignId: initialDraft.metaCampaignId,
-          metaAdsetId: initialDraft.metaAdsetId,
-          metaCreativeId: initialDraft.metaCreativeId,
-          previousError: initialDraft.errorMessage,
-        }
-      : null,
+    initialDraft ? applyDraftToPartialMeta(initialDraft) : null,
   );
 
   const [refreshingPublishStatus, setRefreshingPublishStatus] = useState(false);
 
   const publishStartedRef = useRef(false);
+  const resumeHandledRef = useRef(false);
   const stepScrollRef = useRef<HTMLElement | null>(null);
+  const autosaveSkipRef = useRef(true);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAutosavePayloadRef = useRef<string>("");
 
   useEffect(() => {
     stepScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [currentStep]);
+
+  const applyDraftState = useCallback((draft: MetaCampaignDraft) => {
+    setDraftId(draft.id);
+    setDraftVersion(draft.version ?? 1);
+    setCampaignData(draft.campaignData);
+    setAdSetData(draft.adSetData);
+    setAdCreativeData(draft.adCreativeData);
+    if (draft.publishStep != null) setPublishStep(draft.publishStep);
+    if (draft.publishProgress != null) setPublishProgress(draft.publishProgress);
+    if (draft.publishStatus != null) setPublishPhase(draft.publishStatus);
+    setPartialMeta(applyDraftToPartialMeta(draft));
+  }, []);
+
+  const applyPublishProgress = useCallback(
+    (draft: Pick<
+      MetaCampaignDraft,
+      | "publishStatus"
+      | "publishStep"
+      | "publishProgress"
+      | "errorMessage"
+      | "metaCampaignId"
+      | "metaAdsetId"
+      | "metaCreativeId"
+      | "metaAdId"
+      | "status"
+    >) => {
+      setPublishPhase(draft.publishStatus ?? draft.status);
+      if (draft.publishStep != null) setPublishStep(draft.publishStep);
+      if (typeof draft.publishProgress === "number") {
+        setPublishProgress(draft.publishProgress);
+      }
+      if (draft.errorMessage?.trim()) {
+        setError(draft.errorMessage);
+      }
+      if (draft.metaCampaignId && !draft.metaAdId) {
+        setPartialMeta({
+          metaCampaignId: draft.metaCampaignId,
+          metaAdsetId: draft.metaAdsetId,
+          metaCreativeId: draft.metaCreativeId,
+          previousError: draft.errorMessage,
+        });
+      }
+    },
+    [],
+  );
 
   const maxReachableStep = useMemo(() => {
     if (!draftId || !campaignData) return 1;
@@ -120,6 +223,124 @@ export function MetaCampaignBuilder({
     [currentStep, maxReachableStep],
   );
 
+  
+  const runAutosave = useCallback(async () => {
+    if (!draftId || !draftVersion) return;
+    if (!campaignData && !adSetData && !adCreativeData) return;
+
+    const payload = {
+      expectedVersion: draftVersion,
+      currentStep,
+      completedSteps:
+        currentStep > 1
+          ? Array.from({ length: currentStep - 1 }, (_, i) => i + 1)
+          : undefined,
+      campaignData: campaignData ?? undefined,
+      adSetData: adSetData ?? undefined,
+      adCreativeData: adCreativeData ?? undefined,
+    };
+    const fingerprint = JSON.stringify(payload);
+    if (fingerprint === lastAutosavePayloadRef.current) {
+      return;
+    }
+
+    setAutosaveState("saving");
+    try {
+      const saved = await autosaveMetaCampaignDraft(businessId, draftId, payload);
+      lastAutosavePayloadRef.current = JSON.stringify({
+        ...payload,
+        expectedVersion: saved.version,
+      });
+      setDraftVersion(saved.version ?? draftVersion + 1);
+      setAutosaveState("saved");
+      onDraftSaved?.(saved);
+    } catch (err) {
+      if (err instanceof MetaDraftConflictError) {
+        setAutosaveState("error");
+        setError(
+          err.message ||
+            "Draft was updated elsewhere. Reloading the latest version…",
+        );
+        try {
+          const refreshed = await getMetaCampaignDraft(businessId, draftId);
+          applyDraftState(refreshed);
+          setCurrentStep(initialStepFromDraft(refreshed));
+          onDraftSaved?.(refreshed);
+          setError(
+            "Draft was updated elsewhere. We loaded the latest version — review your changes and continue.",
+          );
+        } catch {
+          
+        }
+        return;
+      }
+      setAutosaveState("error");
+    }
+  }, [
+    adCreativeData,
+    adSetData,
+    applyDraftState,
+    businessId,
+    campaignData,
+    currentStep,
+    draftId,
+    draftVersion,
+    onDraftSaved,
+  ]);
+
+  useEffect(() => {
+    if (!open || !draftId || draftVersion < 1) return;
+    if (autosaveSkipRef.current) {
+      autosaveSkipRef.current = false;
+      return;
+    }
+    
+    if (publishing) return;
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = setTimeout(() => {
+      void runAutosave();
+    }, 1000);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [
+    open,
+    draftId,
+    draftVersion,
+    campaignData,
+    adSetData,
+    adCreativeData,
+    currentStep,
+    publishing,
+    runAutosave,
+  ]);
+
+  
+  useEffect(() => {
+    if (!open || !draftId || !isPusherConfigured()) return;
+
+    return subscribeMetaPublishProgress(businessId, (payload) => {
+      if (payload.draftId !== draftId) return;
+      applyPublishProgress({
+        publishStatus: payload.publishStatus,
+        publishStep: payload.publishStep,
+        publishProgress: payload.publishProgress,
+        errorMessage: payload.errorMessage,
+        metaCampaignId: payload.metaCampaignId,
+        metaAdsetId: payload.metaAdsetId,
+        metaCreativeId: payload.metaCreativeId,
+        metaAdId: payload.metaAdId,
+        status: payload.status,
+      });
+    });
+  }, [applyPublishProgress, businessId, draftId, open]);
+
   const handleSaveCampaignStep = useCallback(
     async (data: CampaignStepData) => {
       setSaving(true);
@@ -129,9 +350,12 @@ export function MetaCampaignBuilder({
           ...data,
           draftId: draftId ?? undefined,
         });
-        setDraftId(draft.id);
-        setCampaignData(draft.campaignData);
+        
+        autosaveSkipRef.current = true;
+        lastAutosavePayloadRef.current = "";
+        applyDraftState(draft);
         setCurrentStep(2);
+        setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
         setError(
@@ -141,7 +365,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, businessId],
+    [applyDraftState, draftId, onDraftSaved, businessId],
   );
 
   const handleSaveAdSetStep = useCallback(
@@ -163,8 +387,11 @@ export function MetaCampaignBuilder({
           ...data,
           draftId,
         });
-        setAdSetData(draft.adSetData);
+        autosaveSkipRef.current = true;
+        lastAutosavePayloadRef.current = "";
+        applyDraftState(draft);
         setCurrentStep(3);
+        setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
         setError(
@@ -174,7 +401,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, businessId],
+    [applyDraftState, draftId, onDraftSaved, businessId],
   );
 
   const handleSaveAdCreativeStep = useCallback(
@@ -191,8 +418,11 @@ export function MetaCampaignBuilder({
           ...data,
           draftId,
         });
-        setAdCreativeData(draft.adCreativeData);
+        autosaveSkipRef.current = true;
+        lastAutosavePayloadRef.current = "";
+        applyDraftState(draft);
         setCurrentStep(4);
+        setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
         setError(
@@ -202,7 +432,7 @@ export function MetaCampaignBuilder({
         setSaving(false);
       }
     },
-    [draftId, onDraftSaved, businessId],
+    [applyDraftState, draftId, onDraftSaved, businessId],
   );
 
   const handleRefreshPublishStatus = useCallback(async () => {
@@ -211,9 +441,29 @@ export function MetaCampaignBuilder({
     setRefreshingPublishStatus(true);
     setError(null);
     try {
-      const refreshed = await getMetaCampaignDraft(businessId, draftId, 15_000);
+      let refreshed: MetaCampaignDraft;
+      try {
+        const status = await getMetaPublishStatus(businessId, draftId, 15_000);
+        applyPublishProgress({
+          publishStatus: status.publishStatus,
+          publishStep: status.publishStep,
+          publishProgress: status.publishProgress,
+          errorMessage: status.errorMessage,
+          metaCampaignId: status.metaCampaignId,
+          metaAdsetId: status.metaAdsetId,
+          metaCreativeId: status.metaCreativeId,
+          metaAdId: status.metaAdId,
+          status: status.status,
+        });
+        refreshed = await getMetaCampaignDraft(businessId, draftId, 15_000);
+      } catch {
+        refreshed = await getMetaCampaignDraft(businessId, draftId, 15_000);
+        applyPublishProgress(refreshed);
+      }
+
       if (
-        refreshed.status === "published" &&
+        (refreshed.publishStatus === "PUBLISHED" ||
+          refreshed.status === "published") &&
         refreshed.metaCampaignId &&
         refreshed.metaAdsetId &&
         refreshed.metaCreativeId &&
@@ -231,7 +481,7 @@ export function MetaCampaignBuilder({
               adsManagerUrl = buildMetaAdsManagerUrl(connection.metaAdAccountId);
             }
           } catch {
-            /* optional, link still shown in review if available */
+            
           }
         }
 
@@ -245,12 +495,14 @@ export function MetaCampaignBuilder({
           metaAdId: refreshed.metaAdId,
           status: deliveryStatus,
           adsManagerUrl,
+          publishStatus: refreshed.publishStatus,
           message:
             deliveryStatus === "ACTIVE"
               ? "Campaign published to Meta as Active."
               : "Campaign published successfully to Meta (paused).",
         };
         setPartialMeta(null);
+        setPublishSuccess(result);
         onDraftSaved?.(refreshed);
         if (
           shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
@@ -281,7 +533,14 @@ export function MetaCampaignBuilder({
     } finally {
       setRefreshingPublishStatus(false);
     }
-  }, [campaignData, draftId, onDraftSaved, businessId, onClose]);
+  }, [
+    applyPublishProgress,
+    campaignData,
+    draftId,
+    onDraftSaved,
+    businessId,
+    onClose,
+  ]);
 
   const handlePublish = useCallback(async () => {
     if (!draftId || !campaignData || !adSetData || !adCreativeData) {
@@ -295,7 +554,9 @@ export function MetaCampaignBuilder({
 
     publishStartedRef.current = true;
     setPublishing(true);
-    setPublishPhase("PENDING");
+    setPublishPhase("QUEUED");
+    setPublishStep("preparing");
+    setPublishProgress(0);
     setError(null);
 
     try {
@@ -309,23 +570,15 @@ export function MetaCampaignBuilder({
           facebookPageId: adCreativeData.facebookPageId,
         },
         (draft) => {
-          setPublishPhase(draft.publishStatus ?? draft.status);
-          if (draft.errorMessage?.trim()) {
-            setError(draft.errorMessage);
-          }
-          if (draft.metaCampaignId && !draft.metaAdId) {
-            setPartialMeta({
-              metaCampaignId: draft.metaCampaignId,
-              metaAdsetId: draft.metaAdsetId,
-              metaCreativeId: draft.metaCreativeId,
-              previousError: draft.errorMessage,
-            });
-          }
+          applyPublishProgress(draft);
         },
       );
       setPartialMeta(null);
       setError(null);
       setPublishPhase("PUBLISHED");
+      setPublishStep("done");
+      setPublishProgress(100);
+      setPublishSuccess(result);
       if (
         shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
         result.adsManagerUrl?.trim()
@@ -345,7 +598,13 @@ export function MetaCampaignBuilder({
         metaCreativeId: result.metaCreativeId,
         metaAdId: result.metaAdId,
         errorMessage: null,
+        version: draftVersion,
+        completedSteps: [1, 2, 3, 4],
+        lastSavedAt: null,
         publishStatus: "PUBLISHED",
+        publishStep: "done",
+        publishProgress: 100,
+        publishedAt: new Date().toISOString(),
         createdAt: "",
         updatedAt: "",
       });
@@ -359,6 +618,7 @@ export function MetaCampaignBuilder({
       if (draftId) {
         try {
           const refreshed = await getMetaCampaignDraft(businessId, draftId);
+          applyDraftState(refreshed);
           if (refreshed.metaCampaignId && !refreshed.metaAdId) {
             setPartialMeta({
               metaCampaignId: refreshed.metaCampaignId,
@@ -371,6 +631,7 @@ export function MetaCampaignBuilder({
             setError(refreshed.errorMessage);
           }
         } catch {
+          
         }
       }
     } finally {
@@ -380,36 +641,188 @@ export function MetaCampaignBuilder({
   }, [
     adCreativeData,
     adSetData,
+    applyDraftState,
+    applyPublishProgress,
     campaignData,
     draftId,
+    draftVersion,
     onDraftSaved,
     businessId,
     publishSuccess,
     onClose,
   ]);
 
+  
+  useEffect(() => {
+    if (!open || !draftId) return;
+    if (resumeHandledRef.current) return;
+
+    const status = (initialDraft?.status ?? "").toLowerCase();
+    const publishStatus = (initialDraft?.publishStatus ?? "").toUpperCase();
+    const isPublishing =
+      status === "publishing" ||
+      publishStatus === "QUEUED" ||
+      publishStatus === "PUBLISHING" ||
+      publishStatus === "RUNNING";
+
+    if (isPublishing && initialDraft) {
+      resumeHandledRef.current = true;
+      setPublishing(true);
+      setCurrentStep(4);
+      publishStartedRef.current = true;
+      void pollMetaPublishUntilDone(businessId, draftId, (draft) => {
+        applyPublishProgress(draft);
+      })
+        .then((result) => {
+          setPartialMeta(null);
+          setError(null);
+          setPublishPhase("PUBLISHED");
+          setPublishStep("done");
+          setPublishProgress(100);
+          setPublishSuccess(result);
+          const liveCampaign = campaignData ?? initialDraft.campaignData;
+          if (
+            liveCampaign &&
+            shouldOpenMetaAdsManagerAfterPublish(liveCampaign) &&
+            result.adsManagerUrl?.trim()
+          ) {
+            openMetaAdsManager(result.adsManagerUrl);
+          }
+          onDraftSaved?.({
+            ...initialDraft,
+            status: "published",
+            publishStatus: "PUBLISHED",
+            metaCampaignId: result.metaCampaignId,
+            metaAdsetId: result.metaAdsetId,
+            metaCreativeId: result.metaCreativeId,
+            metaAdId: result.metaAdId,
+            publishStep: "done",
+            publishProgress: 100,
+            version: initialDraft.version ?? 1,
+            completedSteps: initialDraft.completedSteps ?? [1, 2, 3, 4],
+            lastSavedAt: initialDraft.lastSavedAt ?? null,
+          });
+          onClose();
+        })
+        .catch((err: unknown) => {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Publish failed on Meta. Review the error and try again.",
+          );
+          setPublishPhase("FAILED");
+        })
+        .finally(() => {
+          setPublishing(false);
+          publishStartedRef.current = false;
+        });
+      return;
+    }
+
+    if (autoStartPublish) {
+      resumeHandledRef.current = true;
+      setCurrentStep(4);
+      
+      const timer = setTimeout(() => {
+        void handlePublish();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    open,
+    draftId,
+    initialDraft,
+    autoStartPublish,
+    businessId,
+    applyPublishProgress,
+    campaignData,
+    handlePublish,
+    onClose,
+    onDraftSaved,
+  ]);
+
   useEffect(() => {
     if (open) return;
-    setCurrentStep(1);
+    setCurrentStep(initialStepFromDraft(initialDraft));
     setDraftId(initialDraftId ?? initialDraft?.id ?? null);
+    setDraftVersion(initialDraft?.version ?? 1);
     setCampaignData(initialDraft?.campaignData ?? null);
     setAdSetData(initialDraft?.adSetData ?? null);
     setAdCreativeData(initialDraft?.adCreativeData ?? null);
     setSaving(false);
+    setAutosaveState("idle");
     setPublishing(false);
-    setPublishPhase(null);
-    setError(null);
+    setPublishPhase(initialDraft?.publishStatus ?? null);
+    setPublishStep(initialDraft?.publishStep ?? null);
+    setPublishProgress(initialDraft?.publishProgress ?? 0);
+    setError(
+      initialDraft?.status === "failed" ? initialDraft.errorMessage : null,
+    );
     setPublishSuccess(null);
-    setPartialMeta(null);
+    setPartialMeta(initialDraft ? applyDraftToPartialMeta(initialDraft) : null);
     setRefreshingPublishStatus(false);
     publishStartedRef.current = false;
+    resumeHandledRef.current = false;
+    autosaveSkipRef.current = true;
+    lastAutosavePayloadRef.current = "";
   }, [open, initialDraft, initialDraftId]);
+
+  
+  useEffect(() => {
+    if (!open) return;
+    autosaveSkipRef.current = true;
+    if (initialDraft) {
+      applyDraftState(initialDraft);
+      setCurrentStep(initialStepFromDraft(initialDraft));
+      if (initialDraft.status === "failed" && initialDraft.errorMessage) {
+        setError(initialDraft.errorMessage);
+      }
+    } else {
+      setCurrentStep(1);
+      setDraftId(initialDraftId);
+      setDraftVersion(1);
+      setCampaignData(null);
+      setAdSetData(null);
+      setAdCreativeData(null);
+      setPartialMeta(null);
+      setError(null);
+    }
+  }, [open, initialDraft, initialDraftId, applyDraftState]);
 
   if (!open) return null;
 
+  const autosaveLabel =
+    autosaveState === "saving"
+      ? "Saving…"
+      : autosaveState === "saved"
+        ? "Saved"
+        : autosaveState === "error"
+          ? "Retry Save"
+          : null;
+
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${metaBuilderShellClass}`}>
-      <div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-4">
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-2 sm:right-5 sm:top-4">
+        {autosaveLabel ? (
+          <button
+            type="button"
+            disabled={autosaveState === "saving"}
+            onClick={() => {
+              if (autosaveState === "error") {
+                void runAutosave();
+              }
+            }}
+            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-sm ${
+              autosaveState === "error"
+                ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                : autosaveState === "saving"
+                  ? "border-[#dbeafe] bg-[#f4f8ff] text-[#1877f2]"
+                  : "border-[#e8edf5] bg-white text-slate-500"
+            }`}
+          >
+            {autosaveLabel}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onClose}
@@ -435,9 +848,11 @@ export function MetaCampaignBuilder({
           {publishing ? (
             <BuilderLoadingBanner
               message={`Publishing to Meta… ${
-                publishPhase
-                  ? publishPhase.split("_").join(" ")
-                  : "starting job"
+                publishStep
+                  ? publishStep.split("_").join(" ")
+                  : publishPhase
+                    ? String(publishPhase).split("_").join(" ")
+                    : "starting job"
               }. You can leave this open while the worker finishes.`}
             />
           ) : null}
@@ -510,6 +925,8 @@ export function MetaCampaignBuilder({
               adCreativeData={adCreativeData}
               publishing={publishing}
               publishError={error}
+              publishStep={publishStep}
+              publishProgress={publishProgress}
               partialPublish={partialMeta ?? undefined}
               publishSuccess={publishSuccess}
               onBack={onClose}

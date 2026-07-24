@@ -17,6 +17,12 @@ import {
   pusherConversationMessagesChannel,
   type ChatMessagePusherPayload,
 } from "@/app/lib/pusher-chat";
+import {
+  PUSHER_META_PUBLISH_EVENT,
+  parseMetaPublishProgressPayload,
+  pusherBusinessMetaPublishChannel,
+  type MetaPublishProgressPusherPayload,
+} from "@/app/lib/pusher-meta-publish";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
 
@@ -403,6 +409,24 @@ export function subscribeBusinessChatMessages(
   onMessage: (payload: ChatMessagePusherPayload) => void,
 ): () => void {
   return subscribeBusinessConversations(businessId, onMessage);
+}
+
+/** Live Meta publish progress for a business (private channel). */
+export function subscribeMetaPublishProgress(
+  businessId: number,
+  onProgress: (payload: MetaPublishProgressPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessMetaPublishChannel(businessId),
+    PUSHER_META_PUBLISH_EVENT.PROGRESS,
+    onProgress,
+    parseMetaPublishProgressPayload,
+    `meta-publish-${businessId}`,
+  );
 }
 
 export const subscribeRestaurantChatMessages = subscribeBusinessChatMessages;
