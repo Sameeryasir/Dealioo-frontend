@@ -62,10 +62,7 @@ export default function CampaignFunnelCard({
   const offerName = funnel.offer?.trim() ?? "";
   const title =
     campaignName || offerName || `Campaign ${funnel.id}`;
-  const showOfferSubtitle =
-    offerName.length > 0 &&
-    campaignName.length > 0 &&
-    offerName.toLowerCase() !== campaignName.toLowerCase();
+  const showOfferSubtitle = offerName.length > 0 && campaignName.length > 0;
 
   return (
     <div className="group relative flex w-full flex-col overflow-hidden rounded-[1.15rem] border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] outline-none ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/40 hover:shadow-[0_16px_36px_rgba(24,119,242,0.14)]">

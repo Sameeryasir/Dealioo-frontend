@@ -39,6 +39,7 @@ export function useToggleAutomationActive(automationId: number) {
           err,
           isActive ? "Could not resume automation." : "Could not pause automation.",
         );
+        throw err;
       } finally {
         setBusy(false);
       }
@@ -46,8 +47,13 @@ export function useToggleAutomationActive(automationId: number) {
     [automationId, queryClient],
   );
 
-  const pause = useCallback(() => setActive(false), [setActive]);
-  const resume = useCallback(() => setActive(true), [setActive]);
+  const pause = useCallback(() => {
+    void setActive(false);
+  }, [setActive]);
+
+  const resume = useCallback(() => {
+    void setActive(true);
+  }, [setActive]);
 
   return { busy, pause, resume };
 }

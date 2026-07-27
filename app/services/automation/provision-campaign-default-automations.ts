@@ -6,7 +6,6 @@ import {
 import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
 import { buildCreateAutomationBody } from "@/app/services/automation/automation-create-context";
 import {
-  activateAutomation,
   createAutomation,
   getAutomations,
 } from "@/app/services/automation/automation-api";
@@ -31,10 +30,8 @@ export async function provisionCampaignDefaultAutomations(
         (automation) => automation.purpose === template.purpose,
       );
 
+      // Keep existing automations as-is (do not auto-activate on campaign create).
       if (already) {
-        if (!already.isActive) {
-          await activateAutomation(already.id);
-        }
         return;
       }
 
@@ -48,7 +45,7 @@ export async function provisionCampaignDefaultAutomations(
         }),
       );
       await applyAutomationTemplate(created.id, template);
-      await activateAutomation(created.id);
+      // Created inactive by default — owner turns them on from Automations.
     }),
   );
 }
