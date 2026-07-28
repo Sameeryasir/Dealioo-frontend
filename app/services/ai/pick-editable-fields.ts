@@ -26,6 +26,7 @@ const PAGE_EDITABLE_KEYS: Record<TemplatePageId, readonly string[]> = {
     "subheadlineColor",
     "bodyColor",
     "ctaTextColor",
+    "ctaBackgroundColor",
     "backgroundColor",
     "layoutType",
   ],
@@ -71,12 +72,18 @@ type FieldMatcher = {
  */
 const FIELD_MATCHERS: readonly FieldMatcher[] = [
   {
-    // Do not use bare "text" — it falsely matches "headline text", etc.
-    test: (text) =>
-      /\b(button|cta|cta label|call to action|button text|button label)\b/.test(
+    test: (text) => {
+      if (
+        /\b(color|colour|hex|background|bg)\b/.test(text) &&
+        /\b(button|cta)\b/.test(text)
+      ) {
+        return false;
+      }
+      return /\b(button|cta|cta label|call to action|button text|button label)\b/.test(
         text,
-      ),
-    fields: ["ctaLabel", "ctaTextColor"],
+      );
+    },
+    fields: ["ctaLabel"],
   },
   {
     test: (text) =>
@@ -212,11 +219,19 @@ function matchColourFields(text: string): readonly string[] {
 
   const fields = new Set<string>();
 
-  if (/\b(background|bg|page background)\b/.test(text)) {
+  if (
+    /\b(page background)\b/.test(text) ||
+    (/\b(background|bg)\b/.test(text) && !/\b(button|cta)\b/.test(text))
+  ) {
     fields.add("backgroundColor");
   }
+
   if (/\b(button|cta)\b/.test(text)) {
-    fields.add("ctaTextColor");
+    if (/\b(text|label)\b/.test(text)) {
+      fields.add("ctaTextColor");
+    } else {
+      fields.add("ctaBackgroundColor");
+    }
   }
   if (/\b(headline|heading|hero title|main heading)\b/.test(text)) {
     fields.add("headlineColor");
@@ -229,7 +244,13 @@ function matchColourFields(text: string): readonly string[] {
   }
 
   if (fields.size === 0) {
-    return ["headlineColor", "subheadlineColor", "bodyColor", "ctaTextColor"];
+    return [
+      "headlineColor",
+      "subheadlineColor",
+      "bodyColor",
+      "ctaTextColor",
+      "ctaBackgroundColor",
+    ];
   }
 
   return [...fields];
@@ -243,6 +264,24 @@ function pickKeys(
   for (const key of keys) {
     if (key in page) {
       out[key] = page[key];
+      continue;
+    }
+    if (key === "ctaTextColor" && "buttonTextColor" in page) {
+      out.ctaTextColor = page.buttonTextColor;
+    } else if (key === "ctaBackgroundColor" && "buttonBackgroundColor" in page) {
+      out.ctaBackgroundColor = page.buttonBackgroundColor;
+    } else if (key === "headlineColor" && "headingColor" in page) {
+      out.headlineColor = page.headingColor;
+    } else if (key === "subheadlineColor" && "subheadingColor" in page) {
+      out.subheadlineColor = page.subheadingColor;
+    } else if (key === "ctaLabel" && "buttonText" in page) {
+      out.ctaLabel = page.buttonText;
+    } else if (key === "headline" && "heading" in page) {
+      out.headline = page.heading;
+    } else if (key === "subheadline" && "subheading" in page) {
+      out.subheadline = page.subheading;
+    } else if (key === "pageTitle" && "label" in page) {
+      out.pageTitle = page.label;
     }
   }
   return out;

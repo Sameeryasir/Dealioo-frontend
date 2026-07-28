@@ -1,5 +1,6 @@
 import { normalizePaymentPage } from "@/app/components/crm-template-editor/PaymentPagePreview";
 import { normalizeHexColor } from "@/app/components/crm-template-editor/landing-content-colors";
+import { coercePaintColor } from "@/app/components/crm-template-editor/theme-resolver";
 import { normalizeHeroDesign } from "@/app/components/crm-template-editor/hero-designs/registry";
 import { normalizeLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import type {
@@ -84,7 +85,10 @@ function baseFromApi<T extends TemplatePage>(
       typeof api.heroImageScale === "number" && Number.isFinite(api.heroImageScale)
         ? api.heroImageScale
         : fallback.imageScale,
-    backgroundColor: api.backgroundColor ?? fallback.backgroundColor,
+    backgroundColor:
+      coercePaintColor(api.backgroundColor) ??
+      api.backgroundColor ??
+      fallback.backgroundColor,
     layoutType: api.layoutType ?? fallback.layoutType,
   } as T;
 }
@@ -130,22 +134,40 @@ export function mapFunnelApiPagesToTemplateState(
     );
     const landingApiColors = apiPages.landing as {
       headlineColor?: string;
+      headingColor?: string;
       subheadlineColor?: string;
+      subheadingColor?: string;
       bodyColor?: string;
       ctaTextColor?: string;
+      buttonTextColor?: string;
+      ctaLabelColor?: string;
+      ctaBackgroundColor?: string;
+      buttonBackgroundColor?: string;
+      buttonColor?: string;
     };
-    mapped.headingColor = normalizeHexColor(
-      landingApiColors.headlineColor ?? fb.headingColor,
-    );
-    mapped.subheadingColor = normalizeHexColor(
-      landingApiColors.subheadlineColor ?? fb.subheadingColor,
-    );
-    mapped.bodyColor = normalizeHexColor(
-      landingApiColors.bodyColor ?? fb.bodyColor,
-    );
-    mapped.buttonTextColor = normalizeHexColor(
-      landingApiColors.ctaTextColor ?? fb.buttonTextColor,
-    );
+    mapped.headingColor =
+      coercePaintColor(
+        landingApiColors.headlineColor ?? landingApiColors.headingColor,
+      ) ?? normalizeHexColor(fb.headingColor);
+    mapped.subheadingColor =
+      coercePaintColor(
+        landingApiColors.subheadlineColor ?? landingApiColors.subheadingColor,
+      ) ?? normalizeHexColor(fb.subheadingColor);
+    mapped.bodyColor =
+      coercePaintColor(landingApiColors.bodyColor) ??
+      normalizeHexColor(fb.bodyColor);
+    mapped.buttonTextColor =
+      coercePaintColor(
+        landingApiColors.ctaTextColor ??
+          landingApiColors.buttonTextColor ??
+          landingApiColors.ctaLabelColor,
+      ) ?? normalizeHexColor(fb.buttonTextColor);
+    mapped.buttonBackgroundColor =
+      coercePaintColor(
+        landingApiColors.ctaBackgroundColor ??
+          landingApiColors.buttonBackgroundColor ??
+          landingApiColors.buttonColor,
+      ) ?? normalizeHexColor(fb.buttonBackgroundColor);
     const landingExtras = apiPages.landing as {
       contentSectionOrder?: LandingTemplatePage["contentSectionOrder"];
       pageTemplateId?: string;

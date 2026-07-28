@@ -12,6 +12,7 @@ import {
   normalizeLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { normalizeImageScale } from "@/app/components/crm-template-editor/template-image";
+import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
 import type { LandingTemplatePage } from "@/app/components/crm-template-editor/template-types";
 
 export function LandingFunnelStepShell({
@@ -28,11 +29,20 @@ export function LandingFunnelStepShell({
   children: ReactNode;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
-  const landingStyle = getLandingDesignStyle(landingDesign);
+  const template = getLandingDesignStyle(landingDesign);
+  const theme = resolveLandingTheme({
+    template,
+    overrides: {
+      backgroundColor: landingPage.backgroundColor,
+      headingColor: landingPage.headingColor,
+      subheadingColor: landingPage.subheadingColor,
+      bodyColor: landingPage.bodyColor,
+      buttonTextColor: landingPage.buttonTextColor,
+      buttonBackgroundColor: landingPage.buttonBackgroundColor,
+    },
+  });
   const heroStyle = getHeroDesignStyle(normalizeHeroDesign(landingPage.heroDesign));
   const centered = landingPage.layoutType === "centered";
-  const contentBg =
-    landingPage.backgroundColor?.trim() || landingStyle.backgroundDefault;
 
   return (
     <div
@@ -45,16 +55,13 @@ export function LandingFunnelStepShell({
       <LandingHero
         url={heroImageUrl}
         scale={normalizeImageScale(heroImageScale)}
-        fadeColor={contentBg}
-        placeholderClass={landingStyle.heroPlaceholderClass}
+        fadeColor={theme.background}
+        placeholderClass={theme.heroPlaceholderClass}
         heroStyle={heroStyle}
       />
       <div
         className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 pt-6 ${fillViewport ? "min-h-0 flex-1" : ""} ${centered ? "text-center" : "text-left"}`}
-        style={pageBackgroundStyle(
-          landingPage.backgroundColor,
-          landingStyle.backgroundDefault,
-        )}
+        style={pageBackgroundStyle(theme.background, theme.background)}
       >
         <div className={`w-full min-w-0 ${fillViewport ? "flex min-h-0 flex-1 flex-col" : ""}`}>
           {children}

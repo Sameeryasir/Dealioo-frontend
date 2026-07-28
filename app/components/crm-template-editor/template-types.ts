@@ -75,6 +75,7 @@ export type LandingTemplatePage = TemplatePageBase & {
   subheadingColor: string;
   bodyColor: string;
   buttonTextColor: string;
+  buttonBackgroundColor: string;
 };
 
 export type TemplatePage =
@@ -98,6 +99,7 @@ export type TemplatePagePatch = Partial<Omit<TemplatePageBase, "id">> &
       | "subheadingColor"
       | "bodyColor"
       | "buttonTextColor"
+      | "buttonBackgroundColor"
     >
   > &
   Partial<

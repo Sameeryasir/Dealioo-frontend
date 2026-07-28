@@ -2,11 +2,11 @@
 
 import type { CSSProperties } from "react";
 import { LandingFunnelStepShell } from "@/app/components/crm-template-editor/LandingFunnelStepShell";
-import { textColorStyle } from "@/app/components/crm-template-editor/landing-content-colors";
 import {
   getLandingDesignStyle,
   normalizeLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
+import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
 import { resolveConfirmationContent } from "@/app/components/crm-template-editor/confirmation-defaults";
 import type {
   LandingTemplatePage,
@@ -49,12 +49,28 @@ export function ConfirmationPagePreview({
   fillViewport?: boolean;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
-  const landingStyle = getLandingDesignStyle(landingDesign);
+  const template = getLandingDesignStyle(landingDesign);
+  const theme = resolveLandingTheme({
+    template,
+    overrides: {
+      backgroundColor: landingPage.backgroundColor,
+      headingColor: landingPage.headingColor,
+      subheadingColor: landingPage.subheadingColor,
+      bodyColor: landingPage.bodyColor,
+      buttonTextColor: landingPage.buttonTextColor,
+      buttonBackgroundColor: landingPage.buttonBackgroundColor,
+    },
+  });
   const centered = landingPage.layoutType === "centered";
-
-  const headingColorStyle = textColorStyle(landingPage.headingColor);
-  const subheadingColorStyle = textColorStyle(landingPage.subheadingColor);
-  const bodyColorStyle = textColorStyle(landingPage.bodyColor);
+  const headingColorStyle = theme.headlineColor
+    ? { color: theme.headlineColor }
+    : undefined;
+  const subheadingColorStyle = theme.subheadlineColor
+    ? { color: theme.subheadlineColor }
+    : undefined;
+  const bodyColorStyle = theme.bodyColor
+    ? { color: theme.bodyColor }
+    : undefined;
   const copy = resolveConfirmationContent(page);
 
   return (
@@ -65,24 +81,24 @@ export function ConfirmationPagePreview({
       fillViewport={fillViewport}
     >
       <span
-        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${landingStyle.badgeClass} ${centered ? "mx-auto" : ""}`}
+        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${theme.badgeClass} ${centered ? "mx-auto" : ""}`}
       >
-        {landingStyle.eyebrow}
+        {theme.eyebrow}
       </span>
 
       <div
-        className={`mt-4 h-px w-12 ${landingStyle.dividerClass} ${centered ? "mx-auto" : ""}`}
+        className={`mt-4 h-px w-12 ${theme.dividerClass} ${centered ? "mx-auto" : ""}`}
         aria-hidden
       />
 
       <h1
-        className={`mt-4 text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : landingStyle.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
+        className={`mt-4 text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : theme.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
         style={headingColorStyle}
       >
         {copy.heading}
       </h1>
       <p
-        className={`mt-3 text-base font-medium leading-snug ${subheadingColorStyle ? "" : landingStyle.subheadingClass} ${centered ? "mx-auto max-w-prose" : "max-w-prose"}`}
+        className={`mt-3 text-base font-medium leading-snug ${subheadingColorStyle ? "" : theme.subheadingClass} ${centered ? "mx-auto max-w-prose" : "max-w-prose"}`}
         style={subheadingColorStyle}
       >
         {copy.subheading}
@@ -91,14 +107,14 @@ export function ConfirmationPagePreview({
       <ConfirmationBody
         body={copy.body}
         centered={centered}
-        bodyClass={landingStyle.bodyClass}
+        bodyClass={theme.bodyClass}
         colorStyle={bodyColorStyle}
       />
 
       <p
-        className={`mt-6 text-[0.65rem] ${landingStyle.trustClass} ${centered ? "text-center" : ""}`}
+        className={`mt-6 text-[0.65rem] ${theme.trustClass} ${centered ? "text-center" : ""}`}
       >
-        {landingStyle.trustLine}
+        {theme.trustLine}
       </p>
     </LandingFunnelStepShell>
   );

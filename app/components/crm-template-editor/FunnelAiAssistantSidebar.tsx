@@ -116,6 +116,7 @@ export function FunnelAiAssistantSidebar({
         onSchemaApplied(result.schema);
       }
 
+      const alreadySaved = funnelId != null && funnelId >= 1;
       setMessages((prev) => [
         ...prev,
         {
@@ -124,7 +125,9 @@ export function FunnelAiAssistantSidebar({
           text:
             result.message?.trim() ||
             (result.success
-              ? "Done — I updated your funnel based on that request. Review the preview, then save if you want to keep it."
+              ? alreadySaved
+                ? "Done — I updated your funnel. Those changes are already saved."
+                : "Done — I updated your funnel based on that request. Review the preview, then save if you want to keep it."
               : "I couldn’t complete that edit."),
         },
       ]);

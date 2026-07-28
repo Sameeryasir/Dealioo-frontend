@@ -8,7 +8,6 @@ import {
   imageScaleStyle,
   normalizeImageScale,
 } from "@/app/components/crm-template-editor/template-image";
-import { textColorStyle } from "@/app/components/crm-template-editor/landing-content-colors";
 import type { HeroDesignStyle } from "@/app/components/crm-template-editor/hero-designs/types";
 import {
   landingSectionOrder,
@@ -22,6 +21,7 @@ import {
   landingTemplateButtonStyle,
   landingTemplateCtaLayoutClass,
 } from "@/app/components/crm-template-editor/landing-cta-styles";
+import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
 
 export function pageBackgroundStyle(
   color: string | undefined,
@@ -133,16 +133,15 @@ function LandingCta({
   centered,
   primary,
   secondary,
-  labelColorStyle,
+  labelColor,
   onButtonClick,
 }: {
   label: string;
   href: string | null;
   centered: boolean;
-  primary?: string;
-  secondary?: string;
-  ctaShadow?: string;
-  labelColorStyle?: CSSProperties;
+  primary: string;
+  secondary: string;
+  labelColor: string;
   onButtonClick?: (elementName: string) => void;
 }) {
   const className = [
@@ -153,16 +152,9 @@ function LandingCta({
     .filter(Boolean)
     .join(" ");
 
-  const style: CSSProperties = landingTemplateButtonStyle(
-    primary ?? "#1877f2",
-    secondary ?? "#166fe5",
-    {
-      labelColor:
-        typeof labelColorStyle?.color === "string"
-          ? labelColorStyle.color
-          : undefined,
-    },
-  );
+  const style: CSSProperties = landingTemplateButtonStyle(primary, secondary, {
+    labelColor,
+  });
 
   const inner = (
     <>
@@ -224,19 +216,46 @@ export function LandingPagePreview({
   onButtonClick?: (elementName: string) => void;
   fillViewport?: boolean;
 }) {
-  const style = getLandingDesignStyle(landingDesign);
+  const template = getLandingDesignStyle(landingDesign);
   const heroStyle = getHeroDesignStyle(heroDesign);
   const landing =
     page.id === "landing" ? (page as LandingTemplatePage) : null;
-  const headingColorStyle = textColorStyle(landing?.headingColor);
-  const subheadingColorStyle = textColorStyle(landing?.subheadingColor);
-  const bodyColorStyle = textColorStyle(landing?.bodyColor);
-  const buttonTextColorStyle = textColorStyle(landing?.buttonTextColor);
+  const pageRecord = page as TemplatePage & {
+    ctaBackgroundColor?: string;
+    ctaTextColor?: string;
+    headlineColor?: string;
+    subheadlineColor?: string;
+  };
+
+  const theme = resolveLandingTheme({
+    template,
+    overrides: {
+      backgroundColor: page.backgroundColor,
+      headingColor: landing?.headingColor,
+      headlineColor: pageRecord.headlineColor,
+      subheadingColor: landing?.subheadingColor,
+      subheadlineColor: pageRecord.subheadlineColor,
+      bodyColor: landing?.bodyColor,
+      buttonTextColor: landing?.buttonTextColor,
+      ctaTextColor: pageRecord.ctaTextColor,
+      buttonBackgroundColor: landing?.buttonBackgroundColor,
+      ctaBackgroundColor: pageRecord.ctaBackgroundColor,
+    },
+  });
+
+  const headingColorStyle = theme.headlineColor
+    ? { color: theme.headlineColor }
+    : undefined;
+  const subheadingColorStyle = theme.subheadlineColor
+    ? { color: theme.subheadlineColor }
+    : undefined;
+  const bodyColorStyle = theme.bodyColor
+    ? { color: theme.bodyColor }
+    : undefined;
+
   const centered = layoutType === "centered";
   const align = centered ? "text-center items-center" : "text-left items-start";
   const ctaHref = landingCtaHref?.trim() ? landingCtaHref.trim() : null;
-  const contentBg =
-    page.backgroundColor?.trim() || style.backgroundDefault;
 
   const sectionOrder =
     landing != null
@@ -255,15 +274,15 @@ export function LandingPagePreview({
     eyebrow: (
       <span
         key="eyebrow"
-        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${style.badgeClass} ${centered ? "mx-auto" : ""}`}
+        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${theme.badgeClass} ${centered ? "mx-auto" : ""}`}
       >
-        {style.eyebrow}
+        {theme.eyebrow}
       </span>
     ),
     heading: (
       <h1
         key="heading"
-        className={`text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : style.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
+        className={`text-[1.65rem] font-bold leading-[1.15] ${headingColorStyle ? "" : theme.headingClass} ${centered ? "mx-auto max-w-[18ch]" : ""}`}
         style={headingColorStyle}
       >
         {page.heading}
@@ -272,7 +291,7 @@ export function LandingPagePreview({
     subheading: (
       <p
         key="subheading"
-        className={`text-base font-medium leading-snug ${subheadingColorStyle ? "" : style.subheadingClass} ${centered ? "mx-auto max-w-prose" : "max-w-prose"}`}
+        className={`text-base font-medium leading-snug ${subheadingColorStyle ? "" : theme.subheadingClass} ${centered ? "mx-auto max-w-prose" : "max-w-prose"}`}
         style={subheadingColorStyle}
       >
         {page.subheading}
@@ -281,7 +300,7 @@ export function LandingPagePreview({
     divider: (
       <div
         key="divider"
-        className={`h-px w-12 ${style.dividerClass} ${centered ? "mx-auto" : ""}`}
+        className={`h-px w-12 ${theme.dividerClass} ${centered ? "mx-auto" : ""}`}
         aria-hidden
       />
     ),
@@ -290,7 +309,7 @@ export function LandingPagePreview({
         key="body"
         body={page.body}
         centered={centered}
-        bodyClass={style.bodyClass}
+        bodyClass={theme.bodyClass}
         colorStyle={bodyColorStyle}
       />
     ),
@@ -300,19 +319,18 @@ export function LandingPagePreview({
         label={page.buttonText}
         href={ctaHref}
         centered={centered}
-        primary={style.primary}
-        secondary={style.secondary}
-        ctaShadow={style.ctaShadow}
-        labelColorStyle={buttonTextColorStyle}
+        primary={theme.ctaBackground}
+        secondary={theme.ctaBackgroundEnd}
+        labelColor={theme.ctaTextColor}
         onButtonClick={onButtonClick}
       />
     ),
     trust: (
       <p
         key="trust"
-        className={`text-[0.65rem] ${style.trustClass} ${centered ? "text-center" : ""}`}
+        className={`text-[0.65rem] ${theme.trustClass} ${centered ? "text-center" : ""}`}
       >
-        {style.trustLine}
+        {theme.trustLine}
       </p>
     ),
   };
@@ -321,8 +339,8 @@ export function LandingPagePreview({
     <LandingHero
       url={heroImageUrl}
       scale={heroImageScale}
-      fadeColor={contentBg}
-      placeholderClass={style.heroPlaceholderClass}
+      fadeColor={theme.background}
+      placeholderClass={theme.heroPlaceholderClass}
       heroStyle={heroStyle}
     />
   ) : null;
@@ -330,7 +348,7 @@ export function LandingPagePreview({
   const content = (
     <div
       className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 ${fillViewport ? "min-h-0 flex-1" : ""}`}
-      style={pageBackgroundStyle(page.backgroundColor, style.backgroundDefault)}
+      style={pageBackgroundStyle(theme.background, theme.background)}
     >
       {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
     </div>

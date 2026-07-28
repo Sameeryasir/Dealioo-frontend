@@ -9,11 +9,11 @@ import {
   getLandingDesignStyle,
   normalizeLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
-import { textColorStyle } from "@/app/components/crm-template-editor/landing-content-colors";
 import {
   landingTemplateButtonStyle,
   landingTemplateCtaLayoutClass,
 } from "@/app/components/crm-template-editor/landing-cta-styles";
+import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
 import type {
   LandingTemplatePage,
   SignUpTemplatePage,
@@ -73,12 +73,25 @@ export function SignupPagePreview({
   fillViewport?: boolean;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
-  const landingStyle = getLandingDesignStyle(landingDesign);
+  const template = getLandingDesignStyle(landingDesign);
+  const theme = resolveLandingTheme({
+    template,
+    overrides: {
+      backgroundColor: landingPage.backgroundColor,
+      headingColor: landingPage.headingColor,
+      subheadingColor: landingPage.subheadingColor,
+      bodyColor: landingPage.bodyColor,
+      buttonTextColor: landingPage.buttonTextColor,
+      buttonBackgroundColor: landingPage.buttonBackgroundColor,
+    },
+  });
   const isDark = isLandingDesignDark(landingDesign);
   const layoutType = landingPage.layoutType;
   const centered = layoutType === "centered";
 
-  const bodyColorStyle = textColorStyle(landingPage.bodyColor);
+  const bodyColorStyle = theme.bodyColor
+    ? { color: theme.bodyColor }
+    : undefined;
 
   const signupBackAsLink = signupBackHref?.trim() ? signupBackHref.trim() : null;
   const signupNextAsLink = signupNextHref?.trim() ? signupNextHref.trim() : null;
@@ -88,8 +101,9 @@ export function SignupPagePreview({
     : "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl border border-zinc-200/90 bg-white/80 px-5 py-3 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-white active:scale-[0.99]";
 
   const primaryStyle = landingTemplateButtonStyle(
-    landingStyle.primary,
-    landingStyle.secondary,
+    theme.ctaBackground,
+    theme.ctaBackgroundEnd,
+    { labelColor: theme.ctaTextColor },
   );
 
   const primaryClass = [
@@ -152,20 +166,20 @@ export function SignupPagePreview({
   const inner = (
     <>
       <span
-        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${landingStyle.badgeClass} ${centered ? "mx-auto" : ""}`}
+        className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] ${theme.badgeClass} ${centered ? "mx-auto" : ""}`}
       >
-        {landingStyle.eyebrow}
+        {theme.eyebrow}
       </span>
 
       <div
-        className={`mt-4 h-px w-12 ${landingStyle.dividerClass} ${centered ? "mx-auto" : ""}`}
+        className={`mt-4 h-px w-12 ${theme.dividerClass} ${centered ? "mx-auto" : ""}`}
         aria-hidden
       />
 
       <SignupBody
         body={signupPage.body}
         centered={centered}
-        bodyClass={landingStyle.bodyClass}
+        bodyClass={theme.bodyClass}
         colorStyle={bodyColorStyle}
       />
 
@@ -185,9 +199,9 @@ export function SignupPagePreview({
       </div>
 
       <p
-        className={`mt-4 text-[0.65rem] ${landingStyle.trustClass} ${centered ? "text-center" : ""}`}
+        className={`mt-4 text-[0.65rem] ${theme.trustClass} ${centered ? "text-center" : ""}`}
       >
-        {landingStyle.trustLine}
+        {theme.trustLine}
       </p>
     </>
   );

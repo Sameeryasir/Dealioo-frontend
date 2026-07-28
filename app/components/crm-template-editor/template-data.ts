@@ -51,6 +51,7 @@ export const INITIAL_TEMPLATE_PAGES: TemplatePagesState = {
     subheadingColor: "",
     bodyColor: "",
     buttonTextColor: "",
+    buttonBackgroundColor: "",
   },
   signup: {
     id: "signup",

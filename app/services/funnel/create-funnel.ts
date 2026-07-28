@@ -1,5 +1,6 @@
 import { formDesignUsesSplitLayout } from "@/app/components/crm-template-editor/form-design-registry";
 import { normalizeHexColor } from "@/app/components/crm-template-editor/landing-content-colors";
+import { coercePaintColor } from "@/app/components/crm-template-editor/theme-resolver";
 import { normalizeHeroDesign } from "@/app/components/crm-template-editor/hero-designs/registry";
 import { normalizeLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { landingSectionOrder } from "@/app/components/crm-template-editor/landing-sections";
@@ -52,6 +53,7 @@ export type CreateFunnelLandingPagePayload = {
   subheadlineColor: string;
   bodyColor: string;
   ctaTextColor: string;
+  ctaBackgroundColor: string;
   contentSectionOrder?: string[];
   pageTemplateId?: string;
   copyTemplateId?: string;
@@ -159,16 +161,26 @@ function buildLandingPayload(
     ctaLabel: page.buttonText,
     heroImageSrc: page.imageUrl,
     heroImageScale: page.imageScale,
-    backgroundColor: page.backgroundColor,
+    backgroundColor:
+      coercePaintColor(page.backgroundColor) ??
+      normalizeHexColor(page.backgroundColor) ??
+      page.backgroundColor,
     layoutType: page.layoutType,
     landingPageDesign: pageDesign,
     pageDesign,
     heroImageDesign: mediaDesign,
     mediaDesign,
-    headlineColor: normalizeHexColor(page.headingColor),
-    subheadlineColor: normalizeHexColor(page.subheadingColor),
-    bodyColor: normalizeHexColor(page.bodyColor),
-    ctaTextColor: normalizeHexColor(page.buttonTextColor),
+    headlineColor: coercePaintColor(page.headingColor) ?? normalizeHexColor(page.headingColor),
+    subheadlineColor:
+      coercePaintColor(page.subheadingColor) ??
+      normalizeHexColor(page.subheadingColor),
+    bodyColor: coercePaintColor(page.bodyColor) ?? normalizeHexColor(page.bodyColor),
+    ctaTextColor:
+      coercePaintColor(page.buttonTextColor) ??
+      normalizeHexColor(page.buttonTextColor),
+    ctaBackgroundColor:
+      coercePaintColor(page.buttonBackgroundColor) ??
+      normalizeHexColor(page.buttonBackgroundColor),
     contentSectionOrder: landingSectionOrder(page),
     ...(page.pageTemplateId?.trim()
       ? { pageTemplateId: page.pageTemplateId.trim() }

@@ -201,12 +201,24 @@ export function CrmTemplateEditor({
   const handleAiSchemaApplied = useCallback(
     (schema: Record<string, unknown>) => {
       const apiPages = schema as NonNullable<FunnelByCampaignResponse["pages"]>;
-      commitPages((prev) => mergeApiPagesIntoTemplateState(prev, apiPages));
-      setIsDirty(true);
-      setSaveStatus("idle");
+      const nextPages = mergeApiPagesIntoTemplateState(pages, apiPages);
+      commitPages(nextPages);
+
+      // AI already wrote funnel_pages when funnelId is present — don't mark unsaved.
+      const alreadyPersisted = funnelId != null && funnelId >= 1;
+      if (alreadyPersisted) {
+        setIsDirty(false);
+        setSaveStatus("saved");
+        editSnapshotRef.current = JSON.parse(
+          JSON.stringify(nextPages),
+        ) as TemplatePagesState;
+      } else {
+        setIsDirty(true);
+        setSaveStatus("idle");
+      }
       setSaveError(null);
     },
-    [commitPages],
+    [commitPages, funnelId, pages],
   );
 
   const funnelLinkQuery = useMemo(
