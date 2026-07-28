@@ -7,6 +7,7 @@ import {
   editorSettingsPanelShellEmbeddedClass,
 } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import type { TemplatePageId } from "@/app/components/crm-template-editor/template-types";
+import { formatTimeShort } from "@/app/lib/datetime";
 import { editFunnelUiWithAi } from "@/app/services/ai/edit-funnel-ui";
 import {
   pickAiEditableFields,
@@ -20,6 +21,7 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
+  createdAt: string;
 };
 
 const SUGGESTIONS = [
@@ -41,6 +43,15 @@ function pageContextLabel(pageId: TemplatePageId): string {
     default:
       return "Funnel";
   }
+}
+
+function welcomeMessage(pageId: TemplatePageId): ChatMessage {
+  return {
+    id: "welcome",
+    role: "assistant",
+    text: `Hi — I’m your AI funnel assistant for the ${pageContextLabel(pageId)} step. Ask how to improve copy, CTAs, or conversion.`,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export function FunnelAiAssistantSidebar({
@@ -65,14 +76,14 @@ export function FunnelAiAssistantSidebar({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: "welcome",
-      role: "assistant",
-      text: `Hi — I’m your AI funnel assistant for the ${pageContextLabel(pageId)} step. Ask how to improve copy, CTAs, or conversion.`,
-    },
+    welcomeMessage(pageId),
   ]);
 
   const showSuggestions = messages.length <= 1 && !sending;
+
+  useEffect(() => {
+    setMessages([welcomeMessage(pageId)]);
+  }, [pageId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -86,6 +97,7 @@ export function FunnelAiAssistantSidebar({
       id: `u-${Date.now()}`,
       role: "user",
       text,
+      createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -129,6 +141,7 @@ export function FunnelAiAssistantSidebar({
                 ? "Done — I updated your funnel. Those changes are already saved."
                 : "Done — I updated your funnel based on that request. Review the preview, then save if you want to keep it."
               : "I couldn’t complete that edit."),
+          createdAt: new Date().toISOString(),
         },
       ]);
     } catch (error) {
@@ -142,6 +155,7 @@ export function FunnelAiAssistantSidebar({
           id: `a-${Date.now()}`,
           role: "assistant",
           text: message,
+          createdAt: new Date().toISOString(),
         },
       ]);
     } finally {
@@ -208,13 +222,23 @@ export function FunnelAiAssistantSidebar({
                   </span>
                 ) : null}
                 <div
-                  className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-[0.78rem] leading-relaxed ${
-                    isUser
-                      ? "rounded-br-md bg-[#1877f2] font-medium text-white"
-                      : "rounded-bl-md border border-slate-200 bg-slate-50 font-medium text-slate-700"
-                  }`}
+                  className={`flex max-w-[78%] flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
                 >
-                  {message.text}
+                  <div
+                    className={`rounded-2xl px-3.5 py-2.5 text-[0.78rem] leading-relaxed ${
+                      isUser
+                        ? "rounded-br-md bg-[#1877f2] font-medium text-white"
+                        : "rounded-bl-md border border-slate-200 bg-slate-50 font-medium text-slate-700"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                  <time
+                    dateTime={message.createdAt}
+                    className="px-1 text-[0.62rem] font-medium text-slate-400"
+                  >
+                    {formatTimeShort(message.createdAt)}
+                  </time>
                 </div>
               </div>
             );
