@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { CanvasWorkspace } from "@/app/components/crm-template-editor/CanvasWorkspace";
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
 import { EditorLeftSidebar } from "@/app/components/crm-template-editor/EditorLeftSidebar";
 import { EditorShell } from "@/app/components/crm-template-editor/EditorShell";
+import { FunnelAiAssistantSidebar } from "@/app/components/crm-template-editor/FunnelAiAssistantSidebar";
 import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPanel";
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
@@ -23,6 +25,7 @@ import {
   type CampaignPricing,
 } from "@/app/lib/campaign-price";
 import { parsePositiveInt } from "@/app/lib/numbers";
+import { isGrowthAiSubscription } from "@/app/lib/plan-limits";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { mergePagesForSave } from "@/app/lib/merge-funnel-pages";
@@ -31,10 +34,15 @@ import {
   createFunnel,
 } from "@/app/services/funnel/create-funnel";
 import {
+  mergeApiPagesIntoTemplateState,
+  type FunnelByCampaignResponse,
+} from "@/app/services/funnel/get-funnel-by-campaign";
+import {
   useCampaignFunnelLoader,
   usePersistCampaignFunnelDraft,
 } from "@/app/hooks/use-campaign-funnel-loader";
 import { useEditorKeyboardShortcuts } from "@/app/hooks/use-editor-keyboard-shortcuts";
+import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { useUndoRedo } from "@/app/hooks/use-undo-redo";
 import type {
   LandingTemplatePage,
@@ -67,6 +75,10 @@ export function CrmTemplateEditor({
   interactivePreview = false,
   embedded = false,
 }: CrmTemplateEditorProps) {
+  const { subscription } = useMyUserSubscription();
+  const showAiAssistant = isGrowthAiSubscription(subscription);
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+
   const funnelLoader = useCampaignFunnelLoader(campaignId);
   const {
     funnelId,
@@ -170,6 +182,32 @@ export function CrmTemplateEditor({
       offer: campaignOffer?.trim() || null,
     };
   }, [campaignPrice, campaignOffer]);
+
+  const aiPagePayload = useMemo((): Record<string, unknown> | undefined => {
+    if (campaignId == null || campaignId < 1) return undefined;
+    const allPages = buildCreateFunnelRequestBody(campaignId, pages)
+      .pages as Record<string, unknown>;
+    const activePage = allPages[activeId];
+    if (
+      typeof activePage !== "object" ||
+      activePage === null ||
+      Array.isArray(activePage)
+    ) {
+      return {};
+    }
+    return activePage as Record<string, unknown>;
+  }, [campaignId, pages, activeId]);
+
+  const handleAiSchemaApplied = useCallback(
+    (schema: Record<string, unknown>) => {
+      const apiPages = schema as NonNullable<FunnelByCampaignResponse["pages"]>;
+      commitPages((prev) => mergeApiPagesIntoTemplateState(prev, apiPages));
+      setIsDirty(true);
+      setSaveStatus("idle");
+      setSaveError(null);
+    },
+    [commitPages],
+  );
 
   const funnelLinkQuery = useMemo(
     () => ({
@@ -401,7 +439,7 @@ export function CrmTemplateEditor({
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <EditorShell
         embedded={embedded}
         navbar={
@@ -470,6 +508,33 @@ export function CrmTemplateEditor({
               ) : undefined
             }
           />
+        }
+        assistantPanel={
+          showAiAssistant &&
+          aiAssistantOpen &&
+          previewBusinessId != null ? (
+            <FunnelAiAssistantSidebar
+              pageId={activeId}
+              businessId={previewBusinessId}
+              campaignId={previewCampaignId ?? undefined}
+              funnelId={funnelId}
+              pagePayload={aiPagePayload}
+              onSchemaApplied={handleAiSchemaApplied}
+              onClose={() => setAiAssistantOpen(false)}
+            />
+          ) : undefined
+        }
+        assistantLauncher={
+          showAiAssistant && !aiAssistantOpen && previewBusinessId != null ? (
+            <button
+              type="button"
+              onClick={() => setAiAssistantOpen(true)}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#1877f2]/30 transition hover:bg-[#166fe5]"
+            >
+              <Sparkles className="size-4" strokeWidth={2.25} aria-hidden />
+              AI assistant
+            </button>
+          ) : undefined
         }
       />
       </div>

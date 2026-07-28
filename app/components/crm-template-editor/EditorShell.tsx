@@ -21,15 +21,22 @@ export function EditorShell({
   leftSidebar,
   canvas,
   settingsPanel,
+  assistantPanel,
+  assistantLauncher,
   embedded = false,
 }: {
   navbar?: ReactNode;
   leftSidebar?: ReactNode;
   canvas: ReactNode;
   settingsPanel: ReactNode;
+  assistantPanel?: ReactNode;
+  assistantLauncher?: ReactNode;
   embedded?: boolean;
 }) {
-  const gridClass = embedded ? editorShellGridEmbeddedClass : editorShellGridClass;
+  const hasAssistant = assistantPanel != null;
+  const gridClass = embedded
+    ? editorShellGridEmbeddedClass
+    : editorShellGridClass;
   const shellClass = embedded ? editorShellEmbeddedClass : editorShellClass;
   const sidebarClass = embedded
     ? editorSidebarSlotEmbeddedClass
@@ -46,7 +53,23 @@ export function EditorShell({
         <div className={editorNavbarSlotClass}>{navbar}</div>
       ) : null}
       <div className={canvasClass}>{canvas}</div>
-      <div className={settingsClass}>{settingsPanel}</div>
+      <div
+        className={`${settingsClass} relative ${
+          hasAssistant ? "overflow-visible" : ""
+        }`}
+      >
+        {settingsPanel}
+        {hasAssistant ? (
+          <div className="absolute inset-y-0 right-0 z-30 flex w-[22rem] max-w-[min(22rem,100vw)] min-h-0 flex-col overflow-hidden shadow-lg shadow-slate-900/10 [&>aside]:h-full [&>aside]:min-h-0">
+            {assistantPanel}
+          </div>
+        ) : null}
+        {!hasAssistant && assistantLauncher ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+            <div className="pointer-events-auto">{assistantLauncher}</div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 

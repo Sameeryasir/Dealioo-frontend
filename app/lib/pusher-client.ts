@@ -23,6 +23,12 @@ import {
   pusherBusinessMetaPublishChannel,
   type MetaPublishProgressPusherPayload,
 } from "@/app/lib/pusher-meta-publish";
+import {
+  PUSHER_AI_EDIT_UI_EVENT,
+  parseAiEditUiPusherPayload,
+  pusherBusinessAiEditUiChannel,
+  type AiEditUiPusherPayload,
+} from "@/app/lib/pusher-ai-edit-ui";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
 
@@ -426,6 +432,24 @@ export function subscribeMetaPublishProgress(
     onProgress,
     parseMetaPublishProgressPayload,
     `meta-publish-${businessId}`,
+  );
+}
+
+/** Live AI edit-ui job results for a business (private channel). */
+export function subscribeAiEditUiResult(
+  businessId: number,
+  onResult: (payload: AiEditUiPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessAiEditUiChannel(businessId),
+    PUSHER_AI_EDIT_UI_EVENT.RESULT,
+    onResult,
+    parseAiEditUiPusherPayload,
+    `ai-edit-ui-${businessId}`,
   );
 }
 
