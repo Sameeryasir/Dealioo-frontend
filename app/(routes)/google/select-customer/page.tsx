@@ -40,13 +40,14 @@ function SelectGoogleCustomerInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const businessId = readBusinessIdFromSearchParams(searchParams) ?? null;
-  const oauthError = searchParams.get("error");
+  const oauthError = searchParams.get("error")?.trim() || null;
 
   const [customers, setCustomers] = useState<GoogleAdsCustomer[]>([]);
-  const [loading, setLoading] = useState(true);
+  // OAuth failures redirect here with ?error= — do not start in a loading spinner.
+  const [loading, setLoading] = useState(() => !oauthError);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => oauthError);
 
   const campaignsHref =
     businessId != null
@@ -54,7 +55,10 @@ function SelectGoogleCustomerInner() {
       : "/dashboard";
 
   const loadCustomers = useCallback(async () => {
-    if (businessId == null) return;
+    if (businessId == null) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -73,8 +77,8 @@ function SelectGoogleCustomerInner() {
   }, [businessId]);
 
   useEffect(() => {
-    if (oauthError?.trim()) {
-      setError(oauthError.trim());
+    if (oauthError) {
+      setError(oauthError);
       setLoading(false);
       return;
     }
@@ -150,14 +154,24 @@ function SelectGoogleCustomerInner() {
           stats will only come from this account.
         </p>
 
-        {loading ? (
+        {error ? (
+          <p
+            className="mt-6 flex items-start gap-2 text-sm text-red-700"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {error}
+          </p>
+        ) : null}
+
+        {!error && loading ? (
           <p className="mt-6 flex items-center justify-center gap-2 text-sm text-zinc-500">
             <Loader2 className="size-4 animate-spin" aria-hidden />
             Loading Google Ads accounts…
           </p>
         ) : null}
 
-        {!loading && customers.length > 0 ? (
+        {!error && !loading && customers.length > 0 ? (
           <ul className="mt-6 max-h-64 space-y-2 overflow-y-auto">
             {customers.map((customer) => {
               const selected = selectedId === customer.id;
@@ -185,19 +199,9 @@ function SelectGoogleCustomerInner() {
           </ul>
         ) : null}
 
-        {!loading && customers.length === 0 ? (
+        {!error && !loading && customers.length === 0 ? (
           <p className="mt-6 text-center text-sm text-zinc-600">
             No Google Ads accounts found for this Google login.
-          </p>
-        ) : null}
-
-        {error ? (
-          <p
-            className="mt-4 flex items-start gap-2 text-sm text-red-700"
-            role="alert"
-          >
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {error}
           </p>
         ) : null}
 

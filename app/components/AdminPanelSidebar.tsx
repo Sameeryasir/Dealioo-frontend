@@ -1,7 +1,10 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
+import {
+  GoogleAdsLogo,
+  MetaLogo,
+} from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
@@ -49,7 +52,6 @@ type NavItem = {
   href: string;
   label: string;
   icon: NavIcon;
-  /** Brand mark (Meta) — filled SVG, not a Lucide stroke icon. */
   brandIcon?: boolean;
   activeMatch: "exact" | "prefix";
   permission?: BusinessMemberPermission | "owner";
@@ -183,6 +185,16 @@ export default function AdminPanelSidebar() {
           brandIcon: true,
           activeMatch: "prefix",
           permission: "meta_ads",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/google-ads`
+            : "/dashboard/google-ads",
+          label: "Google Ads",
+          icon: GoogleAdsLogo,
+          brandIcon: true,
+          activeMatch: "prefix",
+          permission: "campaigns",
         },
         {
           href: businessId

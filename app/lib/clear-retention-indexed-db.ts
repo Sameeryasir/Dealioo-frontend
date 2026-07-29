@@ -4,6 +4,7 @@ export const RETENTION_CHAT_IDB_NAME = "retention-chat";
 export const DEALIOO_FUNNEL_TEMPLATE_IDB_NAME = "dealioo-funnel-templates";
 /** @deprecated Old name — still deleted on clear. */
 export const RETENTION_FUNNEL_TEMPLATE_IDB_NAME = "retention-funnel-templates";
+export const DEALIOO_AI_CHATS_IDB_NAME = "dealioo-ai-chats";
 
 /** Per-conversation DBs are named dealioo-chat-{businessId}-{customerId} */
 const DEALIOO_CHAT_MESSAGE_DB_PREFIX = "dealioo-chat-";
@@ -12,6 +13,7 @@ export const RETENTION_LOCAL_STORAGE_PREFIXES = [
   "retention:funnel-template:",
   "retention-chat",
   "dealioo-chat",
+  "dealioo-ai-chats",
 ] as const;
 
 function deleteIndexedDb(name: string): Promise<void> {
@@ -91,6 +93,7 @@ export async function clearAllRetentionIndexedDb(): Promise<void> {
     deleteAllDealiooChatMessageDatabases(),
     deleteIndexedDb(DEALIOO_FUNNEL_TEMPLATE_IDB_NAME),
     deleteIndexedDb(RETENTION_FUNNEL_TEMPLATE_IDB_NAME),
+    deleteIndexedDb(DEALIOO_AI_CHATS_IDB_NAME),
   ]);
   clearRetentionLocalStorage();
 }

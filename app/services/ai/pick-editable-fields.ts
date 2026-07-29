@@ -1,4 +1,5 @@
 import type { TemplatePageId } from "@/app/components/crm-template-editor/template-types";
+import { FORM_DESIGN_OPTIONS } from "@/app/components/crm-template-editor/form-designs/form-design-options";
 
 const SHARED_COPY_KEYS = [
   "pageTitle",
@@ -8,7 +9,6 @@ const SHARED_COPY_KEYS = [
   "ctaLabel",
 ] as const;
 
-/** Allowed layoutType values Gemini may set. */
 export const AI_LANDING_LAYOUT_TYPES = [
   "centered",
   "stacked",
@@ -18,6 +18,17 @@ export const AI_LANDING_LAYOUT_TYPES = [
 ] as const;
 
 export type AiLandingLayoutType = (typeof AI_LANDING_LAYOUT_TYPES)[number];
+
+export const AI_SIGNUP_FORM_DESIGNS = FORM_DESIGN_OPTIONS.map(
+  (opt) => opt.value,
+) as readonly string[];
+
+export const AI_SIGNUP_FORM_FIELD_IDS = [
+  "first_name",
+  "last_name",
+  "email",
+  "phone",
+] as const;
 
 const PAGE_EDITABLE_KEYS: Record<TemplatePageId, readonly string[]> = {
   landing: [
@@ -32,6 +43,8 @@ const PAGE_EDITABLE_KEYS: Record<TemplatePageId, readonly string[]> = {
   ],
   signup: [
     ...SHARED_COPY_KEYS,
+    "signupFormDesign",
+    "formFieldIds",
     "navBackLabel",
     "navNextLabel",
     "backgroundColor",
@@ -61,15 +74,10 @@ const PAGE_EDITABLE_KEYS: Record<TemplatePageId, readonly string[]> = {
 };
 
 type FieldMatcher = {
-  /** Match against the lowercased instruction. */
   test: (text: string, pageId: TemplatePageId) => boolean;
   fields: readonly string[];
 };
 
-/**
- * Central field-matching rules for AI editable field selection.
- * Order matters only for readability — results are collected in a Set.
- */
 const FIELD_MATCHERS: readonly FieldMatcher[] = [
   {
     test: (text) => {
@@ -97,13 +105,30 @@ const FIELD_MATCHERS: readonly FieldMatcher[] = [
   },
   {
     test: (text) =>
-      /\b(body|paragraph|description|copy|body text)\b/.test(text),
+      /\b(body|paragraph|description|copy|body text|intro|intro text)\b/.test(
+        text,
+      ),
     fields: ["body", "bodyColor"],
   },
   {
-    // Prefer "page title" / "pagetitle" — bare "title" is too generic.
     test: (text) => /\b(page title|pagetitle)\b/.test(text),
     fields: ["pageTitle"],
+  },
+  {
+    test: (text, pageId) =>
+      pageId === "signup" &&
+      /\b(form design|design preset|stacked input|two[-\s]?column form|floating label|underline input)\b/.test(
+        text,
+      ),
+    fields: ["signupFormDesign"],
+  },
+  {
+    test: (text, pageId) =>
+      pageId === "signup" &&
+      /\b(form fields?|first name|last name|phone|email field|what should (the )?signup form ask)\b/.test(
+        text,
+      ),
+    fields: ["formFieldIds"],
   },
   {
     test: (text, pageId) =>
@@ -239,7 +264,7 @@ function matchColourFields(text: string): readonly string[] {
   if (/\b(subheadline|subheading|subtitle)\b/.test(text)) {
     fields.add("subheadlineColor");
   }
-  if (/\b(body|paragraph|description|copy)\b/.test(text)) {
+  if (/\b(body|paragraph|description|copy|intro|intro text)\b/.test(text)) {
     fields.add("bodyColor");
   }
 
@@ -282,6 +307,8 @@ function pickKeys(
       out.subheadline = page.subheading;
     } else if (key === "pageTitle" && "label" in page) {
       out.pageTitle = page.label;
+    } else if (key === "signupFormDesign" && "formDesign" in page) {
+      out.signupFormDesign = page.formDesign;
     }
   }
   return out;
@@ -329,12 +356,16 @@ export function pickAiEditableFields(input: {
 export function pickAiFieldConstraints(input: {
   editableFields: Record<string, unknown>;
 }): Record<string, readonly string[]> | undefined {
-  if (!("layoutType" in input.editableFields)) {
-    return undefined;
+  const constraints: Record<string, readonly string[]> = {};
+
+  if ("layoutType" in input.editableFields) {
+    constraints.layoutType = AI_LANDING_LAYOUT_TYPES;
   }
-  return {
-    layoutType: AI_LANDING_LAYOUT_TYPES,
-  };
+  if ("signupFormDesign" in input.editableFields) {
+    constraints.signupFormDesign = AI_SIGNUP_FORM_DESIGNS;
+  }
+
+  return Object.keys(constraints).length > 0 ? constraints : undefined;
 }
 
 export function isAllowedAiLayoutType(

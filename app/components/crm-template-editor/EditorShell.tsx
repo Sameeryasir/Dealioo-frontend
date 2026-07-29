@@ -60,7 +60,7 @@ export function EditorShell({
       >
         {settingsPanel}
         {hasAssistant ? (
-          <div className="absolute inset-y-0 right-0 z-30 flex w-[22rem] max-w-[min(22rem,100vw)] min-h-0 flex-col overflow-hidden shadow-lg shadow-slate-900/10 [&>aside]:h-full [&>aside]:min-h-0">
+          <div className="absolute inset-y-0 right-0 z-30 flex w-[22rem] max-w-[min(22rem,100vw)] min-h-0 min-w-0 flex-col overflow-hidden shadow-lg shadow-slate-900/10 [&>aside]:h-full [&>aside]:min-h-0 [&>aside]:min-w-0">
             {assistantPanel}
           </div>
         ) : null}
