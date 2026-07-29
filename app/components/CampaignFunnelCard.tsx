@@ -55,6 +55,12 @@ export default function CampaignFunnelCard({
 
   const priceNum = parsePrice(funnel.price);
   const priceText = priceNum != null ? formatPrice(priceNum) : null;
+  const campaignTypeLabel =
+    funnel.campaignType === "prepaid"
+      ? "Prepaid"
+      : funnel.campaignType === "postpaid"
+        ? "Postpaid"
+        : null;
   const created = formatCreatedDate(funnel.createdAt);
 
   const campaignHref = `/business/${businessId}/dashboard/campaigns/${funnel.id}`;
@@ -133,6 +139,10 @@ export default function CampaignFunnelCard({
                 <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
                   {priceText}
                 </p>
+              ) : campaignTypeLabel ? (
+                <span className="inline-flex items-center rounded-full bg-[#e8f2ff] px-2.5 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.04em] text-[#1877f2]">
+                  {campaignTypeLabel}
+                </span>
               ) : (
                 <span className="text-[0.75rem] font-medium text-slate-400">
                   No price set

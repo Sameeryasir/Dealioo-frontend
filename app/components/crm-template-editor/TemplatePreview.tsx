@@ -147,6 +147,7 @@ export function TemplatePreview({
   /** @deprecated Use checkoutBusinessId */
   checkoutRestaurantId = null,
   campaignPricing,
+  skipPaymentStep = false,
 }: {
   page: TemplatePage;
   landingPage: TemplatePage;
@@ -164,6 +165,7 @@ export function TemplatePreview({
   /** @deprecated Use checkoutBusinessId */
   checkoutRestaurantId?: number | null;
   campaignPricing?: CampaignPricing | null;
+  skipPaymentStep?: boolean;
 }) {
   const resolvedCheckoutBusinessId =
     checkoutBusinessId ?? checkoutRestaurantId;
@@ -267,6 +269,7 @@ export function TemplatePreview({
 
         if (
           signupSubmitFlow &&
+          !skipPaymentStep &&
           resolvedCheckoutBusinessId != null &&
           resolvedCheckoutBusinessId >= 1 &&
           trackingFunnelId != null
@@ -289,15 +292,23 @@ export function TemplatePreview({
           return;
         }
 
-        toast.success("You're all set — continuing to payment.", {
-          duration: 2400,
-        });
+        toast.success(
+          skipPaymentStep
+            ? "You're all set — continuing."
+            : "You're all set — continuing to payment.",
+          {
+            duration: 2400,
+          },
+        );
         await new Promise<void>((resolve) => {
           window.setTimeout(resolve, 1000);
         });
         if (signupNextAsLink) {
           clearFunnelLockedStep(trackingFunnelId);
-          forceFunnelLockedStep(trackingFunnelId, "payment");
+          forceFunnelLockedStep(
+            trackingFunnelId,
+            skipPaymentStep ? "confirmation" : "payment",
+          );
           router.replace(signupNextAsLink);
         }
       } catch (err) {
@@ -308,7 +319,15 @@ export function TemplatePreview({
         setSignupSubmitting(false);
       }
     },
-    [signupSubmitFlow, signupNextAsLink, router, trackingFunnelId, resolvedCheckoutBusinessId, checkoutCampaignId],
+    [
+      signupSubmitFlow,
+      signupNextAsLink,
+      router,
+      trackingFunnelId,
+      resolvedCheckoutBusinessId,
+      checkoutCampaignId,
+      skipPaymentStep,
+    ],
   );
 
   const withSurface = (alignClass: string, children: React.ReactNode) => (

@@ -7,16 +7,100 @@ export const FLOW_BRANCH_PAYMENT = "payment";
 export const FLOW_BRANCH_VISITED_YES = "visited_yes";
 export const FLOW_BRANCH_VISITED_NO = "visited_no";
 
+export const FLOW_BRANCH_WALLET_REMINDER = "wallet_reminder";
+export const FLOW_BRANCH_FOLLOW_UP = "follow_up";
+
+export const FLOW_BRANCH_OFFER_EXPIRY = "offer_expiry";
+export const FLOW_BRANCH_WEEKEND_PASS = "weekend_pass";
+
+export const FLOW_BRANCH_EXTEND_OFFER = "extend_offer";
+export const FLOW_BRANCH_WHY_DIDNT_COME = "why_didnt_come";
+
 export type FlowBranchId =
   | typeof FLOW_BRANCH_PASS
   | typeof FLOW_BRANCH_PAYMENT
   | typeof FLOW_BRANCH_VISITED_YES
-  | typeof FLOW_BRANCH_VISITED_NO;
+  | typeof FLOW_BRANCH_VISITED_NO
+  | typeof FLOW_BRANCH_WALLET_REMINDER
+  | typeof FLOW_BRANCH_FOLLOW_UP
+  | typeof FLOW_BRANCH_OFFER_EXPIRY
+  | typeof FLOW_BRANCH_WEEKEND_PASS
+  | typeof FLOW_BRANCH_EXTEND_OFFER
+  | typeof FLOW_BRANCH_WHY_DIDNT_COME;
 
 export type IndexedWorkflowNode = {
   node: WorkflowNode;
   index: number;
 };
+
+export type ParallelBranchDef = {
+  id: string;
+  title: string;
+};
+
+/**
+ * Recursive parallel tree (HighLevel-style).
+ * Any branch can contain another Parallel Split via `branches`.
+ */
+export type ParallelFlowTree = {
+  head: IndexedWorkflowNode[];
+  parallelSplit: IndexedWorkflowNode | null;
+  branches: ParallelBranchColumn[];
+};
+
+export type ParallelBranchColumn = {
+  id: string;
+  title: string;
+  /** Legacy flat node list (all nodes assigned to this branch id / descendants). */
+  nodes: IndexedWorkflowNode[];
+  /** Recursive content: prefix steps + optional nested split. */
+  content: ParallelFlowTree;
+};
+
+/** @deprecated Prefer ParallelBranchColumn — kept for Abandoned Cart callers. */
+export type FlowBranchColumn = {
+  id: string;
+  title: string;
+  nodes: IndexedWorkflowNode[];
+};
+
+/** Detect Parallel Split marker (stored as wait + isParallelSplit — no new API node type). */
+export function isParallelSplitNode(node: WorkflowNode): boolean {
+  return (
+    (node.kind === "wait" || node.kind === "delay") &&
+    node.config?.isParallelSplit === true
+  );
+}
+
+/** Read branch defs from Parallel Split config (supports 2+ branches without hardcoding). */
+export function getParallelBranchDefs(
+  node: WorkflowNode | null | undefined,
+): ParallelBranchDef[] {
+  if (!node || !isParallelSplitNode(node)) return [];
+  const raw = node.config.branches;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item !== "object" || item == null) return null;
+      const record = item as Record<string, unknown>;
+      const id = typeof record.id === "string" ? record.id.trim() : "";
+      if (!id) return null;
+      const title =
+        typeof record.title === "string" && record.title.trim()
+          ? record.title.trim()
+          : humanizeBranchId(id);
+      return { id, title };
+    })
+    .filter((item): item is ParallelBranchDef => item != null);
+}
+
+function humanizeBranchId(id: string): string {
+  return id
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function getFlowBranch(node: WorkflowNode): FlowBranchId | null {
   const branch = node.config?.flowBranch;
@@ -24,11 +108,33 @@ function getFlowBranch(node: WorkflowNode): FlowBranchId | null {
     branch === FLOW_BRANCH_PASS ||
     branch === FLOW_BRANCH_PAYMENT ||
     branch === FLOW_BRANCH_VISITED_YES ||
-    branch === FLOW_BRANCH_VISITED_NO
+    branch === FLOW_BRANCH_VISITED_NO ||
+    branch === FLOW_BRANCH_WALLET_REMINDER ||
+    branch === FLOW_BRANCH_FOLLOW_UP ||
+    branch === FLOW_BRANCH_OFFER_EXPIRY ||
+    branch === FLOW_BRANCH_WEEKEND_PASS ||
+    branch === FLOW_BRANCH_EXTEND_OFFER ||
+    branch === FLOW_BRANCH_WHY_DIDNT_COME
   ) {
     return branch;
   }
   return null;
+}
+
+/** Any non-empty flowBranch string. */
+function getFlowBranchKey(node: WorkflowNode): string | null {
+  const branch = node.config?.flowBranch;
+  if (typeof branch !== "string") return null;
+  const key = branch.trim();
+  return key.length > 0 ? key : null;
+}
+
+/** Optional parent branch for nested children (flowBranchParent). */
+function getFlowBranchParent(node: WorkflowNode): string | null {
+  const parent = node.config?.flowBranchParent;
+  if (typeof parent !== "string") return null;
+  const key = parent.trim();
+  return key.length > 0 ? key : null;
 }
 
 export function isCustomerVisitedFilterNode(node: WorkflowNode): boolean {
@@ -99,38 +205,282 @@ export function parsePrepaidVisitSplitLayout(
   return { head, visitedYes, loopTarget, hasSplit };
 }
 
-/** Split flow into main steps (before branches) and parallel branch columns. */
+/**
+ * Recursively parse a flat list of branch-scoped nodes into head + nested parallel splits.
+ * Nested Parallel Split nodes sit in the parent branch (flowBranch = parent id).
+ * Child nodes use flowBranch = child id and flowBranchParent = parent id.
+ * Descendants of nested children are routed into the owning child column, then re-parsed.
+ */
+export function parseParallelFlowTree(
+  entries: IndexedWorkflowNode[],
+): ParallelFlowTree {
+  // --- Ancestry map (child → parent) for unlimited nesting ---
+  const branchParentMap = new Map<string, string>();
+  for (const { node } of entries) {
+    const key = getFlowBranchKey(node);
+    if (isParallelSplitNode(node) && key != null) {
+      for (const def of getParallelBranchDefs(node)) {
+        branchParentMap.set(def.id, key);
+      }
+    }
+    const parent = getFlowBranchParent(node);
+    if (key != null && parent != null && !branchParentMap.has(key)) {
+      branchParentMap.set(key, parent);
+    }
+  }
+
+  const head: IndexedWorkflowNode[] = [];
+  let parallelSplit: IndexedWorkflowNode | null = null;
+  const childOrder: string[] = [];
+  const childTitles = new Map<string, string>();
+  const childNodes = new Map<string, IndexedWorkflowNode[]>();
+
+  for (const entry of entries) {
+    const { node } = entry;
+
+    // Nested (or local) Parallel Split — starts child columns for this scope.
+    if (isParallelSplitNode(node) && parallelSplit == null) {
+      parallelSplit = entry;
+      for (const def of getParallelBranchDefs(node)) {
+        childTitles.set(def.id, def.title);
+        if (!childNodes.has(def.id)) {
+          childNodes.set(def.id, []);
+          childOrder.push(def.id);
+        }
+      }
+      continue;
+    }
+
+    // After a split at this level, route nodes into matching child columns
+    // (direct children or any deeper descendant under those children).
+    if (parallelSplit != null) {
+      const owner = resolveChildColumnOwner(
+        getFlowBranchKey(node),
+        getFlowBranchParent(node),
+        childNodes,
+        branchParentMap,
+      );
+      if (owner != null) {
+        childNodes.get(owner)!.push(entry);
+      }
+      continue;
+    }
+
+    head.push(entry);
+  }
+
+  const branches: ParallelBranchColumn[] = childOrder.map((id) => {
+    const nodes = childNodes.get(id) ?? [];
+    return {
+      id,
+      title: childTitles.get(id) ?? humanizeBranchId(id),
+      nodes,
+      content: parseParallelFlowTree(nodes),
+    };
+  });
+
+  return { head, parallelSplit, branches };
+}
+
+/** Find which immediate child column owns this node (supports deep descendants). */
+function resolveChildColumnOwner(
+  branchId: string | null,
+  parentHint: string | null,
+  childNodes: Map<string, IndexedWorkflowNode[]>,
+  branchParentMap: Map<string, string>,
+): string | null {
+  if (branchId != null && childNodes.has(branchId)) return branchId;
+
+  let cursor = parentHint ?? (branchId != null ? branchParentMap.get(branchId) ?? null : null);
+  const seen = new Set<string>();
+  while (cursor != null && !seen.has(cursor)) {
+    if (childNodes.has(cursor)) return cursor;
+    seen.add(cursor);
+    cursor = branchParentMap.get(cursor) ?? null;
+  }
+  return null;
+}
+
+/**
+ * Walk branchParentMap from a branch id up to a top-level column id.
+ * Enables unlimited nesting without hardcoding depth.
+ */
+function resolveTopLevelBranchId(
+  branchId: string | null,
+  parentHint: string | null,
+  topIds: Set<string>,
+  branchParentMap: Map<string, string>,
+): string | null {
+  // Prefer explicit parent chain, then the node's own branch id.
+  let cursor = parentHint ?? branchId;
+  const seen = new Set<string>();
+  while (cursor != null && !seen.has(cursor)) {
+    if (topIds.has(cursor)) return cursor;
+    seen.add(cursor);
+    cursor = branchParentMap.get(cursor) ?? null;
+  }
+  if (branchId != null && topIds.has(branchId)) return branchId;
+  return null;
+}
+
+/**
+ * Root-level parallel layout with recursive nesting support.
+ * Top-level Parallel Split has no flowBranch; nested splits set flowBranch to the parent branch id.
+ * Child nodes use flowBranch = child id and optional flowBranchParent for ancestry.
+ */
 export function parseSplitFlowLayout(
   flowNodes: WorkflowNode[],
   startIndex: number,
 ): {
   head: IndexedWorkflowNode[];
+  parallelSplit: IndexedWorkflowNode | null;
   branches: Record<FlowBranchId, IndexedWorkflowNode[]>;
+  branchColumns: ParallelBranchColumn[];
+  tree: ParallelFlowTree;
   hasSplit: boolean;
 } {
-  const head: IndexedWorkflowNode[] = [];
-  const branches: Record<FlowBranchId, IndexedWorkflowNode[]> = {
+  const entries: IndexedWorkflowNode[] = flowNodes.map((node, offset) => ({
+    node,
+    index: startIndex + offset,
+  }));
+
+  const branchesRecord: Record<FlowBranchId, IndexedWorkflowNode[]> = {
     [FLOW_BRANCH_PASS]: [],
     [FLOW_BRANCH_PAYMENT]: [],
     [FLOW_BRANCH_VISITED_YES]: [],
     [FLOW_BRANCH_VISITED_NO]: [],
+    [FLOW_BRANCH_WALLET_REMINDER]: [],
+    [FLOW_BRANCH_FOLLOW_UP]: [],
+    [FLOW_BRANCH_OFFER_EXPIRY]: [],
+    [FLOW_BRANCH_WEEKEND_PASS]: [],
+    [FLOW_BRANCH_EXTEND_OFFER]: [],
+    [FLOW_BRANCH_WHY_DIDNT_COME]: [],
   };
 
-  flowNodes.forEach((node, offset) => {
-    const entry = { node, index: startIndex + offset };
-    const branch = getFlowBranch(node);
-    if (branch != null) {
-      branches[branch].push(entry);
-      return;
+  let topSplit: IndexedWorkflowNode | null = null;
+  const topTitles = new Map<string, string>();
+  const topOrder: string[] = [];
+  const topBucket = new Map<string, IndexedWorkflowNode[]>();
+  const head: IndexedWorkflowNode[] = [];
+  // childBranchId → parentBranchId (from every Parallel Split's branches[])
+  const branchParentMap = new Map<string, string>();
+
+  // Pass 1: find top split + build parent map from all Parallel Splits.
+  for (const entry of entries) {
+    const { node } = entry;
+    const branchKey = getFlowBranchKey(node);
+
+    if (isParallelSplitNode(node) && branchKey == null) {
+      topSplit = entry;
+      for (const def of getParallelBranchDefs(node)) {
+        topTitles.set(def.id, def.title);
+        if (!topBucket.has(def.id)) {
+          topBucket.set(def.id, []);
+          topOrder.push(def.id);
+        }
+      }
+      continue;
     }
-    head.push(entry);
+
+    if (isParallelSplitNode(node)) {
+      // Nested split: its flowBranch is the parent of each declared child.
+      const parentId = branchKey;
+      if (parentId != null) {
+        for (const def of getParallelBranchDefs(node)) {
+          branchParentMap.set(def.id, parentId);
+          // Also honor explicit flowBranchParent on the split itself if present.
+        }
+      }
+    }
+  }
+
+  // Honor flowBranchParent on any node as an extra edge in the ancestry map.
+  for (const entry of entries) {
+    const key = getFlowBranchKey(entry.node);
+    const parent = getFlowBranchParent(entry.node);
+    if (key != null && parent != null && !branchParentMap.has(key)) {
+      branchParentMap.set(key, parent);
+    }
+  }
+
+  // Legacy (Abandoned Cart): no Parallel Split marker — discover top columns from flowBranch.
+  if (topOrder.length === 0) {
+    for (const entry of entries) {
+      const key = getFlowBranchKey(entry.node);
+      const parent = getFlowBranchParent(entry.node);
+      if (key == null || parent != null || isParallelSplitNode(entry.node)) {
+        continue;
+      }
+      if (!topBucket.has(key)) {
+        topBucket.set(key, []);
+        topOrder.push(key);
+        topTitles.set(key, humanizeBranchId(key));
+      }
+    }
+  }
+
+  const topIds = new Set(topOrder);
+
+  // Pass 2: bucket every node into trunk or a top-level column (never invent nested top columns).
+  for (const entry of entries) {
+    const { node } = entry;
+    const branchKey = getFlowBranchKey(node);
+    const parentKey = getFlowBranchParent(node);
+
+    // Top-level Parallel Split marker — not rendered as a step card.
+    if (isParallelSplitNode(node) && branchKey == null) {
+      continue;
+    }
+
+    const topId = resolveTopLevelBranchId(
+      branchKey,
+      parentKey,
+      topIds,
+      branchParentMap,
+    );
+
+    if (topId != null) {
+      if (!topBucket.has(topId)) {
+        topBucket.set(topId, []);
+      }
+      topBucket.get(topId)!.push(entry);
+      const known = getFlowBranch(node);
+      if (known != null) branchesRecord[known].push(entry);
+      continue;
+    }
+
+    // Trunk / initial actions (no resolvable branch scope).
+    if (!isParallelSplitNode(node)) {
+      head.push(entry);
+    }
+  }
+
+  const branchColumns: ParallelBranchColumn[] = topOrder.map((id) => {
+    const nodes = topBucket.get(id) ?? [];
+    return {
+      id,
+      title: topTitles.get(id) ?? humanizeBranchId(id),
+      nodes,
+      content: parseParallelFlowTree(nodes),
+    };
   });
 
-  const hasSplit =
-    branches[FLOW_BRANCH_PASS].length > 0 &&
-    branches[FLOW_BRANCH_PAYMENT].length > 0;
+  const tree: ParallelFlowTree = {
+    head,
+    parallelSplit: topSplit,
+    branches: branchColumns,
+  };
 
-  return { head, branches, hasSplit };
+  const hasSplit = branchColumns.length >= 2 || topSplit != null;
+
+  return {
+    head,
+    parallelSplit: topSplit,
+    branches: branchesRecord,
+    branchColumns,
+    tree,
+    hasSplit,
+  };
 }
 
 export function buildSegmentsForIndexedNodes(
@@ -141,4 +491,8 @@ export function buildSegmentsForIndexedNodes(
     entries.map((entry) => entry.node),
     entries[0]!.index,
   );
+}
+
+export function parallelTreeHasNestedSplit(tree: ParallelFlowTree): boolean {
+  return tree.parallelSplit != null && tree.branches.length > 0;
 }

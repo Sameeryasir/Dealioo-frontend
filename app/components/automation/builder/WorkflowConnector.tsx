@@ -1,13 +1,28 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 
 export function WorkflowConnector() {
   return (
-    <div className="flex flex-col items-center py-1.5" aria-hidden>
-      <div className="h-8 w-px bg-gradient-to-b from-zinc-200 to-zinc-300" />
-      <div className="size-2.5 rounded-full border-2 border-white bg-zinc-400 shadow-sm" />
+    <div className="flex flex-col items-center py-1" aria-hidden>
+      <div className="h-5 w-0.5 rounded-full bg-zinc-300" />
+      <ChevronDown
+        className="-mt-0.5 size-3.5 text-zinc-400"
+        strokeWidth={2.5}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+export function BranchTraceLine() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-y-0 left-1/2 z-0 flex w-0 -translate-x-1/2 justify-center"
+      aria-hidden
+    >
+      <div className="h-full w-px bg-zinc-300/90" />
     </div>
   );
 }
@@ -15,50 +30,91 @@ export function WorkflowConnector() {
 export function TriggerFlowConnector() {
   return (
     <div className="flex flex-col items-center py-3" aria-hidden>
-      <div className="h-6 w-px bg-gradient-to-b from-zinc-200 to-zinc-300" />
+      <div className="h-5 w-0.5 rounded-full bg-zinc-300" />
       <div className="flex size-8 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-[0_4px_14px_rgba(0,0,0,0.08)] ring-1 ring-zinc-100">
         <Plus className="size-4 text-sky-600" strokeWidth={2.5} />
       </div>
-      <div className="mt-2 h-6 w-px bg-gradient-to-b from-zinc-300 to-zinc-400" />
-      <motion.div
-        className="size-2.5 rounded-full bg-zinc-900 shadow-sm"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.2 }}
+      <div className="mt-1.5 h-5 w-0.5 rounded-full bg-zinc-300" />
+      <ChevronDown
+        className="-mt-0.5 size-3.5 text-zinc-400"
+        strokeWidth={2.5}
+        aria-hidden
       />
     </div>
   );
 }
 
-export function FlowSplitConnector({ wide = false }: { wide?: boolean }) {
-  const branchInset = wide ? "inset-x-[10%] lg:inset-x-[6%]" : "inset-x-4";
-  const dotInset = wide ? "px-[10%] lg:px-[6%]" : "px-[18%]";
+export function FlowSplitStem({
+  isFirst,
+  isLast,
+  gapPx,
+}: {
+  isFirst: boolean;
+  isLast: boolean;
+  gapPx: number;
+}) {
+  const halfGap = gapPx / 2;
+
+  return (
+    <div className="relative mb-2 flex w-full flex-col items-center" aria-hidden>
+      <div className="relative flex h-8 w-full items-center justify-center">
+        {!isFirst ? (
+          <div
+            className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-zinc-400/80"
+            style={{ left: -halfGap, right: "50%" }}
+          />
+        ) : null}
+        {!isLast ? (
+          <div
+            className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-zinc-400/80"
+            style={{ left: "50%", right: -halfGap }}
+          />
+        ) : null}
+        <span className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-sky-600 shadow-sm sm:size-8">
+          <Plus className="size-3.5 sm:size-4" strokeWidth={2.5} />
+        </span>
+      </div>
+      <div className="h-4 w-0.5 rounded-full bg-zinc-400/80" />
+      <ChevronDown
+        className="-mt-0.5 size-3.5 text-zinc-400"
+        strokeWidth={2.5}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+export function FlowSplitTrunk() {
+  return (
+    <div className="flex flex-col items-center" aria-hidden>
+      <div className="h-8 w-0.5 rounded-full bg-zinc-400/80" />
+    </div>
+  );
+}
+
+export function FlowSplitConnector({
+  wide = false,
+  branchCount = 2,
+}: {
+  wide?: boolean;
+  branchCount?: number;
+}) {
+  const slots = Math.max(2, Math.min(branchCount, 9));
+  const pad = wide ? "px-[4%] lg:px-[2%]" : "px-4";
 
   return (
     <div className="flex w-full flex-col items-center py-3" aria-hidden>
-      <div className="h-6 w-px bg-zinc-300" />
-      <div className={`relative flex w-full items-center justify-center ${wide ? "px-[10%] lg:px-[6%]" : "px-4"}`}>
-        <div className={`absolute top-1/2 h-px -translate-y-1/2 bg-zinc-300 ${branchInset}`} />
-        <div className="relative flex w-full justify-between">
-          {[0, 1, 2].map((slot) => (
-            <span
-              key={slot}
-              className="flex size-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-sky-600 shadow-sm"
-            >
-              <Plus className="size-4" strokeWidth={2.5} />
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className={`relative mt-3 flex w-full justify-between ${dotInset}`}>
-        <div className="flex flex-col items-center">
-          <div className="h-4 w-px bg-zinc-300" />
-          <span className="size-2.5 rounded-full bg-zinc-900" />
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="h-4 w-px bg-zinc-300" />
-          <span className="size-2.5 rounded-full bg-zinc-900" />
-        </div>
+      <FlowSplitTrunk />
+      <div className={`relative mt-0 flex w-full ${pad}`}>
+        {Array.from({ length: slots }, (_, slot) => (
+          <div key={slot} className="flex min-w-0 flex-1 flex-col items-center">
+            <FlowSplitStem
+              isFirst={slot === 0}
+              isLast={slot === slots - 1}
+              gapPx={0}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -70,9 +126,13 @@ export function PrepaidVisitSplitConnector({ wide = false }: { wide?: boolean })
 
   return (
     <div className="flex w-full flex-col items-center py-3" aria-hidden>
-      <div className="h-6 w-px bg-zinc-300" />
-      <div className={`relative flex w-full items-center justify-center ${wide ? "px-[10%] lg:px-[6%]" : "px-4"}`}>
-        <div className={`absolute top-1/2 h-px -translate-y-1/2 bg-zinc-300 ${branchInset}`} />
+      <div className="h-6 w-0.5 rounded-full bg-zinc-300" />
+      <div
+        className={`relative flex w-full items-center justify-center ${wide ? "px-[10%] lg:px-[6%]" : "px-4"}`}
+      >
+        <div
+          className={`absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-zinc-300 ${branchInset}`}
+        />
         <div className="relative flex w-full justify-between">
           {[0, 1].map((slot) => (
             <span
@@ -84,20 +144,39 @@ export function PrepaidVisitSplitConnector({ wide = false }: { wide?: boolean })
           ))}
         </div>
       </div>
-      <div className={`relative mt-2 flex w-full justify-between px-6 text-[0.65rem] font-bold uppercase tracking-wide ${wide ? "px-[12%] lg:px-[8%]" : ""}`}>
+      <div
+        className={`relative mt-2 flex w-full justify-between px-6 text-[0.65rem] font-bold uppercase tracking-wide ${wide ? "px-[12%] lg:px-[8%]" : ""}`}
+      >
         <span className="text-amber-700">Not visited</span>
         <span className="text-emerald-700">Visited</span>
       </div>
       <div className={`relative mt-2 flex w-full justify-between ${dotInset}`}>
         <div className="flex flex-col items-center">
-          <div className="h-4 w-px bg-zinc-300" />
-          <span className="size-2.5 rounded-full bg-amber-500" />
+          <div className="h-4 w-0.5 rounded-full bg-amber-400/80" />
+          <ChevronDown className="size-3.5 text-amber-500" strokeWidth={2.5} />
         </div>
         <div className="flex flex-col items-center">
-          <div className="h-4 w-px bg-zinc-300" />
-          <span className="size-2.5 rounded-full bg-emerald-500" />
+          <div className="h-4 w-0.5 rounded-full bg-emerald-400/80" />
+          <ChevronDown className="size-3.5 text-emerald-500" strokeWidth={2.5} />
         </div>
       </div>
+    </div>
+  );
+}
+
+export function FlowSplitRow({
+  gapPx,
+  children,
+}: {
+  gapPx: number;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="relative flex w-max max-w-none items-start justify-center"
+      style={{ gap: gapPx }}
+    >
+      {children}
     </div>
   );
 }

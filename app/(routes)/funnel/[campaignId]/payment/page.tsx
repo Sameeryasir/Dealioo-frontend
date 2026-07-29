@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { useFunnelTemplatePagesFromStorage } from "@/app/components/crm-template-editor/funnel-template-storage";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
@@ -11,14 +11,33 @@ import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
+import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 
 function FunnelCampaignPaymentPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
   useFunnelStepGuard(funnelId, "payment");
   const { checkoutToken, session, ready, error: checkoutError } =
     useCheckoutContext();
+
+  const isPostpaid = searchParams.get("campaignType")?.trim() === "postpaid";
+
+  useEffect(() => {
+    if (!isPostpaid || funnelId == null) return;
+    router.replace(
+      buildFunnelPaymentConfirmationPath(
+        funnelId,
+        {
+          campaignId,
+          businessId,
+          campaignType: "postpaid",
+        },
+        { paymentConfirmed: true },
+      ),
+    );
+  }, [isPostpaid, funnelId, campaignId, businessId, router]);
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
@@ -64,7 +83,7 @@ function FunnelCampaignPaymentPageInner() {
   const awaitingInitialCheckoutSession =
     Boolean(checkoutToken) && !ready && session == null;
 
-  if (isLoading || awaitingInitialCheckoutSession) {
+  if (isPostpaid || isLoading || awaitingInitialCheckoutSession) {
     return <FunnelPreviewSkeleton />;
   }
 

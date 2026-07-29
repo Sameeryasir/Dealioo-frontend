@@ -113,6 +113,7 @@ export default function CampaignWelcomePage() {
                   campaignName={campaign?.campaignName}
                   campaignPrice={campaign?.price}
                   campaignOffer={campaign?.offer}
+                  campaignType={campaign?.campaignType}
                 />
               </div>
             ) : activeTabId === "overview" ? (

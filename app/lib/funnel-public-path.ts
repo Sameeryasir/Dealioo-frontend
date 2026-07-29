@@ -7,6 +7,7 @@ export type FunnelPublicPathQuery = {
   businessId?: number | null;
   price?: number | string | null;
   checkoutToken?: string | null;
+  campaignType?: "prepaid" | "postpaid" | null;
 };
 
 export type BuildFunnelPublicPathInput = {
@@ -32,6 +33,12 @@ export function buildFunnelPublicPath({
   }
   if (query?.checkoutToken?.trim()) {
     params.set("checkoutToken", query.checkoutToken.trim());
+  }
+  if (
+    query?.campaignType === "prepaid" ||
+    query?.campaignType === "postpaid"
+  ) {
+    params.set("campaignType", query.campaignType);
   }
   const price = query?.price;
   if (price != null && String(price).trim() !== "") {

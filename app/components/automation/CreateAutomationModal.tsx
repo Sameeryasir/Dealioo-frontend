@@ -130,6 +130,12 @@ function templateListVisual(templateId: string): {
       accentClass: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/20",
     };
   }
+  if (templateId === "signup_automation") {
+    return {
+      icon: UserPlus,
+      accentClass: "bg-gradient-to-br from-teal-500 to-cyan-600 shadow-teal-500/20",
+    };
+  }
   return {
     icon: ShoppingCart,
     accentClass: "bg-gradient-to-br from-orange-500 to-orange-600 shadow-orange-500/20",
@@ -405,7 +411,7 @@ export function CreateAutomationModal({
                   <ChoiceCard
                     icon={Download}
                     title="Import template"
-                    description="Start from a proven template — Abandoned Cart, Payment Reminder, or Prepaid Offer."
+                    description="Start from a proven template — Payment Reminder, Prepaid Offer, or Signup automation."
                     accentClass="bg-gradient-to-br from-emerald-500 to-teal-600"
                     onClick={() => setStep("import-list")}
                   />

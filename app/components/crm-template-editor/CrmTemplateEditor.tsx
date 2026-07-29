@@ -17,6 +17,7 @@ import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import {
+  buildFunnelPaymentConfirmationPath,
   buildFunnelPublicPath,
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
@@ -41,9 +42,11 @@ import {
   useCampaignFunnelLoader,
   usePersistCampaignFunnelDraft,
 } from "@/app/hooks/use-campaign-funnel-loader";
+import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useEditorKeyboardShortcuts } from "@/app/hooks/use-editor-keyboard-shortcuts";
 import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { useUndoRedo } from "@/app/hooks/use-undo-redo";
+import { funnelPageOrderForCampaignType } from "@/app/components/crm-template-editor/TemplatePageList";
 import type {
   LandingTemplatePage,
   PaymentTemplatePage,
@@ -60,6 +63,7 @@ export type CrmTemplateEditorProps = {
   campaignName?: string;
   campaignPrice?: number | string;
   campaignOffer?: string;
+  campaignType?: "prepaid" | "postpaid";
   initialPageId?: TemplatePageId;
   interactivePreview?: boolean;
   embedded?: boolean;
@@ -71,6 +75,7 @@ export function CrmTemplateEditor({
   campaignName,
   campaignPrice,
   campaignOffer,
+  campaignType: campaignTypeProp,
   initialPageId = "landing",
   interactivePreview = false,
   embedded = false,
@@ -78,6 +83,12 @@ export function CrmTemplateEditor({
   const { subscription } = useMyUserSubscription();
   const showAiAssistant = isGrowthAiSubscription(subscription);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+
+  const { data: campaignDetail } = useCampaignByIdQuery(campaignId);
+  const campaignType =
+    campaignTypeProp ?? campaignDetail?.campaignType ?? undefined;
+  const isPostpaid = campaignType === "postpaid";
+  const pageOrder = funnelPageOrderForCampaignType(campaignType);
 
   const funnelLoader = useCampaignFunnelLoader(campaignId);
   const {
@@ -139,7 +150,9 @@ export function CrmTemplateEditor({
       const pagesToSave = mergePagesForSave(pagesBaseline, pages);
       await createFunnel(
         token,
-        buildCreateFunnelRequestBody(campaignId, pagesToSave),
+        buildCreateFunnelRequestBody(campaignId, pagesToSave, {
+          includePaymentPage: !isPostpaid,
+        }),
       );
       setSaveStatus("saved");
       setIsDirty(false);
@@ -150,7 +163,13 @@ export function CrmTemplateEditor({
       setSaveStatus("error");
       setSaveError(e instanceof Error ? e.message : "Could not save changes.");
     }
-  }, [campaignId, pages, pagesBaseline]);
+  }, [campaignId, pages, pagesBaseline, isPostpaid]);
+
+  useEffect(() => {
+    if (!isPostpaid) return;
+    if (activeId !== "payment") return;
+    setActiveId("landing");
+  }, [isPostpaid, activeId]);
 
   useEditorKeyboardShortcuts({
     onSave: () => void handleSave(),
@@ -185,8 +204,9 @@ export function CrmTemplateEditor({
 
   const aiPagePayload = useMemo((): Record<string, unknown> | undefined => {
     if (campaignId == null || campaignId < 1) return undefined;
-    const allPages = buildCreateFunnelRequestBody(campaignId, pages)
-      .pages as Record<string, unknown>;
+    const allPages = buildCreateFunnelRequestBody(campaignId, pages, {
+      includePaymentPage: !isPostpaid,
+    }).pages as Record<string, unknown>;
     const activePage = allPages[activeId];
     if (
       typeof activePage !== "object" ||
@@ -196,7 +216,7 @@ export function CrmTemplateEditor({
       return {};
     }
     return activePage as Record<string, unknown>;
-  }, [campaignId, pages, activeId]);
+  }, [campaignId, pages, activeId, isPostpaid]);
 
   const handleAiSchemaApplied = useCallback(
     (schema: Record<string, unknown>) => {
@@ -226,22 +246,31 @@ export function CrmTemplateEditor({
       businessId: previewBusinessId,
       campaignId: previewCampaignId,
       price: campaignPricing.subtotal ?? campaignPrice ?? undefined,
+      campaignType:
+        campaignType === "prepaid" || campaignType === "postpaid"
+          ? campaignType
+          : undefined,
     }),
     [
       previewBusinessId,
       previewCampaignId,
       campaignPricing.subtotal,
       campaignPrice,
+      campaignType,
     ],
   );
 
   const previewSignupNextHref =
     interactivePreview && previewRouteId != null
-      ? buildFunnelPublicPath({
-          funnelId: previewRouteId,
-          step: "payment",
-          query: funnelLinkQuery,
-        })
+      ? isPostpaid
+        ? buildFunnelPaymentConfirmationPath(previewRouteId, funnelLinkQuery, {
+            paymentConfirmed: true,
+          })
+        : buildFunnelPublicPath({
+            funnelId: previewRouteId,
+            step: "payment",
+            query: funnelLinkQuery,
+          })
       : undefined;
   const previewSignupBackHref =
     interactivePreview && previewRouteId != null
@@ -311,17 +340,19 @@ export function CrmTemplateEditor({
 
   const openEditorForPage = useCallback(
     (id: TemplatePageId) => {
+      if (isPostpaid && id === "payment") return;
       if (settingsOpen && isDirty && id !== activeId) {
         setPendingNavId(id);
         return;
       }
       beginEditSession(id, pages);
     },
-    [settingsOpen, isDirty, activeId, pages, beginEditSession],
+    [settingsOpen, isDirty, activeId, pages, beginEditSession, isPostpaid],
   );
 
   const requestSwitchActive = useCallback(
     (id: TemplatePageId) => {
+      if (isPostpaid && id === "payment") return;
       if (id === activeId) return;
       if (settingsOpen && isDirty) {
         setPendingNavId(id);
@@ -329,34 +360,48 @@ export function CrmTemplateEditor({
       }
       setActiveId(id);
     },
-    [activeId, settingsOpen, isDirty],
+    [activeId, settingsOpen, isDirty, isPostpaid],
   );
 
   const handlePreview = useCallback(() => {
     if (previewRouteId == null) return;
-    const url = buildFunnelPublicPath({
-      funnelId: previewRouteId,
-      step: activeId === "confirmation" ? "confirmation" : activeId,
-      query: funnelLinkQuery,
-    });
+    const step =
+      isPostpaid && activeId === "payment"
+        ? "confirmation"
+        : activeId === "confirmation"
+          ? "confirmation"
+          : activeId;
+    const url =
+      isPostpaid && step === "confirmation"
+        ? buildFunnelPaymentConfirmationPath(previewRouteId, funnelLinkQuery, {
+            paymentConfirmed: true,
+          })
+        : buildFunnelPublicPath({
+            funnelId: previewRouteId,
+            step,
+            query: funnelLinkQuery,
+          });
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [
-    previewRouteId,
-    activeId,
-    funnelLinkQuery,
-  ]);
+  }, [previewRouteId, activeId, funnelLinkQuery, isPostpaid]);
 
   const handlePreviewPage = useCallback(
     (pageId: TemplatePageId) => {
       if (previewRouteId == null) return;
-      const url = buildFunnelPublicPath({
-        funnelId: previewRouteId,
-        step: pageId === "confirmation" ? "confirmation" : pageId,
-        query: funnelLinkQuery,
-      });
+      if (isPostpaid && pageId === "payment") return;
+      const step = pageId === "confirmation" ? "confirmation" : pageId;
+      const url =
+        isPostpaid && step === "confirmation"
+          ? buildFunnelPaymentConfirmationPath(previewRouteId, funnelLinkQuery, {
+              paymentConfirmed: true,
+            })
+          : buildFunnelPublicPath({
+              funnelId: previewRouteId,
+              step,
+              query: funnelLinkQuery,
+            });
       window.open(url, "_blank", "noopener,noreferrer");
     },
-    [previewRouteId, funnelLinkQuery],
+    [previewRouteId, funnelLinkQuery, isPostpaid],
   );
 
   const cancelDiscard = useCallback(() => setPendingNavId(null), []);
@@ -476,6 +521,7 @@ export function CrmTemplateEditor({
               previewRouteId != null ? handlePreviewPage : undefined
             }
             compact={embedded}
+            pageOrder={pageOrder}
           />
         }
         canvas={
@@ -493,6 +539,7 @@ export function CrmTemplateEditor({
               editorStepPreviewChrome
               paymentStripeCheckout={paymentStripeCheckout}
               campaignPricing={campaignPricing}
+              skipPaymentStep={isPostpaid}
             />
           </CanvasWorkspace>
         }

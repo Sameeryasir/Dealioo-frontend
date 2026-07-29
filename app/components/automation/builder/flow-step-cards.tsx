@@ -6,6 +6,7 @@ import {
   Clock,
   Filter,
   Gift,
+  GitBranch,
   MessageSquare,
   RotateCcw,
   Send,
@@ -23,6 +24,7 @@ import {
   formatExpirationDisplay,
   formatWaitSummary,
   getFilterConditions,
+  getExpirationNote,
   getRewardName,
   getReturnOfferEmailPreview,
   getSmsLinkLabel,
@@ -34,7 +36,7 @@ import {
   splitSmsPreviewParts,
 } from "@/app/components/automation/builder/workflow-node-display";
 import { expandBundledActionsForDisplay, isBundledActionsNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
-import { isCustomerVisitedFilterNode } from "@/app/components/automation/builder/flow-layout";
+import { isCustomerVisitedFilterNode, isParallelSplitNode } from "@/app/components/automation/builder/flow-layout";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
 
@@ -319,7 +321,10 @@ function actionMeta(node: WorkflowNode): { label: string; icon: LucideIcon } {
       }
       return { label: "Give Rewards", icon: Gift };
     case "tag_customer":
-      return { label: "Set Reward Expiration", icon: CalendarClock };
+      return {
+        label: node.label.trim() || "Set Reward Expiration",
+        icon: CalendarClock,
+      };
     default:
       return { label: node.label, icon: Send };
   }
@@ -379,6 +384,12 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
   }
 
   if (node.kind === "tag_customer") {
+    const note = getExpirationNote(config).trim();
+    if (/^extend offer/i.test(note)) {
+      return (
+        <p className="text-xs leading-relaxed text-zinc-700">{note}</p>
+      );
+    }
     return (
       <p className="text-xs leading-relaxed text-zinc-700">
         Set expiration for{" "}
@@ -537,6 +548,15 @@ export function FlowStepCard({
   }
 
   if (node.kind === "wait" || node.kind === "delay") {
+    if (isParallelSplitNode(node)) {
+      return (
+        <FlowParallelSplitCard
+          node={node}
+          selected={selected}
+          pressing={pressing}
+        />
+      );
+    }
     return <FlowWaitCard node={node} selected={selected} pressing={pressing} />;
   }
 
@@ -555,17 +575,83 @@ export function FlowStepCard({
   );
 }
 
-export function FlowBranchContainer({ children }: { children: ReactNode }) {
+export function FlowBranchContainer({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  /** Optional HighLevel-style branch container title (e.g. Wallet Reminder). */
+  title?: string;
+}) {
   return (
     <div className="relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
-      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.625rem]">
-        <span
-          className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
-          aria-hidden
-        />
-        Live
-      </span>
+      <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:px-3 sm:text-[0.625rem]">
+          <span
+            className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
+            aria-hidden
+          />
+          Live
+        </span>
+        {title ? (
+          <span className="truncate rounded-full bg-sky-50 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide text-sky-800 ring-1 ring-sky-200/80 sm:px-3 sm:text-[0.625rem]">
+            {title}
+          </span>
+        ) : null}
+      </div>
       <div className="mt-10 flex flex-col gap-3 sm:mt-11 sm:gap-4">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Parallel Split card — visual marker only; uses existing wait styling family.
+ * What: Renders between Initial Actions and branch columns.
+ * Why: HighLevel-style split without new API node types.
+ */
+export function FlowParallelSplitCard({
+  node,
+  selected,
+  pressing = false,
+}: {
+  node: WorkflowNode;
+  selected?: boolean;
+  pressing?: boolean;
+}) {
+  const branchCount = Array.isArray(node.config.branches)
+    ? node.config.branches.length
+    : 0;
+
+  return (
+    <div
+      className={`w-full max-w-sm overflow-hidden rounded-2xl border border-sky-200/80 bg-white transition-all ${
+        selected
+          ? "ring-2 ring-sky-400/50 shadow-[0_8px_30px_rgba(14,165,233,0.18)]"
+          : pressing
+            ? "scale-[0.99]"
+            : "shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
+      }`}
+    >
+      <div className="flex items-center gap-2.5 border-b border-sky-100 bg-gradient-to-r from-sky-50 to-white px-5 py-4">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-sm">
+          <GitBranch className="size-4" strokeWidth={2.25} aria-hidden />
+        </span>
+        <div>
+          <p className="text-xs font-bold tracking-tight text-sky-950">
+            Parallel Split
+          </p>
+          <p className="text-[0.625rem] text-sky-700/80">
+            Runs each branch independently
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-4 sm:px-6">
+        <p className="text-sm font-semibold text-zinc-800">
+          {branchCount > 0
+            ? `${branchCount} parallel path${branchCount === 1 ? "" : "s"}`
+            : "Split into parallel paths"}
+        </p>
+      </div>
     </div>
   );
 }

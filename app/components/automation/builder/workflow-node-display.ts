@@ -22,6 +22,11 @@ export function getTriggerDescription(node: WorkflowNode): string {
 }
 
 export function formatWaitSummary(config: Record<string, unknown>): string {
+  // Parallel Split marker uses delay 0 — not shown as a wait summary.
+  if (config.isParallelSplit === true) {
+    return "Parallel Split";
+  }
+
   const untilLabel = configString(config, "untilLabel", "").trim();
   if (untilLabel) {
     return `Until ${untilLabel}`;
@@ -36,6 +41,12 @@ export function formatWaitSummary(config: Record<string, unknown>): string {
     typeof config.delay === "number" && Number.isFinite(config.delay)
       ? config.delay
       : 15;
+
+  // Initial-action "Wait (No delay)" — engine advances immediately.
+  if (delay <= 0) {
+    return "No delay";
+  }
+
   const unit = configString(config, "unit", "minutes");
   const singular = unit.endsWith("s") ? unit.slice(0, -1) : unit;
   const label = delay === 1 ? singular : unit;

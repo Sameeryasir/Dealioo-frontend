@@ -7,20 +7,30 @@ import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { ArrowLeft, LogOut, PanelLeft, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 
 const ORG_DASHBOARD_HREF = "/dashboard";
 const PROFILE_HREF = "/dashboard/profile";
 
+/** Exact business home only — e.g. /business/14/dashboard (not automations/campaigns/…). */
+const BUSINESS_DASHBOARD_HOME = /^\/business\/\d+\/dashboard\/?$/;
+
 export default function BusinessNavbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { clearPassword } = useCredentialContext();
   const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebarExpand();
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRootRef = useRef<HTMLDivElement>(null);
+
+  // Switch business only on the business dashboard home page.
+  const showSwitchBusiness = useMemo(() => {
+    const normalized = (pathname ?? "").replace(/^\/restaurant\//, "/business/");
+    return BUSINESS_DASHBOARD_HOME.test(normalized);
+  }, [pathname]);
 
   useEffect(() => {
     setUser(getSetupUser());
@@ -75,14 +85,16 @@ export default function BusinessNavbar() {
             <PanelLeft className="size-4" strokeWidth={2.25} aria-hidden />
           </button>
 
-          <Link
-            href={ORG_DASHBOARD_HREF}
-            className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.78rem] font-semibold text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 sm:px-3 sm:text-[0.8125rem]"
-            aria-label="Switch business — back to all businesses"
-          >
-            <ArrowLeft className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-            <span className="truncate">Switch business</span>
-          </Link>
+          {showSwitchBusiness ? (
+            <Link
+              href={ORG_DASHBOARD_HREF}
+              className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.78rem] font-semibold text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 sm:px-3 sm:text-[0.8125rem]"
+              aria-label="Switch business — back to all businesses"
+            >
+              <ArrowLeft className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="truncate">Switch business</span>
+            </Link>
+          ) : null}
         </div>
 
         <div

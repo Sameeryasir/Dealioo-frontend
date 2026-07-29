@@ -373,6 +373,8 @@ export function BusinessCampaignsPanel({
     offerName: string;
     offerPrice: string;
     offerImage: File;
+    campaignType: "prepaid" | "postpaid";
+    includeOfferPrice: boolean;
   }) {
     setSubmitError(null);
     setAlertDismissed(false);
@@ -384,7 +386,10 @@ export function BusinessCampaignsPanel({
         websiteUrl: payload.websiteUrl,
         image: payload.offerImage,
         offer: payload.offerName,
-        price: parseOfferPrice(payload.offerPrice),
+        campaignType: payload.campaignType,
+        ...(payload.includeOfferPrice
+          ? { price: parseOfferPrice(payload.offerPrice) }
+          : { price: null }),
       });
       skipPostCreateNavRef.current = true;
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
@@ -480,7 +485,7 @@ export function BusinessCampaignsPanel({
           <div
             className={
               showCreateFlow
-                ? "rd-premium-panel__body rd-premium-panel__body--center items-center px-4 py-8 sm:px-6"
+                ? "rd-premium-panel__body rd-premium-panel__body--center !overflow-x-hidden !overflow-y-auto items-stretch sm:items-center px-3 py-3 sm:px-6 sm:py-5"
                 : "rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
             }
           >
@@ -499,7 +504,7 @@ export function BusinessCampaignsPanel({
                 onRetry={() => void refetch()}
               />
             ) : showCreateFlow ? (
-              <div className="flex w-full max-w-2xl justify-center">
+              <div className="flex w-full min-w-0 max-w-4xl justify-center">
                 {createCampaignsPanel}
               </div>
             ) : showGrid ? (

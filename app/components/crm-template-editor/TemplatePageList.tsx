@@ -11,17 +11,35 @@ export const FUNNEL_PAGE_ORDER: TemplatePageId[] = [
   "confirmation",
 ];
 
+export const FUNNEL_PAGE_ORDER_WITHOUT_PAYMENT: TemplatePageId[] = [
+  "landing",
+  "signup",
+  "confirmation",
+];
+
+export function funnelPageOrderForCampaignType(
+  campaignType?: "prepaid" | "postpaid" | null,
+): TemplatePageId[] {
+  return campaignType === "postpaid"
+    ? FUNNEL_PAGE_ORDER_WITHOUT_PAYMENT
+    : FUNNEL_PAGE_ORDER;
+}
+
 export function TemplatePageList({
   activeId,
   onSelect,
   onPreviewPage,
   compact = false,
+  pageOrder = FUNNEL_PAGE_ORDER,
 }: {
   activeId: TemplatePageId;
   onSelect: (id: TemplatePageId) => void;
   onPreviewPage?: (id: TemplatePageId) => void;
   compact?: boolean;
+  pageOrder?: TemplatePageId[];
 }) {
+  const steps = FUNNEL_STEP_META.filter((step) => pageOrder.includes(step.id));
+
   return (
     <nav className="w-full [&_button]:cursor-pointer">
       <ul
@@ -31,7 +49,7 @@ export function TemplatePageList({
             : "divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white"
         }`}
       >
-        {FUNNEL_STEP_META.map((step) => (
+        {steps.map((step) => (
           <li key={step.id} className={compact ? "min-w-0 shrink-0" : ""}>
             <EditorPageItem
               title={step.title}

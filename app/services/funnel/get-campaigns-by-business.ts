@@ -9,6 +9,7 @@ export type Funnel = {
   imageUrl?: string;
   offer?: string;
   price?: number | string;
+  campaignType?: "prepaid" | "postpaid";
   published?: boolean;
   status: string;
   createdAt: string;
@@ -74,6 +75,11 @@ function coerceCampaign(value: unknown): Funnel | null {
         ? undefined
         : undefined;
   const price = o.price ?? undefined;
+  const rawCampaignType = o.campaignType ?? o.campaign_type;
+  const campaignType =
+    rawCampaignType === "prepaid" || rawCampaignType === "postpaid"
+      ? rawCampaignType
+      : undefined;
   const status =
     typeof o.status === "string"
       ? o.status
@@ -101,6 +107,7 @@ function coerceCampaign(value: unknown): Funnel | null {
     imageUrl,
     offer,
     price: typeof price === "number" || typeof price === "string" ? price : undefined,
+    campaignType,
     status,
     createdAt,
     updatedAt,

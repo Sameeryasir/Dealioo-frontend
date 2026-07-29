@@ -274,13 +274,14 @@ function buildConfirmationPayload(
 export function buildCreateFunnelRequestBody(
   campaignId: number,
   pages: TemplatePagesState,
+  options?: { includePaymentPage?: boolean },
 ): CreateFunnelRequestBody {
-  const include = new Set<TemplatePageId>([
-    "landing",
-    "signup",
-    "payment",
-    "confirmation",
-  ]);
+  const includePaymentPage = options?.includePaymentPage !== false;
+  const include = new Set<TemplatePageId>(
+    includePaymentPage
+      ? ["landing", "signup", "payment", "confirmation"]
+      : ["landing", "signup", "confirmation"],
+  );
 
   const landing = pages.landing as LandingTemplatePage;
   const signup = pages.signup as SignUpTemplatePage;

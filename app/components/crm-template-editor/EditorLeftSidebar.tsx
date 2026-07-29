@@ -1,7 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { editorPremiumCardClass, editorPanelTopShellClass, editorFunnelProgressFillGradient } from "@/app/components/crm-template-editor/editor-sidebar-theme";
+import {
+  editorPremiumCardClass,
+  editorPanelTopShellClass,
+  editorFunnelProgressFillGradient,
+} from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import {
   FUNNEL_PAGE_ORDER,
   TemplatePageList,
@@ -13,14 +17,17 @@ export function EditorLeftSidebar({
   onSelect,
   onPreviewPage,
   compact = false,
+  pageOrder = FUNNEL_PAGE_ORDER,
 }: {
   activeId: TemplatePageId;
   onSelect: (id: TemplatePageId) => void;
   onPreviewPage?: (id: TemplatePageId) => void;
   compact?: boolean;
+  pageOrder?: TemplatePageId[];
 }) {
-  const stepIndex = FUNNEL_PAGE_ORDER.indexOf(activeId);
-  const progress = ((stepIndex + 1) / FUNNEL_PAGE_ORDER.length) * 100;
+  const order = pageOrder.length > 0 ? pageOrder : FUNNEL_PAGE_ORDER;
+  const stepIndex = Math.max(0, order.indexOf(activeId));
+  const progress = ((stepIndex + 1) / order.length) * 100;
 
   if (compact) {
     return (
@@ -33,7 +40,7 @@ export function EditorLeftSidebar({
               Funnel
             </p>
             <p className="m-0 mt-2 text-[0.9375rem] font-semibold leading-tight text-slate-900">
-              Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
+              Step {stepIndex + 1} of {order.length}
             </p>
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
               <motion.div
@@ -56,6 +63,7 @@ export function EditorLeftSidebar({
             onSelect={onSelect}
             onPreviewPage={onPreviewPage}
             compact={compact}
+            pageOrder={order}
           />
         </div>
       </aside>
@@ -72,7 +80,7 @@ export function EditorLeftSidebar({
           Your funnel
         </p>
         <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-500">
-          Step {stepIndex + 1} of {FUNNEL_PAGE_ORDER.length}
+          Step {stepIndex + 1} of {order.length}
         </p>
 
         <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#e8edf5]">
@@ -92,6 +100,7 @@ export function EditorLeftSidebar({
           onSelect={onSelect}
           onPreviewPage={onPreviewPage}
           compact={compact}
+          pageOrder={order}
         />
       </div>
     </aside>

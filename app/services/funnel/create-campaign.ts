@@ -16,7 +16,8 @@ export type CreateCampaignPayload = {
   websiteUrl: string;
   image: File;
   offer: string;
-  price: number;
+  price?: number | null;
+  campaignType: "prepaid" | "postpaid";
 };
 
 /** Reads `id` from common POST /campaign/create JSON shapes so we can deep-link after create. */
@@ -58,21 +59,34 @@ export async function createCampaign(
   if (!payload.offer.trim()) {
     throw new Error("Offer is required.");
   }
-  if (!isValidOfferPrice(String(payload.price))) {
-    throw new Error("Enter a valid price.");
+  if (
+    payload.campaignType !== "prepaid" &&
+    payload.campaignType !== "postpaid"
+  ) {
+    throw new Error("Campaign type is required.");
   }
-  const price = parseOfferPrice(String(payload.price));
-  if (!Number.isFinite(price) || price < 0) {
-    throw new Error("Price is required.");
+
+  let price: number | null = null;
+  if (payload.price != null && payload.price !== undefined) {
+    if (!isValidOfferPrice(String(payload.price))) {
+      throw new Error("Enter a valid price.");
+    }
+    price = parseOfferPrice(String(payload.price));
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error("Price is required.");
+    }
   }
 
   const form = new FormData();
   form.append("businessId", String(id));
   form.append("campaignName", payload.campaignName.trim());
+  form.append("campaignType", payload.campaignType);
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);
   form.append("offer", payload.offer.trim());
-  form.append("price", String(price));
+  if (price != null) {
+    form.append("price", String(price));
+  }
   form.append("status", "published");
 
   const res = await authenticatedFetch(

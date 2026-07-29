@@ -1,8 +1,15 @@
 "use client";
 
-import { LayoutTemplate } from "lucide-react";
+import { LayoutTemplate, Minus, Plus, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   isBlockDrag,
@@ -11,7 +18,9 @@ import {
 import {
   WorkflowConnector,
   TriggerFlowConnector,
-  FlowSplitConnector,
+  FlowSplitTrunk,
+  FlowSplitStem,
+  BranchTraceLine,
   PrepaidVisitSplitConnector,
 } from "@/app/components/automation/builder/WorkflowConnector";
 import {
@@ -23,10 +32,11 @@ import {
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import {
   buildSegmentsForIndexedNodes,
-  FLOW_BRANCH_PASS,
-  FLOW_BRANCH_PAYMENT,
+  parallelTreeHasNestedSplit,
   parsePrepaidVisitSplitLayout,
   parseSplitFlowLayout,
+  type IndexedWorkflowNode,
+  type ParallelBranchColumn,
 } from "@/app/components/automation/builder/flow-layout";
 import {
   buildFlowSegments,
@@ -46,10 +56,23 @@ import {
 } from "@/app/components/automation/workflow-node-order";
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
 
-const FLOW_TRUNK_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-xl";
-const FLOW_TREE_WIDTH = "w-full max-w-md sm:max-w-lg lg:max-w-5xl";
+// Fixed card width (same as Initial Actions at desktop) — never shrinks when zooming.
+const FLOW_CARD_WIDTH_CLASS = "w-[36rem] shrink-0";
+const FLOW_TRUNK_WIDTH = FLOW_CARD_WIDTH_CLASS;
+const FLOW_BRANCH_GAP_PX = 48;
 const LONG_PRESS_MS = 450;
 const POINTER_MOVE_CANCEL_PX = 10;
+
+// --- Canvas zoom (camera only) ---
+// transform:scale so cards keep the same layout/wrapping; only the view gets bigger/smaller.
+// Allow zooming all the way out (0%) so large nested parallel trees fit on screen.
+const ZOOM_MIN = 0;
+const ZOOM_MAX = 1.5;
+const ZOOM_STEP = 0.1;
+
+function clampZoom(value: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 100) / 100));
+}
 
 type DragPreview = {
   x: number;
@@ -106,6 +129,12 @@ export function BuilderCanvas({
   const [pressingIndex, setPressingIndex] = useState<number | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [canvasDragOver, setCanvasDragOver] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const zoomContentRef = useRef<HTMLDivElement | null>(null);
+  const [nativeContentSize, setNativeContentSize] = useState({
+    width: 0,
+    height: 0,
+  });
 
   const nodeSlotRefs = useRef<(HTMLDivElement | null)[]>([]);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -336,15 +365,41 @@ export function BuilderCanvas({
   const visitedYesSegments = buildSegmentsForIndexedNodes(
     prepaidVisitSplit.visitedYes,
   );
-  const passBranchSegments = buildSegmentsForIndexedNodes(
-    splitLayout.branches[FLOW_BRANCH_PASS],
-  );
-  const paymentBranchSegments = buildSegmentsForIndexedNodes(
-    splitLayout.branches[FLOW_BRANCH_PAYMENT],
-  );
+  // Parallel branch columns from flowBranch labels (pass/payment, Signup automation, etc.)
+  const branchColumns = splitLayout.branchColumns;
+  const parallelTree = splitLayout.tree;
   const flowSegments = usePrepaidVisitSplit || splitLayout.hasSplit
     ? headSegments
     : buildFlowSegments(flowNodes, flowStartIndex);
+
+  const zoomPercent = useMemo(() => Math.round(zoom * 100), [zoom]);
+  const zoomOut = useCallback(() => {
+    setZoom((current) => clampZoom(current - ZOOM_STEP));
+  }, []);
+  const zoomIn = useCallback(() => {
+    setZoom((current) => clampZoom(current + ZOOM_STEP));
+  }, []);
+  const resetZoom = useCallback(() => {
+    setZoom(1);
+  }, []);
+
+  // Measure unscaled layout once (and on content change). Zoom must not change these sizes.
+  useLayoutEffect(() => {
+    const el = zoomContentRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      setNativeContentSize({
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+      });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [revealKey, loading, nodes.length, branchColumns.length]);
 
   const renderNodeSlot = (
     node: WorkflowNode,
@@ -386,7 +441,7 @@ export function BuilderCanvas({
 
   const renderSegmentList = (
     segments: FlowSegment[],
-    options?: { branchStepNumber?: number },
+    options?: { branchStepNumber?: number; showInlineSectionTitle?: boolean },
   ) =>
     segments.map((segment, segmentIndex) => {
       const index =
@@ -447,6 +502,11 @@ export function BuilderCanvas({
           )
         );
 
+      const sectionTitle =
+        typeof displayNode.config?.flowSectionTitle === "string"
+          ? displayNode.config.flowSectionTitle.trim()
+          : "";
+
       return (
         <motion.div
           key={
@@ -457,6 +517,11 @@ export function BuilderCanvas({
           className="flex w-full flex-col items-center"
           variants={flowStepReveal}
         >
+          {options?.showInlineSectionTitle && sectionTitle ? (
+            <p className="mb-2 max-w-full truncate px-1 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-500">
+              {sectionTitle}
+            </p>
+          ) : null}
           {stepContent}
           {segmentIndex < segments.length - 1 ? (
             <motion.div
@@ -472,33 +537,193 @@ export function BuilderCanvas({
       );
     });
 
-  const renderSplitBranches = () => (
-    <div className="flex w-full flex-col items-center">
-      <FlowSplitConnector wide />
-      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
-        <FlowBranchContainer>
-          {renderSegmentList(passBranchSegments, { branchStepNumber: 18 })}
-        </FlowBranchContainer>
-        <FlowBranchContainer>
-          {renderSegmentList(paymentBranchSegments, { branchStepNumber: 19 })}
-        </FlowBranchContainer>
+  const renderSplitBranches = () => {
+    const columns = parallelTree.branches;
+    const count = columns.length;
+
+    return (
+      <div className="flex w-max max-w-none flex-col items-center">
+        <FlowSplitTrunk />
+        <div
+          className="flex w-max max-w-none items-start justify-center"
+          style={{ gap: FLOW_BRANCH_GAP_PX }}
+        >
+          {columns.map((column, columnIndex) =>
+            renderParallelBranchColumn(column, 0, columnIndex, {
+              showStem: true,
+              isFirst: columnIndex === 0,
+              isLast: columnIndex === count - 1,
+            }),
+          )}
+        </div>
       </div>
+    );
+  };
+
+  const splitBranchSections = (
+    entries: IndexedWorkflowNode[],
+    defaultTitle: string,
+  ): { title: string; entries: IndexedWorkflowNode[] }[] => {
+    if (entries.length === 0) return [];
+    const sections: { title: string; entries: IndexedWorkflowNode[] }[] = [];
+    let currentTitle = defaultTitle;
+    let current: IndexedWorkflowNode[] = [];
+
+    for (const entry of entries) {
+      const raw = entry.node.config?.flowSectionTitle;
+      const nextTitle =
+        typeof raw === "string" && raw.trim() ? raw.trim() : null;
+      if (nextTitle != null && current.length > 0) {
+        sections.push({ title: currentTitle, entries: current });
+        current = [entry];
+        currentTitle = nextTitle;
+        continue;
+      }
+      if (nextTitle != null && current.length === 0) {
+        currentTitle = nextTitle;
+      }
+      current.push(entry);
+    }
+    if (current.length > 0) {
+      sections.push({ title: currentTitle, entries: current });
+    }
+    return sections;
+  };
+
+  const renderBranchSectionBox = (
+    title: string,
+    entries: IndexedWorkflowNode[],
+    columnIndex: number,
+    key: string,
+  ) => (
+    <div key={key} className={`relative ${FLOW_CARD_WIDTH_CLASS}`}>
+      <FlowBranchContainer title={title}>
+        <div className="relative w-full">
+          <BranchTraceLine />
+          <div className="relative z-10 flex w-full flex-col items-center">
+            {renderSegmentList(buildSegmentsForIndexedNodes(entries), {
+              branchStepNumber: 18 + columnIndex,
+            })}
+          </div>
+        </div>
+      </FlowBranchContainer>
     </div>
   );
 
-  const renderPrepaidVisitBranches = () => (
-    <div className="flex w-full flex-col items-center">
-      <PrepaidVisitSplitConnector wide />
-      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
-        <FlowBranchContainer>
-          <PrepaidLoopBackCard
-            loopTarget={prepaidVisitSplit.loopTarget?.node ?? null}
-            flowNodes={flowNodes}
+  const renderParallelBranchColumn = (
+    column: ParallelBranchColumn,
+    depth: number,
+    columnIndex: number,
+    fork?: { showStem: boolean; isFirst: boolean; isLast: boolean },
+  ) => {
+    const nested = parallelTreeHasNestedSplit(column.content);
+    const widthClass = nested ? "w-max max-w-none" : FLOW_CARD_WIDTH_CLASS;
+
+    return (
+      <div
+        key={`${depth}-${column.id}`}
+        className={`flex flex-col items-center ${widthClass}`}
+      >
+        {fork?.showStem ? (
+          <FlowSplitStem
+            isFirst={fork.isFirst}
+            isLast={fork.isLast}
+            gapPx={FLOW_BRANCH_GAP_PX}
           />
-        </FlowBranchContainer>
-        <FlowBranchContainer>
-          {renderSegmentList(visitedYesSegments)}
-        </FlowBranchContainer>
+        ) : null}
+        {nested ? (
+          <>
+            {column.content.head.length > 0 ? (
+              <div className="flex flex-col items-center">
+                {splitBranchSections(column.content.head, column.title).map(
+                  (section, sectionIndex, all) => (
+                    <div
+                      key={`${depth}-${column.id}-head-${sectionIndex}`}
+                      className="flex flex-col items-center"
+                    >
+                      {renderBranchSectionBox(
+                        section.title,
+                        section.entries,
+                        columnIndex,
+                        `${depth}-${column.id}-head-${sectionIndex}-box`,
+                      )}
+                      {sectionIndex < all.length - 1 ? (
+                        <div className="flex w-full justify-center py-1.5">
+                          <WorkflowConnector />
+                        </div>
+                      ) : null}
+                    </div>
+                  ),
+                )}
+                <div className="flex w-full justify-center py-1.5">
+                  <WorkflowConnector />
+                </div>
+              </div>
+            ) : null}
+            <div className="flex w-max max-w-none flex-col items-center">
+              <FlowSplitTrunk />
+              <div
+                className="flex w-max max-w-none items-start justify-center"
+                style={{ gap: FLOW_BRANCH_GAP_PX }}
+              >
+                {column.content.branches.map((child, childIndex) =>
+                  renderParallelBranchColumn(child, depth + 1, childIndex, {
+                    showStem: true,
+                    isFirst: childIndex === 0,
+                    isLast: childIndex === column.content.branches.length - 1,
+                  }),
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center">
+            {splitBranchSections(column.content.head, column.title).map(
+              (section, sectionIndex, all) => (
+                <div
+                  key={`${depth}-${column.id}-sec-${sectionIndex}`}
+                  className="flex flex-col items-center"
+                >
+                  {renderBranchSectionBox(
+                    section.title,
+                    section.entries,
+                    columnIndex,
+                    `${depth}-${column.id}-sec-${sectionIndex}-box`,
+                  )}
+                  {sectionIndex < all.length - 1 ? (
+                    <div className="flex w-full justify-center py-1.5">
+                      <WorkflowConnector />
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPrepaidVisitBranches = () => (
+    <div className="flex w-max max-w-none flex-col items-center">
+      <PrepaidVisitSplitConnector wide />
+      <div
+        className="flex w-max max-w-none items-start justify-center"
+        style={{ gap: FLOW_BRANCH_GAP_PX }}
+      >
+        <div className={`flex flex-col items-center ${FLOW_CARD_WIDTH_CLASS}`}>
+          <FlowBranchContainer>
+            <PrepaidLoopBackCard
+              loopTarget={prepaidVisitSplit.loopTarget?.node ?? null}
+              flowNodes={flowNodes}
+            />
+          </FlowBranchContainer>
+        </div>
+        <div className={`flex flex-col items-center ${FLOW_CARD_WIDTH_CLASS}`}>
+          <FlowBranchContainer>
+            {renderSegmentList(visitedYesSegments)}
+          </FlowBranchContainer>
+        </div>
       </div>
     </div>
   );
@@ -547,7 +772,7 @@ export function BuilderCanvas({
       />
 
       <motion.div
-        className={`min-h-0 flex-1 overflow-auto px-3 py-10 pb-20 transition-colors duration-300 sm:px-4 sm:py-12 sm:pb-24 lg:px-5 lg:py-14 xl:px-6 xl:py-16 ${
+        className={`min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain px-3 py-10 pb-24 [scrollbar-gutter:stable] transition-colors duration-300 sm:px-4 sm:py-12 sm:pb-28 lg:px-5 lg:py-14 xl:px-6 xl:py-16 ${
           canvasDragOver ? "bg-violet-50/40" : ""
         }`}
         initial={{ opacity: 0 }}
@@ -560,9 +785,33 @@ export function BuilderCanvas({
         }}
         onDrop={handleBlockDrop}
       >
-        <motion.div
-          className="mx-auto flex w-full flex-col items-center"
+        {/*
+          Camera zoom: layout is fixed (native size), then visually scaled.
+          Cards do not reflow/wrap differently at 110% vs 100% — scroll instead.
+        */}
+        <div
+          className="mx-auto"
+          style={{
+            width:
+              nativeContentSize.width > 0
+                ? nativeContentSize.width * zoom
+                : "100%",
+            height:
+              nativeContentSize.height > 0
+                ? nativeContentSize.height * zoom
+                : undefined,
+            minWidth: "100%",
+          }}
         >
+          <div
+            ref={zoomContentRef}
+            className="mx-auto flex w-max min-w-0 flex-col items-center will-change-transform"
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+            }}
+          >
+            <motion.div className="mx-auto flex w-max flex-col items-center">
           {loading ? (
             <FlowLoadingPlaceholder />
           ) : nodes.length === 0 ? (
@@ -595,7 +844,7 @@ export function BuilderCanvas({
           ) : (
             <motion.div
               key={revealKey}
-              className="flex w-full flex-col items-center"
+              className="flex w-max flex-col items-center"
               variants={flowListStagger}
               initial="hidden"
               animate="show"
@@ -637,11 +886,11 @@ export function BuilderCanvas({
                     ) : null}
                   </motion.div>
                   {usePrepaidVisitSplit ? (
-                    <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
+                    <div className="mt-6 w-max max-w-none">
                       {renderPrepaidVisitBranches()}
                     </div>
                   ) : splitLayout.hasSplit ? (
-                    <div className={`mt-6 ${FLOW_TREE_WIDTH}`}>
+                    <div className="mt-6 w-max max-w-none">
                       {renderSplitBranches()}
                     </div>
                   ) : null}
@@ -658,8 +907,51 @@ export function BuilderCanvas({
               ) : null}
             </motion.div>
           )}
-        </motion.div>
+            </motion.div>
+          </div>
+        </div>
       </motion.div>
+
+      {/* Zoom = camera only. Cards keep fixed layout; scroll if the flow is large. */}
+      {!loading && nodes.length > 0 ? (
+        <div
+          className="pointer-events-auto absolute bottom-4 right-4 z-20 flex items-center gap-1 rounded-full border border-zinc-200/90 bg-white/95 p-1 shadow-lg ring-1 ring-zinc-950/5 backdrop-blur-sm sm:bottom-5 sm:right-5"
+          title="Zoom only scales the camera. Cards do not reflow — scroll to explore."
+        >
+          <button
+            type="button"
+            onClick={zoomOut}
+            disabled={zoom <= ZOOM_MIN}
+            className="flex size-8 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <Minus className="size-4" strokeWidth={2.5} />
+          </button>
+          <span className="min-w-[3.25rem] text-center text-xs font-semibold tabular-nums text-zinc-700">
+            {zoomPercent}%
+          </span>
+          <button
+            type="button"
+            onClick={zoomIn}
+            disabled={zoom >= ZOOM_MAX}
+            className="flex size-8 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            <Plus className="size-4" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            onClick={resetZoom}
+            className="flex size-8 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100"
+            aria-label="Reset zoom"
+            title="Reset to 100%"
+          >
+            <RotateCcw className="size-3.5" strokeWidth={2.5} />
+          </button>
+        </div>
+      ) : null}
 
       {dragGhost}
     </motion.div>

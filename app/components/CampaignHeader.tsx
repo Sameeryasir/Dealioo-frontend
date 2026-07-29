@@ -126,9 +126,14 @@ export default function CampaignHeader({
         businessId,
         campaignId,
         price: parsePrice(price) ?? price,
+        campaignType:
+          campaign?.campaignType === "prepaid" ||
+          campaign?.campaignType === "postpaid"
+            ? campaign.campaignType
+            : undefined,
       },
     });
-  }, [campaignId, funnelId, businessId, price]);
+  }, [campaignId, funnelId, businessId, price, campaign?.campaignType]);
 
   const landingTrackingUrl = useMemo(() => {
     if (!landingTrackingPath || !trackingOrigin) return "";
