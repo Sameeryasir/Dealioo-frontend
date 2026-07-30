@@ -46,7 +46,7 @@ function FieldLabel({
       htmlFor={htmlFor}
       className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-700"
     >
-      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg border border-[#dbeafe] bg-gradient-to-br from-[#eef5ff] to-[#f5f0ff] text-[#1877f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg border border-[#dbeafe] bg-white text-[#1877f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
         <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
       </span>
       {children}
@@ -205,22 +205,10 @@ export function EditCampaignModal({
         className="relative w-full max-w-md overflow-hidden rounded-[1.25rem] border border-[#e2eaf5] bg-white shadow-[0_24px_56px_rgba(7,17,31,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative overflow-hidden border-b border-[#eef2f8] px-5 py-4">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#f4f8ff] via-white to-[#faf5ff]"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-[#833aba]/12 blur-2xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -left-4 top-0 size-24 rounded-full bg-[#1877f2]/12 blur-2xl"
-          />
+        <div className="relative overflow-hidden border-b border-[#eef2f8] bg-white px-5 py-4">
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1877f2] to-[#833aba] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
                 <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
               </span>
               <div>
@@ -248,7 +236,7 @@ export function EditCampaignModal({
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)}>
-          <div className="space-y-4 bg-gradient-to-b from-[#f8fbff]/80 to-white px-5 py-4">
+          <div className="space-y-4 bg-white px-5 py-4">
             <div>
               <FieldLabel htmlFor="edit-campaign-name" icon={Megaphone}>
                 Campaign name
@@ -307,8 +295,8 @@ export function EditCampaignModal({
               />
 
               {previewUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white shadow-[0_8px_20px_rgba(24,119,242,0.06)]">
-                  <div className="relative aspect-[16/9] w-full bg-[#eef5ff]/80">
+                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white shadow-[0_8px_20px_rgba(24,119,242,0.06)]">
+                  <div className="relative aspect-[16/9] w-full bg-[#f8fafc]">
                     <img
                       src={previewUrl}
                       alt="Campaign offer preview"
@@ -341,14 +329,14 @@ export function EditCampaignModal({
                   className={`flex w-full flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-all ${
                     isDragging
                       ? "scale-[1.01] border-[#1877f2] bg-[#eef5ff] shadow-md ring-2 ring-[#1877f2]/15"
-                      : "border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white hover:border-[#1877f2]/45 hover:bg-[#f4f8ff]"
+                      : "border-[#dbeafe] bg-white hover:border-[#1877f2]/45 hover:bg-[#f8fafc]"
                   }`}
                 >
                   <span
                     className={`flex size-12 items-center justify-center rounded-xl shadow-sm transition-colors ${
                       isDragging
-                        ? "bg-gradient-to-br from-[#1877f2] to-[#833aba] text-white"
-                        : "bg-gradient-to-br from-[#eef5ff] to-[#f5f0ff] text-[#1877f2] ring-1 ring-[#dbeafe]"
+                        ? "bg-[#1877f2] text-white"
+                        : "bg-white text-[#1877f2] ring-1 ring-[#dbeafe]"
                     }`}
                   >
                     <ImagePlus className="size-6" strokeWidth={1.5} aria-hidden />
@@ -361,7 +349,7 @@ export function EditCampaignModal({
                       Drag & drop or click to browse · PNG, JPG, WebP
                     </span>
                   </span>
-                  <span className="rounded-full bg-gradient-to-r from-[#1877f2] to-[#833aba] px-3.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(24,119,242,0.25)]">
+                  <span className="rounded-full bg-[#1877f2] px-3.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(24,119,242,0.25)]">
                     Browse files
                   </span>
                 </button>
@@ -379,7 +367,7 @@ export function EditCampaignModal({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-[#eef2f8] bg-gradient-to-r from-white via-[#f8fbff] to-white px-5 py-3.5">
+          <div className="flex justify-end gap-2 border-t border-[#eef2f8] bg-white px-5 py-3.5">
             <button
               type="button"
               disabled={isSaving}
@@ -392,7 +380,7 @@ export function EditCampaignModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#833aba] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Check className="size-4" aria-hidden />
               {isSaving ? "Saving…" : "Save changes"}

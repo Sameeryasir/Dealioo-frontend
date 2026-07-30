@@ -230,6 +230,8 @@ export function ScannerCreateGuestPanel({
         businessId,
         customerId: createdGuestId,
         funnelIds: selectedFunnelIds,
+        // Create-guest attach deals is always an in-person counter purchase.
+        purchaseMeans: "IN_PERSON",
         orderSubtotal,
         extraItemsAmount,
         idempotencyKey: purchaseIdempotencyKeyRef.current,

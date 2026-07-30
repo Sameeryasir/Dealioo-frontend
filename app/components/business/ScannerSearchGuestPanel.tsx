@@ -768,6 +768,8 @@ export function ScannerSearchGuestPanel({
           businessId,
           customerId: selectedProfile.customerId,
           funnelIds: selectedFunnelIds,
+          // Attach-deals from guest search is always an in-person counter purchase.
+          purchaseMeans: "IN_PERSON",
           orderSubtotal,
           extraItemsAmount,
           idempotencyKey: purchaseIdempotencyKeyRef.current,

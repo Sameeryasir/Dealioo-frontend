@@ -3,16 +3,22 @@
 import { useEffect } from "react";
 import { getApiBaseUrl } from "@/app/lib/api";
 
-/** Success path only — forwards code/state to the Nest OAuth endpoint. */
+/**
+ * Success path only — forwards code/state to the Nest OAuth endpoint.
+ * Changed: prefer NEXT_PUBLIC_API_URL so ngrok pages hit Nest, not a dead same-origin wait.
+ * Why: stuck "Connecting Facebook…" with no network call when client never left this page.
+ */
 export function FacebookOAuthSuccessRedirect() {
   useEffect(() => {
-    const apiBase = getApiBaseUrl().replace(/\/$/, "");
+    // Prefer explicit backend URL from env; fall back to getApiBaseUrl (same-origin /api rewrite).
+    const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+    const apiBase = (fromEnv || getApiBaseUrl()).replace(/\/$/, "");
     const qs = window.location.search.replace(/^\?/, "");
-    window.location.replace(
-      qs
-        ? `${apiBase}/facebook/callback/oauth?${qs}`
-        : `${apiBase}/facebook/callback/oauth`,
-    );
+    const target = qs
+      ? `${apiBase}/facebook/callback/oauth?${qs}`
+      : `${apiBase}/facebook/callback/oauth`;
+
+    window.location.replace(target);
   }, []);
 
   return (

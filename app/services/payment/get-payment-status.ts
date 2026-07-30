@@ -19,6 +19,10 @@ export type PaymentStatusResponse = {
   disputeStatus: string | null;
 };
 
+/**
+ * Fetch funnel payment status from the backend.
+ * No short client abort — slow Stripe verification must not look like a failed payment.
+ */
 export async function getPaymentStatus(
   paymentId: number,
 ): Promise<PaymentStatusResponse> {
@@ -26,28 +30,16 @@ export async function getPaymentStatus(
     throw new Error("Payment id is required.");
   }
 
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
+  const res = await fetch(
+    `${getApiBaseUrl()}/payment/${encodeURIComponent(String(paymentId))}/status`,
+    { method: "GET", cache: "no-store" },
+  );
 
-  try {
-    const res = await fetch(
-      `${getApiBaseUrl()}/payment/${encodeURIComponent(String(paymentId))}/status`,
-      { method: "GET", cache: "no-store", signal: controller.signal },
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load payment status."),
     );
-
-    if (!res.ok) {
-      throw new Error(
-        await parseApiErrorMessage(res, "Could not load payment status."),
-      );
-    }
-
-    return res.json() as Promise<PaymentStatusResponse>;
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("Payment confirmation is taking longer than expected.");
-    }
-    throw err;
-  } finally {
-    window.clearTimeout(timeoutId);
   }
+
+  return res.json() as Promise<PaymentStatusResponse>;
 }

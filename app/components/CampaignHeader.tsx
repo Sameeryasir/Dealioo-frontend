@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   Check,
-  Circle,
   Copy,
   ExternalLink,
   Sparkles,
@@ -52,16 +51,12 @@ export type CampaignHeaderProps = {
   embedded?: boolean;
 };
 
-const TABS: { id: string; label: string; icon?: typeof Circle }[] = [
+const TABS: { id: string; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "guests", label: "Guests" },
   { id: "orders", label: "Orders" },
   { id: "funnel", label: "Funnel" },
   { id: "automations", label: "Automations" },
-  { id: "metrics", label: "Metrics" },
-  { id: "offers", label: "Offers" },
-  { id: "creative", label: "Creative Strategy", icon: Circle },
-  { id: "ads", label: "Ads" },
 ];
 
 export default function CampaignHeader({
@@ -187,7 +182,7 @@ export default function CampaignHeader({
   const isFunnelTab = activeTabId === "funnel";
   const immersiveChrome = embedded;
 
-  const tabButtons = TABS.map(({ id, label, icon: Icon }) => {
+  const tabButtons = TABS.map(({ id, label }) => {
     const active = id === activeTabId;
     const immersiveTabActive =
       "border-b-2 border-[#1877f2] text-slate-900";
@@ -219,13 +214,6 @@ export default function CampaignHeader({
               }`
         }`}
       >
-        {Icon ? (
-          <Icon
-            className="size-3 shrink-0 text-current"
-            aria-hidden
-            strokeWidth={2.25}
-          />
-        ) : null}
         {label}
       </button>
     );
