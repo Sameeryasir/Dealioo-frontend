@@ -2,6 +2,7 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
+import type { CustomerActivityTimelineItem } from "@/app/services/activity/get-customer-timeline";
 
 export type CustomerJourneyStepId = "signup" | "payment" | "qr_redeemed";
 
@@ -20,6 +21,7 @@ export type CustomerJourneyResponse = {
   campaignId: number;
   funnelId: number | null;
   steps: CustomerJourneyStep[];
+  timeline?: CustomerActivityTimelineItem[];
   lastUpdatedAt: string | null;
 };
 

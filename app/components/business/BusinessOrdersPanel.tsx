@@ -439,6 +439,22 @@ function getCustomerPhone(event: BusinessFunnelEvent): string | null {
   return phone ? phone : null;
 }
 
+function resolvePaymentMedium(
+  event: BusinessFunnelEvent,
+): "In store" | "Online" | null {
+  const source = (event.paymentSource ?? "").toUpperCase();
+  if (source === "SCANNER" || source === "MANUAL") return "In store";
+  if (source === "STRIPE") return "Online";
+  if (
+    event.orderStatus === "paid_walk_in" ||
+    event.orderStatus === "paid_both"
+  ) {
+    return "In store";
+  }
+  if (event.orderStatus === "paid_online") return "Online";
+  return null;
+}
+
 type JourneyStepState = "complete" | "current" | "pending";
 
 type JourneyStep = {
@@ -701,6 +717,7 @@ function OrderEventDetailDialog({
   const status = resolveDisplayStatus(event);
   const email = getCustomerEmail(event);
   const phone = getCustomerPhone(event);
+  const paymentMedium = resolvePaymentMedium(event);
   const fallbackSteps = buildCustomerJourney(event);
   const apiSteps =
     journeyQuery.data != null
@@ -748,7 +765,7 @@ function OrderEventDetailDialog({
                 >
                   {name}
                 </h2>
-                <div className="mt-1">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${orderStatusBadgeClass(status)}`}
                   >
@@ -758,6 +775,17 @@ function OrderEventDetailDialog({
                     />
                     {orderStatusLabel(status)}
                   </span>
+                  {paymentMedium ? (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${
+                        paymentMedium === "In store"
+                          ? "bg-[#fff7ed] text-[#c2410c]"
+                          : "bg-[#ecfdf5] text-[#047857]"
+                      }`}
+                    >
+                      {paymentMedium}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -782,6 +810,12 @@ function OrderEventDetailDialog({
             <OrderDetailRow icon={Megaphone} label="Campaign">
               <span className={`${DASHBOARD_CAMPAIGN_TAG} max-w-full gap-1 text-[0.8rem]`}>
                 <span className="truncate">{campaignLabel}</span>
+              </span>
+            </OrderDetailRow>
+
+            <OrderDetailRow icon={Layers} label="Medium">
+              <span className={paymentMedium ? "text-black" : "text-slate-400"}>
+                {paymentMedium ?? "—"}
               </span>
             </OrderDetailRow>
 

@@ -22,8 +22,6 @@ import {
   Activity,
   History,
   Home,
-  LayoutTemplate,
-  Library,
   LogOut,
   Megaphone,
   MessageSquare,
@@ -221,24 +219,7 @@ export default function AdminPanelSidebar() {
           activeMatch: "prefix",
           permission: "chats",
         },
-        {
-          href: businessId
-            ? `${restaurantHomeHref}/ad-library`
-            : "/dashboard/ad-library",
-          label: "Ad library",
-          icon: Library,
-          activeMatch: "prefix",
-          permission: "meta_ads",
-        },
-        {
-          href: businessId
-            ? `${restaurantHomeHref}/website-builder`
-            : "/dashboard/website-builder",
-          label: "Website builder",
-          icon: LayoutTemplate,
-          activeMatch: "prefix",
-          permission: "campaigns",
-        },
+        // Ad library + Website builder removed from sidebar for now.
         {
           href: businessId
             ? `${restaurantHomeHref}/history`
