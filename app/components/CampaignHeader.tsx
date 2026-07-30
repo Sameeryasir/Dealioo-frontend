@@ -19,8 +19,7 @@ import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
-  buildFunnelPublicPath,
-  resolveFunnelRouteId,
+  buildFunnelLandingTrackingUrl,
 } from "@/app/lib/funnel-public-path";
 import { automationEase } from "@/app/lib/motion";
 
@@ -104,42 +103,28 @@ export default function CampaignHeader({
 
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [editCampaignOpen, setEditCampaignOpen] = useState(false);
-  const [trackingOrigin, setTrackingOrigin] = useState("");
   const [copyDone, setCopyDone] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const tabButtonRefs = useRef<Partial<Record<string, HTMLButtonElement>>>({});
   const { expanded: sidebarExpanded, toggle: toggleSidebar } =
     useSidebarExpand();
 
-  const landingTrackingPath = useMemo(() => {
-    const routeId = resolveFunnelRouteId(funnelId, campaignId);
-    if (routeId == null) return "";
-    return buildFunnelPublicPath({
-      funnelId: routeId,
-      step: "landing",
-      query: {
-        businessId,
-        campaignId,
-        price: parsePrice(price) ?? price,
-        campaignType:
-          campaign?.campaignType === "prepaid" ||
-          campaign?.campaignType === "postpaid"
-            ? campaign.campaignType
-            : undefined,
-      },
+  const landingTrackingUrl = useMemo(() => {
+    return buildFunnelLandingTrackingUrl({
+      funnelId,
+      campaignId,
+      businessId,
+      price: parsePrice(price) ?? price,
+      campaignType:
+        campaign?.campaignType === "prepaid" ||
+        campaign?.campaignType === "postpaid"
+          ? campaign.campaignType
+          : undefined,
     });
   }, [campaignId, funnelId, businessId, price, campaign?.campaignType]);
 
-  const landingTrackingUrl = useMemo(() => {
-    if (!landingTrackingPath || !trackingOrigin) return "";
-    return `${trackingOrigin}${landingTrackingPath}`;
-  }, [landingTrackingPath, trackingOrigin]);
-
   const handleGenerate = useCallback(() => {
     onGenerateTrackingLink?.();
-    if (typeof window !== "undefined") {
-      setTrackingOrigin(window.location.origin);
-    }
     setCopyDone(false);
     setTrackingDialogOpen(true);
   }, [onGenerateTrackingLink]);
@@ -569,7 +554,7 @@ export default function CampaignHeader({
                 </button>
                 {campaignId != null && landingTrackingUrl ? (
                   <Link
-                    href={landingTrackingPath}
+                    href={landingTrackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex min-w-24 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] sm:min-w-28"

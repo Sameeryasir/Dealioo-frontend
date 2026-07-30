@@ -120,13 +120,13 @@ export function AdSetLocationsMap({
   const zoom = activePin ? 11 : 4;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-[#e8edf5]">
+    <div className="relative z-0 isolate h-64 w-full overflow-hidden rounded-lg border border-[#e8edf5]">
       <MapContainer
         center={center}
         zoom={zoom}
         scrollWheelZoom
-        className="h-full w-full"
-        style={{ cursor: dropPinMode ? "crosshair" : "grab" }}
+        className="!z-0 h-full w-full"
+        style={{ cursor: dropPinMode ? "crosshair" : "grab", zIndex: 0 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

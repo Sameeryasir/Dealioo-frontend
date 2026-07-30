@@ -1,4 +1,5 @@
 import { isPositiveInt } from "@/app/lib/numbers";
+import { getPublicAppUrl } from "@/app/lib/public-app-url";
 
 export type FunnelPublicStep = "landing" | "signup" | "payment" | "confirmation";
 
@@ -78,4 +79,41 @@ export function resolveFunnelRouteId(
   if (isPositiveInt(funnelId)) return funnelId;
   if (isPositiveInt(campaignId)) return campaignId;
   return null;
+}
+
+function parseFunnelTrackingPrice(
+  raw: number | string | null | undefined,
+): number | string | null | undefined {
+  if (raw == null) return raw;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  const n = Number.parseFloat(String(raw).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : raw;
+}
+
+export function buildFunnelLandingTrackingUrl(input: {
+  funnelId?: number | null;
+  campaignId?: number | null;
+  businessId?: number | null;
+  price?: number | string | null;
+  campaignType?: "prepaid" | "postpaid" | null;
+}): string {
+  const routeId = resolveFunnelRouteId(input.funnelId, input.campaignId);
+  const origin = getPublicAppUrl().replace(/\/$/, "");
+  if (routeId == null) return origin;
+
+  const path = buildFunnelPublicPath({
+    funnelId: routeId,
+    step: "landing",
+    query: {
+      businessId: input.businessId,
+      campaignId: input.campaignId,
+      price: parseFunnelTrackingPrice(input.price) ?? input.price,
+      campaignType:
+        input.campaignType === "prepaid" || input.campaignType === "postpaid"
+          ? input.campaignType
+          : undefined,
+    },
+  });
+
+  return `${origin}${path}`;
 }

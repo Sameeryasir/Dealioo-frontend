@@ -6,6 +6,7 @@ type AdCreativePreviewProps = {
   headline: string;
   description?: string;
   imageUrl?: string;
+  videoUrl?: string;
   displayLink?: string;
   callToAction?: string;
 };
@@ -22,17 +23,49 @@ function formatCta(label?: string): string {
   return label.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 }
 
+function PreviewMedia({
+  imageUrl,
+  videoUrl,
+  className,
+}: {
+  imageUrl?: string;
+  videoUrl?: string;
+  className: string;
+}) {
+  if (videoUrl?.trim()) {
+    return (
+      <video
+        src={videoUrl}
+        poster={imageUrl?.trim() || undefined}
+        controls
+        playsInline
+        preload="metadata"
+        className={className}
+      />
+    );
+  }
+
+  if (imageUrl?.trim()) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={imageUrl} alt="" className={className} />;
+  }
+
+  return null;
+}
+
 export function AdCreativePreview({
   placement,
   primaryText,
   headline,
   description,
   imageUrl,
+  videoUrl,
   displayLink,
   callToAction,
 }: AdCreativePreviewProps) {
   const isStory = placement === "stories" || placement === "reels";
   const isReels = placement === "reels";
+  const hasMedia = Boolean(videoUrl?.trim() || imageUrl?.trim());
 
   return (
     <div className="rounded-xl border border-[#e8edf5] bg-white p-3 shadow-[0_4px_14px_rgba(24,119,242,0.08)]">
@@ -46,11 +79,10 @@ export function AdCreativePreview({
       >
         {isStory ? (
           <div className="relative flex h-full min-h-[12rem] flex-col justify-end overflow-hidden bg-[#07111f] p-3">
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageUrl}
-                alt=""
+            {hasMedia ? (
+              <PreviewMedia
+                imageUrl={imageUrl}
+                videoUrl={videoUrl}
                 className="absolute inset-0 size-full object-cover"
               />
             ) : (
@@ -76,12 +108,11 @@ export function AdCreativePreview({
               {primaryText || "Primary text"}
             </p>
             <div className="mt-2 overflow-hidden rounded-lg border border-[#e8edf5] bg-white">
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="max-h-24 w-full object-cover"
+              {hasMedia ? (
+                <PreviewMedia
+                  imageUrl={imageUrl}
+                  videoUrl={videoUrl}
+                  className="max-h-28 w-full object-cover"
                 />
               ) : (
                 <div className="flex h-20 items-center justify-center bg-[#e8f2ff] text-xs text-[#1877f2]">

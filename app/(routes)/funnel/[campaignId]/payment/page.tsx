@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
-import { useFunnelTemplatePagesFromStorage } from "@/app/components/crm-template-editor/funnel-template-storage";
+import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
@@ -41,7 +41,7 @@ function FunnelCampaignPaymentPageInner() {
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
-  const { pages, isLoading } = useFunnelTemplatePagesFromStorage(funnelIdSegment);
+  const { pages, isLoading } = usePublicFunnelTemplatePages(funnelIdSegment);
   const payment = pages.payment;
   const landing = pages.landing;
 

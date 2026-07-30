@@ -46,7 +46,7 @@ type AdSetLocationsBoxProps = {
 
 export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProps) {
   const [expanded, setExpanded] = useState(true);
-  const [mapExpanded, setMapExpanded] = useState(true);
+  const [mapExpanded, setMapExpanded] = useState(false);
   const [searchMode, setSearchMode] = useState<MetaLocationTargetMode>("include");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
@@ -560,7 +560,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
           </div>
 
           {mapExpanded ? (
-            <div className="space-y-2">
+            <div className="relative z-0 isolate space-y-2 overflow-hidden">
               <AdSetLocationsMap
                 locations={locations}
                 activeLocationId={activeLocationId}

@@ -13087,6 +13087,11 @@ body:has(.auth-select-plan-page) {
   accent-color: var(--meta-builder-primary);
 }
 
+.meta-builder-theme .leaflet-container {
+  z-index: 0 !important;
+  position: relative !important;
+}
+
 /* --- Create automation modal: centered on all screen sizes --- */
 .create-automation-modal-overlay {
   padding: 0.85rem;

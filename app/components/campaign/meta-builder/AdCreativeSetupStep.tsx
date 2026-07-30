@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, ExternalLink, Loader2, Plus, Trash2, Video } from "lucide-react";
+import { ExternalLink, ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { getMetaLandingUrl } from "@/app/lib/public-app-url";
 import {
   CTA_OPTIONS,
 } from "@/app/lib/meta-ad-creative-helpers";
+import {
+  adCreativeTypedFieldsSchema,
+  zodToUiErrors,
+} from "@/app/lib/meta-campaign-builder-schemas";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -18,7 +21,6 @@ import type {
 } from "@/app/lib/meta-campaign-builder-types";
 import {
   resolveMetaImageUrl,
-  validateHttpsUrl,
   validateMetaImageUrl,
 } from "@/app/lib/resolve-meta-image-url";
 import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
@@ -28,7 +30,6 @@ import {
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
-  BuilderRadioCard,
   BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
@@ -77,7 +78,7 @@ export function AdCreativeSetupStep({
   draftId,
   campaignData,
   adSetData,
-  defaultWebsiteUrl,
+  defaultWebsiteUrl: _defaultWebsiteUrl,
   initialData,
   saving,
   error,
@@ -85,14 +86,10 @@ export function AdCreativeSetupStep({
   onPrevious,
   onSave,
 }: AdCreativeSetupStepProps) {
-  const defaultDestination = getMetaLandingUrl(defaultWebsiteUrl);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
 
-  const [destinationMode, setDestinationMode] = useState<"website" | "instant">(
-    "website",
-  );
   const [name, setName] = useState(initialData?.name ?? `${campaignData.name} Ad`);
   const [facebookPageId, setFacebookPageId] = useState(initialData?.facebookPageId ?? "");
   const [instagramProfileMode, setInstagramProfileMode] = useState<
@@ -119,15 +116,17 @@ export function AdCreativeSetupStep({
   const [thumbnailUrl, setThumbnailUrl] = useState(initialData?.thumbnailUrl ?? "");
   const [carouselCards, setCarouselCards] = useState<CarouselCard[]>(
     initialData?.carouselCards ?? [
-      emptyCarouselCard(defaultDestination),
-      emptyCarouselCard(defaultDestination),
+      emptyCarouselCard(""),
+      emptyCarouselCard(""),
     ],
   );
   const [primaryText, setPrimaryText] = useState(initialData?.primaryText ?? "");
   const [headline, setHeadline] = useState(initialData?.headline ?? campaignData.name);
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [displayLink, setDisplayLink] = useState(initialData?.displayLink ?? "");
-  const [destinationUrl, setDestinationUrl] = useState(initialData?.destinationUrl ?? defaultDestination);
+  const [destinationUrl, setDestinationUrl] = useState(
+    initialData?.destinationUrl ?? "",
+  );
   const [urlParameters, setUrlParameters] = useState(initialData?.urlParameters ?? "");
   const [callToAction, setCallToAction] = useState<MetaCallToAction>(initialData?.callToAction ?? "GET_OFFER");
   const [pixelId, setPixelId] = useState(initialData?.pixelId ?? "");
@@ -152,7 +151,12 @@ export function AdCreativeSetupStep({
           ? thumbnailUrl
           : undefined;
 
-  const showPreviews = Boolean(previewImage);
+  const previewVideo =
+    creativeFormat === "SINGLE_VIDEO" && videoUrl.trim()
+      ? videoUrl
+      : undefined;
+
+  const showPreviews = Boolean(previewImage || previewVideo);
 
   const inputClass = builderInputClass;
 
@@ -275,32 +279,81 @@ export function AdCreativeSetupStep({
     setFieldErrors({});
 
     const errors: Record<string, string> = {};
-    if (!name.trim()) errors.name = "Ad name is required.";
-    if (!facebookPageId.trim()) errors.facebookPageId = "Select the Facebook Page that will run this ad.";
-    if (!primaryText.trim()) errors.primaryText = "Primary text is required.";
+    if (!facebookPageId.trim()) {
+      errors.facebookPageId = "Select the Facebook Page that will run this ad.";
+    }
 
-    if (creativeFormat === "SINGLE_IMAGE") {
-      const resolved = resolveMetaImageUrl(imageUrl);
-      const imgErr = validateMetaImageUrl(resolved);
-      if (imgErr) errors.imageUrl = imgErr;
-      if (!headline.trim()) errors.headline = "Headline is required.";
-      if (destinationMode !== "website") {
-        errors.destinationUrl = "Instant Experience is not supported yet. Choose Website.";
+    const typed = adCreativeTypedFieldsSchema.safeParse({
+      name,
+      primaryText,
+      headline,
+      description,
+      displayLink,
+      destinationUrl,
+      urlParameters,
+      imageUrl,
+      imageAltText,
+      videoUrl,
+      pixelId,
+      conversionEvent,
+      brandName,
+      creativeFormat,
+      carouselCards: carouselCards.map((card) => ({
+        headline: card.headline,
+        description: card.description,
+        destinationUrl: card.destinationUrl,
+      })),
+    });
+
+    if (!typed.success) {
+      const ui = zodToUiErrors(typed.error);
+      Object.assign(errors, ui.fieldErrors);
+      if (ui.formError) setLocalError(ui.formError);
+    }
+
+    if (creativeFormat === "SINGLE_VIDEO") {
+      if (!thumbnailUrl.trim()) {
+        errors.thumbnailUrl = "Upload a thumbnail image for this video ad.";
+      } else {
+        const thumbErr = validateMetaImageUrl(resolveMetaImageUrl(thumbnailUrl));
+        if (thumbErr) errors.thumbnailUrl = thumbErr;
       }
-      const destErr = validateHttpsUrl(destinationUrl, "Website URL");
-      if (destErr) errors.destinationUrl = destErr;
-      if (Object.keys(errors).length) {
+    }
+
+    if (creativeFormat === "CAROUSEL") {
+      if (carouselCards.length < 2) {
+        setLocalError("Carousel requires at least 2 cards.");
         setFieldErrors(errors);
         return;
       }
+      for (const [i, card] of carouselCards.entries()) {
+        if (!card.imageUrl?.trim() && !card.videoUrl?.trim()) {
+          errors[`carousel_${i}_media`] = `Card ${i + 1}: upload an image or video.`;
+        }
+      }
+    }
 
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      if (
+        creativeFormat === "CAROUSEL" &&
+        !errors.primaryText &&
+        !errors.name &&
+        !errors.facebookPageId
+      ) {
+        setLocalError((prev) => prev ?? "Fix the highlighted carousel card fields below.");
+      }
+      return;
+    }
+
+    if (creativeFormat === "SINGLE_IMAGE") {
       await onSave({
         name: name.trim(),
         draftId,
         facebookPageId: facebookPageId.trim(),
         status,
         creativeFormat,
-        imageUrl: resolved,
+        imageUrl: resolveMetaImageUrl(imageUrl),
         imageAltText: imageAltText.trim() || undefined,
         primaryText: primaryText.trim(),
         headline: headline.trim(),
@@ -317,18 +370,6 @@ export function AdCreativeSetupStep({
     }
 
     if (creativeFormat === "SINGLE_VIDEO") {
-      if (!videoUrl.trim()) errors.videoUrl = "Upload a video for this ad.";
-      if (!headline.trim()) errors.headline = "Headline is required.";
-      if (destinationMode !== "website") {
-        errors.destinationUrl = "Instant Experience is not supported yet. Choose Website.";
-      }
-      const destErr = validateHttpsUrl(destinationUrl, "Website URL");
-      if (destErr) errors.destinationUrl = destErr;
-      if (Object.keys(errors).length) {
-        setFieldErrors(errors);
-        return;
-      }
-
       await onSave({
         name: name.trim(),
         draftId,
@@ -336,7 +377,7 @@ export function AdCreativeSetupStep({
         status,
         creativeFormat,
         videoUrl: videoUrl.trim(),
-        thumbnailUrl: thumbnailUrl.trim() || undefined,
+        thumbnailUrl: resolveMetaImageUrl(thumbnailUrl),
         primaryText: primaryText.trim(),
         headline: headline.trim(),
         description: description.trim() || undefined,
@@ -348,28 +389,6 @@ export function AdCreativeSetupStep({
         conversionEvent: conversionEvent.trim() || undefined,
         ...buildCreativeExtras(),
       });
-      return;
-    }
-
-    if (carouselCards.length < 2) {
-      setLocalError("Carousel requires at least 2 cards.");
-      return;
-    }
-    for (const [i, card] of carouselCards.entries()) {
-      if (!card.headline.trim()) {
-        errors[`carousel_${i}_headline`] = `Card ${i + 1}: headline is required.`;
-      }
-      const destErr = validateHttpsUrl(card.destinationUrl, `Card ${i + 1} destination URL`);
-      if (destErr) errors[`carousel_${i}_destination`] = destErr;
-      if (!card.imageUrl?.trim() && !card.videoUrl?.trim()) {
-        errors[`carousel_${i}_media`] = `Card ${i + 1}: upload an image or video.`;
-      }
-    }
-    if (Object.keys(errors).length) {
-      setFieldErrors(errors);
-      if (!errors.primaryText && !errors.name && !errors.facebookPageId) {
-        setLocalError("Fix the highlighted carousel card fields below.");
-      }
       return;
     }
 
@@ -611,9 +630,21 @@ export function AdCreativeSetupStep({
 
         {creativeFormat === "SINGLE_VIDEO" ? (
           <div className="space-y-3">
-            {videoUrl ? <p className="text-xs text-slate-500 break-all">Video uploaded</p> : null}
             <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => void handleVideoUpload(e.target.files?.[0])} />
             <BuilderField label="Ad video" required error={fieldErrors.videoUrl} hint="Short clips (under 60s) work best in feed and stories.">
+              {videoUrl ? (
+                <div className="mb-3 overflow-hidden rounded-xl border border-[#e8edf5] bg-[#07111f]">
+                  <video
+                    key={videoUrl}
+                    src={videoUrl}
+                    poster={thumbnailUrl.trim() || undefined}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="max-h-64 w-full object-contain"
+                  />
+                </div>
+              ) : null}
               <button
                 type="button"
                 disabled={uploading}
@@ -625,9 +656,25 @@ export function AdCreativeSetupStep({
               </button>
             </BuilderField>
             <input ref={thumbInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e.target.files?.[0], "thumb")} />
-            <button type="button" disabled={uploading} onClick={() => thumbInputRef.current?.click()} className="text-sm font-semibold text-[#1877F2] hover:underline">
-              Upload thumbnail (optional)
-            </button>
+            <BuilderField
+              label="Video thumbnail"
+              required
+              error={fieldErrors.thumbnailUrl}
+              hint="Meta requires a thumbnail image for video ads."
+            >
+              {thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumbnailUrl} alt="" className="mb-2 max-h-24 rounded object-contain" />
+              ) : null}
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => thumbInputRef.current?.click()}
+                className="text-sm font-semibold text-[#1877F2] hover:underline"
+              >
+                {thumbnailUrl ? "Replace thumbnail" : "Upload thumbnail"}
+              </button>
+            </BuilderField>
           </div>
         ) : null}
 
@@ -660,10 +707,25 @@ export function AdCreativeSetupStep({
                 <BuilderField label="Description">
                   <input value={card.description ?? ""} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, description: e.target.value } : c))} className={inputClass} />
                 </BuilderField>
-                <BuilderField label="Destination URL" required error={fieldErrors[`carousel_${index}_destination`]} hint="HTTPS link when someone taps this card.">
+                <BuilderField
+                  label="Website URL"
+                  required
+                  error={fieldErrors[`carousel_${index}_destination`]}
+                  hint="Must start with https:// — add the funnel tracking link here."
+                >
                   <input
+                    type="url"
                     value={card.destinationUrl}
-                    onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, destinationUrl: e.target.value } : c))}
+                    onChange={(e) =>
+                      setCarouselCards((prev) =>
+                        prev.map((c, i) =>
+                          i === index
+                            ? { ...c, destinationUrl: e.target.value }
+                            : c,
+                        ),
+                      )
+                    }
+                    placeholder="https://"
                     className={`${inputClass} ${fieldErrors[`carousel_${index}_destination`] ? builderInputErrorClass : ""}`}
                   />
                 </BuilderField>
@@ -674,7 +736,7 @@ export function AdCreativeSetupStep({
                 </BuilderField>
               </div>
             ))}
-            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard(defaultDestination)])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2] hover:underline">
+            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard("")])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2] hover:underline">
               <Plus className="size-4" /> Add card
             </button>
           </div>
@@ -715,87 +777,55 @@ export function AdCreativeSetupStep({
 
       <BuilderCard
         title="Destination"
-        description="Tell us where to send people immediately after they tap or click your ad."
+        description="Paste the HTTPS website URL people should open after tapping your ad."
       >
         {creativeFormat === "CAROUSEL" ? (
           <p className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-4 py-3 text-sm text-slate-500">
-            Carousel ads use a destination URL on each card in the Media section above.
+            Carousel ads use a Website URL on each card in the Media section above.
           </p>
         ) : (
-          <>
-            <div className="space-y-3">
-              <BuilderRadioCard
-                name="creative-destination"
-                selected={destinationMode === "instant"}
-                title="Instant Experience"
-                description="Send people to a fast-loading, mobile-optimised experience."
-                onSelect={() => setDestinationMode("instant")}
-              />
-              <BuilderRadioCard
-                name="creative-destination"
-                selected={destinationMode === "website"}
-                title="Website"
-                description="Send people to your website."
-                onSelect={() => setDestinationMode("website")}
-              />
-            </div>
-
-            {destinationMode === "instant" ? (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Instant Experience is not available in Dealioo yet. Select <strong>Website</strong> to send people to your site.
-              </p>
-            ) : (
-              <div className="space-y-4 border-t border-[#e8edf5] pt-4">
-                <BuilderField
-                  label="Website URL"
+          <div className="space-y-4">
+            <BuilderField
+              label="Website URL"
+              required
+              error={fieldErrors.destinationUrl}
+              hint="Must start with https:// — add the funnel tracking link here."
+            >
+              <div className="flex gap-2">
+                <input
                   required
-                  error={fieldErrors.destinationUrl}
-                  hint="Must be HTTPS, your menu, offer page, or booking link."
-                >
-                  <div className="flex gap-2">
-                    <input
-                      required
-                      type="url"
-                      value={destinationUrl}
-                      onChange={(e) => setDestinationUrl(e.target.value)}
-                      className={`${inputClass} ${fieldErrors.destinationUrl ? builderInputErrorClass : ""}`}
-                      placeholder="https://your-business.com/offer"
-                    />
-                    {destinationUrl.trim() ? (
-                      <a
-                        href={destinationUrl.trim()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white px-3 text-slate-500 shadow-sm hover:bg-[#f4f8ff]"
-                        aria-label="Open website URL"
-                      >
-                        <ExternalLink className="size-4" />
-                      </a>
-                    ) : null}
-                  </div>
-                </BuilderField>
-
-                <BuilderField
-                  label="Display link"
-                  hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
-                >
-                  <input
-                    value={displayLink}
-                    onChange={(e) => setDisplayLink(e.target.value)}
-                    placeholder="yourbusiness.com"
-                    className={inputClass}
-                  />
-                </BuilderField>
-
-                <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/60 px-4 py-3">
-                  <p className="text-sm font-semibold text-[#07111f]">Browser add-ons</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Optional overlays in the in-app browser, not configured for this draft.
-                  </p>
-                </div>
+                  type="url"
+                  value={destinationUrl}
+                  onChange={(e) => setDestinationUrl(e.target.value)}
+                  className={`${inputClass} ${fieldErrors.destinationUrl ? builderInputErrorClass : ""}`}
+                  placeholder="https://"
+                />
+                {destinationUrl.trim() ? (
+                  <a
+                    href={destinationUrl.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white px-3 text-slate-500 shadow-sm hover:bg-[#f4f8ff]"
+                    aria-label="Open website URL"
+                  >
+                    <ExternalLink className="size-4" />
+                  </a>
+                ) : null}
               </div>
-            )}
-          </>
+            </BuilderField>
+
+            <BuilderField
+              label="Display link"
+              hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
+            >
+              <input
+                value={displayLink}
+                onChange={(e) => setDisplayLink(e.target.value)}
+                placeholder="yourbusiness.com"
+                className={inputClass}
+              />
+            </BuilderField>
+          </div>
         )}
       </BuilderCard>
 
@@ -818,10 +848,10 @@ export function AdCreativeSetupStep({
       <BuilderCard title="Placement preview" description="See how your ad may look across Facebook and Instagram.">
         {showPreviews ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <AdCreativePreview placement="facebook_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} displayLink={displayLink} callToAction={callToAction} />
-            <AdCreativePreview placement="instagram_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} displayLink={displayLink} callToAction={callToAction} />
-            <AdCreativePreview placement="stories" primaryText={primaryText} headline={headline} imageUrl={previewImage} callToAction={callToAction} />
-            <AdCreativePreview placement="reels" primaryText={primaryText} headline={headline} imageUrl={previewImage} callToAction={callToAction} />
+            <AdCreativePreview placement="facebook_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} videoUrl={previewVideo} displayLink={displayLink} callToAction={callToAction} />
+            <AdCreativePreview placement="instagram_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} videoUrl={previewVideo} displayLink={displayLink} callToAction={callToAction} />
+            <AdCreativePreview placement="stories" primaryText={primaryText} headline={headline} imageUrl={previewImage} videoUrl={previewVideo} callToAction={callToAction} />
+            <AdCreativePreview placement="reels" primaryText={primaryText} headline={headline} imageUrl={previewImage} videoUrl={previewVideo} callToAction={callToAction} />
           </div>
         ) : (
           <p className="text-sm text-slate-500">

@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
+import { buildFunnelLandingTrackingUrl } from "@/app/lib/funnel-public-path";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 
@@ -160,7 +161,13 @@ export default function CampaignWelcomePage() {
                   businessId={businessId}
                   campaignName={campaign?.campaignName}
                   campaignImageUrl={campaign?.imageUrl}
-                  campaignWebsiteUrl={campaign?.websiteUrl}
+                  campaignWebsiteUrl={buildFunnelLandingTrackingUrl({
+                    funnelId,
+                    campaignId,
+                    businessId,
+                    price: campaign?.price,
+                    campaignType: campaign?.campaignType,
+                  })}
                 />
                 {/* Google Ads — hidden for now
                 <div className="w-full px-0">

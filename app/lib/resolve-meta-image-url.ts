@@ -103,7 +103,7 @@ export function validateHttpsUrl(url: string, label = "URL"): string | null {
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol !== "https:") {
-      return `${label} must use HTTPS (required by Meta). Set NEXT_PUBLIC_FRONTEND_URL to your public site URL.`;
+      return `${label} must use HTTPS (required by Meta).`;
     }
   } catch {
     return `${label} is not valid.`;

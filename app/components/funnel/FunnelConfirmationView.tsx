@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
-import { useFunnelTemplatePagesFromStorage } from "@/app/components/crm-template-editor/funnel-template-storage";
+import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { PaymentConfirmedSprinkles } from "@/app/components/funnel/PaymentConfirmedSprinkles";
 import { usePaymentStatusPoll } from "@/app/hooks/use-payment-status-poll";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
@@ -31,9 +31,7 @@ export function FunnelConfirmationView({
   const confirmedByServer = isPaid;
   const celebrate = confirmedByServer;
 
-  const { pages, isLoading } = useFunnelTemplatePagesFromStorage(
-    templateStorageKey,
-  );
+  const { pages, isLoading } = usePublicFunnelTemplatePages(templateStorageKey);
 
   useEffect(() => {
     getOrCreateVisitorId();

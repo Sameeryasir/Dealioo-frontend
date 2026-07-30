@@ -23,7 +23,7 @@ import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDial
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { formatDateTimeShort, formatRelativeTimeAgo } from "@/app/lib/datetime";
+import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   DASHBOARD_CAMPAIGN_TAG,
   TABLE_HEAD_ICON_CLASS,
@@ -37,11 +37,7 @@ import {
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
-import {
-  getCustomerJourney,
-  type CustomerJourneyStep as ApiJourneyStep,
-} from "@/app/services/funnel-event/get-customer-journey";
-import { Fragment, startTransition, useDeferredValue, useEffect, useState, type ReactNode } from "react";
+import { startTransition, useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
@@ -455,65 +451,6 @@ function resolvePaymentMedium(
   return null;
 }
 
-type JourneyStepState = "complete" | "current" | "pending";
-
-type JourneyStep = {
-  id: string;
-  label: string;
-  state: JourneyStepState;
-};
-
-function buildCustomerJourney(event: BusinessFunnelEvent): JourneyStep[] {
-  const status = resolveDisplayStatus(event);
-  const hasSignedUp =
-    event.eventType === "signup" ||
-    event.eventType === "payment" ||
-    event.customer?.id != null ||
-    Boolean(event.customerEmail?.trim());
-  const hasPaid = status === "paid";
-  const paymentPending = status === "pending";
-  const isScannerCheckout =
-    (event.paymentSource ?? "").toUpperCase() === "SCANNER";
-  const hasQrRedeemed =
-    !isScannerCheckout &&
-    Boolean(event.businessVisitedAt ?? event.restaurantVisitedAt);
-
-  const signupState: JourneyStepState = hasSignedUp
-    ? "complete"
-    : "current";
-  const paymentState: JourneyStepState = !hasSignedUp
-    ? "pending"
-    : hasPaid
-      ? "complete"
-      : paymentPending
-        ? "current"
-        : "pending";
-  const qrState: JourneyStepState = hasQrRedeemed
-    ? "complete"
-    : hasPaid
-      ? "current"
-      : "pending";
-
-  const steps: JourneyStep[] = [
-    { id: "signup", label: "Signed Up", state: signupState },
-    {
-      id: "payment",
-      label: hasPaid ? "Paid" : "Payment Pending",
-      state: paymentState,
-    },
-  ];
-
-  if (!isScannerCheckout) {
-    steps.push({
-      id: "qr",
-      label: "QR Redeemed",
-      state: qrState,
-    });
-  }
-
-  return steps;
-}
-
 function CopyValueButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -570,146 +507,15 @@ function OrderDetailRow({
   );
 }
 
-function journeyConnectorClass(step: JourneyStep): string {
-  if (step.state === "complete") return "bg-[#22c55e]";
-  if (step.state === "current") return "bg-[#fdba74]";
-  return "bg-slate-200";
-}
-
-function getJourneyCurrentStepLabel(steps: JourneyStep[]): string {
-  const current = steps.find((step) => step.state === "current");
-  if (!current) {
-    return steps.every((step) => step.state === "complete")
-      ? "Journey complete"
-      : "In progress";
-  }
-  if (current.id === "signup") return "Awaiting signup";
-  if (current.id === "payment") return "Awaiting payment";
-  if (current.id === "qr") return "Awaiting QR redemption";
-  return current.label;
-}
-
-function CustomerJourneySection({
-  steps,
-  updatedAt,
-}: {
-  steps: JourneyStep[];
-  updatedAt: string;
-}) {
-  const shortLabel = (step: JourneyStep) => {
-    if (step.id === "signup") return "Signup";
-    if (step.id === "payment") return step.state === "complete" ? "Paid" : "Pay";
-    return "QR";
-  };
-
-  return (
-    <div className="rounded-[0.9rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-3 py-2.5">
-      <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
-        Customer Journey
-      </p>
-      <div className="mt-2.5 flex items-center">
-        {steps.map((step, index) => (
-          <Fragment key={step.id}>
-            {index > 0 ? (
-              <span
-                className={`h-0.5 min-w-[0.4rem] flex-1 rounded-full ${journeyConnectorClass(steps[index - 1])}`}
-                aria-hidden
-              />
-            ) : null}
-            <div className="flex w-[2.6rem] shrink-0 flex-col items-center gap-1 text-center">
-              <span
-                className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.58rem] font-bold ${
-                  step.state === "complete"
-                    ? "bg-[#22c55e] text-white"
-                    : step.state === "current"
-                      ? "bg-[#f97316] text-white"
-                      : "border border-slate-200 bg-white text-slate-300"
-                }`}
-                aria-hidden
-              >
-                {step.state === "complete" ? "✓" : step.state === "current" ? "!" : "○"}
-              </span>
-              <span
-                className={`truncate text-[0.64rem] font-bold leading-tight ${
-                  step.state === "complete"
-                    ? "text-[#166534]"
-                    : step.state === "current"
-                      ? "text-[#c2410c]"
-                      : "text-slate-400"
-                }`}
-              >
-                {shortLabel(step)}
-              </span>
-            </div>
-          </Fragment>
-        ))}
-      </div>
-      <p className="m-0 mt-3.5 pt-1 text-[0.72rem] font-medium leading-relaxed text-slate-500">
-        Current step: {getJourneyCurrentStepLabel(steps)} • Last updated{" "}
-        {formatRelativeTimeAgo(updatedAt)}
-      </p>
-    </div>
-  );
-}
-
-function mapApiJourneySteps(steps: ApiJourneyStep[]): JourneyStep[] {
-  return steps.map((step) => ({
-    id:
-      step.step === "qr_redeemed"
-        ? "qr"
-        : step.step === "payment"
-          ? "payment"
-          : "signup",
-    label: step.label,
-    state: step.state,
-  }));
-}
-
 function OrderEventDetailDialog({
   event,
   open,
   onClose,
-  baseHref,
-  businessId,
 }: {
   event: BusinessFunnelEvent | null;
   open: boolean;
   onClose: () => void;
-  baseHref: string;
-  businessId: number;
 }) {
-  const customerId = event?.customer?.id ?? null;
-  const campaignId = event?.campaignId ?? null;
-  const funnelId = event?.funnelId ?? null;
-  const funnelPaymentId = event?.funnelPaymentId ?? null;
-
-  const journeyQuery = useQuery({
-    queryKey: [
-      "customer-journey",
-      businessId,
-      customerId,
-      campaignId,
-      funnelId,
-      funnelPaymentId,
-    ],
-    queryFn: () =>
-      getCustomerJourney({
-        businessId,
-        customerId: customerId!,
-        campaignId: campaignId!,
-        funnelId,
-        funnelPaymentId,
-      }),
-    enabled:
-      open &&
-      businessId > 0 &&
-      customerId != null &&
-      campaignId != null &&
-      campaignId > 0,
-    staleTime: 0,
-    refetchOnMount: "always",
-  });
-
   if (!open || !event) return null;
 
   const name = displayName(event);
@@ -718,24 +524,6 @@ function OrderEventDetailDialog({
   const email = getCustomerEmail(event);
   const phone = getCustomerPhone(event);
   const paymentMedium = resolvePaymentMedium(event);
-  const fallbackSteps = buildCustomerJourney(event);
-  const apiSteps =
-    journeyQuery.data != null
-      ? mapApiJourneySteps(journeyQuery.data.steps)
-      : null;
-  const hasQrRedeemed = Boolean(
-    event.businessVisitedAt ?? event.restaurantVisitedAt,
-  );
-  const journeySteps = (apiSteps ?? fallbackSteps).map((step) =>
-    step.id === "qr" && hasQrRedeemed
-      ? { ...step, state: "complete" as const }
-      : step,
-  );
-  const journeyUpdatedAt =
-    journeyQuery.data?.lastUpdatedAt ??
-    event.businessVisitedAt ??
-    event.restaurantVisitedAt ??
-    event.createdAt;
   const campaignLabel = formatTitleCase(event.campaignName);
   const amountDisplay = formatOrderAmountText(event, status);
   const netAmountText = formatCounterExtrasText(event);
@@ -801,11 +589,6 @@ function OrderEventDetailDialog({
         </div>
 
         <div className="grid gap-2.5 px-4 py-3">
-          <CustomerJourneySection
-            steps={journeySteps}
-            updatedAt={journeyUpdatedAt}
-          />
-
           <dl className="m-0 flex flex-col gap-2 rounded-[0.9rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-3.5 py-3">
             <OrderDetailRow icon={Megaphone} label="Campaign">
               <span className={`${DASHBOARD_CAMPAIGN_TAG} max-w-full gap-1 text-[0.8rem]`}>
@@ -1020,8 +803,6 @@ export function BusinessOrdersPanel({
         event={selectedEvent}
         open={selectedEvent != null}
         onClose={() => setSelectedEvent(null)}
-        baseHref={baseHref}
-        businessId={businessId}
       />
 
       <div className="rd-premium-page">

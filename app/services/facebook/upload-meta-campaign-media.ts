@@ -146,7 +146,7 @@ async function uploadViaMultipartFallback(
     };
     const url = json.imageUrl?.trim() || json.metaImageUrl?.trim();
     if (!url) {
-      throw new Error("Meta did not return an image URL for this upload.");
+      throw new Error("Image upload completed without a public URL.");
     }
     return {
       url,
@@ -166,7 +166,7 @@ async function uploadViaMultipartFallback(
   }
   const json = (await res.json()) as { videoUrl: string };
   if (!json.videoUrl?.trim()) {
-    throw new Error("Meta did not return a video URL for this upload.");
+    throw new Error("Video upload completed without a public URL.");
   }
   return { url: json.videoUrl.trim() };
 }

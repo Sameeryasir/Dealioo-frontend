@@ -758,7 +758,7 @@ export function BuilderFooter({
   const disabled = primaryDisabled || primaryLoading;
 
   return (
-    <div className="sticky bottom-0 -mx-1 mt-4 rounded-2xl border border-[#e8edf5] bg-white/95 px-4 py-4 shadow-[0_-8px_30px_rgba(24,119,242,0.08)] backdrop-blur-sm sm:px-5">
+    <div className="sticky bottom-0 z-30 -mx-1 mt-4 rounded-2xl border border-[#e8edf5] bg-white/95 px-4 py-4 shadow-[0_-8px_30px_rgba(24,119,242,0.08)] backdrop-blur-sm sm:px-5">
       {disabled && primaryDisabledReason ? (
         <p className="mb-3 text-xs text-slate-500">{primaryDisabledReason}</p>
       ) : null}
