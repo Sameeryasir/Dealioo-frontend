@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
@@ -104,6 +105,7 @@ export default function CampaignHeader({
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [editCampaignOpen, setEditCampaignOpen] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const tabButtonRefs = useRef<Partial<Record<string, HTMLButtonElement>>>({});
   const { expanded: sidebarExpanded, toggle: toggleSidebar } =
@@ -128,6 +130,10 @@ export default function CampaignHeader({
     setCopyDone(false);
     setTrackingDialogOpen(true);
   }, [onGenerateTrackingLink]);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     if (!trackingDialogOpen) return;
@@ -368,18 +374,19 @@ export default function CampaignHeader({
       )}
     </header>
 
-    <AnimatePresence>
-      {trackingDialogOpen ? (
-        <motion.div
-          key="tracking-link-dialog"
-          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          role="presentation"
-        >
-          {/* Same dim overlay as scan/redeem guest dialog */}
+    {portalReady
+      ? createPortal(
+          <AnimatePresence>
+            {trackingDialogOpen ? (
+              <motion.div
+                key="tracking-link-dialog"
+                className="fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                role="presentation"
+              >
           <button
             type="button"
             aria-label="Close dialog"
@@ -398,29 +405,15 @@ export default function CampaignHeader({
             transition={{ duration: 0.28, ease: automationEase }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — same navy as business sidebar */}
             <div
-              className="relative shrink-0 overflow-hidden px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6"
-              style={{
-                background:
-                  "linear-gradient(180deg, #07111f 0%, #0a1628 52%, #0f1f3d 100%)",
-              }}
+              className="relative shrink-0 overflow-hidden bg-[#1877f2] px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6"
             >
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(ellipse 120% 40% at 50% 0%, rgba(24, 119, 242, 0.28) 0%, transparent 70%), radial-gradient(ellipse 120% 35% at 50% 100%, rgba(244, 114, 182, 0.16) 0%, transparent 70%)",
-                }}
-                aria-hidden
-              />
-
               <div className="relative flex items-start gap-4">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-inner">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-white/25 bg-white/15 shadow-inner">
                   <Link2 className="size-6" strokeWidth={2.25} aria-hidden />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#93c5fd]">
+                  <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/85">
                     <Megaphone className="size-3.5" aria-hidden />
                     Meta ads
                   </p>
@@ -435,12 +428,12 @@ export default function CampaignHeader({
                       type="button"
                       aria-label="Close"
                       onClick={() => setTrackingDialogOpen(false)}
-                      className="shrink-0 rounded-lg p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                      className="shrink-0 rounded-lg p-1.5 text-white/80 transition hover:bg-white/15 hover:text-white"
                     >
                       <X className="size-4" strokeWidth={2} aria-hidden />
                     </button>
                   </div>
-                  <p className="mt-0.5 text-sm text-white/70">
+                  <p className="mt-0.5 text-sm text-white/80">
                     Paste this as the website destination in your Facebook /
                     Meta ad.
                   </p>
@@ -451,7 +444,6 @@ export default function CampaignHeader({
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 sm:space-y-4 sm:px-6 sm:py-5">
               {campaignId != null && landingTrackingUrl ? (
                 <>
-                  {/* Campaign chip — pink accent like Eligible rewards */}
                   <div className="rounded-2xl border border-[#fbcfe8] bg-[#fdf2f8]/60 p-4">
                     <div className="flex items-center gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#e1306c] text-white">
@@ -477,7 +469,6 @@ export default function CampaignHeader({
                     </div>
                   </div>
 
-                  {/* Landing URL — white info card like Email / Campaign rows */}
                   <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
                     <div className="flex items-start gap-3 px-3.5 py-3">
                       <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#1877f2] ring-1 ring-blue-100">
@@ -522,7 +513,6 @@ export default function CampaignHeader({
                     </div>
                   </div>
 
-                  {/* Tip — soft blue panel (visits-style) */}
                   <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50/50 px-4 py-3 ring-1 ring-blue-100/80">
                     <p className="text-sm leading-relaxed text-zinc-600">
                       In Meta Ads Manager, set this URL as the website
@@ -542,7 +532,6 @@ export default function CampaignHeader({
               )}
             </div>
 
-            {/* Footer — same button language as Yes, redeem / No */}
             <div className="shrink-0 border-t border-zinc-200 bg-gradient-to-b from-white to-zinc-50 px-5 py-4 sm:px-6">
               <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
                 <button
@@ -571,8 +560,11 @@ export default function CampaignHeader({
             </div>
           </motion.div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+            ) : null}
+          </AnimatePresence>,
+          document.body,
+        )
+      : null}
 
     <EditCampaignModal
       open={editCampaignOpen}

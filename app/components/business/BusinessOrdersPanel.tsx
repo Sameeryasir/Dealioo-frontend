@@ -744,9 +744,9 @@ export function BusinessOrdersPanel({
         search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
-    staleTime: 30_000,
+    staleTime: 0,
     gcTime: 5 * 60_000,
-    refetchOnMount: true,
+    refetchOnMount: "always",
     refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
   });
