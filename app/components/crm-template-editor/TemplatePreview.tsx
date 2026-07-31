@@ -30,6 +30,7 @@ import {
   createCheckoutSession,
 } from "@/app/services/payment/checkout-session";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
+import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
 import { clearFunnelLockedStep, forceFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { useFunnelAnalyticsTracking } from "@/app/hooks/use-funnel-analytics-tracking";
@@ -266,6 +267,9 @@ export function TemplatePreview({
             console.warn("[Funnel] signup track failed", trackErr);
           }
         }
+
+        trackMetaPixelEvent("Lead");
+        trackMetaPixelEvent("CompleteRegistration");
 
         if (
           signupSubmitFlow &&

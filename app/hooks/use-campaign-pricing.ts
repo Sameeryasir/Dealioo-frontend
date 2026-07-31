@@ -11,35 +11,18 @@ import {
   getFunnelCampaignPrice,
   setFunnelCampaignPrice,
 } from "@/app/lib/funnel-campaign-price-storage";
-import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 
 export function useCampaignPricing(
-  campaignId: number | null | undefined,
-  businessId: number | null | undefined,
+  _campaignId?: number | null,
+  _businessId?: number | null,
   override?: CampaignPricing | null,
 ): CampaignPricing {
   const searchParams = useSearchParams();
-
-  const { data: campaigns } = useCampaignsByBusinessQuery(
-    override ? null : businessId,
-  );
 
   const fromUrl = useMemo(
     () => parseCampaignPrice(searchParams.get("price")),
     [searchParams],
   );
-
-  const campaignSubtotal = useMemo(() => {
-    if (campaignId == null) return null;
-    const campaign = campaigns.find((c) => c.id === campaignId);
-    return parseCampaignPrice(campaign?.price);
-  }, [campaignId, campaigns]);
-
-  const campaignOffer = useMemo(() => {
-    if (campaignId == null) return null;
-    const campaign = campaigns.find((c) => c.id === campaignId);
-    return campaign?.offer?.trim() || null;
-  }, [campaignId, campaigns]);
 
   const pricing = useMemo((): CampaignPricing => {
     if (override) return override;
@@ -48,28 +31,20 @@ export function useCampaignPricing(
       return { subtotal: fromUrl, fees: 0 };
     }
 
-    if (campaignSubtotal != null) {
-      return {
-        subtotal: campaignSubtotal,
-        fees: 0,
-        offer: campaignOffer,
-      };
-    }
-
     return {
       subtotal: getFunnelCampaignPrice(),
       fees: 0,
     };
-  }, [override, fromUrl, campaignSubtotal, campaignOffer]);
+  }, [override, fromUrl]);
 
   useEffect(() => {
     if (override) return;
 
-    const persist = fromUrl ?? campaignSubtotal ?? getFunnelCampaignPrice();
+    const persist = fromUrl ?? getFunnelCampaignPrice();
     if (persist != null) {
       setFunnelCampaignPrice(persist);
     }
-  }, [override, fromUrl, campaignSubtotal]);
+  }, [override, fromUrl]);
 
   return pricing;
 }

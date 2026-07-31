@@ -3,9 +3,10 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
+import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
+import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
-import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
@@ -35,7 +36,11 @@ function FunnelCampaignSignupInner() {
     campaignType,
   };
 
-  const { pages, isLoading } = usePublicFunnelTemplatePages(funnelIdSegment);
+  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
+    funnelIdSegment,
+    businessId,
+    "signup",
+  );
   const signup = pages.signup;
   const landing = pages.landing;
 
@@ -53,22 +58,30 @@ function FunnelCampaignSignupInner() {
       : undefined;
 
   if (isLoading) {
-    return <FunnelPreviewSkeleton />;
+    return (
+      <>
+        <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="signup" />
+        <FunnelPreviewSkeleton />
+      </>
+    );
   }
 
   return (
-    <TemplatePreview
-      page={signup}
-      landingPage={landing}
-      signupNextHref={signupNextHref}
-      interactiveForms
-      submitCustomerOnSignupNext
-      skipPaymentStep={isPostpaid}
-      fullPageShellChrome
-      trackingFunnelId={funnelId}
-      checkoutBusinessId={businessId}
-      checkoutCampaignId={campaignId}
-    />
+    <>
+      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="signup" />
+      <TemplatePreview
+        page={signup}
+        landingPage={landing}
+        signupNextHref={signupNextHref}
+        interactiveForms
+        submitCustomerOnSignupNext
+        skipPaymentStep={isPostpaid}
+        fullPageShellChrome
+        trackingFunnelId={funnelId}
+        checkoutBusinessId={businessId}
+        checkoutCampaignId={campaignId}
+      />
+    </>
   );
 }
 

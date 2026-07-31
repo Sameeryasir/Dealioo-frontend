@@ -164,6 +164,58 @@ export const COMMON_TIMEZONES = [
   "Australia/Sydney",
 ];
 
+export function listAllIanaTimezones(): string[] {
+  try {
+    const intlWithZones = Intl as typeof Intl & {
+      supportedValuesOf?: (key: string) => string[];
+    };
+    if (typeof intlWithZones.supportedValuesOf === "function") {
+      return intlWithZones.supportedValuesOf("timeZone");
+    }
+  } catch {
+  }
+  return [...COMMON_TIMEZONES];
+}
+
+export function timezoneOffsetMinutes(
+  timezone: string,
+  at = new Date(),
+): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "longOffset",
+    }).formatToParts(at);
+    const raw = parts.find((part) => part.type === "timeZoneName")?.value ?? "";
+    const match = raw.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return 0;
+    const sign = match[1] === "-" ? -1 : 1;
+    const hours = Number(match[2]);
+    const minutes = Number(match[3] ?? 0);
+    return sign * (hours * 60 + minutes);
+  } catch {
+    return 0;
+  }
+}
+
+export function buildTimezoneSelectOptions(
+  at = new Date(),
+): Array<{ value: string; label: string }> {
+  return listAllIanaTimezones()
+    .map((tz) => ({
+      value: tz,
+      label: formatTimezoneOptionLabel(tz, at),
+      offsetMinutes: timezoneOffsetMinutes(tz, at),
+    }))
+    .sort((a, b) => {
+      if (a.offsetMinutes !== b.offsetMinutes) {
+        return a.offsetMinutes - b.offsetMinutes;
+      }
+      return a.value.localeCompare(b.value);
+    })
+    .map(({ value, label }) => ({ value, label }));
+}
+
 export const COUNTRIES = [
   { code: "US", label: "United States" },
   { code: "CA", label: "Canada" },
@@ -214,6 +266,34 @@ export function timezoneAbbreviation(timezone: string, at = new Date()): string 
   } catch {
     return timezone;
   }
+}
+
+export function timezoneGmtOffset(timezone: string, at = new Date()): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "shortOffset",
+    }).formatToParts(at);
+    const raw = parts.find((part) => part.type === "timeZoneName")?.value;
+    if (!raw) return "";
+    return raw.replace(
+      /GMT([+-])0?(\d+)(?::00|:(\d+))?/,
+      (_m, sign: string, hours: string, minutes?: string) =>
+        minutes && minutes !== "00"
+          ? `GMT${sign}${Number(hours)}:${minutes}`
+          : `GMT${sign}${Number(hours)}`,
+    );
+  } catch {
+    return "";
+  }
+}
+
+export function formatTimezoneOptionLabel(
+  timezone: string,
+  at = new Date(),
+): string {
+  const offset = timezoneGmtOffset(timezone, at);
+  return offset ? `${timezone} (${offset})` : timezone;
 }
 
 export function addDaysToIsoDate(isoDate: string, days: number): string {

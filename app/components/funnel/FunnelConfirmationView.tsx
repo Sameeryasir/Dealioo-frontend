@@ -1,24 +1,32 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
+import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { PaymentConfirmedSprinkles } from "@/app/components/funnel/PaymentConfirmedSprinkles";
 import { usePaymentStatusPoll } from "@/app/hooks/use-payment-status-poll";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
+import { parseCampaignPrice } from "@/app/lib/campaign-price";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
+import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 
 export function FunnelConfirmationView({
   funnelId,
   templateStorageKey,
+  businessId = null,
 }: {
   funnelId: number | null;
   templateStorageKey: string;
+  businessId?: number | null;
 }) {
   const trackedRef = useRef(false);
+  const metaPurchaseTrackedRef = useRef(false);
+  const searchParams = useSearchParams();
   const { session, ready } = useCheckoutContext();
 
   const paymentId = session?.funnelPaymentId ?? null;
@@ -31,7 +39,11 @@ export function FunnelConfirmationView({
   const confirmedByServer = isPaid;
   const celebrate = confirmedByServer;
 
-  const { pages, isLoading } = usePublicFunnelTemplatePages(templateStorageKey);
+  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
+    templateStorageKey,
+    businessId,
+    "confirmation",
+  );
 
   useEffect(() => {
     getOrCreateVisitorId();
@@ -62,15 +74,38 @@ export function FunnelConfirmationView({
     session?.customerId,
   ]);
 
+  useEffect(() => {
+    if (!confirmedByServer) return;
+    if (metaPurchaseTrackedRef.current) return;
+    if (!publicFunnel?.pixelId) return;
+
+    metaPurchaseTrackedRef.current = true;
+
+    const currency =
+      searchParams.get("currency")?.trim().toUpperCase() || "USD";
+    const value = parseCampaignPrice(searchParams.get("price"));
+
+    trackMetaPixelEvent(
+      "Purchase",
+      {
+        ...(value != null ? { value, currency } : { currency }),
+      },
+      publicFunnel.pixelId,
+    );
+  }, [confirmedByServer, publicFunnel?.pixelId, searchParams]);
+
   if (!ready || isLoading) {
     return <FunnelPreviewSkeleton />;
   }
 
   return (
     <>
+      <FunnelMetaPixel
+        pixelId={publicFunnel?.pixelId}
+        stepKey="confirmation"
+      />
       <PaymentConfirmedSprinkles active={celebrate} />
 
-      {/* Live status overlay — never uses a timeout warning */}
       {paymentId != null && isConfirming ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"

@@ -1,28 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AdSetStepData,
   CampaignStepData,
   MetaAdSetBudgetType,
-  MetaBidStrategy,
   MetaBillingEvent,
   MetaCampaignStatus,
-  MetaDestinationType,
   MetaGender,
   MetaOptimizationGoal,
 } from "@/app/lib/meta-campaign-builder-types";
 import {
   addDaysToIsoDate,
-  COMMON_TIMEZONES,
+  buildTimezoneSelectOptions,
   defaultEndDateIso,
   defaultStartDateIso,
   detectTimezone,
   END_DATE_DURATION_OPTIONS,
+  formatTimezoneOptionLabel,
   joinCsv,
   OPTIMIZATION_GOALS_BY_OBJECTIVE,
   splitCsv,
   timezoneAbbreviation,
+  timezoneGmtOffset,
 } from "@/app/lib/meta-adset-builder-helpers";
 import {
   buildLocationsFromAudience,
@@ -36,11 +36,39 @@ import {
   BuilderField,
   BuilderFooter,
   BuilderPerformanceGoalSelect,
+  BuilderSearchableSelect,
+  BuilderSelect,
   BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
 import type { AdSetLocationTarget } from "@/app/lib/meta-campaign-builder-types";
+import {
+  getFacebookAdPixels,
+  type FacebookAdPixel,
+} from "@/app/services/facebook/get-facebook-ad-pixels";
+import {
+  DEFAULT_META_ACCOUNT_CURRENCY,
+  formatMetaAccountMoney,
+  normalizeMetaCurrencyCode,
+} from "@/app/lib/meta-account-currency";
+
+const CONVERSION_EVENT_OPTIONS = [
+  { value: "PURCHASE", label: "Purchase" },
+  { value: "LEAD", label: "Lead" },
+  { value: "COMPLETE_REGISTRATION", label: "Complete registration" },
+  { value: "ADD_TO_CART", label: "Add to cart" },
+  { value: "INITIATED_CHECKOUT", label: "Initiate checkout" },
+  { value: "ADD_PAYMENT_INFO", label: "Add payment info" },
+  { value: "VIEW_CONTENT", label: "View content" },
+  { value: "SEARCH", label: "Search" },
+  { value: "CONTACT", label: "Contact" },
+  { value: "SUBSCRIBE", label: "Subscribe" },
+] as const;
+
+const CONVERSION_LOCATION_OPTIONS = [
+  { value: "WEBSITE", label: "Website" },
+] as const;
 
 const DEFAULT_PLACEMENTS: AdSetStepData["placements"] = {
   advantagePlusPlacements: false,
@@ -68,9 +96,11 @@ const DEFAULT_PLACEMENTS: AdSetStepData["placements"] = {
 };
 
 type AdSetSetupStepProps = {
+  businessId: number;
   draftId: string;
   campaignData: CampaignStepData;
   initialData?: AdSetStepData | null;
+  accountCurrency?: string;
   saving: boolean;
   error: string | null;
   onBack: () => void;
@@ -79,15 +109,18 @@ type AdSetSetupStepProps = {
 };
 
 export function AdSetSetupStep({
+  businessId,
   draftId,
   campaignData,
   initialData,
+  accountCurrency = DEFAULT_META_ACCOUNT_CURRENCY,
   saving,
   error,
   onBack,
   onPrevious,
   onSave,
 }: AdSetSetupStepProps) {
+  const currencyCode = normalizeMetaCurrencyCode(accountCurrency);
   const cboEnabled =
     campaignData.budgetStrategy === "campaign" ||
     campaignData.campaignBudgetOptimization;
@@ -108,15 +141,8 @@ export function AdSetSetupStep({
   const [lifetimeBudget, setLifetimeBudget] = useState(
     initialData?.lifetimeBudget?.toString() ?? "",
   );
-  const [bidStrategy, setBidStrategy] = useState<MetaBidStrategy>(
-    initialData?.bidStrategy ?? "LOWEST_COST_WITHOUT_CAP",
-  );
-  const [bidAmount, setBidAmount] = useState(
-    initialData?.bidAmount?.toString() ?? "",
-  );
-  const [billingEvent, setBillingEvent] = useState<MetaBillingEvent>(
-    initialData?.billingEvent ?? "IMPRESSIONS",
-  );
+  const billingEvent: MetaBillingEvent =
+    initialData?.billingEvent ?? "IMPRESSIONS";
   const initialStart = initialData?.startDate ?? defaultStartDateIso();
   const initialEnd = initialData?.endDate ?? addDaysToIsoDate(initialStart, 14);
   const [startDate, setStartDate] = useState(initialStart);
@@ -138,14 +164,15 @@ export function AdSetSetupStep({
   const [optimizationGoal, setOptimizationGoal] = useState<MetaOptimizationGoal>(
     initialData?.optimizationGoal ?? goalOptions[0]?.value ?? "LINK_CLICKS",
   );
-  const [destinationType, setDestinationType] = useState<MetaDestinationType>(
-    initialData?.destinationType ?? "WEBSITE",
-  );
+  const destinationType = "WEBSITE" as const;
   const [pixelId, setPixelId] = useState(initialData?.promotedObject?.pixelId ?? "");
+  const [pixels, setPixels] = useState<FacebookAdPixel[]>([]);
+  const [pixelsLoading, setPixelsLoading] = useState(false);
+  const [pixelsError, setPixelsError] = useState<string | null>(null);
   const [customEventType, setCustomEventType] = useState(
-    initialData?.promotedObject?.customEventType ?? "",
+    initialData?.promotedObject?.customEventType ?? "PURCHASE",
   );
-  const [pageId, setPageId] = useState(initialData?.promotedObject?.pageId ?? "");
+  const pageId = initialData?.promotedObject?.pageId ?? "";
   const [locations, setLocations] = useState<AdSetLocationTarget[]>(() =>
     buildLocationsFromAudience(initialData?.audience),
   );
@@ -183,15 +210,71 @@ export function AdSetSetupStep({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const inputClass = builderInputClass;
 
-  const showBidAmount =
-    bidStrategy === "LOWEST_COST_WITH_BID_CAP" || bidStrategy === "COST_CAP";
+  const timezoneOptions = useMemo(() => {
+    const options = buildTimezoneSelectOptions();
+    if (options.some((opt) => opt.value === timezone)) return options;
+    return [
+      { value: timezone, label: formatTimezoneOptionLabel(timezone) },
+      ...options,
+    ];
+  }, [timezone]);
 
   const showPromotedObject = useMemo(
-    () =>
-      optimizationGoal === "OFFSITE_CONVERSIONS" ||
-      destinationType !== "WEBSITE",
-    [destinationType, optimizationGoal],
+    () => optimizationGoal === "OFFSITE_CONVERSIONS",
+    [optimizationGoal],
   );
+
+  const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
+  savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
+
+  useEffect(() => {
+    if (!showPromotedObject) return;
+
+    let cancelled = false;
+    setPixelsLoading(true);
+    setPixelsError(null);
+
+    void getFacebookAdPixels(businessId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setPixels(loaded);
+        if (loaded.length > 0) {
+          setPixelId((prev) => {
+            if (prev.trim()) return prev;
+            const saved = savedPixelIdRef.current;
+            if (saved && loaded.some((p) => p.id === saved)) return saved;
+            return loaded[0]!.id;
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setPixels([]);
+        setPixelsError(
+          err instanceof Error ? err.message : "Could not load Meta pixels.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setPixelsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, showPromotedObject]);
+
+  const pixelSelectOptions = useMemo(() => {
+    const fromMeta = pixels.map((pixel) => ({
+      value: pixel.id,
+      label: pixel.name?.trim()
+        ? `${pixel.name.trim()} (${pixel.id})`
+        : pixel.id,
+    }));
+    if (pixelId.trim() && !fromMeta.some((opt) => opt.value === pixelId)) {
+      return [{ value: pixelId, label: `${pixelId} (saved)` }, ...fromMeta];
+    }
+    return fromMeta;
+  }, [pixelId, pixels]);
 
   const togglePlacement = <
     K extends
@@ -242,24 +325,19 @@ export function AdSetSetupStep({
       if (budgetType === "daily") {
         daily = Number.parseFloat(dailyBudget);
         if (!Number.isFinite(daily) || daily < 1) {
-          setLocalError("Daily budget must be at least 1.");
+          setLocalError(
+            `Daily budget must be at least ${formatMetaAccountMoney(1, currencyCode)}.`,
+          );
           return;
         }
       } else {
         lifetime = Number.parseFloat(lifetimeBudget);
         if (!Number.isFinite(lifetime) || lifetime < 1) {
-          setLocalError("Lifetime budget must be at least 1.");
+          setLocalError(
+            `Lifetime budget must be at least ${formatMetaAccountMoney(1, currencyCode)}.`,
+          );
           return;
         }
-      }
-    }
-
-    let bid: number | undefined;
-    if (showBidAmount && bidAmount.trim()) {
-      bid = Number.parseFloat(bidAmount);
-      if (!Number.isFinite(bid) || bid <= 0) {
-        setLocalError("Bid amount must be greater than 0.");
-        return;
       }
     }
 
@@ -316,10 +394,11 @@ export function AdSetSetupStep({
       budgetType: cboEnabled ? undefined : budgetType,
       dailyBudget: daily,
       lifetimeBudget: lifetime,
-      bidStrategy: cboEnabled
-        ? (campaignData.campaignBidStrategy ?? "LOWEST_COST_WITHOUT_CAP")
-        : bidStrategy,
-      bidAmount: bid,
+      bidStrategy:
+        campaignData.campaignBidStrategy ??
+        initialData?.bidStrategy ??
+        "LOWEST_COST_WITHOUT_CAP",
+      bidAmount: initialData?.bidAmount,
       billingEvent,
       startDate,
       startTime,
@@ -397,7 +476,7 @@ export function AdSetSetupStep({
         description={
           cboEnabled
             ? "This ad set uses the campaign budget you set in Step 1."
-            : "Set how much you want to spend and how Meta should bid for results."
+            : "Set how much you want to spend on this ad set."
         }
       >
         {cboEnabled ? (
@@ -405,8 +484,8 @@ export function AdSetSetupStep({
             <p className="font-semibold text-[#07111f]">Using campaign budget</p>
             <p className="mt-1">
               {campaignData.campaignBudgetType === "lifetime"
-                ? `Lifetime budget: $${campaignData.campaignLifetimeBudget?.toFixed(2) ?? "N/A"}`
-                : `Daily budget: $${campaignData.campaignDailyBudget?.toFixed(2) ?? "N/A"}`}
+                ? `Lifetime budget: ${formatMetaAccountMoney(campaignData.campaignLifetimeBudget, currencyCode)}`
+                : `Daily budget: ${formatMetaAccountMoney(campaignData.campaignDailyBudget, currencyCode)}`}
               {", "}
               Bid strategy:{" "}
               {campaignData.campaignBidStrategy === "LOWEST_COST_WITHOUT_CAP"
@@ -435,39 +514,25 @@ export function AdSetSetupStep({
             </div>
             {budgetType === "daily" ? (
               <label className="block text-sm">
-                <span className="font-medium text-[#07111f]">Daily budget</span>
-                <input type="number" min={1} value={dailyBudget} onChange={(e) => setDailyBudget(e.target.value)} className={inputClass} />
-                <p className="mt-1 text-xs text-slate-500">$20 → 2000 minor units on publish</p>
+                <span className="font-medium text-[#07111f]">
+                  Daily budget ({currencyCode})
+                </span>
+                <input type="number" min={1} step={1} value={dailyBudget} onChange={(e) => setDailyBudget(e.target.value)} className={inputClass} />
+                <p className="mt-1 text-xs text-slate-500">
+                  Amounts use your ad account currency ({currencyCode}). Meta
+                  receives them in minor units on publish.
+                </p>
               </label>
             ) : (
               <label className="block text-sm">
-                <span className="font-medium text-[#07111f]">Lifetime budget</span>
-                <input type="number" min={1} value={lifetimeBudget} onChange={(e) => setLifetimeBudget(e.target.value)} className={inputClass} />
+                <span className="font-medium text-[#07111f]">
+                  Lifetime budget ({currencyCode})
+                </span>
+                <input type="number" min={1} step={1} value={lifetimeBudget} onChange={(e) => setLifetimeBudget(e.target.value)} className={inputClass} />
               </label>
             )}
-            <label className="block text-sm">
-              <span className="font-medium text-[#07111f]">Bid strategy</span>
-              <select value={bidStrategy} onChange={(e) => setBidStrategy(e.target.value as MetaBidStrategy)} className={inputClass}>
-                <option value="LOWEST_COST_WITHOUT_CAP">Lowest cost without cap</option>
-                <option value="LOWEST_COST_WITH_BID_CAP">Lowest cost with bid cap</option>
-                <option value="COST_CAP">Cost cap</option>
-              </select>
-            </label>
-            {showBidAmount ? (
-              <label className="block text-sm">
-                <span className="font-medium text-[#07111f]">Bid amount</span>
-                <input type="number" min={0.01} step={0.01} value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className={inputClass} />
-              </label>
-            ) : null}
           </>
         )}
-        <label className="block text-sm">
-          <span className="font-medium text-[#07111f]">Billing event</span>
-          <select value={billingEvent} onChange={(e) => setBillingEvent(e.target.value as MetaBillingEvent)} className={inputClass}>
-            <option value="IMPRESSIONS">Impressions</option>
-            <option value="LINK_CLICKS">Link clicks</option>
-          </select>
-        </label>
       </BuilderCard>
 
       <BuilderCard title="Schedule" description="When your ad set should start and stop delivering.">
@@ -559,7 +624,12 @@ export function AdSetSetupStep({
                     className={inputClass}
                   />
                   <span className="shrink-0 text-xs font-semibold text-slate-500">
-                    {timezoneAbbreviation(timezone)}
+                    {(() => {
+                      const abbr = timezoneAbbreviation(timezone);
+                      const gmt = timezoneGmtOffset(timezone);
+                      if (abbr && gmt && abbr !== gmt) return `${abbr} · ${gmt}`;
+                      return gmt || abbr || "";
+                    })()}
                   </span>
                 </div>
               </label>
@@ -573,21 +643,35 @@ export function AdSetSetupStep({
 
         <label className="block text-sm">
           <span className="font-medium text-[#07111f]">Timezone</span>
-          <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputClass}>
-            {COMMON_TIMEZONES.map((tz) => (
-              <option key={tz} value={tz}>{tz}</option>
-            ))}
-          </select>
+          <div className="mt-1">
+            <BuilderSearchableSelect
+              aria-label="Timezone"
+              value={timezone}
+              options={timezoneOptions}
+              onChange={setTimezone}
+              placeholder="Search timezones or GMT…"
+              emptyMessage="No timezones match your search."
+            />
+          </div>
         </label>
       </BuilderCard>
 
-      <BuilderCard
-        title="Optimization"
-        description="Tell Meta what result you want and where people should go after clicking."
-      >
+      <BuilderCard title="Conversion">
+        <BuilderField
+          label="Conversion location"
+          hint="Where you want to drive the conversion."
+        >
+          <BuilderSelect
+            aria-label="Conversion location"
+            value={destinationType}
+            options={[...CONVERSION_LOCATION_OPTIONS]}
+            onChange={(_value) => {}}
+          />
+        </BuilderField>
+
         <BuilderField
           label="Performance goal"
-          hint="How you measure success for your ads."
+          hint="Set your goal, such as maximising conversions or conversion value."
         >
           <BuilderPerformanceGoalSelect
             aria-label="Performance goal"
@@ -596,30 +680,67 @@ export function AdSetSetupStep({
             onChange={setOptimizationGoal}
           />
         </BuilderField>
-        <label className="block text-sm">
-          <span className="font-medium text-[#07111f]">Destination type</span>
-          <select value={destinationType} onChange={(e) => setDestinationType(e.target.value as MetaDestinationType)} className={inputClass}>
-            <option value="WEBSITE">Website</option>
-            <option value="MESSENGER">Messenger</option>
-            <option value="WHATSAPP">WhatsApp</option>
-            <option value="INSTAGRAM_DIRECT">Instagram Direct</option>
-          </select>
-        </label>
+
         {showPromotedObject ? (
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="block text-sm">
-              <span className="font-medium text-[#07111f]">Pixel ID</span>
-              <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-[#07111f]">Custom event</span>
-              <input value={customEventType} onChange={(e) => setCustomEventType(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-[#07111f]">Page ID</span>
-              <input value={pageId} onChange={(e) => setPageId(e.target.value)} className={inputClass} />
-            </label>
-          </div>
+          <>
+            <BuilderField
+              label="Dataset"
+              required
+              hint="Track actions that people take on your website."
+              error={pixelsError ?? undefined}
+            >
+              {pixelsLoading ? (
+                <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+                  Loading datasets from Meta…
+                </p>
+              ) : pixelSelectOptions.length > 0 ? (
+                <BuilderSelect
+                  aria-label="Dataset"
+                  value={
+                    pixelSelectOptions.some((opt) => opt.value === pixelId)
+                      ? pixelId
+                      : pixelSelectOptions[0]!.value
+                  }
+                  options={pixelSelectOptions}
+                  onChange={setPixelId}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {!pixelsError ? (
+                    <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
+                      No dataset (Meta Pixel) was found on this account. Create
+                      one in Meta Events Manager, or paste the Pixel ID below.
+                    </p>
+                  ) : null}
+                  <input
+                    value={pixelId}
+                    onChange={(e) => setPixelId(e.target.value)}
+                    className={inputClass}
+                    placeholder="Enter Meta Pixel / Dataset ID"
+                  />
+                </div>
+              )}
+            </BuilderField>
+
+            <BuilderField
+              label="Conversion event"
+              required
+              hint="The action that you want people to take when they see your ads."
+            >
+              <BuilderSelect
+                aria-label="Conversion event"
+                value={
+                  CONVERSION_EVENT_OPTIONS.some(
+                    (opt) => opt.value === customEventType,
+                  )
+                    ? customEventType
+                    : "PURCHASE"
+                }
+                options={[...CONVERSION_EVENT_OPTIONS]}
+                onChange={setCustomEventType}
+              />
+            </BuilderField>
+          </>
         ) : null}
       </BuilderCard>
 

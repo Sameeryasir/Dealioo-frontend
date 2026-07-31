@@ -4,6 +4,7 @@ import type {
   CampaignStepData,
 } from "@/app/lib/meta-campaign-builder-types";
 import { CTA_OPTIONS } from "@/app/lib/meta-ad-creative-helpers";
+import { formatMetaAccountMoney } from "@/app/lib/meta-account-currency";
 
 const OBJECTIVE_LABELS: Record<string, string> = {
   OUTCOME_TRAFFIC: "Traffic",
@@ -23,27 +24,31 @@ export function formatObjective(objective: string): string {
   return OBJECTIVE_LABELS[objective] ?? objective;
 }
 
-export function formatCboBudget(campaign: CampaignStepData): string {
+export function formatCboBudget(
+  campaign: CampaignStepData,
+  currencyCode = "USD",
+): string {
   if (campaign.budgetStrategy !== "campaign" && !campaign.campaignBudgetOptimization) {
     return "Not enabled (ad set budget)";
   }
   if (campaign.campaignBudgetType === "lifetime") {
-    return `Lifetime: $${campaign.campaignLifetimeBudget?.toFixed(2) ?? "N/A"}`;
+    return `Lifetime: ${formatMetaAccountMoney(campaign.campaignLifetimeBudget, currencyCode)}`;
   }
-  return `Daily: $${campaign.campaignDailyBudget?.toFixed(2) ?? "N/A"}`;
+  return `Daily: ${formatMetaAccountMoney(campaign.campaignDailyBudget, currencyCode)}`;
 }
 
 export function formatAdSetBudget(
   campaign: CampaignStepData,
   adSet: AdSetStepData,
+  currencyCode = "USD",
 ): string {
   if (campaign.campaignBudgetOptimization || campaign.budgetStrategy === "campaign") {
     return "Inherited from campaign budget";
   }
   if (adSet.budgetType === "lifetime") {
-    return `Lifetime: $${adSet.lifetimeBudget?.toFixed(2) ?? "N/A"}`;
+    return `Lifetime: ${formatMetaAccountMoney(adSet.lifetimeBudget, currencyCode)}`;
   }
-  return `Daily: $${adSet.dailyBudget?.toFixed(2) ?? "N/A"}`;
+  return `Daily: ${formatMetaAccountMoney(adSet.dailyBudget, currencyCode)}`;
 }
 
 export function formatSchedule(adSet: AdSetStepData): string {

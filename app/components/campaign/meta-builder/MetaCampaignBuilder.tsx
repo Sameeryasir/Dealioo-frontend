@@ -11,6 +11,7 @@ import type {
   AdSetStepData,
   CampaignStepData,
   MetaCampaignDraft,
+  MetaCampaignObjective,
 } from "@/app/lib/meta-campaign-builder-types";
 import {
   buildMetaAdsManagerUrl,
@@ -20,6 +21,11 @@ import {
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { isPusherConfigured } from "@/app/lib/pusher-meta-publish";
 import { subscribeMetaPublishProgress } from "@/app/lib/pusher-client";
+import {
+  DEFAULT_META_ACCOUNT_CURRENCY,
+  normalizeMetaCurrencyCode,
+} from "@/app/lib/meta-account-currency";
+import { getFacebookAdAccounts } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { AdCreativeSetupStep } from "@/app/components/campaign/meta-builder/AdCreativeSetupStep";
 import { AdSetSetupStep } from "@/app/components/campaign/meta-builder/AdSetSetupStep";
@@ -47,6 +53,7 @@ type MetaCampaignBuilderProps = {
   businessId: number;
   defaultName?: string;
   defaultWebsiteUrl?: string;
+  initialObjective?: MetaCampaignObjective | null;
   draftId?: string | null;
   initialDraft?: MetaCampaignDraft | null;
   
@@ -98,6 +105,7 @@ export function MetaCampaignBuilder({
   businessId,
   defaultName = "",
   defaultWebsiteUrl,
+  initialObjective = null,
   draftId: initialDraftId = null,
   initialDraft = null,
   autoStartPublish = false,
@@ -149,6 +157,9 @@ export function MetaCampaignBuilder({
   );
 
   const [refreshingPublishStatus, setRefreshingPublishStatus] = useState(false);
+  const [accountCurrency, setAccountCurrency] = useState(
+    DEFAULT_META_ACCOUNT_CURRENCY,
+  );
 
   const publishStartedRef = useRef(false);
   const resumeHandledRef = useRef(false);
@@ -160,6 +171,41 @@ export function MetaCampaignBuilder({
   useEffect(() => {
     stepScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = getSetupAccessToken().trim();
+        const [status, accounts] = await Promise.all([
+          token
+            ? getFacebookConnectionStatus(token, businessId)
+            : Promise.resolve(null),
+          getFacebookAdAccounts(businessId),
+        ]);
+        if (cancelled) return;
+
+        const selectedId = status?.metaAdAccountId?.trim() || null;
+        const match =
+          (selectedId
+            ? accounts.find((account) => account.id === selectedId)
+            : null) ?? accounts[0];
+        setAccountCurrency(
+          normalizeMetaCurrencyCode(match?.currency ?? DEFAULT_META_ACCOUNT_CURRENCY),
+        );
+      } catch {
+        if (!cancelled) {
+          setAccountCurrency(DEFAULT_META_ACCOUNT_CURRENCY);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, businessId]);
 
   const applyDraftState = useCallback((draft: MetaCampaignDraft) => {
     setDraftId(draft.id);
@@ -859,9 +905,11 @@ export function MetaCampaignBuilder({
 
           {currentStep === 1 ? (
             <CampaignSetupStep
-              key="campaign-setup"
+              key={`campaign-setup-${initialObjective ?? "default"}`}
               defaultName={defaultName}
+              preferredObjective={initialObjective}
               initialData={campaignData}
+              accountCurrency={accountCurrency}
               saving={saving}
               error={error}
               onBack={onClose}
@@ -871,9 +919,11 @@ export function MetaCampaignBuilder({
 
           {currentStep === 2 && draftId && campaignData ? (
             <AdSetSetupStep
+              businessId={businessId}
               draftId={draftId}
               campaignData={campaignData}
               initialData={adSetData}
+              accountCurrency={accountCurrency}
               saving={saving}
               error={error}
               onBack={onClose}
@@ -923,6 +973,7 @@ export function MetaCampaignBuilder({
               campaignData={campaignData}
               adSetData={adSetData}
               adCreativeData={adCreativeData}
+              accountCurrency={accountCurrency}
               publishing={publishing}
               publishError={error}
               publishStep={publishStep}

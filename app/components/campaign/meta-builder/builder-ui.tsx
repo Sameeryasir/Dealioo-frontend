@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Loader2,
+  Search,
 } from "lucide-react";
 
 export const META_BLUE = "#1877F2";
@@ -271,6 +272,247 @@ export function BuilderSelect<T extends string>({
               );
             })}
           </ul>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        ref={buttonRef}
+        id={id}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
+          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
+        }`}
+      >
+        <span className="truncate">{selected?.label ?? "Select"}</span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {menu}
+    </div>
+  );
+}
+
+export function BuilderSearchableSelect<T extends string>({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+  placeholder = "Search…",
+  emptyMessage = "No matches found.",
+  "aria-label": ariaLabel,
+}: {
+  id?: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  emptyMessage?: string;
+  "aria-label"?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [menuBox, setMenuBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const selected = options.find((opt) => opt.value === value) ?? options[0];
+
+  const filtered = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(q) ||
+        opt.value.toLowerCase().includes(q),
+    );
+  })();
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setMenuBox(null);
+      return;
+    }
+    const update = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuBox({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    const t = window.setTimeout(() => {
+      searchRef.current?.focus();
+      const selectedEl = menuRef.current?.querySelector(
+        '[aria-selected="true"]',
+      );
+      selectedEl?.scrollIntoView({ block: "nearest" });
+    }, 0);
+
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarGap =
+      window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarGap > 0) {
+      document.body.style.paddingRight = `${scrollbarGap}px`;
+    }
+
+    const isInsideMenu = (target: EventTarget | null) => {
+      const node = target as Node | null;
+      return Boolean(
+        node &&
+          (rootRef.current?.contains(node) || menuRef.current?.contains(node)),
+      );
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        event.preventDefault();
+        return;
+      }
+      const list = menuRef.current.querySelector(
+        '[role="listbox"]',
+      ) as HTMLElement | null;
+      if (!list) return;
+      const atTop = list.scrollTop <= 0 && event.deltaY < 0;
+      const atBottom =
+        list.scrollTop + list.clientHeight >= list.scrollHeight - 1 &&
+        event.deltaY > 0;
+      if (atTop || atBottom) event.preventDefault();
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        event.preventDefault();
+      }
+    };
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (isInsideMenu(event.target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("wheel", onWheel, { passive: false });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(t);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+      document.removeEventListener("wheel", onWheel);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const menu =
+    open && menuBox && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: "fixed",
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+            }}
+            className="z-[80] overflow-hidden rounded-xl border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] ring-1 ring-black/[0.04]"
+          >
+            <div className="border-b border-[#e8edf5] p-2">
+              <label className="relative block">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden
+                />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full rounded-lg border border-[#e8edf5] bg-[#f8fafc] py-2 pl-9 pr-3 text-sm text-[#07111f] outline-none placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                  aria-label={ariaLabel ? `Search ${ariaLabel}` : "Search options"}
+                />
+              </label>
+            </div>
+            <ul
+              id={listId}
+              role="listbox"
+              className="max-h-64 overflow-auto py-1"
+            >
+              {filtered.length === 0 ? (
+                <li className="px-3.5 py-3 text-sm text-slate-500">
+                  {emptyMessage}
+                </li>
+              ) : (
+                filtered.map((opt) => {
+                  const isSelected = opt.value === value;
+                  return (
+                    <li key={opt.value} role="option" aria-selected={isSelected}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(opt.value);
+                          setOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-medium transition ${
+                          isSelected
+                            ? "bg-[#f4f8ff] text-[#1877f2]"
+                            : "text-[#07111f] hover:bg-[#f8fafc]"
+                        }`}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {isSelected ? (
+                          <Check
+                            className="size-4 shrink-0 text-[#1877f2]"
+                            aria-hidden
+                          />
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>,
           document.body,
         )
       : null;

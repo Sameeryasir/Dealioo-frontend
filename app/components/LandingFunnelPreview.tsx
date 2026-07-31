@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
+import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
@@ -22,7 +23,11 @@ export function LandingFunnelPreview() {
       ? campaignTypeParam
       : undefined;
 
-  const { pages, isLoading } = usePublicFunnelTemplatePages(funnelIdSegment);
+  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
+    funnelIdSegment,
+    businessId,
+    "landing",
+  );
   const landing = pages.landing;
 
   const landingCtaHref =
@@ -41,6 +46,7 @@ export function LandingFunnelPreview() {
 
   return (
     <>
+      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="landing" />
       {isLoading ? (
         <FunnelPreviewSkeleton />
       ) : (

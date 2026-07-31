@@ -18,6 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
+import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
 import {
   formatMetaCount,
   formatMetaDeliveryStatus,
@@ -71,17 +72,6 @@ function statusBadgeClass(status: string | null | undefined): string {
     return "bg-amber-500/15 text-amber-800 ring-amber-500/25";
   }
   return "bg-blue-500/15 text-blue-700 ring-blue-500/25";
-}
-
-function statusAccentClass(status: string | null | undefined): string {
-  const normalized = status?.toUpperCase() ?? "";
-  if (normalized === "ENABLED" || normalized === "ACTIVE") {
-    return "from-emerald-500 to-teal-500";
-  }
-  if (normalized === "PAUSED" || normalized.includes("PAUSED")) {
-    return "from-amber-400 to-orange-500";
-  }
-  return "from-blue-500 to-indigo-500";
 }
 
 function sumMetric(
@@ -158,6 +148,7 @@ export function CampaignGoogleAdsPanel({
   const [adStats, setAdStats] = useState<GoogleAdsCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
+  const [createObjectiveOpen, setCreateObjectiveOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
@@ -234,8 +225,8 @@ export function CampaignGoogleAdsPanel({
     <div
       className={
         embedded
-          ? "relative overflow-hidden bg-white px-0 py-0"
-          : "relative overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white px-4 py-8 sm:px-8 sm:py-10"
+          ? "relative bg-white px-0 pb-10 pt-0"
+          : "relative bg-gradient-to-b from-blue-50/40 via-white to-white px-4 py-8 sm:px-8 sm:py-10"
       }
     >
       <div
@@ -247,18 +238,18 @@ export function CampaignGoogleAdsPanel({
         aria-hidden
       />
 
-      <div className="relative mx-auto w-full max-w-5xl space-y-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+      <div className="relative mx-auto w-full max-w-5xl space-y-6 pb-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 max-w-xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#4285F4]/20 bg-white/80 px-3 py-1 text-xs font-semibold text-[#3367D6] shadow-sm backdrop-blur-sm">
               <Sparkles className="size-3.5" aria-hidden />
               Google Ads performance
             </div>
             <div className="mt-4 flex items-center gap-3">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-zinc-200/80">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-zinc-200/80">
                 <GoogleLogo className="size-7" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
                   Google ads
                 </h2>
@@ -272,15 +263,23 @@ export function CampaignGoogleAdsPanel({
           </div>
 
           {googleConnected && googleCustomerId ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:flex-nowrap">
+              <button
+                type="button"
+                onClick={() => setCreateObjectiveOpen(true)}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe0] sm:w-auto"
+              >
+                <Megaphone className="size-4 shrink-0" aria-hidden />
+                Create ads
+              </button>
               <button
                 type="button"
                 onClick={() => void loadStats()}
                 disabled={adStatsLoading}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-200/80 bg-white/90 px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm backdrop-blur-sm transition hover:bg-white disabled:opacity-60"
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-[#f4f8ff] disabled:opacity-60 sm:w-auto"
               >
                 <RefreshCw
-                  className={`size-4 ${adStatsLoading ? "animate-spin" : ""}`}
+                  className={`size-4 shrink-0 ${adStatsLoading ? "animate-spin" : ""}`}
                   aria-hidden
                 />
                 Refresh
@@ -289,10 +288,10 @@ export function CampaignGoogleAdsPanel({
                 href={adsConsoleUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4285F4] to-[#3367D6] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-[#3367D6] hover:to-[#2a56c6]"
+                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] sm:w-auto"
               >
                 Open Google Ads
-                <ExternalLink className="size-4" aria-hidden />
+                <ExternalLink className="size-4 shrink-0" aria-hidden />
               </a>
             </div>
           ) : null}
@@ -343,7 +342,7 @@ export function CampaignGoogleAdsPanel({
               </div>
               <Link
                 href={`/google/select-customer?businessId=${businessId}`}
-                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#4285F4] to-[#3367D6] px-6 py-3 text-sm font-semibold text-white no-underline shadow-lg shadow-blue-500/20 hover:from-[#3367D6] hover:to-[#2a56c6]"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1877f2] px-6 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#166fe0]"
               >
                 Choose Ads account
               </Link>
@@ -351,18 +350,14 @@ export function CampaignGoogleAdsPanel({
           ) : null}
 
           {!googleLoading && googleConnected && googleCustomerId ? (
-            <div className="relative overflow-hidden border-b border-[#4285F4]/20 bg-gradient-to-r from-[#4285F4] via-[#3367D6] to-[#1a56db] px-6 py-5 sm:px-8">
-              <div
-                className="absolute -right-6 -top-6 size-28 rounded-full bg-white/10 blur-2xl"
-                aria-hidden
-              />
+            <div className="relative border-b border-[#1877f2]/20 bg-[#1877f2] px-6 py-5 sm:px-8">
               <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-lg">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm">
                     <GoogleLogo className="size-7" />
                   </span>
                   <div>
-                    <p className="flex items-center gap-2 text-sm font-semibold text-blue-100">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-white/90">
                       <span className="relative flex size-2">
                         <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-300 opacity-70" />
                         <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
@@ -372,7 +367,7 @@ export function CampaignGoogleAdsPanel({
                     <p className="mt-0.5 text-lg font-bold text-white">
                       {adStats?.customerName?.trim() || "Google Ads account"}
                     </p>
-                    <p className="mt-0.5 font-mono text-xs text-blue-100/90">
+                    <p className="mt-0.5 font-mono text-xs text-white/85">
                       {formatCustomerId(googleCustomerId)}
                       {currency ? `, ${currency}` : ""}
                     </p>
@@ -380,7 +375,7 @@ export function CampaignGoogleAdsPanel({
                 </div>
                 <Link
                   href={`/google/select-customer?businessId=${businessId}`}
-                  className="inline-flex shrink-0 items-center rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-white/25"
+                  className="inline-flex shrink-0 items-center rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/30 transition hover:bg-white/25"
                 >
                   Change account
                 </Link>
@@ -452,13 +447,9 @@ export function CampaignGoogleAdsPanel({
                     {campaigns.map((c) => (
                       <li
                         key={c.id}
-                        className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition duration-300 hover:-translate-y-0.5 hover:border-[#4285F4]/30 hover:shadow-lg hover:shadow-blue-500/10"
+                        className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/30 hover:shadow-lg hover:shadow-blue-500/10"
                       >
-                        <div
-                          className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${statusAccentClass(c.effectiveStatus)}`}
-                          aria-hidden
-                        />
-                        <div className="flex items-start justify-between gap-3 pl-2">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-lg font-bold tracking-tight text-zinc-900">
                               {c.name}
@@ -524,15 +515,13 @@ export function CampaignGoogleAdsPanel({
                   Create campaigns in Google Ads, they&apos;ll show here once
                   they have activity in the last 30 days.
                 </p>
-                <a
-                  href={adsConsoleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-zinc-800"
+                <button
+                  type="button"
+                  onClick={() => setCreateObjectiveOpen(true)}
+                  className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe0]"
                 >
-                  Go to Google Ads
-                  <ExternalLink className="size-4" aria-hidden />
-                </a>
+                  Create ads
+                </button>
               </div>
             ) : null}
 
@@ -568,6 +557,12 @@ export function CampaignGoogleAdsPanel({
           </div>
         </div>
       </div>
+
+      <GoogleAdsCreateCampaignFlow
+        open={createObjectiveOpen}
+        onClose={() => setCreateObjectiveOpen(false)}
+        adsConsoleUrl={adsConsoleUrl}
+      />
     </div>
   );
 }

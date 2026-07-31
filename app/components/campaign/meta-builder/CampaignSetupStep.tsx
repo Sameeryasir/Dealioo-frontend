@@ -22,6 +22,11 @@ import {
   BuilderStepHeader,
   builderInputClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
+import {
+  DEFAULT_META_ACCOUNT_CURRENCY,
+  formatMetaAccountMoney,
+  normalizeMetaCurrencyCode,
+} from "@/app/lib/meta-account-currency";
 
 const OBJECTIVES: { value: MetaCampaignObjective; label: string }[] = [
   { value: "OUTCOME_TRAFFIC", label: "Traffic" },
@@ -50,7 +55,9 @@ const SPECIAL_CATEGORIES: {
 
 type CampaignSetupStepProps = {
   defaultName?: string;
+  preferredObjective?: MetaCampaignObjective | null;
   initialData?: CampaignStepData | null;
+  accountCurrency?: string;
   saving: boolean;
   error: string | null;
   onBack: () => void;
@@ -59,15 +66,18 @@ type CampaignSetupStepProps = {
 
 export function CampaignSetupStep({
   defaultName = "",
+  preferredObjective = null,
   initialData,
+  accountCurrency = DEFAULT_META_ACCOUNT_CURRENCY,
   saving,
   error,
   onBack,
   onSave,
 }: CampaignSetupStepProps) {
+  const currencyCode = normalizeMetaCurrencyCode(accountCurrency);
   const [name, setName] = useState(initialData?.name ?? defaultName);
   const [objective, setObjective] = useState<MetaCampaignObjective>(
-    initialData?.objective ?? "OUTCOME_TRAFFIC",
+    initialData?.objective ?? preferredObjective ?? "OUTCOME_TRAFFIC",
   );
   const [specialNone, setSpecialNone] = useState(
     !initialData?.specialAdCategories?.length,
@@ -130,7 +140,7 @@ export function CampaignSetupStep({
     campaignBudgetType === "daily" &&
     Number.isFinite(parsedBudgetAmount) &&
     parsedBudgetAmount > 0
-      ? `You'll spend an average of $${parsedBudgetAmount.toFixed(2)} per day. Your maximum daily spend is about $${(parsedBudgetAmount * 1.75).toFixed(2)} and your maximum weekly spend is about $${(parsedBudgetAmount * 7).toFixed(2)}.`
+      ? `You'll spend an average of ${formatMetaAccountMoney(parsedBudgetAmount, currencyCode)} per day. Your maximum daily spend is about ${formatMetaAccountMoney(parsedBudgetAmount * 1.75, currencyCode)} and your maximum weekly spend is about ${formatMetaAccountMoney(parsedBudgetAmount * 7, currencyCode)}.`
       : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,7 +160,9 @@ export function CampaignSetupStep({
     if (cboEnabled) {
       const amount = Number.parseFloat(campaignBudgetAmount);
       if (!Number.isFinite(amount) || amount < 1) {
-        setLocalError("Campaign budget must be at least $1.00.");
+        setLocalError(
+          `Campaign budget must be at least ${formatMetaAccountMoney(1, currencyCode)}.`,
+        );
         return;
       }
       if (campaignBudgetType === "daily") {
@@ -179,8 +191,8 @@ export function CampaignSetupStep({
       campaignBudgetType: cboEnabled ? campaignBudgetType : undefined,
       campaignDailyBudget: daily,
       campaignLifetimeBudget: lifetime,
-      campaignBidStrategy: cboEnabled ? campaignBidStrategy : undefined,
-      budgetScheduling: cboEnabled ? "none" : undefined,
+      campaignBidStrategy,
+      budgetScheduling: "none",
       campaignSpendLimit: spendLimit,
       status,
     });
@@ -206,7 +218,7 @@ export function CampaignSetupStep({
           />
         </BuilderField>
 
-        <BuilderField label="Buying type" hint="Auction is the standard way Meta runs ads.">
+        <BuilderField label="Buying type">
           <input
             readOnly
             value="Auction"
@@ -279,112 +291,117 @@ export function CampaignSetupStep({
           />
         </div>
 
-        {cboEnabled ? (
-          <div className="space-y-4 border-t border-[#e8edf5] pt-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="block text-sm sm:w-44">
-                <span className="font-medium text-[#07111f]">Budget type</span>
-                <select
-                  value={campaignBudgetType}
-                  onChange={(e) =>
-                    setCampaignBudgetType(
-                      e.target.value as MetaCampaignBudgetType,
-                    )
-                  }
-                  className={inputClass}
-                >
-                  <option value="daily">Daily budget</option>
-                  <option value="lifetime">Lifetime budget</option>
-                </select>
-              </label>
-              <label className="block flex-1 text-sm">
-                <span className="font-medium text-[#07111f]">Amount</span>
-                <div className="relative mt-1">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={0.01}
-                    value={campaignBudgetAmount}
-                    onChange={(e) => setCampaignBudgetAmount(e.target.value)}
-                    className={`${inputClass} mt-0 pl-7`}
-                    placeholder="25.00"
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-500">
-                    USD
-                  </span>
-                </div>
-              </label>
-            </div>
-
-            {budgetHelperText ? (
-              <p className="text-xs leading-relaxed text-slate-500">
-                {budgetHelperText}
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={() => setShowAdvancedBudget((prev) => !prev)}
-              className="text-sm font-semibold text-[#1877F2] hover:underline"
-            >
-              {showAdvancedBudget ? "Hide settings" : "Show settings"}
-            </button>
-
-            {showAdvancedBudget ? (
-              <div className="space-y-4 rounded-xl bg-[#f4f8ff] p-4">
-                <label className="block text-sm">
-                  <span className="font-medium text-[#07111f]">
-                    Campaign bid strategy
-                  </span>
+        <div className="space-y-4 border-t border-[#e8edf5] pt-4">
+          {cboEnabled ? (
+            <>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="block text-sm sm:w-44">
+                  <span className="font-medium text-[#07111f]">Budget type</span>
                   <select
-                    value={campaignBidStrategy}
+                    value={campaignBudgetType}
                     onChange={(e) =>
-                      setCampaignBidStrategy(
-                        e.target.value as MetaBidStrategy,
+                      setCampaignBudgetType(
+                        e.target.value as MetaCampaignBudgetType,
                       )
                     }
                     className={inputClass}
                   >
-                    <option value="LOWEST_COST_WITHOUT_CAP">
-                      Highest volume (lowest cost)
-                    </option>
-                    <option value="LOWEST_COST_WITH_BID_CAP">
-                      Bid cap
-                    </option>
-                    <option value="COST_CAP">Cost cap</option>
+                    <option value="daily">Daily budget</option>
+                    <option value="lifetime">Lifetime budget</option>
                   </select>
                 </label>
-                <div className="text-sm">
-                  <span className="font-medium text-[#07111f]">
-                    Budget scheduling
-                  </span>
-                  <p className="mt-1 text-slate-500">None selected</p>
-                </div>
+                <label className="block flex-1 text-sm">
+                  <span className="font-medium text-[#07111f]">Amount</span>
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
+                      {currencyCode}
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={campaignBudgetAmount}
+                      onChange={(e) => setCampaignBudgetAmount(e.target.value)}
+                      className={`${inputClass} mt-0 pl-14`}
+                      placeholder="25"
+                    />
+                  </div>
+                </label>
+              </div>
+
+              {budgetHelperText ? (
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {budgetHelperText}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-xs text-slate-500">
+              Budget amounts will be set per ad set on Step 2. You can still set
+              campaign-level bid and spend options below.
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowAdvancedBudget((prev) => !prev)}
+            className="text-sm font-semibold text-[#1877F2] hover:underline"
+          >
+            {showAdvancedBudget ? "Hide settings" : "Show settings"}
+          </button>
+
+          {showAdvancedBudget ? (
+            <div className="space-y-4 rounded-xl bg-[#f4f8ff] p-4">
+              <label className="block text-sm">
+                <span className="font-medium text-[#07111f]">
+                  Campaign bid strategy
+                </span>
+                <select
+                  value={campaignBidStrategy}
+                  onChange={(e) =>
+                    setCampaignBidStrategy(
+                      e.target.value as MetaBidStrategy,
+                    )
+                  }
+                  className={inputClass}
+                >
+                  <option value="LOWEST_COST_WITHOUT_CAP">
+                    Highest volume (lowest cost)
+                  </option>
+                  <option value="LOWEST_COST_WITH_BID_CAP">
+                    Bid cap
+                  </option>
+                  <option value="COST_CAP">Cost cap</option>
+                </select>
+              </label>
+              <div className="text-sm">
+                <span className="font-medium text-[#07111f]">
+                  Budget scheduling
+                </span>
+                <p className="mt-1 text-slate-500">None selected</p>
+              </div>
                 <label className="block text-sm">
                   <span className="font-medium text-[#07111f]">
                     Campaign spend limit (optional)
                   </span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={campaignSpendLimit}
-                    onChange={(e) => setCampaignSpendLimit(e.target.value)}
-                    className={inputClass}
-                    placeholder="Optional cap"
-                  />
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
+                      {currencyCode}
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={campaignSpendLimit}
+                      onChange={(e) => setCampaignSpendLimit(e.target.value)}
+                      className={`${inputClass} mt-0 pl-14`}
+                      placeholder="Optional cap"
+                    />
+                  </div>
                 </label>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-xs text-slate-500">
-            Budget and bid strategy will be set per ad set on Step 2.
-          </p>
-        )}
+            </div>
+          ) : null}
+        </div>
       </BuilderCard>
 
       <BuilderCard title="Campaign status" icon={Flag}>

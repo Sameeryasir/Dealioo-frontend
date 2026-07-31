@@ -50,7 +50,7 @@ export const campaignTypedFieldsSchema = z
           path: ["campaignBudgetAmount"],
           message:
             parsed.error.issues[0]?.message ??
-            "Campaign budget must be at least $1.00.",
+            "Campaign budget must be at least 1.00 in your ad account currency.",
         });
       }
     }
@@ -62,7 +62,7 @@ export const campaignTypedFieldsSchema = z
           path: ["campaignSpendLimit"],
           message:
             parsed.error.issues[0]?.message ??
-            "Campaign spend limit must be at least 1.",
+            "Campaign spend limit must be at least 1.00 in your ad account currency.",
         });
       }
     }

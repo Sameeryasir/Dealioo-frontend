@@ -12,11 +12,37 @@ import {
   mapFunnelApiPagesToTemplateState,
   type FunnelByCampaignResponse,
 } from "@/app/services/funnel/get-funnel-by-campaign";
-import { fetchPublicFunnelById } from "@/app/services/funnel/get-public-funnel";
+import {
+  fetchPublicFunnelById,
+  type PublicFunnelResponse,
+  type PublicFunnelStep,
+} from "@/app/services/funnel/get-public-funnel";
 
-export function usePublicFunnelTemplatePages(funnelIdSegment: string) {
+function mergeStepPages(
+  prev: TemplatePagesState,
+  apiPages: NonNullable<FunnelByCampaignResponse["pages"]>,
+): TemplatePagesState {
+  const mapped = mapFunnelApiPagesToTemplateState(apiPages);
+  return {
+    landing: apiPages.landing ? mapped.landing : prev.landing,
+    signup: apiPages.signup ? mapped.signup : prev.signup,
+    payment: apiPages.payment ? mapped.payment : prev.payment,
+    confirmation: apiPages.confirmation
+      ? mapped.confirmation
+      : prev.confirmation,
+  };
+}
+
+export function usePublicFunnelTemplatePages(
+  funnelIdSegment: string,
+  businessId?: number | null,
+  step: PublicFunnelStep = "landing",
+) {
   const [pages, setPages] = useState<TemplatePagesState>(INITIAL_TEMPLATE_PAGES);
   const [isLoading, setIsLoading] = useState(true);
+  const [publicFunnel, setPublicFunnel] = useState<PublicFunnelResponse | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -25,32 +51,46 @@ export function usePublicFunnelTemplatePages(funnelIdSegment: string) {
     async function load() {
       setIsLoading(true);
       try {
+        const cached = await loadFunnelTemplatePagesAsync(funnelIdSegment);
+        if (!cancelled && cached) {
+          setPages(cached);
+        }
+
         if (isPositiveInt(funnelId)) {
-          const publicFunnel = await fetchPublicFunnelById(funnelId);
+          const loaded = await fetchPublicFunnelById(funnelId, {
+            businessId,
+            step,
+          });
           if (cancelled) return;
-          if (publicFunnel?.pages) {
-            const mapped = mapFunnelApiPagesToTemplateState(
-              publicFunnel.pages as NonNullable<
-                FunnelByCampaignResponse["pages"]
-              >,
-            );
-            setPages(mapped);
-            void saveFunnelTemplatePagesAsync(funnelIdSegment, mapped);
+          setPublicFunnel(loaded);
+          if (loaded?.pages) {
+            const apiPages = loaded.pages as NonNullable<
+              FunnelByCampaignResponse["pages"]
+            >;
+            setPages((prev) => {
+              const next = mergeStepPages(prev, apiPages);
+              void saveFunnelTemplatePagesAsync(funnelIdSegment, next);
+              return next;
+            });
             return;
           }
         }
 
-        const cached = await loadFunnelTemplatePagesAsync(funnelIdSegment);
         if (cancelled) return;
+        setPublicFunnel(null);
         setPages(cached ?? INITIAL_TEMPLATE_PAGES);
       } catch {
         if (cancelled) return;
         try {
           const cached = await loadFunnelTemplatePagesAsync(funnelIdSegment);
           if (cancelled) return;
+          setPublicFunnel(null);
           setPages(cached ?? INITIAL_TEMPLATE_PAGES);
         } catch {
-          if (!cancelled) setPages(INITIAL_TEMPLATE_PAGES);
+          if (!cancelled) {
+            setPublicFunnel(null);
+            setPages(INITIAL_TEMPLATE_PAGES);
+          }
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -61,7 +101,7 @@ export function usePublicFunnelTemplatePages(funnelIdSegment: string) {
     return () => {
       cancelled = true;
     };
-  }, [funnelIdSegment]);
+  }, [funnelIdSegment, businessId, step]);
 
-  return { pages, isLoading };
+  return { pages, isLoading, publicFunnel };
 }

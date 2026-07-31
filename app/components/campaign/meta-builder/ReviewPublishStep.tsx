@@ -30,6 +30,10 @@ import {
   getCreativeMediaLinks,
   getCreativePreviewUrl,
 } from "@/app/lib/meta-review-helpers";
+import {
+  DEFAULT_META_ACCOUNT_CURRENCY,
+  normalizeMetaCurrencyCode,
+} from "@/app/lib/meta-account-currency";
 
 export const PUBLISH_PROGRESS_STEPS = [
   { key: "preparing", label: "Preparing" },
@@ -54,6 +58,7 @@ type ReviewPublishStepProps = {
   campaignData: CampaignStepData;
   adSetData: AdSetStepData;
   adCreativeData: AdCreativeStepData;
+  accountCurrency?: string;
   publishing: boolean;
   publishError: string | null;
   publishStep?: string | null;
@@ -85,6 +90,7 @@ export function ReviewPublishStep({
   campaignData,
   adSetData,
   adCreativeData,
+  accountCurrency = DEFAULT_META_ACCOUNT_CURRENCY,
   publishing,
   publishError,
   publishStep = null,
@@ -97,6 +103,7 @@ export function ReviewPublishStep({
   onRefreshStatus,
   refreshingStatus = false,
 }: ReviewPublishStepProps) {
+  const currencyCode = normalizeMetaCurrencyCode(accountCurrency);
   const [facebookPageName, setFacebookPageName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -274,7 +281,11 @@ export function ReviewPublishStep({
             { label: "Buying type", value: campaignData.buyingType },
             { label: "Special ad category", value: specialCategories },
             { label: "Status", value: campaignData.status },
-            { label: "CBO budget", value: formatCboBudget(campaignData) },
+            {
+              label: "CBO budget",
+              value: formatCboBudget(campaignData, currencyCode),
+            },
+            { label: "Currency", value: currencyCode },
           ]}
         />
 
@@ -282,7 +293,10 @@ export function ReviewPublishStep({
           title="Ad set"
           rows={[
             { label: "Ad set name", value: adSetData.name },
-            { label: "Budget", value: formatAdSetBudget(campaignData, adSetData) },
+            {
+              label: "Budget",
+              value: formatAdSetBudget(campaignData, adSetData, currencyCode),
+            },
             { label: "Schedule", value: formatSchedule(adSetData) },
             { label: "Optimization goal", value: adSetData.optimizationGoal },
             { label: "Destination type", value: adSetData.destinationType },

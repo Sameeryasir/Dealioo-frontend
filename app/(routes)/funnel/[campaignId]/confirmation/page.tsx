@@ -8,13 +8,14 @@ import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 
 function FunnelCampaignConfirmationInner() {
-  const { funnelIdSegment, funnelId } = useFunnelGuestRoute();
+  const { funnelIdSegment, funnelId, businessId } = useFunnelGuestRoute();
   useFunnelStepGuard(funnelId, "confirmation");
 
   return (
     <FunnelConfirmationView
       funnelId={funnelId}
       templateStorageKey={funnelIdSegment}
+      businessId={businessId}
     />
   );
 }

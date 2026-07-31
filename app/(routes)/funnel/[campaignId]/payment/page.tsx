@@ -3,15 +3,17 @@
 import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
+import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
+import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
+import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
-import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
-import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
+import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
 
 function FunnelCampaignPaymentPageInner() {
   const router = useRouter();
@@ -41,9 +43,36 @@ function FunnelCampaignPaymentPageInner() {
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
-  const { pages, isLoading } = usePublicFunnelTemplatePages(funnelIdSegment);
+  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
+    funnelIdSegment,
+    businessId,
+    "payment",
+  );
   const payment = pages.payment;
   const landing = pages.landing;
+
+  useEffect(() => {
+    if (isPostpaid || isLoading) return;
+    if (!publicFunnel?.pixelId) return;
+
+    const currency =
+      searchParams.get("currency")?.trim().toUpperCase() || "USD";
+    const value = campaignPricing.subtotal;
+
+    trackMetaPixelEvent(
+      "InitiateCheckout",
+      {
+        ...(value != null ? { value, currency } : { currency }),
+      },
+      publicFunnel.pixelId,
+    );
+  }, [
+    isPostpaid,
+    isLoading,
+    publicFunnel?.pixelId,
+    campaignPricing.subtotal,
+    searchParams,
+  ]);
 
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
     if (!session) return null;
@@ -84,11 +113,17 @@ function FunnelCampaignPaymentPageInner() {
     Boolean(checkoutToken) && !ready && session == null;
 
   if (isPostpaid || isLoading || awaitingInitialCheckoutSession) {
-    return <FunnelPreviewSkeleton />;
+    return (
+      <>
+        <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="payment" />
+        <FunnelPreviewSkeleton />
+      </>
+    );
   }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="payment" />
       {showSetupHint ? (
         <div className="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-950">
           {checkoutError

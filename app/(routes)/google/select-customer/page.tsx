@@ -124,9 +124,9 @@ function SelectGoogleCustomerInner() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4 py-12">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-white text-[#4285F4] ring-1 ring-zinc-200">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-white px-4 py-12">
+      <div className="w-full max-w-lg rounded-2xl border border-[#e8edf5] bg-white p-8 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-white text-[#4285F4] ring-1 ring-[#e8edf5]">
           <svg viewBox="0 0 24 24" className="size-8" aria-hidden>
             <path
               fill="#4285F4"
@@ -146,10 +146,10 @@ function SelectGoogleCustomerInner() {
             />
           </svg>
         </span>
-        <h1 className="mt-5 text-center text-xl font-semibold text-zinc-900">
+        <h1 className="mt-5 text-center text-xl font-semibold text-[#07111f]">
           Choose your Google Ads account
         </h1>
-        <p className="mt-2 text-center text-sm text-zinc-600">
+        <p className="mt-2 text-center text-sm text-slate-500">
           Pick the Google Ads customer account for this business. Campaign
           stats will only come from this account.
         </p>
@@ -165,8 +165,8 @@ function SelectGoogleCustomerInner() {
         ) : null}
 
         {!error && loading ? (
-          <p className="mt-6 flex items-center justify-center gap-2 text-sm text-zinc-500">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
+          <p className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
+            <Loader2 className="size-4 animate-spin text-[#1877f2]" aria-hidden />
             Loading Google Ads accounts…
           </p>
         ) : null}
@@ -182,14 +182,14 @@ function SelectGoogleCustomerInner() {
                     onClick={() => setSelectedId(customer.id)}
                     className={`w-full cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors ${
                       selected
-                        ? "border-[#4285F4] bg-[#4285F4]/5 ring-1 ring-[#4285F4]"
-                        : "border-zinc-200 hover:border-zinc-300"
+                        ? "border-[#1877f2] bg-[#e8f2ff] ring-1 ring-[#1877f2]/40"
+                        : "border-[#e8edf5] hover:border-[#1877f2]/35 hover:bg-[#f4f8ff]"
                     }`}
                   >
-                    <p className="font-semibold text-zinc-900">
+                    <p className="font-semibold text-[#07111f]">
                       {customer.name?.trim() || "Unnamed account"}
                     </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
+                    <p className="mt-0.5 text-xs text-slate-500">
                       {customerSubtitle(customer)}
                     </p>
                   </button>
@@ -200,7 +200,7 @@ function SelectGoogleCustomerInner() {
         ) : null}
 
         {!error && !loading && customers.length === 0 ? (
-          <p className="mt-6 text-center text-sm text-zinc-600">
+          <p className="mt-6 text-center text-sm text-slate-500">
             No Google Ads accounts found for this Google login.
           </p>
         ) : null}
@@ -209,7 +209,7 @@ function SelectGoogleCustomerInner() {
           type="button"
           onClick={() => void handleSave()}
           disabled={saving || !selectedId || loading}
-          className="mt-6 w-full cursor-pointer rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 w-full cursor-pointer rounded-xl bg-[#1877f2] py-3 text-sm font-semibold text-white transition hover:bg-[#166fe0] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save Google Ads account"}
         </button>
@@ -217,7 +217,7 @@ function SelectGoogleCustomerInner() {
         <button
           type="button"
           onClick={handleSkip}
-          className="mt-3 block w-full text-center text-sm text-zinc-500 underline underline-offset-2"
+          className="mt-3 block w-full text-center text-sm font-semibold text-[#1877f2] underline underline-offset-2 hover:text-[#166fe0]"
         >
           Skip for now
         </button>
@@ -230,8 +230,8 @@ export default function SelectGoogleCustomerPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-zinc-50">
-          <p className="text-sm text-zinc-600">Loading…</p>
+        <main className="flex min-h-dvh items-center justify-center bg-white">
+          <p className="text-sm text-slate-500">Loading…</p>
         </main>
       }
     >

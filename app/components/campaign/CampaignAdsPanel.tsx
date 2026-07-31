@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
+import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-builder/MetaCampaignObjectiveDialog";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
@@ -28,6 +29,7 @@ import {
   formatMetaDeliveryStatus,
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
+import type { MetaCampaignObjective } from "@/app/lib/meta-campaign-builder-types";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import {
   getFacebookAdCampaignStats,
@@ -118,11 +120,39 @@ export function CampaignAdsPanel({
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [objectiveOpen, setObjectiveOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [selectedObjective, setSelectedObjective] =
+    useState<MetaCampaignObjective | null>(null);
+  const [builderDefaultName, setBuilderDefaultName] = useState(campaignName);
+  const [objectiveCampaignLabel, setObjectiveCampaignLabel] = useState<
+    string | null
+  >(null);
   const [campaignPendingDelete, setCampaignPendingDelete] =
     useState<FacebookAdCampaign | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
     null,
+  );
+
+  const openObjectivePicker = useCallback(
+    (fromCampaign?: FacebookAdCampaign | null) => {
+      setObjectiveCampaignLabel(fromCampaign?.name?.trim() || null);
+      setBuilderDefaultName(
+        fromCampaign?.name?.trim() || campaignName || "",
+      );
+      setSelectedObjective(null);
+      setObjectiveOpen(true);
+    },
+    [campaignName],
+  );
+
+  const handleObjectiveContinue = useCallback(
+    (objective: MetaCampaignObjective) => {
+      setSelectedObjective(objective);
+      setObjectiveOpen(false);
+      setBuilderOpen(true);
+    },
+    [],
   );
 
   const connectionPhase: ConnectionPhase = metaLoading
@@ -273,7 +303,7 @@ export function CampaignAdsPanel({
             <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2 lg:flex-nowrap">
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => openObjectivePicker()}
                 className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5] sm:w-auto"
               >
                 <Plus className="size-4 shrink-0" aria-hidden />
@@ -443,74 +473,79 @@ export function CampaignAdsPanel({
                         {campaigns.map((c) => (
                           <li
                             key={c.id}
-                            className="rounded-2xl border border-[#e8edf5]/90 bg-white p-5 shadow-sm transition hover:border-[#1877f2]/30 hover:shadow-[0_8px_22px_rgba(24,119,242,0.08)]"
+                            className="relative rounded-2xl border border-[#e8edf5]/90 bg-white shadow-sm transition hover:border-[#1877f2]/30 hover:shadow-[0_8px_22px_rgba(24,119,242,0.08)]"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-base font-semibold text-[#07111f]">
-                                  {c.name}
-                                </p>
-                                <p className="mt-0.5 font-mono text-[10px] text-slate-400">
-                                  {c.id}
-                                </p>
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openObjectivePicker(c)}
+                              className="w-full rounded-2xl p-5 pr-14 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-base font-semibold text-[#07111f]">
+                                    {c.name}
+                                  </p>
+                                  <p className="mt-0.5 font-mono text-[10px] text-slate-400">
+                                    {c.id}
+                                  </p>
+                                </div>
                                 <span
-                                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusBadgeClass(c.effectiveStatus)}`}
+                                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusBadgeClass(c.effectiveStatus)}`}
                                 >
                                   {formatMetaDeliveryStatus(c.effectiveStatus)}
                                 </span>
-                                <button
-                                  type="button"
-                                  title="Delete campaign"
-                                  disabled={deletingCampaignId === c.id}
-                                  onClick={() => setCampaignPendingDelete(c)}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                                >
-                                  {deletingCampaignId === c.id ? (
-                                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                                  ) : (
-                                    <Trash2 className="size-4" aria-hidden />
-                                  )}
-                                </button>
                               </div>
-                            </div>
 
-                            <div className="mt-4 grid grid-cols-2 gap-2">
-                              <CampaignMetric
-                                icon={Wallet}
-                                label="Spent"
-                                loading={insightsLoading}
-                                value={formatMetaSpend(c.insights?.spend, currency)}
-                              />
-                              <CampaignMetric
-                                icon={Eye}
-                                label="Impressions"
-                                loading={insightsLoading}
-                                value={formatMetaCount(c.insights?.impressions)}
-                              />
-                              <CampaignMetric
-                                icon={Users}
-                                label="Reach"
-                                loading={insightsLoading}
-                                value={formatMetaCount(c.insights?.reach)}
-                              />
-                              <CampaignMetric
-                                icon={MousePointerClick}
-                                label="Clicks"
-                                loading={insightsLoading}
-                                value={formatMetaCount(c.insights?.clicks)}
-                              />
-                            </div>
+                              <div className="mt-4 grid grid-cols-2 gap-2">
+                                <CampaignMetric
+                                  icon={Wallet}
+                                  label="Spent"
+                                  loading={insightsLoading}
+                                  value={formatMetaSpend(c.insights?.spend, currency)}
+                                />
+                                <CampaignMetric
+                                  icon={Eye}
+                                  label="Impressions"
+                                  loading={insightsLoading}
+                                  value={formatMetaCount(c.insights?.impressions)}
+                                />
+                                <CampaignMetric
+                                  icon={Users}
+                                  label="Reach"
+                                  loading={insightsLoading}
+                                  value={formatMetaCount(c.insights?.reach)}
+                                />
+                                <CampaignMetric
+                                  icon={MousePointerClick}
+                                  label="Clicks"
+                                  loading={insightsLoading}
+                                  value={formatMetaCount(c.insights?.clicks)}
+                                />
+                              </div>
 
-                            {c.dailyBudget ? (
-                              <p className="mt-3 text-xs text-slate-500">
-                                Daily budget:{" "}
-                                <span className="font-semibold text-[#07111f]">
-                                  {formatMetaDailyBudget(c.dailyBudget, currency)}
-                                </span>
-                              </p>
-                            ) : null}
+                              {c.dailyBudget ? (
+                                <p className="mt-3 text-xs text-slate-500">
+                                  Daily budget:{" "}
+                                  <span className="font-semibold text-[#07111f]">
+                                    {formatMetaDailyBudget(c.dailyBudget, currency)}
+                                  </span>
+                                </p>
+                              ) : null}
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Delete campaign"
+                              disabled={deletingCampaignId === c.id}
+                              onClick={() => setCampaignPendingDelete(c)}
+                              className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                            >
+                              {deletingCampaignId === c.id ? (
+                                <Loader2 className="size-4 animate-spin" aria-hidden />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden />
+                              )}
+                            </button>
                           </li>
                         ))}
                       </ul>
@@ -537,7 +572,7 @@ export function CampaignAdsPanel({
                     </p>
                     <button
                       type="button"
-                      onClick={() => setCreateOpen(true)}
+                      onClick={() => openObjectivePicker()}
                       className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] hover:bg-[#166fe5]"
                     >
                       <Plus className="size-4" aria-hidden />
@@ -614,12 +649,23 @@ export function CampaignAdsPanel({
         }}
       />
 
+      <MetaCampaignObjectiveDialog
+        open={objectiveOpen}
+        campaignLabel={objectiveCampaignLabel}
+        onClose={() => setObjectiveOpen(false)}
+        onContinue={handleObjectiveContinue}
+      />
+
       <MetaCampaignBuilder
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={builderOpen}
+        onClose={() => {
+          setBuilderOpen(false);
+          setSelectedObjective(null);
+        }}
         businessId={businessId}
-        defaultName={campaignName}
+        defaultName={builderDefaultName || campaignName}
         defaultWebsiteUrl={campaignWebsiteUrl}
+        initialObjective={selectedObjective}
         onDraftSaved={(draft) => {
           if (
             (draft.status === "published" ||

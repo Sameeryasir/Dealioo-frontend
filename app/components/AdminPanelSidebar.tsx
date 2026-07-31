@@ -20,6 +20,7 @@ import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
   Activity,
+  ChartColumn,
   History,
   Home,
   LogOut,
@@ -181,6 +182,15 @@ export default function AdminPanelSidebar() {
           label: "Meta",
           icon: MetaLogo,
           brandIcon: true,
+          activeMatch: "prefix",
+          permission: "meta_ads",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/ads-tracking`
+            : "/dashboard/ads-tracking",
+          label: "Ads Tracking",
+          icon: ChartColumn,
           activeMatch: "prefix",
           permission: "meta_ads",
         },
