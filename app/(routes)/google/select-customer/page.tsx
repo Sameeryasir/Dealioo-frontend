@@ -155,23 +155,33 @@ function SelectGoogleCustomerInner() {
         </p>
 
         {error ? (
-          <p
-            className="mt-6 flex items-start gap-2 text-sm text-red-700"
-            role="alert"
-          >
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {error}
-          </p>
+          <div className="mt-6 space-y-3">
+            <p
+              className="flex items-start gap-2 text-sm text-red-700"
+              role="alert"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadCustomers()}
+              disabled={loading}
+              className="w-full cursor-pointer rounded-xl border border-[#e8edf5] bg-white py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60"
+            >
+              {loading ? "Loading…" : "Try again"}
+            </button>
+          </div>
         ) : null}
 
-        {!error && loading ? (
+        {loading ? (
           <p className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
             <Loader2 className="size-4 animate-spin text-[#1877f2]" aria-hidden />
             Loading Google Ads accounts…
           </p>
         ) : null}
 
-        {!error && !loading && customers.length > 0 ? (
+        {!loading && customers.length > 0 ? (
           <ul className="mt-6 max-h-64 space-y-2 overflow-y-auto">
             {customers.map((customer) => {
               const selected = selectedId === customer.id;
@@ -199,7 +209,7 @@ function SelectGoogleCustomerInner() {
           </ul>
         ) : null}
 
-        {!error && !loading && customers.length === 0 ? (
+        {!loading && customers.length === 0 && !error ? (
           <p className="mt-6 text-center text-sm text-slate-500">
             No Google Ads accounts found for this Google login.
           </p>

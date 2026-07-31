@@ -1,6 +1,8 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
+const GOOGLE_ADS_REQUEST_TIMEOUT_MS = 45_000;
+
 export type GoogleAdsCampaignInsight = {
   spend: string | null;
   impressions: string | null;
@@ -35,6 +37,7 @@ export async function getGoogleAdsCampaignStats(
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/google-ads/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}`,
     { method: "GET" },
+    GOOGLE_ADS_REQUEST_TIMEOUT_MS,
   );
 
   if (!res.ok) {

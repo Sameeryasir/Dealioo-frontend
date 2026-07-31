@@ -1,6 +1,8 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
+const GOOGLE_ADS_REQUEST_TIMEOUT_MS = 45_000;
+
 export async function setGoogleAdsCustomer(
   restaurantId: number,
   customerId: string,
@@ -25,6 +27,7 @@ export async function setGoogleAdsCustomer(
           : {}),
       }),
     },
+    GOOGLE_ADS_REQUEST_TIMEOUT_MS,
   );
 
   if (!res.ok) {
