@@ -144,7 +144,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   };
 
   return (
-    <div className="bg-[#f4f8ff]/50 px-4 py-8 sm:px-8 sm:py-10">
+    <div className="bg-white px-4 py-8 sm:px-8 sm:py-10">
       <div className="mx-auto w-full max-w-3xl space-y-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1877f2]">

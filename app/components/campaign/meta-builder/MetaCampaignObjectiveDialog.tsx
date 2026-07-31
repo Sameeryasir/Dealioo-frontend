@@ -3,7 +3,6 @@
 import { useEffect, useId, useState } from "react";
 import {
   Check,
-  ChevronDown,
   Download,
   Filter,
   Footprints,
@@ -29,20 +28,6 @@ import type { MetaCampaignObjective } from "@/app/lib/meta-campaign-builder-type
 export type MetaObjectivePickerValue = MetaCampaignObjective | "OUTCOME_APP_PROMOTION";
 
 export type MetaBuyingType = "AUCTION";
-
-const BUYING_TYPES: {
-  id: MetaBuyingType;
-  label: string;
-  description: string;
-  supported: boolean;
-}[] = [
-  {
-    id: "AUCTION",
-    label: "Auction",
-    description: "Buy in real time with cost-effective bidding.",
-    supported: true,
-  },
-];
 
 type ObjectiveOption = {
   id: MetaObjectivePickerValue;
@@ -359,28 +344,19 @@ export function MetaCampaignObjectiveDialog({
   onContinue,
 }: MetaCampaignObjectiveDialogProps) {
   const titleId = useId();
-  const buyingTypeListId = useId();
   const [selected, setSelected] = useState<MetaObjectivePickerValue>(
     initialObjective ?? "OUTCOME_AWARENESS",
   );
-  const [buyingType, setBuyingType] = useState<MetaBuyingType>("AUCTION");
-  const [buyingTypeOpen, setBuyingTypeOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setSelected(initialObjective ?? "OUTCOME_AWARENESS");
-    setBuyingType("AUCTION");
-    setBuyingTypeOpen(false);
   }, [open, initialObjective]);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (buyingTypeOpen) {
-          setBuyingTypeOpen(false);
-          return;
-        }
         onClose();
       }
     };
@@ -391,15 +367,13 @@ export function MetaCampaignObjectiveDialog({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose, buyingTypeOpen]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   const selectedOption =
     OBJECTIVES.find((item) => item.id === selected) ?? null;
   const activeOption = selectedOption;
-  const selectedBuyingType =
-    BUYING_TYPES.find((item) => item.id === buyingType) ?? BUYING_TYPES[0];
   const canContinue =
     selectedOption != null &&
     selectedOption.supported &&
@@ -461,10 +435,7 @@ export function MetaCampaignObjectiveDialog({
             <div className="space-y-8">
               <section>
                 <div className="mb-2 flex items-center gap-1.5">
-                  <label
-                    id={`${buyingTypeListId}-label`}
-                    className="text-sm font-semibold text-[#07111f]"
-                  >
+                  <label className="text-sm font-semibold text-[#07111f]">
                     Choose a buying type
                   </label>
                   <span
@@ -474,80 +445,8 @@ export function MetaCampaignObjectiveDialog({
                     <Info className="size-3.5" aria-hidden />
                   </span>
                 </div>
-                <div className="relative">
-                  <button
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={buyingTypeOpen}
-                    aria-labelledby={`${buyingTypeListId}-label`}
-                    onClick={() => setBuyingTypeOpen((open) => !open)}
-                    className="flex w-full items-center justify-between rounded-2xl border border-[#ccd0d5] bg-white px-4 py-2.5 text-left text-sm text-[#1c1e21] transition hover:border-[#8a8d91]"
-                  >
-                    <span className="font-medium">
-                      {selectedBuyingType.label}
-                    </span>
-                    <ChevronDown
-                      className={`size-4 text-slate-500 transition ${
-                        buyingTypeOpen ? "rotate-180" : ""
-                      }`}
-                      aria-hidden
-                    />
-                  </button>
-
-                  {buyingTypeOpen ? (
-                    <div
-                      role="listbox"
-                      aria-labelledby={`${buyingTypeListId}-label`}
-                      className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-lg border border-[#ccd0d5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
-                    >
-                      {BUYING_TYPES.map((option) => {
-                        const isSelected = buyingType === option.id;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            role="option"
-                            aria-selected={isSelected}
-                            onClick={() => {
-                              setBuyingType(option.id);
-                              setBuyingTypeOpen(false);
-                            }}
-                            className={`flex w-full items-start gap-3 px-3 py-3 text-left transition ${
-                              isSelected
-                                ? "bg-[#e7f3ff]"
-                                : "bg-white hover:bg-[#f7f8fa]"
-                            }`}
-                          >
-                            <span
-                              className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                                isSelected
-                                  ? "border-[#1877f2]"
-                                  : "border-[#8a8d91]"
-                              }`}
-                              aria-hidden
-                            >
-                              {isSelected ? (
-                                <span className="size-2 rounded-full bg-[#1877f2]" />
-                              ) : null}
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block text-sm font-semibold text-[#1c1e21]">
-                                {option.label}
-                              </span>
-                              <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-                                {option.description}
-                              </span>
-                              {!option.supported ? (
-                                <span className="mt-1 block text-xs text-slate-400">
-                                  Coming soon
-                                </span>
-                              ) : null}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
+                <div className="rounded-2xl border border-[#ccd0d5] bg-[#f4f8ff] px-4 py-2.5 text-sm font-medium text-slate-500">
+                  Auction
                 </div>
               </section>
 
