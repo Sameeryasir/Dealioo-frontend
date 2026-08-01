@@ -1,9 +1,3 @@
-:global(html:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page])),
-:global(body:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page])) {
-  overflow-x: hidden;
-  background: #04060c !important;
-}
-
 .shell {
   --book-meeting-nav-height: calc(5rem + env(safe-area-inset-top, 0px));
   --book-meeting-content-gap: 1.5rem;

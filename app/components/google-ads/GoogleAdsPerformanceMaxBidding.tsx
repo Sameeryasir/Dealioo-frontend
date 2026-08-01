@@ -4,16 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   CircleHelp,
-  CirclePlay,
-  Search,
+  Plus,
   Sparkles,
   TrendingUp,
   X,
 } from "lucide-react";
+
+const CTA_OPTIONS = [
+  "Automated",
+  "Learn more",
+  "Shop now",
+  "Sign up",
+  "Contact us",
+  "Get quote",
+  "Apply now",
+  "Book now",
+] as const;
 
 const BID_FOCUS_OPTIONS = [
   "Maximize conversions",
@@ -98,9 +106,14 @@ export function GoogleAdsPerformanceMaxBidding({
   const [imagesSectionOpen, setImagesSectionOpen] = useState(true);
   const [logosSectionOpen, setLogosSectionOpen] = useState(true);
   const [businessNameSectionOpen, setBusinessNameSectionOpen] = useState(true);
-  const [previewTab, setPreviewTab] = useState<
-    "search" | "display" | "youtube" | "discover"
-  >("search");
+  const [videosSectionOpen, setVideosSectionOpen] = useState(true);
+  const [sitelinksSectionOpen, setSitelinksSectionOpen] = useState(true);
+  const [animatedClipsSectionOpen, setAnimatedClipsSectionOpen] =
+    useState(true);
+  const [ctaSectionOpen, setCtaSectionOpen] = useState(true);
+  const [sitelinkCount, setSitelinkCount] = useState(6);
+  const [callToAction, setCallToAction] =
+    useState<(typeof CTA_OPTIONS)[number]>("Automated");
   const [focus, setFocus] =
     useState<(typeof BID_FOCUS_OPTIONS)[number]>("Maximize conversions");
   const [focusMenuOpen, setFocusMenuOpen] = useState(false);
@@ -128,7 +141,16 @@ export function GoogleAdsPerformanceMaxBidding({
     setActiveStep(id);
     setFocusMenuOpen(false);
     if (id === "settings") setSettingsSub("locations");
-    if (id === "assets") setAssetSub("name");
+    if (id === "assets") {
+      setAssetSub("assets");
+      setAssetsOpen(true);
+      requestAnimationFrame(() => {
+        document.getElementById("pmax-assets-assets")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
   };
 
   const selectSettingsSub = (id: SettingsSubId) => {
@@ -177,7 +199,14 @@ export function GoogleAdsPerformanceMaxBidding({
     }
     if (activeStep === "settings") {
       setActiveStep("assets");
-      setAssetSub("name");
+      setAssetSub("assets");
+      setAssetsOpen(true);
+      requestAnimationFrame(() => {
+        document.getElementById("pmax-assets-assets")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
       return;
     }
     onNext();
@@ -743,8 +772,7 @@ export function GoogleAdsPerformanceMaxBidding({
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.9fr)]">
-                      <div className="space-y-3">
+                    <div className="mt-5 space-y-3">
                         <div className="overflow-hidden rounded-xl border border-[#dadce0]">
                           <button
                             type="button"
@@ -1089,106 +1117,204 @@ export function GoogleAdsPerformanceMaxBidding({
                             </div>
                           ) : null}
                         </div>
-                      </div>
 
-                      <aside className="rounded-xl border border-[#dadce0] bg-[#f8f9fa] p-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-light text-[#202124]">
-                            Preview
-                          </p>
-                          <div className="flex gap-3 text-xs font-light text-[#1877f2]">
-                            <button type="button" className="hover:underline">
-                              Share
-                            </button>
-                            <button type="button" className="hover:underline">
-                              View more
-                            </button>
-                          </div>
-                        </div>
-                        <div className="mt-4 flex gap-4 border-b border-[#dadce0] pb-2">
-                          {(
-                            [
-                              {
-                                id: "search" as const,
-                                label: "Search",
-                                icon: Search,
-                              },
-                              {
-                                id: "display" as const,
-                                label: "Display",
-                                icon: Activity,
-                              },
-                              {
-                                id: "youtube" as const,
-                                label: "YouTube",
-                                icon: CirclePlay,
-                              },
-                              {
-                                id: "discover" as const,
-                                label: "Discover",
-                                icon: TrendingUp,
-                              },
-                            ] as const
-                          ).map((tab) => {
-                            const Icon = tab.icon;
-                            const selected = previewTab === tab.id;
-                            return (
+                        <div className="overflow-hidden rounded-xl border border-[#dadce0]">
+                          <button
+                            type="button"
+                            onClick={() => setVideosSectionOpen((v) => !v)}
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                          >
+                            <span className="size-3.5 shrink-0 rounded-full border-2 border-[#dadce0]" />
+                            <span className="flex-1 text-sm font-light text-[#202124]">
+                              Videos (0)
+                            </span>
+                            {videosSectionOpen ? (
+                              <ChevronUp
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            ) : (
+                              <ChevronDown
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            )}
+                          </button>
+                          {videosSectionOpen ? (
+                            <div className="flex flex-wrap gap-3 border-t border-[#dadce0] px-4 py-4">
                               <button
-                                key={tab.id}
                                 type="button"
-                                onClick={() => setPreviewTab(tab.id)}
-                                className={`flex flex-col items-center gap-1 pb-2 text-[11px] font-light ${
-                                  selected
-                                    ? "border-b-2 border-[#1877f2] text-[#1877f2]"
-                                    : "text-[#5f6368]"
-                                }`}
+                                className="text-sm font-light text-[#1877f2] hover:underline"
                               >
-                                <Icon className="size-4" aria-hidden />
-                                {tab.label}
+                                + Videos
                               </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-5 flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            className="inline-flex size-8 items-center justify-center rounded-full text-[#5f6368] hover:bg-white"
-                            aria-label="Previous preview"
-                          >
-                            <ChevronLeft className="size-4" aria-hidden />
-                          </button>
-                          <div className="w-full max-w-[220px] rounded-[28px] border border-[#dadce0] bg-white p-3 shadow-sm">
-                            <div className="rounded-2xl border border-[#dadce0] bg-[#f8f9fa] p-3">
-                              <p className="text-xs font-light text-[#202124]">
-                                To unlock this format, add the following
-                                assets: 3 headlines, 2 descriptions, 1 final
-                                url.
-                              </p>
-                              <div className="mt-4 space-y-2">
-                                <div className="h-2 rounded bg-[#e8eaed]" />
-                                <div className="h-2 w-4/5 rounded bg-[#e8eaed]" />
-                                <div className="h-2 w-3/5 rounded bg-[#e8eaed]" />
-                              </div>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1.5 text-sm font-light text-[#1877f2] hover:underline"
+                              >
+                                <Sparkles className="size-3.5" aria-hidden />
+                                Generate videos
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="inline-flex size-8 items-center justify-center rounded-full text-[#5f6368] hover:bg-white"
-                            aria-label="Next preview"
-                          >
-                            <ChevronRight className="size-4" aria-hidden />
-                          </button>
+                          ) : null}
                         </div>
-                        <p className="mt-4 text-[11px] leading-relaxed text-[#5f6368]">
-                          Previews are estimates. Actual ads may vary.{" "}
+
+                        <div className="overflow-hidden rounded-xl border border-[#dadce0]">
                           <button
                             type="button"
-                            className="text-[#1877f2] hover:underline"
+                            onClick={() => setSitelinksSectionOpen((v) => !v)}
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left"
                           >
-                            Google Terms of Service
+                            <span className="size-3.5 shrink-0 rounded-full border-2 border-[#dadce0]" />
+                            <span className="flex-1 text-sm font-light text-[#202124]">
+                              Sitelinks
+                            </span>
+                            {sitelinksSectionOpen ? (
+                              <ChevronUp
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            ) : (
+                              <ChevronDown
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            )}
                           </button>
-                        </p>
-                      </aside>
+                          {sitelinksSectionOpen ? (
+                            <div className="space-y-2 border-t border-[#dadce0] px-4 py-4">
+                              {Array.from(
+                                { length: sitelinkCount },
+                                (_, index) => (
+                                  <button
+                                    key={`sitelink-${index}`}
+                                    type="button"
+                                    className="flex w-full items-center justify-between rounded-lg border border-[#dadce0] bg-white px-3 py-3 text-left transition hover:bg-[#f8f9fa]"
+                                  >
+                                    <span className="text-sm font-light text-[#202124]">
+                                      Sitelink {index + 1}
+                                    </span>
+                                    <span className="inline-flex items-center gap-2 text-xs font-light text-[#5f6368]">
+                                      Recommended
+                                      <Plus
+                                        className="size-4 text-[#5f6368]"
+                                        aria-hidden
+                                      />
+                                    </span>
+                                  </button>
+                                ),
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSitelinkCount((count) => count + 1)
+                                }
+                                className="pt-1 text-sm font-light text-[#1877f2] hover:underline"
+                              >
+                                + Sitelinks
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-[#dadce0]">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAnimatedClipsSectionOpen((v) => !v)
+                            }
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                          >
+                            <span className="size-3.5 shrink-0 rounded-full border-2 border-[#dadce0]" />
+                            <span className="flex-1 text-sm font-light text-[#202124]">
+                              Animated clips (0)
+                            </span>
+                            {animatedClipsSectionOpen ? (
+                              <ChevronUp
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            ) : (
+                              <ChevronDown
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            )}
+                          </button>
+                          {animatedClipsSectionOpen ? (
+                            <div className="flex flex-wrap gap-3 border-t border-[#dadce0] px-4 py-4">
+                              <button
+                                type="button"
+                                className="text-sm font-light text-[#1877f2] hover:underline"
+                              >
+                                + Animated clips
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1.5 text-sm font-light text-[#1877f2] hover:underline"
+                              >
+                                <Sparkles className="size-3.5" aria-hidden />
+                                Generate animated clips
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-[#dadce0]">
+                          <button
+                            type="button"
+                            onClick={() => setCtaSectionOpen((v) => !v)}
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                          >
+                            <span className="size-3.5 shrink-0 rounded-full border-2 border-[#dadce0]" />
+                            <span className="flex-1 text-sm font-light text-[#202124]">
+                              Call to action
+                            </span>
+                            {ctaSectionOpen ? (
+                              <ChevronUp
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            ) : (
+                              <ChevronDown
+                                className="size-4 text-[#5f6368]"
+                                aria-hidden
+                              />
+                            )}
+                          </button>
+                          {ctaSectionOpen ? (
+                            <div className="border-t border-[#dadce0] px-4 py-4">
+                              <label className="block max-w-sm">
+                                <span className="mb-1 block text-sm font-light text-[#202124]">
+                                  Call to action
+                                </span>
+                                <select
+                                  value={callToAction}
+                                  onChange={(e) =>
+                                    setCallToAction(
+                                      e.target
+                                        .value as (typeof CTA_OPTIONS)[number],
+                                    )
+                                  }
+                                  className="w-full rounded-md border border-[#dadce0] bg-white px-3 py-2.5 text-sm font-light text-[#202124] outline-none focus:border-[#80868b]"
+                                >
+                                  {CTA_OPTIONS.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <button
+                          type="button"
+                          className="text-sm font-light text-[#1877f2] hover:underline"
+                        >
+                          More asset types (0/7)
+                        </button>
                     </div>
                   </div>
                 ) : null}

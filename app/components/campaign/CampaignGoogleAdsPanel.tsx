@@ -561,6 +561,7 @@ export function CampaignGoogleAdsPanel({
       <GoogleAdsCreateCampaignFlow
         open={createObjectiveOpen}
         onClose={() => setCreateObjectiveOpen(false)}
+        businessId={businessId}
         adsConsoleUrl={adsConsoleUrl}
       />
     </div>

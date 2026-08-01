@@ -19,6 +19,11 @@ import {
 } from "@/app/lib/format-meta-ads";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import {
+  getDefaultSelectedMetaScopes,
+  type MetaSelectableScopeId,
+} from "@/app/lib/meta-ads-permissions";
+import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
+import {
   getFacebookAdCampaignStats,
   type FacebookAdCampaignStats,
 } from "@/app/services/facebook/get-facebook-ad-campaign-stats";
@@ -49,6 +54,9 @@ export default function CampaignGuestExperience({
   const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaConnectLoading, setMetaConnectLoading] = useState(false);
+  const [selectedScopes, setSelectedScopes] = useState<MetaSelectableScopeId[]>(
+    () => getDefaultSelectedMetaScopes(),
+  );
   const [metaError, setMetaError] = useState<string | null>(null);
   const [adStats, setAdStats] = useState<FacebookAdCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
@@ -105,11 +113,18 @@ export default function CampaignGuestExperience({
     setMetaConnectLoading(true);
     setMetaError(null);
     try {
+      if (selectedScopes.length === 0) {
+        throw new Error("Select at least one Meta Ads permission before connecting.");
+      }
       const token = getSetupAccessToken().trim();
       if (!token) {
         throw new Error("You're signed out. Sign in again.");
       }
-      const result = await connectFacebookInPopup(token, businessId);
+      const result = await connectFacebookInPopup(
+        token,
+        businessId,
+        selectedScopes,
+      );
       if (result.status === "connected") {
         const status = await refreshMetaStatus();
         if (status?.connected && status.metaAdAccountId) {
@@ -268,9 +283,17 @@ export default function CampaignGuestExperience({
             ) : null}
 
             {!metaLoading && !metaConnected ? (
-              <p className="text-sm text-zinc-600">
-                Not linked yet. Tap the button below to connect.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-600">
+                  Select permissions, then connect Meta Ads. Dealioo only
+                  requests what you check.
+                </p>
+                <MetaAdsPermissionConsent
+                  selectedScopes={selectedScopes}
+                  onChange={setSelectedScopes}
+                  disabled={metaConnectLoading}
+                />
+              </div>
             ) : null}
 
             {!metaLoading && metaConnected && !metaAdAccountId ? (
@@ -388,7 +411,11 @@ export default function CampaignGuestExperience({
             <button
               type="button"
               onClick={() => void handleConnectFacebook()}
-              disabled={metaConnectLoading || metaLoading}
+              disabled={
+                metaConnectLoading ||
+                metaLoading ||
+                selectedScopes.length === 0
+              }
               className={`${CARD_PRIMARY_ACTION_CLASS} inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {metaConnectLoading ? (
@@ -404,7 +431,7 @@ export default function CampaignGuestExperience({
                   >
                     f
                   </span>
-                  Connect with Facebook
+                  Connect Meta Ads
                 </>
               )}
             </button>

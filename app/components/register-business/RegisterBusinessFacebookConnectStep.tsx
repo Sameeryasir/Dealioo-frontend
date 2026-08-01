@@ -3,18 +3,20 @@
 import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessFacebookConnectStep.module.css";
+import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import {
+  getDefaultSelectedMetaScopes,
+  type MetaSelectableScopeId,
+} from "@/app/lib/meta-ads-permissions";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
   BarChart3,
-  Eye,
   Loader2,
-  Shield,
-  TrendingUp,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -43,27 +45,6 @@ function FacebookLogo({ className }: { className?: string }) {
   );
 }
 
-const PERMISSIONS = [
-  {
-    icon: Shield,
-    title: "Read ad performance",
-    description:
-      "This lets us fetch detailed analytics about your advertising campaigns, including reach, engagement, and conversion metrics.",
-  },
-  {
-    icon: Eye,
-    title: "View your pages",
-    description:
-      "We need to see which Facebook Pages you manage so you can select which ones to connect for advertising campaigns.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Read page engagement",
-    description:
-      "This allows us to analyze how your posts and ads are performing on your Facebook Pages, helping you understand what content resonates with your audience.",
-  },
-] as const;
-
 export default function RegisterBusinessFacebookConnectStep({
   businessId,
   onContinue,
@@ -73,9 +54,18 @@ export default function RegisterBusinessFacebookConnectStep({
   const reduced = useReducedMotion();
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedScopes, setSelectedScopes] = useState<MetaSelectableScopeId[]>(
+    () => getDefaultSelectedMetaScopes(),
+  );
 
   const handleConnect = useCallback(async () => {
     setErrorMessage(null);
+
+    if (selectedScopes.length === 0) {
+      setErrorMessage("Select at least one permission before connecting.");
+      return;
+    }
+
     setConnecting(true);
 
     try {
@@ -84,7 +74,11 @@ export default function RegisterBusinessFacebookConnectStep({
         throw new Error("You're signed out. Sign in again to connect Facebook.");
       }
 
-      const result = await connectFacebookInPopup(token, businessId);
+      const result = await connectFacebookInPopup(
+        token,
+        businessId,
+        selectedScopes,
+      );
       if (result.status === "connected") {
         onContinue();
         return;
@@ -102,7 +96,7 @@ export default function RegisterBusinessFacebookConnectStep({
     } finally {
       setConnecting(false);
     }
-  }, [businessId, onContinue]);
+  }, [businessId, onContinue, selectedScopes]);
 
   const content = (
     <div className={styles.layout}>
@@ -119,49 +113,28 @@ export default function RegisterBusinessFacebookConnectStep({
             </span>
             <h2 className={styles.title}>
               Connect{" "}
-              <span className="landing-hero-accent-blue">
-                Meta Ads
-              </span>{" "}
-              account
+              <span className="landing-hero-accent-blue">Meta Ads</span>
             </h2>
             <p className={styles.subtitle}>
               Connecting your Meta Ads account lets Dealioo track campaign
-              metrics from your Facebook and Instagram ads. This gives you
-              visibility into how your ad spend translates to guest
-              sign-ups and visits.
+              metrics from your Facebook and Instagram ads. Choose only the
+              permissions you want to grant — Dealioo will request those from
+              Meta.
             </p>
           </header>
 
-          <h3 className={styles.sectionTitle}>
-            To provide comprehensive Meta Ads analytics, we need the
-            following permissions:
-          </h3>
-
-          <ul className={styles.permissionList}>
-            {PERMISSIONS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.title} className={styles.permissionItem}>
-                  <span className={styles.permissionIcon} aria-hidden>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className={styles.permissionTitle}>{item.title}</p>
-                    <p className={styles.permissionText}>
-                      {item.description}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <MetaAdsPermissionConsent
+            selectedScopes={selectedScopes}
+            onChange={setSelectedScopes}
+            disabled={connecting}
+          />
 
           <div className={styles.privacyBox}>
             <p>
-              <strong>Your Privacy Matters:</strong> We only use these
-              permissions to provide the features you&apos;ve requested.
-              We never post to your Facebook account or access personal
-              information beyond what&apos;s necessary for analytics.
+              <strong>Your Privacy Matters:</strong> We only use the permissions
+              you select to provide the features you&apos;ve requested. We never
+              post to your Facebook account or access personal information
+              beyond what&apos;s necessary for analytics.
             </p>
           </div>
 
@@ -176,7 +149,7 @@ export default function RegisterBusinessFacebookConnectStep({
             type="button"
             className={styles.connectBtn}
             onClick={() => void handleConnect()}
-            disabled={connecting}
+            disabled={connecting || selectedScopes.length === 0}
           >
             {connecting ? (
               <>
@@ -186,7 +159,7 @@ export default function RegisterBusinessFacebookConnectStep({
             ) : (
               <>
                 <FacebookLogo className="h-4 w-4" />
-                Continue to Meta Ads
+                Connect Meta Ads
               </>
             )}
           </button>
@@ -226,10 +199,10 @@ export default function RegisterBusinessFacebookConnectStep({
             </span>
             <h3 className={styles.sidebarTitle}>Reporting</h3>
             <p className={styles.sidebarText}>
-              Once connected, Dealioo can pull in ad performance data
-              from Facebook and Instagram. This means you can see your ad
-              spend, impressions, and clicks alongside Dealioo&apos;s own
-              conversion data — all in one place.
+              Once connected, Dealioo can pull in ad performance data from
+              Facebook and Instagram. This means you can see your ad spend,
+              impressions, and clicks alongside Dealioo&apos;s own conversion
+              data — all in one place.
             </p>
           </div>
         </div>
@@ -258,7 +231,7 @@ export default function RegisterBusinessFacebookConnectStep({
           <div className={`${bookStyles.formZone} ${styles.zone}`}>
             <div className={bookStyles.progressMeta}>
               <span className={bookStyles.progressLabel}>
-                Connect Meta Ads account
+                Connect Meta Ads
               </span>
               <span className={bookStyles.progressPct}>Optional</span>
             </div>

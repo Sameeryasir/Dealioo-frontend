@@ -1,13 +1,13 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Shield } from "lucide-react";
+import { CheckCircle2, Shield } from "lucide-react";
 import {
-  buildFacebookScopeDisplayList,
   formatFacebookScopeLabel,
   parseGrantedScopes,
 } from "@/app/lib/facebook-oauth-scopes";
 
 type FacebookPermissionsPanelProps = {
+  businessId?: number | null;
   grantedScopes: string[];
   missingRequiredScopes: string[];
   requestedScopes?: string[];
@@ -17,24 +17,15 @@ type FacebookPermissionsPanelProps = {
 };
 
 const panelShellClass =
-  "mt-4 rounded-[1.1rem] border border-[#e8edf5] bg-gradient-to-b from-[#f8faff] to-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)]";
+  "mt-4 rounded-[1.1rem] border border-[#e8edf5] bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)]";
 
 export function FacebookPermissionsPanel({
   grantedScopes,
-  missingRequiredScopes,
-  requestedScopes = [],
-  requiredScopes = [],
   connected,
   loading = false,
 }: FacebookPermissionsPanelProps) {
-  const granted = parseGrantedScopes(grantedScopes);
-  const required = parseGrantedScopes(requiredScopes);
-  const scopeIds = buildFacebookScopeDisplayList({
-    requestedScopes,
-    grantedScopes,
-    requiredScopes,
-    missingRequiredScopes,
-  });
+  const granted = [...parseGrantedScopes(grantedScopes)];
+
   if (loading) {
     return (
       <div className={panelShellClass}>
@@ -43,8 +34,7 @@ export function FacebookPermissionsPanel({
     );
   }
 
-  // Only show after connect — listing requested scopes as "Not granted" is confusing.
-  if (!connected) {
+  if (!connected || granted.length === 0) {
     return null;
   }
 
@@ -65,60 +55,31 @@ export function FacebookPermissionsPanel({
       </div>
 
       <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {scopeIds.map((scopeId) => {
-          const isGranted = granted.has(scopeId);
-          const isRequired = required.has(scopeId);
-          return (
-            <li
-              key={scopeId}
-              className={`rounded-[0.95rem] border px-3 py-2.5 ${
-                isGranted
-                  ? "border-emerald-200 bg-emerald-50/80"
-                  : "border-[#e8edf5] bg-white"
-              }`}
-            >
-              <div className="flex items-start gap-2">
-                {isGranted ? (
-                  <CheckCircle2
-                    className="mt-0.5 size-4 shrink-0 text-emerald-600"
-                    aria-hidden
-                  />
-                ) : (
-                  <AlertCircle
-                    className="mt-0.5 size-4 shrink-0 text-slate-400"
-                    aria-hidden
-                  />
-                )}
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-900">
-                    {formatFacebookScopeLabel(scopeId)}
-                    {isRequired ? (
-                      <span className="ml-1.5 font-normal text-slate-500">
-                        (required)
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-0.5 break-all text-[11px] leading-relaxed text-slate-500">
-                    {scopeId}
-                  </p>
-                  <p
-                    className={`mt-1 text-[10px] font-bold uppercase tracking-wide ${
-                      isGranted ? "text-emerald-700" : "text-slate-400"
-                    }`}
-                  >
-                    {isGranted ? "Granted" : "Not granted"}
-                  </p>
-                </div>
+        {granted.map((scopeId) => (
+          <li
+            key={scopeId}
+            className="rounded-[0.95rem] border border-emerald-200 bg-emerald-50/80 px-3 py-2.5"
+          >
+            <div className="flex items-start gap-2">
+              <CheckCircle2
+                className="mt-0.5 size-4 shrink-0 text-emerald-600"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-900">
+                  {formatFacebookScopeLabel(scopeId)}
+                </p>
+                <p className="mt-0.5 break-all text-[11px] leading-relaxed text-slate-500">
+                  {scopeId}
+                </p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                  Granted
+                </p>
               </div>
-            </li>
-          );
-        })}
+            </div>
+          </li>
+        ))}
       </ul>
-
-      <p className="text-[11px] leading-relaxed text-slate-500">
-        Meta may block publishing if your account is not an Administrator on the
-        Dealioo app while it is in Development mode.
-      </p>
     </div>
   );
 }

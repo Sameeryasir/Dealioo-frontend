@@ -19,13 +19,13 @@ import { clearSetupUser } from "@/app/lib/setup-user";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
 import { BusinessGeneralSettingsForm } from "@/app/components/business/BusinessGeneralSettingsForm";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
-import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
 import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
 import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
 import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
 import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
+import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
 import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
@@ -85,22 +85,22 @@ const sectionTitles: Record<SectionId, string> = {
 // --- Integration card themes (sync with dashboard brand tones) ---
 const integrationCardThemes = {
   stripe: {
-    accent: "bg-gradient-to-r from-[#635BFF] via-[#7c3aed] to-[#635BFF]",
-    surface: "bg-gradient-to-br from-white to-[#f5f3ff]",
+    accent: "bg-[#635BFF]",
+    surface: "bg-white",
     chip: "bg-[#ede9fe] text-[#5b21b6] ring-1 ring-[#ddd6fe]",
     secondaryBtn:
       "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-3.5 text-xs font-semibold text-[#5b21b6] no-underline shadow-sm transition-all hover:border-[#c4b5fd] hover:bg-[#ede9fe]",
   },
   facebook: {
-    accent: "bg-gradient-to-r from-[#1877F2] via-[#3b82f6] to-[#1877F2]",
-    surface: "bg-gradient-to-br from-white to-[#f4f8ff]",
+    accent: "bg-[#1877F2]",
+    surface: "bg-white",
     chip: "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]",
     secondaryBtn:
       "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#bfdbfe] bg-[#e8f2ff] px-3.5 text-xs font-semibold text-[#1877f2] no-underline shadow-sm transition-all hover:border-[#93c5fd] hover:bg-[#dbeafe]",
   },
   google: {
-    accent: "bg-gradient-to-r from-[#34a853] via-[#4285F4] to-[#f77737]",
-    surface: "bg-gradient-to-br from-white to-[#f0fdf4]",
+    accent: "bg-[#34a853]",
+    surface: "bg-white",
     chip: "bg-[#ecfdf5] text-[#166534] ring-1 ring-[#bbf7d0]",
     secondaryBtn:
       "inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[#bbf7d0] bg-[#ecfdf5] px-3.5 text-xs font-semibold text-[#166534] no-underline shadow-sm transition-all hover:border-[#86efac] hover:bg-[#d1fae5]",
@@ -188,7 +188,7 @@ function IntegrationsOverview({
   ).length;
 
   return (
-    <div className="mb-4 overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-gradient-to-r from-[#f8faff] via-white to-[#fdf2f8] p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+    <div className="mb-4 overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
@@ -306,11 +306,6 @@ export function BusinessSettingsPanel({
   const [metaConnected, setMetaConnected] = useState(false);
   const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
   const [metaOauthScopes, setMetaOauthScopes] = useState<string[]>([]);
-  const [metaMissingRequiredScopes, setMetaMissingRequiredScopes] = useState<
-    string[]
-  >([]);
-  const [metaRequestedScopes, setMetaRequestedScopes] = useState<string[]>([]);
-  const [metaRequiredScopes, setMetaRequiredScopes] = useState<string[]>([]);
   const [metaStatusLoading, setMetaStatusLoading] = useState(true);
   const [metaConnectStatus, setMetaConnectStatus] = useState<ConnectStatus>("idle");
   const [metaDisconnectStatus, setMetaDisconnectStatus] = useState<ConnectStatus>("idle");
@@ -373,9 +368,6 @@ export function BusinessSettingsPanel({
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
       setMetaOauthScopes(status.metaOauthScopes ?? []);
-      setMetaMissingRequiredScopes(status.missingRequiredScopes ?? []);
-      setMetaRequestedScopes(status.requestedScopes ?? []);
-      setMetaRequiredScopes(status.requiredScopes ?? []);
     } catch (e) {
       setMetaError(
         e instanceof Error ? e.message : "Could not check Facebook connection.",
@@ -521,7 +513,6 @@ export function BusinessSettingsPanel({
       setMetaConnected(false);
       setMetaAdAccountId(null);
       setMetaOauthScopes([]);
-      setMetaMissingRequiredScopes([]);
       setMetaDisconnectStatus("idle");
     } catch (e) {
       setMetaDisconnectStatus("error");
@@ -1013,9 +1004,7 @@ export function BusinessSettingsPanel({
 
                     <FacebookPermissionsPanel
                       grantedScopes={metaOauthScopes}
-                      missingRequiredScopes={metaMissingRequiredScopes}
-                      requestedScopes={metaRequestedScopes}
-                      requiredScopes={metaRequiredScopes}
+                      missingRequiredScopes={[]}
                       connected={metaConnected}
                       loading={metaStatusLoading}
                     />
@@ -1129,7 +1118,7 @@ export function BusinessSettingsPanel({
                             disabled={
                               googleConnectStatus === "loading" || googleStatusLoading
                             }
-                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-[#34a853] to-[#4285F4] px-4 text-xs font-semibold text-white shadow-md shadow-[#34a853]/25 transition-all hover:from-[#2d9749] hover:to-[#3b78e0] hover:shadow-lg hover:shadow-[#4285F4]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285F4]/50 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#34a853] px-4 text-xs font-semibold text-white shadow-md shadow-[#34a853]/25 transition-all hover:bg-[#2d9749] hover:shadow-lg hover:shadow-[#34a853]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285F4]/50 disabled:cursor-not-allowed disabled:opacity-70"
                           >
                             {googleConnectStatus === "loading" ? (
                               <>

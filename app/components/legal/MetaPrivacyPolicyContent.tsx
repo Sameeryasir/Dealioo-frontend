@@ -15,14 +15,14 @@ const LAST_UPDATED = "June 23, 2026";
 
 const META_PERMISSIONS = [
   {
-    permission: "ads_management",
-    purpose:
-      "Create, update, and publish ad campaigns, ad sets, creatives, and ads on your behalf through the Meta Marketing API.",
-  },
-  {
     permission: "ads_read",
     purpose:
       "Read campaign performance, delivery status, and ad account details so you can review results inside Dealioo.",
+  },
+  {
+    permission: "ads_management",
+    purpose:
+      "Create, update, and publish ad campaigns, ad sets, creatives, and ads on your behalf through the Meta Marketing API.",
   },
   {
     permission: "business_management",
@@ -38,6 +38,11 @@ const META_PERMISSIONS = [
     permission: "pages_read_engagement",
     purpose:
       "Associate your Facebook Page with ads and read basic Page information required for ad delivery.",
+  },
+  {
+    permission: "public_profile",
+    purpose:
+      "Identify the Facebook user connecting the Meta Ads account to Dealioo.",
   },
 ] as const;
 

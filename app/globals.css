@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Page shells that use book-meeting styles (moved out of CSS modules for webpack purity). */
+html:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page]),
+body:has([data-book-meeting-page], [data-register-business-page], [data-plan-fit-page]) {
+  overflow-x: hidden;
+  background: #04060c !important;
+}
+
 :root {
   
   --brand-primary: #1877f2;

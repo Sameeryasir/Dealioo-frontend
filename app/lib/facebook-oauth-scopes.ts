@@ -1,8 +1,13 @@
+import { META_SCOPE_LABELS } from "@/app/lib/meta-ads-permissions";
+
 export function parseGrantedScopes(scopes: string[] | null | undefined): Set<string> {
   return new Set((scopes ?? []).map((scope) => scope.trim()).filter(Boolean));
 }
 
 export function formatFacebookScopeLabel(scopeId: string): string {
+  const catalogLabel = META_SCOPE_LABELS[scopeId];
+  if (catalogLabel) return catalogLabel;
+
   return scopeId
     .split("_")
     .filter(Boolean)

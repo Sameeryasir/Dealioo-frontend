@@ -11,6 +11,10 @@ import {
   type FacebookAdPixel,
 } from "@/app/services/facebook/get-facebook-ad-pixels";
 import {
+  getGoogleTagManagerContainers,
+  type GoogleTagManagerContainer,
+} from "@/app/services/google-ads/get-google-tag-manager-containers";
+import {
   getBusinessTracking,
   saveBusinessTracking,
 } from "@/app/services/business/business-tracking";
@@ -19,14 +23,54 @@ type AdsTrackingPanelProps = {
   businessId: number;
 };
 
+type TrackingFormSnapshot = {
+  pixelId: string;
+  gtmId: string;
+  isActive: boolean;
+};
+
+function normalizeTrackingForm(
+  pixelId: string,
+  gtmId: string,
+  isActive: boolean,
+): TrackingFormSnapshot {
+  return {
+    pixelId: pixelId.trim(),
+    gtmId: gtmId.trim(),
+    isActive,
+  };
+}
+
+function isSameTrackingForm(
+  a: TrackingFormSnapshot,
+  b: TrackingFormSnapshot,
+): boolean {
+  return (
+    a.pixelId === b.pixelId &&
+    a.gtmId === b.gtmId &&
+    a.isActive === b.isActive
+  );
+}
+
 export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [pixelId, setPixelId] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [gtmId, setGtmId] = useState("");
 
+  const [savedForm, setSavedForm] = useState<TrackingFormSnapshot>(() =>
+    normalizeTrackingForm("", "", true),
+  );
+  const [hasLoadedSaved, setHasLoadedSaved] = useState(false);
+
   const [pixels, setPixels] = useState<FacebookAdPixel[]>([]);
   const [pixelsLoading, setPixelsLoading] = useState(false);
   const [pixelsError, setPixelsError] = useState<string | null>(null);
+
+  const [gtmContainers, setGtmContainers] = useState<
+    GoogleTagManagerContainer[]
+  >([]);
+  const [gtmLoading, setGtmLoading] = useState(false);
+  const [gtmError, setGtmError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -72,12 +116,59 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     [businessId],
   );
 
+  const loadGtmContainers = useCallback(
+    (options?: { keepCurrentIfSet?: boolean; forceRefresh?: boolean }) => {
+      let cancelled = false;
+      setGtmLoading(true);
+      setGtmError(null);
+
+      void getGoogleTagManagerContainers(businessId, {
+        forceRefresh: options?.forceRefresh,
+      })
+        .then((loaded) => {
+          if (cancelled) return;
+          setGtmContainers(loaded);
+          if (loaded.length === 0) return;
+
+          setGtmId((prev) => {
+            const current = prev.trim();
+            if (options?.keepCurrentIfSet && current) return current;
+            if (current && loaded.some((c) => c.id === current)) return current;
+            if (current) return current;
+            return loaded[0]!.id;
+          });
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setGtmContainers([]);
+          setGtmError(
+            err instanceof Error
+              ? err.message
+              : "Could not load Google Tag Manager containers.",
+          );
+        })
+        .finally(() => {
+          if (!cancelled) setGtmLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    },
+    [businessId],
+  );
+
   useEffect(() => {
     let cancelled = false;
-    const cleanups: { pixels?: () => void } = {};
+    const cleanups: { pixels?: () => void; gtm?: () => void } = {};
+    setHasLoadedSaved(false);
 
     void (async () => {
       let savedPixelId = "";
+      let savedGtmId = "";
+      let nextPixelId = "";
+      let nextGtmId = "";
+      let nextIsActive = true;
 
       try {
         const saved = await getBusinessTracking(businessId);
@@ -85,28 +176,44 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
         if (saved?.pixelId?.trim()) {
           savedPixelId = saved.pixelId.trim();
-          setPixelId(savedPixelId);
+          nextPixelId = savedPixelId;
         }
         if (saved?.googleTagManagerId?.trim()) {
-          setGtmId(saved.googleTagManagerId.trim());
+          savedGtmId = saved.googleTagManagerId.trim();
+          nextGtmId = savedGtmId;
         }
         if (saved) {
-          setIsActive(saved.isActive);
+          nextIsActive = saved.isActive;
         }
       } catch {
       }
 
-      if (cancelled || savedPixelId) return;
+      if (cancelled) return;
 
-      cleanups.pixels = loadPixels();
-      if (cancelled) cleanups.pixels();
+      setPixelId(nextPixelId);
+      setGtmId(nextGtmId);
+      setIsActive(nextIsActive);
+      setSavedForm(
+        normalizeTrackingForm(nextPixelId, nextGtmId, nextIsActive),
+      );
+      setHasLoadedSaved(true);
+
+      if (!savedPixelId) {
+        cleanups.pixels = loadPixels();
+        if (cancelled) cleanups.pixels();
+      }
+      if (!savedGtmId) {
+        cleanups.gtm = loadGtmContainers();
+        if (cancelled) cleanups.gtm();
+      }
     })();
 
     return () => {
       cancelled = true;
       cleanups.pixels?.();
+      cleanups.gtm?.();
     };
-  }, [businessId, loadPixels]);
+  }, [businessId, loadPixels, loadGtmContainers]);
 
   const pixelSelectOptions = useMemo(() => {
     return pixels.map((pixel) => ({
@@ -117,6 +224,22 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     }));
   }, [pixels]);
 
+  const gtmSelectOptions = useMemo(() => {
+    return gtmContainers.map((container) => ({
+      value: container.id,
+      label: container.name?.trim()
+        ? `${container.name.trim()} (${container.id})`
+        : container.id,
+    }));
+  }, [gtmContainers]);
+
+  const currentForm = useMemo(
+    () => normalizeTrackingForm(pixelId, gtmId, isActive),
+    [pixelId, gtmId, isActive],
+  );
+  const hasUnsavedChanges =
+    hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
+
   useEffect(() => {
     if (!saveSuccess) return;
     const timer = window.setTimeout(() => setSaveSuccess(null), 2500);
@@ -124,15 +247,20 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   }, [saveSuccess]);
 
   const handleSave = async () => {
+    if (!hasUnsavedChanges || saving) return;
+
+    const payload = normalizeTrackingForm(pixelId, gtmId, isActive);
+
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
     try {
       await saveBusinessTracking(businessId, {
-        pixelId: pixelId.trim(),
-        googleTagManagerId: gtmId.trim(),
-        isActive,
+        pixelId: payload.pixelId,
+        googleTagManagerId: payload.gtmId,
+        isActive: payload.isActive,
       });
+      setSavedForm(payload);
       setSaveSuccess("Tracking IDs saved.");
     } catch (err: unknown) {
       setSaveError(
@@ -163,9 +291,10 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           <div className="flex items-start gap-2">
             <Info className="mt-0.5 size-4 shrink-0 text-[#1877f2]" aria-hidden />
             <p>
-              Saved Pixel ID loads first. Meta pixels are fetched only when no
-              Pixel ID is saved yet. You can still type one manually or use
-              Refresh from Meta. Google Tag Manager is optional.
+              Saved IDs load first. Meta pixels and Google Tag Manager
+              containers are fetched only when that ID is not saved yet. You can
+              still type IDs manually or use Refresh. Connect Google Ads in
+              Settings first to load GTM containers.
             </p>
           </div>
         </div>
@@ -268,14 +397,77 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         </section>
 
         <section className="rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#eef6ff]">
-              <GoogleAdsLogo className="size-4" />
-            </span>
-            <h3 className="text-base font-semibold text-[#07111f]">
-              Google Tag Manager
-            </h3>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#eef6ff]">
+                <GoogleAdsLogo className="size-4" />
+              </span>
+              <h3 className="text-base font-semibold text-[#07111f]">
+                Google Tag Manager
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                void loadGtmContainers({
+                  keepCurrentIfSet: true,
+                  forceRefresh: true,
+                });
+              }}
+              disabled={gtmLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
+            >
+              {gtmLoading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="size-3.5" aria-hidden />
+              )}
+              Refresh from Google
+            </button>
           </div>
+
+          {gtmLoading ? (
+            <div className="mb-3 flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="size-4 animate-spin text-[#1877f2]" aria-hidden />
+              Loading Google Tag Manager containers…
+            </div>
+          ) : null}
+
+          {gtmError ? (
+            <div
+              className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+              role="alert"
+            >
+              {gtmError} You can still enter a GTM ID manually below.
+            </div>
+          ) : null}
+
+          {gtmSelectOptions.length > 0 ? (
+            <label className="mb-3 block text-sm font-medium text-[#07111f]">
+              Container from Google account
+              <select
+                value={
+                  gtmSelectOptions.some((opt) => opt.value === gtmId)
+                    ? gtmId
+                    : ""
+                }
+                onChange={(e) => {
+                  if (e.target.value) setGtmId(e.target.value);
+                }}
+                className="mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+              >
+                <option value="" disabled>
+                  Choose a container
+                </option>
+                {gtmSelectOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
           <label className="block text-sm font-medium text-[#07111f]">
             Google Tag Manager ID
             <input
@@ -286,7 +478,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             />
           </label>
           <p className="mt-1.5 text-xs text-slate-500">
-            Google Tag Manager container ID (e.g., GTM-XXXXX). Optional.
+            Filled automatically from Google when available (e.g. GTM-XXXXX).
+            You can edit or type a different ID manually. Leave empty if not
+            used.
           </p>
         </section>
 
@@ -308,7 +502,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         <div className="flex justify-end">
           <button
             type="button"
-            disabled={saving}
+            disabled={saving || !hasUnsavedChanges}
             onClick={() => {
               void handleSave();
             }}
