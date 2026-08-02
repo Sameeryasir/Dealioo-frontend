@@ -1,4 +1,8 @@
-export type RegisterBusinessStepId = "basics" | "about" | "location";
+export type RegisterBusinessStepId =
+  | "basics"
+  | "about"
+  | "location"
+  | "number";
 
 export type RegisterBusinessStepUi = {
   lead: string;
@@ -10,6 +14,7 @@ export const REGISTER_BUSINESS_STEPS = [
   { id: "basics" as const, number: "1" },
   { id: "about" as const, number: "2" },
   { id: "location" as const, number: "3" },
+  { id: "number" as const, number: "4" },
 ] as const;
 
 export const REGISTER_BUSINESS_STEP_UI: Record<
@@ -30,5 +35,11 @@ export const REGISTER_BUSINESS_STEP_UI: Record<
     lead: "Where are you ",
     accent: "located?",
     subtitle: "Add your address and logo.",
+  },
+  number: {
+    lead: "Choose your ",
+    accent: "Twilio number",
+    subtitle:
+      "Pick the SMS number this business will use. Your business is created only after you connect one.",
   },
 };

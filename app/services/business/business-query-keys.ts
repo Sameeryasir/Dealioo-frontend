@@ -9,4 +9,6 @@ export const businessQueryKeys = {
     [...businessQueryKeys.details(), businessId] as const,
   twilioPhoneNumbers: (businessId: number) =>
     [...businessQueryKeys.all, "twilio-phone-numbers", businessId] as const,
+  availableTwilioPhoneNumbers: () =>
+    [...businessQueryKeys.all, "twilio-phone-numbers", "available"] as const,
 };

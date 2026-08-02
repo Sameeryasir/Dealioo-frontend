@@ -19,6 +19,9 @@ import {
   getBusinessOnboardingDraft,
   saveBusinessOnboardingDraft,
 } from "@/app/services/onboarding/business-draft";
+import { RegisterBusinessTwilioNumberField } from "@/app/components/register-business/RegisterBusinessTwilioNumberField";
+import { useAvailableTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
+import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
@@ -41,7 +44,10 @@ export type RegisterBusinessFormValues = {
 export type RegisterBusinessFormProps = {
   submitting: boolean;
   errorMessage: string | null;
-  onSubmit: (data: RegisterBusinessFormValues) => Promise<void>;
+  onCreateBusiness: (
+    data: RegisterBusinessFormValues,
+    twilio: TwilioPhoneNumberOption,
+  ) => Promise<void>;
 };
 
 const DEFAULT_VALUES: RegisterBusinessFormValues = {
@@ -245,7 +251,7 @@ function BusinessLogoDropField({
 export default function RegisterBusinessForm({
   submitting,
   errorMessage,
-  onSubmit,
+  onCreateBusiness,
 }: RegisterBusinessFormProps) {
   const reduced = useReducedMotion();
   const [stepIndex, setStepIndex] = useState(0);
@@ -253,13 +259,27 @@ export default function RegisterBusinessForm({
   const [stepError, setStepError] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(true);
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [selectedTwilioSid, setSelectedTwilioSid] = useState("");
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextAutosaveRef = useRef(true);
 
   const currentStep = REGISTER_BUSINESS_STEPS[stepIndex];
   const stepUi = REGISTER_BUSINESS_STEP_UI[currentStep.id as RegisterBusinessStepId];
   const progress = ((stepIndex + 1) / REGISTER_BUSINESS_STEPS.length) * 100;
-  const isLastStep = stepIndex >= REGISTER_BUSINESS_STEPS.length - 1;
+  const isLocationStep = currentStep.id === "location";
+  const isNumberStep = currentStep.id === "number";
+
+  const {
+    numbers: twilioNumbers,
+    isLoading: twilioLoading,
+    error: twilioLoadError,
+  } = useAvailableTwilioPhoneNumbersQuery({ enabled: isNumberStep });
+
+  useEffect(() => {
+    if (!isNumberStep || twilioNumbers.length === 0) return;
+    if (selectedTwilioSid) return;
+    setSelectedTwilioSid(twilioNumbers[0]?.sid ?? "");
+  }, [isNumberStep, selectedTwilioSid, twilioNumbers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -282,7 +302,9 @@ export default function RegisterBusinessForm({
           branchCount: payload.branchCount ?? prev.branchCount,
         }));
         const stepId = draft.step;
-        const idx = REGISTER_BUSINESS_STEPS.findIndex((s) => s.id === stepId);
+        const idx = REGISTER_BUSINESS_STEPS.findIndex(
+          (s) => s.id === stepId && s.id !== "number",
+        );
         if (idx >= 0) setStepIndex(idx);
       } catch {
       } finally {
@@ -298,6 +320,7 @@ export default function RegisterBusinessForm({
 
   useEffect(() => {
     if (!draftReady || skipNextAutosaveRef.current) return;
+    if (currentStep.id === "number") return;
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
 
     draftTimerRef.current = setTimeout(() => {
@@ -355,6 +378,8 @@ export default function RegisterBusinessForm({
             postalCode: snapshot.postalCode,
             country: snapshot.country,
           });
+        case "number":
+          return null;
         default:
           return null;
       }
@@ -362,41 +387,51 @@ export default function RegisterBusinessForm({
     [currentStep.id, values],
   );
 
-  const goNext = useCallback(async () => {
+  const goNext = useCallback(() => {
+    if (isNumberStep) return;
+
     const validationError = validateStep();
     if (validationError) {
       setStepError(validationError);
       return;
     }
     setStepError(null);
-
-    if (isLastStep) {
-      await onSubmit({
-        ...values,
-        branchCount: 1,
-        logoFile: values.logoFile ?? null,
-      });
-      return;
-    }
-
     setStepIndex((index) => index + 1);
-  }, [isLastStep, onSubmit, validateStep, values]);
+  }, [isNumberStep, validateStep]);
 
   const goBack = useCallback(() => {
     setStepError(null);
     setStepIndex((index) => Math.max(0, index - 1));
   }, []);
 
+  const handleCreateBusiness = useCallback(async () => {
+    const selected = twilioNumbers.find((n) => n.sid === selectedTwilioSid);
+    if (!selected) {
+      setStepError("Select a Twilio phone number to create your business.");
+      return;
+    }
+    setStepError(null);
+    await onCreateBusiness(
+      {
+        ...values,
+        branchCount: 1,
+        logoFile: values.logoFile ?? null,
+      },
+      selected,
+    );
+  }, [onCreateBusiness, selectedTwilioSid, twilioNumbers, values]);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== "Enter" || event.shiftKey) return;
+      if (isNumberStep) return;
       if (currentStep.id === "about" && event.target instanceof HTMLTextAreaElement) {
         return;
       }
       event.preventDefault();
       void goNext();
     },
-    [currentStep.id, goNext],
+    [currentStep.id, goNext, isNumberStep],
   );
 
   return (
@@ -607,6 +642,31 @@ export default function RegisterBusinessForm({
                         </div>
                       ) : null}
 
+                      {currentStep.id === "number" ? (
+                        <div className={`${bookStyles.fields} ${bookStyles.fieldsContact}`}>
+                          <div className={bookStyles.fieldFull}>
+                            <RegisterBusinessTwilioNumberField
+                              numbers={twilioNumbers}
+                              selectedSid={selectedTwilioSid}
+                              isLoading={twilioLoading}
+                              disabled={submitting}
+                              onSelect={(sid) => {
+                                setSelectedTwilioSid(sid);
+                                setStepError(null);
+                              }}
+                            />
+                          </div>
+                          <p className={bookStyles.hint}>
+                            Your business is created only after you connect a Twilio number.
+                          </p>
+                          {twilioLoadError ? (
+                            <p className={bookStyles.hint} role="status">
+                              {twilioLoadError}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       {(stepError || errorMessage) && (
                         <div className={bookStyles.error} role="alert">
                           <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
@@ -632,23 +692,37 @@ export default function RegisterBusinessForm({
                         <span className={bookStyles.actionsSpacer} aria-hidden />
                       )}
 
-                      <button
-                        type="button"
-                        className={bookStyles.nextBtn}
-                        onClick={() => void goNext()}
-                        disabled={submitting}
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            Adding business…
-                          </>
-                        ) : isLastStep ? (
-                          "Add business"
-                        ) : (
-                          "Next"
-                        )}
-                      </button>
+                      {isNumberStep ? (
+                        <button
+                          type="button"
+                          className={bookStyles.nextBtn}
+                          onClick={() => void handleCreateBusiness()}
+                          disabled={
+                            submitting ||
+                            twilioLoading ||
+                            !selectedTwilioSid ||
+                            twilioNumbers.length === 0
+                          }
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                              Creating business…
+                            </>
+                          ) : (
+                            "Create business"
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={bookStyles.nextBtn}
+                          onClick={() => goNext()}
+                          disabled={submitting}
+                        >
+                          {isLocationStep ? "Continue" : "Next"}
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 </AnimatePresence>

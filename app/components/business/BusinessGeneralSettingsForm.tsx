@@ -1,23 +1,18 @@
 "use client";
 
-/**
- * Change: Colorful business profile editor synced with dashboard brand tones.
- * Why: Page felt too plain; owners need a clear, always-visible way to save updates.
- * Related: BusinessSettingsPanel.tsx, update-business.ts, dashboard-brand-tones.ts
- * MCP Context 7: Brand colors without visual clutter; save always visible.
- */
-
 import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
+import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
-import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import {
   locationFieldMessage,
   validateBusinessLocation,
 } from "@/app/lib/business-location";
+import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
   isValidOptionalHttpsWebsiteUrl,
@@ -28,15 +23,29 @@ import { updateBusiness } from "@/app/services/business/update-business";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowUpRight,
+  Briefcase,
   Building2,
-  Camera,
+  CheckCircle2,
+  ChevronRight,
+  FileText,
+  GitBranch,
   Globe,
+  Link2,
   Loader2,
   Mail,
   MapPin,
+  MessageSquare,
+  Pencil,
   Phone,
+  ScanLine,
+  Tag,
+  Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -48,15 +57,45 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+export type BusinessProfilePreviewSection =
+  | "general"
+  | "members"
+  | "integrations";
+
 type BusinessGeneralSettingsFormProps = {
   businessId: number;
+  activeSection?: BusinessProfilePreviewSection;
 };
 
-const inputClass =
-  "brand-input h-11 w-full rounded-xl border-[#e2e8f0] bg-white py-2 text-[0.92rem] text-slate-900 shadow-sm transition focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15";
+const PREVIEW_TITLES: Record<
+  BusinessProfilePreviewSection,
+  { title: string; subtitle: string }
+> = {
+  general: {
+    title: "Business profile",
+    subtitle: "Manage your business information and settings",
+  },
+  members: {
+    title: "Members",
+    subtitle: "Invite teammates and manage access for this business",
+  },
+  integrations: {
+    title: "Integrations",
+    subtitle: "Connect Stripe, Meta, and Google Ads for this business",
+  },
+};
 
-const textareaClass =
-  "brand-input min-h-[5.5rem] w-full resize-y rounded-xl border-[#e2e8f0] bg-white py-2.5 text-[0.92rem] text-slate-900 shadow-sm transition focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15";
+// --- Exact icon color tokens from the mock ---
+const ICON = {
+  blue: { wrap: "bg-[#E8F1FF]", ink: "text-[#2F6BFF]" },
+  green: { wrap: "bg-[#E8F8EF]", ink: "text-[#22C55E]" },
+  pink: { wrap: "bg-[#FDE8F0]", ink: "text-[#E11D48]" },
+  orange: { wrap: "bg-[#FFF1E6]", ink: "text-[#F97316]" },
+  purple: { wrap: "bg-[#F3E8FF]", ink: "text-[#8B5CF6]" },
+  slate: { wrap: "bg-[#F1F5F9]", ink: "text-[#64748B]" },
+} as const;
+
+type IconTone = keyof typeof ICON;
 
 const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
@@ -74,24 +113,7 @@ type FormSnapshot = {
   branchCount: string;
 };
 
-// --- Section themes (match integrations + dashboard KPI colors) ---
-const sectionThemes = {
-  identity: {
-    accent: "bg-gradient-to-r from-[#1877f2] via-[#3b82f6] to-[#1877f2]",
-    surface: "bg-gradient-to-br from-white to-[#f4f8ff]",
-    icon: "blue" as const,
-  },
-  contact: {
-    accent: "bg-gradient-to-r from-[#34a853] via-[#22c55e] to-[#34a853]",
-    surface: "bg-gradient-to-br from-white to-[#f0fdf4]",
-    icon: "green" as const,
-  },
-  location: {
-    accent: "bg-gradient-to-r from-[#f77737] via-[#fb923c] to-[#f77737]",
-    surface: "bg-gradient-to-br from-white to-[#fff7ed]",
-    icon: "orange" as const,
-  },
-} as const;
+// --- Helpers ---
 
 function formatLocation(
   city?: string | null,
@@ -117,10 +139,6 @@ function isImageMime(mime: string): boolean {
   return mime === "image/png" || mime === "image/jpeg" || mime === "image/webp";
 }
 
-function isValidOptionalUrl(value: string): boolean {
-  return isValidOptionalHttpsWebsiteUrl(value);
-}
-
 function snapshotFromBusiness(
   business: NonNullable<ReturnType<typeof useBusinessByIdQuery>["data"]>,
 ): FormSnapshot {
@@ -138,96 +156,76 @@ function snapshotFromBusiness(
   };
 }
 
-function ColoredFormField({
-  label,
-  htmlFor,
+function formatCount(value: number): string {
+  return new Intl.NumberFormat().format(value);
+}
+
+function ToneIcon({
   icon: Icon,
   tone,
-  hint,
+  size = "md",
+}: {
+  icon: LucideIcon;
+  tone: IconTone;
+  size?: "sm" | "md";
+}) {
+  const box = size === "sm" ? "size-7 rounded-lg" : "size-8 rounded-[0.65rem]";
+  const glyph = size === "sm" ? "size-3.5" : "size-4";
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center ${box} ${ICON[tone].wrap} ${ICON[tone].ink}`}
+    >
+      <Icon className={glyph} strokeWidth={2.25} aria-hidden />
+    </span>
+  );
+}
+
+// --- Field: icon left, label + value (matches mock) ---
+
+function DetailField({
+  label,
+  htmlFor,
+  icon,
+  tone,
   error,
   children,
   className = "",
 }: {
   label: string;
   htmlFor: string;
-  icon: typeof Building2;
-  tone: keyof typeof DASHBOARD_KPI_ICON;
-  hint?: string;
+  icon: LucideIcon;
+  tone: IconTone;
   error?: string | null;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div
-      className={`rounded-[1.05rem] border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] p-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)] ${className}`}
+      className={`flex items-start gap-2.5 rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] px-3 py-2 ${className}`}
     >
-      <div className="mb-2.5 flex items-center gap-2">
-        <span
-          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${DASHBOARD_KPI_ICON[tone]}`}
-        >
-          <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-        </span>
+      <ToneIcon icon={icon} tone={tone} size="sm" />
+      <div className="min-w-0 flex-1">
         <label
           htmlFor={htmlFor}
-          className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500"
+          className="m-0 block text-[0.65rem] font-medium text-slate-500"
         >
           {label}
         </label>
+        <div className="mt-0.5">{children}</div>
+        {error ? (
+          <p className="m-0 mt-0.5 text-[0.65rem] text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
-      {children}
-      {error ? (
-        <p className="m-0 mt-2 text-[0.72rem] leading-relaxed text-red-600" role="alert">
-          {error}
-        </p>
-      ) : hint ? (
-        <p className="m-0 mt-2 text-[0.72rem] leading-relaxed text-slate-400">
-          {hint}
-        </p>
-      ) : null}
     </div>
   );
 }
 
-function SettingsSection({
-  theme,
-  title,
-  description,
-  icon: Icon,
-  children,
-}: {
-  theme: keyof typeof sectionThemes;
-  title: string;
-  description: string;
-  icon: typeof Building2;
-  children: ReactNode;
-}) {
-  const t = sectionThemes[theme];
-  return (
-    <section
-      className={`overflow-hidden rounded-[1.25rem] border border-[#e8edf5] shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${t.surface}`}
-    >
-      <div className={`h-1.5 w-full ${t.accent}`} aria-hidden />
-      <header className="border-b border-[#e8edf5]/80 px-5 py-4 sm:px-6">
-        <div className="flex items-start gap-3">
-          <span
-            className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${DASHBOARD_KPI_ICON[t.icon]}`}
-          >
-            <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-          </span>
-          <div>
-            <h3 className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
-              {title}
-            </h3>
-            <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
-              {description}
-            </p>
-          </div>
-        </div>
-      </header>
-      <div className="space-y-4 p-5 sm:p-6">{children}</div>
-    </section>
-  );
-}
+const fieldInputClass =
+  "w-full border-0 bg-transparent p-0 text-[0.86rem] font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
+
+// --- Logo ---
 
 function BusinessLogoAvatar({
   disabled,
@@ -280,45 +278,42 @@ function BusinessLogoAvatar({
     [onFile],
   );
 
-  const onChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      validateAndSet(event.target.files?.[0] ?? null, event.target);
-    },
-    [validateAndSet],
-  );
-
   return (
-    <div className="shrink-0">
+    <div className="flex shrink-0 flex-col items-center">
       <input
         ref={inputRef}
         type="file"
         accept={ACCEPT_IMAGES}
         className="hidden"
         disabled={disabled}
-        onChange={onChange}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          validateAndSet(event.target.files?.[0] ?? null, event.target);
+        }}
       />
 
       <button
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        className="group relative size-[5.5rem] cursor-pointer overflow-hidden rounded-full border-2 border-white bg-[#e8f2ff] shadow-[0_8px_24px_rgba(24,119,242,0.2)] ring-2 ring-[#bfdbfe] transition hover:ring-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60 sm:size-[6.5rem]"
-        aria-label="Change business logo"
+        className="group relative size-[5.5rem] cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 xl:size-[6.25rem]"
+        aria-label="Upload business logo"
       >
-        {displayUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displayUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-contain p-1.5"
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#1877f2]">
-            {initials}
-          </span>
-        )}
-        <span className="absolute inset-0 flex items-center justify-center bg-[#1877f2]/70 opacity-0 transition group-hover:opacity-100">
-          <Camera className="size-5 text-white" strokeWidth={2} aria-hidden />
+        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-[0_8px_22px_rgba(15,23,42,0.1)] ring-1 ring-[#E2E8F0] transition group-hover:ring-[#2F6BFF]/35 group-focus-visible:ring-4 group-focus-visible:ring-[#2F6BFF]/25 xl:p-2.5">
+          {displayUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={displayUrl}
+              alt=""
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center rounded-xl bg-[#0B2340] text-lg font-bold tracking-wide text-white/90">
+              {initials}
+            </span>
+          )}
+        </span>
+        <span className="absolute -bottom-1.5 -right-1.5 z-10 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-white text-slate-500 shadow-md">
+          <Pencil className="size-3" strokeWidth={2.5} aria-hidden />
         </span>
       </button>
 
@@ -329,19 +324,24 @@ function BusinessLogoAvatar({
             if (inputRef.current) inputRef.current.value = "";
             onFile(null);
           }}
-          className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 text-[0.68rem] font-semibold text-[#e1306c] transition hover:text-[#be185d]"
+          className="mt-2 inline-flex cursor-pointer items-center gap-0.5 text-[0.78rem] font-semibold text-[#E11D48]"
         >
           <X className="size-3" aria-hidden />
-          Undo logo change
+          Undo
         </button>
       ) : (
-        <p className="m-0 mt-2 max-w-[6.5rem] text-center text-[0.65rem] font-semibold leading-snug text-[#1877f2]">
-          Click to upload logo
-        </p>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          className="mt-2 cursor-pointer text-[0.82rem] font-semibold text-[#2F6BFF] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Upload logo
+        </button>
       )}
 
       {localError ? (
-        <p className="mt-1 max-w-[6.5rem] text-center text-[0.65rem] text-red-600">
+        <p className="mt-0.5 max-w-[6.5rem] text-center text-[0.65rem] text-red-600">
           {localError}
         </p>
       ) : null}
@@ -351,8 +351,18 @@ function BusinessLogoAvatar({
 
 export function BusinessGeneralSettingsForm({
   businessId,
+  activeSection = "general",
 }: BusinessGeneralSettingsFormProps) {
   const queryClient = useQueryClient();
+  const detailsRef = useRef<HTMLElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const previewSection: BusinessProfilePreviewSection =
+    activeSection === "members" || activeSection === "integrations"
+      ? activeSection
+      : "general";
+  const isProfileView = previewSection === "general";
+  const previewMeta = PREVIEW_TITLES[previewSection];
+
   const { data: business, isPending, error } = useBusinessByIdQuery(businessId);
 
   const [form, setForm] = useState<FormSnapshot>({
@@ -387,6 +397,7 @@ export function BusinessGeneralSettingsForm({
   const logoSrc = resolveUploadImageUrl(business?.logoUrl ?? null);
   const locationLabel = formatLocation(form.city, form.state, form.country);
   const displayName = formatTitleCase(form.name.trim() || "Your business");
+  const twilioNumber = business?.twilioPhoneNumber?.trim() || "";
 
   const hasChanges = useMemo(() => {
     if (!baseline) return false;
@@ -410,10 +421,13 @@ export function BusinessGeneralSettingsForm({
     if (!form.phoneNumber.trim() || !isValidPhoneNumber(form.phoneNumber)) {
       return false;
     }
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    if (
+      form.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+    ) {
       return false;
     }
-    if (!isValidOptionalUrl(form.websiteUrl)) return false;
+    if (!isValidOptionalHttpsWebsiteUrl(form.websiteUrl)) return false;
     if (
       validateBusinessLocation({
         city: form.city,
@@ -434,6 +448,11 @@ export function BusinessGeneralSettingsForm({
     setForm(baseline);
     setLogoFile(null);
     setFormError(null);
+  };
+
+  const focusDetails = () => {
+    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    window.setTimeout(() => nameInputRef.current?.focus(), 200);
   };
 
   const handleSave = async () => {
@@ -495,17 +514,55 @@ export function BusinessGeneralSettingsForm({
     }
   };
 
-  if (isPending) {
+  // --- Business summary from GET /business/:id (with live usage while editing) ---
+  const totalCampaigns = business?.summary?.totalCampaigns ?? 0;
+  const totalCustomers = business?.summary?.totalCustomers ?? 0;
+  const activeAutomations = business?.summary?.activeAutomations ?? 0;
+  const usagePercent = useMemo(() => {
+    // Keep the bar in sync while the owner edits fields before save.
+    const checks = [
+      form.name.trim(),
+      form.phoneNumber.trim(),
+      form.email.trim(),
+      form.websiteUrl.trim(),
+      form.city.trim(),
+      form.country.trim(),
+      form.description.trim(),
+      Boolean(logoSrc || logoFile),
+    ];
+    const filled = checks.filter(Boolean).length;
+    const live = Math.round((filled / checks.length) * 100);
+    if (hasChanges) return live;
+    return business?.summary?.monthlyUsagePercent ?? live;
+  }, [business?.summary?.monthlyUsagePercent, form, hasChanges, logoFile, logoSrc]);
+
+  const quickActions = [
+    {
+      id: "members" as const,
+      href: businessSettingsHref(businessId, "members"),
+      label: "Manage members",
+      icon: Users,
+      tone: "green" as const,
+    },
+    {
+      id: "integrations" as const,
+      href: businessSettingsHref(businessId, "integrations"),
+      label: "Integrations",
+      icon: Link2,
+      tone: "pink" as const,
+    },
+  ];
+
+  if (isProfileView && isPending) {
     return (
-      <div className="space-y-4" aria-busy="true">
-        <Skeleton funnel className="h-36 w-full rounded-[1.25rem]" />
-        <Skeleton funnel className="h-64 w-full rounded-[1.25rem]" />
-        <Skeleton funnel className="h-48 w-full rounded-[1.25rem]" />
+      <div className="grid h-full gap-3 lg:grid-cols-[minmax(0,1fr)_17.5rem]" aria-busy="true">
+        <Skeleton funnel className="h-full w-full rounded-2xl" />
+        <Skeleton funnel className="h-full w-full rounded-2xl" />
       </div>
     );
   }
 
-  if (error) {
+  if (isProfileView && error) {
     return (
       <div
         role="alert"
@@ -517,325 +574,436 @@ export function BusinessGeneralSettingsForm({
     );
   }
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-4">
-      {/* --- Identity header with brand gradient --- */}
-      <section className="overflow-hidden rounded-[1.25rem] border border-[#e8edf5] bg-gradient-to-br from-white via-[#f8faff] to-[#fdf2f8] shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-        <div
-          className="h-1.5 w-full bg-gradient-to-r from-[#1877f2] via-[#e1306c] to-[#34a853]"
-          aria-hidden
-        />
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <BusinessLogoAvatar
-              disabled={saving}
-              previewUrl={logoSrc}
-              file={logoFile}
-              businessName={form.name}
-              onFile={setLogoFile}
-            />
+  const profileMain = (
+    <>
+          {/* Overview card — exact mock */}
+          <section className="shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5">
+            <div className="flex items-start gap-5">
+              <BusinessLogoAvatar
+                disabled={saving}
+                previewUrl={logoSrc}
+                file={logoFile}
+                businessName={form.name}
+                onFile={setLogoFile}
+              />
 
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-                Public profile
-              </p>
-              <h3 className="m-0 mt-1 text-[clamp(1.35rem,2.5vw,1.75rem)] font-extrabold tracking-tight text-slate-900">
-                {displayName}
-              </h3>
-              <p className="m-0 mt-1 max-w-prose text-sm leading-relaxed text-slate-600">
-                {form.description.trim() ||
-                  "Add a short description so customers know what you offer."}
-              </p>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      Business name
+                    </p>
+                    <h2 className="m-0 mt-1 truncate text-[1.35rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.5rem]">
+                      {displayName}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={focusDetails}
+                    className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[0.8rem] font-semibold text-slate-700 transition hover:bg-[#F8FAFC]"
+                  >
+                    <Pencil className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    Edit profile
+                  </button>
+                </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-semibold text-[#1877f2] ring-1 ring-[#bfdbfe]">
-                  <MapPin className="size-3 shrink-0" strokeWidth={2.25} />
-                  <span className="truncate">{locationLabel}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[0.72rem] font-semibold text-[#166534] ring-1 ring-[#bbf7d0]">
-                  <Building2 className="size-3 shrink-0" strokeWidth={2.25} />
-                  {form.branchCount}{" "}
-                  {Number(form.branchCount) === 1 ? "branch" : "branches"}
-                </span>
-                {hasChanges ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff7ed] px-2.5 py-1 text-[0.72rem] font-bold text-[#c2410c] ring-1 ring-[#fed7aa]">
-                    <span className="size-1.5 rounded-full bg-[#f77737]" />
-                    Unsaved
+                <p className="m-0 mt-2 line-clamp-2 text-[0.88rem] leading-relaxed text-slate-500">
+                  {form.description.trim() ||
+                    "Add a short description so customers know what you offer."}
+                </p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-x-0 gap-y-1.5 text-[0.82rem] text-slate-600">
+                  <span className="inline-flex min-w-0 items-center gap-1.5 pr-3">
+                    <MapPin
+                      className="size-3.5 shrink-0 text-slate-400"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                    <span className="truncate">{locationLabel}</span>
                   </span>
-                ) : null}
+                  <span className="hidden h-3.5 w-px bg-[#E5E7EB] sm:block" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5 sm:pl-3">
+                    <GitBranch
+                      className="size-3.5 shrink-0 text-slate-400"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                    {form.branchCount}{" "}
+                    {Number(form.branchCount) === 1 ? "branch" : "branches"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <SettingsSection
-        theme="identity"
-        title="Business details"
-        description="Core information customers see on your dashboard and campaigns."
-        icon={Building2}
-      >
-        <ColoredFormField
-          label="Business name"
-          htmlFor="business-settings-name"
-          icon={Building2}
-          tone="blue"
-        >
-          <input
-            id="business-settings-name"
-            className={inputClass}
-            value={form.name}
-            onChange={(e) => patchForm({ name: e.target.value })}
-            autoComplete="organization"
-          />
-        </ColoredFormField>
-
-        <ColoredFormField
-          label="Description"
-          htmlFor="business-settings-description"
-          icon={Building2}
-          tone="green"
-          hint="One or two sentences is enough."
-        >
-          <textarea
-            id="business-settings-description"
-            className={textareaClass}
-            value={form.description}
-            onChange={(e) => patchForm({ description: e.target.value })}
-            placeholder="What makes your business stand out?"
-          />
-        </ColoredFormField>
-
-        <ColoredFormField
-          label="Branches"
-          htmlFor="business-settings-branches"
-          icon={Building2}
-          tone="orange"
-        >
-          <input
-            id="business-settings-branches"
-            type="number"
-            min={1}
-            className={`${inputClass} max-w-[8rem]`}
-            value={form.branchCount}
-            onChange={(e) => patchForm({ branchCount: e.target.value })}
-          />
-        </ColoredFormField>
-      </SettingsSection>
-
-      <SettingsSection
-        theme="contact"
-        title="Contact"
-        description="How customers and your team reach this business."
-        icon={Phone}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ColoredFormField
-            label="Phone"
-            htmlFor="business-settings-phone"
-            icon={Phone}
-            tone="green"
+          {/* Business details — exact mock fields */}
+          <section
+            ref={detailsRef}
+            id="business-details"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
           >
-            <BookMeetingPhoneInput
-              value={form.phoneNumber}
-              onChange={(value) => patchForm({ phoneNumber: value })}
-            />
-          </ColoredFormField>
-
-          <ColoredFormField
-            label="Email"
-            htmlFor="business-settings-email"
-            icon={Mail}
-            tone="pink"
-          >
-            <input
-              id="business-settings-email"
-              type="email"
-              className={inputClass}
-              value={form.email}
-              onChange={(e) => patchForm({ email: e.target.value })}
-              autoComplete="email"
-              placeholder="business@email.com"
-            />
-          </ColoredFormField>
-        </div>
-
-        <ColoredFormField
-          label="Website"
-          htmlFor="business-settings-website"
-          icon={Globe}
-          tone="blue"
-          hint="Must start with https:// (e.g. https://example.com)."
-          error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
-        >
-          <input
-            id="business-settings-website"
-            type="url"
-            inputMode="url"
-            className={inputClass}
-            value={form.websiteUrl}
-            onChange={(e) => patchForm({ websiteUrl: e.target.value })}
-            placeholder="https://yourbusiness.com"
-            aria-invalid={optionalHttpsWebsiteUrlMessage(form.websiteUrl) != null}
-          />
-        </ColoredFormField>
-      </SettingsSection>
-
-      <SettingsSection
-        theme="location"
-        title="Location"
-        description="Shown on your dashboard and in location-based campaigns."
-        icon={MapPin}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ColoredFormField
-            label="City"
-            htmlFor="business-settings-city"
-            icon={MapPin}
-            tone="blue"
-            error={locationFieldMessage("city", form.city)}
-          >
-            <input
-              id="business-settings-city"
-              className={inputClass}
-              value={form.city}
-              onChange={(e) => patchForm({ city: e.target.value })}
-              placeholder="Islamabad"
-              autoComplete="address-level2"
-              aria-invalid={locationFieldMessage("city", form.city) != null}
-            />
-          </ColoredFormField>
-
-          <ColoredFormField
-            label="State / province"
-            htmlFor="business-settings-state"
-            icon={MapPin}
-            tone="green"
-            error={locationFieldMessage("state", form.state)}
-          >
-            <input
-              id="business-settings-state"
-              className={inputClass}
-              value={form.state}
-              onChange={(e) => patchForm({ state: e.target.value })}
-              placeholder="Punjab"
-              autoComplete="address-level1"
-              aria-invalid={locationFieldMessage("state", form.state) != null}
-            />
-          </ColoredFormField>
-
-          <ColoredFormField
-            label="Country"
-            htmlFor="business-settings-country"
-            icon={MapPin}
-            tone="pink"
-            error={locationFieldMessage("country", form.country)}
-          >
-            <input
-              id="business-settings-country"
-              className={inputClass}
-              value={form.country}
-              onChange={(e) => patchForm({ country: e.target.value })}
-              placeholder="Pakistan"
-              autoComplete="country-name"
-              aria-invalid={locationFieldMessage("country", form.country) != null}
-            />
-          </ColoredFormField>
-
-          <ColoredFormField
-            label="Postal code"
-            htmlFor="business-settings-postal"
-            icon={MapPin}
-            tone="orange"
-            error={locationFieldMessage("postalCode", form.postalCode)}
-          >
-            <input
-              id="business-settings-postal"
-              className={inputClass}
-              value={form.postalCode}
-              onChange={(e) => patchForm({ postalCode: e.target.value })}
-              placeholder="44000"
-              autoComplete="postal-code"
-              aria-invalid={
-                locationFieldMessage("postalCode", form.postalCode) != null
-              }
-            />
-          </ColoredFormField>
-        </div>
-      </SettingsSection>
-
-      {formError ? (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" strokeWidth={2.25} />
-          <span>{formError}</span>
-        </div>
-      ) : null}
-
-      {/* --- Always-visible save bar so update is obvious --- */}
-      <div className="sticky bottom-3 z-10">
-        <div
-          className={`flex flex-wrap items-center justify-between gap-3 rounded-[1.15rem] border px-4 py-3.5 shadow-[0_12px_32px_rgba(15,23,42,0.1)] backdrop-blur-md sm:px-5 ${
-            hasChanges
-              ? "border-[#bfdbfe] bg-gradient-to-r from-white via-[#f8faff] to-white"
-              : "border-[#e8edf5] bg-white/95"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {hasChanges ? (
-              <>
-                <span
-                  className="size-2 shrink-0 rounded-full bg-[#f77737]"
-                  aria-hidden
-                />
-                <p className="m-0 text-sm font-semibold text-slate-700">
-                  You have unsaved changes
+            <header className="flex shrink-0 items-center gap-3 px-5 py-3.5 xl:px-6">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F1FF] text-[#2F6BFF]">
+                <Building2 className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h3 className="m-0 text-[1rem] font-bold text-[#0F172A]">
+                  Business details
+                </h3>
+                <p className="m-0 mt-0.5 text-[0.78rem] text-slate-500">
+                  Core information about your business
                 </p>
-              </>
-            ) : (
-              <>
-                <span
-                  className="size-2 shrink-0 rounded-full bg-[#34a853]"
-                  aria-hidden
-                />
-                <p className="m-0 text-sm text-slate-500">
-                  Profile is up to date — edit any field to update
-                </p>
-              </>
-            )}
-          </div>
+              </div>
+            </header>
 
-          <div className="flex flex-wrap gap-2">
-            {hasChanges ? (
-              <button
-                type="button"
-                onClick={handleDiscard}
-                disabled={saving}
-                className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-[#e2e8f0] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60"
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-hidden px-5 pb-3 xl:px-6">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <DetailField
+                  label="Business name"
+                  htmlFor="business-settings-name"
+                  icon={Building2}
+                  tone="slate"
+                >
+                  <input
+                    ref={nameInputRef}
+                    id="business-settings-name"
+                    className={fieldInputClass}
+                    value={form.name}
+                    onChange={(e) => patchForm({ name: e.target.value })}
+                    autoComplete="organization"
+                    placeholder="Your business name"
+                  />
+                </DetailField>
+
+                <DetailField
+                  label="Phone number"
+                  htmlFor="business-settings-phone"
+                  icon={Phone}
+                  tone="slate"
+                >
+                  <BookMeetingPhoneInput
+                    value={form.phoneNumber}
+                    onChange={(value) => patchForm({ phoneNumber: value })}
+                    wrapClassName="!gap-1 [&_input]:!text-[0.86rem] [&_input]:!font-semibold"
+                  />
+                </DetailField>
+
+                {twilioNumber ? (
+                  <DetailField
+                    label="Twilio number"
+                    htmlFor="business-settings-twilio"
+                    icon={MessageSquare}
+                    tone="slate"
+                  >
+                    <p
+                      id="business-settings-twilio"
+                      className={`${fieldInputClass} m-0`}
+                    >
+                      {twilioNumber}
+                    </p>
+                  </DetailField>
+                ) : null}
+
+                <DetailField
+                  label="Email address"
+                  htmlFor="business-settings-email"
+                  icon={Mail}
+                  tone="slate"
+                >
+                  <input
+                    id="business-settings-email"
+                    type="email"
+                    className={fieldInputClass}
+                    value={form.email}
+                    onChange={(e) => patchForm({ email: e.target.value })}
+                    autoComplete="email"
+                    placeholder="business@email.com"
+                  />
+                </DetailField>
+
+                <DetailField
+                  label="Website"
+                  htmlFor="business-settings-website"
+                  icon={Globe}
+                  tone="slate"
+                  error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
+                >
+                  <input
+                    id="business-settings-website"
+                    type="url"
+                    inputMode="url"
+                    className={fieldInputClass}
+                    value={form.websiteUrl}
+                    onChange={(e) => patchForm({ websiteUrl: e.target.value })}
+                    placeholder="https://yourbusiness.com"
+                  />
+                </DetailField>
+
+                {/* Mock labels; values still save as city / country (API fields). */}
+                <DetailField
+                  label="Business category"
+                  htmlFor="business-settings-city"
+                  icon={Tag}
+                  tone="slate"
+                  error={locationFieldMessage("city", form.city)}
+                >
+                  <input
+                    id="business-settings-city"
+                    className={fieldInputClass}
+                    value={form.city}
+                    onChange={(e) => patchForm({ city: e.target.value })}
+                    placeholder="e.g. Marketing Agency"
+                  />
+                </DetailField>
+
+                <DetailField
+                  label="Industry"
+                  htmlFor="business-settings-country"
+                  icon={Briefcase}
+                  tone="slate"
+                  error={locationFieldMessage("country", form.country)}
+                >
+                  <input
+                    id="business-settings-country"
+                    className={fieldInputClass}
+                    value={form.country}
+                    onChange={(e) => patchForm({ country: e.target.value })}
+                    placeholder="e.g. Digital Marketing"
+                  />
+                </DetailField>
+              </div>
+
+              <DetailField
+                label="Business description"
+                htmlFor="business-settings-description"
+                icon={FileText}
+                tone="slate"
               >
-                Discard
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={!canSave || saving}
-              className="inline-flex h-11 min-w-[11.5rem] cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-6 text-sm font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" strokeWidth={2.25} />
-                  Saving…
-                </>
-              ) : (
-                "Save business profile"
-              )}
-            </button>
-          </div>
-        </div>
+                <textarea
+                  id="business-settings-description"
+                  rows={3}
+                  className={`${fieldInputClass} min-h-[3.25rem] resize-none leading-relaxed`}
+                  value={form.description}
+                  onChange={(e) => patchForm({ description: e.target.value })}
+                  placeholder="What makes your business stand out?"
+                />
+              </DetailField>
+
+              {formError ? (
+                <div
+                  role="alert"
+                  className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[0.72rem] text-red-700"
+                >
+                  <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              ) : null}
+            </div>
+
+            <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-[#E8EDF5] px-5 py-3 xl:px-6">
+              <div className="flex min-w-0 items-center gap-2">
+                {hasChanges ? (
+                  <>
+                    <span className="size-2 shrink-0 rounded-full bg-[#F97316]" />
+                    <p className="m-0 truncate text-[0.84rem] font-medium text-slate-700">
+                      Unsaved changes
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2
+                      className="size-4 shrink-0 text-[#22C55E]"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                    <p className="m-0 truncate text-[0.84rem] text-slate-500">
+                      Profile is up to date
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="flex shrink-0 gap-2">
+                {hasChanges ? (
+                  <button
+                    type="button"
+                    onClick={handleDiscard}
+                    disabled={saving}
+                    className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[0.84rem] font-semibold text-slate-600 disabled:opacity-60"
+                  >
+                    Discard
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={!canSave || saving}
+                  className="inline-flex h-10 min-w-[8.25rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#2F6BFF] px-5 text-[0.84rem] font-bold text-white shadow-[0_6px_14px_rgba(47,107,255,0.28)] transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save changes"
+                  )}
+                </button>
+              </div>
+            </footer>
+          </section>
+    </>
+  );
+
+  const previewMain = (
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8EDF5] px-4 py-3 sm:px-5">
+        <Link
+          href={businessSettingsHref(businessId, "general")}
+          className="inline-flex items-center gap-1.5 text-[0.8rem] font-semibold text-[#2F6BFF] no-underline hover:underline"
+        >
+          <ArrowLeft className="size-3.5" strokeWidth={2.25} aria-hidden />
+          Back to profile
+        </Link>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        {previewSection === "members" ? (
+          <BusinessMembersPanel businessId={businessId} embedded />
+        ) : null}
+        {previewSection === "integrations" ? (
+          <BusinessIntegrationsPanel businessId={businessId} />
+        ) : null}
       </div>
+    </section>
+  );
+
+  return (
+    <div className="business-profile-fit flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="mb-3 shrink-0">
+        <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.7rem]">
+          {previewMeta.title}
+        </h1>
+        <p className="m-0 mt-1 text-[0.88rem] text-slate-500">
+          {previewMeta.subtitle}
+        </p>
+      </header>
+
+      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.25rem] xl:gap-3.5">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+          {isProfileView ? profileMain : previewMain}
+        </div>
+
+        <aside className="flex min-h-0 flex-col gap-2.5 overflow-hidden xl:gap-3">
+          <section className="shrink-0 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+            <header className="border-b border-[#E8EDF5] px-3.5 py-2.5">
+              <h3 className="m-0 text-[0.86rem] font-bold text-[#0F172A]">
+                Quick actions
+              </h3>
+            </header>
+            <ul className="m-0 list-none p-1.5">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                const selected = previewSection === action.id;
+                return (
+                  <li key={action.href}>
+                    <Link
+                      href={action.href}
+                      className={`flex items-center gap-2.5 rounded-xl px-2 py-2 text-[0.8rem] font-semibold no-underline transition ${
+                        selected
+                          ? "bg-[#F1F5F9] text-[#0F172A]"
+                          : "text-slate-700 hover:bg-[#F8FAFC]"
+                      }`}
+                      aria-current={selected ? "page" : undefined}
+                    >
+                      <ToneIcon icon={Icon} tone={action.tone} size="sm" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {action.label}
+                      </span>
+                      <ChevronRight
+                        className="size-3.5 shrink-0 text-slate-300"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+            <header className="flex items-center gap-2 border-b border-[#E8EDF5] px-3.5 py-2.5">
+              <ToneIcon icon={ScanLine} tone="blue" size="sm" />
+              <h3 className="m-0 text-[0.86rem] font-bold text-[#0F172A]">
+                Business summary
+              </h3>
+            </header>
+            <div className="space-y-2.5 px-3.5 py-3">
+              <SummaryRow
+                label="Total campaigns"
+                value={formatCount(totalCampaigns)}
+              />
+              <SummaryRow
+                label="Total customers"
+                value={formatCount(totalCustomers)}
+              />
+              <SummaryRow
+                label="Active automations"
+                value={formatCount(activeAutomations)}
+              />
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="m-0 text-[0.78rem] text-slate-500">
+                    Monthly usage
+                  </p>
+                  <p className="m-0 text-[0.78rem] font-bold text-[#0F172A]">
+                    {usagePercent}% of limit
+                  </p>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#E8EDF5]">
+                  <div
+                    className="h-full rounded-full bg-[#2F6BFF] transition-[width]"
+                    style={{ width: `${usagePercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  loading,
+  trend,
+}: {
+  label: string;
+  value: string;
+  loading?: boolean;
+  /** Optional green trend chip to match the mock (e.g. "+12%"). */
+  trend?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <p className="m-0 text-[0.78rem] text-slate-500">{label}</p>
+      {loading ? (
+        <Loader2 className="size-3.5 animate-spin text-slate-400" aria-hidden />
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <p className="m-0 text-[0.86rem] font-bold text-[#0F172A]">{value}</p>
+          {trend ? (
+            <span className="inline-flex items-center gap-0.5 text-[0.68rem] font-semibold text-[#22C55E]">
+              <ArrowUpRight className="size-3" strokeWidth={2.5} aria-hidden />
+              {trend}
+            </span>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

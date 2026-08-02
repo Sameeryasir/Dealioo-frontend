@@ -156,7 +156,7 @@ export function saveGoogleCampaignDraft(
     savedAt: new Date().toISOString(),
   };
   if (typeof window !== "undefined") {
-    // Lightweight recovery backup only — never store auth tokens here.
+    
     window.localStorage.setItem(recoveryKey(businessId), JSON.stringify(next));
     const meta = loadGoogleDraftLocalMeta(businessId);
     saveGoogleDraftLocalMeta(businessId, {

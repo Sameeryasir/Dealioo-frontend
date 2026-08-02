@@ -20,7 +20,6 @@ function hasText(value: string | null | undefined): boolean {
   return Boolean(value?.trim());
 }
 
-/** Builds Profile Setup checklist from fields required for business setup. */
 export function getBusinessProfileSetup(
   business: AdminBusiness,
   overrides?: {
@@ -49,6 +48,10 @@ export function getBusinessProfileSetup(
       ? business.metaConnected
       : hasText(business.metaUserId) ||
         business.metaConnectionStatus?.trim().toUpperCase() === "ACTIVE");
+  const twilioDone =
+    typeof business.twilioConnected === "boolean"
+      ? business.twilioConnected
+      : hasText(business.twilioPhoneNumber);
 
   const steps: ProfileSetupStep[] = [
     {
@@ -80,6 +83,12 @@ export function getBusinessProfileSetup(
       label: "At least one Branch",
       done: (business.branchCount ?? 0) > 0,
       href: generalHref,
+    },
+    {
+      id: "twilio-number",
+      label: "Twilio Number Selected",
+      done: twilioDone,
+      href: integrationsHref,
     },
     {
       id: "stripe",

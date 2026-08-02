@@ -94,7 +94,7 @@ function MapReadyFix() {
       try {
         map.invalidateSize();
       } catch {
-        /* map may already be torn down */
+        
       }
     }, 100);
     return () => window.clearTimeout(timer);
@@ -138,7 +138,7 @@ function FocusCamera({
         animate: false,
       });
     } catch {
-      /* map may already be torn down */
+      
     }
   }, [center, countryZoom, focusToken, map, meters, showRadius]);
 

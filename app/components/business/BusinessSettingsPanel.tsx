@@ -13,12 +13,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { clearSetupUser } from "@/app/lib/setup-user";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
-import { BusinessGeneralSettingsForm } from "@/app/components/business/BusinessGeneralSettingsForm";
+import {
+  BusinessGeneralSettingsForm,
+  type BusinessProfilePreviewSection,
+} from "@/app/components/business/BusinessGeneralSettingsForm";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
+import { businessQueryKeys } from "@/app/services/business/business-query-keys";
+import {
+  getAvailableTwilioPhoneNumbers,
+  getBusinessTwilioPhoneNumbers,
+} from "@/app/services/business/twilio-phone-numbers";
 import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
 import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
 import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
@@ -294,6 +303,7 @@ export function BusinessSettingsPanel({
   businessId,
 }: BusinessSettingsPanelProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   type ConnectStatus = "idle" | "loading" | "error";
   const [stripeConnected, setStripeConnected] = useState(false);
@@ -409,6 +419,25 @@ export function BusinessSettingsPanel({
     void refreshMetaStatus();
     void refreshGoogleStatus();
   }, [businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
+
+  useEffect(() => {
+    if (section !== "scanning" || businessId == null) return;
+    router.replace(`/business/${businessId}/dashboard/scanning`);
+  }, [section, businessId, router]);
+
+  useEffect(() => {
+    if (businessId == null) return;
+    void queryClient.prefetchQuery({
+      queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
+      queryFn: () => getBusinessTwilioPhoneNumbers(businessId),
+      staleTime: 5 * 60_000,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: businessQueryKeys.availableTwilioPhoneNumbers(),
+      queryFn: () => getAvailableTwilioPhoneNumbers(),
+      staleTime: 5 * 60_000,
+    });
+  }, [businessId, queryClient]);
 
   useEffect(() => {
     setIntegrationSetup(null);
@@ -613,6 +642,35 @@ export function BusinessSettingsPanel({
     );
   };
 
+  if (section === "scanning" && businessId != null) {
+    return null;
+  }
+
+  const profilePreviewSections: BusinessProfilePreviewSection[] = [
+    "general",
+    "members",
+    "integrations",
+  ];
+  if (
+    businessId != null &&
+    profilePreviewSections.includes(section as BusinessProfilePreviewSection)
+  ) {
+    const activeSection = section as BusinessProfilePreviewSection;
+    return (
+      <section
+        className="rd-premium rd-premium--fill business-profile-page"
+        aria-label={sectionTitles[activeSection]}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-0.5 py-0.5 sm:px-1">
+          <BusinessGeneralSettingsForm
+            businessId={businessId}
+            activeSection={activeSection}
+          />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Settings">
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(14.5rem,16.5rem)_minmax(0,1fr)] lg:items-stretch">
@@ -674,9 +732,7 @@ export function BusinessSettingsPanel({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
 
-            {section === "general" && businessId != null ? (
-              <BusinessGeneralSettingsForm businessId={businessId} />
-            ) : section === "members" && businessId != null ? (
+            {section === "members" && businessId != null ? (
               <BusinessMembersPanel businessId={businessId} embedded />
             ) : section === "account" && businessId == null ? (
               <div className="flex max-w-3xl flex-col gap-8">

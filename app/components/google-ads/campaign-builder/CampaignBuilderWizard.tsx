@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - Instant open: paint localStorage recovery first, then reconcile once via GET in the background.
- * - Back / fingerprint-skip Next are in-memory only (no progress PUT, no re-fetch).
- * - Step POST runs only when the current step fingerprint differs from the last save.
- * Related: draft-storage.ts, step-snapshots.ts, google-campaign-draft service, GOOGLE_CAMPAIGN_DRAFT.md
- */
-
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, Loader2, Save, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -76,7 +68,6 @@ const PUBLISH_PHASES = [
   "Publishing",
 ];
 
-/** Prefer conflict copy when the server rejects a stale version. */
 function resolveSaveError(err: unknown, fallback: string): string {
   if (err instanceof GoogleDraftConflictError) {
     return err.message || DRAFT_CONFLICT_MESSAGE;
@@ -94,11 +85,11 @@ export function CampaignBuilderWizard({
   defaultWebsiteUrl = "",
 }: CampaignBuilderWizardProps) {
   const titleId = useId();
-  // In-session working copy of the full wizard (one object for all steps).
+  
   const [formData, setFormData] = useState<GoogleCampaignBuilderDraft>(() =>
     createDefaultDraft(),
   );
-  // Navigation only — never requires a server fetch to change.
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [draftSavedFlash, setDraftSavedFlash] = useState(false);
@@ -114,7 +105,7 @@ export function CampaignBuilderWizard({
   const [pendingLocalDraft, setPendingLocalDraft] =
     useState<GoogleCampaignBuilderDraft | null>(null);
   const [savingGoal, setSavingGoal] = useState(false);
-  // Soft sync only — never blocks the wizard UI (instant open from localStorage).
+  
   const [syncingDraft, setSyncingDraft] = useState(false);
   const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
   const [pendingServerDraft, setPendingServerDraft] =
@@ -126,12 +117,12 @@ export function CampaignBuilderWizard({
   const serverDraftIdRef = useRef(serverDraftId);
   const serverVersionRef = useRef(serverVersion);
   const savedStepSnapshotsRef = useRef<Record<number, string>>({});
-  // If the user edits before GET finishes, do not overwrite their in-memory copy.
+  
   const userEditedDuringSyncRef = useRef(false);
   const syncInFlightRef = useRef(false);
   const serverCompletedStepsRef = useRef<number[]>([]);
 
-  // Alias used by step UI / validation (same object as formData).
+  
   const draft = formData;
 
   const markStepSaved = useCallback(
@@ -153,7 +144,7 @@ export function CampaignBuilderWizard({
     [],
   );
 
-  // Keep local meta aligned with the latest accepted server version.
+  
   const rememberServerVersion = useCallback(
     (version: number, draftId: string) => {
       setServerVersion(version);
@@ -197,8 +188,8 @@ export function CampaignBuilderWizard({
     [],
   );
 
-  // --- Instant open from localStorage, then one background GET to reconcile ---
-  // While open, Back/Next never re-fetch — only this path talks to the server for load.
+  
+  
   useEffect(() => {
     if (!open) return;
 
@@ -240,7 +231,7 @@ export function CampaignBuilderWizard({
       applyWorkingCopy(fresh, 1);
     };
 
-    // Paint immediately — do not wait on the network.
+    
     setServerDraftId(storedDraftId);
     if (typeof meta.serverVersion === "number") {
       setServerVersion(meta.serverVersion);
@@ -250,7 +241,7 @@ export function CampaignBuilderWizard({
 
     if (localDraft) {
       applyWorkingCopy(localDraft);
-      // Provisional fingerprints so Next can skip unchanged steps before GET returns.
+      
       const priorSteps = Array.from(
         { length: Math.max(0, (localDraft.currentStep ?? 1) - 1) },
         (_, i) => i + 1,
@@ -311,7 +302,7 @@ export function CampaignBuilderWizard({
           updatedAt: remote.lastSavedAt,
         });
 
-        // User already typed during sync — keep their memory copy; offer server swap.
+        
         if (userEditedDuringSyncRef.current) {
           setPendingServerDraft(resumed);
           setRestorePrompt(true);
@@ -323,7 +314,7 @@ export function CampaignBuilderWizard({
         }
 
         if (offerRestore && localDraft) {
-          // Already showing local instantly — keep it and let them switch to server.
+          
           setPendingServerDraft(resumed);
           setRestorePrompt(true);
           savedStepSnapshotsRef.current = seedSavedStepSnapshots(
@@ -340,7 +331,7 @@ export function CampaignBuilderWizard({
           serverCompletedStepsRef.current,
         );
       } catch {
-        // Stay on the instant local/defaults paint — server is unreachable.
+        
         if (cancelled) return;
       } finally {
         syncInFlightRef.current = false;
@@ -397,13 +388,13 @@ export function CampaignBuilderWizard({
 
   const patchDraft = useCallback(
     (patch: Partial<GoogleCampaignBuilderDraft>) => {
-      // Protect in-memory edits while the background GET is still running.
+      
       if (syncInFlightRef.current) {
         userEditedDuringSyncRef.current = true;
       }
       setFormData((prev) => {
         const next = { ...prev, ...patch };
-        // Keep navigation state in sync if a step patch includes currentStep.
+        
         if (typeof patch.currentStep === "number") {
           const clamped = Math.min(
             TOTAL_WIZARD_STEPS,
@@ -435,7 +426,7 @@ export function CampaignBuilderWizard({
     window.setTimeout(() => setDraftSavedFlash(false), 1600);
   };
 
-  // In-memory navigation only — no GET and no progress PUT.
+  
   const goToStep = (nextStep: number) => {
     const clamped = Math.min(TOTAL_WIZARD_STEPS, Math.max(1, nextStep));
     setCurrentStep(clamped);
@@ -449,7 +440,7 @@ export function CampaignBuilderWizard({
     setGoalSaveError(null);
   };
 
-  // Fingerprint unchanged: skip step-save API and advance in memory only.
+  
   const advanceWithoutApi = useCallback((fromStep: number) => {
     const nextStep = Math.min(fromStep + 1, TOTAL_WIZARD_STEPS);
     setCurrentStep(nextStep);
@@ -496,7 +487,7 @@ export function CampaignBuilderWizard({
       return;
     }
 
-    // Already saved this step and nothing changed after going Back — just move on.
+    
     if (step >= 1 && step <= 10 && isStepUnchanged(step, draft)) {
       advanceWithoutApi(step);
       return;
@@ -514,7 +505,7 @@ export function CampaignBuilderWizard({
         const saved = await saveGoogleGoalStep(businessId, {
           goal: draft.goal,
           draftId: serverDraftId ?? undefined,
-          // Require version only when updating an existing server draft.
+          
           expectedVersion: serverDraftId ? (serverVersion ?? 1) : undefined,
         });
 
@@ -771,7 +762,7 @@ export function CampaignBuilderWizard({
     goToStep(Math.min(step + 1, TOTAL_WIZARD_STEPS));
   };
 
-  // Best-effort progress sync only when leaving the wizard (not on Back/Next).
+  
   const persistProgressAndClose = async () => {
     const activeDraftId = serverDraftIdRef.current;
     const activeDraft = {
@@ -796,7 +787,7 @@ export function CampaignBuilderWizard({
         if (err instanceof GoogleDraftConflictError) {
           setGoalSaveError(err.message || DRAFT_CONFLICT_MESSAGE);
         }
-        // Keep local draft; close anyway.
+        
       }
       saveGoogleCampaignDraft(businessId, activeDraft);
     }
@@ -854,7 +845,7 @@ export function CampaignBuilderWizard({
     }
   };
 
-  // Keep the instant local paint (already on screen).
+  
   const handleRestoreLocal = () => {
     if (pendingLocalDraft) {
       applyWorkingCopy(pendingLocalDraft);
@@ -864,7 +855,7 @@ export function CampaignBuilderWizard({
     setRestorePrompt(false);
   };
 
-  // Swap the working copy to the server draft from background reconcile.
+  
   const handleKeepServer = () => {
     if (pendingServerDraft) {
       applyWorkingCopy(pendingServerDraft);
@@ -894,7 +885,7 @@ export function CampaignBuilderWizard({
       ? "Done"
       : "Publish Campaign"
     : "Next";
-  // Never block navigation on draft sync — UI is already painted from localStorage.
+  
   const busy = publishing || savingGoal;
 
   return (

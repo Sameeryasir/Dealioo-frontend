@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import {
   useAssociateBusinessTwilioPhoneNumberMutation,
+  useAvailableTwilioPhoneNumbersQuery,
   useBusinessTwilioPhoneNumbersQuery,
 } from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import { automationEase } from "@/app/lib/motion";
@@ -15,7 +16,7 @@ import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-pho
 
 type ChooseNumberDialogProps = {
   open: boolean;
-  businessId: number;
+  businessId?: number | null;
   isBusy?: boolean;
   title?: string;
   description?: string;
@@ -23,7 +24,7 @@ type ChooseNumberDialogProps = {
   confirmingLabel?: string;
   dismissible?: boolean;
   onClose: () => void;
-  onConfirmed: () => void | Promise<void>;
+  onConfirmed: (selected: TwilioPhoneNumberOption) => void | Promise<void>;
 };
 
 function formatNumberLabel(n: TwilioPhoneNumberOption): string {
@@ -32,7 +33,7 @@ function formatNumberLabel(n: TwilioPhoneNumberOption): string {
 
 export function ChooseNumberDialog({
   open,
-  businessId,
+  businessId = null,
   isBusy = false,
   title = "Choose a number",
   description = "Pick the SMS number this business will send from.",
@@ -46,17 +47,30 @@ export function ChooseNumberDialog({
   const listboxId = useId();
   const [localError, setLocalError] = useState<string | null>(null);
   const [selectedSid, setSelectedSid] = useState("");
+  const hasBusiness = typeof businessId === "number" && businessId >= 1;
 
-  const {
-    numbers,
-    selectedPhoneSid,
-    selectedPhoneNumber,
-    isLoading,
-    error: loadError,
-  } = useBusinessTwilioPhoneNumbersQuery(businessId, { enabled: open });
+  const businessQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
+    enabled: open && hasBusiness,
+  });
+  const availableQuery = useAvailableTwilioPhoneNumbersQuery({
+    enabled: open && !hasBusiness,
+  });
 
-  const associateMutation =
-    useAssociateBusinessTwilioPhoneNumberMutation(businessId);
+  const numbers = hasBusiness ? businessQuery.numbers : availableQuery.numbers;
+  const selectedPhoneSid = hasBusiness
+    ? businessQuery.selectedPhoneSid
+    : availableQuery.selectedPhoneSid;
+  const selectedPhoneNumber = hasBusiness
+    ? businessQuery.selectedPhoneNumber
+    : availableQuery.selectedPhoneNumber;
+  const isLoading = hasBusiness
+    ? businessQuery.isLoading
+    : availableQuery.isLoading;
+  const loadError = hasBusiness ? businessQuery.error : availableQuery.error;
+
+  const associateMutation = useAssociateBusinessTwilioPhoneNumberMutation(
+    hasBusiness ? (businessId as number) : 0,
+  );
 
   const {
     open: menuOpen,
@@ -108,7 +122,7 @@ export function ChooseNumberDialog({
 
   if (!open) return null;
 
-  const saving = associateMutation.isPending;
+  const saving = hasBusiness && associateMutation.isPending;
   const busy = isLoading || saving || isBusy;
   const selected = numbers.find((n) => n.sid === selectedSid) ?? null;
   const currentOnBusinessSid = selectedPhoneSid?.trim() || null;
@@ -119,7 +133,7 @@ export function ChooseNumberDialog({
   const error =
     localError ||
     loadError ||
-    (associateMutation.error
+    (hasBusiness && associateMutation.error
       ? getApiErrorMessage(
           associateMutation.error,
           "Could not associate phone number.",
@@ -135,11 +149,13 @@ export function ChooseNumberDialog({
     setLocalError(null);
     setMenuOpen(false);
     try {
-      await associateMutation.mutateAsync({
-        phoneSid: selected.sid,
-        phoneNumber: selected.phoneNumber,
-      });
-      await onConfirmed();
+      if (hasBusiness) {
+        await associateMutation.mutateAsync({
+          phoneSid: selected.sid,
+          phoneNumber: selected.phoneNumber,
+        });
+      }
+      await onConfirmed(selected);
     } catch {
     }
   }

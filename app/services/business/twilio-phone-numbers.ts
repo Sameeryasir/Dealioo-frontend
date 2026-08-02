@@ -21,6 +21,35 @@ export type AssociatedTwilioPhoneNumber = {
   twilioConnectedAt: string;
 };
 
+export async function getAvailableTwilioPhoneNumbers(): Promise<TwilioPhoneNumbersResponse> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/business/available-twilio-numbers`,
+    {
+      method: "GET",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    },
+    15_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not load Twilio phone numbers."),
+    );
+  }
+
+  const json = (await res.json()) as TwilioPhoneNumbersResponse;
+  return {
+    numbers: Array.isArray(json.numbers) ? json.numbers : [],
+    selectedPhoneSid: json.selectedPhoneSid ?? null,
+    selectedPhoneNumber: json.selectedPhoneNumber ?? null,
+  };
+}
+
 export async function getBusinessTwilioPhoneNumbers(
   businessId: number,
 ): Promise<TwilioPhoneNumbersResponse> {

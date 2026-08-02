@@ -87,7 +87,7 @@ export default function RegisterBusinessStripeConnectStep({
           stopWaiting();
         }
       } catch {
-        /* keep polling while waiting */
+        
       }
     };
 
@@ -102,7 +102,7 @@ export default function RegisterBusinessStripeConnectStep({
     };
   }, [awaitingStripe, linked, businessId, stopWaiting]);
 
-  // If the Stripe popup/tab is closed without finishing, stop the waiting spinner.
+  
   useEffect(() => {
     if (!awaitingStripe || linked) return;
 
@@ -118,7 +118,7 @@ export default function RegisterBusinessStripeConnectStep({
     return () => window.clearInterval(timer);
   }, [awaitingStripe, linked, stopWaiting]);
 
-  // Success / cancel messages from the Stripe return tab.
+  
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const data = event.data;

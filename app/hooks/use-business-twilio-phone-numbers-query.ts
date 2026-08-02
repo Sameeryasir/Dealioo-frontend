@@ -7,6 +7,7 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import {
   associateBusinessTwilioPhoneNumber,
+  getAvailableTwilioPhoneNumbers,
   getBusinessTwilioPhoneNumbers,
   type AssociatedTwilioPhoneNumber,
   type TwilioPhoneNumbersResponse,
@@ -17,6 +18,33 @@ const EMPTY_TWILIO_NUMBERS: TwilioPhoneNumbersResponse = {
   selectedPhoneSid: null,
   selectedPhoneNumber: null,
 };
+
+export function useAvailableTwilioPhoneNumbersQuery(options?: {
+  enabled?: boolean;
+}) {
+  const enabled = (options?.enabled ?? true) && hasAuthSession();
+
+  const query = useQuery({
+    queryKey: businessQueryKeys.availableTwilioPhoneNumbers(),
+    queryFn: () => getAvailableTwilioPhoneNumbers(),
+    enabled,
+    staleTime: 60_000,
+  });
+
+  return {
+    data: query.data ?? EMPTY_TWILIO_NUMBERS,
+    numbers: query.data?.numbers ?? EMPTY_TWILIO_NUMBERS.numbers,
+    selectedPhoneSid: query.data?.selectedPhoneSid ?? null,
+    selectedPhoneNumber: query.data?.selectedPhoneNumber ?? null,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isPending: query.isPending,
+    error: query.error
+      ? getApiErrorMessage(query.error, "Could not load Twilio phone numbers.")
+      : null,
+    refetch: query.refetch,
+  };
+}
 
 export function useBusinessTwilioPhoneNumbersQuery(
   businessId: number | null | undefined,

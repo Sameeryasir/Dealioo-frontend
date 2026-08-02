@@ -3,6 +3,14 @@ import { parseApiMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
 
+/** Summary metrics from GET /business/:id (Settings Business summary card). */
+export type BusinessSummaryMetrics = {
+  totalCampaigns: number;
+  totalCustomers: number;
+  activeAutomations: number;
+  monthlyUsagePercent: number;
+};
+
 export type AdminBusiness = {
   id?: number;
   name: string;
@@ -23,6 +31,9 @@ export type AdminBusiness = {
   metaUserId?: string | null;
   metaAdAccountId?: string | null;
   metaConnectionStatus?: string | null;
+  twilioConnected?: boolean | null;
+  twilioPhoneNumber?: string | null;
+  summary?: BusinessSummaryMetrics | null;
 };
 
 export type AdminRestaurant = AdminBusiness;
@@ -117,6 +128,39 @@ function coerceOwner(o: Record<string, unknown>): BusinessOwner | null {
   };
 }
 
+function coerceBusinessSummary(
+  value: unknown,
+): BusinessSummaryMetrics | null {
+  if (!value || typeof value !== "object") return null;
+  const o = value as Record<string, unknown>;
+  const totalCampaigns = pickNumber(o, "totalCampaigns", "total_campaigns");
+  const totalCustomers = pickNumber(o, "totalCustomers", "total_customers");
+  const activeAutomations = pickNumber(
+    o,
+    "activeAutomations",
+    "active_automations",
+  );
+  const monthlyUsagePercent = pickNumber(
+    o,
+    "monthlyUsagePercent",
+    "monthly_usage_percent",
+  );
+  if (
+    totalCampaigns == null ||
+    totalCustomers == null ||
+    activeAutomations == null ||
+    monthlyUsagePercent == null
+  ) {
+    return null;
+  }
+  return {
+    totalCampaigns,
+    totalCustomers,
+    activeAutomations,
+    monthlyUsagePercent: Math.max(0, Math.min(100, monthlyUsagePercent)),
+  };
+}
+
 function coerceBusinessDetail(value: unknown): BusinessDetail | null {
   const base = coerceBusiness(value);
   if (!base) return null;
@@ -128,9 +172,12 @@ function coerceBusinessDetail(value: unknown): BusinessDetail | null {
     owner = coerceOwner(o.owner as Record<string, unknown>);
   }
 
+  const summary = coerceBusinessSummary(o.summary);
+
   return {
     ...base,
     ...(owner != null ? { owner } : {}),
+    ...(summary != null ? { summary } : {}),
   };
 }
 
@@ -173,6 +220,9 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
       pickString(o, "metaAdAccountId", "meta_ad_account_id") ?? null,
     metaConnectionStatus:
       pickString(o, "metaConnectionStatus", "meta_connection_status") ?? null,
+    twilioConnected: pickBoolean(o, "twilioConnected", "twilio_connected"),
+    twilioPhoneNumber:
+      pickString(o, "twilioPhoneNumber", "twilio_phone_number") ?? null,
   };
 }
 

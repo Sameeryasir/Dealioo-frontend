@@ -14,7 +14,6 @@ export type RegisterBusinessMetaAdsQuestionStepProps = {
   embedded?: boolean;
 };
 
-// How to create a Meta Ad Account — shown under the question for users who need it
 const HOW_TO_CREATE = [
   "Go to Meta Business Suite.",
   "Create a Business if you don't already have one.",
@@ -61,7 +60,7 @@ export default function RegisterBusinessMetaAdsQuestionStep({
             </p>
           </header>
 
-          {/* Instructions sit on the card — no nested box */}
+          {}
           <p className={styles.sectionLabel}>
             Don&apos;t have one? Create a Meta Ad Account
           </p>

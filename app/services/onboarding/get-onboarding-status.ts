@@ -16,6 +16,7 @@ export type OnboardingStatus = {
   subscriptionSelected: boolean;
   subscriptionCompleted: boolean;
   businessCreated: boolean;
+  twilioConnected: boolean;
   metaConnected: boolean;
   stripeConnected: boolean;
   teamInvited: boolean;
@@ -116,6 +117,7 @@ function normalizeOnboardingStatus(raw: unknown): OnboardingStatus {
     subscriptionSelected: subscriptionCompleted,
     subscriptionCompleted,
     businessCreated,
+    twilioConnected: Boolean(record.twilioConnected),
     metaConnected: Boolean(record.metaConnected),
     stripeConnected: Boolean(record.stripeConnected),
     teamInvited: Boolean(record.teamInvited),
@@ -211,7 +213,7 @@ async function parseApiMessageFromResponse(
       );
     }
   } catch {
-    /* ignore */
+    
   }
   return fallback;
 }

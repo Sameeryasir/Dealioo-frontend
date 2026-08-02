@@ -748,7 +748,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
     draft.targetLocations[0]?.id ?? null,
   );
 
-  // Facebook-style: map follows the active chip (click a location to focus it).
+  
   const activeLocation = useMemo(() => {
     const fromId = draft.targetLocations.find(
       (row) => row.id === activeLocationId,
@@ -762,7 +762,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
     [activeLocation],
   );
 
-  // Facebook-style: countries = whole area; cities/states/zips = pin + radius.
+  
   const usesRadiusOnMap =
     activeLocation != null &&
     activeLocation.type !== "country" &&

@@ -11267,6 +11267,19 @@ body:has(.auth-select-plan-page) {
   padding-bottom: 0;
 }
 
+/* Business profile settings: lock to one viewport (no page scroll). */
+.rd-main-scroll:has(> .business-profile-page) {
+  overflow: hidden;
+  padding-bottom: 0.35rem;
+}
+
+.rd-main-scroll:has(> .business-profile-page) > .business-profile-page {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
 .rd-main-scroll:has(> .rd-premium--fill) > .rd-premium--fill {
   min-height: 0;
   height: 100%;

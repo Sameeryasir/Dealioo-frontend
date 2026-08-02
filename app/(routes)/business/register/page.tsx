@@ -18,6 +18,7 @@ import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { type AdminBusiness } from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
+import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -108,23 +109,28 @@ export default function RegisterBusinessPage() {
     };
   }, [queryClient, router]);
 
-  const onSubmit = useCallback(
-    async (data: RegisterBusinessFormValues) => {
+  const onCreateBusiness = useCallback(
+    async (
+      pendingForm: RegisterBusinessFormValues,
+      selected: TwilioPhoneNumberOption,
+    ) => {
       setErrorMessage(null);
       setSubmitting(true);
       try {
         const result = await registerBusiness(accessToken, {
-          name: data.name,
-          phoneNumber: data.phoneNumber,
-          email: data.email.trim() || undefined,
-          description: data.description.trim() || undefined,
-          websiteUrl: data.websiteUrl || undefined,
-          logoFile: data.logoFile ?? null,
-          city: data.city,
-          state: data.state,
-          postalCode: data.postalCode,
-          country: data.country,
-          branchCount: data.branchCount,
+          name: pendingForm.name,
+          phoneNumber: pendingForm.phoneNumber,
+          email: pendingForm.email.trim() || undefined,
+          description: pendingForm.description.trim() || undefined,
+          websiteUrl: pendingForm.websiteUrl || undefined,
+          logoFile: pendingForm.logoFile ?? null,
+          city: pendingForm.city,
+          state: pendingForm.state,
+          postalCode: pendingForm.postalCode,
+          country: pendingForm.country,
+          branchCount: pendingForm.branchCount,
+          twilioPhoneSid: selected.sid,
+          twilioPhoneNumber: selected.phoneNumber,
         });
 
         const businessId =
@@ -137,16 +143,18 @@ export default function RegisterBusinessPage() {
         const businessForCache: AdminBusiness =
           result.business ?? {
             id: businessId,
-            name: data.name.trim(),
-            phoneNumber: data.phoneNumber.trim(),
-            email: data.email.trim() || null,
-            description: data.description.trim() || null,
-            websiteUrl: data.websiteUrl.trim() || null,
-            city: data.city.trim() || null,
-            state: data.state.trim() || null,
-            postalCode: data.postalCode.trim() || null,
-            country: data.country.trim() || null,
-            branchCount: data.branchCount,
+            name: pendingForm.name.trim(),
+            phoneNumber: pendingForm.phoneNumber.trim(),
+            email: pendingForm.email.trim() || null,
+            description: pendingForm.description.trim() || null,
+            websiteUrl: pendingForm.websiteUrl.trim() || null,
+            city: pendingForm.city.trim() || null,
+            state: pendingForm.state.trim() || null,
+            postalCode: pendingForm.postalCode.trim() || null,
+            country: pendingForm.country.trim() || null,
+            branchCount: pendingForm.branchCount,
+            twilioConnected: true,
+            twilioPhoneNumber: selected.phoneNumber,
           };
 
         prependBusinessToMyListCache(queryClient, businessForCache);
@@ -154,7 +162,6 @@ export default function RegisterBusinessPage() {
           queryKey: businessQueryKeys.myLists(),
         });
         invalidateOnboardingStatusCache();
-
         router.replace("/dashboard?setup=1");
       } catch (error) {
         const message =
@@ -176,7 +183,7 @@ export default function RegisterBusinessPage() {
     <RegisterBusinessForm
       submitting={submitting}
       errorMessage={errorMessage}
-      onSubmit={onSubmit}
+      onCreateBusiness={onCreateBusiness}
     />
   );
 }
