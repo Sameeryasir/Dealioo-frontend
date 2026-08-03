@@ -155,6 +155,16 @@ export function CampaignBuilderWizard({
     [businessId],
   );
 
+  const clearPublishedDraftLocally = useCallback(() => {
+    clearGoogleCampaignDraft(businessId);
+    setServerDraftId(null);
+    setServerVersion(null);
+    serverDraftIdRef.current = null;
+    serverVersionRef.current = null;
+    serverCompletedStepsRef.current = [];
+    savedStepSnapshotsRef.current = {};
+  }, [businessId]);
+
   useEffect(() => {
     formDataRef.current = formData;
   }, [formData]);
@@ -261,6 +271,15 @@ export function CampaignBuilderWizard({
         const remote = await getGoogleCampaignDraft(businessId, storedDraftId);
         if (cancelled) return;
 
+        const remoteStatus = (remote.status ?? "").toUpperCase();
+        if (remoteStatus === "PUBLISHED") {
+          clearGoogleCampaignDraft(businessId);
+          setServerDraftId(null);
+          setServerVersion(null);
+          applyFreshDefaults();
+          return;
+        }
+
         const resumed: GoogleCampaignBuilderDraft = {
           ...createDefaultDraft(),
           ...(remote.draftData ?? {}),
@@ -339,6 +358,7 @@ export function CampaignBuilderWizard({
 
   useEffect(() => {
     if (!open) return;
+    if (publishSuccess) return;
     if (skipAutosave.current) {
       skipAutosave.current = false;
       return;
@@ -351,7 +371,7 @@ export function CampaignBuilderWizard({
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [draft, businessId, open]);
+  }, [draft, businessId, open, publishSuccess]);
 
   const step = currentStep;
 
@@ -741,6 +761,12 @@ export function CampaignBuilderWizard({
 
   
   const persistProgressAndClose = async () => {
+    if (publishSuccess) {
+      clearPublishedDraftLocally();
+      onClose();
+      return;
+    }
+
     const activeDraftId = serverDraftIdRef.current;
     const activeDraft = {
       ...formDataRef.current,
@@ -830,7 +856,7 @@ export function CampaignBuilderWizard({
         setPublishedAdsConsoleUrl(published.adsConsoleUrl);
       }
       setPublishError(null);
-      clearGoogleCampaignDraft(businessId);
+      clearPublishedDraftLocally();
     } catch (err) {
       setPublishSuccess(false);
       setPublishError(

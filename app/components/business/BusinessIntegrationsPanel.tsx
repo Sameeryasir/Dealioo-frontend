@@ -1,7 +1,6 @@
 "use client";
 
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
-import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsCampaignsDialog";
 import {
   FacebookLogo,
   GoogleAdsLogo,
@@ -28,24 +27,13 @@ type BusinessIntegrationsPanelProps = {
 const cardShellClass =
   "overflow-hidden rounded-[1.35rem] border border-[#E8EDF5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02] transition-shadow hover:shadow-[0_12px_32px_rgba(15,23,42,0.09)]";
 
-function BrandMark({
-  glow,
-  children,
-}: {
-  glow: string;
-  children: ReactNode;
-}) {
+function BrandMark({ children }: { children: ReactNode }) {
   return (
     <span
       aria-hidden
-      className="relative flex size-[3.75rem] shrink-0 items-center justify-center"
+      className="flex size-[3.35rem] shrink-0 items-center justify-center rounded-[1.05rem] bg-white ring-1 ring-black/[0.06]"
     >
-      <span
-        className={`pointer-events-none absolute inset-[-18%] rounded-[1.35rem] opacity-70 blur-xl ${glow}`}
-      />
-      <span className="relative flex size-[3.35rem] items-center justify-center rounded-[1.05rem] bg-white shadow-[0_10px_22px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.06]">
-        {children}
-      </span>
+      {children}
     </span>
   );
 }
@@ -93,7 +81,6 @@ export function BusinessIntegrationsPanel({
   const [googleLoading, setGoogleLoading] = useState(true);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
-  const [googleCampaignsOpen, setGoogleCampaignsOpen] = useState(false);
 
   const refreshStripe = useCallback(async () => {
     setStripeLoading(true);
@@ -126,7 +113,7 @@ export function BusinessIntegrationsPanel({
       }
       const status = await getFacebookConnectionStatus(token, businessId);
       setMetaConnected(Boolean(status.connected));
-      setMetaScopes(status.grantedScopes ?? []);
+      setMetaScopes(status.metaOauthScopes ?? []);
     } catch (e) {
       setMetaError(
         e instanceof Error ? e.message : "Could not check Meta connection.",
@@ -251,7 +238,7 @@ export function BusinessIntegrationsPanel({
       <div className={cardShellClass}>
         <div className="h-1.5 bg-[#635BFF]" aria-hidden />
         <div className="flex flex-wrap items-center gap-4 px-4 py-4 sm:gap-5 sm:px-5">
-          <BrandMark glow="bg-[#635BFF]/45">
+          <BrandMark>
             <StripeLogo className="size-9" />
           </BrandMark>
           <div className="min-w-0 flex-1">
@@ -294,7 +281,7 @@ export function BusinessIntegrationsPanel({
         <div className="h-1.5 bg-[#1877F2]" aria-hidden />
         <div className="space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-            <BrandMark glow="bg-[#1877F2]/45">
+            <BrandMark>
               <FacebookLogo className="size-9" />
             </BrandMark>
             <div className="min-w-0 flex-1">
@@ -348,7 +335,7 @@ export function BusinessIntegrationsPanel({
       <div className={cardShellClass}>
         <div className="h-1.5 bg-[#34a853]" aria-hidden />
         <div className="flex flex-wrap items-center gap-4 px-4 py-4 sm:gap-5 sm:px-5">
-          <BrandMark glow="bg-[#34a853]/40">
+          <BrandMark>
             <GoogleAdsLogo className="size-8" />
           </BrandMark>
           <div className="min-w-0 flex-1">
@@ -371,23 +358,14 @@ export function BusinessIntegrationsPanel({
             ) : null}
           </div>
           {googleLoading ? null : googleConnected ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setGoogleCampaignsOpen(true)}
-                className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-[#bbf7d0] bg-[#ecfdf5] px-3.5 text-xs font-semibold text-[#166534]"
-              >
-                View campaigns
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDisconnectGoogle()}
-                disabled={googleBusy === "loading"}
-                className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 disabled:opacity-60"
-              >
-                {googleBusy === "loading" ? "Removing…" : "Remove account"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => void handleDisconnectGoogle()}
+              disabled={googleBusy === "loading"}
+              className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 disabled:opacity-60"
+            >
+              {googleBusy === "loading" ? "Removing…" : "Remove account"}
+            </button>
           ) : (
             <button
               type="button"
@@ -415,13 +393,6 @@ export function BusinessIntegrationsPanel({
           </p>
         ) : null}
       </div>
-
-      <GoogleAdsCampaignsDialog
-        open={googleCampaignsOpen}
-        onClose={() => setGoogleCampaignsOpen(false)}
-        businessId={businessId}
-        customerId={googleCustomerId}
-      />
     </div>
   );
 }
