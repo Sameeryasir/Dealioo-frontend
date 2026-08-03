@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -18,7 +19,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
-import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
 import {
   formatMetaCount,
   formatMetaDeliveryStatus,
@@ -31,6 +31,14 @@ import {
   type GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
+
+const GoogleAdsCreateCampaignFlow = dynamic(
+  () =>
+    import("@/app/components/google-ads/GoogleAdsCreateCampaignFlow").then(
+      (mod) => ({ default: mod.GoogleAdsCreateCampaignFlow }),
+    ),
+  { ssr: false },
+);
 
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -148,7 +156,7 @@ export function CampaignGoogleAdsPanel({
   const [adStats, setAdStats] = useState<GoogleAdsCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
-  const [createObjectiveOpen, setCreateObjectiveOpen] = useState(false);
+  const [createCampaignOpen, setCreateCampaignOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
@@ -266,8 +274,8 @@ export function CampaignGoogleAdsPanel({
             <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:flex-nowrap">
               <button
                 type="button"
-                onClick={() => setCreateObjectiveOpen(true)}
-                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe0] sm:w-auto"
+                onClick={() => setCreateCampaignOpen(true)}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1a73e8] sm:w-auto"
               >
                 <Megaphone className="size-4 shrink-0" aria-hidden />
                 Create ads
@@ -517,8 +525,8 @@ export function CampaignGoogleAdsPanel({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setCreateObjectiveOpen(true)}
-                  className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe0]"
+                  onClick={() => setCreateCampaignOpen(true)}
+                  className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#4285F4] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1a73e8]"
                 >
                   Create ads
                 </button>
@@ -558,12 +566,14 @@ export function CampaignGoogleAdsPanel({
         </div>
       </div>
 
-      <GoogleAdsCreateCampaignFlow
-        open={createObjectiveOpen}
-        onClose={() => setCreateObjectiveOpen(false)}
-        businessId={businessId}
-        adsConsoleUrl={adsConsoleUrl}
-      />
+      {createCampaignOpen ? (
+        <GoogleAdsCreateCampaignFlow
+          open={createCampaignOpen}
+          onClose={() => setCreateCampaignOpen(false)}
+          businessId={businessId}
+          adsConsoleUrl={adsConsoleUrl}
+        />
+      ) : null}
     </div>
   );
 }

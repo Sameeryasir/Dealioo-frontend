@@ -142,8 +142,8 @@ function PresenceTargetingDropdown({
         aria-expanded={open}
         className={`flex w-full items-start justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-left transition ${
           open
-            ? "border-[#1877f2] ring-2 ring-[#1877f2]/15"
-            : "border-[#e8edf5] hover:border-[#1877f2]/50"
+            ? "border-[#4285F4] ring-2 ring-[#4285F4]/15"
+            : "border-[#e8edf5] hover:border-[#4285F4]/50"
         }`}
       >
         <span className="min-w-0">
@@ -151,7 +151,7 @@ function PresenceTargetingDropdown({
             {selected.label}
           </span>
           {selected.recommended ? (
-            <span className="mt-1 inline-flex rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-bold text-[#1877f2]">
+            <span className="mt-1 inline-flex rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-bold text-[#4285F4]">
               Recommended
             </span>
           ) : null}
@@ -188,7 +188,7 @@ function PresenceTargetingDropdown({
                   <span
                     className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${
                       isSelected
-                        ? "border-[#1877f2] bg-[#1877f2] text-white"
+                        ? "border-[#4285F4] bg-[#4285F4] text-white"
                         : "border-[#dbe3ef] bg-white"
                     }`}
                   >
@@ -199,13 +199,13 @@ function PresenceTargetingDropdown({
                   <span className="min-w-0">
                     <span
                       className={`block text-sm font-semibold ${
-                        isSelected ? "text-[#1877f2]" : "text-[#07111f]"
+                        isSelected ? "text-[#4285F4]" : "text-[#07111f]"
                       }`}
                     >
                       {option.label}
                     </span>
                     {option.recommended ? (
-                      <span className="mt-1 inline-flex rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-bold text-[#1877f2]">
+                      <span className="mt-1 inline-flex rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-bold text-[#4285F4]">
                         Recommended
                       </span>
                     ) : null}
@@ -413,14 +413,14 @@ export function StepGoalDetails({ draft, errors, onChange }: StepProps) {
                 onClick={() => toggleMethod(option.id)}
                 className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
                   selected
-                    ? "border-[#1877f2] bg-[#f4f8ff] ring-1 ring-[#1877f2]"
-                    : "border-[#e8edf5] bg-white hover:border-[#1877f2]/40"
+                    ? "border-[#4285F4] bg-[#f4f8ff] ring-1 ring-[#4285F4]"
+                    : "border-[#e8edf5] bg-white hover:border-[#4285F4]/40"
                 }`}
               >
                 <span
                   className={`flex size-5 items-center justify-center rounded border ${
                     selected
-                      ? "border-[#1877f2] bg-[#1877f2] text-white"
+                      ? "border-[#4285F4] bg-[#4285F4] text-white"
                       : "border-slate-300 bg-white"
                   }`}
                 >
@@ -678,7 +678,7 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
           <input
             type="file"
             accept="image/*"
-            className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f2ff] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#1877f2]"
+            className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f0fe] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#4285F4]"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) {
@@ -950,7 +950,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
                         Number.parseInt(e.target.value, 10),
                       )
                     }
-                    className="h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#1877f2]"
+                    className="h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
                     aria-label="Radius slider"
                   />
                   <input
@@ -1210,7 +1210,7 @@ export function StepKeywords({ draft, errors, onChange }: StepProps) {
                     })
                   }
                   className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                    keyword.enabled ? "bg-[#1877f2]" : "bg-slate-200"
+                    keyword.enabled ? "bg-[#4285F4]" : "bg-slate-200"
                   }`}
                 >
                   <span
@@ -1279,7 +1279,7 @@ export function StepKeywords({ draft, errors, onChange }: StepProps) {
                 });
                 setCustomText("");
               }}
-              className="inline-flex items-center gap-1 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
             >
               <Plus className="size-3.5" />
               Add
@@ -1346,7 +1346,7 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
                   adsGenerated: true,
                 })
               }
-              className="text-xs font-bold text-[#1877f2] hover:underline"
+              className="text-xs font-bold text-[#4285F4] hover:underline"
             >
               Regenerate suggestions
             </button>
@@ -1518,7 +1518,7 @@ export function StepAssets({ draft, onChange }: StepProps) {
         />
         <button
           type="button"
-          className="text-xs font-bold text-[#1877f2]"
+          className="text-xs font-bold text-[#4285F4]"
           onClick={() =>
             onChange({
               callouts: generateCallouts(draft.businessType || "Restaurant"),
@@ -1703,7 +1703,7 @@ export function StepReviewPublish({
             <button
               type="button"
               onClick={() => onEditStep(step)}
-              className="text-xs font-bold text-[#1877f2] hover:underline"
+              className="text-xs font-bold text-[#4285F4] hover:underline"
             >
               Edit
             </button>
@@ -1743,7 +1743,7 @@ export function StepReviewPublish({
           </p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e8edf5]">
             <div
-              className="h-full rounded-full bg-[#1877f2] transition-all duration-500"
+              className="h-full rounded-full bg-[#4285F4] transition-all duration-500"
               style={{ width: `${publishSuccess ? 100 : publishProgress}%` }}
             />
           </div>

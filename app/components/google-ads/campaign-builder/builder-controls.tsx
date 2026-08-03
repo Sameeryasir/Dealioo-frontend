@@ -3,10 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
-import {
-  builderInputClass,
-  builderInputErrorClass,
-} from "@/app/components/campaign/meta-builder/builder-ui";
+import { googleBuilderInputClass } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
+import { builderInputErrorClass } from "@/app/components/campaign/meta-builder/builder-ui";
 
 export function StepShell({
   step,
@@ -30,7 +28,7 @@ export function StepShell({
       className="space-y-6"
     >
       <div className="max-w-2xl">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#4285F4]">
           Step {step} of {total}
         </p>
         <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-[#07111f]">
@@ -66,12 +64,12 @@ export function SelectableCard({
       onClick={onClick}
       className={`relative w-full rounded-2xl border px-5 py-5 text-left transition duration-200 ${
         selected
-          ? "border-[#1877f2] bg-white shadow-[0_10px_28px_rgba(24,119,242,0.12)] ring-1 ring-[#1877f2]"
-          : "border-[#e8edf5] bg-white hover:-translate-y-0.5 hover:border-[#1877f2]/50 hover:shadow-md"
+          ? "border-[#4285F4] bg-white shadow-[0_10px_28px_rgba(66,133,244,0.12)] ring-1 ring-[#4285F4]"
+          : "border-[#e8edf5] bg-white hover:-translate-y-0.5 hover:border-[#4285F4]/50 hover:shadow-md"
       }`}
     >
       {selected ? (
-        <span className="absolute right-4 top-4 flex size-6 items-center justify-center rounded-full bg-[#1877f2] text-white">
+        <span className="absolute right-4 top-4 flex size-6 items-center justify-center rounded-full bg-[#4285F4] text-white">
           <Check className="size-3.5" strokeWidth={3} aria-hidden />
         </span>
       ) : null}
@@ -79,7 +77,7 @@ export function SelectableCard({
         <span
           className={`mb-3 inline-flex size-11 items-center justify-center rounded-xl ${
             selected
-              ? "bg-[#e8f2ff] text-[#1877f2]"
+              ? "bg-[#e8f0fe] text-[#4285F4]"
               : "bg-[#f4f8ff] text-slate-600"
           }`}
         >
@@ -150,7 +148,7 @@ export function SearchableSelect({
         id={id}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`${builderInputClass} flex items-center justify-between gap-2 text-left ${
+        className={`${googleBuilderInputClass} flex items-center justify-between gap-2 text-left ${
           error ? builderInputErrorClass : ""
         }`}
       >
@@ -181,7 +179,7 @@ export function SearchableSelect({
                     type="button"
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[#f4f8ff] ${
                       value === option
-                        ? "font-semibold text-[#1877f2]"
+                        ? "font-semibold text-[#4285F4]"
                         : "text-[#07111f]"
                     }`}
                     onClick={() => {
@@ -243,7 +241,7 @@ export function SearchableMultiSelect({
           {values.map((value) => (
             <span
               key={value}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1 text-xs font-semibold text-[#1877f2]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1 text-xs font-semibold text-[#4285F4]"
             >
               {value}
               <button
@@ -276,7 +274,7 @@ export function SearchableMultiSelect({
                 onChange([...values, option]);
                 setQuery("");
               }}
-              className="rounded-full border border-[#e8edf5] bg-white px-3 py-1 text-xs font-semibold text-[#07111f] transition hover:border-[#1877f2] hover:text-[#1877f2]"
+              className="rounded-full border border-[#e8edf5] bg-white px-3 py-1 text-xs font-semibold text-[#07111f] transition hover:border-[#4285F4] hover:text-[#4285F4]"
             >
               + {option}
             </button>
@@ -323,7 +321,7 @@ export function ChipToggleGroup({
             }}
             className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
               selected
-                ? "border-[#1877f2] bg-[#e8f2ff] text-[#1877f2]"
+                ? "border-[#4285F4] bg-[#e8f0fe] text-[#4285F4]"
                 : "border-[#e8edf5] bg-white text-[#07111f] hover:bg-[#f4f8ff]"
             }`}
           >
@@ -364,7 +362,7 @@ export function ToggleSwitch({
       </span>
       <span
         className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-          checked ? "bg-[#1877f2]" : "bg-slate-200"
+          checked ? "bg-[#4285F4]" : "bg-slate-200"
         }`}
       >
         <span
@@ -395,7 +393,7 @@ export function BudgetSlider({
           <p className="text-sm font-bold text-[#07111f]">Daily budget</p>
           <p className="text-xs text-slate-500">Drag to set your comfort level</p>
         </div>
-        <p className="text-3xl font-extrabold tracking-tight text-[#1877f2]">
+        <p className="text-3xl font-extrabold tracking-tight text-[#4285F4]">
           ${value}
         </p>
       </div>
@@ -406,7 +404,7 @@ export function BudgetSlider({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#1877f2]"
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
       />
       <div className="flex justify-between text-xs text-slate-400">
         <span>${min}</span>
@@ -447,7 +445,7 @@ export function Field({
 }
 
 export function inputClass(error?: string) {
-  return `${builderInputClass} ${error ? builderInputErrorClass : ""}`;
+  return `${googleBuilderInputClass} ${error ? builderInputErrorClass : ""}`;
 }
 
 export function Panel({

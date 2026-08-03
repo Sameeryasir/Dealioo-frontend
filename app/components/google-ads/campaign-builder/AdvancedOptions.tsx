@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import {
-  BuilderField,
-  builderInputClass,
-} from "@/app/components/campaign/meta-builder/builder-ui";
+import { BuilderField } from "@/app/components/campaign/meta-builder/builder-ui";
+import { googleBuilderInputClass } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
 import type {
   BidStrategyId,
   CampaignTypeId,
@@ -68,7 +66,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <BuilderField label="Campaign type" hint="Usually Search is best for text ads.">
               <select
-                className={builderInputClass}
+                className={googleBuilderInputClass}
                 value={draft.campaignType}
                 onChange={(e) =>
                   onChange({ campaignType: e.target.value as CampaignTypeId })
@@ -83,7 +81,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             </BuilderField>
             <BuilderField label="Bidding focus">
               <select
-                className={builderInputClass}
+                className={googleBuilderInputClass}
                 value={draft.bidStrategy}
                 onChange={(e) =>
                   onChange({ bidStrategy: e.target.value as BidStrategyId })
@@ -104,7 +102,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               {draft.bidStrategy === "TARGET_CPA" ? (
                 <BuilderField label="Target cost per conversion ($)">
                   <input
-                    className={builderInputClass}
+                    className={googleBuilderInputClass}
                     inputMode="decimal"
                     value={draft.targetCpa}
                     onChange={(e) => onChange({ targetCpa: e.target.value })}
@@ -115,7 +113,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               {draft.bidStrategy === "TARGET_ROAS" ? (
                 <BuilderField label="Target return on ad spend (%)">
                   <input
-                    className={builderInputClass}
+                    className={googleBuilderInputClass}
                     inputMode="decimal"
                     value={draft.targetRoas}
                     onChange={(e) => onChange({ targetRoas: e.target.value })}
@@ -131,7 +129,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             hint="Leave blank to run all day, every day."
           >
             <input
-              className={builderInputClass}
+              className={googleBuilderInputClass}
               value={draft.adSchedule}
               onChange={(e) => onChange({ adSchedule: e.target.value })}
               placeholder="e.g. Mon–Fri 9am–6pm"
@@ -156,7 +154,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
                     }
                     className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
                       selected
-                        ? "border-[#1877f2] bg-[#e8f2ff] text-[#1877f2]"
+                        ? "border-[#4285F4] bg-[#e8f0fe] text-[#4285F4]"
                         : "border-[#e8edf5] bg-white text-[#07111f] hover:bg-[#f4f8ff]"
                     }`}
                   >
@@ -185,7 +183,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
                     }
                     className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
                       selected
-                        ? "border-[#1877f2] bg-[#e8f2ff] text-[#1877f2]"
+                        ? "border-[#4285F4] bg-[#e8f0fe] text-[#4285F4]"
                         : "border-[#e8edf5] bg-white text-[#07111f] hover:bg-[#f4f8ff]"
                     }`}
                   >
@@ -199,7 +197,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <BuilderField label="IP exclusions" hint="Optional. One per line.">
               <textarea
-                className={`${builderInputClass} min-h-[88px]`}
+                className={`${googleBuilderInputClass} min-h-[88px]`}
                 value={draft.ipExclusions}
                 onChange={(e) => onChange({ ipExclusions: e.target.value })}
                 placeholder="203.0.113.0"
@@ -207,7 +205,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             </BuilderField>
             <BuilderField label="URL tracking parameters">
               <input
-                className={builderInputClass}
+                className={googleBuilderInputClass}
                 value={draft.urlTrackingParams}
                 onChange={(e) => onChange({ urlTrackingParams: e.target.value })}
                 placeholder="utm_source=google&utm_medium=cpc"
@@ -217,7 +215,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
 
           <BuilderField label="Conversion goals" hint="Optional notes for your team.">
             <input
-              className={builderInputClass}
+              className={googleBuilderInputClass}
               value={draft.conversionGoals}
               onChange={(e) => onChange({ conversionGoals: e.target.value })}
               placeholder="Purchases, form fills, calls"
@@ -227,7 +225,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <BuilderField label="Brand exclusions">
               <input
-                className={builderInputClass}
+                className={googleBuilderInputClass}
                 value={draft.brandExclusions}
                 onChange={(e) => onChange({ brandExclusions: e.target.value })}
                 placeholder="Competitor brands to avoid"
@@ -238,7 +236,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               hint="Optional. How often someone can see your ad."
             >
               <input
-                className={builderInputClass}
+                className={googleBuilderInputClass}
                 value={draft.frequencyCapping}
                 onChange={(e) => onChange({ frequencyCapping: e.target.value })}
                 placeholder="e.g. 3 impressions / day"
@@ -248,7 +246,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
 
           <BuilderField label="Content exclusions">
             <input
-              className={builderInputClass}
+              className={googleBuilderInputClass}
               value={draft.contentExclusions}
               onChange={(e) => onChange({ contentExclusions: e.target.value })}
               placeholder="Topics or categories to avoid"
@@ -258,7 +256,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3">
             <input
               type="checkbox"
-              className="mt-1 size-4 rounded border-slate-300 text-[#1877f2] focus:ring-[#1877f2]"
+              className="mt-1 size-4 rounded border-slate-300 text-[#4285F4] focus:ring-[#4285F4]"
               checked={draft.audienceExpansion}
               onChange={(e) =>
                 onChange({ audienceExpansion: e.target.checked })

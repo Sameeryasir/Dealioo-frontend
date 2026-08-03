@@ -85,7 +85,6 @@ const PREVIEW_TITLES: Record<
   },
 };
 
-// --- Exact icon color tokens from the mock ---
 const ICON = {
   blue: { wrap: "bg-[#E8F1FF]", ink: "text-[#2F6BFF]" },
   green: { wrap: "bg-[#E8F8EF]", ink: "text-[#22C55E]" },
@@ -112,8 +111,6 @@ type FormSnapshot = {
   postalCode: string;
   branchCount: string;
 };
-
-// --- Helpers ---
 
 function formatLocation(
   city?: string | null,
@@ -180,8 +177,6 @@ function ToneIcon({
   );
 }
 
-// --- Field: icon left, label + value (matches mock) ---
-
 function DetailField({
   label,
   htmlFor,
@@ -224,8 +219,6 @@ function DetailField({
 
 const fieldInputClass =
   "w-full border-0 bg-transparent p-0 text-[0.86rem] font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
-
-// --- Logo ---
 
 function BusinessLogoAvatar({
   disabled,
@@ -514,7 +507,6 @@ export function BusinessGeneralSettingsForm({
     }
   };
 
-  // --- Business summary from GET /business/:id (with live usage while editing) ---
   const totalCampaigns = business?.summary?.totalCampaigns ?? 0;
   const totalCustomers = business?.summary?.totalCustomers ?? 0;
   const activeAutomations = business?.summary?.activeAutomations ?? 0;
@@ -739,7 +731,6 @@ export function BusinessGeneralSettingsForm({
                   />
                 </DetailField>
 
-                {/* Mock labels; values still save as city / country (API fields). */}
                 <DetailField
                   label="Business category"
                   htmlFor="business-settings-city"
@@ -985,7 +976,6 @@ function SummaryRow({
   label: string;
   value: string;
   loading?: boolean;
-  /** Optional green trend chip to match the mock (e.g. "+12%"). */
   trend?: string;
 }) {
   return (

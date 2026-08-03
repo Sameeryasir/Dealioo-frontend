@@ -33,12 +33,22 @@ export function resolvePostLoginPath(
     return invitedTeamDashboardPath(returnTo);
   }
 
-  if (
-    status.onboardingCompleted &&
-    returnTo &&
-    isSafeReturnPath(returnTo)
-  ) {
+  const fullyIn =
+    status.onboardingCompleted || status.businessCreated;
+
+  if (fullyIn && returnTo && isSafeReturnPath(returnTo)) {
     return returnTo;
+  }
+
+  if (fullyIn) {
+    if (
+      !status.redirectPath ||
+      status.redirectPath.startsWith("/auth/select-plan") ||
+      status.redirectPath.startsWith("/business/register")
+    ) {
+      return "/dashboard";
+    }
+    return status.redirectPath;
   }
 
   return status.redirectPath;
@@ -52,15 +62,12 @@ export function resolvePostAuthPath(
     return invitedTeamDashboardPath(returnTo);
   }
 
-  if (status.redirectPath) {
-    if (status.onboardingCompleted) {
-      return resolvePostLoginPath(status, returnTo);
-    }
-    return status.redirectPath;
+  if (status.businessCreated || status.onboardingCompleted) {
+    return resolvePostLoginPath(status, returnTo);
   }
 
-  if (status.onboardingCompleted) {
-    return resolvePostLoginPath(status, returnTo);
+  if (status.redirectPath) {
+    return status.redirectPath;
   }
 
   const hasSubscription =
@@ -87,7 +94,12 @@ export async function fetchAuthenticatedOnboardingDestination(
   try {
     const status = await getOnboardingStatus();
 
-    if (status.onboardingCompleted || status.subscriptionCompleted || status.subscriptionSelected) {
+    if (
+      status.onboardingCompleted ||
+      status.businessCreated ||
+      status.subscriptionCompleted ||
+      status.subscriptionSelected
+    ) {
       return resolvePostAuthPath(status, returnTo);
     }
   } catch {

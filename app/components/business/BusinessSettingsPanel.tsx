@@ -91,7 +91,6 @@ const sectionTitles: Record<SectionId, string> = {
   scanning: "Scanning",
 };
 
-// --- Integration card themes (sync with dashboard brand tones) ---
 const integrationCardThemes = {
   stripe: {
     accent: "bg-[#635BFF]",

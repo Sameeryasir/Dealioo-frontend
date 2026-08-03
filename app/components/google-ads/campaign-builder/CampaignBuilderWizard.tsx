@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Save, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  metaBuilderShellClass,
-  metaBuilderSecondaryButtonClass,
-} from "@/app/components/campaign/meta-builder/builder-ui";
+  googleBuilderPrimaryButtonClass,
+  googleBuilderSecondaryButtonClass,
+  googleBuilderShellClass,
+} from "@/app/components/google-ads/campaign-builder/google-builder-ui";
 import { renderCampaignBuilderStep } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
 import {
   clearGoogleCampaignDraft,
@@ -16,7 +17,6 @@ import {
   saveGoogleCampaignDraft,
   saveGoogleCampaignServerDraftId,
   saveGoogleDraftLocalMeta,
-  shouldOfferLocalRestore,
 } from "@/app/components/google-ads/campaign-builder/draft-storage";
 import {
   STEP_TITLES,
@@ -101,15 +101,10 @@ export function CampaignBuilderWizard({
   const [hasAutosaved, setHasAutosaved] = useState(false);
   const [serverDraftId, setServerDraftId] = useState<string | null>(null);
   const [serverVersion, setServerVersion] = useState<number | null>(null);
-  const [restorePrompt, setRestorePrompt] = useState(false);
-  const [pendingLocalDraft, setPendingLocalDraft] =
-    useState<GoogleCampaignBuilderDraft | null>(null);
   const [savingGoal, setSavingGoal] = useState(false);
   
   const [syncingDraft, setSyncingDraft] = useState(false);
   const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
-  const [pendingServerDraft, setPendingServerDraft] =
-    useState<GoogleCampaignBuilderDraft | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipAutosave = useRef(true);
   const formDataRef = useRef(formData);
@@ -117,8 +112,6 @@ export function CampaignBuilderWizard({
   const serverDraftIdRef = useRef(serverDraftId);
   const serverVersionRef = useRef(serverVersion);
   const savedStepSnapshotsRef = useRef<Record<number, string>>({});
-  
-  const userEditedDuringSyncRef = useRef(false);
   const syncInFlightRef = useRef(false);
   const serverCompletedStepsRef = useRef<number[]>([]);
 
@@ -194,7 +187,6 @@ export function CampaignBuilderWizard({
     if (!open) return;
 
     let cancelled = false;
-    userEditedDuringSyncRef.current = false;
     syncInFlightRef.current = false;
 
     setErrors({});
@@ -206,9 +198,6 @@ export function CampaignBuilderWizard({
     setHasAutosaved(false);
     setSavingGoal(false);
     setGoalSaveError(null);
-    setRestorePrompt(false);
-    setPendingLocalDraft(null);
-    setPendingServerDraft(null);
     skipAutosave.current = true;
     savedStepSnapshotsRef.current = {};
     serverCompletedStepsRef.current = [];
@@ -283,15 +272,6 @@ export function CampaignBuilderWizard({
           savedAt: remote.lastSavedAt ?? new Date().toISOString(),
         };
 
-        const offerRestore =
-          Boolean(localDraft) &&
-          shouldOfferLocalRestore({
-            localUpdatedAt: meta.updatedAt,
-            serverUpdatedAt: remote.lastSavedAt,
-            localVersion: meta.serverVersion,
-            serverVersion: remote.version,
-          });
-
         setServerDraftId(remote.id);
         setServerVersion(remote.version);
         serverCompletedStepsRef.current = remote.completedSteps ?? [];
@@ -301,28 +281,6 @@ export function CampaignBuilderWizard({
           serverVersion: remote.version,
           updatedAt: remote.lastSavedAt,
         });
-
-        
-        if (userEditedDuringSyncRef.current) {
-          setPendingServerDraft(resumed);
-          setRestorePrompt(true);
-          savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-            formDataRef.current,
-            serverCompletedStepsRef.current,
-          );
-          return;
-        }
-
-        if (offerRestore && localDraft) {
-          
-          setPendingServerDraft(resumed);
-          setRestorePrompt(true);
-          savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-            localDraft,
-            serverCompletedStepsRef.current,
-          );
-          return;
-        }
 
         applyWorkingCopy(resumed);
         saveGoogleCampaignDraft(businessId, resumed);
@@ -388,10 +346,6 @@ export function CampaignBuilderWizard({
 
   const patchDraft = useCallback(
     (patch: Partial<GoogleCampaignBuilderDraft>) => {
-      
-      if (syncInFlightRef.current) {
-        userEditedDuringSyncRef.current = true;
-      }
       setFormData((prev) => {
         const next = { ...prev, ...patch };
         
@@ -416,17 +370,6 @@ export function CampaignBuilderWizard({
     [],
   );
 
-  const handleSaveDraft = () => {
-    const saved = saveGoogleCampaignDraft(businessId, {
-      ...formData,
-      currentStep: step,
-    });
-    applyWorkingCopy(saved, step);
-    setDraftSavedFlash(true);
-    window.setTimeout(() => setDraftSavedFlash(false), 1600);
-  };
-
-  
   const goToStep = (nextStep: number) => {
     const clamped = Math.min(TOTAL_WIZARD_STEPS, Math.max(1, nextStep));
     setCurrentStep(clamped);
@@ -845,33 +788,6 @@ export function CampaignBuilderWizard({
     }
   };
 
-  
-  const handleRestoreLocal = () => {
-    if (pendingLocalDraft) {
-      applyWorkingCopy(pendingLocalDraft);
-    }
-    setPendingLocalDraft(null);
-    setPendingServerDraft(null);
-    setRestorePrompt(false);
-  };
-
-  
-  const handleKeepServer = () => {
-    if (pendingServerDraft) {
-      applyWorkingCopy(pendingServerDraft);
-      saveGoogleCampaignDraft(businessId, pendingServerDraft);
-      savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-        pendingServerDraft,
-        serverCompletedStepsRef.current,
-      );
-    } else {
-      saveGoogleCampaignDraft(businessId, formDataRef.current);
-    }
-    setPendingLocalDraft(null);
-    setPendingServerDraft(null);
-    setRestorePrompt(false);
-  };
-
   const progressPct = useMemo(
     () => Math.round((step / TOTAL_WIZARD_STEPS) * 100),
     [step],
@@ -890,22 +806,47 @@ export function CampaignBuilderWizard({
 
   return (
     <div
-      className={`fixed inset-0 z-[80] flex flex-col ${metaBuilderShellClass}`}
+      className={`fixed inset-0 z-[80] flex flex-col ${googleBuilderShellClass}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[#e8edf5] bg-white/95 px-4 py-3 backdrop-blur sm:px-8">
-        <div className="min-w-0">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-            Campaign builder
-          </p>
-          <h2
-            id={titleId}
-            className="truncate text-lg font-extrabold tracking-tight text-[#07111f]"
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            aria-hidden
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f0fe] ring-1 ring-[#d2e3fc]"
           >
-            {STEP_TITLES[step - 1] ?? "Create campaign"}
-          </h2>
+            <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
+              Google Ads · Campaign builder
+            </p>
+            <h2
+              id={titleId}
+              className="truncate text-lg font-extrabold tracking-tight text-[#07111f]"
+            >
+              {STEP_TITLES[step - 1] ?? "Create campaign"}
+            </h2>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {syncingDraft ? (
@@ -925,18 +866,9 @@ export function CampaignBuilderWizard({
           ) : null}
           <button
             type="button"
-            onClick={handleSaveDraft}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
-          >
-            <Save className="size-3.5" aria-hidden />
-            Save draft
-          </button>
-          <button
-            type="button"
             onClick={() => void persistProgressAndClose()}
             disabled={busy}
-            className="inline-flex size-9 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-500 transition hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
+            className="inline-flex size-9 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-500 transition hover:bg-[#f4f8ff] hover:text-[#4285F4] disabled:opacity-50"
             aria-label="Close"
           >
             <X className="size-4" aria-hidden />
@@ -955,7 +887,7 @@ export function CampaignBuilderWizard({
         </div>
         <div className="mx-auto mt-2 h-2 max-w-3xl overflow-hidden rounded-full bg-[#e8edf5]">
           <motion.div
-            className="h-full rounded-full bg-[#1877f2]"
+            className="h-full rounded-full bg-[#4285F4]"
             initial={false}
             animate={{ width: `${progressPct}%` }}
             transition={{ duration: 0.35, ease: "easeOut" }}
@@ -965,34 +897,6 @@ export function CampaignBuilderWizard({
 
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-3xl pb-10">
-          {restorePrompt ? (
-            <div
-              className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-              role="status"
-            >
-              <p className="text-sm font-semibold text-amber-900">
-                Restore unsaved local changes?
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRestoreLocal}
-                  disabled={busy}
-                  className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-800 disabled:opacity-50"
-                >
-                  Restore
-                </button>
-                <button
-                  type="button"
-                  onClick={handleKeepServer}
-                  disabled={busy}
-                  className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-50"
-                >
-                  Keep server
-                </button>
-              </div>
-            </div>
-          ) : null}
           <AnimatePresence mode="wait">
             <div key={`${step}-${draft.goalDetailSubstep}`}>
               {renderCampaignBuilderStep(step, {
@@ -1016,7 +920,7 @@ export function CampaignBuilderWizard({
           type="button"
           onClick={handleBack}
           disabled={busy}
-          className={`${metaBuilderSecondaryButtonClass} disabled:opacity-50`}
+          className={`${googleBuilderSecondaryButtonClass} disabled:opacity-50`}
         >
           {step === 1 ? "Cancel" : "Back"}
         </button>
@@ -1026,7 +930,7 @@ export function CampaignBuilderWizard({
               href={adsConsoleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={metaBuilderSecondaryButtonClass}
+              className={googleBuilderSecondaryButtonClass}
             >
               Open ads console
             </a>
@@ -1050,7 +954,7 @@ export function CampaignBuilderWizard({
               }
               void handleContinue();
             }}
-            className="inline-flex min-w-[160px] items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:opacity-60"
+            className={googleBuilderPrimaryButtonClass}
           >
             {publishing ? (
               <>

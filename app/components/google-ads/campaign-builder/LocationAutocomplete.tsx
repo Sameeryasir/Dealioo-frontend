@@ -121,8 +121,8 @@ export function LocationAutocomplete({
                 key={`${location.type}-${location.id}-${location.name}`}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                   isActive
-                    ? "border-[#1877f2] bg-[#1877f2] text-white"
-                    : "border-[#dbeafe] bg-[#f4f8ff] text-[#1877f2]"
+                    ? "border-[#4285F4] bg-[#4285F4] text-white"
+                    : "border-[#dbeafe] bg-[#f4f8ff] text-[#4285F4]"
                 }`}
               >
                 <button
@@ -227,7 +227,7 @@ export function LocationAutocomplete({
           />
           {loading ? (
             <Loader2
-              className="size-4 shrink-0 animate-spin text-[#1877f2]"
+              className="size-4 shrink-0 animate-spin text-[#4285F4]"
               aria-hidden
             />
           ) : null}
@@ -258,7 +258,7 @@ export function LocationAutocomplete({
                       aria-selected={index === activeIndex}
                       className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
                         index === activeIndex
-                          ? "bg-[#f4f8ff] text-[#1877f2]"
+                          ? "bg-[#f4f8ff] text-[#4285F4]"
                           : "text-[#07111f] hover:bg-[#f8fafc]"
                       }`}
                       onMouseEnter={() => setActiveIndex(index)}

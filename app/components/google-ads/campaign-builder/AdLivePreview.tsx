@@ -34,7 +34,7 @@ export function AdLivePreview({ ad, businessName }: AdLivePreviewProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.06)]">
       <div className="border-b border-[#e8edf5] bg-gradient-to-r from-[#f4f8ff] to-white px-4 py-3">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
           Live preview
         </p>
         <p className="mt-0.5 text-xs text-slate-500">
@@ -61,7 +61,7 @@ export function AdLivePreview({ ad, businessName }: AdLivePreviewProps) {
           {title}
         </p>
         <p className="text-sm leading-relaxed text-slate-600">{description}</p>
-        <p className="pt-1 text-xs font-semibold text-[#1877f2]">{cta}</p>
+        <p className="pt-1 text-xs font-semibold text-[#4285F4]">{cta}</p>
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ function offsetEast(
 function createPinIcon() {
   return L.divIcon({
     className: "rp-map-pin-icon",
-    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#1877F2;border:3px solid white;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#4285F4;border:3px solid white;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 28],
   });
@@ -71,7 +71,7 @@ function createPinIcon() {
 function createRadiusHandleIcon() {
   return L.divIcon({
     className: "rp-map-radius-handle-icon",
-    html: `<div title="Drag to resize radius" style="width:22px;height:22px;border-radius:9999px;background:#ffffff;border:3px solid #1877F2;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:ew-resize"></div>`,
+    html: `<div title="Drag to resize radius" style="width:22px;height:22px;border-radius:9999px;background:#ffffff;border:3px solid #4285F4;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:ew-resize"></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
@@ -337,8 +337,8 @@ export function LocationRadiusMap({
               center={center}
               radius={meters}
               pathOptions={{
-                color: "#1877F2",
-                fillColor: "#1877F2",
+                color: "#4285F4",
+                fillColor: "#4285F4",
                 fillOpacity: 0.15,
                 weight: 2,
               }}
