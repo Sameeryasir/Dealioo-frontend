@@ -14,10 +14,12 @@ import {
   MousePointerClick,
   RefreshCw,
   Sparkles,
+  Trash2,
   TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
 import {
   formatMetaCount,
@@ -25,6 +27,7 @@ import {
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
 import {
   getGoogleAdsCampaignStats,
   type GoogleAdsCampaign,
@@ -71,8 +74,24 @@ function formatCustomerId(id: string): string {
   return id;
 }
 
+function normalizeGoogleCampaignStatus(
+  status: string | null | undefined,
+): string {
+  const raw = status?.trim() ?? "";
+  if (!raw) return "";
+
+  const byCode: Record<string, string> = {
+    "0": "UNSPECIFIED",
+    "1": "UNKNOWN",
+    "2": "ENABLED",
+    "3": "PAUSED",
+    "4": "REMOVED",
+  };
+  return byCode[raw] ?? raw.toUpperCase();
+}
+
 function statusBadgeClass(status: string | null | undefined): string {
-  const normalized = status?.toUpperCase() ?? "";
+  const normalized = normalizeGoogleCampaignStatus(status);
   if (normalized === "ENABLED" || normalized === "ACTIVE") {
     return "bg-emerald-500/15 text-emerald-700 ring-emerald-500/25";
   }
@@ -157,6 +176,11 @@ export function CampaignGoogleAdsPanel({
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
   const [createCampaignOpen, setCreateCampaignOpen] = useState(false);
+  const [campaignPendingDelete, setCampaignPendingDelete] =
+    useState<GoogleAdsCampaign | null>(null);
+  const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
+    null,
+  );
 
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
@@ -204,14 +228,45 @@ export function CampaignGoogleAdsPanel({
   }, [businessId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     void (async () => {
       const { connected, googleCustomerId: customerId } =
         await refreshConnection();
-      if (connected && customerId) {
-        await loadStats();
-      }
+      if (cancelled || !connected || !customerId) return;
+      await loadStats();
     })();
-  }, [refreshConnection, loadStats]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, refreshConnection, loadStats]);
+
+  const handleConfirmDeleteCampaign = useCallback(async () => {
+    if (!campaignPendingDelete) return;
+
+    const campaign = campaignPendingDelete;
+    setDeletingCampaignId(campaign.id);
+    setAdStatsError(null);
+    try {
+      await deleteGoogleAdsCampaign(businessId, campaign.id);
+      setAdStats((prev) =>
+        prev
+          ? {
+              ...prev,
+              campaigns: prev.campaigns.filter((c) => c.id !== campaign.id),
+            }
+          : prev,
+      );
+      setCampaignPendingDelete(null);
+    } catch (e) {
+      setAdStatsError(
+        e instanceof Error ? e.message : "Could not delete campaign.",
+      );
+    } finally {
+      setDeletingCampaignId(null);
+    }
+  }, [businessId, campaignPendingDelete]);
 
   const campaigns = adStats?.campaigns ?? [];
   const currency = adStats?.currency;
@@ -455,7 +510,7 @@ export function CampaignGoogleAdsPanel({
                     {campaigns.map((c) => (
                       <li
                         key={c.id}
-                        className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm ring-1 ring-zinc-950/[0.03] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/30 hover:shadow-lg hover:shadow-blue-500/10"
+                        className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 pr-14 shadow-sm ring-1 ring-zinc-950/[0.03] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/30 hover:shadow-lg hover:shadow-blue-500/10"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -469,7 +524,9 @@ export function CampaignGoogleAdsPanel({
                           <span
                             className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset ${statusBadgeClass(c.effectiveStatus)}`}
                           >
-                            {formatMetaDeliveryStatus(c.effectiveStatus)}
+                            {formatMetaDeliveryStatus(
+                              normalizeGoogleCampaignStatus(c.effectiveStatus),
+                            )}
                           </span>
                         </div>
 
@@ -499,6 +556,24 @@ export function CampaignGoogleAdsPanel({
                             tone="emerald"
                           />
                         </div>
+
+                        <button
+                          type="button"
+                          title="Delete from Dealioo and Google Ads"
+                          aria-label={`Delete ${c.name} from Dealioo and Google Ads`}
+                          disabled={deletingCampaignId === c.id}
+                          onClick={() => setCampaignPendingDelete(c)}
+                          className="absolute right-3 top-3 rounded-lg p-1.5 text-zinc-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        >
+                          {deletingCampaignId === c.id ? (
+                            <Loader2
+                              className="size-4 animate-spin"
+                              aria-hidden
+                            />
+                          ) : (
+                            <Trash2 className="size-4" aria-hidden />
+                          )}
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -565,6 +640,39 @@ export function CampaignGoogleAdsPanel({
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationDialog
+        open={campaignPendingDelete != null}
+        itemName={campaignPendingDelete?.name?.trim() || "this campaign"}
+        title="Delete this campaign from Google Ads?"
+        description={
+          <>
+            This permanently removes{" "}
+            <span className="font-semibold text-[#4285F4]">
+              {campaignPendingDelete?.name?.trim() || "this campaign"}
+            </span>{" "}
+            and its ads from your linked Google Ads account as well as from
+            Dealioo. This cannot be undone.
+          </>
+        }
+        confirmText="Delete from Google Ads"
+        checkboxLabel={
+          campaignPendingDelete
+            ? `I understand this deletes ${
+                campaignPendingDelete.name?.trim() || "this campaign"
+              } and its ads from Google Ads too.`
+            : "I understand this deletes the campaign and its ads from Google Ads too."
+        }
+        isLoading={deletingCampaignId != null}
+        onConfirm={() => {
+          void handleConfirmDeleteCampaign();
+        }}
+        onCancel={() => {
+          if (deletingCampaignId == null) {
+            setCampaignPendingDelete(null);
+          }
+        }}
+      />
 
       {createCampaignOpen ? (
         <GoogleAdsCreateCampaignFlow

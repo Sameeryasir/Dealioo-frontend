@@ -45,7 +45,9 @@ import {
 } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 
-type NavIcon = LucideIcon | ComponentType<{ className?: string }>;
+type NavIcon =
+  | LucideIcon
+  | ComponentType<{ className?: string; monochrome?: boolean }>;
 
 type NavItem = {
   href: string;
@@ -312,7 +314,11 @@ export default function AdminPanelSidebar() {
                 : pathname === href || pathname.startsWith(`${href}/`);
             const disabled = scannerUser && label !== "Scanning";
             const iconNode = brandIcon ? (
-              <Icon className="rd-sidebar-item-icon" aria-hidden />
+              <Icon
+                className="rd-sidebar-item-icon"
+                aria-hidden
+                monochrome
+              />
             ) : (
               <Icon
                 className="rd-sidebar-item-icon"

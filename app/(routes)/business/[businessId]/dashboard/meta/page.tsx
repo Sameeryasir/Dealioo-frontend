@@ -6,11 +6,6 @@ import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 
-/**
- * Change: Dedicated Meta / Facebook ads page for the sidebar Meta link.
- * Why: Same Facebook Ads section that lives on the campaign Ads tab, at business level.
- * Related: CampaignAdsPanel, AdminPanelSidebar
- */
 export default function BusinessMetaAdsPage() {
   const params = useParams();
   const businessId = useMemo(

@@ -146,11 +146,11 @@ export type AdSetStepData = {
   billingEvent: MetaBillingEvent;
   startDate: string;
   startTime: string;
-  endDate: string;
-  endTime: string;
+  endDate?: string;
+  endTime?: string;
   timezone: string;
   startDateTime: string;
-  endDateTime: string;
+  endDateTime?: string;
   optimizationGoal: MetaOptimizationGoal;
   destinationType: MetaDestinationType;
   promotedObject?: AdSetPromotedObject;

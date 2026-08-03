@@ -40,6 +40,9 @@ export const metaBuilderMutedPanelClass = `rounded-xl border ${metaBuilderBorder
 export const builderInputClass =
   "w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-medium text-[#07111f] shadow-sm transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1877f2]/15";
 
+export const builderSelectTriggerClass =
+  "w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-medium text-[#07111f] transition focus:outline-none";
+
 export const builderInputErrorClass =
   "border-red-300 focus:border-red-400 focus:ring-red-500/20";
 
@@ -129,7 +132,7 @@ export function BuilderField({
 }: {
   label: string;
   required?: boolean;
-  hint?: string;
+  hint?: ReactNode;
   error?: string | null;
   children: ReactNode;
   id?: string;
@@ -288,9 +291,7 @@ export function BuilderSelect<T extends string>({
         aria-controls={listId}
         aria-label={ariaLabel}
         onClick={() => setOpen((prev) => !prev)}
-        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
-          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
-        }`}
+        className={`${builderSelectTriggerClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className="truncate">{selected?.label ?? "Select"}</span>
         <ChevronDown
@@ -529,9 +530,7 @@ export function BuilderSearchableSelect<T extends string>({
         aria-controls={listId}
         aria-label={ariaLabel}
         onClick={() => setOpen((prev) => !prev)}
-        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
-          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
-        }`}
+        className={`${builderSelectTriggerClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className="truncate">{selected?.label ?? "Select"}</span>
         <ChevronDown
@@ -725,9 +724,7 @@ export function BuilderPerformanceGoalSelect<T extends string>({
         aria-controls={listId}
         aria-label={ariaLabel}
         onClick={() => setOpen((prev) => !prev)}
-        className={`${builderInputClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 ${
-          open ? "border-[#1877f2]/45 bg-white ring-2 ring-[#1877f2]/15" : ""
-        }`}
+        className={`${builderSelectTriggerClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className="truncate">{selected?.label ?? "Select"}</span>
         <ChevronDown

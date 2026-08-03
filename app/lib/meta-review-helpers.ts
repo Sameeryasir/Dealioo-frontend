@@ -52,6 +52,9 @@ export function formatAdSetBudget(
 }
 
 export function formatSchedule(adSet: AdSetStepData): string {
+  if (!adSet.endDate?.trim() || !adSet.endTime?.trim()) {
+    return `${adSet.startDate} ${adSet.startTime} → ongoing (${adSet.timezone})`;
+  }
   return `${adSet.startDate} ${adSet.startTime} → ${adSet.endDate} ${adSet.endTime} (${adSet.timezone})`;
 }
 

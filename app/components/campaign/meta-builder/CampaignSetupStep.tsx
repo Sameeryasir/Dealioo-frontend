@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DollarSign, Flag, Target } from "lucide-react";
 import type {
   CampaignStepData,
@@ -62,6 +62,7 @@ type CampaignSetupStepProps = {
   error: string | null;
   onBack: () => void;
   onSave: (data: CampaignStepData) => void | Promise<void>;
+  onWorkingChange?: (data: CampaignStepData) => void;
 };
 
 export function CampaignSetupStep({
@@ -73,6 +74,7 @@ export function CampaignSetupStep({
   error,
   onBack,
   onSave,
+  onWorkingChange,
 }: CampaignSetupStepProps) {
   const currencyCode = normalizeMetaCurrencyCode(accountCurrency);
   const [name, setName] = useState(initialData?.name ?? defaultName);
@@ -133,6 +135,56 @@ export function CampaignSetupStep({
   };
 
   const cboEnabled = budgetStrategy === "campaign";
+
+  useEffect(() => {
+    if (!onWorkingChange) return;
+
+    const amount = Number.parseFloat(campaignBudgetAmount);
+    const spend = campaignSpendLimit.trim()
+      ? Number.parseFloat(campaignSpendLimit)
+      : undefined;
+
+    onWorkingChange({
+      name: name.trim() || defaultName || "Untitled campaign",
+      buyingType: "AUCTION",
+      objective,
+      specialAdCategories: specialNone ? [] : specialCategories,
+      budgetStrategy,
+      campaignBudgetOptimization: cboEnabled,
+      campaignBudgetType: cboEnabled ? campaignBudgetType : undefined,
+      campaignDailyBudget:
+        cboEnabled &&
+        campaignBudgetType === "daily" &&
+        Number.isFinite(amount)
+          ? amount
+          : undefined,
+      campaignLifetimeBudget:
+        cboEnabled &&
+        campaignBudgetType === "lifetime" &&
+        Number.isFinite(amount)
+          ? amount
+          : undefined,
+      campaignBidStrategy,
+      budgetScheduling: "none",
+      campaignSpendLimit:
+        spend != null && Number.isFinite(spend) ? spend : undefined,
+      status,
+    });
+  }, [
+    budgetStrategy,
+    campaignBidStrategy,
+    campaignBudgetAmount,
+    campaignBudgetType,
+    campaignSpendLimit,
+    cboEnabled,
+    defaultName,
+    name,
+    objective,
+    onWorkingChange,
+    specialCategories,
+    specialNone,
+    status,
+  ]);
 
   const parsedBudgetAmount = Number.parseFloat(campaignBudgetAmount);
   const budgetHelperText =
@@ -294,8 +346,8 @@ export function CampaignSetupStep({
         <div className="space-y-4 border-t border-[#e8edf5] pt-4">
           {cboEnabled ? (
             <>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <label className="block text-sm sm:w-44">
+              <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+                <label className="block text-sm">
                   <span className="font-medium text-[#07111f]">Budget type</span>
                   <select
                     value={campaignBudgetType}
@@ -304,15 +356,15 @@ export function CampaignSetupStep({
                         e.target.value as MetaCampaignBudgetType,
                       )
                     }
-                    className={inputClass}
+                    className={`${inputClass} mt-1.5`}
                   >
                     <option value="daily">Daily budget</option>
                     <option value="lifetime">Lifetime budget</option>
                   </select>
                 </label>
-                <label className="block flex-1 text-sm">
+                <label className="block text-sm">
                   <span className="font-medium text-[#07111f]">Amount</span>
-                  <div className="relative mt-1">
+                  <div className="relative mt-1.5">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
                       {currencyCode}
                     </span>
@@ -322,7 +374,7 @@ export function CampaignSetupStep({
                       step={1}
                       value={campaignBudgetAmount}
                       onChange={(e) => setCampaignBudgetAmount(e.target.value)}
-                      className={`${inputClass} mt-0 pl-14`}
+                      className={`${inputClass} pl-14`}
                       placeholder="25"
                     />
                   </div>

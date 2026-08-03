@@ -411,7 +411,7 @@ export function AdCreativeSetupStep({
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5 pb-2">
       <BuilderStepHeader
         step={3}
-        title="Ad / Creative setup"
+        title="Ad setup"
         description="Build what people see, image, video, copy, and link. Saved as draft until you publish on Step 4."
         badge="Draft only"
       />

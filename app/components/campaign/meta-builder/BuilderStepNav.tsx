@@ -13,7 +13,7 @@ type BuilderStepNavProps = {
 const STEP_SHORT: Record<number, string> = {
   1: "Campaign",
   2: "Ad set",
-  3: "Creative",
+  3: "Ad",
   4: "Publish",
 };
 

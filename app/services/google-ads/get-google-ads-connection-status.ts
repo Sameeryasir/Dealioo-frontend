@@ -12,14 +12,37 @@ export type GoogleAdsConnectionStatus = {
   missingRequiredScopes?: string[];
 };
 
+const inflightByBusinessId = new Map<
+  number,
+  Promise<GoogleAdsConnectionStatus>
+>();
+
 export async function getGoogleAdsConnectionStatus(
-  accessToken: string,
+  _accessToken: string,
   restaurantId: number,
 ): Promise<GoogleAdsConnectionStatus> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
   }
 
+  const existing = inflightByBusinessId.get(restaurantId);
+  if (existing) {
+    return existing;
+  }
+
+  const request = fetchGoogleAdsConnectionStatus(restaurantId).finally(() => {
+    if (inflightByBusinessId.get(restaurantId) === request) {
+      inflightByBusinessId.delete(restaurantId);
+    }
+  });
+
+  inflightByBusinessId.set(restaurantId, request);
+  return request;
+}
+
+async function fetchGoogleAdsConnectionStatus(
+  restaurantId: number,
+): Promise<GoogleAdsConnectionStatus> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/google-ads/status/${encodeURIComponent(String(restaurantId))}`,
     { method: "GET" },

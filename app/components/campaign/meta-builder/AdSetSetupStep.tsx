@@ -147,9 +147,13 @@ export function AdSetSetupStep({
   const initialEnd = initialData?.endDate ?? addDaysToIsoDate(initialStart, 14);
   const [startDate, setStartDate] = useState(initialStart);
   const [startTime, setStartTime] = useState(initialData?.startTime ?? "09:00");
-  const [hasEndDate, setHasEndDate] = useState(true);
+  const [hasEndDate, setHasEndDate] = useState(() => {
+    if (!initialData) return true;
+    return Boolean(initialData.endDate?.trim() && initialData.endTime?.trim());
+  });
   const [endDurationDays, setEndDurationDays] = useState<number | "custom">(
     () => {
+      if (!initialData?.endDate) return 14;
       const matched = END_DATE_DURATION_OPTIONS.find(
         (option) => addDaysToIsoDate(initialStart, option.days) === initialEnd,
       );
@@ -162,7 +166,13 @@ export function AdSetSetupStep({
     initialData?.timezone ?? detectTimezone(),
   );
   const [optimizationGoal, setOptimizationGoal] = useState<MetaOptimizationGoal>(
-    initialData?.optimizationGoal ?? goalOptions[0]?.value ?? "LINK_CLICKS",
+    () => {
+      const fromDraft = initialData?.optimizationGoal;
+      if (fromDraft && goalOptions.some((opt) => opt.value === fromDraft)) {
+        return fromDraft;
+      }
+      return goalOptions[0]?.value ?? "LINK_CLICKS";
+    },
   );
   const destinationType = "WEBSITE" as const;
   const [pixelId, setPixelId] = useState(initialData?.promotedObject?.pixelId ?? "");
@@ -219,17 +229,18 @@ export function AdSetSetupStep({
     ];
   }, [timezone]);
 
-  const showPromotedObject = useMemo(
-    () => optimizationGoal === "OFFSITE_CONVERSIONS",
-    [optimizationGoal],
-  );
+  useEffect(() => {
+    if (!goalOptions.some((opt) => opt.value === optimizationGoal)) {
+      setOptimizationGoal(goalOptions[0]?.value ?? "LINK_CLICKS");
+    }
+  }, [goalOptions, optimizationGoal]);
+
+  const needsPromotedObject = optimizationGoal === "OFFSITE_CONVERSIONS";
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
 
   useEffect(() => {
-    if (!showPromotedObject) return;
-
     let cancelled = false;
     setPixelsLoading(true);
     setPixelsError(null);
@@ -261,14 +272,12 @@ export function AdSetSetupStep({
     return () => {
       cancelled = true;
     };
-  }, [businessId, showPromotedObject]);
+  }, [businessId]);
 
   const pixelSelectOptions = useMemo(() => {
     const fromMeta = pixels.map((pixel) => ({
       value: pixel.id,
-      label: pixel.name?.trim()
-        ? `${pixel.name.trim()} (${pixel.id})`
-        : pixel.id,
+      label: pixel.name?.trim() || pixel.id,
     }));
     if (pixelId.trim() && !fromMeta.some((opt) => opt.value === pixelId)) {
       return [{ value: pixelId, label: `${pixelId} (saved)` }, ...fromMeta];
@@ -347,6 +356,19 @@ export function AdSetSetupStep({
       return;
     }
 
+    if (needsPromotedObject) {
+      if (!pixelId.trim()) {
+        setFieldErrors({ pixelId: "Select a Dataset (Meta Pixel) to track conversions." });
+        setLocalError("Select a Dataset (Meta Pixel) before continuing.");
+        return;
+      }
+      if (!customEventType.trim()) {
+        setFieldErrors({ customEventType: "Select a conversion event." });
+        setLocalError("Select a conversion event before continuing.");
+        return;
+      }
+    }
+
     const addressWithoutRadius = locations.find(
       (loc) =>
         loc.type === "address" &&
@@ -373,6 +395,24 @@ export function AdSetSetupStep({
       }
     }
 
+    const usesLifetimeBudget =
+      (!cboEnabled && budgetType === "lifetime") ||
+      (cboEnabled && campaignData.campaignBudgetType === "lifetime");
+
+    if (usesLifetimeBudget && !hasEndDate) {
+      setLocalError(
+        "Lifetime budgets require an end date. Turn on “Set an end date” or use a daily budget.",
+      );
+      return;
+    }
+
+    if (hasEndDate) {
+      if (!endDate.trim() || !endTime.trim()) {
+        setLocalError("End date and time are required when Set an end date is on.");
+        return;
+      }
+    }
+
     let parsedRadius: number | undefined;
     let city: string | undefined;
     let distanceUnit: AdSetStepData["audience"]["distanceUnit"];
@@ -381,11 +421,6 @@ export function AdSetSetupStep({
       city = legacyLocation.city;
       distanceUnit = legacyLocation.distanceUnit;
     }
-
-    const resolvedEndDate = hasEndDate
-      ? endDate
-      : addDaysToIsoDate(startDate, 30);
-    const resolvedEndTime = hasEndDate ? endTime : "23:59";
 
     await onSave({
       name: trimmedName,
@@ -402,19 +437,18 @@ export function AdSetSetupStep({
       billingEvent,
       startDate,
       startTime,
-      endDate: resolvedEndDate,
-      endTime: resolvedEndTime,
+      endDate: hasEndDate ? endDate : undefined,
+      endTime: hasEndDate ? endTime : undefined,
       timezone,
       optimizationGoal,
       destinationType,
-      promotedObject:
-        pixelId.trim() || customEventType.trim() || pageId.trim()
-          ? {
-              pixelId: pixelId.trim() || undefined,
-              customEventType: customEventType.trim() || undefined,
-              pageId: pageId.trim() || undefined,
-            }
-          : undefined,
+      promotedObject: needsPromotedObject
+        ? {
+            pixelId: pixelId.trim(),
+            customEventType: customEventType.trim() || "PURCHASE",
+            pageId: pageId.trim() || undefined,
+          }
+        : undefined,
       audience: {
         country: legacyLocation.country,
         city,
@@ -467,6 +501,118 @@ export function AdSetSetupStep({
               { value: "PAUSED", label: "Paused (recommended)", hint: "Review before going live" },
               { value: "ACTIVE", label: "Active", hint: "Start when published" },
             ]}
+          />
+        </BuilderField>
+      </BuilderCard>
+
+      <BuilderCard title="Conversion">
+        <BuilderField
+          label="Conversion location"
+          hint="Where you want to drive the conversion."
+        >
+          <BuilderSelect
+            aria-label="Conversion location"
+            value={destinationType}
+            options={[...CONVERSION_LOCATION_OPTIONS]}
+            onChange={(_value) => {}}
+          />
+        </BuilderField>
+
+        <BuilderField
+          label="Performance goal"
+          hint={
+            <>
+              Set your goal, such as maximising conversions or conversion
+              value.{" "}
+              <a
+                href="https://www.facebook.com/business/help/410857036421635"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-[#1877f2] no-underline hover:underline"
+              >
+                About performance goals
+              </a>
+            </>
+          }
+        >
+          <BuilderPerformanceGoalSelect
+            aria-label="Performance goal"
+            value={optimizationGoal}
+            options={goalOptions}
+            onChange={setOptimizationGoal}
+          />
+        </BuilderField>
+
+        <BuilderField
+          label="Dataset"
+          required={needsPromotedObject}
+          hint="Track actions that people take on your website."
+          error={fieldErrors.pixelId ?? pixelsError ?? undefined}
+        >
+          {pixelsLoading ? (
+            <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+              Loading datasets from Meta…
+            </p>
+          ) : pixelSelectOptions.length > 0 ? (
+            <BuilderSelect
+              aria-label="Dataset"
+              value={
+                pixelSelectOptions.some((opt) => opt.value === pixelId)
+                  ? pixelId
+                  : pixelSelectOptions[0]!.value
+              }
+              options={pixelSelectOptions}
+              onChange={setPixelId}
+            />
+          ) : (
+            <div className="space-y-2">
+              {!pixelsError ? (
+                <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
+                  No dataset (Meta Pixel) was found on this account.
+                  Create one in Meta Events Manager, or paste the Pixel ID
+                  below.
+                </p>
+              ) : null}
+              <input
+                value={pixelId}
+                onChange={(e) => setPixelId(e.target.value)}
+                className={inputClass}
+                placeholder="Enter Meta Pixel / Dataset ID"
+              />
+            </div>
+          )}
+        </BuilderField>
+
+        <BuilderField
+          label="Conversion event"
+          required={needsPromotedObject}
+          hint={
+            <>
+              The action that you want people to take when they see your
+              ads.{" "}
+              <a
+                href="https://www.facebook.com/business/help/244599159112157"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-[#1877f2] no-underline hover:underline"
+              >
+                About conversion events
+              </a>
+            </>
+          }
+          error={fieldErrors.customEventType}
+        >
+          <BuilderSelect
+            aria-label="Conversion event"
+            value={
+              CONVERSION_EVENT_OPTIONS.some(
+                (opt) => opt.value === customEventType,
+              )
+                ? customEventType
+                : "PURCHASE"
+            }
+            options={[...CONVERSION_EVENT_OPTIONS]}
+            onChange={setCustomEventType}
           />
         </BuilderField>
       </BuilderCard>
@@ -636,7 +782,8 @@ export function AdSetSetupStep({
             </div>
           ) : (
             <p className="mt-3 text-xs text-slate-500">
-              Your ad set will keep running until you turn it off. A default end date is still stored for Meta.
+              Your ad set will keep running until you turn it off. No end date
+              will be sent to Meta.
             </p>
           )}
         </div>
@@ -654,94 +801,6 @@ export function AdSetSetupStep({
             />
           </div>
         </label>
-      </BuilderCard>
-
-      <BuilderCard title="Conversion">
-        <BuilderField
-          label="Conversion location"
-          hint="Where you want to drive the conversion."
-        >
-          <BuilderSelect
-            aria-label="Conversion location"
-            value={destinationType}
-            options={[...CONVERSION_LOCATION_OPTIONS]}
-            onChange={(_value) => {}}
-          />
-        </BuilderField>
-
-        <BuilderField
-          label="Performance goal"
-          hint="Set your goal, such as maximising conversions or conversion value."
-        >
-          <BuilderPerformanceGoalSelect
-            aria-label="Performance goal"
-            value={optimizationGoal}
-            options={goalOptions}
-            onChange={setOptimizationGoal}
-          />
-        </BuilderField>
-
-        {showPromotedObject ? (
-          <>
-            <BuilderField
-              label="Dataset"
-              required
-              hint="Track actions that people take on your website."
-              error={pixelsError ?? undefined}
-            >
-              {pixelsLoading ? (
-                <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
-                  Loading datasets from Meta…
-                </p>
-              ) : pixelSelectOptions.length > 0 ? (
-                <BuilderSelect
-                  aria-label="Dataset"
-                  value={
-                    pixelSelectOptions.some((opt) => opt.value === pixelId)
-                      ? pixelId
-                      : pixelSelectOptions[0]!.value
-                  }
-                  options={pixelSelectOptions}
-                  onChange={setPixelId}
-                />
-              ) : (
-                <div className="space-y-2">
-                  {!pixelsError ? (
-                    <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
-                      No dataset (Meta Pixel) was found on this account. Create
-                      one in Meta Events Manager, or paste the Pixel ID below.
-                    </p>
-                  ) : null}
-                  <input
-                    value={pixelId}
-                    onChange={(e) => setPixelId(e.target.value)}
-                    className={inputClass}
-                    placeholder="Enter Meta Pixel / Dataset ID"
-                  />
-                </div>
-              )}
-            </BuilderField>
-
-            <BuilderField
-              label="Conversion event"
-              required
-              hint="The action that you want people to take when they see your ads."
-            >
-              <BuilderSelect
-                aria-label="Conversion event"
-                value={
-                  CONVERSION_EVENT_OPTIONS.some(
-                    (opt) => opt.value === customEventType,
-                  )
-                    ? customEventType
-                    : "PURCHASE"
-                }
-                options={[...CONVERSION_EVENT_OPTIONS]}
-                onChange={setCustomEventType}
-              />
-            </BuilderField>
-          </>
-        ) : null}
       </BuilderCard>
 
       <BuilderCard
@@ -902,7 +961,7 @@ export function AdSetSetupStep({
         onBack={onBack}
         secondaryLabel="Back"
         onSecondary={onPrevious}
-        primaryLabel={saving ? "Saving draft…" : "Save & continue to Ad / Creative"}
+        primaryLabel={saving ? "Saving draft…" : "Save & continue to Ad"}
         primaryLoading={saving}
         primaryDisabled={saving}
         primaryDisabledReason={saving ? "Saving your ad set draft…" : undefined}

@@ -34,6 +34,12 @@ import { CampaignSetupStep } from "@/app/components/campaign/meta-builder/Campai
 import { PlaceholderBuilderStep } from "@/app/components/campaign/meta-builder/PlaceholderBuilderStep";
 import { ReviewPublishStep } from "@/app/components/campaign/meta-builder/ReviewPublishStep";
 import {
+  clearMetaDraftLocalState,
+  readMetaDraftRecovery,
+  writeActiveMetaDraftId,
+  writeMetaDraftRecovery,
+} from "@/app/lib/meta-active-draft-storage";
+import {
   autosaveMetaCampaignDraft,
   getMetaCampaignDraft,
   getMetaPublishStatus,
@@ -163,6 +169,7 @@ export function MetaCampaignBuilder({
 
   const publishStartedRef = useRef(false);
   const resumeHandledRef = useRef(false);
+  const sessionHydratedRef = useRef(false);
   const stepScrollRef = useRef<HTMLElement | null>(null);
   const autosaveSkipRef = useRef(true);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -171,6 +178,32 @@ export function MetaCampaignBuilder({
   useEffect(() => {
     stepScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!open || publishSuccess) return;
+    if (!draftId && !campaignData && !adSetData && !adCreativeData) return;
+
+    writeMetaDraftRecovery(businessId, {
+      draftId,
+      currentStep,
+      campaignData,
+      adSetData,
+      adCreativeData,
+      updatedAt: new Date().toISOString(),
+    });
+    if (draftId) {
+      writeActiveMetaDraftId(businessId, draftId);
+    }
+  }, [
+    open,
+    businessId,
+    draftId,
+    currentStep,
+    campaignData,
+    adSetData,
+    adCreativeData,
+    publishSuccess,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -387,6 +420,10 @@ export function MetaCampaignBuilder({
     });
   }, [applyPublishProgress, businessId, draftId, open]);
 
+  const handleCampaignWorkingChange = useCallback((data: CampaignStepData) => {
+    setCampaignData(data);
+  }, []);
+
   const handleSaveCampaignStep = useCallback(
     async (data: CampaignStepData) => {
       setSaving(true);
@@ -549,6 +586,7 @@ export function MetaCampaignBuilder({
         };
         setPartialMeta(null);
         setPublishSuccess(result);
+        clearMetaDraftLocalState(businessId);
         onDraftSaved?.(refreshed);
         if (
           shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
@@ -625,6 +663,7 @@ export function MetaCampaignBuilder({
       setPublishStep("done");
       setPublishProgress(100);
       setPublishSuccess(result);
+      clearMetaDraftLocalState(businessId);
       if (
         shouldOpenMetaAdsManagerAfterPublish(campaignData) &&
         result.adsManagerUrl?.trim()
@@ -726,6 +765,7 @@ export function MetaCampaignBuilder({
           setPublishStep("done");
           setPublishProgress(100);
           setPublishSuccess(result);
+          clearMetaDraftLocalState(businessId);
           const liveCampaign = campaignData ?? initialDraft.campaignData;
           if (
             liveCampaign &&
@@ -789,6 +829,7 @@ export function MetaCampaignBuilder({
 
   useEffect(() => {
     if (open) return;
+    sessionHydratedRef.current = false;
     setCurrentStep(initialStepFromDraft(initialDraft));
     setDraftId(initialDraftId ?? initialDraft?.id ?? null);
     setDraftVersion(initialDraft?.version ?? 1);
@@ -813,27 +854,62 @@ export function MetaCampaignBuilder({
     lastAutosavePayloadRef.current = "";
   }, [open, initialDraft, initialDraftId]);
 
-  
   useEffect(() => {
     if (!open) return;
+    if (sessionHydratedRef.current) return;
+    sessionHydratedRef.current = true;
     autosaveSkipRef.current = true;
+    const recovery = readMetaDraftRecovery(businessId);
+
     if (initialDraft) {
       applyDraftState(initialDraft);
-      setCurrentStep(initialStepFromDraft(initialDraft));
+      let step = initialStepFromDraft(initialDraft);
+      if (
+        recovery &&
+        recovery.draftId === initialDraft.id &&
+        recovery.updatedAt &&
+        initialDraft.updatedAt &&
+        new Date(recovery.updatedAt).getTime() >
+          new Date(initialDraft.updatedAt).getTime()
+      ) {
+        if (recovery.campaignData) setCampaignData(recovery.campaignData);
+        if (recovery.adSetData) setAdSetData(recovery.adSetData);
+        if (recovery.adCreativeData) setAdCreativeData(recovery.adCreativeData);
+        if (recovery.currentStep >= 1) {
+          step = Math.min(recovery.currentStep, 4);
+        }
+      }
+      setCurrentStep(step);
       if (initialDraft.status === "failed" && initialDraft.errorMessage) {
         setError(initialDraft.errorMessage);
       }
-    } else {
-      setCurrentStep(1);
-      setDraftId(initialDraftId);
+      return;
+    }
+
+    if (recovery && (recovery.campaignData || recovery.draftId)) {
+      const step = recovery.draftId
+        ? Math.min(Math.max(recovery.currentStep || 1, 1), 4)
+        : 1;
+      setCurrentStep(step);
+      setDraftId(recovery.draftId ?? initialDraftId);
       setDraftVersion(1);
-      setCampaignData(null);
-      setAdSetData(null);
-      setAdCreativeData(null);
+      setCampaignData(recovery.campaignData);
+      setAdSetData(recovery.draftId ? recovery.adSetData : null);
+      setAdCreativeData(recovery.draftId ? recovery.adCreativeData : null);
       setPartialMeta(null);
       setError(null);
+      return;
     }
-  }, [open, initialDraft, initialDraftId, applyDraftState]);
+
+    setCurrentStep(1);
+    setDraftId(initialDraftId);
+    setDraftVersion(1);
+    setCampaignData(null);
+    setAdSetData(null);
+    setAdCreativeData(null);
+    setPartialMeta(null);
+    setError(null);
+  }, [open, initialDraft, initialDraftId, applyDraftState, businessId]);
 
   if (!open) return null;
 
@@ -905,7 +981,7 @@ export function MetaCampaignBuilder({
 
           {currentStep === 1 ? (
             <CampaignSetupStep
-              key={`campaign-setup-${initialObjective ?? "default"}`}
+              key={`campaign-setup-${initialObjective ?? "default"}-${draftId ?? "new"}`}
               defaultName={defaultName}
               preferredObjective={initialObjective}
               initialData={campaignData}
@@ -914,6 +990,7 @@ export function MetaCampaignBuilder({
               error={error}
               onBack={onClose}
               onSave={handleSaveCampaignStep}
+              onWorkingChange={handleCampaignWorkingChange}
             />
           ) : null}
 
@@ -959,7 +1036,7 @@ export function MetaCampaignBuilder({
 
           {currentStep === 3 && (!draftId || !campaignData || !adSetData) ? (
             <PlaceholderBuilderStep
-              title="Ad / Creative"
+              title="Ad"
               description="Complete Steps 1 and 2 first."
               onBack={onClose}
               onPrevious={() => setCurrentStep(2)}

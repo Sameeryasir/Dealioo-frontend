@@ -26,6 +26,20 @@ export type FacebookAdCampaignStats = {
 
 const FACEBOOK_CAMPAIGN_STATS_TIMEOUT_MS = 45_000;
 
+const inflightByKey = new Map<string, Promise<FacebookAdCampaignStats>>();
+
+function statsCacheKey(
+  restaurantId: number,
+  options?: {
+    includeInsights?: boolean;
+    refresh?: boolean;
+  },
+): string {
+  const insights = options?.includeInsights === false ? "0" : "1";
+  const refresh = options?.refresh ? "1" : "0";
+  return `${restaurantId}:insights=${insights}:refresh=${refresh}`;
+}
+
 export async function getFacebookAdCampaignStats(
   restaurantId: number,
   options?: {
@@ -37,6 +51,31 @@ export async function getFacebookAdCampaignStats(
     throw new Error("Business is required.");
   }
 
+  const key = statsCacheKey(restaurantId, options);
+  const existing = inflightByKey.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const request = fetchFacebookAdCampaignStats(restaurantId, options).finally(
+    () => {
+      if (inflightByKey.get(key) === request) {
+        inflightByKey.delete(key);
+      }
+    },
+  );
+
+  inflightByKey.set(key, request);
+  return request;
+}
+
+async function fetchFacebookAdCampaignStats(
+  restaurantId: number,
+  options?: {
+    includeInsights?: boolean;
+    refresh?: boolean;
+  },
+): Promise<FacebookAdCampaignStats> {
   const params = new URLSearchParams();
   if (options?.includeInsights === false) {
     params.set("insights", "0");

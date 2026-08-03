@@ -37,6 +37,8 @@ export function buildLocationsFromAudience(audience?: {
   }
 
   if (!audience?.country) {
+    const guessed = guessCountryFromTimezone();
+    if (guessed) return [guessed];
     return [
       {
         id: createLocationId(),
@@ -205,4 +207,160 @@ export function radiusToMeters(
   unit: MetaDistanceUnit,
 ): number {
   return unit === "mile" ? radius * 1609.34 : radius * 1000;
+}
+
+const TIMEZONE_COUNTRY_HINTS: Record<string, string> = {
+  "Asia/Karachi": "PK",
+  "Asia/Kolkata": "IN",
+  "Asia/Dubai": "AE",
+  "Asia/Riyadh": "SA",
+  "Asia/Singapore": "SG",
+  "Asia/Tokyo": "JP",
+  "Asia/Shanghai": "CN",
+  "Asia/Hong_Kong": "HK",
+  "Australia/Sydney": "AU",
+  "Australia/Melbourne": "AU",
+  "Europe/London": "GB",
+  "Europe/Paris": "FR",
+  "Europe/Berlin": "DE",
+  "Europe/Amsterdam": "NL",
+  "America/New_York": "US",
+  "America/Chicago": "US",
+  "America/Denver": "US",
+  "America/Los_Angeles": "US",
+  "America/Toronto": "CA",
+  "America/Sao_Paulo": "BR",
+};
+
+function countryTargetFromCode(countryCode: string): AdSetLocationTarget | null {
+  const code = countryCode.trim().toUpperCase();
+  if (!code || code.length !== 2) return null;
+  if (!COUNTRIES.some((country) => country.code === code)) return null;
+  const countryName = getCountryLabel(code);
+  return {
+    id: createLocationId(),
+    mode: "include",
+    type: "country",
+    countryCode: code,
+    countryName,
+    label: countryName,
+  };
+}
+
+export function guessCountryFromTimezone(
+  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
+): AdSetLocationTarget | null {
+  const direct = TIMEZONE_COUNTRY_HINTS[timezone];
+  if (direct) return countryTargetFromCode(direct);
+
+  const region = timezone.split("/")[0]?.toLowerCase();
+  if (region === "australia") return countryTargetFromCode("AU");
+  if (timezone.startsWith("America/")) return countryTargetFromCode("US");
+  if (timezone.startsWith("Europe/")) return countryTargetFromCode("GB");
+  return null;
+}
+
+async function reverseGeocodeLocation(
+  latitude: number,
+  longitude: number,
+): Promise<AdSetLocationTarget | null> {
+  try {
+    const params = new URLSearchParams({
+      lat: String(latitude),
+      lon: String(longitude),
+      lang: "en",
+    });
+    const response = await fetch(
+      `https://photon.komoot.io/reverse?${params.toString()}`,
+    );
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      features?: Array<{
+        geometry?: { coordinates?: [number, number] };
+        properties?: Record<string, string | undefined>;
+      }>;
+    };
+    const feature = data.features?.[0];
+    const properties = feature?.properties ?? {};
+    const countryCode = (properties.countrycode ?? "").toUpperCase();
+    if (!countryCode) return null;
+
+    const countryName =
+      properties.country ?? getCountryLabel(countryCode);
+    const city =
+      properties.city?.trim() ||
+      properties.name?.trim() ||
+      properties.town?.trim() ||
+      properties.state?.trim();
+
+    if (city) {
+      return {
+        id: createLocationId(),
+        mode: "include",
+        type: "address",
+        countryCode,
+        countryName,
+        label: [city, countryName].filter(Boolean).join(", "),
+        latitude,
+        longitude,
+        radius: 16,
+        distanceUnit: "kilometer",
+      };
+    }
+
+    return countryTargetFromCode(countryCode);
+  } catch {
+    return null;
+  }
+}
+
+function readBrowserPosition(
+  timeoutMs = 5000,
+): Promise<{ latitude: number; longitude: number } | null> {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => resolve(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.clearTimeout(timer);
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      () => {
+        window.clearTimeout(timer);
+        resolve(null);
+      },
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 300_000 },
+    );
+  });
+}
+
+export function isDefaultUnitedStatesOnly(
+  locations: AdSetLocationTarget[],
+): boolean {
+  return (
+    locations.length === 1 &&
+    locations[0]?.mode === "include" &&
+    locations[0]?.type === "country" &&
+    locations[0]?.countryCode === "US"
+  );
+}
+
+export async function detectUserLocationTarget(): Promise<AdSetLocationTarget | null> {
+  const coords = await readBrowserPosition();
+  if (coords) {
+    const fromGeo = await reverseGeocodeLocation(
+      coords.latitude,
+      coords.longitude,
+    );
+    if (fromGeo) return fromGeo;
+  }
+
+  return guessCountryFromTimezone();
 }

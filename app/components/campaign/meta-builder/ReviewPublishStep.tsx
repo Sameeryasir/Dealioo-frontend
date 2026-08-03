@@ -208,7 +208,7 @@ export function ReviewPublishStep({
         </section>
       ) : null}
 
-      {partialPublish?.metaCampaignId && !publishSuccess ? (
+      {partialPublish?.metaCampaignId && !publishSuccess && !publishing ? (
         <BuilderWarningAlert
           title="Publish did not finish in Dealioo"
           message="Publish runs in the background. Partial Meta IDs below mean earlier steps already succeeded — retry continues from there (no duplicate campaign/ad set). If Meta returned an error, it is shown below."

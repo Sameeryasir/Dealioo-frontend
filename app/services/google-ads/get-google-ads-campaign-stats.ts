@@ -27,6 +27,8 @@ export type GoogleAdsCampaignStats = {
   campaigns: GoogleAdsCampaign[];
 };
 
+const inflightByBusinessId = new Map<number, Promise<GoogleAdsCampaignStats>>();
+
 export async function getGoogleAdsCampaignStats(
   restaurantId: number,
 ): Promise<GoogleAdsCampaignStats> {
@@ -34,6 +36,24 @@ export async function getGoogleAdsCampaignStats(
     throw new Error("Business is required.");
   }
 
+  const existing = inflightByBusinessId.get(restaurantId);
+  if (existing) {
+    return existing;
+  }
+
+  const request = fetchGoogleAdsCampaignStats(restaurantId).finally(() => {
+    if (inflightByBusinessId.get(restaurantId) === request) {
+      inflightByBusinessId.delete(restaurantId);
+    }
+  });
+
+  inflightByBusinessId.set(restaurantId, request);
+  return request;
+}
+
+async function fetchGoogleAdsCampaignStats(
+  restaurantId: number,
+): Promise<GoogleAdsCampaignStats> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/google-ads/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}`,
     { method: "GET" },
