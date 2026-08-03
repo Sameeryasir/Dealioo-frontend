@@ -185,12 +185,12 @@ export function createEmptyAd(finalUrl = ""): AdCreativeDraft {
 
 export function createEmptySitelink(
   text = "",
-  path = "",
+  url = "",
 ): SitelinkDraft {
   return {
     id: `sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     text,
-    url: path,
+    url,
     description1: "",
     description2: "",
     enabled: true,
@@ -279,28 +279,24 @@ export const GOAL_OPTIONS: {
 }[] = [
   {
     id: "SALES",
-    title: "Get More Sales",
-    description: "Drive purchases online, in store, or by phone.",
+    title: "Sales",
+    description: "Increase online purchases and revenue.",
   },
   {
     id: "LEADS",
-    title: "Generate Leads",
-    description: "Get people to contact you, book, or request a quote.",
+    title: "Leads",
+    description:
+      "Generate enquiries, form submissions, phone calls, or bookings.",
   },
   {
     id: "WEBSITE_TRAFFIC",
-    title: "Increase Website Traffic",
-    description: "Bring more of the right visitors to your website.",
+    title: "Website Traffic",
+    description: "Drive more visitors to a website or landing page.",
   },
   {
     id: "AWARENESS",
-    title: "Promote My Business",
-    description: "Get your brand seen by more potential customers.",
-  },
-  {
-    id: "APP_PROMOTION",
-    title: "App Promotion",
-    description: "Grow installs and engagement for your mobile app.",
+    title: "Brand Awareness",
+    description: "Reach more people and increase visibility.",
   },
 ];
 
@@ -463,7 +459,7 @@ export const HOUSEHOLD_INCOME_OPTIONS = [
 export const TOTAL_WIZARD_STEPS = 11;
 
 export const STEP_TITLES = [
-  "Marketing Goal",
+  "Campaign Objective",
   "Goal Details",
   "Campaign Info",
   "Budget",

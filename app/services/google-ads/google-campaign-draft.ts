@@ -374,25 +374,148 @@ export async function updateGoogleDraftProgress(
   }>;
 }
 
+export type EnqueueGooglePublishResponse = {
+  status: "publishing";
+  draftId: string;
+  jobId: string;
+  publishStatus: "QUEUED";
+  publishStep: "queued";
+  publishProgress: number;
+  version: number;
+  alreadyQueued: boolean;
+  message: string;
+};
+
+export type GooglePublishStatus = {
+  draftId: string;
+  status: string;
+  publishStatus: string | null;
+  publishStep: string | null;
+  publishProgress: number;
+  jobId: string | null;
+  googleBudgetId: string | null;
+  googleCampaignId: string | null;
+  googleAdGroupId: string | null;
+  googleAdId: string | null;
+  googleKeywordIds: string[];
+  errorMessage: string | null;
+  publishedAt: string | null;
+  adsConsoleUrl: string | null;
+  version: number;
+};
+
+export type PublishGoogleCampaignResult = {
+  draftId: string;
+  googleCampaignId: string;
+  googleAdGroupId: string;
+  googleAdId: string;
+  publishStatus: string | null;
+  adsConsoleUrl: string | null;
+  message: string;
+};
+
+const PUBLISH_POLL_ATTEMPTS = 60;
+const PUBLISH_POLL_MS = 2000;
+
+const PUBLISH_STEP_LABELS: Record<string, string> = {
+  queued: "Queued",
+  preparing: "Preparing",
+  budget: "Creating budget",
+  campaign: "Creating campaign",
+  ad_group: "Creating ad group",
+  keywords: "Adding keywords",
+  ads: "Creating ads",
+  done: "Published",
+};
+
+function isPublishSucceeded(status: GooglePublishStatus): boolean {
+  const publishStatus = (status.publishStatus ?? "").toUpperCase();
+  const draftStatus = (status.status ?? "").toUpperCase();
+  return (
+    (publishStatus === "PUBLISHED" || draftStatus === "PUBLISHED") &&
+    Boolean(status.googleCampaignId) &&
+    Boolean(status.googleAdGroupId) &&
+    Boolean(status.googleAdId)
+  );
+}
+
+function isPublishFailed(status: GooglePublishStatus): boolean {
+  const publishStatus = (status.publishStatus ?? "").toUpperCase();
+  const draftStatus = (status.status ?? "").toUpperCase();
+  return publishStatus === "FAILED" || draftStatus === "FAILED";
+}
+
 export async function publishGoogleCampaignDraft(
   businessId: number,
   payload: { draftId: string; expectedVersion: number },
-): Promise<{
-  draftId: string;
-  status: string;
-  version: number;
-  message: string;
-}> {
+): Promise<EnqueueGooglePublishResponse> {
   const res = await authenticatedFetch(`${draftsBase(businessId)}/publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   await throwIfNotOk(res, "Could not publish campaign draft.");
-  return res.json() as Promise<{
-    draftId: string;
-    status: string;
-    version: number;
-    message: string;
-  }>;
+  return res.json() as Promise<EnqueueGooglePublishResponse>;
+}
+
+export async function getGooglePublishStatus(
+  businessId: number,
+  draftId: string,
+  timeoutMs = 15_000,
+): Promise<GooglePublishStatus> {
+  const res = await authenticatedFetch(
+    `${draftsBase(businessId)}/${encodeURIComponent(draftId)}/publish-status`,
+    { method: "GET" },
+    timeoutMs,
+  );
+  await throwIfNotOk(res, "Could not load publish status.");
+  return res.json() as Promise<GooglePublishStatus>;
+}
+
+export async function pollGooglePublishUntilDone(
+  businessId: number,
+  draftId: string,
+  onProgress?: (status: GooglePublishStatus) => void,
+): Promise<PublishGoogleCampaignResult> {
+  let consecutiveFailed = 0;
+
+  for (let i = 0; i < PUBLISH_POLL_ATTEMPTS; i += 1) {
+    const status = await getGooglePublishStatus(businessId, draftId, 15_000);
+    onProgress?.(status);
+
+    if (isPublishSucceeded(status)) {
+      return {
+        draftId: status.draftId,
+        googleCampaignId: status.googleCampaignId!,
+        googleAdGroupId: status.googleAdGroupId!,
+        googleAdId: status.googleAdId!,
+        publishStatus: status.publishStatus,
+        adsConsoleUrl: status.adsConsoleUrl,
+        message: "Campaign published successfully to Google Ads (paused).",
+      };
+    }
+
+    if (isPublishFailed(status)) {
+      consecutiveFailed += 1;
+      if (consecutiveFailed >= 4) {
+        throw new Error(
+          status.errorMessage?.trim() ||
+            "Publish failed on Google Ads. Review the error and try again.",
+        );
+      }
+    } else {
+      consecutiveFailed = 0;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, PUBLISH_POLL_MS));
+  }
+
+  throw new Error(
+    "Publish is taking longer than expected. Check Google Ads or try again.",
+  );
+}
+
+export function googlePublishStepLabel(step: string | null | undefined): string {
+  if (!step) return "Preparing your campaign";
+  return PUBLISH_STEP_LABELS[step] ?? step;
 }

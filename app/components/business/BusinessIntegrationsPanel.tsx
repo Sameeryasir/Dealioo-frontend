@@ -207,13 +207,13 @@ export function BusinessIntegrationsPanel({
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
-      const result = await connectGoogleAdsInPopup(businessId);
-      if (result === "aborted") {
-        await abortGoogleAdsConnect(token, businessId);
-        setGoogleBusy("idle");
-        return;
+      const result = await connectGoogleAdsInPopup(token, businessId);
+      if (result.status === "connected") {
+        await refreshGoogle();
+      } else {
+        await abortGoogleAdsConnect(businessId);
+        await refreshGoogle();
       }
-      await refreshGoogle();
       setGoogleBusy("idle");
     } catch (e) {
       setGoogleBusy("error");

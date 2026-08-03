@@ -36,6 +36,8 @@ import {
   DRAFT_CONFLICT_MESSAGE,
   GoogleDraftConflictError,
   getGoogleCampaignDraft,
+  googlePublishStepLabel,
+  pollGooglePublishUntilDone,
   publishGoogleCampaignDraft,
   saveGoogleAdsStep,
   saveGoogleAudienceStep,
@@ -98,6 +100,9 @@ export function CampaignBuilderWizard({
   const [publishPhase, setPublishPhase] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishedAdsConsoleUrl, setPublishedAdsConsoleUrl] = useState<
+    string | null
+  >(null);
   const [hasAutosaved, setHasAutosaved] = useState(false);
   const [serverDraftId, setServerDraftId] = useState<string | null>(null);
   const [serverVersion, setServerVersion] = useState<number | null>(null);
@@ -289,8 +294,15 @@ export function CampaignBuilderWizard({
           serverCompletedStepsRef.current,
         );
       } catch {
-        
         if (cancelled) return;
+        setServerDraftId(null);
+        setServerVersion(null);
+        saveGoogleCampaignServerDraftId(businessId, null);
+        saveGoogleDraftLocalMeta(businessId, {
+          draftId: null,
+          serverVersion: null,
+          updatedAt: null,
+        });
       } finally {
         syncInFlightRef.current = false;
         if (!cancelled) setSyncingDraft(false);
@@ -323,7 +335,6 @@ export function CampaignBuilderWizard({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prev;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- close handler uses refs
   }, [open, publishing, savingGoal]);
 
   useEffect(() => {
@@ -445,12 +456,35 @@ export function CampaignBuilderWizard({
       setSavingGoal(true);
       setGoalSaveError(null);
       try {
-        const saved = await saveGoogleGoalStep(businessId, {
-          goal: draft.goal,
-          draftId: serverDraftId ?? undefined,
-          
-          expectedVersion: serverDraftId ? (serverVersion ?? 1) : undefined,
-        });
+        let saved;
+        try {
+          saved = await saveGoogleGoalStep(businessId, {
+            goal: draft.goal,
+            draftId: serverDraftId ?? undefined,
+            expectedVersion: serverDraftId ? (serverVersion ?? 1) : undefined,
+          });
+        } catch (firstErr) {
+          const message =
+            firstErr instanceof Error ? firstErr.message.toLowerCase() : "";
+          if (
+            serverDraftId &&
+            (message.includes("draft not found") || message.includes("not found"))
+          ) {
+            setServerDraftId(null);
+            setServerVersion(null);
+            saveGoogleCampaignServerDraftId(businessId, null);
+            saveGoogleDraftLocalMeta(businessId, {
+              draftId: null,
+              serverVersion: null,
+              updatedAt: null,
+            });
+            saved = await saveGoogleGoalStep(businessId, {
+              goal: draft.goal,
+            });
+          } else {
+            throw firstErr;
+          }
+        }
 
         setServerDraftId(saved.id);
         saveGoogleCampaignServerDraftId(businessId, saved.id);
@@ -743,8 +777,8 @@ export function CampaignBuilderWizard({
       setPublishError(
         "Some required details are missing. Jump back and fix highlighted fields.",
       );
-      for (let s = 1; s <= 9; s += 1) {
-        const stepErrors = validateStep(s, draft);
+      for (let s = 1; s <= 10; s += 1) {
+        const stepErrors = validateStep(s, draft, { forPublish: true });
         if (Object.keys(stepErrors).length > 0) {
           goToStep(s);
           setErrors(stepErrors);
@@ -762,21 +796,43 @@ export function CampaignBuilderWizard({
     setPublishing(true);
     setPublishError(null);
     setPublishSuccess(false);
-    setPublishProgress(20);
+    setPublishedAdsConsoleUrl(null);
+    setPublishProgress(8);
     setPublishPhase(PUBLISH_PHASES[0]);
 
     try {
-      setPublishPhase("Publishing");
-      setPublishProgress(60);
-      await publishGoogleCampaignDraft(businessId, {
+      setPublishPhase("Queuing publish…");
+      const result = await publishGoogleCampaignDraft(businessId, {
         draftId: serverDraftId,
         expectedVersion: serverVersion,
       });
+      rememberServerVersion(result.version, result.draftId);
+      setPublishProgress(Math.max(result.publishProgress ?? 0, 8));
+      setPublishPhase(googlePublishStepLabel(result.publishStep));
+
+      const published = await pollGooglePublishUntilDone(
+        businessId,
+        result.draftId,
+        (status) => {
+          rememberServerVersion(status.version, status.draftId);
+          setPublishProgress(Math.max(status.publishProgress ?? 0, 8));
+          setPublishPhase(googlePublishStepLabel(status.publishStep));
+          if (status.adsConsoleUrl) {
+            setPublishedAdsConsoleUrl(status.adsConsoleUrl);
+          }
+        },
+      );
+
       setPublishProgress(100);
-      setPublishPhase(PUBLISH_PHASES[PUBLISH_PHASES.length - 1]);
+      setPublishPhase("Published");
       setPublishSuccess(true);
+      if (published.adsConsoleUrl) {
+        setPublishedAdsConsoleUrl(published.adsConsoleUrl);
+      }
+      setPublishError(null);
       clearGoogleCampaignDraft(businessId);
     } catch (err) {
+      setPublishSuccess(false);
       setPublishError(
         resolveSaveError(
           err,
@@ -803,6 +859,8 @@ export function CampaignBuilderWizard({
     : "Next";
   
   const busy = publishing || savingGoal;
+  const resolvedAdsConsoleUrl = publishedAdsConsoleUrl || adsConsoleUrl || null;
+  const nextDisabled = busy || (step === 1 && !draft.goal);
 
   return (
     <div
@@ -925,9 +983,9 @@ export function CampaignBuilderWizard({
           {step === 1 ? "Cancel" : "Back"}
         </button>
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          {publishSuccess && adsConsoleUrl ? (
+          {publishSuccess && resolvedAdsConsoleUrl ? (
             <a
-              href={adsConsoleUrl}
+              href={resolvedAdsConsoleUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={googleBuilderSecondaryButtonClass}
@@ -942,7 +1000,7 @@ export function CampaignBuilderWizard({
           ) : null}
           <button
             type="button"
-            disabled={busy}
+            disabled={nextDisabled}
             onClick={() => {
               if (publishSuccess) {
                 void persistProgressAndClose();
@@ -954,7 +1012,7 @@ export function CampaignBuilderWizard({
               }
               void handleContinue();
             }}
-            className={googleBuilderPrimaryButtonClass}
+            className={`${googleBuilderPrimaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {publishing ? (
               <>

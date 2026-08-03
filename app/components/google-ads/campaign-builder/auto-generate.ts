@@ -278,35 +278,53 @@ export function generateSnippetValues(businessType: string): string[] {
   return map[businessType] ?? ["Services", "Support", "Consultation", "Booking"];
 }
 
+export const SITELINK_SUGGESTION_LABELS = [
+  "Menu",
+  "Book Now",
+  "Contact",
+  "About Us",
+  "Services",
+  "Pricing",
+  "Order Online",
+  "Locations",
+  "Gallery",
+  "FAQ",
+] as const;
+
+export const MAX_SITELINKS = 8;
+
 export function generateSitelinks(
   websiteUrl: string,
-  businessType: string,
+  _businessType?: string,
 ): SitelinkDraft[] {
-  const base = websiteUrl.replace(/\/$/, "") || "https://www.example.com";
-  const links =
-    businessType === "Restaurant" || businessType === "Cafe"
-      ? [
-          ["Menu", "/menu", "See our full menu", "Updated daily"],
-          ["Book Now", "/book", "Reserve a table", "Quick online booking"],
-          ["Contact", "/contact", "Get in touch", "We're here to help"],
-          ["About Us", "/about", "Our story", "Local & loved"],
-        ]
-      : [
-          ["Services", "/services", "What we offer", "Explore options"],
-          ["Pricing", "/pricing", "Transparent pricing", "No surprises"],
-          ["Contact", "/contact", "Talk to us", "Fast responses"],
-          ["About Us", "/about", "Who we are", "Trusted locally"],
-          ["Book Now", "/book", "Book online", "Easy scheduling"],
-        ];
+  const homepage = normalizeWebsiteHomepage(websiteUrl);
 
-  return links.map(([text, path, d1, d2]) => ({
-    id: uid("sl"),
-    text,
-    url: `${base}${path}`,
-    description1: d1,
-    description2: d2,
-    enabled: true,
-  }));
+  return SITELINK_SUGGESTION_LABELS.slice(0, MAX_SITELINKS).map(
+    (text, index) => ({
+      id: uid("sl"),
+      text,
+      url: homepage,
+      description1: "",
+      description2: "",
+      enabled: index < 4,
+    }),
+  );
+}
+
+function normalizeWebsiteHomepage(websiteUrl: string): string {
+  const trimmed = websiteUrl.trim();
+  if (!trimmed) return "";
+  try {
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    const url = new URL(withProtocol);
+    if (url.protocol === "http:") url.protocol = "https:";
+    if (url.protocol !== "https:") return "";
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 export function estimateMetrics(dailyBudget: number): {

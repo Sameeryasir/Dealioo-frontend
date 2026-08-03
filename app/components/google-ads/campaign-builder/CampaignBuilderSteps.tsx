@@ -5,17 +5,22 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Check,
   ChevronDown,
+  Globe,
+  ImageIcon,
+  Layers,
   Megaphone,
   MousePointerClick,
+  Phone,
   Plus,
   ShoppingBag,
-  Smartphone,
+  ShoppingCart,
+  Store,
   Trash2,
+  Upload,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { AdLivePreview } from "@/app/components/google-ads/campaign-builder/AdLivePreview";
-import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
 import {
   enabledKeywords,
   estimateMetrics,
@@ -26,6 +31,7 @@ import {
   generateNegativeKeywordSuggestions,
   generateSitelinks,
   generateSnippetValues,
+  MAX_SITELINKS,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
 import {
   BudgetSlider,
@@ -76,18 +82,21 @@ import {
   SALES_CHANNEL_OPTIONS,
   TOTAL_WIZARD_STEPS,
   TRAFFIC_ACTION_OPTIONS,
+  createEmptySitelink,
   type AgeRangeId,
   type CallToActionId,
   type CampaignGoalId,
   type GenderId,
   type GoogleCampaignBuilderDraft,
   type LeadContactMethodId,
+  type SalesChannelId,
   type TrafficActionId,
 } from "@/app/components/google-ads/campaign-builder/types";
 import {
   DESCRIPTION_MAX,
   HEADLINE_MAX,
   PATH_MAX,
+  sitelinkUrlError,
 } from "@/app/components/google-ads/campaign-builder/validation";
 
 function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
@@ -226,12 +235,22 @@ type StepProps = {
   onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
 };
 
-const GOAL_ICONS: Record<CampaignGoalId, LucideIcon> = {
+const GOAL_ICONS: Record<
+  Exclude<CampaignGoalId, "APP_PROMOTION">,
+  LucideIcon
+> = {
   SALES: ShoppingBag,
   LEADS: Users,
   WEBSITE_TRAFFIC: MousePointerClick,
   AWARENESS: Megaphone,
-  APP_PROMOTION: Smartphone,
+};
+
+const SALES_CHANNEL_ICONS: Record<SalesChannelId, LucideIcon> = {
+  WEBSITE: Globe,
+  ONLINE_STORE: ShoppingCart,
+  PHYSICAL_STORE: Store,
+  PHONE_ORDERS: Phone,
+  MULTIPLE: Layers,
 };
 
 function CharCount({ value, max }: { value: string; max: number }) {
@@ -271,7 +290,7 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
     <StepShell
       step={1}
       total={TOTAL_WIZARD_STEPS}
-      title="What do you want to achieve?"
+      title="Campaign Objective"
       description="Pick one goal. We’ll personalize every next screen for you."
     >
       <div className="grid gap-3 sm:grid-cols-2">
@@ -283,7 +302,6 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
               selected={draft.goal === goal.id}
               title={goal.title}
               description={goal.description}
-              badge={goal.id === "APP_PROMOTION" ? "Optional" : undefined}
               icon={<Icon className="size-5" aria-hidden />}
               onClick={() =>
                 onChange({
@@ -299,7 +317,6 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
       {errors.goal ? (
         <p className="text-sm font-medium text-red-500">{errors.goal}</p>
       ) : null}
-      <AdvancedOptions draft={draft} onChange={onChange} />
     </StepShell>
   );
 }
@@ -314,15 +331,19 @@ export function StepGoalDetails({ draft, errors, onChange }: StepProps) {
         description="Choose the main way people purchase — we’ll tailor the rest."
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          {SALES_CHANNEL_OPTIONS.map((option) => (
-            <SelectableCard
-              key={option.id}
-              selected={draft.salesChannel === option.id}
-              title={option.title}
-              description={option.description}
-              onClick={() => onChange({ salesChannel: option.id })}
-            />
-          ))}
+          {SALES_CHANNEL_OPTIONS.map((option) => {
+            const Icon = SALES_CHANNEL_ICONS[option.id];
+            return (
+              <SelectableCard
+                key={option.id}
+                selected={draft.salesChannel === option.id}
+                title={option.title}
+                description={option.description}
+                icon={<Icon className="size-5" aria-hidden />}
+                onClick={() => onChange({ salesChannel: option.id })}
+              />
+            );
+          })}
         </div>
         {errors.salesChannel ? (
           <p className="text-sm font-medium text-red-500">{errors.salesChannel}</p>
@@ -618,6 +639,8 @@ export function StepGoalDetails({ draft, errors, onChange }: StepProps) {
 }
 
 export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!draft.campaignName.trim() && draft.goal) {
       onChange({
@@ -625,6 +648,28 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
       });
     }
   }, [draft.goal, draft.businessName, draft.campaignName, onChange]);
+
+  const clearLogo = () => {
+    if (draft.logoPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(draft.logoPreviewUrl);
+    }
+    onChange({ logoPreviewUrl: "", logoFileName: "" });
+    if (logoInputRef.current) logoInputRef.current.value = "";
+  };
+
+  const onLogoSelected = (file: File | undefined) => {
+    if (!file) {
+      clearLogo();
+      return;
+    }
+    if (draft.logoPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(draft.logoPreviewUrl);
+    }
+    onChange({
+      logoPreviewUrl: URL.createObjectURL(file),
+      logoFileName: file.name,
+    });
+  };
 
   return (
     <StepShell
@@ -674,31 +719,98 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
           onChange={(businessCategory) => onChange({ businessCategory })}
           placeholder="Search categories"
         />
-        <Field label="Logo" hint="Optional">
-          <input
-            type="file"
-            accept="image/*"
-            className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f0fe] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#4285F4]"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) {
-                onChange({ logoPreviewUrl: "", logoFileName: "" });
-                return;
+
+        <div className="space-y-1.5">
+          <div>
+            <p className="text-sm font-bold text-[#07111f]">Logo</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Optional — shown in ad previews when you add extensions
+            </p>
+          </div>
+
+          <div className="grid gap-4 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 sm:grid-cols-[minmax(0,1fr)_140px] sm:items-center">
+            <div className="min-w-0 space-y-3">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => onLogoSelected(e.target.files?.[0])}
+              />
+
+              {draft.logoPreviewUrl ? (
+                <>
+                  <p className="truncate text-sm font-semibold text-[#07111f]">
+                    {draft.logoFileName || "Logo selected"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Looks good — you can change or remove it anytime.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#4285F4]/30 bg-white px-3 py-2 text-sm font-semibold text-[#4285F4] transition hover:bg-[#e8f0fe]"
+                    >
+                      <Upload className="size-3.5" aria-hidden />
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearLogo}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                      Remove
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-[#07111f]">
+                    Upload a square logo
+                  </p>
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    PNG or JPG works best. Aim for a clear square image.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#4285F4] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3367d6]"
+                  >
+                    <Upload className="size-3.5" aria-hidden />
+                    Choose logo
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="relative mx-auto flex size-[120px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#c5d4f0] bg-white shadow-sm transition hover:border-[#4285F4] hover:bg-[#f4f8ff] sm:mx-0 sm:justify-self-end"
+              aria-label={
+                draft.logoPreviewUrl ? "Change logo" : "Upload logo"
               }
-              const url = URL.createObjectURL(file);
-              onChange({ logoPreviewUrl: url, logoFileName: file.name });
-            }}
-          />
-          {draft.logoPreviewUrl ? (
-            <img
-              src={draft.logoPreviewUrl}
-              alt="Logo preview"
-              className="mt-3 h-16 w-16 rounded-xl border border-[#e8edf5] object-cover"
-            />
-          ) : null}
-        </Field>
+            >
+              {draft.logoPreviewUrl ? (
+                <img
+                  src={draft.logoPreviewUrl}
+                  alt="Logo preview"
+                  className="size-full object-contain p-2"
+                />
+              ) : (
+                <span className="flex flex-col items-center gap-1 text-slate-400">
+                  <ImageIcon className="size-7" aria-hidden />
+                  <span className="text-[0.65rem] font-semibold uppercase tracking-wide">
+                    Preview
+                  </span>
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
       </Panel>
-      <AdvancedOptions draft={draft} onChange={onChange} />
     </StepShell>
   );
 }
@@ -1472,14 +1584,26 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
 
 export function StepAssets({ draft, onChange }: StepProps) {
   useEffect(() => {
-    if (draft.assetsGenerated) return;
     const type = draft.businessType || "Restaurant";
+    const hasLegacyHardcodedSitelinks = draft.sitelinks.some((link) =>
+      Boolean(link.description1?.trim() || link.description2?.trim()),
+    );
+
+    if (draft.assetsGenerated && !hasLegacyHardcodedSitelinks) return;
+
     onChange({
-      extensionBusinessName: draft.extensionBusinessName || draft.businessName,
+      extensionBusinessName:
+        draft.extensionBusinessName || draft.businessName,
       phoneNumber: draft.phoneNumber || draft.businessPhone,
-      callouts: generateCallouts(type),
-      structuredSnippetHeader: "Services",
-      structuredSnippetValues: generateSnippetValues(type),
+      callouts: draft.assetsGenerated
+        ? draft.callouts
+        : generateCallouts(type),
+      structuredSnippetHeader: draft.assetsGenerated
+        ? draft.structuredSnippetHeader
+        : "Services",
+      structuredSnippetValues: draft.assetsGenerated
+        ? draft.structuredSnippetValues
+        : generateSnippetValues(type),
       sitelinks: generateSitelinks(draft.websiteUrl, type),
       assetsGenerated: true,
     });
@@ -1555,58 +1679,148 @@ export function StepAssets({ draft, onChange }: StepProps) {
         description="Uses your connected location when available"
       />
 
-      <Panel className="space-y-3">
-        <p className="text-sm font-bold text-[#07111f]">Helpful links</p>
-        {draft.sitelinks.map((link) => (
-          <div
-            key={link.id}
-            className="rounded-xl border border-[#e8edf5] px-3 py-3"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <ToggleSwitch
-                checked={link.enabled}
-                label={link.text || "Link"}
-                onChange={(enabled) =>
-                  onChange({
-                    sitelinks: draft.sitelinks.map((item) =>
-                      item.id === link.id ? { ...item, enabled } : item,
-                    ),
-                  })
-                }
-              />
+      <Panel className="space-y-4">
+        <div>
+          <p className="text-sm font-bold text-[#07111f]">
+            Helpful Links (Sitelinks)
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            These links appear below your Google Ad and allow customers to
+            quickly navigate to important pages on your website.
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Up to {MAX_SITELINKS} links · edit labels and URLs · same URL is OK
+            if you only have one page
+          </p>
+        </div>
+
+        {draft.sitelinks.map((link) => {
+          const urlError = sitelinkUrlError(link.url, link.enabled);
+          const labelError =
+            link.enabled && !link.text.trim()
+              ? "Add a link label."
+              : null;
+
+          return (
+            <div
+              key={link.id}
+              className="space-y-3 rounded-xl border border-[#e8edf5] bg-white px-3 py-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <ToggleSwitch
+                    checked={link.enabled}
+                    label={link.text.trim() || "Sitelink"}
+                    description={
+                      link.enabled ? "Shown under your ad" : "Hidden for now"
+                    }
+                    onChange={(enabled) =>
+                      onChange({
+                        sitelinks: draft.sitelinks.map((item) =>
+                          item.id === link.id ? { ...item, enabled } : item,
+                        ),
+                      })
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  aria-label="Remove sitelink"
+                  onClick={() =>
+                    onChange({
+                      sitelinks: draft.sitelinks.filter(
+                        (item) => item.id !== link.id,
+                      ),
+                    })
+                  }
+                  className="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                </button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Link label" error={labelError ?? undefined}>
+                  <input
+                    className={inputClass(labelError ?? undefined)}
+                    value={link.text}
+                    maxLength={25}
+                    onChange={(e) =>
+                      onChange({
+                        sitelinks: draft.sitelinks.map((item) =>
+                          item.id === link.id
+                            ? { ...item, text: e.target.value }
+                            : item,
+                        ),
+                      })
+                    }
+                    placeholder="e.g. Menu, Book Now, Contact"
+                  />
+                </Field>
+                <Field
+                  label="Destination URL"
+                  error={urlError ?? undefined}
+                >
+                  <input
+                    className={inputClass(urlError ?? undefined)}
+                    value={link.url}
+                    onChange={(e) =>
+                      onChange({
+                        sitelinks: draft.sitelinks.map((item) =>
+                          item.id === link.id
+                            ? { ...item, url: e.target.value }
+                            : item,
+                        ),
+                      })
+                    }
+                    placeholder="https://www.example.com/page"
+                  />
+                </Field>
+              </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <input
-                className={inputClass()}
-                value={link.text}
-                onChange={(e) =>
-                  onChange({
-                    sitelinks: draft.sitelinks.map((item) =>
-                      item.id === link.id
-                        ? { ...item, text: e.target.value }
-                        : item,
-                    ),
-                  })
-                }
-                placeholder="Link text"
-              />
-              <input
-                className={inputClass()}
-                value={link.url}
-                onChange={(e) =>
-                  onChange({
-                    sitelinks: draft.sitelinks.map((item) =>
-                      item.id === link.id
-                        ? { ...item, url: e.target.value }
-                        : item,
-                    ),
-                  })
-                }
-                placeholder="URL"
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
+
+        <button
+          type="button"
+          disabled={draft.sitelinks.length >= MAX_SITELINKS}
+          onClick={() => {
+            if (draft.sitelinks.length >= MAX_SITELINKS) return;
+            onChange({
+              sitelinks: [
+                ...draft.sitelinks,
+                createEmptySitelink(
+                  "",
+                  draft.websiteUrl.trim()
+                    ? draft.websiteUrl.trim().replace(/^http:\/\//i, "https://")
+                    : "",
+                ),
+              ],
+            });
+          }}
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#4285F4] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Plus className="size-4" aria-hidden />
+          Add custom sitelink
+          {draft.sitelinks.length >= MAX_SITELINKS
+            ? ` (max ${MAX_SITELINKS})`
+            : ""}
+        </button>
+
+        <button
+          type="button"
+          className="block text-xs font-semibold text-slate-500 underline-offset-2 hover:text-[#4285F4] hover:underline"
+          onClick={() =>
+            onChange({
+              sitelinks: generateSitelinks(
+                draft.websiteUrl,
+                draft.businessType || "Restaurant",
+              ),
+            })
+          }
+        >
+          Reset to common sitelink suggestions
+        </button>
       </Panel>
     </StepShell>
   );

@@ -5,6 +5,10 @@ export const HEADLINE_MAX = 30;
 export const DESCRIPTION_MAX = 90;
 export const PATH_MAX = 15;
 
+export const GOOGLE_REQUIRED_PUBLISH_STEPS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9,
+] as const;
+
 export function isValidHttpUrl(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
@@ -16,11 +20,48 @@ export function isValidHttpUrl(value: string): boolean {
   }
 }
 
+export function isValidHttpsUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function sitelinkUrlError(url: string, enabled: boolean): string | null {
+  if (!enabled) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return "Add a destination URL starting with https://";
+  if (!trimmed.toLowerCase().startsWith("https://")) {
+    return "URL must begin with https://";
+  }
+  if (!isValidHttpsUrl(trimmed)) return "Enter a valid https:// URL.";
+  return null;
+}
+
+function safeHostname(value: string): string | null {
+  if (!isValidHttpUrl(value)) return null;
+  try {
+    return new URL(value.trim()).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+export type ValidateStepOptions = {
+  forPublish?: boolean;
+};
+
 export function validateStep(
   step: number,
   draft: GoogleCampaignBuilderDraft,
+  options?: ValidateStepOptions,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
+  const forPublish = options?.forPublish === true;
 
   if (step === 1 && !draft.goal) {
     errors.goal = "Choose what you want to achieve.";
@@ -30,24 +71,25 @@ export function validateStep(
     if (draft.goal === "SALES") {
       if (!draft.salesChannel) {
         errors.salesChannel = "Choose how customers buy from you.";
-      } else if (
-        (draft.salesChannel === "WEBSITE" ||
+      } else {
+        const needsWebsite =
+          draft.salesChannel === "WEBSITE" ||
           draft.salesChannel === "ONLINE_STORE" ||
-          draft.salesChannel === "MULTIPLE") &&
-        !isValidHttpUrl(draft.websiteUrl)
-      ) {
-        errors.websiteUrl = "Enter a valid website URL.";
-      } else if (
-        (draft.salesChannel === "PHYSICAL_STORE" ||
-          draft.salesChannel === "MULTIPLE") &&
-        !draft.businessLocation.trim()
-      ) {
-        errors.businessLocation = "Add your business location.";
-      } else if (
-        draft.salesChannel === "PHONE_ORDERS" &&
-        !draft.businessPhone.trim()
-      ) {
-        errors.businessPhone = "Add a phone number.";
+          draft.salesChannel === "MULTIPLE";
+        const needsLocation =
+          draft.salesChannel === "PHYSICAL_STORE" ||
+          draft.salesChannel === "MULTIPLE";
+        const needsPhone = draft.salesChannel === "PHONE_ORDERS";
+
+        if (needsWebsite && !isValidHttpUrl(draft.websiteUrl)) {
+          errors.websiteUrl = "Enter a valid website URL.";
+        }
+        if (needsLocation && !draft.businessLocation.trim()) {
+          errors.businessLocation = "Add your business location.";
+        }
+        if (needsPhone && !draft.businessPhone.trim()) {
+          errors.businessPhone = "Add a phone number.";
+        }
       }
     }
 
@@ -70,10 +112,12 @@ export function validateStep(
     }
 
     if (draft.goal === "WEBSITE_TRAFFIC") {
-      if (draft.goalDetailSubstep <= 0 && !isValidHttpUrl(draft.websiteUrl)) {
+      const checkWebsite = forPublish || draft.goalDetailSubstep <= 0;
+      const checkAction = forPublish || draft.goalDetailSubstep >= 1;
+      if (checkWebsite && !isValidHttpUrl(draft.websiteUrl)) {
         errors.websiteUrl = "Where should visitors go? Add a valid URL.";
       }
-      if (draft.goalDetailSubstep >= 1 && !draft.trafficAction) {
+      if (checkAction && !draft.trafficAction) {
         errors.trafficAction = "Choose an action for visitors.";
       }
     }
@@ -108,16 +152,30 @@ export function validateStep(
     errors.endDate = "End date must be on or after the start date.";
   }
 
+  if (step === 4 && forPublish) {
+    if (draft.bidStrategy === "TARGET_CPA" && !draft.targetCpa.trim()) {
+      errors.targetCpa = "Enter a target CPA for this bid strategy.";
+    }
+    if (draft.bidStrategy === "TARGET_ROAS" && !draft.targetRoas.trim()) {
+      errors.targetRoas = "Enter a target ROAS for this bid strategy.";
+    }
+  }
+
   if (step === 5 && draft.targetLocations.length === 0) {
     errors.targetLocations = "Select at least one target location.";
   }
 
-  if (
-    step === 5 &&
-    draft.radiusEnabled &&
-    (!draft.radiusValue || draft.radiusValue < 1)
-  ) {
-    errors.radiusValue = "Enter a radius of at least 1.";
+  if (step === 5 && draft.radiusEnabled) {
+    if (!draft.radiusValue || draft.radiusValue < 1) {
+      errors.radiusValue = "Enter a radius of at least 1.";
+    }
+    if (
+      forPublish &&
+      !draft.radiusCenter?.id &&
+      (draft.radiusLat == null || draft.radiusLng == null)
+    ) {
+      errors.radiusCenter = "Pick a center point for radius targeting.";
+    }
   }
 
   if (step === 6 && draft.languages.length === 0) {
@@ -147,10 +205,55 @@ export function validateStep(
       const headlines = ad.headlines.map((h) => h.trim()).filter(Boolean);
       if (headlines.length < 3) {
         errors.headlines = "Keep at least 3 headlines.";
+      } else if (headlines.some((h) => h.length > HEADLINE_MAX)) {
+        errors.headlines = `Each headline must be ${HEADLINE_MAX} characters or fewer.`;
       }
       const descriptions = ad.descriptions.map((d) => d.trim()).filter(Boolean);
       if (descriptions.length < 2) {
         errors.descriptions = "Keep at least 2 descriptions.";
+      } else if (descriptions.some((d) => d.length > DESCRIPTION_MAX)) {
+        errors.descriptions = `Each description must be ${DESCRIPTION_MAX} characters or fewer.`;
+      }
+      if (ad.path1.trim() && ad.path1.trim().length > PATH_MAX) {
+        errors.path1 = `Path 1 must be ${PATH_MAX} characters or fewer.`;
+      }
+      if (ad.path2.trim() && ad.path2.trim().length > PATH_MAX) {
+        errors.path2 = `Path 2 must be ${PATH_MAX} characters or fewer.`;
+      }
+
+      if (forPublish) {
+        const websiteHost = safeHostname(draft.websiteUrl);
+        const finalHost = safeHostname(ad.finalUrl);
+        if (
+          draft.goal === "SALES" &&
+          (draft.salesChannel === "WEBSITE" ||
+            draft.salesChannel === "ONLINE_STORE" ||
+            draft.salesChannel === "MULTIPLE") &&
+          websiteHost &&
+          finalHost &&
+          websiteHost !== finalHost
+        ) {
+          errors.finalUrl =
+            "Ad final URL should use the same website domain as your sales site.";
+        }
+      }
+    }
+  }
+
+  if (step === 10 && forPublish) {
+    if (draft.sitelinks.length > 8) {
+      errors.sitelinks = "You can add up to 8 sitelinks.";
+    }
+    for (const link of draft.sitelinks) {
+      if (!link.enabled) continue;
+      if (!link.text.trim()) {
+        errors.sitelinks = "Enabled sitelinks need a link label.";
+        break;
+      }
+      const urlErr = sitelinkUrlError(link.url, true);
+      if (urlErr) {
+        errors.sitelinks = urlErr;
+        break;
       }
     }
   }
@@ -162,8 +265,9 @@ export function validateAllRequiredSteps(
   draft: GoogleCampaignBuilderDraft,
 ): Record<string, string> {
   const all: Record<string, string> = {};
-  for (let step = 1; step <= 9; step += 1) {
-    Object.assign(all, validateStep(step, draft));
+  for (const step of GOOGLE_REQUIRED_PUBLISH_STEPS) {
+    Object.assign(all, validateStep(step, draft, { forPublish: true }));
   }
+  Object.assign(all, validateStep(10, draft, { forPublish: true }));
   return all;
 }
