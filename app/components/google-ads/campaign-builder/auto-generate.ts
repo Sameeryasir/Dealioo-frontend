@@ -356,3 +356,253 @@ export function enabledKeywords(draft: GoogleCampaignBuilderDraft): string[] {
     .filter(Boolean);
   return [...new Set([...fromSuggestions, ...draft.customKeywords.map((k) => k.trim()).filter(Boolean)])];
 }
+
+export function generateAudienceFromIdealCustomers(idealCustomers: string[]): {
+  ageRanges: GoogleCampaignBuilderDraft["ageRanges"];
+  gender: GoogleCampaignBuilderDraft["gender"];
+  interests: string[];
+  householdIncome: string;
+} {
+  const labels = idealCustomers.map((row) => row.trim()).filter(Boolean);
+  const lower = labels.map((row) => row.toLowerCase());
+  let ageRanges: GoogleCampaignBuilderDraft["ageRanges"] = ["25-34", "35-44"];
+  let gender: GoogleCampaignBuilderDraft["gender"] = "ALL";
+  let householdIncome = "";
+
+  if (lower.some((row) => row.includes("student"))) {
+    ageRanges = ["18-24", "25-34"];
+  }
+  if (lower.some((row) => row.includes("parent") || row.includes("homeowner"))) {
+    ageRanges = ["25-34", "35-44", "45-54"];
+    householdIncome = "Top 50%";
+  }
+  if (lower.some((row) => row.includes("professional") || row.includes("business"))) {
+    ageRanges = ["25-34", "35-44", "45-54"];
+    householdIncome = "Top 30%";
+  }
+  if (lower.some((row) => row.includes("retire"))) {
+    ageRanges = ["55+"];
+  }
+
+  return {
+    ageRanges,
+    gender,
+    interests: labels.slice(0, 12),
+    householdIncome,
+  };
+}
+
+export function toSuggestedKeywords(texts: string[]): SuggestedKeyword[] {
+  const cleaned = texts
+    .map((text) => text.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+  const unique: string[] = [];
+  for (const text of cleaned) {
+    if (unique.some((row) => row.toLowerCase() === text.toLowerCase())) continue;
+    unique.push(text);
+  }
+  return unique.slice(0, 40).map((text) => ({
+    id: uid("kw"),
+    text,
+    enabled: true,
+  }));
+}
+
+export function generateKeywordsFromProducts(
+  productsServices: string[],
+): SuggestedKeyword[] {
+  const products = productsServices.map((row) => row.trim()).filter(Boolean);
+  if (products.length === 0) return [];
+
+  const texts: string[] = [];
+  for (const product of products) {
+    const base = product.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!base) continue;
+    texts.push(base);
+    texts.push(`${base} near me`);
+    texts.push(`best ${base}`);
+    texts.push(`${base} services`);
+    texts.push(`${base} cost`);
+    texts.push(`affordable ${base}`);
+  }
+
+  return toSuggestedKeywords(texts);
+}
+
+export function generateNegativesFromProducts(
+  productsServices: string[],
+): string[] {
+  const base = ["jobs", "salary", "diy", "free", "course", "training"];
+  if (productsServices.length === 0) return base;
+  return base;
+}
+
+export function inferBusinessTypeFromProducts(
+  productsServices: string[],
+  fallback = "",
+): string {
+  const first = productsServices.map((row) => row.trim()).filter(Boolean)[0];
+  return first || fallback || "Local Business";
+}
+export function prefillFromBusinessDescription(
+  description: string,
+): Partial<GoogleCampaignBuilderDraft> {
+  const text = description.trim();
+  if (!text) return {};
+
+  const lower = text.toLowerCase();
+  let goal: CampaignGoalId = "LEADS";
+  if (
+    lower.includes("sell") ||
+    lower.includes("shop") ||
+    lower.includes("ecommerce") ||
+    lower.includes("store")
+  ) {
+    goal = "SALES";
+  } else if (
+    lower.includes("awareness") ||
+    lower.includes("brand") ||
+    lower.includes("visibility")
+  ) {
+    goal = "AWARENESS";
+  } else if (
+    lower.includes("traffic") ||
+    lower.includes("website") ||
+    lower.includes("visitors")
+  ) {
+    goal = "WEBSITE_TRAFFIC";
+  }
+
+  let businessCategory = "Other";
+  if (
+    lower.includes("plumb") ||
+    lower.includes("hvac") ||
+    lower.includes("electric")
+  ) {
+    businessCategory = "Home Services";
+  } else if (
+    lower.includes("restaurant") ||
+    lower.includes("cafe") ||
+    lower.includes("food")
+  ) {
+    businessCategory = "Food & Dining";
+  } else if (
+    lower.includes("salon") ||
+    lower.includes("spa") ||
+    lower.includes("beauty")
+  ) {
+    businessCategory = "Beauty & Personal Care";
+  } else if (
+    lower.includes("clinic") ||
+    lower.includes("dental") ||
+    lower.includes("doctor")
+  ) {
+    businessCategory = "Health & Wellness";
+  } else if (lower.includes("law") || lower.includes("attorney")) {
+    businessCategory = "Professional Services";
+  } else if (lower.includes("hotel") || lower.includes("travel")) {
+    businessCategory = "Travel & Hospitality";
+  }
+
+  const cityMatch = text.match(
+    /\bin\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/,
+  );
+  const cityHint = cityMatch?.[1]?.trim() || "";
+
+  const productsServices: string[] = [];
+  const offeringMatch = text.match(
+    /(?:offering|provide|providing|specialize in|specialising in)\s+([^.]+)/i,
+  );
+  if (offeringMatch?.[1]) {
+    for (const part of offeringMatch[1].split(/,| and | & /i)) {
+      const cleaned = part.trim().replace(/^(a|an|the)\s+/i, "");
+      if (cleaned.length > 2 && cleaned.length < 60) {
+        productsServices.push(
+          cleaned
+            .split(" ")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" "),
+        );
+      }
+    }
+  }
+  if (productsServices.length === 0) {
+    if (lower.includes("plumb")) {
+      productsServices.push("Emergency Plumbing", "Drain Cleaning");
+    }
+    if (lower.includes("hvac")) {
+      productsServices.push(
+        "HVAC Repair",
+        "Air Conditioning Installation",
+        "Heating Repair",
+      );
+    }
+    if (lower.includes("restaurant")) {
+      productsServices.push("Dine-in", "Takeaway");
+    }
+  }
+
+  const idealCustomers: string[] = [];
+  if (
+    lower.includes("home") ||
+    lower.includes("plumb") ||
+    lower.includes("hvac")
+  ) {
+    idealCustomers.push("Homeowners");
+  }
+  if (lower.includes("restaurant") || lower.includes("b2b")) {
+    idealCustomers.push("Restaurant owners", "Small businesses");
+  }
+  if (idealCustomers.length === 0) idealCustomers.push("Local shoppers");
+
+  const audience = generateAudienceFromIdealCustomers(idealCustomers);
+  const businessType = inferBusinessTypeFromProducts(
+    productsServices,
+    businessCategory,
+  );
+  const suggestedKeywords = generateKeywordsFromProducts(productsServices);
+  const negativeKeywords = generateNegativesFromProducts(productsServices);
+  const businessName = "";
+  const campaignName = generateCampaignName(goal, undefined);
+
+  const seedDraft = {
+    goal,
+    businessName: businessName || "Your Business",
+    businessCategory,
+    businessType,
+    websiteUrl: "",
+    landingPageUrl: "",
+    cities: cityHint ? [cityHint] : [],
+    targetLocations: cityHint
+      ? [{ type: "city" as const, id: `city_${cityHint}`, name: cityHint }]
+      : [],
+    productsServices,
+    idealCustomers,
+  } as GoogleCampaignBuilderDraft;
+
+  const ad = generateAdSuggestions(seedDraft);
+
+  return {
+    goal,
+    businessName,
+    businessCategory,
+    campaignName,
+    productsServices,
+    idealCustomers,
+    businessType,
+    suggestedKeywords,
+    negativeKeywords,
+    businessDescription: text,
+    onboardingDone: true,
+    ...audience,
+    ads: [ad],
+    adsGenerated: true,
+    callouts: generateCallouts(businessType),
+    structuredSnippetHeader: "Services",
+    structuredSnippetValues: generateSnippetValues(businessType),
+    sitelinks: generateSitelinks("", businessType),
+    assetsGenerated: true,
+    extensionBusinessName: businessName,
+    cities: cityHint ? [cityHint] : [],
+  };
+}

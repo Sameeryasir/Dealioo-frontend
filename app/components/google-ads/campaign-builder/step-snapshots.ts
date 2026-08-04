@@ -59,27 +59,24 @@ function stepPayload(
         businessAddress: draft.businessAddress,
         businessHours: draft.businessHours,
         appName: draft.appName,
-        goalDetailSubstep: draft.goalDetailSubstep,
-      };
-    case 3:
-      return {
         campaignName: draft.campaignName,
-        businessName: draft.businessName,
-        websiteUrl: draft.websiteUrl,
-        businessCategory: draft.businessCategory,
         logoFileName: draft.logoFileName,
         logoPreviewUrl: draft.logoPreviewUrl.startsWith("blob:")
           ? ""
           : draft.logoPreviewUrl,
         extensionBusinessName: draft.extensionBusinessName,
+        businessDescription: draft.businessDescription,
       };
-    case 4:
+    case 3:
       return {
         dailyBudget: draft.dailyBudget,
         startDate: draft.startDate,
         endDate: draft.endDate,
+        bidStrategy: draft.bidStrategy,
+        targetCpa: draft.targetCpa,
+        targetRoas: draft.targetRoas,
       };
-    case 5:
+    case 4:
       return {
         targetLocations: draft.targetLocations,
         excludedLocationTargets: draft.excludedLocationTargets,
@@ -94,34 +91,36 @@ function stepPayload(
         radiusValue: draft.radiusValue,
         radiusUnit: draft.radiusUnit,
         radiusTargeting: draft.radiusTargeting,
-        presenceOption: draft.presenceOption,
+        languages: draft.languages,
       };
-    case 6:
-      return { languages: draft.languages };
-    case 7:
+    case 5:
       return {
+        idealCustomers: draft.idealCustomers,
         ageRanges: draft.ageRanges,
         gender: draft.gender,
         householdIncome: draft.householdIncome,
         interests: draft.interests,
       };
-    case 8:
+    case 6:
       return {
+        productsServices: draft.productsServices,
         businessType: draft.businessType,
         suggestedKeywords: draft.suggestedKeywords,
         customKeywords: draft.customKeywords,
         negativeKeywords: draft.negativeKeywords,
         keywordMatchType: draft.keywordMatchType,
       };
-    case 9:
+    case 7:
       return {
         ads: draft.ads,
         adsGenerated: draft.adsGenerated,
       };
-    case 10:
+    case 8:
       return {
         extensionBusinessName: draft.extensionBusinessName,
         phoneNumber: draft.phoneNumber,
+        businessAddress: draft.businessAddress,
+        businessHours: draft.businessHours,
         callouts: draft.callouts,
         structuredSnippetHeader: draft.structuredSnippetHeader,
         structuredSnippetValues: draft.structuredSnippetValues,
@@ -143,11 +142,11 @@ export function getGoogleStepSnapshot(
 
 export function seedSavedStepSnapshots(
   draft: GoogleCampaignBuilderDraft,
-  completedSteps: number[],
+  completedUiSteps: number[],
 ): Record<number, string> {
   const snapshots: Record<number, string> = {};
-  for (const step of completedSteps) {
-    if (step >= 1 && step <= 10) {
+  for (const step of completedUiSteps) {
+    if (step >= 1 && step <= 8) {
       snapshots[step] = getGoogleStepSnapshot(step, draft);
     }
   }

@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   googleBuilderPrimaryButtonClass,
   googleBuilderSecondaryButtonClass,
   googleBuilderShellClass,
 } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
-import { renderCampaignBuilderStep } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
+import { renderCampaignBuilderStep, StepOnboarding } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
 import {
   clearGoogleCampaignDraft,
   loadGoogleCampaignDraft,
@@ -28,6 +29,15 @@ import {
   getGoogleStepSnapshot,
   seedSavedStepSnapshots,
 } from "@/app/components/google-ads/campaign-builder/step-snapshots";
+import {
+  beCompletedToUiCompleted,
+  beStepToUiStep,
+  uiStepToBeProgressStep,
+} from "@/app/components/google-ads/campaign-builder/step-mapping";
+import {
+  generateAudienceFromIdealCustomers,
+  inferBusinessTypeFromProducts,
+} from "@/app/components/google-ads/campaign-builder/auto-generate";
 import {
   validateAllRequiredSteps,
   validateStep,
@@ -61,15 +71,6 @@ type CampaignBuilderWizardProps = {
   defaultWebsiteUrl?: string;
 };
 
-const PUBLISH_PHASES = [
-  "Preparing your campaign",
-  "Setting your budget",
-  "Applying locations & languages",
-  "Creating your ads",
-  "Adding extras",
-  "Publishing",
-];
-
 function resolveSaveError(err: unknown, fallback: string): string {
   if (err instanceof GoogleDraftConflictError) {
     return err.message || DRAFT_CONFLICT_MESSAGE;
@@ -98,6 +99,7 @@ export function CampaignBuilderWizard({
   const [publishing, setPublishing] = useState(false);
   const [publishProgress, setPublishProgress] = useState(0);
   const [publishPhase, setPublishPhase] = useState<string | null>(null);
+  const [publishStep, setPublishStep] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishedAdsConsoleUrl, setPublishedAdsConsoleUrl] = useState<
@@ -110,6 +112,7 @@ export function CampaignBuilderWizard({
   
   const [syncingDraft, setSyncingDraft] = useState(false);
   const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipAutosave = useRef(true);
   const formDataRef = useRef(formData);
@@ -198,7 +201,7 @@ export function CampaignBuilderWizard({
 
   
   
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
 
     let cancelled = false;
@@ -233,9 +236,9 @@ export function CampaignBuilderWizard({
         fresh.landingPageUrl = defaultWebsiteUrl.trim();
       }
       applyWorkingCopy(fresh, 1);
+      setShowOnboarding(!fresh.onboardingDone);
     };
 
-    
     setServerDraftId(storedDraftId);
     if (typeof meta.serverVersion === "number") {
       setServerVersion(meta.serverVersion);
@@ -244,14 +247,29 @@ export function CampaignBuilderWizard({
     }
 
     if (localDraft) {
-      applyWorkingCopy(localDraft);
-      
+      const uiStep = Math.min(
+        TOTAL_WIZARD_STEPS,
+        Math.max(1, localDraft.currentStep ?? 1),
+      );
+      const hasProgress =
+        Boolean(localDraft.goal) ||
+        uiStep > 1 ||
+        Boolean(localDraft.campaignName?.trim());
+      const normalized: GoogleCampaignBuilderDraft = {
+        ...createDefaultDraft(),
+        ...localDraft,
+        currentStep: uiStep,
+        onboardingDone: localDraft.onboardingDone || hasProgress,
+        wizardVersion: 2,
+      };
+      applyWorkingCopy(normalized, uiStep);
+      setShowOnboarding(!normalized.onboardingDone && uiStep <= 1 && !hasProgress);
       const priorSteps = Array.from(
-        { length: Math.max(0, (localDraft.currentStep ?? 1) - 1) },
+        { length: Math.max(0, uiStep - 1) },
         (_, i) => i + 1,
       );
       savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-        localDraft,
+        normalized,
         priorSteps,
       );
     } else {
@@ -280,22 +298,6 @@ export function CampaignBuilderWizard({
           return;
         }
 
-        const resumed: GoogleCampaignBuilderDraft = {
-          ...createDefaultDraft(),
-          ...(remote.draftData ?? {}),
-          goal: remote.goal ?? remote.draftData?.goal ?? null,
-          campaignName:
-            remote.campaignName || remote.draftData?.campaignName || "",
-          currentStep: Math.min(
-            TOTAL_WIZARD_STEPS,
-            Math.max(
-              1,
-              remote.currentStep || remote.draftData?.currentStep || 1,
-            ),
-          ),
-          savedAt: remote.lastSavedAt ?? new Date().toISOString(),
-        };
-
         setServerDraftId(remote.id);
         setServerVersion(remote.version);
         serverCompletedStepsRef.current = remote.completedSteps ?? [];
@@ -306,22 +308,97 @@ export function CampaignBuilderWizard({
           updatedAt: remote.lastSavedAt,
         });
 
-        applyWorkingCopy(resumed);
+        const localNow = formDataRef.current;
+        const localUiStep = Math.min(
+          TOTAL_WIZARD_STEPS,
+          Math.max(1, localNow.currentStep ?? currentStepRef.current ?? 1),
+        );
+        const remoteUiStep = beStepToUiStep(
+          remote.currentStep || remote.draftData?.currentStep || 1,
+        );
+
+        if (localDraft) {
+          const merged: GoogleCampaignBuilderDraft = {
+            ...createDefaultDraft(),
+            ...(remote.draftData ?? {}),
+            ...localNow,
+            goal:
+              localNow.goal ??
+              remote.goal ??
+              remote.draftData?.goal ??
+              null,
+            campaignName:
+              localNow.campaignName ||
+              remote.campaignName ||
+              remote.draftData?.campaignName ||
+              "",
+            businessDescription:
+              localNow.businessDescription ||
+              remote.draftData?.businessDescription ||
+              "",
+            onboardingDone:
+              localNow.onboardingDone ||
+              remote.draftData?.onboardingDone ||
+              Boolean(localNow.goal || remote.draftData?.goal),
+            idealCustomers:
+              localNow.idealCustomers?.length
+                ? localNow.idealCustomers
+                : (remote.draftData?.idealCustomers ?? []),
+            productsServices:
+              localNow.productsServices?.length
+                ? localNow.productsServices
+                : (remote.draftData?.productsServices ?? []),
+            currentStep: Math.max(localUiStep, remoteUiStep),
+            wizardVersion: 2,
+            savedAt: new Date().toISOString(),
+          };
+          applyWorkingCopy(merged, merged.currentStep);
+          setShowOnboarding(false);
+          saveGoogleCampaignDraft(businessId, merged);
+          savedStepSnapshotsRef.current = seedSavedStepSnapshots(
+            merged,
+            beCompletedToUiCompleted(serverCompletedStepsRef.current),
+          );
+          return;
+        }
+
+        const uiStep = remoteUiStep;
+        const resumed: GoogleCampaignBuilderDraft = {
+          ...createDefaultDraft(),
+          ...(remote.draftData ?? {}),
+          goal: remote.goal ?? remote.draftData?.goal ?? null,
+          campaignName:
+            remote.campaignName || remote.draftData?.campaignName || "",
+          businessDescription: remote.draftData?.businessDescription ?? "",
+          onboardingDone:
+            remote.draftData?.onboardingDone ??
+            Boolean(remote.draftData?.goal),
+          idealCustomers: remote.draftData?.idealCustomers ?? [],
+          productsServices: remote.draftData?.productsServices ?? [],
+          currentStep: uiStep,
+          wizardVersion: 2,
+          savedAt: remote.lastSavedAt ?? new Date().toISOString(),
+        };
+
+        applyWorkingCopy(resumed, uiStep);
+        setShowOnboarding(!resumed.onboardingDone && uiStep <= 1);
         saveGoogleCampaignDraft(businessId, resumed);
         savedStepSnapshotsRef.current = seedSavedStepSnapshots(
           resumed,
-          serverCompletedStepsRef.current,
+          beCompletedToUiCompleted(serverCompletedStepsRef.current),
         );
       } catch {
         if (cancelled) return;
-        setServerDraftId(null);
-        setServerVersion(null);
-        saveGoogleCampaignServerDraftId(businessId, null);
-        saveGoogleDraftLocalMeta(businessId, {
-          draftId: null,
-          serverVersion: null,
-          updatedAt: null,
-        });
+        if (!localDraft) {
+          setServerDraftId(null);
+          setServerVersion(null);
+          saveGoogleCampaignServerDraftId(businessId, null);
+          saveGoogleDraftLocalMeta(businessId, {
+            draftId: null,
+            serverVersion: null,
+            updatedAt: null,
+          });
+        }
       } finally {
         syncInFlightRef.current = false;
         if (!cancelled) setSyncingDraft(false);
@@ -429,17 +506,22 @@ export function CampaignBuilderWizard({
     setGoalSaveError(null);
   }, [businessId]);
 
+  const flashSaved = () => {
+    setHasAutosaved(true);
+    setDraftSavedFlash(true);
+    window.setTimeout(() => setDraftSavedFlash(false), 1600);
+  };
+
   const handleBack = () => {
-    if (
-      step === 2 &&
-      draft.goal === "WEBSITE_TRAFFIC" &&
-      draft.goalDetailSubstep > 0
-    ) {
-      patchDraft({ goalDetailSubstep: 0 });
-      setErrors({});
+    if (showOnboarding) {
+      void persistProgressAndClose();
       return;
     }
     if (step <= 1) {
+      if (!draft.onboardingDone) {
+        setShowOnboarding(true);
+        return;
+      }
       void persistProgressAndClose();
       return;
     }
@@ -451,25 +533,14 @@ export function CampaignBuilderWizard({
     setErrors(stepErrors);
     if (Object.keys(stepErrors).length > 0) return;
 
-    if (
-      step === 2 &&
-      draft.goal === "WEBSITE_TRAFFIC" &&
-      draft.goalDetailSubstep < 1
-    ) {
-      patchDraft({ goalDetailSubstep: 1 });
-      setErrors({});
-      return;
-    }
-
-    
-    if (step >= 1 && step <= 10 && isStepUnchanged(step, draft)) {
+    if (step >= 1 && step <= 8 && isStepUnchanged(step, draft)) {
       advanceWithoutApi(step);
       return;
     }
 
     if (step === 1) {
       if (!draft.goal) {
-        setErrors({ goal: "Pick a marketing goal to continue." });
+        setErrors({ goal: "Pick a campaign goal to continue." });
         return;
       }
 
@@ -514,22 +585,21 @@ export function CampaignBuilderWizard({
           ...draft,
           goal: saved.goal ?? draft.goal,
           campaignName: saved.campaignName || draft.campaignName,
-          goalDetailSubstep: 0,
+          onboardingDone: true,
+          goalDetailSubstep: 1,
           currentStep: 2,
           savedAt: new Date().toISOString(),
         };
         markStepSaved(1, nextDraft);
         applyWorkingCopy(nextDraft, 2);
         saveGoogleCampaignDraft(businessId, nextDraft);
-        setHasAutosaved(true);
-        setDraftSavedFlash(true);
-        window.setTimeout(() => setDraftSavedFlash(false), 1600);
+        flashSaved();
         setErrors({});
       } catch (err) {
         setGoalSaveError(
           resolveSaveError(
             err,
-            "Could not save marketing goal. Please try again.",
+            "Could not save campaign goal. Please try again.",
           ),
         );
       } finally {
@@ -540,14 +610,14 @@ export function CampaignBuilderWizard({
 
     if (step === 2) {
       if (!serverDraftId) {
-        setGoalSaveError("Complete Step 1 (Marketing Goal) first.");
+        setGoalSaveError("Complete Step 1 (Campaign Goal) first.");
         return;
       }
 
       setSavingGoal(true);
       setGoalSaveError(null);
       try {
-        const saved = await saveGoogleGoalDetailsStep(businessId, {
+        const details = await saveGoogleGoalDetailsStep(businessId, {
           draftId: serverDraftId,
           expectedVersion: serverVersion ?? 1,
           salesChannel: draft.salesChannel,
@@ -562,81 +632,45 @@ export function CampaignBuilderWizard({
           businessAddress: draft.businessAddress,
           businessHours: draft.businessHours,
           appName: draft.appName,
-          goalDetailSubstep: draft.goalDetailSubstep,
+          goalDetailSubstep: 1,
         });
-        rememberServerVersion(saved.version, saved.id);
+        rememberServerVersion(details.version, details.id);
 
-        const nextDraft: GoogleCampaignBuilderDraft = {
-          ...draft,
-          campaignName: saved.campaignName || draft.campaignName,
-          businessName: saved.businessName || draft.businessName,
-          currentStep: 3,
-          savedAt: new Date().toISOString(),
-        };
-        markStepSaved(2, nextDraft);
-        applyWorkingCopy(nextDraft, 3);
-        saveGoogleCampaignDraft(businessId, nextDraft);
-        setHasAutosaved(true);
-        setDraftSavedFlash(true);
-        window.setTimeout(() => setDraftSavedFlash(false), 1600);
-        setErrors({});
-      } catch (err) {
-        setGoalSaveError(
-          resolveSaveError(
-            err,
-            "Could not save goal details. Please try again.",
-          ),
-        );
-      } finally {
-        setSavingGoal(false);
-      }
-      return;
-    }
-
-    if (step === 3) {
-      if (!serverDraftId) {
-        setGoalSaveError("Complete earlier steps before saving campaign info.");
-        return;
-      }
-
-      setSavingGoal(true);
-      setGoalSaveError(null);
-      try {
-        const saved = await saveGoogleCampaignInfoStep(businessId, {
-          draftId: serverDraftId,
-          expectedVersion: serverVersion ?? 1,
+        const info = await saveGoogleCampaignInfoStep(businessId, {
+          draftId: details.id,
+          expectedVersion: details.version,
           campaignName: draft.campaignName,
           businessName: draft.businessName,
           websiteUrl: draft.websiteUrl,
           businessCategory: draft.businessCategory,
           logoFileName: draft.logoFileName,
           logoPreviewUrl: draft.logoPreviewUrl,
-          extensionBusinessName: draft.extensionBusinessName,
+          extensionBusinessName:
+            draft.extensionBusinessName || draft.businessName,
+          businessDescription: draft.businessDescription,
         });
-        rememberServerVersion(saved.version, saved.id);
+        rememberServerVersion(info.version, info.id);
 
         const nextDraft: GoogleCampaignBuilderDraft = {
           ...draft,
-          campaignName: saved.campaignName || draft.campaignName,
-          businessName: saved.businessName || draft.businessName,
-          websiteUrl: saved.websiteUrl || draft.websiteUrl,
-          businessCategory: saved.businessCategory || draft.businessCategory,
-          logoFileName: saved.logoFileName || draft.logoFileName,
-          currentStep: 4,
+          campaignName: info.campaignName || draft.campaignName,
+          businessName: info.businessName || draft.businessName,
+          websiteUrl: info.websiteUrl || draft.websiteUrl,
+          businessCategory: info.businessCategory || draft.businessCategory,
+          logoFileName: info.logoFileName || draft.logoFileName,
+          currentStep: 3,
           savedAt: new Date().toISOString(),
         };
-        markStepSaved(3, nextDraft);
-        applyWorkingCopy(nextDraft, 4);
+        markStepSaved(2, nextDraft);
+        applyWorkingCopy(nextDraft, 3);
         saveGoogleCampaignDraft(businessId, nextDraft);
-        setHasAutosaved(true);
-        setDraftSavedFlash(true);
-        window.setTimeout(() => setDraftSavedFlash(false), 1600);
+        flashSaved();
         setErrors({});
       } catch (err) {
         setGoalSaveError(
           resolveSaveError(
             err,
-            "Could not save campaign info. Please try again.",
+            "Could not save campaign details. Please try again.",
           ),
         );
       } finally {
@@ -645,7 +679,7 @@ export function CampaignBuilderWizard({
       return;
     }
 
-    if (step >= 4 && step <= 10) {
+    if (step >= 3 && step <= 8) {
       if (!serverDraftId) {
         setGoalSaveError("Complete earlier steps first.");
         return;
@@ -654,22 +688,25 @@ export function CampaignBuilderWizard({
       setSavingGoal(true);
       setGoalSaveError(null);
       try {
-        const nextStep = Math.min(step + 1, TOTAL_WIZARD_STEPS);
-        const expectedVersion = serverVersion ?? 1;
+        const nextUiStep = Math.min(step + 1, TOTAL_WIZARD_STEPS);
+        let version = serverVersion ?? 1;
+        let draftId = serverDraftId;
 
-        let saved;
-        if (step === 4) {
-          saved = await saveGoogleBudgetStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
+        if (step === 3) {
+          const saved = await saveGoogleBudgetStep(businessId, {
+            draftId,
+            expectedVersion: version,
             dailyBudget: draft.dailyBudget,
             startDate: draft.startDate,
             endDate: draft.endDate,
           });
-        } else if (step === 5) {
-          saved = await saveGoogleLocationsStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
+        } else if (step === 4) {
+          const locations = await saveGoogleLocationsStep(businessId, {
+            draftId,
+            expectedVersion: version,
             targetLocations: draft.targetLocations,
             excludedLocationTargets: draft.excludedLocationTargets,
             countries: draft.countries,
@@ -683,46 +720,94 @@ export function CampaignBuilderWizard({
             radiusValue: draft.radiusValue,
             radiusUnit: draft.radiusUnit,
             radiusTargeting: draft.radiusTargeting,
-            presenceOption: draft.presenceOption,
+            presenceOption: "PRESENCE",
           });
-        } else if (step === 6) {
-          saved = await saveGoogleLanguagesStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
+          rememberServerVersion(locations.version, locations.id);
+          const languages = await saveGoogleLanguagesStep(businessId, {
+            draftId: locations.id,
+            expectedVersion: locations.version,
             languages: draft.languages,
           });
-        } else if (step === 7) {
-          saved = await saveGoogleAudienceStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
-            ageRanges: draft.ageRanges,
-            gender: draft.gender,
-            householdIncome: draft.householdIncome,
-            interests: draft.interests,
+          rememberServerVersion(languages.version, languages.id);
+          version = languages.version;
+          draftId = languages.id;
+        } else if (step === 5) {
+          const audience = generateAudienceFromIdealCustomers(
+            draft.idealCustomers,
+          );
+          const saved = await saveGoogleAudienceStep(businessId, {
+            draftId,
+            expectedVersion: version,
+            ageRanges: audience.ageRanges,
+            gender: audience.gender,
+            householdIncome: audience.householdIncome,
+            interests: audience.interests,
+            idealCustomers: draft.idealCustomers,
           });
-        } else if (step === 8) {
-          saved = await saveGoogleKeywordsStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
-            businessType: draft.businessType,
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
+          const withAudience: GoogleCampaignBuilderDraft = {
+            ...draft,
+            ...audience,
+            currentStep: nextUiStep,
+            savedAt: new Date().toISOString(),
+          };
+          markStepSaved(5, withAudience);
+          applyWorkingCopy(withAudience, nextUiStep);
+          saveGoogleCampaignDraft(businessId, withAudience);
+          flashSaved();
+          setErrors({});
+          return;
+        } else if (step === 6) {
+          const businessType = inferBusinessTypeFromProducts(
+            draft.productsServices,
+            draft.businessType || draft.businessCategory || "Local Business",
+          );
+          const saved = await saveGoogleKeywordsStep(businessId, {
+            draftId,
+            expectedVersion: version,
+            businessType,
             suggestedKeywords: draft.suggestedKeywords,
             customKeywords: draft.customKeywords,
             negativeKeywords: draft.negativeKeywords,
             keywordMatchType: draft.keywordMatchType,
+            productsServices: draft.productsServices,
           });
-        } else if (step === 9) {
-          saved = await saveGoogleAdsStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
+          const withKeywords: GoogleCampaignBuilderDraft = {
+            ...draft,
+            businessType,
+            currentStep: nextUiStep,
+            savedAt: new Date().toISOString(),
+          };
+          markStepSaved(6, withKeywords);
+          applyWorkingCopy(withKeywords, nextUiStep);
+          saveGoogleCampaignDraft(businessId, withKeywords);
+          flashSaved();
+          setErrors({});
+          return;
+        } else if (step === 7) {
+          const saved = await saveGoogleAdsStep(businessId, {
+            draftId,
+            expectedVersion: version,
             ads: draft.ads,
             adsGenerated: draft.adsGenerated,
           });
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
         } else {
-          saved = await saveGoogleExtrasStep(businessId, {
-            draftId: serverDraftId,
-            expectedVersion,
-            extensionBusinessName: draft.extensionBusinessName,
-            phoneNumber: draft.phoneNumber,
+          const saved = await saveGoogleExtrasStep(businessId, {
+            draftId,
+            expectedVersion: version,
+            extensionBusinessName:
+              draft.extensionBusinessName || draft.businessName,
+            phoneNumber: draft.phoneNumber || draft.businessPhone,
+            businessAddress: draft.businessAddress,
+            businessHours: draft.businessHours,
             callouts: draft.callouts,
             structuredSnippetHeader: draft.structuredSnippetHeader,
             structuredSnippetValues: draft.structuredSnippetValues,
@@ -730,21 +815,24 @@ export function CampaignBuilderWizard({
             sitelinks: draft.sitelinks,
             assetsGenerated: draft.assetsGenerated,
           });
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
         }
 
-        rememberServerVersion(saved.version, saved.id);
+        void draftId;
+        void version;
 
         const nextDraft: GoogleCampaignBuilderDraft = {
           ...draft,
-          currentStep: nextStep,
+          presenceOption: "PRESENCE",
+          currentStep: nextUiStep,
           savedAt: new Date().toISOString(),
         };
         markStepSaved(step, nextDraft);
-        applyWorkingCopy(nextDraft, nextStep);
+        applyWorkingCopy(nextDraft, nextUiStep);
         saveGoogleCampaignDraft(businessId, nextDraft);
-        setHasAutosaved(true);
-        setDraftSavedFlash(true);
-        window.setTimeout(() => setDraftSavedFlash(false), 1600);
+        flashSaved();
         setErrors({});
       } catch (err) {
         setGoalSaveError(
@@ -779,7 +867,7 @@ export function CampaignBuilderWizard({
           activeDraftId,
           {
             expectedVersion: serverVersionRef.current ?? 1,
-            currentStep: activeDraft.currentStep,
+            currentStep: uiStepToBeProgressStep(activeDraft.currentStep),
             goalDetailSubstep: activeDraft.goalDetailSubstep,
           },
         );
@@ -800,10 +888,11 @@ export function CampaignBuilderWizard({
   const handlePublish = async () => {
     const allErrors = validateAllRequiredSteps(draft);
     if (Object.keys(allErrors).length > 0) {
-      setPublishError(
-        "Some required details are missing. Jump back and fix highlighted fields.",
-      );
-      for (let s = 1; s <= 10; s += 1) {
+      const message =
+        "Some required details are missing. Jump back and fix highlighted fields.";
+      setPublishError(message);
+      toast.error(message);
+      for (let s = 1; s <= 8; s += 1) {
         const stepErrors = validateStep(s, draft, { forPublish: true });
         if (Object.keys(stepErrors).length > 0) {
           goToStep(s);
@@ -815,7 +904,9 @@ export function CampaignBuilderWizard({
     }
 
     if (!serverDraftId || serverVersion == null) {
-      setPublishError("Save your draft on the server before publishing.");
+      const message = "Save your draft on the server before publishing.";
+      setPublishError(message);
+      toast.error(message);
       return;
     }
 
@@ -824,17 +915,23 @@ export function CampaignBuilderWizard({
     setPublishSuccess(false);
     setPublishedAdsConsoleUrl(null);
     setPublishProgress(8);
-    setPublishPhase(PUBLISH_PHASES[0]);
+    setPublishStep("preparing");
+    setPublishPhase(googlePublishStepLabel("preparing"));
 
     try {
-      setPublishPhase("Queuing publish…");
+      setPublishPhase("Preparing your campaign…");
       const result = await publishGoogleCampaignDraft(businessId, {
         draftId: serverDraftId,
         expectedVersion: serverVersion,
       });
       rememberServerVersion(result.version, result.draftId);
       setPublishProgress(Math.max(result.publishProgress ?? 0, 8));
-      setPublishPhase(googlePublishStepLabel(result.publishStep));
+      const nextStep =
+        result.publishStep === "queued"
+          ? "preparing"
+          : (result.publishStep ?? "preparing");
+      setPublishStep(nextStep);
+      setPublishPhase(googlePublishStepLabel(nextStep));
 
       const published = await pollGooglePublishUntilDone(
         businessId,
@@ -842,7 +939,12 @@ export function CampaignBuilderWizard({
         (status) => {
           rememberServerVersion(status.version, status.draftId);
           setPublishProgress(Math.max(status.publishProgress ?? 0, 8));
-          setPublishPhase(googlePublishStepLabel(status.publishStep));
+          const step =
+            status.publishStep === "queued"
+              ? "preparing"
+              : status.publishStep;
+          setPublishStep(step);
+          setPublishPhase(googlePublishStepLabel(step));
           if (status.adsConsoleUrl) {
             setPublishedAdsConsoleUrl(status.adsConsoleUrl);
           }
@@ -850,6 +952,7 @@ export function CampaignBuilderWizard({
       );
 
       setPublishProgress(100);
+      setPublishStep("done");
       setPublishPhase("Published");
       setPublishSuccess(true);
       if (published.adsConsoleUrl) {
@@ -859,12 +962,12 @@ export function CampaignBuilderWizard({
       clearPublishedDraftLocally();
     } catch (err) {
       setPublishSuccess(false);
-      setPublishError(
-        resolveSaveError(
-          err,
-          "Could not publish your campaign. Please try again.",
-        ),
+      const message = resolveSaveError(
+        err,
+        "Could not publish your campaign. Please try again.",
       );
+      setPublishError(message);
+      toast.error(message);
     } finally {
       setPublishing(false);
     }
@@ -928,7 +1031,9 @@ export function CampaignBuilderWizard({
               id={titleId}
               className="truncate text-lg font-extrabold tracking-tight text-[#07111f]"
             >
-              {STEP_TITLES[step - 1] ?? "Create campaign"}
+              {showOnboarding
+                ? "Describe your business"
+                : (STEP_TITLES[step - 1] ?? "Create campaign")}
             </h2>
           </div>
         </div>
@@ -982,19 +1087,38 @@ export function CampaignBuilderWizard({
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-3xl pb-10">
           <AnimatePresence mode="wait">
-            <div key={`${step}-${draft.goalDetailSubstep}`}>
-              {renderCampaignBuilderStep(step, {
-                draft,
-                errors,
-                onChange: patchDraft,
-                onEditStep: goToStep,
-                publishing,
-                publishProgress,
-                publishPhase,
-                publishError,
-                publishSuccess,
-              })}
-            </div>
+            {showOnboarding ? (
+              <div key="onboarding">
+                <StepOnboarding
+                  draft={draft}
+                  onChange={patchDraft}
+                  onSkip={() => {
+                    patchDraft({ onboardingDone: true });
+                    setShowOnboarding(false);
+                  }}
+                  onContinue={() => {
+                    patchDraft({ onboardingDone: true });
+                    setShowOnboarding(false);
+                  }}
+                />
+              </div>
+            ) : (
+              <div key={`${step}`}>
+                {renderCampaignBuilderStep(step, {
+                  businessId,
+                  draft,
+                  errors,
+                  onChange: patchDraft,
+                  onEditStep: goToStep,
+                  publishing,
+                  publishProgress,
+                  publishPhase,
+                  publishStep,
+                  publishError,
+                  publishSuccess,
+                })}
+              </div>
+            )}
           </AnimatePresence>
         </div>
       </main>
@@ -1006,7 +1130,7 @@ export function CampaignBuilderWizard({
           disabled={busy}
           className={`${googleBuilderSecondaryButtonClass} disabled:opacity-50`}
         >
-          {step === 1 ? "Cancel" : "Back"}
+          {showOnboarding || step === 1 ? "Cancel" : "Back"}
         </button>
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           {publishSuccess && resolvedAdsConsoleUrl ? (
@@ -1024,36 +1148,38 @@ export function CampaignBuilderWizard({
               {goalSaveError}
             </p>
           ) : null}
-          <button
-            type="button"
-            disabled={nextDisabled}
-            onClick={() => {
-              if (publishSuccess) {
-                void persistProgressAndClose();
-                return;
-              }
-              if (isLastStep) {
-                void handlePublish();
-                return;
-              }
-              void handleContinue();
-            }}
-            className={`${googleBuilderPrimaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            {publishing ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Publishing…
-              </>
-            ) : savingGoal ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              primaryLabel
-            )}
-          </button>
+          {showOnboarding ? null : (
+            <button
+              type="button"
+              disabled={nextDisabled}
+              onClick={() => {
+                if (publishSuccess) {
+                  void persistProgressAndClose();
+                  return;
+                }
+                if (isLastStep) {
+                  void handlePublish();
+                  return;
+                }
+                void handleContinue();
+              }}
+              className={`${googleBuilderPrimaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {publishing ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Publishing…
+                </>
+              ) : savingGoal ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                primaryLabel
+              )}
+            </button>
+          )}
         </div>
       </footer>
     </div>

@@ -108,6 +108,9 @@ export type GoogleCampaignBuilderDraft = {
   logoPreviewUrl: string;
   logoFileName: string;
 
+  businessDescription: string;
+  onboardingDone: boolean;
+
   dailyBudget: number;
   startDate: string;
   endDate: string;
@@ -129,11 +132,13 @@ export type GoogleCampaignBuilderDraft = {
 
   languages: string[];
 
+  idealCustomers: string[];
   ageRanges: AgeRangeId[];
   gender: GenderId;
   householdIncome: string;
   interests: string[];
 
+  productsServices: string[];
   businessType: string;
   suggestedKeywords: SuggestedKeyword[];
   customKeywords: string[];
@@ -169,6 +174,7 @@ export type GoogleCampaignBuilderDraft = {
 
   savedAt: string | null;
   currentStep: number;
+  wizardVersion: number;
 };
 
 export function createEmptyAd(finalUrl = ""): AdCreativeDraft {
@@ -216,6 +222,8 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     businessCategory: "",
     logoPreviewUrl: "",
     logoFileName: "",
+    businessDescription: "",
+    onboardingDone: false,
     dailyBudget: 40,
     startDate: "",
     endDate: "",
@@ -234,10 +242,12 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     excludedLocations: [],
     presenceOption: "PRESENCE",
     languages: ["English"],
+    idealCustomers: [],
     ageRanges: ["25-34", "35-44"],
     gender: "ALL",
     householdIncome: "",
     interests: [],
+    productsServices: [],
     businessType: "",
     suggestedKeywords: [],
     customKeywords: [],
@@ -269,6 +279,7 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     audienceExpansion: false,
     savedAt: null,
     currentStep: 1,
+    wizardVersion: 2,
   };
 }
 
@@ -373,16 +384,57 @@ export const AGE_RANGE_OPTIONS: AgeRangeId[] = [
 ];
 
 export const LANGUAGE_OPTIONS = [
-  "English",
-  "Urdu",
   "Arabic",
+  "Bengali",
+  "Bulgarian",
+  "Catalan",
+  "Chinese (simplified)",
+  "Chinese (traditional)",
+  "Croatian",
+  "Czech",
+  "Danish",
+  "Dutch",
+  "English",
+  "Estonian",
+  "Filipino",
+  "Finnish",
   "French",
-  "Spanish",
   "German",
-  "Portuguese",
+  "Greek",
+  "Gujarati",
+  "Hebrew",
   "Hindi",
-  "Chinese",
+  "Hungarian",
+  "Icelandic",
+  "Indonesian",
+  "Italian",
   "Japanese",
+  "Kannada",
+  "Korean",
+  "Latvian",
+  "Lithuanian",
+  "Malay",
+  "Malayalam",
+  "Marathi",
+  "Norwegian",
+  "Persian",
+  "Polish",
+  "Portuguese",
+  "Punjabi",
+  "Romanian",
+  "Russian",
+  "Serbian",
+  "Slovak",
+  "Slovenian",
+  "Spanish",
+  "Swedish",
+  "Tamil",
+  "Telugu",
+  "Thai",
+  "Turkish",
+  "Ukrainian",
+  "Urdu",
+  "Vietnamese",
 ];
 
 export const COUNTRY_OPTIONS = [
@@ -456,18 +508,29 @@ export const HOUSEHOLD_INCOME_OPTIONS = [
   "Lower 50%",
 ];
 
-export const TOTAL_WIZARD_STEPS = 11;
+export const TOTAL_WIZARD_STEPS = 9;
 
 export const STEP_TITLES = [
-  "Campaign Objective",
-  "Goal Details",
-  "Campaign Info",
+  "Campaign Goal",
+  "Campaign Details",
   "Budget",
-  "Locations",
-  "Languages",
-  "Audience",
-  "Keywords",
+  "Locations & Languages",
+  "Target Customers",
+  "Products & Services",
   "Ads",
-  "Extras",
+  "Business Details",
   "Review & Publish",
+] as const;
+
+export const IDEAL_CUSTOMER_OPTIONS = [
+  "Homeowners",
+  "Restaurant owners",
+  "Parents",
+  "Small businesses",
+  "Students",
+  "Professionals",
+  "Local shoppers",
+  "Property managers",
+  "Healthcare patients",
+  "Travelers",
 ] as const;

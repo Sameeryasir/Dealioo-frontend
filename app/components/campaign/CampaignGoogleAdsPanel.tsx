@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { MetricStatCardAccent } from "@/app/components/shared/MetricStatCard";
+import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
 import {
   formatMetaCount,
   formatMetaDeliveryStatus,
@@ -34,14 +34,6 @@ import {
   type GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
-
-const GoogleAdsCreateCampaignFlow = dynamic(
-  () =>
-    import("@/app/components/google-ads/GoogleAdsCreateCampaignFlow").then(
-      (mod) => ({ default: mod.GoogleAdsCreateCampaignFlow }),
-    ),
-  { ssr: false },
-);
 
 function GoogleLogo({ className }: { className?: string }) {
   return (

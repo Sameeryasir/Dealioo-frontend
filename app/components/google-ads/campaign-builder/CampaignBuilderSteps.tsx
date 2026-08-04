@@ -5,34 +5,51 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Check,
   ChevronDown,
+  Flag,
   Globe,
   ImageIcon,
   Layers,
+  ListChecks,
+  Loader2,
+  MapPin,
   Megaphone,
   MousePointerClick,
   Phone,
   Plus,
+  Rocket,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Store,
+  Tag,
   Trash2,
   Upload,
   Users,
+  Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
+import {
+  GOOGLE_PUBLISH_PROGRESS_STEPS,
+  resolveGooglePublishStepIndex,
+} from "@/app/services/google-ads/google-campaign-draft";
 import { AdLivePreview } from "@/app/components/google-ads/campaign-builder/AdLivePreview";
 import {
   enabledKeywords,
   estimateMetrics,
   generateAdSuggestions,
+  generateAudienceFromIdealCustomers,
   generateCallouts,
-  generateCampaignName,
-  generateKeywordsForBusinessType,
-  generateNegativeKeywordSuggestions,
+  generateNegativesFromProducts,
   generateSitelinks,
   generateSnippetValues,
+  inferBusinessTypeFromProducts,
   MAX_SITELINKS,
+  prefillFromBusinessDescription,
+  toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
+import { generateGoogleKeywordsWithAi } from "@/app/services/google-ads/generate-google-keywords";
+import { toast } from "sonner";
 import {
   BudgetSlider,
   ChipToggleGroup,
@@ -45,13 +62,12 @@ import {
   ToggleSwitch,
   inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
+import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
-  PRESENCE_OPTIONS,
   resolveLocationCoordinates,
   type GoogleAdsLocationRef,
-  type PresenceOptionId,
   type RadiusUnitId,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
 
@@ -63,30 +79,24 @@ const LocationRadiusMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-80 items-center justify-center rounded-xl border border-[#e8edf5] bg-[#f4f8ff] text-sm text-slate-500">
+      <div className="flex h-72 items-center justify-center rounded-xl border border-[#e8edf5] bg-[#f4f8ff] text-sm text-slate-500">
         Loading map…
       </div>
     ),
   },
 );
 import {
-  AGE_RANGE_OPTIONS,
   BUSINESS_CATEGORY_OPTIONS,
-  BUSINESS_TYPE_OPTIONS,
   CTA_OPTIONS,
   GOAL_OPTIONS,
-  HOUSEHOLD_INCOME_OPTIONS,
-  INTEREST_OPTIONS,
+  IDEAL_CUSTOMER_OPTIONS,
   LANGUAGE_OPTIONS,
   LEAD_CONTACT_OPTIONS,
   SALES_CHANNEL_OPTIONS,
   TOTAL_WIZARD_STEPS,
   TRAFFIC_ACTION_OPTIONS,
-  createEmptySitelink,
-  type AgeRangeId,
   type CallToActionId,
   type CampaignGoalId,
-  type GenderId,
   type GoogleCampaignBuilderDraft,
   type LeadContactMethodId,
   type SalesChannelId,
@@ -96,7 +106,6 @@ import {
   DESCRIPTION_MAX,
   HEADLINE_MAX,
   PATH_MAX,
-  sitelinkUrlError,
 } from "@/app/components/google-ads/campaign-builder/validation";
 
 function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
@@ -104,132 +113,8 @@ function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
   return `${value} ${unitLabel} radius`;
 }
 
-function PresenceTargetingDropdown({
-  value,
-  onChange,
-}: {
-  value: PresenceOptionId;
-  onChange: (value: PresenceOptionId) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const selected =
-    PRESENCE_OPTIONS.find((option) => option.id === value) ??
-    PRESENCE_OPTIONS[0];
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="space-y-2">
-      <p className="text-sm font-bold text-[#07111f]">
-        Who do you want to target?
-      </p>
-
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen((current) => !current);
-        }}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={`flex w-full items-start justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-left transition ${
-          open
-            ? "border-[#4285F4] ring-2 ring-[#4285F4]/15"
-            : "border-[#e8edf5] hover:border-[#4285F4]/50"
-        }`}
-      >
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-[#07111f]">
-            {selected.label}
-          </span>
-          {selected.recommended ? (
-            <span className="mt-1 inline-flex rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-bold text-[#4285F4]">
-              Recommended
-            </span>
-          ) : null}
-        </span>
-        <ChevronDown
-          className={`mt-0.5 size-4 shrink-0 text-slate-500 transition ${
-            open ? "rotate-180" : ""
-          }`}
-          aria-hidden
-        />
-      </button>
-
-      {open ? (
-        <ul
-          role="listbox"
-          aria-label="Presence targeting options"
-          className="max-h-72 w-full overflow-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
-        >
-          {PRESENCE_OPTIONS.map((option) => {
-            const isSelected = option.id === value;
-            return (
-              <li key={option.id} role="option" aria-selected={isSelected}>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onChange(option.id);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
-                    isSelected ? "bg-[#f4f8ff]" : "hover:bg-[#f8fafc]"
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                      isSelected
-                        ? "border-[#4285F4] bg-[#4285F4] text-white"
-                        : "border-[#dbe3ef] bg-white"
-                    }`}
-                  >
-                    {isSelected ? (
-                      <Check className="size-3" strokeWidth={3} aria-hidden />
-                    ) : null}
-                  </span>
-                  <span className="min-w-0">
-                    <span
-                      className={`block text-sm font-semibold ${
-                        isSelected ? "text-[#4285F4]" : "text-[#07111f]"
-                      }`}
-                    >
-                      {option.label}
-                    </span>
-                    {option.recommended ? (
-                      <span className="mt-1 inline-flex rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-bold text-[#4285F4]">
-                        Recommended
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
-
 type StepProps = {
+  businessId: number;
   draft: GoogleCampaignBuilderDraft;
   errors: Record<string, string>;
   onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
@@ -285,17 +170,40 @@ function MetricTiles({ dailyBudget }: { dailyBudget: number }) {
   );
 }
 
+function RemovableChip({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1 text-xs font-semibold text-[#4285F4]">
+      {label}
+      <button
+        type="button"
+        aria-label={`Remove ${label}`}
+        onClick={onRemove}
+        className="rounded-full p-0.5 transition hover:bg-[#dbeafe]"
+      >
+        <X className="size-3" aria-hidden />
+      </button>
+    </span>
+  );
+}
+
 export function StepGoal({ draft, errors, onChange }: StepProps) {
   return (
     <StepShell
       step={1}
       total={TOTAL_WIZARD_STEPS}
-      title="Campaign Objective"
-      description="Pick one goal. We’ll personalize every next screen for you."
+      title="What's your campaign goal?"
+      description="Pick one goal. We'll personalize every next screen for you."
     >
       <div className="grid gap-3 sm:grid-cols-2">
         {GOAL_OPTIONS.map((goal) => {
-          const Icon = GOAL_ICONS[goal.id];
+          const Icon =
+            GOAL_ICONS[goal.id as Exclude<CampaignGoalId, "APP_PROMOTION">];
           return (
             <SelectableCard
               key={goal.id}
@@ -303,13 +211,7 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
               title={goal.title}
               description={goal.description}
               icon={<Icon className="size-5" aria-hidden />}
-              onClick={() =>
-                onChange({
-                  goal: goal.id,
-                  goalDetailSubstep: 0,
-                  campaignName: generateCampaignName(goal.id, draft.businessName),
-                })
-              }
+              onClick={() => onChange({ goal: goal.id })}
             />
           );
         })}
@@ -321,333 +223,8 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepGoalDetails({ draft, errors, onChange }: StepProps) {
-  if (draft.goal === "SALES") {
-    return (
-      <StepShell
-        step={2}
-        total={TOTAL_WIZARD_STEPS}
-        title="How do customers buy from you?"
-        description="Choose the main way people purchase — we’ll tailor the rest."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {SALES_CHANNEL_OPTIONS.map((option) => {
-            const Icon = SALES_CHANNEL_ICONS[option.id];
-            return (
-              <SelectableCard
-                key={option.id}
-                selected={draft.salesChannel === option.id}
-                title={option.title}
-                description={option.description}
-                icon={<Icon className="size-5" aria-hidden />}
-                onClick={() => onChange({ salesChannel: option.id })}
-              />
-            );
-          })}
-        </div>
-        {errors.salesChannel ? (
-          <p className="text-sm font-medium text-red-500">{errors.salesChannel}</p>
-        ) : null}
-
-        {(draft.salesChannel === "WEBSITE" ||
-          draft.salesChannel === "ONLINE_STORE" ||
-          draft.salesChannel === "MULTIPLE") && (
-          <Panel>
-            <Field label="Website URL" required error={errors.websiteUrl}>
-              <input
-                className={inputClass(errors.websiteUrl)}
-                value={draft.websiteUrl}
-                onChange={(e) => onChange({ websiteUrl: e.target.value })}
-                placeholder="https://www.example.com"
-              />
-            </Field>
-          </Panel>
-        )}
-
-        {(draft.salesChannel === "PHYSICAL_STORE" ||
-          draft.salesChannel === "MULTIPLE") && (
-          <Panel>
-            <SearchableSelect
-              label="Business location"
-              required
-              options={[
-                "Downtown",
-                "City Center",
-                "Mall Location",
-                "Suburb",
-                "Airport Area",
-                ...draft.cities,
-              ].filter(Boolean)}
-              value={draft.businessLocation}
-              onChange={(businessLocation) => onChange({ businessLocation })}
-              placeholder="Search location type"
-              error={errors.businessLocation}
-            />
-          </Panel>
-        )}
-
-        {draft.salesChannel === "PHONE_ORDERS" && (
-          <Panel>
-            <Field label="Business phone" required error={errors.businessPhone}>
-              <input
-                className={inputClass(errors.businessPhone)}
-                value={draft.businessPhone}
-                onChange={(e) =>
-                  onChange({
-                    businessPhone: e.target.value,
-                    phoneNumber: e.target.value,
-                  })
-                }
-                placeholder="+1 555 0100"
-              />
-            </Field>
-          </Panel>
-        )}
-      </StepShell>
-    );
-  }
-
-  if (draft.goal === "LEADS") {
-    const toggleMethod = (id: LeadContactMethodId) => {
-      const exists = draft.leadContactMethods.includes(id);
-      onChange({
-        leadContactMethods: exists
-          ? draft.leadContactMethods.filter((m) => m !== id)
-          : [...draft.leadContactMethods, id],
-      });
-    };
-
-    return (
-      <StepShell
-        step={2}
-        total={TOTAL_WIZARD_STEPS}
-        title="How should customers contact you?"
-        description="Select every option that fits. We’ll only ask for what’s needed."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {LEAD_CONTACT_OPTIONS.map((option) => {
-            const selected = draft.leadContactMethods.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => toggleMethod(option.id)}
-                className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
-                  selected
-                    ? "border-[#4285F4] bg-[#f4f8ff] ring-1 ring-[#4285F4]"
-                    : "border-[#e8edf5] bg-white hover:border-[#4285F4]/40"
-                }`}
-              >
-                <span
-                  className={`flex size-5 items-center justify-center rounded border ${
-                    selected
-                      ? "border-[#4285F4] bg-[#4285F4] text-white"
-                      : "border-slate-300 bg-white"
-                  }`}
-                >
-                  {selected ? <Check className="size-3" strokeWidth={3} /> : null}
-                </span>
-                <span className="text-sm font-bold text-[#07111f]">
-                  {option.title}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {errors.leadContactMethods ? (
-          <p className="text-sm font-medium text-red-500">
-            {errors.leadContactMethods}
-          </p>
-        ) : null}
-
-        {draft.leadContactMethods.includes("CONTACT_FORM") ? (
-          <Panel>
-            <Field label="Landing page URL" required error={errors.landingPageUrl}>
-              <input
-                className={inputClass(errors.landingPageUrl)}
-                value={draft.landingPageUrl || draft.websiteUrl}
-                onChange={(e) =>
-                  onChange({
-                    landingPageUrl: e.target.value,
-                    websiteUrl: draft.websiteUrl || e.target.value,
-                  })
-                }
-                placeholder="https://www.example.com/contact"
-              />
-            </Field>
-          </Panel>
-        ) : null}
-
-        {draft.leadContactMethods.includes("PHONE_CALLS") ? (
-          <Panel>
-            <Field label="Business phone" required error={errors.businessPhone}>
-              <input
-                className={inputClass(errors.businessPhone)}
-                value={draft.businessPhone}
-                onChange={(e) =>
-                  onChange({
-                    businessPhone: e.target.value,
-                    phoneNumber: e.target.value,
-                  })
-                }
-                placeholder="+1 555 0100"
-              />
-            </Field>
-          </Panel>
-        ) : null}
-      </StepShell>
-    );
-  }
-
-  if (draft.goal === "WEBSITE_TRAFFIC") {
-    if (draft.goalDetailSubstep <= 0) {
-      return (
-        <StepShell
-          step={2}
-          total={TOTAL_WIZARD_STEPS}
-          title="Where should visitors go?"
-          description="Add the page you want people to land on."
-        >
-          <Panel>
-            <Field label="Website URL" required error={errors.websiteUrl}>
-              <input
-                className={inputClass(errors.websiteUrl)}
-                value={draft.websiteUrl}
-                onChange={(e) => onChange({ websiteUrl: e.target.value })}
-                placeholder="https://www.example.com"
-              />
-            </Field>
-          </Panel>
-        </StepShell>
-      );
-    }
-
-    return (
-      <StepShell
-        step={2}
-        total={TOTAL_WIZARD_STEPS}
-        title="What action should visitors take?"
-        description="Pick the main next step you want people to take."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {TRAFFIC_ACTION_OPTIONS.map((option) => (
-            <SelectableCard
-              key={option.id}
-              selected={draft.trafficAction === option.id}
-              title={option.label}
-              onClick={() =>
-                onChange({ trafficAction: option.id as TrafficActionId })
-              }
-            />
-          ))}
-        </div>
-        {errors.trafficAction ? (
-          <p className="text-sm font-medium text-red-500">{errors.trafficAction}</p>
-        ) : null}
-      </StepShell>
-    );
-  }
-
-  if (draft.goal === "AWARENESS") {
-    return (
-      <StepShell
-        step={2}
-        total={TOTAL_WIZARD_STEPS}
-        title="Tell us about your business"
-        description="We’ll use this to promote your brand clearly."
-      >
-        <Panel className="space-y-4">
-          <Field label="Business name" required error={errors.businessName}>
-            <input
-              className={inputClass(errors.businessName)}
-              value={draft.businessName}
-              onChange={(e) =>
-                onChange({
-                  businessName: e.target.value,
-                  extensionBusinessName: e.target.value,
-                })
-              }
-              placeholder="Acme Coffee"
-            />
-          </Field>
-          <SearchableSelect
-            label="Business category"
-            required
-            options={BUSINESS_CATEGORY_OPTIONS}
-            value={draft.businessCategory}
-            onChange={(businessCategory) => onChange({ businessCategory })}
-            error={errors.businessCategory}
-          />
-          <Field label="Business address">
-            <input
-              className={inputClass()}
-              value={draft.businessAddress}
-              onChange={(e) => onChange({ businessAddress: e.target.value })}
-              placeholder="123 Main Street"
-            />
-          </Field>
-          <Field label="Business phone">
-            <input
-              className={inputClass()}
-              value={draft.businessPhone}
-              onChange={(e) =>
-                onChange({
-                  businessPhone: e.target.value,
-                  phoneNumber: e.target.value,
-                })
-              }
-              placeholder="+1 555 0100"
-            />
-          </Field>
-          <SearchableSelect
-            label="Business hours"
-            options={[
-              "Open 24/7",
-              "Mon–Fri 9am–5pm",
-              "Mon–Sat 10am–8pm",
-              "Weekends only",
-              "By appointment",
-            ]}
-            value={draft.businessHours}
-            onChange={(businessHours) => onChange({ businessHours })}
-            placeholder="Select hours"
-          />
-        </Panel>
-      </StepShell>
-    );
-  }
-
-  return (
-    <StepShell
-      step={2}
-      total={TOTAL_WIZARD_STEPS}
-      title="Which app are you promoting?"
-      description="Just the basics — we’ll handle the rest."
-    >
-      <Panel>
-        <Field label="App name" required error={errors.appName}>
-          <input
-            className={inputClass(errors.appName)}
-            value={draft.appName}
-            onChange={(e) => onChange({ appName: e.target.value })}
-            placeholder="My App"
-          />
-        </Field>
-      </Panel>
-    </StepShell>
-  );
-}
-
-export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
+export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
   const logoInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!draft.campaignName.trim() && draft.goal) {
-      onChange({
-        campaignName: generateCampaignName(draft.goal, draft.businessName),
-      });
-    }
-  }, [draft.goal, draft.businessName, draft.campaignName, onChange]);
 
   const clearLogo = () => {
     if (draft.logoPreviewUrl.startsWith("blob:")) {
@@ -671,24 +248,34 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
     });
   };
 
+  const toggleLeadMethod = (id: LeadContactMethodId) => {
+    const exists = draft.leadContactMethods.includes(id);
+    onChange({
+      leadContactMethods: exists
+        ? draft.leadContactMethods.filter((m) => m !== id)
+        : [...draft.leadContactMethods, id],
+    });
+  };
+
   return (
     <StepShell
-      step={3}
+      step={2}
       total={TOTAL_WIZARD_STEPS}
-      title="Campaign information"
-      description="We filled this in for you. Edit anything you like."
+      title="Tell us about your campaign"
+      description="A few basics about your business, plus anything specific to your goal."
     >
       <Panel className="space-y-4">
         <Field
           label="Campaign name"
           required
-          hint="Auto-generated — feel free to rename"
+          hint="Choose a clear name you'll recognize later."
           error={errors.campaignName}
         >
           <input
             className={inputClass(errors.campaignName)}
             value={draft.campaignName}
             onChange={(e) => onChange({ campaignName: e.target.value })}
+            placeholder="e.g. Spring sales campaign"
           />
         </Field>
         <Field label="Business name" required error={errors.businessName}>
@@ -702,6 +289,7 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
                   draft.extensionBusinessName || e.target.value,
               })
             }
+            placeholder="Acme Coffee"
           />
         </Field>
         <Field label="Website" error={errors.websiteUrl}>
@@ -717,6 +305,7 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
           options={BUSINESS_CATEGORY_OPTIONS}
           value={draft.businessCategory}
           onChange={(businessCategory) => onChange({ businessCategory })}
+          error={errors.businessCategory}
           placeholder="Search categories"
         />
 
@@ -789,9 +378,7 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
               type="button"
               onClick={() => logoInputRef.current?.click()}
               className="relative mx-auto flex size-[120px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#c5d4f0] bg-white shadow-sm transition hover:border-[#4285F4] hover:bg-[#f4f8ff] sm:mx-0 sm:justify-self-end"
-              aria-label={
-                draft.logoPreviewUrl ? "Change logo" : "Upload logo"
-              }
+              aria-label={draft.logoPreviewUrl ? "Change logo" : "Upload logo"}
             >
               {draft.logoPreviewUrl ? (
                 <img
@@ -811,6 +398,236 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
           </div>
         </div>
       </Panel>
+
+      {draft.goal === "SALES" ? (
+        <>
+          <Panel className="space-y-3">
+            <p className="text-sm font-bold text-[#07111f]">
+              How do customers buy from you?
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SALES_CHANNEL_OPTIONS.map((option) => {
+                const Icon = SALES_CHANNEL_ICONS[option.id];
+                return (
+                  <SelectableCard
+                    key={option.id}
+                    selected={draft.salesChannel === option.id}
+                    title={option.title}
+                    description={option.description}
+                    icon={<Icon className="size-5" aria-hidden />}
+                    onClick={() => onChange({ salesChannel: option.id })}
+                  />
+                );
+              })}
+            </div>
+            {errors.salesChannel ? (
+              <p className="text-sm font-medium text-red-500">
+                {errors.salesChannel}
+              </p>
+            ) : null}
+          </Panel>
+
+          {(draft.salesChannel === "PHYSICAL_STORE" ||
+            draft.salesChannel === "MULTIPLE") && (
+            <Panel>
+              <SearchableSelect
+                label="Business location"
+                required
+                options={[
+                  "Downtown",
+                  "City Center",
+                  "Mall Location",
+                  "Suburb",
+                  "Airport Area",
+                  ...draft.cities,
+                ].filter(Boolean)}
+                value={draft.businessLocation}
+                onChange={(businessLocation) => onChange({ businessLocation })}
+                placeholder="Search location type"
+                error={errors.businessLocation}
+              />
+            </Panel>
+          )}
+
+          {draft.salesChannel === "PHONE_ORDERS" && (
+            <Panel>
+              <Field label="Business phone" required error={errors.businessPhone}>
+                <input
+                  className={inputClass(errors.businessPhone)}
+                  value={draft.businessPhone}
+                  onChange={(e) =>
+                    onChange({
+                      businessPhone: e.target.value,
+                      phoneNumber: e.target.value,
+                    })
+                  }
+                  placeholder="+1 555 0100"
+                />
+              </Field>
+            </Panel>
+          )}
+        </>
+      ) : null}
+
+      {draft.goal === "LEADS" ? (
+        <>
+          <Panel className="space-y-3">
+            <p className="text-sm font-bold text-[#07111f]">
+              How should customers contact you?
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {LEAD_CONTACT_OPTIONS.map((option) => {
+                const selected = draft.leadContactMethods.includes(option.id);
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleLeadMethod(option.id)}
+                    className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                      selected
+                        ? "border-[#4285F4] bg-[#f4f8ff] ring-1 ring-[#4285F4]"
+                        : "border-[#e8edf5] bg-white hover:border-[#4285F4]/40"
+                    }`}
+                  >
+                    <span
+                      className={`flex size-5 items-center justify-center rounded border ${
+                        selected
+                          ? "border-[#4285F4] bg-[#4285F4] text-white"
+                          : "border-slate-300 bg-white"
+                      }`}
+                    >
+                      {selected ? (
+                        <Check className="size-3" strokeWidth={3} />
+                      ) : null}
+                    </span>
+                    <span className="text-sm font-bold text-[#07111f]">
+                      {option.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {errors.leadContactMethods ? (
+              <p className="text-sm font-medium text-red-500">
+                {errors.leadContactMethods}
+              </p>
+            ) : null}
+          </Panel>
+
+          {draft.leadContactMethods.includes("CONTACT_FORM") ? (
+            <Panel>
+              <Field label="Landing page URL" required error={errors.landingPageUrl}>
+                <input
+                  className={inputClass(errors.landingPageUrl)}
+                  value={draft.landingPageUrl || draft.websiteUrl}
+                  onChange={(e) =>
+                    onChange({
+                      landingPageUrl: e.target.value,
+                      websiteUrl: draft.websiteUrl || e.target.value,
+                    })
+                  }
+                  placeholder="https://www.example.com/contact"
+                />
+              </Field>
+            </Panel>
+          ) : null}
+
+          {draft.leadContactMethods.includes("PHONE_CALLS") ? (
+            <Panel>
+              <Field label="Business phone" required error={errors.businessPhone}>
+                <input
+                  className={inputClass(errors.businessPhone)}
+                  value={draft.businessPhone}
+                  onChange={(e) =>
+                    onChange({
+                      businessPhone: e.target.value,
+                      phoneNumber: e.target.value,
+                    })
+                  }
+                  placeholder="+1 555 0100"
+                />
+              </Field>
+            </Panel>
+          ) : null}
+        </>
+      ) : null}
+
+      {draft.goal === "WEBSITE_TRAFFIC" ? (
+        <Panel className="space-y-3">
+          <p className="text-sm font-bold text-[#07111f]">
+            What should visitors do?
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {TRAFFIC_ACTION_OPTIONS.map((option) => (
+              <SelectableCard
+                key={option.id}
+                selected={draft.trafficAction === option.id}
+                title={option.label}
+                onClick={() =>
+                  onChange({ trafficAction: option.id as TrafficActionId })
+                }
+              />
+            ))}
+          </div>
+          {errors.trafficAction ? (
+            <p className="text-sm font-medium text-red-500">
+              {errors.trafficAction}
+            </p>
+          ) : null}
+        </Panel>
+      ) : null}
+
+      {draft.goal === "AWARENESS" ? (
+        <Panel className="space-y-4">
+          <Field label="Business address">
+            <input
+              className={inputClass()}
+              value={draft.businessAddress}
+              onChange={(e) => onChange({ businessAddress: e.target.value })}
+              placeholder="123 Main Street"
+            />
+          </Field>
+          <Field label="Business phone">
+            <input
+              className={inputClass()}
+              value={draft.businessPhone}
+              onChange={(e) =>
+                onChange({
+                  businessPhone: e.target.value,
+                  phoneNumber: e.target.value,
+                })
+              }
+              placeholder="+1 555 0100"
+            />
+          </Field>
+          <SearchableSelect
+            label="Business hours"
+            options={[
+              "Open 24/7",
+              "Mon–Fri 9am–5pm",
+              "Mon–Sat 10am–8pm",
+              "Weekends only",
+              "By appointment",
+            ]}
+            value={draft.businessHours}
+            onChange={(businessHours) => onChange({ businessHours })}
+            placeholder="Select hours"
+          />
+        </Panel>
+      ) : null}
+
+      {draft.goal === "APP_PROMOTION" ? (
+        <Panel>
+          <Field label="App name" required error={errors.appName}>
+            <input
+              className={inputClass(errors.appName)}
+              value={draft.appName}
+              onChange={(e) => onChange({ appName: e.target.value })}
+              placeholder="My App"
+            />
+          </Field>
+        </Panel>
+      ) : null}
     </StepShell>
   );
 }
@@ -818,10 +635,10 @@ export function StepCampaignInfo({ draft, errors, onChange }: StepProps) {
 export function StepBudget({ draft, errors, onChange }: StepProps) {
   return (
     <StepShell
-      step={4}
+      step={3}
       total={TOTAL_WIZARD_STEPS}
       title="Set a comfortable daily budget"
-      description="No jargon — just how much you’re happy to spend each day."
+      description="No jargon — just how much you're happy to spend each day."
     >
       <BudgetSlider
         value={draft.dailyBudget}
@@ -849,18 +666,18 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
           />
         </Field>
       </Panel>
+
+      <AdvancedOptions draft={draft} onChange={onChange} />
     </StepShell>
   );
 }
 
-export function StepLocations({ draft, errors, onChange }: StepProps) {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
   const [mapFocusToken, setMapFocusToken] = useState(0);
   const [activeLocationId, setActiveLocationId] = useState<string | null>(
     draft.targetLocations[0]?.id ?? null,
   );
 
-  
   const activeLocation = useMemo(() => {
     const fromId = draft.targetLocations.find(
       (row) => row.id === activeLocationId,
@@ -874,7 +691,6 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
     [activeLocation],
   );
 
-  
   const usesRadiusOnMap =
     activeLocation != null &&
     activeLocation.type !== "country" &&
@@ -894,6 +710,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
         radiusEnabled: false,
         radiusCenter: null,
         radiusTargeting: "",
+        presenceOption: "PRESENCE",
       });
       return;
     }
@@ -908,11 +725,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
     const nextUnit = extras?.radiusUnit ?? draft.radiusUnit;
     const nextCenter =
       isPinLocation && coords
-        ? {
-            ...location,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          }
+        ? { ...location, latitude: coords.latitude, longitude: coords.longitude }
         : null;
 
     onChange({
@@ -925,6 +738,7 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
       radiusTargeting: isPinLocation
         ? formatRadiusLabel(nextValue, nextUnit)
         : "",
+      presenceOption: "PRESENCE",
     });
   };
 
@@ -942,14 +756,11 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
     onChange({
       targetLocations,
       ...legacy,
+      presenceOption: "PRESENCE",
       radiusEnabled: Boolean(isPinLocation),
       radiusCenter:
         isPinLocation && nextActive && coords
-          ? {
-              ...nextActive,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-            }
+          ? { ...nextActive, latitude: coords.latitude, longitude: coords.longitude }
           : null,
       radiusLat: coords?.latitude ?? null,
       radiusLng: coords?.longitude ?? null,
@@ -1002,14 +813,14 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
 
   return (
     <StepShell
-      step={5}
+      step={4}
       total={TOTAL_WIZARD_STEPS}
-      title="Location Targeting"
-      description="Search and add places. Click a place to focus the map — cities get a radius, countries target the whole area."
+      title="Where should your ads show?"
+      description="Add the places you want to reach, then choose your languages."
     >
       <Panel className="space-y-4">
         <LocationAutocomplete
-          label="Target Locations"
+          label="Countries, states, or cities"
           required
           values={draft.targetLocations}
           onChange={applyTargetLocations}
@@ -1019,162 +830,107 @@ export function StepLocations({ draft, errors, onChange }: StepProps) {
           error={errors.targetLocations}
         />
 
-        {activeLocation && activeCoords ? (
+        {activeLocation && usesRadiusOnMap ? (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-bold text-[#07111f]">
-                Map · {activeLocation.name}
-              </p>
-              <p className="text-xs text-slate-500">
-                {usesRadiusOnMap
-                  ? "Pin + radius for this place (like Meta Ads)"
-                  : "Whole country selected — no radius needed"}
-              </p>
-            </div>
+            <p className="text-sm font-bold text-[#07111f]">
+              Radius around {activeLocation.name}
+              <span className="ml-2 font-normal text-slate-400">
+                (optional)
+              </span>
+            </p>
 
             <LocationRadiusMap
-              latitude={activeCoords.latitude}
-              longitude={activeCoords.longitude}
+              latitude={activeCoords!.latitude}
+              longitude={activeCoords!.longitude}
               radiusValue={draft.radiusValue}
               radiusUnit={draft.radiusUnit}
-              showRadius={usesRadiusOnMap}
-              countryZoom={!usesRadiusOnMap}
+              showRadius
+              countryZoom={false}
               focusToken={mapFocusToken}
               onPinMove={handleMapPinMove}
-              onRadiusChange={
-                usesRadiusOnMap ? handleMapRadiusChange : undefined
-              }
+              onRadiusChange={handleMapRadiusChange}
             />
 
-            {usesRadiusOnMap ? (
-              <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff] p-4">
-                <p className="mb-2 text-xs font-semibold text-slate-500">
-                  Radius around this place
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    type="range"
-                    min={1}
-                    max={80}
-                    value={Math.min(80, Math.max(1, draft.radiusValue))}
-                    onChange={(e) =>
-                      handleMapRadiusChange(
-                        Number.parseInt(e.target.value, 10),
-                      )
-                    }
-                    className="h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
-                    aria-label="Radius slider"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    max={80}
-                    value={draft.radiusValue}
-                    onChange={(e) =>
-                      handleMapRadiusChange(
-                        Math.min(
-                          80,
-                          Math.max(1, Number.parseInt(e.target.value, 10) || 1),
-                        ),
-                      )
-                    }
-                    className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
-                    aria-label="Radius value"
-                  />
-                  <select
-                    value={
-                      draft.radiusUnit === "MILES" ? "mile" : "kilometer"
-                    }
-                    onChange={(e) =>
-                      syncRadiusFromLocation(activeLocation, {
-                        radiusUnit:
-                          e.target.value === "mile" ? "MILES" : "KILOMETERS",
-                      })
-                    }
-                    className="rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
-                    aria-label="Radius unit"
-                  >
-                    <option value="kilometer">km</option>
-                    <option value="mile">mi</option>
-                  </select>
-                </div>
-                {errors.radiusValue ? (
-                  <p className="mt-2 text-xs font-medium text-red-500">
-                    {errors.radiusValue}
-                  </p>
-                ) : (
-                  <p className="mt-2 text-xs text-slate-500">
-                    {draft.radiusValue}{" "}
-                    {draft.radiusUnit === "MILES" ? "mi" : "km"} radius · drag
-                    the white handle on the map to resize
-                  </p>
-                )}
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff] p-4">
+              <p className="mb-2 text-xs font-semibold text-slate-500">
+                How far around this place should we reach customers?
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="range"
+                  min={1}
+                  max={80}
+                  value={Math.min(80, Math.max(1, draft.radiusValue))}
+                  onChange={(e) =>
+                    handleMapRadiusChange(Number.parseInt(e.target.value, 10))
+                  }
+                  className="h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
+                  aria-label="Radius slider"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={80}
+                  value={draft.radiusValue}
+                  onChange={(e) =>
+                    handleMapRadiusChange(
+                      Math.min(
+                        80,
+                        Math.max(1, Number.parseInt(e.target.value, 10) || 1),
+                      ),
+                    )
+                  }
+                  className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
+                  aria-label="Radius value"
+                />
+                <select
+                  value={draft.radiusUnit === "MILES" ? "mile" : "kilometer"}
+                  onChange={(e) =>
+                    syncRadiusFromLocation(activeLocation, {
+                      radiusUnit:
+                        e.target.value === "mile" ? "MILES" : "KILOMETERS",
+                    })
+                  }
+                  className="rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
+                  aria-label="Radius unit"
+                >
+                  <option value="kilometer">km</option>
+                  <option value="mile">mi</option>
+                </select>
               </div>
-            ) : null}
+              {errors.radiusValue ? (
+                <p className="mt-2 text-xs font-medium text-red-500">
+                  {errors.radiusValue}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">
+                  {draft.radiusValue} {draft.radiusUnit === "MILES" ? "mi" : "km"}{" "}
+                  around this place · drag the map pin to adjust
+                </p>
+              )}
+            </div>
           </div>
+        ) : activeLocation ? (
+          <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
+            {activeLocation.name} is a whole country — no radius needed.
+          </p>
         ) : (
           <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
-            Add a location above, then click its chip to show it on the map.
+            Add a location above to start targeting your ads.
           </p>
         )}
       </Panel>
 
       <Panel className="space-y-4">
         <LocationAutocomplete
-          label="Exclude Locations"
+          label="Exclude locations"
           values={draft.excludedLocationTargets}
           onChange={applyExcludedLocations}
-          placeholder="Search locations to exclude..."
-          description="Optional — ads will avoid these places"
+          placeholder="Search places to exclude..."
+          description="Optional — your ads won't show to people here."
         />
       </Panel>
 
-      <div
-        className={`rounded-2xl border border-[#e8edf5] bg-white ${
-          advancedOpen ? "overflow-visible" : "overflow-hidden"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen((open) => !open)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-[#f8fafc]"
-          aria-expanded={advancedOpen}
-        >
-          <div>
-            <p className="text-sm font-bold text-[#07111f]">Advanced Settings</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Presence targeting for who sees your ads
-            </p>
-          </div>
-          <ChevronDown
-            className={`size-4 text-slate-500 transition ${
-              advancedOpen ? "rotate-180" : ""
-            }`}
-            aria-hidden
-          />
-        </button>
-
-        {advancedOpen ? (
-          <div className="space-y-3 border-t border-[#e8edf5] p-5">
-            <PresenceTargetingDropdown
-              value={draft.presenceOption}
-              onChange={(presenceOption) => onChange({ presenceOption })}
-            />
-          </div>
-        ) : null}
-      </div>
-    </StepShell>
-  );
-}
-
-export function StepLanguages({ draft, errors, onChange }: StepProps) {
-  return (
-    <StepShell
-      step={6}
-      total={TOTAL_WIZARD_STEPS}
-      title="Which languages should your ads use?"
-      description="Select every language your customers speak."
-    >
       <Panel>
         <SearchableMultiSelect
           label="Languages"
@@ -1183,125 +939,259 @@ export function StepLanguages({ draft, errors, onChange }: StepProps) {
           values={draft.languages}
           onChange={(languages) => onChange({ languages })}
           error={errors.languages}
+          placeholder="Search any language…"
         />
       </Panel>
     </StepShell>
   );
 }
 
-export function StepAudience({ draft, errors, onChange }: StepProps) {
-  return (
-    <StepShell
-      step={7}
-      total={TOTAL_WIZARD_STEPS}
-      title="Who should see your ads?"
-      description="Tap the groups that fit. You can select more than one age range."
-    >
-      <Panel className="space-y-3">
-        <p className="text-sm font-bold text-[#07111f]">Age</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {AGE_RANGE_OPTIONS.map((age) => {
-            const selected = draft.ageRanges.includes(age);
-            return (
-              <SelectableCard
-                key={age}
-                selected={selected}
-                title={age}
-                onClick={() => {
-                  const ageRanges = selected
-                    ? draft.ageRanges.filter((a) => a !== age)
-                    : [...draft.ageRanges, age];
-                  onChange({ ageRanges: ageRanges as AgeRangeId[] });
-                }}
-              />
-            );
-          })}
-        </div>
-        {errors.ageRanges ? (
-          <p className="text-xs font-medium text-red-500">{errors.ageRanges}</p>
-        ) : null}
-      </Panel>
-
-      <Panel className="space-y-3">
-        <p className="text-sm font-bold text-[#07111f]">Gender</p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {(
-            [
-              ["ALL", "All"],
-              ["MALE", "Male"],
-              ["FEMALE", "Female"],
-            ] as const
-          ).map(([id, label]) => (
-            <SelectableCard
-              key={id}
-              selected={draft.gender === id}
-              title={label}
-              onClick={() => onChange({ gender: id as GenderId })}
-            />
-          ))}
-        </div>
-      </Panel>
-
-      <Panel className="space-y-4">
-        <SearchableSelect
-          label="Household income"
-          options={HOUSEHOLD_INCOME_OPTIONS}
-          value={draft.householdIncome}
-          onChange={(householdIncome) => onChange({ householdIncome })}
-          placeholder="Optional"
-        />
-        <SearchableMultiSelect
-          label="Interests"
-          options={INTEREST_OPTIONS}
-          values={draft.interests}
-          onChange={(interests) => onChange({ interests })}
-          placeholder="Search interests"
-        />
-      </Panel>
-    </StepShell>
-  );
-}
-
-export function StepKeywords({ draft, errors, onChange }: StepProps) {
+export function StepTargetCustomers({ draft, errors, onChange }: StepProps) {
   const [customText, setCustomText] = useState("");
 
-  const applyBusinessType = (businessType: string) => {
-    onChange({
-      businessType,
-      suggestedKeywords: generateKeywordsForBusinessType(businessType),
-      negativeKeywords: generateNegativeKeywordSuggestions(businessType),
-    });
+  const displayOptions = useMemo(() => {
+    const base: string[] = [...IDEAL_CUSTOMER_OPTIONS];
+    const extras = draft.idealCustomers.filter((item) => !base.includes(item));
+    return [...base, ...extras];
+  }, [draft.idealCustomers]);
+
+  const applyIdealCustomers = (idealCustomers: string[]) => {
+    const audience = generateAudienceFromIdealCustomers(idealCustomers);
+    onChange({ idealCustomers, ...audience });
+  };
+
+  const addCustom = () => {
+    const value = customText.trim();
+    if (!value || draft.idealCustomers.includes(value)) return;
+    applyIdealCustomers([...draft.idealCustomers, value]);
+    setCustomText("");
   };
 
   return (
     <StepShell
-      step={8}
+      step={5}
       total={TOTAL_WIZARD_STEPS}
-      title="What type of business do you run?"
-      description="We’ll suggest the searches that should show your ads. Just turn them on or off."
+      title="Who are your ideal customers?"
+      description="Tap every group that fits your business. You can add your own too."
     >
-      <Panel>
-        <SearchableSelect
-          label="Business type"
-          required
-          options={BUSINESS_TYPE_OPTIONS}
-          value={draft.businessType}
-          onChange={applyBusinessType}
-          error={errors.businessType}
-          placeholder="Search business types"
+      <Panel className="space-y-4">
+        <ChipToggleGroup
+          options={displayOptions}
+          values={draft.idealCustomers}
+          onChange={applyIdealCustomers}
         />
+        {errors.idealCustomers ? (
+          <p className="text-sm font-medium text-red-500">
+            {errors.idealCustomers}
+          </p>
+        ) : null}
+
+        <Field label="Add a custom customer type" hint="Optional">
+          <div className="flex gap-2">
+            <input
+              className={inputClass()}
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              placeholder="e.g. Wedding planners"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={addCustom}
+              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <Plus className="size-3.5" />
+              Add
+            </button>
+          </div>
+        </Field>
       </Panel>
 
-      {draft.suggestedKeywords.length > 0 ? (
-        <Panel className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
+      <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
+        We'll set audience targeting automatically from your answers.
+      </p>
+    </StepShell>
+  );
+}
+
+export function StepProductsServices({
+  businessId,
+  draft,
+  errors,
+  onChange,
+}: StepProps) {
+  const [text, setText] = useState("");
+  const [generating, setGenerating] = useState(false);
+
+  const addProducts = (raw: string) => {
+    const parts = raw
+      .split(/[,|\n]+/)
+      .map((part) => part.trim().replace(/\s+/g, " "))
+      .filter(Boolean);
+    if (parts.length === 0) return;
+
+    const next = [...draft.productsServices];
+    for (const part of parts) {
+      const exists = next.some(
+        (item) => item.toLowerCase() === part.toLowerCase(),
+      );
+      if (!exists) next.push(part);
+    }
+    if (next.length === draft.productsServices.length) {
+      setText("");
+      return;
+    }
+
+    onChange({
+      productsServices: next,
+      businessType: inferBusinessTypeFromProducts(next, draft.businessType),
+    });
+    setText("");
+  };
+
+  const removeProduct = (value: string) => {
+    const next = draft.productsServices.filter((item) => item !== value);
+    onChange({
+      productsServices: next,
+      businessType: inferBusinessTypeFromProducts(next, draft.businessType),
+      ...(next.length === 0
+        ? { suggestedKeywords: [], negativeKeywords: [] }
+        : {}),
+    });
+  };
+
+  const removeNegative = (value: string) => {
+    onChange({
+      negativeKeywords: draft.negativeKeywords.filter((item) => item !== value),
+    });
+  };
+
+  const runGenerate = async () => {
+    if (draft.productsServices.length === 0 || generating) return;
+    setGenerating(true);
+    try {
+      const result = await generateGoogleKeywordsWithAi(businessId, {
+        productsServices: draft.productsServices,
+        businessName: draft.businessName || draft.extensionBusinessName,
+        businessCategory: draft.businessCategory,
+        goal: draft.goal,
+        goalLabel:
+          GOAL_OPTIONS.find((option) => option.id === draft.goal)?.title ??
+          draft.goal ??
+          undefined,
+        idealCustomers: draft.idealCustomers,
+        ageRanges: draft.ageRanges,
+        gender: draft.gender,
+        interests: draft.interests,
+      });
+      const keywords = toSuggestedKeywords(result.keywords).slice(0, 7);
+      if (keywords.length === 0) {
+        toast.error("AI returned no keywords. Try again.");
+        return;
+      }
+      onChange({
+        businessType: inferBusinessTypeFromProducts(
+          draft.productsServices,
+          draft.businessType,
+        ),
+        suggestedKeywords: keywords,
+        negativeKeywords:
+          result.negativeKeywords.length > 0
+            ? result.negativeKeywords
+            : generateNegativesFromProducts(draft.productsServices),
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not generate keywords with AI. Please try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <StepShell
+      step={6}
+      total={TOTAL_WIZARD_STEPS}
+      title="What products or services do you offer?"
+      description="List what you sell — we'll turn this into search keywords with AI."
+    >
+      <Panel className="space-y-3">
+        <Field
+          label="Products or services"
+          required
+          hint="Add one or many. Multi-word names are fine (e.g. Air Conditioning Installation). Separate several with commas."
+          error={errors.productsServices}
+        >
+          <div className="flex gap-2">
+            <input
+              className={inputClass(errors.productsServices)}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="e.g. Emergency plumbing, HVAC Repair"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addProducts(text);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => addProducts(text)}
+              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <Plus className="size-3.5" />
+              Add
+            </button>
+          </div>
+        </Field>
+        {draft.productsServices.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {draft.productsServices.map((item) => (
+              <RemovableChip
+                key={item}
+                label={item}
+                onRemove={() => removeProduct(item)}
+              />
+            ))}
+          </div>
+        ) : null}
+      </Panel>
+
+      <Panel className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <p className="text-sm font-bold text-[#07111f]">
-              Suggested searches
+              Keyword suggestions
             </p>
             <p className="text-xs text-slate-500">
               {enabledKeywords(draft).length} selected
             </p>
           </div>
+          <button
+            type="button"
+            disabled={draft.productsServices.length === 0 || generating}
+            onClick={() => void runGenerate()}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3367d6] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Sparkles className="size-4" aria-hidden />
+            )}
+            {generating ? "Generating…" : "Generate keywords"}
+          </button>
+        </div>
+
+        {draft.suggestedKeywords.length > 0 ? (
           <div className="space-y-2">
             {draft.suggestedKeywords.map((keyword) => (
               <div
@@ -1315,9 +1205,7 @@ export function StepKeywords({ draft, errors, onChange }: StepProps) {
                   onClick={() =>
                     onChange({
                       suggestedKeywords: draft.suggestedKeywords.map((k) =>
-                        k.id === keyword.id
-                          ? { ...k, enabled: !k.enabled }
-                          : k,
+                        k.id === keyword.id ? { ...k, enabled: !k.enabled } : k,
                       ),
                     })
                   }
@@ -1333,7 +1221,9 @@ export function StepKeywords({ draft, errors, onChange }: StepProps) {
                 </button>
                 <span
                   className={`min-w-0 flex-1 text-sm font-semibold ${
-                    keyword.enabled ? "text-[#07111f]" : "text-slate-400 line-through"
+                    keyword.enabled
+                      ? "text-[#07111f]"
+                      : "text-slate-400 line-through"
                   }`}
                 >
                   {keyword.text}
@@ -1355,74 +1245,37 @@ export function StepKeywords({ draft, errors, onChange }: StepProps) {
               </div>
             ))}
           </div>
-          {errors.keywords ? (
-            <p className="text-xs font-medium text-red-500">{errors.keywords}</p>
-          ) : null}
-        </Panel>
-      ) : null}
-
-      <Panel className="space-y-3">
-        <Field label="Add your own search term" hint="Optional">
-          <div className="flex gap-2">
-            <input
-              className={inputClass()}
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              placeholder="custom keyword"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const value = customText.trim();
-                  if (!value) return;
-                  onChange({
-                    customKeywords: [...draft.customKeywords, value],
-                  });
-                  setCustomText("");
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const value = customText.trim();
-                if (!value) return;
-                onChange({
-                  customKeywords: [...draft.customKeywords, value],
-                });
-                setCustomText("");
-              }}
-              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <Plus className="size-3.5" />
-              Add
-            </button>
-          </div>
-        </Field>
-        {draft.customKeywords.length > 0 ? (
-          <ChipToggleGroup
-            options={draft.customKeywords}
-            values={draft.customKeywords}
-            onChange={(customKeywords) => onChange({ customKeywords })}
-          />
+        ) : (
+          <p className="text-sm text-slate-500">
+            Add a product or service above, then generate suggestions.
+          </p>
+        )}
+        {errors.keywords ? (
+          <p className="text-xs font-medium text-red-500">{errors.keywords}</p>
         ) : null}
       </Panel>
 
-      <Panel>
-        <SearchableMultiSelect
-          label="Searches to avoid"
-          options={generateNegativeKeywordSuggestions(
-            draft.businessType || "default",
-          )}
-          values={draft.negativeKeywords}
-          onChange={(negativeKeywords) => onChange({ negativeKeywords })}
-          placeholder="Search negative suggestions"
-        />
-      </Panel>
+      {draft.negativeKeywords.length > 0 ? (
+        <Panel className="space-y-3">
+          <p className="text-sm font-bold text-[#07111f]">Searches to avoid</p>
+          <div className="flex flex-wrap gap-2">
+            {draft.negativeKeywords.map((word) => (
+              <RemovableChip
+                key={word}
+                label={word}
+                onRemove={() => removeNegative(word)}
+              />
+            ))}
+          </div>
+        </Panel>
+      ) : null}
     </StepShell>
   );
 }
 
 export function StepAds({ draft, errors, onChange }: StepProps) {
+  const [showPaths, setShowPaths] = useState(false);
+
   useEffect(() => {
     if (!draft.adsGenerated) {
       onChange({
@@ -1441,28 +1294,26 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
 
   return (
     <StepShell
-      step={9}
+      step={7}
       total={TOTAL_WIZARD_STEPS}
-      title="Here’s your ad — ready to edit"
-      description="We wrote headlines and descriptions for you. Tweak anything before publishing."
+      title="Write your ad"
+      description="We drafted headlines and descriptions for you. Edit anything before moving on."
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Panel className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-[#07111f]">Ad copy</p>
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ads: [generateAdSuggestions(draft)],
-                  adsGenerated: true,
-                })
-              }
-              className="text-xs font-bold text-[#4285F4] hover:underline"
-            >
-              Regenerate suggestions
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              onChange({
+                ads: [generateAdSuggestions(draft)],
+                adsGenerated: true,
+              })
+            }
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4285F4] to-[#1a73e8] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(66,133,244,0.28)] transition hover:brightness-105"
+          >
+            <Sparkles className="size-4" aria-hidden />
+            Generate with AI
+          </button>
 
           <Field label="Final URL" required error={errors.finalUrl}>
             <input
@@ -1528,35 +1379,6 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
             ))}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Display path 1">
-              <div className="space-y-1">
-                <div className="flex justify-end">
-                  <CharCount value={ad.path1} max={PATH_MAX} />
-                </div>
-                <input
-                  className={inputClass()}
-                  value={ad.path1}
-                  maxLength={PATH_MAX}
-                  onChange={(e) => updateAd({ path1: e.target.value })}
-                />
-              </div>
-            </Field>
-            <Field label="Display path 2">
-              <div className="space-y-1">
-                <div className="flex justify-end">
-                  <CharCount value={ad.path2} max={PATH_MAX} />
-                </div>
-                <input
-                  className={inputClass()}
-                  value={ad.path2}
-                  maxLength={PATH_MAX}
-                  onChange={(e) => updateAd({ path2: e.target.value })}
-                />
-              </div>
-            </Field>
-          </div>
-
           <Field label="Call to action">
             <select
               className={inputClass()}
@@ -1572,6 +1394,58 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
               ))}
             </select>
           </Field>
+
+          <div className="rounded-xl border border-[#e8edf5]">
+            <button
+              type="button"
+              onClick={() => setShowPaths((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+              aria-expanded={showPaths}
+            >
+              <span className="text-sm font-bold text-[#07111f]">
+                Display paths
+                <span className="ml-1.5 font-normal text-slate-400">
+                  (optional)
+                </span>
+              </span>
+              <ChevronDown
+                className={`size-4 text-slate-500 transition ${
+                  showPaths ? "rotate-180" : ""
+                }`}
+                aria-hidden
+              />
+            </button>
+            {showPaths ? (
+              <div className="grid gap-3 border-t border-[#e8edf5] p-4 sm:grid-cols-2">
+                <Field label="Display path 1">
+                  <div className="space-y-1">
+                    <div className="flex justify-end">
+                      <CharCount value={ad.path1} max={PATH_MAX} />
+                    </div>
+                    <input
+                      className={inputClass()}
+                      value={ad.path1}
+                      maxLength={PATH_MAX}
+                      onChange={(e) => updateAd({ path1: e.target.value })}
+                    />
+                  </div>
+                </Field>
+                <Field label="Display path 2">
+                  <div className="space-y-1">
+                    <div className="flex justify-end">
+                      <CharCount value={ad.path2} max={PATH_MAX} />
+                    </div>
+                    <input
+                      className={inputClass()}
+                      value={ad.path2}
+                      maxLength={PATH_MAX}
+                      onChange={(e) => updateAd({ path2: e.target.value })}
+                    />
+                  </div>
+                </Field>
+              </div>
+            ) : null}
+          </div>
         </Panel>
 
         <div className="lg:sticky lg:top-4 lg:self-start">
@@ -1582,28 +1456,19 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepAssets({ draft, onChange }: StepProps) {
+export function StepBusinessDetails({ draft, onChange }: StepProps) {
   useEffect(() => {
-    const type = draft.businessType || "Restaurant";
-    const hasLegacyHardcodedSitelinks = draft.sitelinks.some((link) =>
-      Boolean(link.description1?.trim() || link.description2?.trim()),
-    );
-
-    if (draft.assetsGenerated && !hasLegacyHardcodedSitelinks) return;
+    if (draft.assetsGenerated) return;
+    const type =
+      draft.businessType ||
+      inferBusinessTypeFromProducts(draft.productsServices, "Local Business");
 
     onChange({
-      extensionBusinessName:
-        draft.extensionBusinessName || draft.businessName,
+      extensionBusinessName: draft.extensionBusinessName || draft.businessName,
       phoneNumber: draft.phoneNumber || draft.businessPhone,
-      callouts: draft.assetsGenerated
-        ? draft.callouts
-        : generateCallouts(type),
-      structuredSnippetHeader: draft.assetsGenerated
-        ? draft.structuredSnippetHeader
-        : "Services",
-      structuredSnippetValues: draft.assetsGenerated
-        ? draft.structuredSnippetValues
-        : generateSnippetValues(type),
+      callouts: generateCallouts(type),
+      structuredSnippetHeader: draft.structuredSnippetHeader || "Services",
+      structuredSnippetValues: generateSnippetValues(type),
       sitelinks: generateSitelinks(draft.websiteUrl, type),
       assetsGenerated: true,
     });
@@ -1611,30 +1476,53 @@ export function StepAssets({ draft, onChange }: StepProps) {
 
   return (
     <StepShell
-      step={10}
+      step={8}
       total={TOTAL_WIZARD_STEPS}
-      title="Extra details that make ads stronger"
-      description="We suggested these for you. Toggle or edit anything."
+      title="A few more business details"
+      description="We'll add callouts, sitelinks, and other ad extras automatically."
     >
       <Panel className="space-y-4">
-        <Field label="Business name">
-          <input
-            className={inputClass()}
-            value={draft.extensionBusinessName}
-            onChange={(e) => onChange({ extensionBusinessName: e.target.value })}
-          />
-        </Field>
         <Field label="Phone number">
           <input
             className={inputClass()}
             value={draft.phoneNumber}
-            onChange={(e) => onChange({ phoneNumber: e.target.value })}
+            onChange={(e) =>
+              onChange({
+                phoneNumber: e.target.value,
+                businessPhone: e.target.value,
+              })
+            }
+            placeholder="+1 555 0100"
           />
         </Field>
+        <Field label="Business address">
+          <input
+            className={inputClass()}
+            value={draft.businessAddress}
+            onChange={(e) => onChange({ businessAddress: e.target.value })}
+            placeholder="123 Main Street"
+          />
+        </Field>
+        <SearchableSelect
+          label="Business hours"
+          options={[
+            "Open 24/7",
+            "Mon–Fri 9am–5pm",
+            "Mon–Sat 10am–8pm",
+            "Weekends only",
+            "By appointment",
+          ]}
+          value={draft.businessHours}
+          onChange={(businessHours) => onChange({ businessHours })}
+          placeholder="Select hours"
+        />
       </Panel>
 
       <Panel className="space-y-3">
         <p className="text-sm font-bold text-[#07111f]">Callouts</p>
+        <p className="text-xs text-slate-500">
+          Short highlights shown under your ad. Tap to remove any you don't want.
+        </p>
         <ChipToggleGroup
           options={draft.callouts}
           values={draft.callouts}
@@ -1642,187 +1530,114 @@ export function StepAssets({ draft, onChange }: StepProps) {
         />
         <button
           type="button"
-          className="text-xs font-bold text-[#4285F4]"
           onClick={() =>
             onChange({
-              callouts: generateCallouts(draft.businessType || "Restaurant"),
+              callouts: generateCallouts(
+                draft.businessType ||
+                  inferBusinessTypeFromProducts(
+                    draft.productsServices,
+                    "Local Business",
+                  ),
+              ),
             })
           }
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4285F4]"
         >
+          <Sparkles className="size-3.5" aria-hidden />
           Refresh suggestions
         </button>
       </Panel>
 
-      <Panel className="space-y-4">
-        <SearchableSelect
-          label="Snippet type"
-          options={["Services", "Brands", "Products", "Amenities"]}
-          value={draft.structuredSnippetHeader}
-          onChange={(structuredSnippetHeader) =>
-            onChange({ structuredSnippetHeader })
-          }
-        />
-        <SearchableMultiSelect
-          label="Snippet values"
-          options={generateSnippetValues(draft.businessType || "Restaurant")}
-          values={draft.structuredSnippetValues}
-          onChange={(structuredSnippetValues) =>
-            onChange({ structuredSnippetValues })
-          }
-        />
-      </Panel>
-
-      <ToggleSwitch
-        checked={draft.useLocationExtension}
-        onChange={(useLocationExtension) => onChange({ useLocationExtension })}
-        label="Show my business location"
-        description="Uses your connected location when available"
-      />
-
-      <Panel className="space-y-4">
-        <div>
-          <p className="text-sm font-bold text-[#07111f]">
-            Helpful Links (Sitelinks)
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            These links appear below your Google Ad and allow customers to
-            quickly navigate to important pages on your website.
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            Up to {MAX_SITELINKS} links · edit labels and URLs · same URL is OK
-            if you only have one page
-          </p>
-        </div>
-
-        {draft.sitelinks.map((link) => {
-          const urlError = sitelinkUrlError(link.url, link.enabled);
-          const labelError =
-            link.enabled && !link.text.trim()
-              ? "Add a link label."
-              : null;
-
-          return (
-            <div
-              key={link.id}
-              className="space-y-3 rounded-xl border border-[#e8edf5] bg-white px-3 py-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <ToggleSwitch
-                    checked={link.enabled}
-                    label={link.text.trim() || "Sitelink"}
-                    description={
-                      link.enabled ? "Shown under your ad" : "Hidden for now"
-                    }
-                    onChange={(enabled) =>
-                      onChange({
-                        sitelinks: draft.sitelinks.map((item) =>
-                          item.id === link.id ? { ...item, enabled } : item,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-                <button
-                  type="button"
-                  aria-label="Remove sitelink"
-                  onClick={() =>
-                    onChange({
-                      sitelinks: draft.sitelinks.filter(
-                        (item) => item.id !== link.id,
-                      ),
-                    })
-                  }
-                  className="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Link label" error={labelError ?? undefined}>
-                  <input
-                    className={inputClass(labelError ?? undefined)}
-                    value={link.text}
-                    maxLength={25}
-                    onChange={(e) =>
-                      onChange({
-                        sitelinks: draft.sitelinks.map((item) =>
-                          item.id === link.id
-                            ? { ...item, text: e.target.value }
-                            : item,
-                        ),
-                      })
-                    }
-                    placeholder="e.g. Menu, Book Now, Contact"
-                  />
-                </Field>
-                <Field
-                  label="Destination URL"
-                  error={urlError ?? undefined}
-                >
-                  <input
-                    className={inputClass(urlError ?? undefined)}
-                    value={link.url}
-                    onChange={(e) =>
-                      onChange({
-                        sitelinks: draft.sitelinks.map((item) =>
-                          item.id === link.id
-                            ? { ...item, url: e.target.value }
-                            : item,
-                        ),
-                      })
-                    }
-                    placeholder="https://www.example.com/page"
-                  />
-                </Field>
-              </div>
-            </div>
-          );
-        })}
-
-        <button
-          type="button"
-          disabled={draft.sitelinks.length >= MAX_SITELINKS}
-          onClick={() => {
-            if (draft.sitelinks.length >= MAX_SITELINKS) return;
-            onChange({
-              sitelinks: [
-                ...draft.sitelinks,
-                createEmptySitelink(
-                  "",
-                  draft.websiteUrl.trim()
-                    ? draft.websiteUrl.trim().replace(/^http:\/\//i, "https://")
-                    : "",
-                ),
-              ],
-            });
-          }}
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#4285F4] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Plus className="size-4" aria-hidden />
-          Add custom sitelink
-          {draft.sitelinks.length >= MAX_SITELINKS
-            ? ` (max ${MAX_SITELINKS})`
-            : ""}
-        </button>
-
-        <button
-          type="button"
-          className="block text-xs font-semibold text-slate-500 underline-offset-2 hover:text-[#4285F4] hover:underline"
-          onClick={() =>
-            onChange({
-              sitelinks: generateSitelinks(
-                draft.websiteUrl,
-                draft.businessType || "Restaurant",
-              ),
-            })
-          }
-        >
-          Reset to common sitelink suggestions
-        </button>
-      </Panel>
+      {draft.sitelinks.length > 0 ? (
+        <Panel className="space-y-3">
+          <div>
+            <p className="text-sm font-bold text-[#07111f]">
+              Helpful links (sitelinks)
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Up to {MAX_SITELINKS} quick links appear below your ad. Turn any
+              off if it doesn't apply to your business.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {draft.sitelinks.map((link) => (
+              <ToggleSwitch
+                key={link.id}
+                checked={link.enabled}
+                label={link.text || "Sitelink"}
+                description={link.enabled ? "Shown under your ad" : "Hidden"}
+                onChange={(enabled) =>
+                  onChange({
+                    sitelinks: draft.sitelinks.map((item) =>
+                      item.id === link.id ? { ...item, enabled } : item,
+                    ),
+                  })
+                }
+              />
+            ))}
+          </div>
+        </Panel>
+      ) : null}
     </StepShell>
+  );
+}
+
+function GoogleStatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5">
+      <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 break-all text-sm font-semibold leading-snug text-[#07111f]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function GoogleReviewSection({
+  icon: Icon,
+  title,
+  subtitle,
+  onEdit,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+  onEdit?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+      <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8fbff] via-white to-white px-5 py-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[#d2e3fc] bg-white text-[#4285F4] shadow-sm">
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-extrabold tracking-tight text-[#07111f]">
+              {title}
+            </h3>
+            {subtitle ? (
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="shrink-0 text-xs font-bold text-[#4285F4] hover:underline"
+          >
+            Edit
+          </button>
+        ) : null}
+      </div>
+      <div className="min-w-0 p-5">{children}</div>
+    </section>
   );
 }
 
@@ -1832,149 +1647,452 @@ export function StepReviewPublish({
   publishing,
   publishProgress,
   publishPhase,
-  publishError,
+  publishStep,
+  publishError: _publishError,
   publishSuccess,
+  onChange,
 }: {
   draft: GoogleCampaignBuilderDraft;
   onEditStep: (step: number) => void;
   publishing: boolean;
   publishProgress: number;
   publishPhase: string | null;
+  publishStep: string | null;
   publishError: string | null;
   publishSuccess: boolean;
+  onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
 }) {
   const goalTitle =
     GOAL_OPTIONS.find((g) => g.id === draft.goal)?.title ?? "Not set";
   const metrics = estimateMetrics(draft.dailyBudget);
-  const keywordCount = enabledKeywords(draft).length;
+  const keywords = enabledKeywords(draft);
+  const keywordsSample = keywords.slice(0, 6).join(", ") || "—";
 
-  const rows: [string, string, number][] = [
-    ["Campaign goal", goalTitle, 1],
-    ["Campaign name", draft.campaignName || "—", 3],
-    ["Business", draft.businessName || "—", 3],
-    ["Website", draft.websiteUrl || draft.landingPageUrl || "—", 3],
-    ["Budget", `$${draft.dailyBudget}/day`, 4],
+  const locationsLabel =
     [
-      "Locations",
-      [
-        draft.targetLocations.map((row) => row.name).join(", ") || null,
-        draft.radiusEnabled && draft.radiusCenter
-          ? `${formatRadiusLabel(draft.radiusValue, draft.radiusUnit)} around ${draft.radiusCenter.name}`
-          : draft.radiusEnabled
-            ? formatRadiusLabel(draft.radiusValue, draft.radiusUnit)
-            : null,
-        draft.excludedLocationTargets.length
-          ? `Exclude: ${draft.excludedLocationTargets.map((row) => row.name).join(", ")}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ") || "—",
-      5,
-    ],
-    [
-      "Audience",
-      `${draft.ageRanges.join(", ") || "Any age"} · ${draft.gender}`,
-      7,
-    ],
-    ["Keywords", `${keywordCount} selected`, 8],
-    ["Ads", `${draft.ads[0]?.headlines.filter(Boolean).length || 0} headlines`, 9],
-    [
-      "Extras",
-      [
-        draft.phoneNumber ? "Phone" : null,
-        draft.callouts.length ? `${draft.callouts.length} callouts` : null,
-        draft.sitelinks.filter((s) => s.enabled).length
-          ? `${draft.sitelinks.filter((s) => s.enabled).length} links`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ") || "None",
-      10,
-    ],
-  ];
+      draft.targetLocations.map((row) => row.name).join(", ") || null,
+      draft.radiusEnabled && draft.radiusCenter
+        ? `${formatRadiusLabel(draft.radiusValue, draft.radiusUnit)} around ${draft.radiusCenter.name}`
+        : null,
+      draft.excludedLocationTargets.length
+        ? `Exclude: ${draft.excludedLocationTargets.map((row) => row.name).join(", ")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "—";
+
+  const budgetLabel = `$${draft.dailyBudget}/day`;
+  const enabledSitelinksCount = draft.sitelinks.filter((s) => s.enabled).length;
+
+  const clampedProgress = Math.min(
+    100,
+    Math.max(0, publishSuccess ? 100 : publishProgress || 0),
+  );
+  const activeStepIndex = resolveGooglePublishStepIndex(publishStep);
+  const showProgress = publishing || publishSuccess || clampedProgress > 0;
+  const publishStateLabel = publishSuccess
+    ? "Published"
+    : publishing
+      ? "Publishing"
+      : "Ready to publish";
 
   return (
     <StepShell
-      step={11}
+      step={9}
       total={TOTAL_WIZARD_STEPS}
       title="Review & publish"
-      description="Look everything over. When you publish, we handle the technical setup for you."
+      description="Everything looks set. Double-check the summary, preview the ad, then publish to Google Ads."
     >
-      <div className="space-y-3">
-        {rows.map(([title, value, step]) => (
+      <div className="space-y-5 pb-2">
+        <section className="relative overflow-hidden rounded-2xl border border-[#d2e3fc] bg-gradient-to-br from-[#4285F4] via-[#3b78e7] to-[#1a73e8] p-5 text-white shadow-[0_18px_40px_rgba(66,133,244,0.28)] sm:p-6">
           <div
-            key={title}
-            className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#e8edf5] bg-white px-5 py-4"
-          >
-            <div>
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-                {title}
-              </p>
-              <p className="mt-1 break-words text-sm font-semibold text-[#07111f]">
-                {value}
+            className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-16 left-10 size-48 rounded-full bg-white/10 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white/90 backdrop-blur-sm">
+                <Rocket className="size-3.5" aria-hidden />
+                {publishStateLabel}
+              </div>
+              <h3 className="mt-3 truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+                {draft.campaignName || "Untitled campaign"}
+              </h3>
+              <p className="mt-1.5 text-sm text-white/80">
+                {goalTitle} · {draft.businessName || "Your business"} ·{" "}
+                {budgetLabel}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onEditStep(step)}
-              className="text-xs font-bold text-[#4285F4] hover:underline"
-            >
-              Edit
-            </button>
+            <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
+              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+                  Daily budget
+                </p>
+                <p className="mt-1 text-sm font-bold">{budgetLabel}</p>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+                  Est. monthly
+                </p>
+                <p className="mt-1 line-clamp-2 text-sm font-bold">
+                  {metrics.monthlySpend}
+                </p>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
+        </section>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-3">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-            Estimated reach
-          </p>
-          <p className="mt-1 text-sm font-bold text-[#07111f]">{metrics.reach}</p>
-        </div>
-        <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-3">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-            Estimated clicks
-          </p>
-          <p className="mt-1 text-sm font-bold text-[#07111f]">{metrics.clicks}</p>
-        </div>
-        <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-3">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-            Estimated cost
-          </p>
-          <p className="mt-1 text-sm font-bold text-[#07111f]">{metrics.cost}</p>
-        </div>
-      </div>
+        {showProgress ? (
+          <section className="overflow-hidden rounded-2xl border border-[#d2e3fc] bg-[#f8fbff] p-5 shadow-sm ring-1 ring-[#4285F4]/10">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-[#07111f]">
+                {publishSuccess
+                  ? "Campaign published"
+                  : publishing
+                    ? "Publishing to Google Ads…"
+                    : "Publish progress"}
+              </p>
+              <span className="text-xs font-bold tabular-nums text-[#4285F4]">
+                {clampedProgress}%
+              </span>
+            </div>
 
-      {draft.ads[0] ? (
-        <AdLivePreview ad={draft.ads[0]} businessName={draft.businessName} />
-      ) : null}
-
-      {(publishing || publishSuccess) && (
-        <Panel>
-          <p className="text-sm font-bold text-[#07111f]">
-            {publishSuccess ? "Campaign published" : "Publishing your campaign…"}
-          </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e8edf5]">
             <div
-              className="h-full rounded-full bg-[#4285F4] transition-all duration-500"
-              style={{ width: `${publishSuccess ? 100 : publishProgress}%` }}
-            />
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            {publishSuccess
-              ? "You’re all set. We handled the technical setup behind the scenes."
-              : publishPhase || "Preparing your campaign"}
-          </p>
-        </Panel>
-      )}
+              className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-[#4285F4]/15"
+              role="progressbar"
+              aria-valuenow={clampedProgress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full rounded-full bg-[#4285F4] transition-[width] duration-500 ease-out"
+                style={{ width: `${clampedProgress}%` }}
+              />
+            </div>
 
-      {publishError ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {publishError}
-        </p>
-      ) : null}
+            <p className="mt-2 text-xs text-slate-500">
+              {publishSuccess
+                ? "You're all set. We handled the technical setup behind the scenes."
+                : publishPhase || "Preparing your campaign"}
+            </p>
+
+            <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+              {GOOGLE_PUBLISH_PROGRESS_STEPS.map((stepItem, index) => {
+                const done =
+                  publishSuccess ||
+                  index < activeStepIndex ||
+                  (stepItem.key === "done" && clampedProgress >= 100) ||
+                  (index === activeStepIndex && clampedProgress >= 100);
+                const current =
+                  !publishSuccess &&
+                  index === activeStepIndex &&
+                  !done &&
+                  publishing;
+                return (
+                  <li
+                    key={stepItem.key}
+                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm ${
+                      done
+                        ? "border-emerald-200 bg-emerald-50 font-semibold text-emerald-700"
+                        : current
+                          ? "border-[#d2e3fc] bg-white font-semibold text-[#4285F4]"
+                          : "border-transparent bg-white/60 text-slate-500"
+                    }`}
+                  >
+                    <span
+                      className={`flex size-5 shrink-0 items-center justify-center rounded-full ${
+                        done
+                          ? "bg-emerald-500 text-white"
+                          : current
+                            ? "bg-[#4285F4] text-white"
+                            : "bg-white ring-1 ring-[#d2e3fc] text-slate-400"
+                      }`}
+                    >
+                      {done ? (
+                        <Check className="size-3" aria-hidden />
+                      ) : current ? (
+                        <Loader2 className="size-3 animate-spin" aria-hidden />
+                      ) : (
+                        <span className="text-[10px] font-bold">
+                          {index + 1}
+                        </span>
+                      )}
+                    </span>
+                    {stepItem.label}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        ) : null}
+
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+          <div className="min-w-0 space-y-4">
+            <GoogleReviewSection
+              icon={Flag}
+              title="Campaign"
+              subtitle="Goal, name, and business"
+              onEdit={() => onEditStep(2)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <GoogleStatChip label="Goal" value={goalTitle} />
+                <GoogleStatChip
+                  label="Campaign name"
+                  value={draft.campaignName || "—"}
+                />
+                <GoogleStatChip
+                  label="Business"
+                  value={draft.businessName || "—"}
+                />
+                <GoogleStatChip
+                  label="Website"
+                  value={draft.websiteUrl || draft.landingPageUrl || "—"}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => onEditStep(1)}
+                className="mt-3 text-xs font-bold text-[#4285F4] hover:underline"
+              >
+                Edit goal
+              </button>
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={Wallet}
+              title="Budget"
+              subtitle="What you'll spend and roughly what you'll get"
+              onEdit={() => onEditStep(3)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-3">
+                <GoogleStatChip label="Daily budget" value={budgetLabel} />
+                <GoogleStatChip
+                  label="Est. monthly"
+                  value={metrics.monthlySpend}
+                />
+                <GoogleStatChip label="Est. clicks" value={metrics.clicks} />
+              </div>
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={MapPin}
+              title="Locations & languages"
+              subtitle="Where and in which languages your ads run"
+              onEdit={() => onEditStep(4)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <GoogleStatChip label="Locations" value={locationsLabel} />
+                <GoogleStatChip
+                  label="Languages"
+                  value={draft.languages.join(", ") || "—"}
+                />
+              </div>
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={Users}
+              title="Target customers"
+              subtitle="Who your ads are shown to"
+              onEdit={() => onEditStep(5)}
+            >
+              <GoogleStatChip
+                label="Ideal customers"
+                value={draft.idealCustomers.join(", ") || "—"}
+              />
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={Tag}
+              title="Keywords"
+              subtitle="What people search to find your ads"
+              onEdit={() => onEditStep(6)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <GoogleStatChip
+                  label="Keywords"
+                  value={`${keywords.length} selected`}
+                />
+                <GoogleStatChip label="Sample" value={keywordsSample} />
+              </div>
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={Megaphone}
+              title="Ads"
+              subtitle="Headlines and copy people will see"
+              onEdit={() => onEditStep(7)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <GoogleStatChip
+                  label="Headlines"
+                  value={`${draft.ads[0]?.headlines.filter(Boolean).length || 0} written`}
+                />
+                <GoogleStatChip
+                  label="Descriptions"
+                  value={`${draft.ads[0]?.descriptions.filter(Boolean).length || 0} written`}
+                />
+              </div>
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={Phone}
+              title="Business details"
+              subtitle="Extra info shown alongside your ad"
+              onEdit={() => onEditStep(8)}
+            >
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <GoogleStatChip
+                  label="Phone"
+                  value={draft.phoneNumber || "—"}
+                />
+                <GoogleStatChip
+                  label="Address"
+                  value={draft.businessAddress || "—"}
+                />
+                <GoogleStatChip
+                  label="Callouts"
+                  value={`${draft.callouts.length} callouts`}
+                />
+                <GoogleStatChip
+                  label="Sitelinks"
+                  value={`${enabledSitelinksCount} links`}
+                />
+              </div>
+            </GoogleReviewSection>
+          </div>
+
+          <aside className="min-w-0 space-y-4 lg:sticky lg:top-4">
+            <GoogleReviewSection
+              icon={ImageIcon}
+              title="Ad preview"
+              subtitle="How it may look in Google Search"
+              onEdit={() => onEditStep(7)}
+            >
+              {draft.ads[0] ? (
+                <AdLivePreview
+                  ad={draft.ads[0]}
+                  businessName={draft.businessName}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed border-[#d2e3fc] bg-[#f8fbff] px-4 py-10 text-center">
+                  <ImageIcon
+                    className="mx-auto size-8 text-[#4285F4]/50"
+                    aria-hidden
+                  />
+                  <p className="mt-3 text-sm font-semibold text-[#07111f]">
+                    No ad creative yet
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Go back to Ads and add headlines.
+                  </p>
+                </div>
+              )}
+            </GoogleReviewSection>
+
+            <GoogleReviewSection
+              icon={ListChecks}
+              title="Quick links"
+              subtitle="Jump back to any step"
+            >
+              <div className="flex flex-wrap gap-2">
+                {[
+                  [1, "Goal"],
+                  [2, "Campaign"],
+                  [3, "Budget"],
+                  [4, "Locations"],
+                  [5, "Customers"],
+                  [6, "Keywords"],
+                  [7, "Ads"],
+                  [8, "Business details"],
+                ].map(([step, label]) => (
+                  <button
+                    key={String(step)}
+                    type="button"
+                    onClick={() => onEditStep(Number(step))}
+                    className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-xs font-bold text-[#4285F4] transition hover:border-[#d2e3fc] hover:bg-[#f8fbff]"
+                  >
+                    Edit {label}
+                  </button>
+                ))}
+              </div>
+            </GoogleReviewSection>
+
+            <AdvancedOptions draft={draft} onChange={onChange} />
+          </aside>
+        </div>
+      </div>
     </StepShell>
+  );
+}
+
+export function StepOnboarding({
+  draft,
+  onChange,
+  onSkip,
+  onContinue,
+}: {
+  draft: GoogleCampaignBuilderDraft;
+  onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
+  onSkip: () => void;
+  onContinue: () => void;
+}) {
+  const [description, setDescription] = useState(draft.businessDescription);
+
+  const handleContinue = () => {
+    const prefill = prefillFromBusinessDescription(description);
+    onChange(prefill);
+    onContinue();
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 py-6">
+      <div className="text-center">
+        <span className="mx-auto inline-flex size-12 items-center justify-center rounded-2xl bg-[#e8f0fe] text-[#4285F4]">
+          <Sparkles className="size-5" aria-hidden />
+        </span>
+        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#07111f]">
+          Let's speed things up
+        </h2>
+        <p className="mt-2 text-base leading-relaxed text-slate-500">
+          Describe your business in a sentence or two and we'll pre-fill the
+          rest of this campaign for you.
+        </p>
+      </div>
+
+      <Panel className="space-y-3">
+        <Field label="Describe your business">
+          <textarea
+            className={`${inputClass()} min-h-[140px]`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. We're a family-owned plumbing company in Austin offering emergency repairs, drain cleaning, and water heater installation for homeowners."
+          />
+        </Field>
+      </Panel>
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onSkip}
+          className="rounded-xl border border-[#e8edf5] bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-[#f8fafc]"
+        >
+          Skip
+        </button>
+        <button
+          type="button"
+          onClick={handleContinue}
+          disabled={!description.trim()}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#4285F4] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3367d6] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Sparkles className="size-4" aria-hidden />
+          Continue
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1985,6 +2103,7 @@ export function renderCampaignBuilderStep(
     publishing: boolean;
     publishProgress: number;
     publishPhase: string | null;
+    publishStep: string | null;
     publishError: string | null;
     publishSuccess: boolean;
   },
@@ -1993,31 +2112,29 @@ export function renderCampaignBuilderStep(
     case 1:
       return <StepGoal {...props} />;
     case 2:
-      return <StepGoalDetails {...props} />;
+      return <StepCampaignDetails {...props} />;
     case 3:
-      return <StepCampaignInfo {...props} />;
-    case 4:
       return <StepBudget {...props} />;
+    case 4:
+      return <StepLocationsLanguages {...props} />;
     case 5:
-      return <StepLocations {...props} />;
+      return <StepTargetCustomers {...props} />;
     case 6:
-      return <StepLanguages {...props} />;
+      return <StepProductsServices {...props} />;
     case 7:
-      return <StepAudience {...props} />;
-    case 8:
-      return <StepKeywords {...props} />;
-    case 9:
       return <StepAds {...props} />;
-    case 10:
-      return <StepAssets {...props} />;
-    case 11:
+    case 8:
+      return <StepBusinessDetails {...props} />;
+    case 9:
       return (
         <StepReviewPublish
           draft={props.draft}
+          onChange={props.onChange}
           onEditStep={props.onEditStep}
           publishing={props.publishing}
           publishProgress={props.publishProgress}
           publishPhase={props.publishPhase}
+          publishStep={props.publishStep}
           publishError={props.publishError}
           publishSuccess={props.publishSuccess}
         />

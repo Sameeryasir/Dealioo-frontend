@@ -407,6 +407,24 @@ export function CampaignAdsPanel({
     ? `https://www.facebook.com/adsmanager/manage/campaigns?act=${metaAdAccountId.replace(/^act_/, "")}`
     : "https://www.facebook.com/adsmanager";
 
+  const handleDraftSaved = useCallback(
+    (draft: MetaCampaignDraft) => {
+      setActiveDraft(draft);
+      writeActiveMetaDraftId(businessId, draft.id);
+      if (
+        (draft.status === "published" ||
+          draft.publishStatus === "PUBLISHED") &&
+        draft.metaAdId
+      ) {
+        clearMetaDraftLocalState(businessId);
+        setActiveDraft(null);
+        invalidateDrafts();
+        void loadStats({ refresh: true });
+      }
+    },
+    [businessId, invalidateDrafts, loadStats],
+  );
+
   return (
     <div
       className={
@@ -870,20 +888,7 @@ export function CampaignAdsPanel({
               (activeDraft.publishStatus ?? "").toUpperCase(),
             ))
         }
-        onDraftSaved={(draft) => {
-          setActiveDraft(draft);
-          writeActiveMetaDraftId(businessId, draft.id);
-          invalidateDrafts();
-          if (
-            (draft.status === "published" ||
-              draft.publishStatus === "PUBLISHED") &&
-            draft.metaAdId
-          ) {
-            clearMetaDraftLocalState(businessId);
-            setActiveDraft(null);
-            void loadStats({ refresh: true });
-          }
-        }}
+        onDraftSaved={handleDraftSaved}
       />
 
       {resumeDraftLoading ? (

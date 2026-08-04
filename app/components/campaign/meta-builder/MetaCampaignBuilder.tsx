@@ -303,6 +303,9 @@ export function MetaCampaignBuilder({
   );
 
   
+  const onDraftSavedRef = useRef(onDraftSaved);
+  onDraftSavedRef.current = onDraftSaved;
+
   const runAutosave = useCallback(async () => {
     if (!draftId || !draftVersion) return;
     if (!campaignData && !adSetData && !adCreativeData) return;
@@ -330,9 +333,10 @@ export function MetaCampaignBuilder({
         ...payload,
         expectedVersion: saved.version,
       });
+      autosaveSkipRef.current = true;
       setDraftVersion(saved.version ?? draftVersion + 1);
       setAutosaveState("saved");
-      onDraftSaved?.(saved);
+      onDraftSavedRef.current?.(saved);
     } catch (err) {
       if (err instanceof MetaDraftConflictError) {
         setAutosaveState("error");
@@ -344,7 +348,7 @@ export function MetaCampaignBuilder({
           const refreshed = await getMetaCampaignDraft(businessId, draftId);
           applyDraftState(refreshed);
           setCurrentStep(initialStepFromDraft(refreshed));
-          onDraftSaved?.(refreshed);
+          onDraftSavedRef.current?.(refreshed);
           setError(
             "Draft was updated elsewhere. We loaded the latest version — review your changes and continue.",
           );
@@ -364,7 +368,6 @@ export function MetaCampaignBuilder({
     currentStep,
     draftId,
     draftVersion,
-    onDraftSaved,
   ]);
 
   useEffect(() => {
@@ -422,6 +425,22 @@ export function MetaCampaignBuilder({
 
   const handleCampaignWorkingChange = useCallback((data: CampaignStepData) => {
     setCampaignData(data);
+  }, []);
+
+  const handleAdCreativeWorkingChange = useCallback((data: AdCreativeStepData) => {
+    setAdCreativeData((prev) => {
+      if (!prev) return data;
+      return {
+        ...prev,
+        ...data,
+        imageUrl: data.imageUrl?.trim() || prev.imageUrl,
+        videoUrl: data.videoUrl?.trim() || prev.videoUrl,
+        thumbnailUrl: data.thumbnailUrl?.trim() || prev.thumbnailUrl,
+        carouselCards: data.carouselCards?.length
+          ? data.carouselCards
+          : prev.carouselCards,
+      };
+    });
   }, []);
 
   const handleSaveCampaignStep = useCallback(
@@ -864,19 +883,38 @@ export function MetaCampaignBuilder({
     if (initialDraft) {
       applyDraftState(initialDraft);
       let step = initialStepFromDraft(initialDraft);
-      if (
-        recovery &&
-        recovery.draftId === initialDraft.id &&
-        recovery.updatedAt &&
-        initialDraft.updatedAt &&
-        new Date(recovery.updatedAt).getTime() >
-          new Date(initialDraft.updatedAt).getTime()
-      ) {
-        if (recovery.campaignData) setCampaignData(recovery.campaignData);
-        if (recovery.adSetData) setAdSetData(recovery.adSetData);
-        if (recovery.adCreativeData) setAdCreativeData(recovery.adCreativeData);
+      if (recovery && recovery.draftId === initialDraft.id) {
         if (recovery.currentStep >= 1) {
-          step = Math.min(recovery.currentStep, 4);
+          step = Math.min(Math.max(recovery.currentStep, 1), 4);
+        }
+        const recoveryNewer =
+          !!recovery.updatedAt &&
+          !!initialDraft.updatedAt &&
+          new Date(recovery.updatedAt).getTime() >
+            new Date(initialDraft.updatedAt).getTime();
+        if (recoveryNewer) {
+          if (recovery.campaignData) setCampaignData(recovery.campaignData);
+          if (recovery.adSetData) setAdSetData(recovery.adSetData);
+          if (recovery.adCreativeData) {
+            const serverCreative = initialDraft.adCreativeData;
+            setAdCreativeData({
+              ...(serverCreative ?? {}),
+              ...recovery.adCreativeData,
+              imageUrl:
+                recovery.adCreativeData.imageUrl?.trim() ||
+                serverCreative?.imageUrl,
+              videoUrl:
+                recovery.adCreativeData.videoUrl?.trim() ||
+                serverCreative?.videoUrl,
+              thumbnailUrl:
+                recovery.adCreativeData.thumbnailUrl?.trim() ||
+                serverCreative?.thumbnailUrl,
+              carouselCards:
+                recovery.adCreativeData.carouselCards?.length
+                  ? recovery.adCreativeData.carouselCards
+                  : serverCreative?.carouselCards,
+            } as AdCreativeStepData);
+          }
         }
       }
       setCurrentStep(step);
@@ -1020,6 +1058,7 @@ export function MetaCampaignBuilder({
 
           {currentStep === 3 && draftId && campaignData && adSetData ? (
             <AdCreativeSetupStep
+              key={`ad-creative-${draftId}`}
               businessId={businessId}
               draftId={draftId}
               campaignData={campaignData}
@@ -1031,6 +1070,7 @@ export function MetaCampaignBuilder({
               onBack={onClose}
               onPrevious={() => setCurrentStep(2)}
               onSave={handleSaveAdCreativeStep}
+              onWorkingChange={handleAdCreativeWorkingChange}
             />
           ) : null}
 

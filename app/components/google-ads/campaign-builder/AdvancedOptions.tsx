@@ -95,9 +95,10 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
         aria-expanded={open}
       >
         <div>
-          <p className="text-sm font-bold text-[#07111f]">Advanced Options</p>
+          <p className="text-sm font-bold text-[#07111f]">Advanced Settings</p>
           <p className="mt-0.5 text-xs text-slate-500">
-            Optional settings for bidding, schedule, devices, and tracking
+            Optional, expert-level settings — hidden by default. Most campaigns
+            never need to touch these.
           </p>
         </div>
         <ChevronDown

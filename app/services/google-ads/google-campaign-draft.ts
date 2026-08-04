@@ -180,6 +180,7 @@ export async function saveGoogleCampaignInfoStep(
     logoFileName?: string;
     logoPreviewUrl?: string;
     extensionBusinessName?: string;
+    businessDescription?: string;
   },
 ) {
   return postDraftStep(
@@ -267,6 +268,7 @@ export function saveGoogleAudienceStep(
     gender?: GenderId;
     householdIncome?: string;
     interests?: string[];
+    idealCustomers?: string[];
   },
 ) {
   return postDraftStep(
@@ -287,6 +289,7 @@ export function saveGoogleKeywordsStep(
     customKeywords?: string[];
     negativeKeywords?: string[];
     keywordMatchType?: KeywordMatchType;
+    productsServices?: string[];
   },
 ) {
   return postDraftStep(
@@ -316,6 +319,8 @@ export function saveGoogleExtrasStep(
     expectedVersion: number;
     extensionBusinessName?: string;
     phoneNumber?: string;
+    businessAddress?: string;
+    businessHours?: string;
     callouts?: string[];
     structuredSnippetHeader?: string;
     structuredSnippetValues?: string[];
@@ -417,16 +422,33 @@ export type PublishGoogleCampaignResult = {
 const PUBLISH_POLL_ATTEMPTS = 60;
 const PUBLISH_POLL_MS = 2000;
 
+export const GOOGLE_PUBLISH_PROGRESS_STEPS = [
+  { key: "preparing", label: "Preparing" },
+  { key: "budget", label: "Creating budget" },
+  { key: "campaign", label: "Creating campaign" },
+  { key: "ad_group", label: "Creating ad group" },
+  { key: "keywords", label: "Adding keywords" },
+  { key: "ads", label: "Creating ads" },
+  { key: "done", label: "Done" },
+] as const;
+
 const PUBLISH_STEP_LABELS: Record<string, string> = {
-  queued: "Queued",
-  preparing: "Preparing",
-  budget: "Creating budget",
-  campaign: "Creating campaign",
-  ad_group: "Creating ad group",
-  keywords: "Adding keywords",
-  ads: "Creating ads",
-  done: "Published",
+  queued: "Preparing",
+  ...Object.fromEntries(
+    GOOGLE_PUBLISH_PROGRESS_STEPS.map((step) => [step.key, step.label]),
+  ),
 };
+
+export function resolveGooglePublishStepIndex(
+  publishStep: string | null | undefined,
+): number {
+  const normalized = (publishStep ?? "").toLowerCase();
+  if (!normalized || normalized === "queued") return 0;
+  const idx = GOOGLE_PUBLISH_PROGRESS_STEPS.findIndex(
+    (step) => step.key === normalized,
+  );
+  return idx >= 0 ? idx : 0;
+}
 
 function isPublishSucceeded(status: GooglePublishStatus): boolean {
   const publishStatus = (status.publishStatus ?? "").toUpperCase();

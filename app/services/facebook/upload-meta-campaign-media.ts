@@ -22,6 +22,7 @@ type PresignMediaResponse = {
   publicUrl: string;
   objectKey: string;
   uploadStatus: string;
+  requiredHeaders?: Record<string, string>;
 };
 
 type CompleteMediaResponse = {
@@ -41,6 +42,9 @@ async function uploadViaSpaces(
   mediaType: MetaCampaignMediaType,
   draftId?: string,
 ): Promise<UploadMetaCampaignMediaResult> {
+  const mimeType =
+    file.type || (mediaType === "image" ? "image/jpeg" : "video/mp4");
+
   const presignRes = await authenticatedFetch(
     `${mediaBasePath(businessId)}/media/presign`,
     {
@@ -50,7 +54,7 @@ async function uploadViaSpaces(
         draftId: draftId?.trim() || undefined,
         mediaType,
         filename: file.name || `upload.${mediaType === "image" ? "jpg" : "mp4"}`,
-        mimeType: file.type || (mediaType === "image" ? "image/jpeg" : "video/mp4"),
+        mimeType,
         sizeBytes: file.size,
       }),
     },
@@ -71,17 +75,18 @@ async function uploadViaSpaces(
     throw new Error("Spaces presign did not return an upload URL.");
   }
 
-  
+  const putHeaders: Record<string, string> = {
+    "Content-Type": mimeType,
+    ...(presign.requiredHeaders ?? {}),
+  };
+
   const putController = new AbortController();
   const putTimer = setTimeout(() => putController.abort(), PUT_TIMEOUT_MS);
   let putRes: Response;
   try {
     putRes = await fetch(presign.uploadUrl, {
       method: "PUT",
-      headers: {
-        "Content-Type":
-          file.type || (mediaType === "image" ? "image/jpeg" : "video/mp4"),
-      },
+      headers: putHeaders,
       body: file,
       signal: putController.signal,
     });
@@ -90,8 +95,11 @@ async function uploadViaSpaces(
   }
 
   if (!putRes.ok) {
-    throw new Error(
-      `Could not upload media to storage (${putRes.status}). Try again.`,
+    throw Object.assign(
+      new Error(
+        `Could not upload media to storage (${putRes.status}). Try again.`,
+      ),
+      { status: putRes.status, spacesPutFailed: true },
     );
   }
 
@@ -195,12 +203,29 @@ export async function uploadMetaCampaignMedia(
       err && typeof err === "object" && "status" in err
         ? Number((err as { status: unknown }).status)
         : NaN;
-    
-    if (status === 503 || status === 501 || status === 404) {
-      return uploadViaMultipartFallback(businessId, file, mediaType);
+    const spacesPutFailed =
+      err &&
+      typeof err === "object" &&
+      "spacesPutFailed" in err &&
+      Boolean((err as { spacesPutFailed?: unknown }).spacesPutFailed);
+
+    if (
+      spacesPutFailed ||
+      status === 503 ||
+      status === 501 ||
+      status === 404 ||
+      !Number.isFinite(status) ||
+      status >= 500 ||
+      status === 403
+    ) {
+      try {
+        return await uploadViaMultipartFallback(businessId, file, mediaType);
+      } catch {
+        throw err instanceof Error ? err : new Error("Could not upload media.");
+      }
     }
-    
-    if (!(err instanceof Error && status >= 400 && status < 500 && status !== 404)) {
+
+    if (!(err instanceof Error && status >= 400 && status < 500)) {
       try {
         return await uploadViaMultipartFallback(businessId, file, mediaType);
       } catch {

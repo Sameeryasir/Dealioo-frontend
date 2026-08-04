@@ -71,7 +71,14 @@ type AdCreativeSetupStepProps = {
   onBack: () => void;
   onPrevious: () => void;
   onSave: (data: AdCreativeStepData) => void | Promise<void>;
+  onWorkingChange?: (data: AdCreativeStepData) => void;
 };
+
+function mediaUrlFromDraft(raw: string | undefined | null): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return "";
+  return resolveMetaImageUrl(trimmed) || trimmed;
+}
 
 export function AdCreativeSetupStep({
   businessId,
@@ -85,10 +92,12 @@ export function AdCreativeSetupStep({
   onBack,
   onPrevious,
   onSave,
+  onWorkingChange,
 }: AdCreativeSetupStepProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
+  const hydratedMediaRef = useRef<string | null>(null);
 
   const [name, setName] = useState(initialData?.name ?? `${campaignData.name} Ad`);
   const [facebookPageId, setFacebookPageId] = useState(initialData?.facebookPageId ?? "");
@@ -110,10 +119,14 @@ export function AdCreativeSetupStep({
   const [creativeFormat, setCreativeFormat] = useState<MetaCreativeFormat>(
     initialData?.creativeFormat ?? "SINGLE_IMAGE",
   );
-  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl ?? "");
+  const [imageUrl, setImageUrl] = useState(
+    () => mediaUrlFromDraft(initialData?.imageUrl),
+  );
   const [imageAltText, setImageAltText] = useState(initialData?.imageAltText ?? "");
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl ?? "");
-  const [thumbnailUrl, setThumbnailUrl] = useState(initialData?.thumbnailUrl ?? "");
+  const [thumbnailUrl, setThumbnailUrl] = useState(
+    () => mediaUrlFromDraft(initialData?.thumbnailUrl),
+  );
   const [carouselCards, setCarouselCards] = useState<CarouselCard[]>(
     initialData?.carouselCards ?? [
       emptyCarouselCard(""),
@@ -161,27 +174,105 @@ export function AdCreativeSetupStep({
   const inputClass = builderInputClass;
 
   useEffect(() => {
+    if (!initialData) return;
+
+    const mediaKey = [
+      initialData.imageUrl ?? "",
+      initialData.videoUrl ?? "",
+      initialData.thumbnailUrl ?? "",
+      JSON.stringify(initialData.carouselCards ?? null),
+    ].join("|");
+
+    if (hydratedMediaRef.current === mediaKey) return;
+    hydratedMediaRef.current = mediaKey;
+
+    if (initialData.name?.trim()) setName(initialData.name);
+    if (initialData.facebookPageId?.trim()) {
+      setFacebookPageId(initialData.facebookPageId);
+    }
+    if (initialData.creativeFormat) setCreativeFormat(initialData.creativeFormat);
+    if (initialData.primaryText != null) setPrimaryText(initialData.primaryText);
+    if (initialData.headline != null) setHeadline(initialData.headline);
+    if (initialData.description != null) setDescription(initialData.description);
+    if (initialData.displayLink != null) setDisplayLink(initialData.displayLink);
+    if (initialData.destinationUrl != null) {
+      setDestinationUrl(initialData.destinationUrl);
+    }
+    if (initialData.callToAction) setCallToAction(initialData.callToAction);
+    if (initialData.status) setStatus(initialData.status);
+    if (initialData.imageAltText != null) setImageAltText(initialData.imageAltText);
+    if (initialData.urlParameters != null) setUrlParameters(initialData.urlParameters);
+    if (initialData.pixelId != null) setPixelId(initialData.pixelId);
+    if (initialData.conversionEvent != null) {
+      setConversionEvent(initialData.conversionEvent);
+    }
+    if (initialData.instagramActorId?.trim()) {
+      setInstagramActorId(initialData.instagramActorId);
+      setInstagramProfileMode("custom");
+      setShowInstagramConnect(true);
+    }
+    if (initialData.brandingEnabled != null) {
+      setBrandingEnabled(initialData.brandingEnabled);
+    }
+    if (initialData.brandName != null) setBrandName(initialData.brandName);
+    if (initialData.brandLogoUrl != null) setBrandLogoUrl(initialData.brandLogoUrl);
+
+    const nextImage = mediaUrlFromDraft(initialData.imageUrl);
+    if (nextImage) setImageUrl(nextImage);
+
+    if (initialData.videoUrl?.trim()) setVideoUrl(initialData.videoUrl.trim());
+
+    const nextThumb = mediaUrlFromDraft(initialData.thumbnailUrl);
+    if (nextThumb) setThumbnailUrl(nextThumb);
+
+    if (initialData.carouselCards?.length) {
+      setCarouselCards(
+        initialData.carouselCards.map((card) => ({
+          ...card,
+          imageUrl: mediaUrlFromDraft(card.imageUrl) || card.imageUrl,
+        })),
+      );
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    let cancelled = false;
     setPagesLoading(true);
     void getFacebookPages(businessId)
       .then((loaded) => {
+        if (cancelled) return;
         setPages(loaded);
-        if (!initialData?.facebookPageId && loaded[0]?.id) {
-          setFacebookPageId(loaded[0].id);
-        }
+        setFacebookPageId((current) => {
+          if (current.trim()) return current;
+          if (initialData?.facebookPageId?.trim()) {
+            return initialData.facebookPageId;
+          }
+          return loaded[0]?.id ?? "";
+        });
       })
-      .catch(() => setPages([]))
-      .finally(() => setPagesLoading(false));
-  }, [businessId, initialData?.facebookPageId]);
+      .catch(() => {
+        if (!cancelled) setPages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPagesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   useEffect(() => {
+    let cancelled = false;
     setAdAccountsLoading(true);
     const token = getSetupAccessToken().trim();
     void (async () => {
       try {
         const accounts = await getFacebookAdAccounts(businessId);
+        if (cancelled) return;
         setAdAccounts(accounts);
         if (token) {
           const status = await getFacebookConnectionStatus(token, businessId);
+          if (cancelled) return;
           if (status.metaAdAccountId) {
             setSelectedAdAccountId(status.metaAdAccountId);
             return;
@@ -191,11 +282,14 @@ export function AdCreativeSetupStep({
           setSelectedAdAccountId(accounts[0].id);
         }
       } catch {
-        setAdAccounts([]);
+        if (!cancelled) setAdAccounts([]);
       } finally {
-        setAdAccountsLoading(false);
+        if (!cancelled) setAdAccountsLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [businessId]);
 
   const selectedAdAccount = adAccounts.find((a) => a.id === selectedAdAccountId);
@@ -230,6 +324,59 @@ export function AdCreativeSetupStep({
       : {}),
   });
 
+  const buildWorkingSnapshot = (
+    overrides?: Partial<AdCreativeStepData>,
+  ): AdCreativeStepData => ({
+    name: name.trim() || `${campaignData.name} Ad`,
+    draftId,
+    facebookPageId: facebookPageId.trim(),
+    status,
+    creativeFormat,
+    imageUrl: imageUrl.trim() || undefined,
+    imageAltText: imageAltText.trim() || undefined,
+    videoUrl: videoUrl.trim() || undefined,
+    thumbnailUrl: thumbnailUrl.trim() || undefined,
+    carouselCards,
+    primaryText: primaryText.trim(),
+    headline: headline.trim() || undefined,
+    description: description.trim() || undefined,
+    displayLink: displayLink.trim() || undefined,
+    destinationUrl: destinationUrl.trim() || undefined,
+    urlParameters: urlParameters.trim() || undefined,
+    callToAction,
+    pixelId: pixelId.trim() || undefined,
+    conversionEvent: conversionEvent.trim() || undefined,
+    ...buildCreativeExtras(),
+    ...overrides,
+  });
+
+  useEffect(() => {
+    if (!onWorkingChange) return;
+    const hasMedia =
+      Boolean(imageUrl.trim()) ||
+      Boolean(videoUrl.trim()) ||
+      Boolean(thumbnailUrl.trim()) ||
+      carouselCards.some(
+        (card) => Boolean(card.imageUrl?.trim()) || Boolean(card.videoUrl?.trim()),
+      );
+    if (!hasMedia && !initialData) return;
+    onWorkingChange(buildWorkingSnapshot());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    imageUrl,
+    videoUrl,
+    thumbnailUrl,
+    carouselCards,
+    name,
+    facebookPageId,
+    creativeFormat,
+    primaryText,
+    headline,
+    destinationUrl,
+    callToAction,
+    status,
+  ]);
+
   const handleImageUpload = async (file: File | undefined, target: "main" | "thumb" | number) => {
     if (!file) return;
     setUploading(true);
@@ -240,12 +387,22 @@ export function AdCreativeSetupStep({
         file,
         { draftId },
       );
-      const resolved = resolveMetaImageUrl(url);
-      if (target === "main") setImageUrl(resolved);
-      else if (target === "thumb") setThumbnailUrl(resolved);
-      else {
-        setCarouselCards((prev) =>
-          prev.map((card, i) => (i === target ? { ...card, imageUrl: resolved, mediaType: "image" } : card)),
+      const resolved = resolveMetaImageUrl(url) || url;
+      if (target === "main") {
+        setImageUrl(resolved);
+        onWorkingChange?.(buildWorkingSnapshot({ imageUrl: resolved }));
+      } else if (target === "thumb") {
+        setThumbnailUrl(resolved);
+        onWorkingChange?.(buildWorkingSnapshot({ thumbnailUrl: resolved }));
+      } else {
+        const nextCards = carouselCards.map((card, i) =>
+          i === target
+            ? { ...card, imageUrl: resolved, mediaType: "image" as const }
+            : card,
+        );
+        setCarouselCards(nextCards);
+        onWorkingChange?.(
+          buildWorkingSnapshot({ carouselCards: nextCards, imageUrl: resolved }),
         );
       }
     } catch (err) {
@@ -266,6 +423,7 @@ export function AdCreativeSetupStep({
         { draftId },
       );
       setVideoUrl(url);
+      onWorkingChange?.(buildWorkingSnapshot({ videoUrl: url }));
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not upload video.");
     } finally {
@@ -711,7 +869,7 @@ export function AdCreativeSetupStep({
                   label="Website URL"
                   required
                   error={fieldErrors[`carousel_${index}_destination`]}
-                  hint="Must start with https:// — add the funnel tracking link here."
+                  hint="Must start with https:// — paste your funnel link here."
                 >
                   <input
                     type="url"
@@ -789,7 +947,7 @@ export function AdCreativeSetupStep({
               label="Website URL"
               required
               error={fieldErrors.destinationUrl}
-              hint="Must start with https:// — add the funnel tracking link here."
+              hint="Must start with https:// — paste your funnel link here."
             >
               <div className="flex gap-2">
                 <input

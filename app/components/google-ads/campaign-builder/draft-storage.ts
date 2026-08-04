@@ -1,4 +1,5 @@
 import {
+  TOTAL_WIZARD_STEPS,
   createDefaultDraft,
   type GoogleCampaignBuilderDraft,
 } from "@/app/components/google-ads/campaign-builder/types";
@@ -6,6 +7,7 @@ import {
   deriveLegacyLocationFields,
   migrateLegacyLocations,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
+import { beStepToUiStep } from "@/app/components/google-ads/campaign-builder/step-mapping";
 
 const META_PREFIX = "rp_google_campaign_draft_meta_v1";
 const RECOVERY_PREFIX = "rp_google_campaign_draft_recovery_v1";
@@ -43,6 +45,14 @@ function normalizeDraft(
 ): GoogleCampaignBuilderDraft {
   const migrated = migrateLegacyLocations(parsed);
   const legacy = deriveLegacyLocationFields(migrated.targetLocations);
+  const wizardVersion =
+    typeof parsed.wizardVersion === "number" ? parsed.wizardVersion : 1;
+  const rawStep = parsed.currentStep ?? 1;
+  const currentStep =
+    wizardVersion >= 2
+      ? Math.min(TOTAL_WIZARD_STEPS, Math.max(1, rawStep))
+      : beStepToUiStep(rawStep);
+
   return {
     ...createDefaultDraft(),
     ...parsed,
@@ -52,6 +62,16 @@ function normalizeDraft(
     radiusUnit: normalizeRadiusUnit(parsed.radiusUnit),
     radiusCenter: parsed.radiusCenter ?? null,
     presenceOption: parsed.presenceOption ?? "PRESENCE",
+    businessDescription: parsed.businessDescription ?? "",
+    onboardingDone: Boolean(parsed.onboardingDone),
+    idealCustomers: Array.isArray(parsed.idealCustomers)
+      ? parsed.idealCustomers
+      : [],
+    productsServices: Array.isArray(parsed.productsServices)
+      ? parsed.productsServices
+      : [],
+    currentStep,
+    wizardVersion: 2,
   };
 }
 

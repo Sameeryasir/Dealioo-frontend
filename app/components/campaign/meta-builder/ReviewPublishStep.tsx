@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Check,
+  ExternalLink,
+  Flag,
+  ImageIcon,
+  Loader2,
+  Megaphone,
+  Rocket,
+  Target,
+  Users,
+} from "lucide-react";
 import type {
   AdCreativeStepData,
   AdSetStepData,
@@ -12,7 +22,6 @@ import {
   BuilderFooter,
   BuilderStepHeader,
   BuilderSuccessAlert,
-  BuilderSummaryCard,
   BuilderWarningAlert,
 } from "@/app/components/campaign/meta-builder/builder-ui";
 import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
@@ -50,6 +59,74 @@ function resolveActiveStepIndex(publishStep: string | null | undefined): number 
   if (!normalized || normalized === "queued") return 0;
   const idx = PUBLISH_PROGRESS_STEPS.findIndex((s) => s.key === normalized);
   return idx >= 0 ? idx : 0;
+}
+
+function StatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5">
+      <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 break-all text-sm font-semibold leading-snug text-[#07111f]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ReviewSection({
+  icon: Icon,
+  title,
+  subtitle,
+  children,
+  action,
+}: {
+  icon: typeof Flag;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+      <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] bg-gradient-to-r from-[#f4f8ff] via-white to-white px-5 py-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[#dbeafe] bg-white text-[#1877f2] shadow-sm">
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-extrabold tracking-tight text-[#07111f]">
+              {title}
+            </h3>
+            {subtitle ? (
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {action}
+      </div>
+      <div className="min-w-0 p-5">{children}</div>
+    </section>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  const isLongUrl = /^https?:\/\//i.test(value) || value.length > 48;
+
+  return (
+    <div className="grid gap-1 border-b border-[#eef2f7] py-2.5 last:border-b-0 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-4">
+      <dt className="shrink-0 text-xs font-semibold text-slate-500">{label}</dt>
+      <dd
+        className={`min-w-0 text-sm font-medium leading-snug text-[#07111f] ${
+          isLongUrl ? "break-all" : "break-words"
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
 }
 
 type ReviewPublishStepProps = {
@@ -132,14 +209,64 @@ export function ReviewPublishStep({
     !publishing &&
     !publishSuccess;
 
+  const publishStateLabel = publishSuccess
+    ? "Published"
+    : partialPublish?.metaCampaignId
+      ? "Incomplete"
+      : "Ready to publish";
+
+  const budgetLabel = formatAdSetBudget(campaignData, adSetData, currencyCode);
+  const audienceLabel = formatAudience(adSetData);
+
   return (
     <div className="space-y-5 pb-2">
       <BuilderStepHeader
         step={4}
         title="Review & Publish"
-        description="Review your campaign, ad set, and creative. Nothing goes live on Meta until you publish."
+        description="Everything looks set. Double-check the summary, preview the ad, then publish to Meta."
         badge="Final step"
       />
+
+      <section className="relative overflow-hidden rounded-2xl border border-[#dbeafe] bg-gradient-to-br from-[#1877f2] via-[#1a6fd6] to-[#0b4fad] p-5 text-white shadow-[0_18px_40px_rgba(24,119,242,0.28)] sm:p-6">
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-16 left-10 size-48 rounded-full bg-[#60a5fa]/20 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white/90 backdrop-blur-sm">
+              <Rocket className="size-3.5" aria-hidden />
+              {publishStateLabel}
+            </div>
+            <h3 className="mt-3 truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+              {campaignData.name}
+            </h3>
+            <p className="mt-1.5 text-sm text-white/80">
+              {formatObjective(campaignData.objective)} ·{" "}
+              {formatCreativeFormat(adCreativeData.creativeFormat)} ·{" "}
+              {campaignData.status}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
+            <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+                Budget
+              </p>
+              <p className="mt-1 text-sm font-bold">{budgetLabel}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+                Audience
+              </p>
+              <p className="mt-1 line-clamp-2 text-sm font-bold">{audienceLabel}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {showProgress ? (
         <section className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-[#f4f8ff] p-5 shadow-sm ring-1 ring-[#1877f2]/10">
@@ -165,7 +292,7 @@ export function ReviewPublishStep({
             />
           </div>
 
-          <ol className="mt-4 space-y-2">
+          <ol className="mt-4 grid gap-2 sm:grid-cols-2">
             {PUBLISH_PROGRESS_STEPS.map((step, index) => {
               const done =
                 index < activeStepIndex ||
@@ -175,12 +302,12 @@ export function ReviewPublishStep({
               return (
                 <li
                   key={step.key}
-                  className={`flex items-center gap-2.5 text-sm ${
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm ${
                     done
-                      ? "font-semibold text-emerald-700"
+                      ? "border-emerald-200 bg-emerald-50 font-semibold text-emerald-700"
                       : current
-                        ? "font-semibold text-[#1877f2]"
-                        : "text-slate-500"
+                        ? "border-[#dbeafe] bg-white font-semibold text-[#1877f2]"
+                        : "border-transparent bg-white/60 text-slate-500"
                   }`}
                 >
                   <span
@@ -271,168 +398,188 @@ export function ReviewPublishStep({
         </BuilderSuccessAlert>
       ) : null}
 
-      <div className="space-y-4">
-        <BuilderSummaryCard
-          title="Campaign"
-          accent="blue"
-          rows={[
-            { label: "Campaign name", value: campaignData.name },
-            { label: "Objective", value: formatObjective(campaignData.objective) },
-            { label: "Buying type", value: campaignData.buyingType },
-            { label: "Special ad category", value: specialCategories },
-            { label: "Status", value: campaignData.status },
-            {
-              label: "CBO budget",
-              value: formatCboBudget(campaignData, currencyCode),
-            },
-            { label: "Currency", value: currencyCode },
-          ]}
-        />
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <ReviewSection
+            icon={Flag}
+            title="Campaign"
+            subtitle="Objective, budget strategy, and launch status"
+          >
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <StatChip label="Objective" value={formatObjective(campaignData.objective)} />
+              <StatChip label="Status" value={campaignData.status} />
+              <StatChip
+                label="CBO budget"
+                value={formatCboBudget(campaignData, currencyCode)}
+              />
+              <StatChip label="Currency" value={currencyCode} />
+            </div>
+            <dl className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[#eef2f7] bg-[#fafbfd] px-4">
+              <DetailRow label="Buying type" value={campaignData.buyingType} />
+              <DetailRow label="Special ad category" value={specialCategories} />
+            </dl>
+          </ReviewSection>
 
-        <BuilderSummaryCard
-          title="Ad set"
-          rows={[
-            { label: "Ad set name", value: adSetData.name },
-            {
-              label: "Budget",
-              value: formatAdSetBudget(campaignData, adSetData, currencyCode),
-            },
-            { label: "Schedule", value: formatSchedule(adSetData) },
-            { label: "Optimization goal", value: adSetData.optimizationGoal },
-            { label: "Destination type", value: adSetData.destinationType },
-            { label: "Audience", value: formatAudience(adSetData) },
-            { label: "Placements", value: formatPlacements(adSetData) },
-            { label: "Bid strategy", value: formatBidStrategy(adSetData.bidStrategy) },
-          ]}
-        />
+          <ReviewSection
+            icon={Target}
+            title="Ad set"
+            subtitle="Who sees it, where it shows, and how spend is paced"
+          >
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <StatChip label="Budget" value={budgetLabel} />
+              <StatChip label="Schedule" value={formatSchedule(adSetData)} />
+              <StatChip label="Audience" value={audienceLabel} />
+              <StatChip label="Placements" value={formatPlacements(adSetData)} />
+            </div>
+            <dl className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[#eef2f7] bg-[#fafbfd] px-4">
+              <DetailRow label="Ad set name" value={adSetData.name} />
+              <DetailRow label="Optimization goal" value={adSetData.optimizationGoal} />
+              <DetailRow label="Destination type" value={adSetData.destinationType} />
+              <DetailRow
+                label="Bid strategy"
+                value={formatBidStrategy(adSetData.bidStrategy)}
+              />
+            </dl>
+          </ReviewSection>
 
-        <BuilderSummaryCard
-          title="Ad & creative"
-          rows={[
-            { label: "Ad name", value: adCreativeData.name },
-            {
-              label: "Facebook Page",
-              value: facebookPageName ?? adCreativeData.facebookPageId,
-            },
-            {
-              label: "Creative format",
-              value: formatCreativeFormat(adCreativeData.creativeFormat),
-            },
-            { label: "Primary text", value: adCreativeData.primaryText },
-            { label: "Headline", value: adCreativeData.headline ?? "N/A" },
-            { label: "Description", value: adCreativeData.description ?? "N/A" },
-            { label: "CTA", value: formatCta(adCreativeData.callToAction) },
-            { label: "Landing page", value: adCreativeData.destinationUrl ?? "N/A" },
-            {
-              label: "Tracking parameters",
-              value: adCreativeData.urlParameters?.trim() || "N/A",
-            },
-            ...(mediaLinks.length > 0
-              ? mediaLinks.map((link) => ({
-                  label: link.label,
-                  value: link.url,
-                }))
-              : [{ label: "Media link", value: "No image/video uploaded yet" }]),
-          ]}
-        />
-
-        <BuilderSummaryCard
-          title="Publish status"
-          rows={[
-            {
-              label: "Draft ID",
-              value: draftId,
-            },
-            {
-              label: "On Meta",
-              value: publishSuccess
-                ? "Published, campaign created"
-                : partialPublish?.metaCampaignId
-                  ? "Incomplete, retry publish to finish"
-                  : "Not published yet",
-            },
-            {
-              label: "Campaign ID",
-              value:
-                publishSuccess?.metaCampaignId ??
-                partialPublish?.metaCampaignId ??
-                "N/A",
-            },
-            {
-              label: "Ad set ID",
-              value:
-                publishSuccess?.metaAdsetId ??
-                partialPublish?.metaAdsetId ??
-                "N/A",
-            },
-            {
-              label: "Creative ID",
-              value:
-                publishSuccess?.metaCreativeId ??
-                partialPublish?.metaCreativeId ??
-                "N/A",
-            },
-            {
-              label: "Ad ID",
-              value: publishSuccess?.metaAdId ?? "N/A",
-            },
-          ]}
-        />
-
-        <section className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1877f2]">
-            Media sent to Meta
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            This is the HTTPS image/video link Dealioo sends when you publish.
-          </p>
-
-          {mediaLinks.length > 0 ? (
-            <ul className="mt-3 space-y-3">
-              {mediaLinks.map((link) => (
-                <li
-                  key={`${link.label}-${link.url}`}
-                  className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-3.5 py-3"
-                >
-                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
-                    {link.label}
-                  </p>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 block break-all text-sm font-medium text-[#1877f2] hover:underline"
-                  >
-                    {link.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
-              No image or video link is saved on this draft yet. Go back to Step 3 and upload media.
-            </p>
-          )}
-
-          {previewUrl ? (
-            <div className="mt-4 max-w-xs">
-              <AdCreativePreview
-                placement="facebook_feed"
-                primaryText={adCreativeData.primaryText}
-                headline={adCreativeData.headline ?? ""}
-                description={adCreativeData.description}
-                imageUrl={previewUrl}
-                displayLink={adCreativeData.displayLink}
-                callToAction={adCreativeData.callToAction}
+          <ReviewSection
+            icon={Megaphone}
+            title="Ad & creative"
+            subtitle="Copy, destination, and tracking people will see"
+          >
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <StatChip
+                label="Format"
+                value={formatCreativeFormat(adCreativeData.creativeFormat)}
+              />
+              <StatChip
+                label="CTA"
+                value={formatCta(adCreativeData.callToAction)}
+              />
+              <StatChip
+                label="Facebook Page"
+                value={facebookPageName ?? adCreativeData.facebookPageId}
+              />
+              <StatChip
+                label="Headline"
+                value={adCreativeData.headline?.trim() || "N/A"}
               />
             </div>
-          ) : null}
-        </section>
+            <dl className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[#eef2f7] bg-[#fafbfd] px-4">
+              <DetailRow label="Ad name" value={adCreativeData.name} />
+              <DetailRow label="Primary text" value={adCreativeData.primaryText} />
+              <DetailRow
+                label="Description"
+                value={adCreativeData.description?.trim() || "N/A"}
+              />
+              <DetailRow
+                label="Landing page"
+                value={adCreativeData.destinationUrl?.trim() || "N/A"}
+              />
+              <DetailRow
+                label="Tracking parameters"
+                value={adCreativeData.urlParameters?.trim() || "N/A"}
+              />
+            </dl>
+          </ReviewSection>
+
+          <ReviewSection
+            icon={Users}
+            title="Publish status"
+            subtitle="Draft and Meta object IDs for this launch"
+          >
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <StatChip label="On Meta" value={publishStateLabel} />
+              <StatChip
+                label="Draft ID"
+                value={`${draftId.slice(0, 8)}…`}
+              />
+              <StatChip
+                label="Campaign ID"
+                value={
+                  publishSuccess?.metaCampaignId ??
+                  partialPublish?.metaCampaignId ??
+                  "Not created"
+                }
+              />
+              <StatChip
+                label="Ad ID"
+                value={publishSuccess?.metaAdId ?? "Not created"}
+              />
+            </div>
+          </ReviewSection>
+        </div>
+
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-4">
+          <ReviewSection
+            icon={ImageIcon}
+            title="Ad preview"
+            subtitle="How it may look in Facebook Feed"
+          >
+            {previewUrl ? (
+              <div className="mx-auto w-full max-w-[320px]">
+                <AdCreativePreview
+                  placement="facebook_feed"
+                  primaryText={adCreativeData.primaryText}
+                  headline={adCreativeData.headline ?? ""}
+                  description={adCreativeData.description}
+                  imageUrl={previewUrl}
+                  displayLink={adCreativeData.displayLink}
+                  callToAction={adCreativeData.callToAction}
+                />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-10 text-center">
+                <ImageIcon className="mx-auto size-8 text-[#1877f2]/50" aria-hidden />
+                <p className="mt-3 text-sm font-semibold text-[#07111f]">
+                  No creative media yet
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Go back to Step 3 and upload an image or video.
+                </p>
+              </div>
+            )}
+          </ReviewSection>
+
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1877f2]">
+              Media sent to Meta
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              HTTPS image/video link Dealioo sends on publish.
+            </p>
+
+            {mediaLinks.length > 0 ? (
+              <ul className="mt-3 space-y-2.5">
+                {mediaLinks.map((link) => (
+                  <li
+                    key={`${link.label}-${link.url}`}
+                    className="min-w-0 overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-3.5 py-3"
+                  >
+                    <p className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                      {link.label}
+                    </p>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 block max-w-full overflow-hidden break-all text-xs font-medium leading-snug text-[#1877f2] hover:underline"
+                    >
+                      {link.url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
+                No image or video link is saved on this draft yet.
+              </p>
+            )}
+          </section>
+        </aside>
       </div>
 
-      {publishError ? (
-        <BuilderErrorAlert message={publishError} />
-      ) : null}
+      {publishError ? <BuilderErrorAlert message={publishError} /> : null}
 
       {!publishSuccess ? (
         <BuilderFooter
