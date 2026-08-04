@@ -407,7 +407,11 @@ export function BusinessCampaignsPanel({
       ]);
 
       if (campaignId != null) {
-        void provisionCampaignDefaultAutomations(businessId, campaignId)
+        void provisionCampaignDefaultAutomations(
+          businessId,
+          campaignId,
+          payload.campaignType,
+        )
           .then(async () => {
             await queryClient.invalidateQueries({
               queryKey: automationQueryKeys.list(businessId),

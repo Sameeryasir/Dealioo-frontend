@@ -15,7 +15,6 @@ export type PaymentReminderScheduleValidation =
       waitDelayMinutes: number;
     };
 
-/** Mirrors backend wait parsing (`automation-wait.util.ts`). */
 export function resolveWaitDelayMinutesFromConfig(
   config: Record<string, unknown>,
 ): number {
@@ -69,7 +68,6 @@ function formatMinutesLabel(minutes: number): string {
   return `${minutes} ${cronIntervalUnitLabel(minutes, "minutes")}`;
 }
 
-/** Wait between payment email and QR pass email, or longest wait in the flow. */
 function findPaymentReminderWaitMinutes(nodes: WorkflowNode[]): number {
   const emailIndices = nodes
     .map((node, index) => (node.kind === "send_email" ? index : -1))

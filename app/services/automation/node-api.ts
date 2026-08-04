@@ -133,34 +133,52 @@ function orderNodesByConnections(
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const targetIds = new Set(connections.map((c) => c.targetNodeId));
-  const nextBySource = new Map<number, number>();
-  for (const c of connections) {
-    nextBySource.set(c.sourceNodeId, c.targetNodeId);
+  const nextBySource = new Map<number, number[]>();
+  for (const connection of connections) {
+    const list = nextBySource.get(connection.sourceNodeId) ?? [];
+    if (!list.includes(connection.targetNodeId)) {
+      list.push(connection.targetNodeId);
+    }
+    nextBySource.set(connection.sourceNodeId, list);
+  }
+
+  for (const [sourceId, targets] of nextBySource) {
+    targets.sort((a, b) => {
+      const orderA = byId.get(a)?.order ?? 0;
+      const orderB = byId.get(b)?.order ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return a - b;
+    });
+    nextBySource.set(sourceId, targets);
   }
 
   const ordered: AutomationNode[] = [];
   const visited = new Set<number>();
 
+  const walk = (nodeId: number) => {
+    if (visited.has(nodeId)) return;
+    const node = byId.get(nodeId);
+    if (!node) return;
+    visited.add(nodeId);
+    ordered.push(node);
+    for (const nextId of nextBySource.get(nodeId) ?? []) {
+      walk(nextId);
+    }
+  };
+
   const roots = nodes
     .filter((n) => !targetIds.has(n.id))
-    .sort((a, b) => a.order - b.order);
+    .sort((a, b) => a.order - b.order || a.id - b.id);
   const starts =
     roots.length > 0 ? roots : [...nodes].sort((a, b) => a.order - b.order);
 
   for (const root of starts) {
-    let currentId: number | undefined = root.id;
-    while (currentId != null && !visited.has(currentId)) {
-      const node = byId.get(currentId);
-      if (!node) break;
-      visited.add(currentId);
-      ordered.push(node);
-      currentId = nextBySource.get(currentId);
-    }
+    walk(root.id);
   }
 
   const remaining = [...nodes]
     .filter((n) => !visited.has(n.id))
-    .sort((a, b) => a.order - b.order);
+    .sort((a, b) => a.order - b.order || a.id - b.id);
   return [...ordered, ...remaining];
 }
 

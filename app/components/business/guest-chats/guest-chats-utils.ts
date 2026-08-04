@@ -129,9 +129,8 @@ export function matchesSearch(row: ChatCustomer, query: string): boolean {
   return haystack.includes(needle);
 }
 
-/** Sidebar-style navy blue — visibly blue, not black. */
 export function guestAvatarSidebarClass(): string {
-  return "from-[#12325f] via-[#15407a] to-[#1a4f8f] shadow-[0_4px_14px_rgba(24,119,242,0.28)] ring-[#1877f2]/35";
+  return "from-[#1366e0] via-[#1366e0] to-[#0f5ed0] shadow-[0_4px_14px_rgba(19,102,224,0.28)] ring-[#1366e0]/35";
 }
 
 export function channelGradientClass(channel: ConversationMessageKind | null | undefined): string {
@@ -175,7 +174,6 @@ export function messagePreview(message: ConversationMessage): string {
   return sanitizeChatMessageBody(message.body);
 }
 
-/** Pull "View my pass: url" out of chat text so we can show a button instead (no duplicate line). */
 export function extractPassCtaFromMessageBody(body: string): {
   text: string;
   ctaLabel: string | null;

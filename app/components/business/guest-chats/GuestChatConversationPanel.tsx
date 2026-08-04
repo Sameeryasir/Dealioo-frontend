@@ -155,7 +155,7 @@ export function GuestChatConversationPanel({
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <GuestChatScrollArea
           ref={scrollAreaRef}
-          className="flex-1 bg-gradient-to-b from-[#e8f2ff]/25 via-[#f8fafc] to-[#f8fafc]"
+          className="flex-1 bg-white"
           onScroll={handleScroll}
         >
           {showMessageSkeleton ? (

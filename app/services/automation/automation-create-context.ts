@@ -5,7 +5,6 @@ import type {
   CreateAutomationBody,
 } from "@/app/services/automation/types";
 
-/** IDs sent on POST /automation (from route pathname). */
 export type AutomationCreateContextIds = {
   businessId: number;
   campaignId: number;

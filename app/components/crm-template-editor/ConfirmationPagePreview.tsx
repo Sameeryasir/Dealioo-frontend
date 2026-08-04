@@ -43,10 +43,12 @@ export function ConfirmationPagePreview({
   page,
   landingPage,
   fillViewport = false,
+  campaignType = null,
 }: {
   page: TemplatePageBase & { id: "confirmation" };
   landingPage: LandingTemplatePage;
   fillViewport?: boolean;
+  campaignType?: "prepaid" | "postpaid" | null;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
   const template = getLandingDesignStyle(landingDesign);
@@ -71,7 +73,7 @@ export function ConfirmationPagePreview({
   const bodyColorStyle = theme.bodyColor
     ? { color: theme.bodyColor }
     : undefined;
-  const copy = resolveConfirmationContent(page);
+  const copy = resolveConfirmationContent(page, campaignType);
 
   return (
     <LandingFunnelStepShell

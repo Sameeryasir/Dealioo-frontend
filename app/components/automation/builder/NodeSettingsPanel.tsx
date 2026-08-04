@@ -46,6 +46,254 @@ const CONDITION_TYPES = [
   "Tag equals VIP",
 ];
 
+const FILTER_OPTIONS = [
+  "Pass was added",
+  "Reward was redeemed",
+  "Time since signed up for the first time",
+  "Offer expires in less than",
+  "Customer visited",
+  "Has not completed payment",
+  "Opened email",
+  "Tag equals VIP",
+  "Status not paid",
+] as const;
+
+const TIME_SINCE_SIGNUP_OPTION = "Time since signed up for the first time";
+const LEGACY_HOURS_SINCE_SIGNUP_OPTION =
+  "Hours since signed up for the first time";
+const OFFER_EXPIRES_OPTION = "Offer expires in less than";
+
+type SignupDelayUnit = "seconds" | "minutes" | "hours" | "days";
+
+type FilterConditionRow = {
+  value: string;
+  negated: boolean;
+  amount?: number;
+  unit?: SignupDelayUnit;
+};
+
+const SIGNUP_DELAY_UNITS: { value: SignupDelayUnit; label: string }[] = [
+  { value: "seconds", label: "Seconds" },
+  { value: "minutes", label: "Minutes" },
+  { value: "hours", label: "Hours" },
+  { value: "days", label: "Days" },
+];
+
+function normalizeFilterLabel(raw: string): string {
+  return raw.replace(/^NOT\s+/i, "").trim();
+}
+
+function isTimeSinceSignupValue(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === TIME_SINCE_SIGNUP_OPTION.toLowerCase() ||
+    normalized === LEGACY_HOURS_SINCE_SIGNUP_OPTION.toLowerCase() ||
+    /over\s+\d+(?:\.\d+)?\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)\s+since\s+sign/.test(
+      normalized,
+    ) ||
+    /\d+(?:\.\d+)?\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)\s+since\s+sign/.test(
+      normalized,
+    )
+  );
+}
+
+function normalizeSignupDelayUnit(raw: unknown): SignupDelayUnit {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (value.startsWith("sec")) return "seconds";
+  if (value.startsWith("min")) return "minutes";
+  if (value.startsWith("day")) return "days";
+  return "hours";
+}
+
+function parseTimeSinceSignup(
+  value: string,
+): { amount: number; unit: SignupDelayUnit } {
+  const match = value.match(
+    /over\s+(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)/i,
+  );
+  if (!match) {
+    return { amount: 7, unit: "hours" };
+  }
+  const amount = Number(match[1]);
+  const unit = normalizeSignupDelayUnit(match[2]);
+  if (!Number.isFinite(amount) || amount < 1) {
+    return { amount: 7, unit: "hours" };
+  }
+  return { amount: Math.floor(amount), unit };
+}
+
+function formatTimeSinceSignupValue(
+  amount: number,
+  unit: SignupDelayUnit,
+): string {
+  const safe = Math.max(1, Math.floor(Number.isFinite(amount) ? amount : 7));
+  return `Over ${safe} ${unit} since signed up for the first time`;
+}
+
+function isOfferExpiresValue(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === OFFER_EXPIRES_OPTION.toLowerCase() ||
+    /^offer expires in less than\s+\d+(?:\.\d+)?\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)/i.test(
+      normalized,
+    )
+  );
+}
+
+function parseOfferExpires(
+  value: string,
+): { amount: number; unit: SignupDelayUnit } {
+  const match = value.match(
+    /offer expires in less than\s+(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)/i,
+  );
+  if (!match) {
+    return { amount: 6, unit: "days" };
+  }
+  const amount = Number(match[1]);
+  const unit = normalizeSignupDelayUnit(match[2]);
+  if (!Number.isFinite(amount) || amount < 1) {
+    return { amount: 6, unit: "days" };
+  }
+  return { amount: Math.floor(amount), unit };
+}
+
+function formatOfferExpiresValue(
+  amount: number,
+  unit: SignupDelayUnit,
+): string {
+  const safe = Math.max(1, Math.floor(Number.isFinite(amount) ? amount : 6));
+  return `Offer expires in less than ${safe} ${unit}`;
+}
+
+function toFilterRow(
+  valueRaw: string,
+  negated: boolean,
+  extras?: { amount?: number; unit?: SignupDelayUnit; hours?: number },
+): FilterConditionRow {
+  const value = normalizeFilterLabel(valueRaw) || FILTER_OPTIONS[0];
+  if (isTimeSinceSignupValue(value)) {
+    const parsed = parseTimeSinceSignup(value);
+    const unit = extras?.unit ?? parsed.unit;
+    const amount =
+      extras?.amount ??
+      extras?.hours ??
+      parsed.amount;
+    return {
+      value: TIME_SINCE_SIGNUP_OPTION,
+      negated,
+      amount: Math.max(1, Math.floor(amount)),
+      unit,
+    };
+  }
+  if (isOfferExpiresValue(value)) {
+    const parsed = parseOfferExpires(value);
+    const unit = extras?.unit ?? parsed.unit;
+    const amount =
+      extras?.amount ??
+      extras?.hours ??
+      parsed.amount;
+    return {
+      value: OFFER_EXPIRES_OPTION,
+      negated,
+      amount: Math.max(1, Math.floor(amount)),
+      unit,
+    };
+  }
+  return { value, negated };
+}
+
+function parseFilterRowsFromConfig(
+  config: Record<string, unknown>,
+): FilterConditionRow[] {
+  const rawList = config.conditions;
+  if (Array.isArray(rawList) && rawList.length > 0) {
+    return rawList.map((item) => {
+      if (typeof item !== "object" || item == null) {
+        return toFilterRow(
+          String(item),
+          String(item).toUpperCase().startsWith("NOT"),
+        );
+      }
+      const record = item as Record<string, unknown>;
+      const valueRaw = String(record.value ?? record.label ?? "").trim();
+      const negated =
+        record.negated === true || valueRaw.toUpperCase().startsWith("NOT");
+      const amount =
+        typeof record.amount === "number" && Number.isFinite(record.amount)
+          ? Math.max(1, Math.floor(record.amount))
+          : typeof record.hours === "number" && Number.isFinite(record.hours)
+            ? Math.max(1, Math.floor(record.hours))
+            : undefined;
+      const unit =
+        record.unit != null
+          ? normalizeSignupDelayUnit(record.unit)
+          : undefined;
+      return toFilterRow(valueRaw, negated, { amount, unit, hours: amount });
+    });
+  }
+
+  const conditionType = String(config.conditionType ?? "").trim();
+  const valueRaw = String(config.value ?? "").trim();
+  if (conditionType || valueRaw) {
+    const fromType = conditionType
+      .replace(/^pass not added$/i, "Pass was added")
+      .trim();
+    const fromValue = normalizeFilterLabel(valueRaw);
+    const value = fromValue || fromType || FILTER_OPTIONS[0];
+    const negated =
+      /^pass not added$/i.test(conditionType) ||
+      valueRaw.toUpperCase().startsWith("NOT") ||
+      /not added/i.test(conditionType);
+    return [toFilterRow(value, negated)];
+  }
+
+  return [{ value: FILTER_OPTIONS[0], negated: true }];
+}
+
+function buildConditionConfigFromRows(
+  rows: FilterConditionRow[],
+): Record<string, unknown> {
+  const normalized = (
+    rows.length > 0 ? rows : [{ value: FILTER_OPTIONS[0], negated: false }]
+  ).map((row) => {
+    if (isTimeSinceSignupValue(row.value)) {
+      const unit = row.unit ?? "hours";
+      const amount = Math.max(1, Math.floor(row.amount ?? 7));
+      const value = formatTimeSinceSignupValue(amount, unit);
+      return {
+        value,
+        negated: row.negated === true,
+        amount,
+        unit,
+        ...(unit === "hours" ? { hours: amount } : {}),
+      };
+    }
+    if (isOfferExpiresValue(row.value)) {
+      const unit = row.unit ?? "days";
+      const amount = Math.max(1, Math.floor(row.amount ?? 6));
+      const value = formatOfferExpiresValue(amount, unit);
+      return {
+        value,
+        negated: row.negated === true,
+        amount,
+        unit,
+      };
+    }
+    return {
+      value: row.value.trim() || FILTER_OPTIONS[0],
+      negated: row.negated === true,
+    };
+  });
+  const primary = normalized[0]!;
+  return {
+    conditionType: primary.value,
+    value: primary.negated ? `NOT ${primary.value}` : primary.value,
+    conditions: normalized,
+  };
+}
+
 import {
   CRON_DAYS,
   CRON_INTERVAL_MIN,
@@ -164,12 +412,81 @@ function buildConfigForNode(
       };
     }
     case "send_sms":
-      return { message: values.message.trim() };
+      return {
+        message: values.message.trim(),
+        ...(values.ctaLabel.trim()
+          ? { linkLabel: values.ctaLabel.trim() }
+          : {}),
+      };
     case "send_whatsapp":
       return { template: values.whatsappTemplate };
     default:
       return {};
   }
+}
+
+const NODE_STRUCTURE_KEYS = [
+  "flowBranch",
+  "flowBranchParent",
+  "isParallelSplit",
+  "branches",
+  "linkLabel",
+  "workflowKind",
+  "actions",
+  "onFalseLoopWorkflowKind",
+  "headline",
+  "rewardName",
+  "expiration",
+  "trigger",
+] as const;
+
+function mergeNodeConfigPreservingStructure(
+  existing: Record<string, unknown>,
+  patch: Record<string, unknown>,
+  kind: WorkflowNode["kind"],
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...existing, ...patch };
+
+  for (const key of NODE_STRUCTURE_KEYS) {
+    if (existing[key] !== undefined && patch[key] === undefined) {
+      next[key] = existing[key];
+    }
+  }
+
+  if (kind === "wait" || kind === "delay") {
+    if (existing.isParallelSplit === true) {
+      next.isParallelSplit = true;
+      if (existing.branches !== undefined) {
+        next.branches = existing.branches;
+      }
+      next.delay = existing.delay ?? 0;
+      next.unit = existing.unit ?? "minutes";
+    } else if (typeof patch.delay === "number") {
+      delete next.waitMode;
+      delete next.untilTime;
+      delete next.untilLabel;
+      const prevMode = String(existing.waitMode ?? "")
+        .trim()
+        .toLowerCase();
+      if (
+        prevMode.startsWith("until_") ||
+        existing.untilLabel != null ||
+        existing.untilTime != null
+      ) {
+        delete next.time;
+      }
+    }
+  }
+
+  if (
+    kind === "send_sms" &&
+    existing.linkLabel !== undefined &&
+    patch.linkLabel === undefined
+  ) {
+    next.linkLabel = existing.linkLabel;
+  }
+
+  return next;
 }
 
 export function NodeSettingsPanel({
@@ -344,6 +661,9 @@ function NodeSettingsForm({
   const [conditionValue, setConditionValue] = useState(() =>
     initialConditionValue(config),
   );
+  const [filterRows, setFilterRows] = useState<FilterConditionRow[]>(() =>
+    parseFilterRowsFromConfig(config),
+  );
   const [message, setMessage] = useState(() =>
     configString(
       emailFieldConfig,
@@ -423,6 +743,7 @@ function NodeSettingsForm({
     );
     setConditionType(configString(saved, "conditionType", CONDITION_TYPES[0]));
     setConditionValue(initialConditionValue(saved));
+    setFilterRows(parseFilterRowsFromConfig(saved));
     setMessage(
       configString(
         emailConfig,
@@ -509,22 +830,33 @@ function NodeSettingsForm({
           configString(node.config, "rewardName", "Return visit offer"),
       };
     }
-    return buildConfigForNode(node.kind, {
-      delay,
-      unit,
-      template,
-      subject,
-      conditionType,
-      conditionValue,
-      message,
-      ctaLabel,
-      whatsappTemplate,
-      cronFrequency,
-      cronTime,
-      cronDayOfWeek,
-      cronInterval,
-      cronIntervalUnit,
-    });
+    if (node.kind === "condition") {
+      return mergeNodeConfigPreservingStructure(
+        (node.config ?? {}) as Record<string, unknown>,
+        buildConditionConfigFromRows(filterRows),
+        node.kind,
+      );
+    }
+    return mergeNodeConfigPreservingStructure(
+      (node.config ?? {}) as Record<string, unknown>,
+      buildConfigForNode(node.kind, {
+        delay,
+        unit,
+        template,
+        subject,
+        conditionType,
+        conditionValue,
+        message,
+        ctaLabel,
+        whatsappTemplate,
+        cronFrequency,
+        cronTime,
+        cronDayOfWeek,
+        cronInterval,
+        cronIntervalUnit,
+      }),
+      node.kind,
+    );
   }, [
     conditionType,
     conditionValue,
@@ -535,6 +867,7 @@ function NodeSettingsForm({
     cronTime,
     ctaLabel,
     delay,
+    filterRows,
     message,
     node,
     prepaidBundled,
@@ -748,12 +1081,10 @@ function NodeSettingsForm({
       )}
       {node.kind === "condition" && (
         <ConditionSettings
-          conditionType={conditionType}
-          value={conditionValue}
+          rows={filterRows}
           readOnly={readOnly}
           onEditBlocked={onEditBlocked}
-          onConditionTypeChange={setConditionType}
-          onValueChange={setConditionValue}
+          onRowsChange={setFilterRows}
         />
       )}
       {node.kind === "send_sms" && (
@@ -1214,43 +1545,215 @@ function EmailSettings({
 }
 
 function ConditionSettings({
-  conditionType,
-  value,
+  rows,
   readOnly = false,
   onEditBlocked,
-  onConditionTypeChange,
-  onValueChange,
+  onRowsChange,
 }: {
-  conditionType: string;
-  value: string;
+  rows: FilterConditionRow[];
   readOnly?: boolean;
   onEditBlocked?: () => void;
-  onConditionTypeChange: (value: string) => void;
-  onValueChange: (value: string) => void;
+  onRowsChange: (rows: FilterConditionRow[]) => void;
 }) {
+  const updateRow = (index: number, patch: Partial<FilterConditionRow>) => {
+    onRowsChange(
+      rows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  };
+
   return (
-    <SettingsSection title="Condition" description="Define when this branch should run.">
-    <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <FormField label="Condition type">
-        <SettingsSelectDropdown
-          value={conditionType}
-          options={CONDITION_TYPES.map((t) => ({ value: t, label: t }))}
-          onChange={onConditionTypeChange}
-          ariaLabel="Condition type"
-          locked={readOnly}
-          onLockedEdit={onEditBlocked}
-        />
-      </FormField>
-      <FormField label="Value">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onValueChange(e.target.value)}
-          className={inputClass()}
-          {...lockedInputProps(readOnly, onEditBlocked)}
-        />
-      </FormField>
-    </motion.div>
+    <SettingsSection title="Filters" description="Conditions for this step only.">
+      <motion.div
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        {rows.length === 0 ? (
+          <p className="text-sm leading-relaxed text-zinc-500">
+            No conditions on this filter.
+          </p>
+        ) : null}
+        {rows.map((row, index) => {
+          const isTimeSince = isTimeSinceSignupValue(row.value);
+          const isOfferExpires = isOfferExpiresValue(row.value);
+          const selectedValue = isTimeSince
+            ? TIME_SINCE_SIGNUP_OPTION
+            : isOfferExpires
+              ? OFFER_EXPIRES_OPTION
+              : row.value.trim() || FILTER_OPTIONS[0];
+          const options = [
+            ...FILTER_OPTIONS.map((value) => ({
+              value,
+              label:
+                value === OFFER_EXPIRES_OPTION
+                  ? "Offer expires in less than…"
+                  : value,
+            })),
+            ...(!FILTER_OPTIONS.includes(
+              selectedValue as (typeof FILTER_OPTIONS)[number],
+            ) &&
+            !isTimeSince &&
+            !isOfferExpires
+              ? [{ value: selectedValue, label: selectedValue }]
+              : []),
+          ];
+
+          return (
+            <div key={`filter-row-${index}`} className="space-y-4">
+              {index > 0 ? (
+                <p className="text-center text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                  and
+                </p>
+              ) : null}
+
+              <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white px-4 py-4 shadow-[0_1px_0_rgba(24,24,27,0.03)]">
+                <FormField label="Condition type">
+                  <SettingsSelectDropdown
+                    value={selectedValue}
+                    options={options}
+                    onChange={(value) => {
+                      if (isTimeSinceSignupValue(value)) {
+                        updateRow(index, {
+                          value: TIME_SINCE_SIGNUP_OPTION,
+                          amount: row.amount ?? 7,
+                          unit: row.unit ?? "hours",
+                        });
+                        return;
+                      }
+                      if (isOfferExpiresValue(value)) {
+                        updateRow(index, {
+                          value: OFFER_EXPIRES_OPTION,
+                          amount: row.amount ?? 6,
+                          unit: row.unit ?? "days",
+                        });
+                        return;
+                      }
+                      updateRow(index, {
+                        value,
+                        amount: undefined,
+                        unit: undefined,
+                      });
+                    }}
+                    ariaLabel={`Condition type ${index + 1}`}
+                    locked={readOnly}
+                    onLockedEdit={onEditBlocked}
+                  />
+                </FormField>
+
+                {isTimeSince ? (
+                  <FormField label="Wait at least">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={row.amount ?? 7}
+                        onChange={(e) => {
+                          if (readOnly) {
+                            onEditBlocked?.();
+                            return;
+                          }
+                          const next = Number(e.target.value);
+                          updateRow(index, {
+                            value: TIME_SINCE_SIGNUP_OPTION,
+                            amount: Number.isFinite(next)
+                              ? Math.max(1, Math.floor(next))
+                              : 7,
+                            unit: row.unit ?? "hours",
+                          });
+                        }}
+                        className={`${inputClass()} max-w-[7.5rem]`}
+                        {...lockedInputProps(readOnly, onEditBlocked)}
+                      />
+                      <div className="min-w-[8.5rem] flex-1">
+                        <SettingsSelectDropdown
+                          value={row.unit ?? "hours"}
+                          options={SIGNUP_DELAY_UNITS}
+                          onChange={(value) => {
+                            updateRow(index, {
+                              value: TIME_SINCE_SIGNUP_OPTION,
+                              amount: row.amount ?? 7,
+                              unit: normalizeSignupDelayUnit(value),
+                            });
+                          }}
+                          ariaLabel={`Time unit ${index + 1}`}
+                          locked={readOnly}
+                          onLockedEdit={onEditBlocked}
+                        />
+                      </div>
+                    </div>
+                  </FormField>
+                ) : null}
+
+                {isOfferExpires ? (
+                  <FormField label="Expires in less than">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={row.amount ?? 6}
+                        onChange={(e) => {
+                          if (readOnly) {
+                            onEditBlocked?.();
+                            return;
+                          }
+                          const next = Number(e.target.value);
+                          updateRow(index, {
+                            value: OFFER_EXPIRES_OPTION,
+                            amount: Number.isFinite(next)
+                              ? Math.max(1, Math.floor(next))
+                              : 6,
+                            unit: row.unit ?? "days",
+                          });
+                        }}
+                        className={`${inputClass()} max-w-[7.5rem]`}
+                        {...lockedInputProps(readOnly, onEditBlocked)}
+                      />
+                      <div className="min-w-[8.5rem] flex-1">
+                        <SettingsSelectDropdown
+                          value={row.unit ?? "days"}
+                          options={SIGNUP_DELAY_UNITS}
+                          onChange={(value) => {
+                            updateRow(index, {
+                              value: OFFER_EXPIRES_OPTION,
+                              amount: row.amount ?? 6,
+                              unit: normalizeSignupDelayUnit(value),
+                            });
+                          }}
+                          ariaLabel={`Offer expiry unit ${index + 1}`}
+                          locked={readOnly}
+                          onLockedEdit={onEditBlocked}
+                        />
+                      </div>
+                    </div>
+                  </FormField>
+                ) : null}
+
+                <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={row.negated}
+                    disabled={readOnly}
+                    onChange={(e) => {
+                      if (readOnly) {
+                        onEditBlocked?.();
+                        return;
+                      }
+                      updateRow(index, { negated: e.target.checked });
+                    }}
+                    onClick={() => {
+                      if (readOnly) onEditBlocked?.();
+                    }}
+                    className="mt-0.5 size-4 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900/20"
+                  />
+                  <span>NOT — continue only when this is false</span>
+                </label>
+              </div>
+            </div>
+          );
+        })}
+      </motion.div>
     </SettingsSection>
   );
 }

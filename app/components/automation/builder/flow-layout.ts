@@ -38,10 +38,6 @@ export type ParallelBranchDef = {
   title: string;
 };
 
-/**
- * Recursive parallel tree (HighLevel-style).
- * Any branch can contain another Parallel Split via `branches`.
- */
 export type ParallelFlowTree = {
   head: IndexedWorkflowNode[];
   parallelSplit: IndexedWorkflowNode | null;
@@ -51,20 +47,16 @@ export type ParallelFlowTree = {
 export type ParallelBranchColumn = {
   id: string;
   title: string;
-  /** Legacy flat node list (all nodes assigned to this branch id / descendants). */
   nodes: IndexedWorkflowNode[];
-  /** Recursive content: prefix steps + optional nested split. */
   content: ParallelFlowTree;
 };
 
-/** @deprecated Prefer ParallelBranchColumn — kept for Abandoned Cart callers. */
 export type FlowBranchColumn = {
   id: string;
   title: string;
   nodes: IndexedWorkflowNode[];
 };
 
-/** Detect Parallel Split marker (stored as wait + isParallelSplit — no new API node type). */
 export function isParallelSplitNode(node: WorkflowNode): boolean {
   return (
     (node.kind === "wait" || node.kind === "delay") &&
@@ -72,7 +64,6 @@ export function isParallelSplitNode(node: WorkflowNode): boolean {
   );
 }
 
-/** Read branch defs from Parallel Split config (supports 2+ branches without hardcoding). */
 export function getParallelBranchDefs(
   node: WorkflowNode | null | undefined,
 ): ParallelBranchDef[] {
@@ -121,7 +112,6 @@ function getFlowBranch(node: WorkflowNode): FlowBranchId | null {
   return null;
 }
 
-/** Any non-empty flowBranch string. */
 function getFlowBranchKey(node: WorkflowNode): string | null {
   const branch = node.config?.flowBranch;
   if (typeof branch !== "string") return null;
@@ -129,7 +119,6 @@ function getFlowBranchKey(node: WorkflowNode): string | null {
   return key.length > 0 ? key : null;
 }
 
-/** Optional parent branch for nested children (flowBranchParent). */
 function getFlowBranchParent(node: WorkflowNode): string | null {
   const parent = node.config?.flowBranchParent;
   if (typeof parent !== "string") return null;
@@ -205,16 +194,9 @@ export function parsePrepaidVisitSplitLayout(
   return { head, visitedYes, loopTarget, hasSplit };
 }
 
-/**
- * Recursively parse a flat list of branch-scoped nodes into head + nested parallel splits.
- * Nested Parallel Split nodes sit in the parent branch (flowBranch = parent id).
- * Child nodes use flowBranch = child id and flowBranchParent = parent id.
- * Descendants of nested children are routed into the owning child column, then re-parsed.
- */
 export function parseParallelFlowTree(
   entries: IndexedWorkflowNode[],
 ): ParallelFlowTree {
-  // --- Ancestry map (child → parent) for unlimited nesting ---
   const branchParentMap = new Map<string, string>();
   for (const { node } of entries) {
     const key = getFlowBranchKey(node);
@@ -238,7 +220,6 @@ export function parseParallelFlowTree(
   for (const entry of entries) {
     const { node } = entry;
 
-    // Nested (or local) Parallel Split — starts child columns for this scope.
     if (isParallelSplitNode(node) && parallelSplit == null) {
       parallelSplit = entry;
       for (const def of getParallelBranchDefs(node)) {
@@ -251,8 +232,6 @@ export function parseParallelFlowTree(
       continue;
     }
 
-    // After a split at this level, route nodes into matching child columns
-    // (direct children or any deeper descendant under those children).
     if (parallelSplit != null) {
       const owner = resolveChildColumnOwner(
         getFlowBranchKey(node),
@@ -282,7 +261,6 @@ export function parseParallelFlowTree(
   return { head, parallelSplit, branches };
 }
 
-/** Find which immediate child column owns this node (supports deep descendants). */
 function resolveChildColumnOwner(
   branchId: string | null,
   parentHint: string | null,
@@ -301,17 +279,12 @@ function resolveChildColumnOwner(
   return null;
 }
 
-/**
- * Walk branchParentMap from a branch id up to a top-level column id.
- * Enables unlimited nesting without hardcoding depth.
- */
 function resolveTopLevelBranchId(
   branchId: string | null,
   parentHint: string | null,
   topIds: Set<string>,
   branchParentMap: Map<string, string>,
 ): string | null {
-  // Prefer explicit parent chain, then the node's own branch id.
   let cursor = parentHint ?? branchId;
   const seen = new Set<string>();
   while (cursor != null && !seen.has(cursor)) {
@@ -323,11 +296,6 @@ function resolveTopLevelBranchId(
   return null;
 }
 
-/**
- * Root-level parallel layout with recursive nesting support.
- * Top-level Parallel Split has no flowBranch; nested splits set flowBranch to the parent branch id.
- * Child nodes use flowBranch = child id and optional flowBranchParent for ancestry.
- */
 export function parseSplitFlowLayout(
   flowNodes: WorkflowNode[],
   startIndex: number,
@@ -362,10 +330,8 @@ export function parseSplitFlowLayout(
   const topOrder: string[] = [];
   const topBucket = new Map<string, IndexedWorkflowNode[]>();
   const head: IndexedWorkflowNode[] = [];
-  // childBranchId → parentBranchId (from every Parallel Split's branches[])
   const branchParentMap = new Map<string, string>();
 
-  // Pass 1: find top split + build parent map from all Parallel Splits.
   for (const entry of entries) {
     const { node } = entry;
     const branchKey = getFlowBranchKey(node);
@@ -383,18 +349,15 @@ export function parseSplitFlowLayout(
     }
 
     if (isParallelSplitNode(node)) {
-      // Nested split: its flowBranch is the parent of each declared child.
       const parentId = branchKey;
       if (parentId != null) {
         for (const def of getParallelBranchDefs(node)) {
           branchParentMap.set(def.id, parentId);
-          // Also honor explicit flowBranchParent on the split itself if present.
         }
       }
     }
   }
 
-  // Honor flowBranchParent on any node as an extra edge in the ancestry map.
   for (const entry of entries) {
     const key = getFlowBranchKey(entry.node);
     const parent = getFlowBranchParent(entry.node);
@@ -403,7 +366,6 @@ export function parseSplitFlowLayout(
     }
   }
 
-  // Legacy (Abandoned Cart): no Parallel Split marker — discover top columns from flowBranch.
   if (topOrder.length === 0) {
     for (const entry of entries) {
       const key = getFlowBranchKey(entry.node);
@@ -421,13 +383,11 @@ export function parseSplitFlowLayout(
 
   const topIds = new Set(topOrder);
 
-  // Pass 2: bucket every node into trunk or a top-level column (never invent nested top columns).
   for (const entry of entries) {
     const { node } = entry;
     const branchKey = getFlowBranchKey(node);
     const parentKey = getFlowBranchParent(node);
 
-    // Top-level Parallel Split marker — not rendered as a step card.
     if (isParallelSplitNode(node) && branchKey == null) {
       continue;
     }
@@ -449,7 +409,6 @@ export function parseSplitFlowLayout(
       continue;
     }
 
-    // Trunk / initial actions (no resolvable branch scope).
     if (!isParallelSplitNode(node)) {
       head.push(entry);
     }

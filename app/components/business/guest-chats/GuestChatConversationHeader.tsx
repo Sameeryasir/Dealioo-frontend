@@ -19,7 +19,7 @@ export function GuestChatConversationHeader({
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border-b border-[#e8edf5] bg-gradient-to-r from-[#e8f2ff]/50 via-white to-white px-4 py-3 sm:px-5"
+      className="border-b border-[#e8edf5] bg-white px-4 py-3 sm:px-5"
     >
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (

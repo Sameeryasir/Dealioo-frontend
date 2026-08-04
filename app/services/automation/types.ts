@@ -19,6 +19,25 @@ export const AUTOMATION_PURPOSE_OPTIONS: {
   },
 ];
 
+export type AutomationStatusResponse = {
+  id: number;
+  status: "active" | "published" | "deactivated";
+};
+
+export type UpdateAutomationResponse = Automation | AutomationStatusResponse;
+
+export function isAutomationStatusResponse(
+  value: UpdateAutomationResponse,
+): value is AutomationStatusResponse {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    "status" in value &&
+    !("nodes" in value) &&
+    !("isActive" in value)
+  );
+}
+
 export interface Automation {
   id: number;
   name: string;
@@ -28,7 +47,6 @@ export interface Automation {
   isActive: boolean;
   published: boolean;
   businessId?: number;
-  /** @deprecated Use businessId */
   restaurantId?: number;
   campaignId?: number;
   funnelId?: number;
@@ -44,7 +62,6 @@ export interface CreateAutomationBody {
   trigger: string;
   purpose: AutomationPurpose;
   businessId: number;
-  /** @deprecated Use businessId */
   restaurantId?: number;
   campaignId: number;
 }

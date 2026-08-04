@@ -540,6 +540,7 @@ export function CrmTemplateEditor({
               paymentStripeCheckout={paymentStripeCheckout}
               campaignPricing={campaignPricing}
               skipPaymentStep={isPostpaid}
+              campaignType={campaignType ?? null}
             />
           </CanvasWorkspace>
         }

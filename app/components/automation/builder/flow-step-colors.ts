@@ -1,8 +1,3 @@
-/**
- * Shared color tokens for the abandoned-checkout flow canvas.
- * Orange trigger → blue wait → orange filter → green actions.
- */
-
 export const FLOW_TRIGGER = {
   bg: "bg-gradient-to-br from-orange-500 via-orange-500 to-orange-600",
   border: "border border-orange-400/30",

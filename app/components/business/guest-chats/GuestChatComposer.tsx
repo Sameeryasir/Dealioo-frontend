@@ -46,7 +46,7 @@ export function GuestChatComposer({
   }
 
   return (
-    <div className="shrink-0 border-t border-[#e8edf5] bg-gradient-to-t from-[#e8f2ff]/30 to-white px-4 py-3 sm:px-5">
+    <div className="shrink-0 border-t border-[#e8edf5] bg-white px-4 py-3 sm:px-5">
       <div className="mx-auto flex max-w-3xl items-center gap-2.5">
         <label className="sr-only" htmlFor="guest-chat-message">
           Message

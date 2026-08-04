@@ -3,6 +3,7 @@ import type {
   Automation,
   CreateAutomationBody,
   UpdateAutomationBody,
+  UpdateAutomationResponse,
 } from "@/app/services/automation/types";
 import type {
   AutomationListItem,
@@ -110,11 +111,14 @@ export async function deleteAutomation(id: number): Promise<void> {
 export async function updateAutomation(
   id: number,
   body: UpdateAutomationBody,
-): Promise<Automation> {
-  return automationFetch<Automation>(`/${encodeURIComponent(String(id))}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
+): Promise<UpdateAutomationResponse> {
+  return automationFetch<UpdateAutomationResponse>(
+    `/${encodeURIComponent(String(id))}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export async function activateAutomation(id: number): Promise<Automation> {

@@ -22,7 +22,6 @@ export function getTriggerDescription(node: WorkflowNode): string {
 }
 
 export function formatWaitSummary(config: Record<string, unknown>): string {
-  // Parallel Split marker uses delay 0 — not shown as a wait summary.
   if (config.isParallelSplit === true) {
     return "Parallel Split";
   }
@@ -42,7 +41,6 @@ export function formatWaitSummary(config: Record<string, unknown>): string {
       ? config.delay
       : 15;
 
-  // Initial-action "Wait (No delay)" — engine advances immediately.
   if (delay <= 0) {
     return "No delay";
   }

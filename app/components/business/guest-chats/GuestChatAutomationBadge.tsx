@@ -14,7 +14,7 @@ export function GuestChatAutomationBadge({
     <motion.span
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-[#e1306c]/10 to-[#f77737]/10 font-semibold text-[#be185d] ring-1 ring-[#fbcfe8]/70 ${
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#f472b6]/15 font-semibold text-[#f472b6] ring-1 ring-[#f472b6]/30 ${
         compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[11px]"
       }`}
     >

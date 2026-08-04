@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - What: Removed bottom page buttons; scrolling near the end loads the next guests page.
- * - Why: Owner expects infinite scroll so older guests (e.g. Sameer) appear after the first 20.
- * - Related: useBusinessChatCustomersQuery.loadMore
- */
-
 import { useCallback, useEffect, useRef, type UIEvent } from "react";
 import { LayoutGroup, motion } from "framer-motion";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
@@ -25,7 +18,6 @@ const guestChatListLayoutTransition = {
   layout: { duration: 0.22, ease: guestChatEase },
 };
 
-// How close to the bottom (px) before we request the next page.
 const LOAD_MORE_THRESHOLD_PX = 160;
 
 export function GuestChatSidebar({
@@ -57,7 +49,6 @@ export function GuestChatSidebar({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // If the first page does not fill the sidebar, keep loading until it does (or no more pages).
   useEffect(() => {
     if (!hasMore || loading || loadingMore || rows.length === 0) {
       return;
@@ -73,7 +64,6 @@ export function GuestChatSidebar({
     }
   }, [hasMore, loading, loadingMore, rows.length, onLoadMore]);
 
-  // --- Infinite scroll: when near bottom, ask hook for the next page ---
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
       if (!hasMore || loadingMore) {
@@ -95,11 +85,7 @@ export function GuestChatSidebar({
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[#e8edf5] bg-white lg:w-[380px] lg:shrink-0">
-      <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-gradient-to-br from-[#e8f2ff] via-white to-white px-5 pb-3 pt-3">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(24,119,242,0.14)_0%,transparent_70%)]"
-        />
+      <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-white px-5 pb-3 pt-3">
         <div className="relative mb-3">
           <h1 className="text-2xl font-bold tracking-tight text-[#07111f]">Guest Chats</h1>
         </div>

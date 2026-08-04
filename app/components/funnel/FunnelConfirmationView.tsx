@@ -29,14 +29,21 @@ export function FunnelConfirmationView({
   const searchParams = useSearchParams();
   const { session, ready } = useCheckoutContext();
 
+  const campaignTypeParam = searchParams.get("campaignType")?.trim();
+  const campaignType: "prepaid" | "postpaid" | null =
+    campaignTypeParam === "postpaid" || campaignTypeParam === "prepaid"
+      ? campaignTypeParam
+      : null;
+  const isPostpaid = campaignType === "postpaid";
+
   const paymentId = session?.funnelPaymentId ?? null;
 
   const { isPaid, isFailed, isConfirming } = usePaymentStatusPoll({
     paymentId,
-    enabled: ready && paymentId != null,
+    enabled: ready && !isPostpaid && paymentId != null,
   });
 
-  const confirmedByServer = isPaid;
+  const confirmedByServer = !isPostpaid && isPaid;
   const celebrate = confirmedByServer;
 
   const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
@@ -106,7 +113,7 @@ export function FunnelConfirmationView({
       />
       <PaymentConfirmedSprinkles active={celebrate} />
 
-      {paymentId != null && isConfirming ? (
+      {paymentId != null && isConfirming && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="status"
@@ -132,7 +139,7 @@ export function FunnelConfirmationView({
         </div>
       ) : null}
 
-      {paymentId != null && confirmedByServer ? (
+      {paymentId != null && confirmedByServer && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="status"
@@ -153,7 +160,7 @@ export function FunnelConfirmationView({
         </div>
       ) : null}
 
-      {paymentId != null && isFailed ? (
+      {paymentId != null && isFailed && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="alert"
@@ -178,6 +185,8 @@ export function FunnelConfirmationView({
         landingPage={pages.landing}
         fullPageShellChrome
         trackingFunnelId={funnelId}
+        campaignType={campaignType}
+        skipPaymentStep={isPostpaid}
       />
     </>
   );

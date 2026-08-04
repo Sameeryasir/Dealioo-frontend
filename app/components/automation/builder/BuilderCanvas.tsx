@@ -56,16 +56,12 @@ import {
 } from "@/app/components/automation/workflow-node-order";
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
 
-// Fixed card width (same as Initial Actions at desktop) — never shrinks when zooming.
 const FLOW_CARD_WIDTH_CLASS = "w-[36rem] shrink-0";
 const FLOW_TRUNK_WIDTH = FLOW_CARD_WIDTH_CLASS;
 const FLOW_BRANCH_GAP_PX = 48;
 const LONG_PRESS_MS = 450;
 const POINTER_MOVE_CANCEL_PX = 10;
 
-// --- Canvas zoom (camera only) ---
-// transform:scale so cards keep the same layout/wrapping; only the view gets bigger/smaller.
-// Allow zooming all the way out (0%) so large nested parallel trees fit on screen.
 const ZOOM_MIN = 0;
 const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.1;
@@ -282,7 +278,11 @@ export function BuilderCanvas({
   );
 
   const handleNodePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>, nodeId: string) => {
+    (
+      e: React.PointerEvent<HTMLDivElement>,
+      nodeId: string,
+      options?: { skipSelect?: boolean },
+    ) => {
       const session = pointerSessionRef.current;
 
       if (longPressTimerRef.current) {
@@ -299,6 +299,7 @@ export function BuilderCanvas({
         ? Math.hypot(e.clientX - session.startX, e.clientY - session.startY)
         : 0;
       clearPointerReorder();
+      if (options?.skipSelect) return;
       if (moved < POINTER_MOVE_CANCEL_PX) onSelect(nodeId);
     },
     [clearPointerReorder, draggingIndex, finishPointerReorder, onSelect],
@@ -365,7 +366,6 @@ export function BuilderCanvas({
   const visitedYesSegments = buildSegmentsForIndexedNodes(
     prepaidVisitSplit.visitedYes,
   );
-  // Parallel branch columns from flowBranch labels (pass/payment, Signup automation, etc.)
   const branchColumns = splitLayout.branchColumns;
   const parallelTree = splitLayout.tree;
   const flowSegments = usePrepaidVisitSplit || splitLayout.hasSplit
@@ -383,7 +383,6 @@ export function BuilderCanvas({
     setZoom(1);
   }, []);
 
-  // Measure unscaled layout once (and on content change). Zoom must not change these sizes.
   useLayoutEffect(() => {
     const el = zoomContentRef.current;
     if (!el) return;
@@ -405,6 +404,7 @@ export function BuilderCanvas({
     node: WorkflowNode,
     index: number,
     content: React.ReactNode,
+    options?: { skipSelectOnPointerUp?: boolean },
   ) => {
     const reorderLocked = isWorkflowNodeReorderLocked(nodes, index);
     return (
@@ -423,7 +423,11 @@ export function BuilderCanvas({
         }`}
         onPointerDown={(e) => handleNodePointerDown(e, index)}
         onPointerMove={handleNodePointerMove}
-        onPointerUp={(e) => handleNodePointerUp(e, node.id)}
+        onPointerUp={(e) =>
+          handleNodePointerUp(e, node.id, {
+            skipSelect: options?.skipSelectOnPointerUp,
+          })
+        }
         onPointerCancel={handleNodePointerCancel}
       >
         {draggingIndex === index ? (
@@ -478,7 +482,9 @@ export function BuilderCanvas({
               selectedId={selectedId}
               ownerNodeId={slotNode.id}
               footer={stepFooter}
+              onSelectStep={onSelect}
             />,
+            { skipSelectOnPointerUp: segment.nodes.length > 1 },
           )
         ) : isActionNodeKind(displayNode.kind) ? (
           renderNodeSlot(
@@ -488,6 +494,7 @@ export function BuilderCanvas({
               nodes={[displayNode]}
               selectedId={selectedId}
               footer={stepFooter}
+              onSelectStep={onSelect}
             />,
           )
         ) : (
@@ -785,10 +792,6 @@ export function BuilderCanvas({
         }}
         onDrop={handleBlockDrop}
       >
-        {/*
-          Camera zoom: layout is fixed (native size), then visually scaled.
-          Cards do not reflow/wrap differently at 110% vs 100% — scroll instead.
-        */}
         <div
           className="mx-auto"
           style={{
@@ -912,7 +915,6 @@ export function BuilderCanvas({
         </div>
       </motion.div>
 
-      {/* Zoom = camera only. Cards keep fixed layout; scroll if the flow is large. */}
       {!loading && nodes.length > 0 ? (
         <div
           className="pointer-events-auto absolute bottom-4 right-4 z-20 flex items-center gap-1 rounded-full border border-zinc-200/90 bg-white/95 p-1 shadow-lg ring-1 ring-zinc-950/5 backdrop-blur-sm sm:bottom-5 sm:right-5"

@@ -149,6 +149,7 @@ export function TemplatePreview({
   checkoutRestaurantId = null,
   campaignPricing,
   skipPaymentStep = false,
+  campaignType = null,
 }: {
   page: TemplatePage;
   landingPage: TemplatePage;
@@ -167,6 +168,7 @@ export function TemplatePreview({
   checkoutRestaurantId?: number | null;
   campaignPricing?: CampaignPricing | null;
   skipPaymentStep?: boolean;
+  campaignType?: "prepaid" | "postpaid" | null;
 }) {
   const resolvedCheckoutBusinessId =
     checkoutBusinessId ?? checkoutRestaurantId;
@@ -377,6 +379,7 @@ export function TemplatePreview({
             page={page}
             landingPage={landingPage}
             fillViewport={fillFrame}
+            campaignType={campaignType ?? (skipPaymentStep ? "postpaid" : null)}
           />
         </div>
       </div>

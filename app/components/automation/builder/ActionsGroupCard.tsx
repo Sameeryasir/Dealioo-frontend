@@ -1,6 +1,5 @@
 "use client";
 
-/** Backward-compatible re-exports — implementation lives in flow-step-cards.tsx */
 export {
   FlowActionStepContent as ActionStepContent,
   FlowActionsBlockHeader as ActionsBlockHeader,

@@ -1,6 +1,7 @@
 import {
   PAYMENT_REMINDER_TEMPLATE,
   POST_PAYMENT_JOURNEY_TEMPLATE,
+  SIGNUP_AUTOMATION_TEMPLATE,
   type AutomationTemplate,
 } from "@/app/components/automation/automation-templates";
 import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
@@ -10,27 +11,36 @@ import {
   getAutomations,
 } from "@/app/services/automation/automation-api";
 
-const DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
+const PREPAID_DEFAULT_TEMPLATES: AutomationTemplate[] = [
   PAYMENT_REMINDER_TEMPLATE,
   POST_PAYMENT_JOURNEY_TEMPLATE,
+];
+
+const POSTPAID_DEFAULT_TEMPLATES: AutomationTemplate[] = [
+  SIGNUP_AUTOMATION_TEMPLATE,
 ];
 
 export async function provisionCampaignDefaultAutomations(
   businessId: number,
   campaignId: number,
+  campaignType: "prepaid" | "postpaid" = "prepaid",
 ): Promise<void> {
+  const templates =
+    campaignType === "postpaid"
+      ? POSTPAID_DEFAULT_TEMPLATES
+      : PREPAID_DEFAULT_TEMPLATES;
+
   const existing = await getAutomations(businessId);
   const onCampaign = existing.filter(
     (automation) => automation.campaignId === campaignId,
   );
 
   await Promise.all(
-    DEFAULT_CAMPAIGN_AUTOMATION_TEMPLATES.map(async (template) => {
+    templates.map(async (template) => {
       const already = onCampaign.find(
         (automation) => automation.purpose === template.purpose,
       );
 
-      // Keep existing automations as-is (do not auto-activate on campaign create).
       if (already) {
         return;
       }
@@ -45,7 +55,6 @@ export async function provisionCampaignDefaultAutomations(
         }),
       );
       await applyAutomationTemplate(created.id, template);
-      // Created inactive by default — owner turns them on from Automations.
     }),
   );
 }

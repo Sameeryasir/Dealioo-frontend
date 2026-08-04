@@ -50,6 +50,7 @@ import {
   createAutomationConnection,
 } from "@/app/services/automation/connection-api";
 import type { AutomationConnection } from "@/app/services/automation/types";
+import { isAutomationStatusResponse } from "@/app/services/automation/types";
 import {
   blockKindToNodeType,
   createAutomationNode,
@@ -400,9 +401,17 @@ export function AutomationBuilderPage({
         published: true,
       });
       syncAutomationQueryCache(queryClient, updated);
-      setAutomation(mapAutomationToListItem(updated));
-      setStatus("active");
-      setAutomationPublished(updated.published === true);
+      if (isAutomationStatusResponse(updated)) {
+        setAutomation((prev) =>
+          prev ? { ...prev, status: "active" } : prev,
+        );
+        setStatus("active");
+        setAutomationPublished(true);
+      } else {
+        setAutomation(mapAutomationToListItem(updated));
+        setStatus("active");
+        setAutomationPublished(updated.published === true);
+      }
       setIsFlowDirty(false);
       setHasUnsavedStepSettings(false);
       toast.success("Automation activated.");
@@ -441,7 +450,13 @@ export function AutomationBuilderPage({
       void queryClient.invalidateQueries({
         queryKey: [...automationQueryKeys.all, "execution-logs"],
       });
-      setAutomation(mapAutomationToListItem(updated));
+      if (isAutomationStatusResponse(updated)) {
+        setAutomation((prev) =>
+          prev ? { ...prev, status: "draft" } : prev,
+        );
+      } else {
+        setAutomation(mapAutomationToListItem(updated));
+      }
       setStatus("draft");
       setAutomationPublished(false);
       setNavPromptOpen(false);
@@ -594,9 +609,7 @@ export function AutomationBuilderPage({
 
       try {
         if (numericId != null) {
-          const order = nodes.findIndex((n) => n.id === nodeId);
           await updateAutomationNode(numericId, {
-            order: order >= 0 ? order : 0,
             config,
           });
         }

@@ -407,16 +407,34 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
 export function FlowActionStepContent({
   node,
   selected,
+  onSelect,
 }: {
   node: WorkflowNode;
   selected?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const { label, icon: Icon } = actionMeta(node);
+  const selectStep = () => onSelect?.(node.id);
   return (
     <div
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={(e) => {
+        if (!onSelect) return;
+        e.stopPropagation();
+        selectStep();
+      }}
+      onKeyDown={(e) => {
+        if (!onSelect) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          selectStep();
+        }
+      }}
       className={`rounded-xl border transition-all ${
-        selected ? FLOW_ACTIONS.stepSelected : FLOW_ACTIONS.stepDefault
-      }`}
+        onSelect ? "cursor-pointer" : ""
+      } ${selected ? FLOW_ACTIONS.stepSelected : FLOW_ACTIONS.stepDefault}`}
     >
       <div className="flex items-start gap-3.5 px-4 py-4 sm:px-5 sm:py-5">
         <span
@@ -479,15 +497,28 @@ export function FlowActionsBlock({
   selectedId,
   ownerNodeId,
   footer,
+  onSelectStep,
 }: {
   nodes: WorkflowNode[];
   selectedId?: string | null;
   ownerNodeId?: string;
   footer?: ReactNode;
+  onSelectStep?: (id: string) => void;
 }) {
   const groupSelected =
     (ownerNodeId != null && selectedId === ownerNodeId) ||
     nodes.some((node) => node.id === selectedId);
+
+  const handleSelectStep = onSelectStep
+    ? (id: string) => {
+        if (ownerNodeId != null && id.includes("-bundled-")) {
+          onSelectStep(ownerNodeId);
+          return;
+        }
+        onSelectStep(id);
+      }
+    : undefined;
+
   return (
     <div
       className={`overflow-hidden rounded-2xl border bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all ${
@@ -501,9 +532,12 @@ export function FlowActionsBlock({
             key={node.id}
             node={node}
             selected={
-              groupSelected ||
-              selectedId === node.id
+              selectedId === node.id ||
+              (ownerNodeId != null &&
+                selectedId === ownerNodeId &&
+                node.id.includes("-bundled-"))
             }
+            onSelect={handleSelectStep}
           />
         ))}
       </FlowActionsGroupBody>
@@ -580,7 +614,6 @@ export function FlowBranchContainer({
   title,
 }: {
   children: ReactNode;
-  /** Optional HighLevel-style branch container title (e.g. Wallet Reminder). */
   title?: string;
 }) {
   return (
@@ -604,11 +637,6 @@ export function FlowBranchContainer({
   );
 }
 
-/**
- * Parallel Split card — visual marker only; uses existing wait styling family.
- * What: Renders between Initial Actions and branch columns.
- * Why: HighLevel-style split without new API node types.
- */
 export function FlowParallelSplitCard({
   node,
   selected,

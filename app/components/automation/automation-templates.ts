@@ -37,7 +37,6 @@ export type AutomationTemplate = {
   connections: AutomationTemplateConnectionDef[];
 };
 
-/** Shared payment-reminder email copy (Payment Reminder template). */
 const PAYMENT_REMINDER_EMAIL_CONFIG = {
   subject: "Complete your payment — your offer is waiting",
   template: "Payment reminder",
@@ -47,14 +46,12 @@ const PAYMENT_REMINDER_EMAIL_CONFIG = {
   ctaLabel: "Complete payment",
 } as const;
 
-/** Shared payment-reminder SMS copy (Abandoned Cart payment branch). */
 const PAYMENT_REMINDER_SMS_CONFIG = {
   message:
     "Hi [First Name] — thank you for signing up!\n\nYour offer is almost ready. Complete your payment here: [Payment Link]\n\nPrefer to pay when you visit?\n• Save your pass to Google Wallet: [Pass Link]\n• Come by the business — we'll scan your pass at checkout.\n\nWe look forward to seeing you!",
   linkLabel: "View Your Pass",
 } as const;
 
-/** Abandoned Cart — wait/filter/actions, then split pass + payment reminders. */
 export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
   id: "abandoned_cart",
   name: "Abandoned Cart",
@@ -226,7 +223,6 @@ export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
   ],
 };
 
-/** QR pass guide email (after payment reminder). */
 const QR_PASS_EMAIL_CONFIG = {
   subject: "Your QR pass is ready — add to Wallet",
   template: "QR pass guide",
@@ -644,7 +640,9 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        conditions: [{ value: "Offer expires in less than 6 days" }],
+        conditions: [
+          { value: "Offer expires in less than 6 days", amount: 6, unit: "days" },
+        ],
       },
     },
     {
@@ -683,7 +681,9 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        conditions: [{ value: "Offer expires in less than 3 days" }],
+        conditions: [
+          { value: "Offer expires in less than 3 days", amount: 3, unit: "days" },
+        ],
       },
     },
     {
@@ -949,8 +949,18 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         conditions: [
           { negated: true, value: "Pass was added" },
-          { value: "Over a day since signed up for the first time" },
-          { value: "Less than a week since signed up for the first time" },
+          {
+            value: "Over 1 days since signed up for the first time",
+            amount: 1,
+            unit: "days",
+            comparator: "gte",
+          },
+          {
+            value: "Less than 7 days since signed up for the first time",
+            amount: 7,
+            unit: "days",
+            comparator: "lt",
+          },
           { negated: true, value: "$4 Pretzel Bites was redeemed" },
         ],
       },
