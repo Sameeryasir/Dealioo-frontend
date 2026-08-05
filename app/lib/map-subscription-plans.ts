@@ -8,7 +8,9 @@ import type { SubscriptionPlanListItem } from "@/app/services/subscription/get-s
 export function mapSubscriptionPlansToPricingPlans(
   plans: SubscriptionPlanListItem[],
 ): PricingPlan[] {
-  return plans.map((plan) => {
+  return plans
+    .filter((plan) => plan.slug !== "professional")
+    .map((plan) => {
     const details = plan.description;
     const fallback = PRICING_PLANS.find((item) => item.id === plan.slug);
     const monthly = {

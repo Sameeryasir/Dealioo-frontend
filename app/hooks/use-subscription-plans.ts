@@ -36,13 +36,19 @@ export function useSubscriptionPlans(options: UseSubscriptionPlansOptions = {}) 
   });
 
   const plans = useMemo(() => {
-    if (query.data) return query.data;
-    if (query.isError) return [...PRICING_PLANS];
-    return [];
+    const source = query.data
+      ? query.data
+      : query.isError
+        ? [...PRICING_PLANS]
+        : [];
+    return source.filter((plan) => plan.id !== "professional");
   }, [query.data, query.isError]);
 
   const displayPlans = useMemo(
-    () => (plans.length > 0 ? plans : [...PRICING_PLANS]),
+    () =>
+      (plans.length > 0 ? plans : [...PRICING_PLANS]).filter(
+        (plan) => plan.id !== "professional",
+      ),
     [plans],
   );
 
