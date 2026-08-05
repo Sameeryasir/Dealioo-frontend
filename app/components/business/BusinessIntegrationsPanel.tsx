@@ -135,7 +135,7 @@ export function BusinessIntegrationsPanel({
       }
       const status = await getGoogleAdsConnectionStatus(token, businessId);
       setGoogleConnected(Boolean(status.connected));
-      setGoogleCustomerId(status.customerId ?? null);
+      setGoogleCustomerId(status.googleCustomerId ?? null);
     } catch (e) {
       setGoogleError(
         e instanceof Error ? e.message : "Could not check Google Ads connection.",

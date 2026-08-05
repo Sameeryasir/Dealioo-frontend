@@ -375,15 +375,16 @@ export function MetaCampaignObjectiveDialog({
     OBJECTIVES.find((item) => item.id === selected) ?? null;
   const activeOption = selectedOption;
   const canContinue =
-    selectedOption != null &&
-    selectedOption.supported &&
-    selected !== "OUTCOME_APP_PROMOTION";
+    selectedOption != null && selectedOption.supported;
 
   const handleContinue = () => {
-    if (!canContinue || !selected || selected === "OUTCOME_APP_PROMOTION") {
+    if (!canContinue || selectedOption == null || !selectedOption.supported) {
       return;
     }
-    onContinue(selected);
+    if (selectedOption.id === "OUTCOME_APP_PROMOTION") {
+      return;
+    }
+    onContinue(selectedOption.id);
   };
 
   return (

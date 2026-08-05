@@ -943,18 +943,12 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       kind: "condition",
       label: "Filters",
       summary:
-        "Pass NOT added AND over a day since signup AND less than a week AND Pretzel Bites NOT redeemed",
+        "Pass NOT added AND less than a week since signup AND Pretzel Bites NOT redeemed",
       config: {
         flowBranch: FLOW_BRANCH_WEEKEND_PASS,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         conditions: [
           { negated: true, value: "Pass was added" },
-          {
-            value: "Over 1 days since signed up for the first time",
-            amount: 1,
-            unit: "days",
-            comparator: "gte",
-          },
           {
             value: "Less than 7 days since signed up for the first time",
             amount: 7,

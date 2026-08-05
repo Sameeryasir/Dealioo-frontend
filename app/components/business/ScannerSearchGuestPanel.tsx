@@ -2,12 +2,15 @@
 
 import {
   ArrowLeft,
+  Briefcase,
   CheckCircle2,
   ChevronRight,
+  FileText,
   Gift,
   History,
   Loader2,
   Mail,
+  Megaphone,
   Phone,
   Search,
   Sparkles,
@@ -217,6 +220,41 @@ function formatDealPrice(price: number | string | null): string | null {
   return formatDollars(numeric);
 }
 
+function DealPaymentBadge({
+  label,
+  badge,
+}: {
+  label: "PREPAID" | "UNPAID";
+  badge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
+}) {
+  const display =
+    badge === "PAID_ONLINE"
+      ? "Paid Online"
+      : badge === "PAID_AT_COUNTER"
+        ? "Paid at Counter"
+        : badge === "PENDING"
+          ? "Not paid"
+          : label === "PREPAID"
+            ? "Paid"
+            : "Not paid";
+  const isPaid =
+    badge === "PAID_ONLINE" ||
+    badge === "PAID_AT_COUNTER" ||
+    label === "PREPAID";
+
+  return (
+    <span
+      className={`inline-flex rounded-md px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] ${
+        isPaid
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+          : "bg-[#eef1f5] text-[#4b5563] ring-1 ring-[#e5e7eb]"
+      }`}
+    >
+      {display}
+    </span>
+  );
+}
+
 function BusinessDealCheckboxRow({
   deal,
   checked,
@@ -238,74 +276,48 @@ function BusinessDealCheckboxRow({
         type="button"
         disabled={disabled}
         onClick={onToggle}
-        className={`group flex w-full items-start gap-3.5 rounded-[1.15rem] border px-4 py-4 text-left transition duration-200 ${
+        className={`group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 text-left transition duration-150 ${
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         } ${
           checked
-            ? "border-[#1877f2]/40 bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_10px_28px_rgba(24,119,242,0.14)] ring-1 ring-[#1877f2]/20"
-            : "border-[#e8edf5] bg-white hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+            ? "border-[#1877f2]/45 bg-[#f7faff] ring-1 ring-[#1877f2]/15"
+            : "border-[#e8edf5] bg-white hover:border-[#dbe3ef] hover:bg-[#fafbfc]"
         }`}
       >
         <span
-          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition ${
+          className={`flex size-[1.15rem] shrink-0 items-center justify-center rounded-full border-2 transition ${
             checked
-              ? "border-[#1877f2] bg-[#1877f2] text-xs text-white shadow-[0_4px_10px_rgba(24,119,242,0.35)]"
-              : "border-zinc-300 bg-white group-hover:border-[#1877f2]/50"
+              ? "border-[#1877f2] bg-[#1877f2]"
+              : "border-[#cbd5e1] bg-white"
           }`}
           aria-hidden
         >
-          {checked ? "✓" : ""}
+          {checked ? (
+            <span className="size-1.5 rounded-full bg-white" />
+          ) : null}
+        </span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1877f2]">
+          <Megaphone className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[0.92rem] font-extrabold tracking-tight text-[#0e182b]">
-              {deal.campaignName}
-            </span>
+          <span className="block truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
+            {deal.campaignName}
+          </span>
+          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {alreadyOnGuest ? (
-              <span className="rounded-full bg-[#1877f2]/10 px-2.5 py-0.5 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#1877f2] ring-1 ring-[#1877f2]/20">
+              <span className="inline-flex rounded-md bg-[#eef5ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#1877f2] ring-1 ring-[#dbeafe]">
                 On guest
               </span>
             ) : null}
+            {priceLabel ? (
+              <span className="inline-flex rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-emerald-700 ring-1 ring-emerald-100">
+                {priceLabel}
+              </span>
+            ) : null}
           </span>
-          {priceLabel ? (
-            <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[0.72rem] font-extrabold text-emerald-700 ring-1 ring-emerald-100">
-              {priceLabel}
-            </span>
-          ) : null}
         </span>
       </button>
     </li>
-  );
-}
-
-function DealPaymentBadge({
-  label,
-  badge,
-}: {
-  label: "PREPAID" | "UNPAID";
-  badge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
-}) {
-  const display =
-    badge === "PAID_ONLINE"
-      ? "Paid Online"
-      : badge === "PAID_AT_COUNTER"
-        ? "Paid at Counter"
-        : badge === "PENDING"
-          ? "Not paid"
-          : label;
-  const isPaid = badge === "PAID_ONLINE" || badge === "PAID_AT_COUNTER" || label === "PREPAID";
-  return (
-    <span
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white ${
-        badge === "PAID_AT_COUNTER"
-          ? "bg-sky-700"
-          : isPaid
-            ? "bg-emerald-600"
-            : "bg-zinc-500"
-      }`}
-    >
-      {display}
-    </span>
   );
 }
 
@@ -354,68 +366,73 @@ function DealSelectRow({
   deal,
   checked,
   disabled,
-  tone,
   onToggle,
+  onRedeem,
 }: {
   deal: NormalizedGuestActiveDeal;
   checked: boolean;
   disabled: boolean;
-  tone: "prepaid" | "unpaid";
   onToggle: () => void;
+  onRedeem: () => void;
 }) {
-  const cardClass =
-    tone === "prepaid"
-      ? checked
-        ? "border-emerald-300 bg-gradient-to-br from-emerald-50/90 to-white shadow-[0_10px_28px_rgba(16,185,129,0.14)] ring-1 ring-emerald-200"
-        : "border-[#e8edf5] bg-white hover:border-emerald-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
-      : checked
-        ? "border-slate-400 bg-gradient-to-br from-slate-50 to-white shadow-[0_10px_28px_rgba(15,23,42,0.1)] ring-1 ring-slate-300"
-        : "border-[#e8edf5] bg-white hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]";
-
   return (
     <li>
-      <button
-        type="button"
-        disabled={disabled || !deal.canSelect}
-        onClick={onToggle}
-        className={`group flex w-full items-center gap-3 rounded-[1rem] border px-3.5 py-3 text-left transition duration-200 ${
-          deal.canSelect
-            ? "cursor-pointer hover:bg-[#f8fafc]"
-            : "cursor-not-allowed opacity-60"
-        } ${cardClass}`}
+      <div
+        className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 transition duration-150 ${
+          checked
+            ? "border-[#1877f2]/45 bg-[#f7faff] ring-1 ring-[#1877f2]/15"
+            : "border-[#e8edf5] bg-white"
+        }`}
       >
-        {deal.canSelect ? (
-          <span
-            className={`flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
-              checked
-                ? tone === "prepaid"
-                  ? "border-emerald-600 bg-emerald-600 text-xs text-white"
-                  : "border-slate-800 bg-slate-800 text-xs text-white"
-                : "border-zinc-300 bg-white group-hover:border-slate-400"
-            }`}
-            aria-hidden
-          >
-            {checked ? "✓" : ""}
-          </span>
-        ) : (
-          <span className="size-5 shrink-0" aria-hidden />
-        )}
-        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="truncate text-[0.88rem] font-extrabold tracking-tight text-[#0e182b]">
-            {deal.offerName}
-          </span>
-          <DealPaymentBadge
-            label={deal.paymentLabel}
-            badge={deal.paymentBadge}
-          />
-          <span className="truncate text-[0.72rem] font-medium text-slate-500">
-            {deal.campaignName}
-            {deal.expiresAt ? (
-              <>, Expires {formatDateTimeShort(deal.expiresAt)}</>
-            ) : null}
-          </span>
+        <button
+          type="button"
+          disabled={disabled || !deal.canSelect}
+          onClick={onToggle}
+          className={`flex size-[1.15rem] shrink-0 items-center justify-center rounded-full border-2 transition ${
+            deal.canSelect
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-50"
+          } ${
+            checked
+              ? "border-[#1877f2] bg-[#1877f2]"
+              : "border-[#cbd5e1] bg-white"
+          }`}
+          aria-label={`Select ${deal.campaignName}`}
+        >
+          {checked ? (
+            <span className="size-1.5 rounded-full bg-white" aria-hidden />
+          ) : null}
+        </button>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f1f5f9] text-[#64748b]">
+          <FileText className="size-4" aria-hidden />
         </span>
-      </button>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
+            {deal.campaignName}
+          </p>
+          <div className="mt-1.5">
+            <DealPaymentBadge
+              label={deal.paymentLabel}
+              badge={deal.paymentBadge}
+            />
+          </div>
+          {deal.expiresAt ? (
+            <p className="m-0 mt-1.5 text-[0.72rem] font-medium text-slate-400">
+              Expires {formatDateTimeShort(deal.expiresAt)}
+            </p>
+          ) : null}
+        </div>
+        {deal.canSelect ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onRedeem}
+            className="shrink-0 cursor-pointer rounded-lg border border-[#bfdbfe] bg-white px-3.5 py-2 text-[0.8rem] font-semibold text-[#1877f2] transition hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Redeem
+          </button>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -475,6 +492,9 @@ export function ScannerSearchGuestPanel({
   const [businessDeals, setBusinessDeals] = useState<RestaurantFunnelDeal[]>([]);
   const [loadingBusinessDeals, setLoadingBusinessDeals] = useState(false);
   const [selectedFunnelIds, setSelectedFunnelIds] = useState<number[]>([]);
+  const [guestDealTab, setGuestDealTab] = useState<"all" | "paid" | "unpaid">(
+    "all",
+  );
   const [purchaseStep, setPurchaseStep] = useState<
     null | "confirm" | "enterPrice" | "enterExtra"
   >(null);
@@ -545,6 +565,7 @@ export function ScannerSearchGuestPanel({
       setRedeemStep(null);
       setRedeemSuccess(null);
       setSelectedFunnelIds([]);
+      setGuestDealTab("all");
       setPurchaseStep(null);
       setPendingDealAmount(null);
       setPurchaseSuccess(null);
@@ -690,6 +711,22 @@ export function ScannerSearchGuestPanel({
   const unpaidDeals = useMemo(
     () => activeDeals.filter((deal) => deal.paymentLabel === "UNPAID"),
     [activeDeals],
+  );
+
+  const filteredGuestDeals = useMemo(() => {
+    if (guestDealTab === "paid") return prepaidDeals;
+    if (guestDealTab === "unpaid") return unpaidDeals;
+    return activeDeals;
+  }, [activeDeals, guestDealTab, prepaidDeals, unpaidDeals]);
+
+  const startRedeemDeal = useCallback(
+    (deal: NormalizedGuestActiveDeal) => {
+      if (!deal.canSelect || confirmingRedemption || purchasing) return;
+      setSelectedFunnelIds([]);
+      setSelectedDealIds([deal.couponId]);
+      setRedeemStep("completeOrder");
+    },
+    [confirmingRedemption, purchasing],
   );
 
   const toggleDealSelection = useCallback((deal: NormalizedGuestActiveDeal) => {
@@ -1269,26 +1306,18 @@ export function ScannerSearchGuestPanel({
               transition={{ duration: 0.32, ease: standardEase }}
               className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
             >
-              <div className="relative shrink-0 overflow-hidden border-b border-white/10 bg-[#0b1220] px-5 py-4 sm:px-7">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-80"
-                  aria-hidden
-                  style={{
-                    background:
-                      "radial-gradient(ellipse 70% 120% at 0% 0%, rgba(24,119,242,0.35), transparent 55%), radial-gradient(ellipse 50% 80% at 100% 100%, rgba(16,185,129,0.18), transparent 50%)",
-                  }}
-                />
+              <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7">
                 <div className="relative flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="relative flex size-2.5">
                       <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
                     </span>
                     <div className="min-w-0">
-                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/55">
+                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
                         Guest profile
                       </p>
-                      <p className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-white">
+                      <p className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-[#0e182b]">
                         {selectedProfile.customerName}
                       </p>
                     </div>
@@ -1312,7 +1341,7 @@ export function ScannerSearchGuestPanel({
                         setPreviousRedemptionsPage(1);
                         idempotencyKeyRef.current = "";
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[0.72rem] font-bold text-white backdrop-blur-sm transition hover:bg-white/18"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-3.5 py-2 text-[0.72rem] font-bold text-[#0e182b] transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
                     >
                       <ArrowLeft className="size-3.5" aria-hidden />
                       Back to results
@@ -1321,7 +1350,7 @@ export function ScannerSearchGuestPanel({
                       type="button"
                       disabled={deleting}
                       onClick={() => void handleDeleteGuest()}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-red-400/45 bg-red-500/20 px-3.5 py-2 text-[0.72rem] font-bold text-red-100 transition hover:bg-red-500/30 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-2 text-[0.72rem] font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                       {deleting ? "Deleting…" : "Delete"}
@@ -1473,34 +1502,32 @@ export function ScannerSearchGuestPanel({
                         delay: 0.06,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
                     >
-                      <div className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#0e182b] to-[#1a2744] px-4 py-4 sm:px-5">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="flex items-start gap-3">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
-                              <Gift className="size-[1.1rem]" aria-hidden />
+                      <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1877f2]">
+                              <Gift className="size-[1.05rem]" aria-hidden />
                             </span>
-                            <div>
-                              <h3 className="m-0 text-[1rem] font-extrabold text-white">
+                            <div className="min-w-0">
+                              <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
                                 Guest deals
                               </h3>
-                              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-white/60">
-                                Redeem deals already on this guest
+                              <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                                Redeem deals already on this guest.
                               </p>
                             </div>
                           </div>
-                          {activeDeals.some((deal) => deal.canSelect) ? (
-                            <p className="max-w-[13rem] text-right text-[0.68rem] font-medium leading-snug text-white/50">
-                              Redeem one guest deal at a time.
-                            </p>
-                          ) : null}
+                          <p className="m-0 shrink-0 text-[0.74rem] font-semibold text-[#1877f2]">
+                            Redeem one guest deal at a time →
+                          </p>
                         </div>
                       </div>
 
-                      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+                      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5">
                         {activeDeals.length === 0 ? (
-                          <div className="flex flex-1 flex-col items-center justify-center rounded-[1.1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                          <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
                             <Wallet
                               className="mx-auto size-6 text-slate-300"
                               aria-hidden
@@ -1513,96 +1540,105 @@ export function ScannerSearchGuestPanel({
                             </p>
                           </div>
                         ) : (
-                          <div className="flex min-h-0 flex-1 flex-col space-y-4">
-                            <div className="min-h-0 flex-1">
-                              <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-emerald-700 ring-1 ring-emerald-100">
-                                Paid ({prepaidDeals.length})
-                              </p>
-                              {prepaidDeals.length > 0 ? (
-                                <div className="mt-2.5">
-                                  <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
-                                    {prepaidDeals.map((deal) => (
-                                      <DealSelectRow
-                                        key={deal.couponId}
-                                        deal={deal}
-                                        checked={selectedDealIds.includes(
-                                          deal.couponId,
-                                        )}
-                                        disabled={
-                                          confirmingRedemption || purchasing
-                                        }
-                                        tone="prepaid"
-                                        onToggle={() =>
-                                          toggleDealSelection(deal)
-                                        }
-                                      />
-                                    ))}
-                                  </ul>
-                                  {prepaidDeals.length > 3 ? (
-                                    <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
-                                      Scroll to view more
-                                    </p>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
-                                  No paid deals.
-                                </p>
-                              )}
+                          <>
+                            <div
+                              className="mt-1 flex gap-5 border-b border-[#eef2f7]"
+                              role="tablist"
+                              aria-label="Guest deal filters"
+                            >
+                              {(
+                                [
+                                  {
+                                    id: "all" as const,
+                                    label: "All",
+                                    count: activeDeals.length,
+                                  },
+                                  {
+                                    id: "paid" as const,
+                                    label: "Paid",
+                                    count: prepaidDeals.length,
+                                  },
+                                  {
+                                    id: "unpaid" as const,
+                                    label: "Not Paid Yet",
+                                    count: unpaidDeals.length,
+                                  },
+                                ] as const
+                              ).map((tab) => {
+                                const active = guestDealTab === tab.id;
+                                return (
+                                  <button
+                                    key={tab.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => setGuestDealTab(tab.id)}
+                                    className={`relative cursor-pointer pb-2.5 pt-3 text-[0.8rem] font-semibold transition ${
+                                      active
+                                        ? "text-[#1877f2]"
+                                        : "text-slate-500 hover:text-slate-700"
+                                    }`}
+                                  >
+                                    {tab.label} ({tab.count})
+                                    {active ? (
+                                      <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#1877f2]" />
+                                    ) : null}
+                                  </button>
+                                );
+                              })}
                             </div>
 
-                            <div>
-                              <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-slate-600 ring-1 ring-slate-200">
-                                Not paid yet ({unpaidDeals.length})
-                              </p>
-                              {unpaidDeals.length > 0 ? (
-                                <div className="mt-2.5">
-                                  <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
-                                    {unpaidDeals.map((deal) => (
-                                      <DealSelectRow
-                                        key={deal.couponId}
-                                        deal={deal}
-                                        checked={selectedDealIds.includes(
-                                          deal.couponId,
-                                        )}
-                                        disabled={
-                                          confirmingRedemption || purchasing
-                                        }
-                                        tone="unpaid"
-                                        onToggle={() =>
-                                          toggleDealSelection(deal)
-                                        }
-                                      />
-                                    ))}
-                                  </ul>
-                                  {unpaidDeals.length > 3 ? (
-                                    <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
-                                      Scroll to view more
-                                    </p>
-                                  ) : null}
-                                </div>
+                            <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                              {filteredGuestDeals.length > 0 ? (
+                                <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
+                                  {filteredGuestDeals.map((deal) => (
+                                    <DealSelectRow
+                                      key={deal.couponId}
+                                      deal={deal}
+                                      checked={selectedDealIds.includes(
+                                        deal.couponId,
+                                      )}
+                                      disabled={
+                                        confirmingRedemption || purchasing
+                                      }
+                                      onToggle={() => toggleDealSelection(deal)}
+                                      onRedeem={() => startRedeemDeal(deal)}
+                                    />
+                                  ))}
+                                </ul>
                               ) : (
-                                <p className="m-0 mt-2 text-[0.78rem] font-medium text-slate-500">
-                                  No unpaid deals.
-                                </p>
+                                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                                  <p className="m-0 text-[0.8rem] font-medium text-slate-500">
+                                    No deals in this filter.
+                                  </p>
+                                </div>
                               )}
-                            </div>
 
-                            {selectedDealIds.length > 0 ? (
-                              <div className="mt-auto flex justify-end border-t border-[#f1f5f9] pt-4">
-                                <button
-                                  type="button"
-                                  disabled={confirmingRedemption || purchasing}
-                                  onClick={() => setRedeemStep("completeOrder")}
-                                  className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_28px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] hover:shadow-[0_12px_32px_rgba(24,119,242,0.4)] disabled:opacity-50"
-                                >
-                                  {confirmingRedemption
-                                    ? "Redeeming…"
-                                    : "Redeem deal"}
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
+                              <p className="m-0 mt-3 text-center text-[0.72rem] font-medium text-slate-400">
+                                Showing {filteredGuestDeals.length} of{" "}
+                                {activeDeals.length} deals
+                              </p>
+
+                              {selectedDealIds.length > 0 ? (
+                                <div className="mt-3 flex justify-end border-t border-[#f1f5f9] pt-3">
+                                  <button
+                                    type="button"
+                                    disabled={
+                                      confirmingRedemption || purchasing
+                                    }
+                                    onClick={() =>
+                                      setRedeemStep("completeOrder")
+                                    }
+                                    className="cursor-pointer rounded-lg bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
+                                  >
+                                    {confirmingRedemption
+                                      ? "Redeeming…"
+                                      : "Redeem selected"}
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </>
                         )}
                       </div>
                     </motion.section>
@@ -1615,27 +1651,35 @@ export function ScannerSearchGuestPanel({
                         delay: 0.12,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
                     >
-                      <div className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#0e182b] to-[#1a2744] px-4 py-4 sm:px-5">
-                        <div className="flex items-start gap-3">
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
-                            <Sparkles className="size-[1.1rem]" aria-hidden />
-                          </span>
-                          <div>
-                            <h3 className="m-0 text-[1rem] font-extrabold text-white">
-                              Business deals
-                            </h3>
-                            <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-white/60">
-                              Active campaigns you can attach to this guest
-                            </p>
+                      <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1877f2]">
+                              <Briefcase
+                                className="size-[1.05rem]"
+                                aria-hidden
+                              />
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
+                                Business deals
+                              </h3>
+                              <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                                Active campaigns you can attach to this guest.
+                              </p>
+                            </div>
                           </div>
+                          <p className="m-0 shrink-0 text-[0.74rem] font-semibold text-[#1877f2]">
+                            Attach new deal →
+                          </p>
                         </div>
                       </div>
 
-                      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+                      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 sm:px-5">
                         {loadingBusinessDeals ? (
-                          <div className="flex flex-1 items-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-600">
+                          <div className="flex flex-1 items-center gap-2 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-600">
                             <Loader2
                               className="size-4 animate-spin text-[#1877f2]"
                               aria-hidden
@@ -1646,7 +1690,7 @@ export function ScannerSearchGuestPanel({
 
                         {!loadingBusinessDeals && businessDeals.length > 0 ? (
                           <div className="flex min-h-0 flex-1 flex-col">
-                            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+                            <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
                               {businessDeals.map((deal) => (
                                 <BusinessDealCheckboxRow
                                   key={deal.id}
@@ -1660,13 +1704,14 @@ export function ScannerSearchGuestPanel({
                                 />
                               ))}
                             </ul>
-                            {businessDeals.length > 3 ? (
-                              <p className="m-0 mt-1.5 text-center text-[0.68rem] font-medium text-slate-400">
-                                Scroll to view more
-                              </p>
-                            ) : null}
+
+                            <p className="m-0 mt-3 text-center text-[0.72rem] font-medium text-slate-400">
+                              Showing {businessDeals.length} of{" "}
+                              {businessDeals.length} deals
+                            </p>
+
                             {selectedFunnelIds.length > 0 ? (
-                              <div className="mt-auto flex justify-end border-t border-[#f1f5f9] pt-4">
+                              <div className="mt-3 flex justify-end border-t border-[#f1f5f9] pt-3">
                                 <button
                                   type="button"
                                   disabled={
@@ -1675,7 +1720,7 @@ export function ScannerSearchGuestPanel({
                                     expectedPurchaseAmount == null
                                   }
                                   onClick={() => setPurchaseStep("confirm")}
-                                  className="cursor-pointer rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_28px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] disabled:opacity-50"
+                                  className="cursor-pointer rounded-lg bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
                                 >
                                   Confirm ({selectedFunnelIds.length})
                                 </button>
@@ -1685,7 +1730,7 @@ export function ScannerSearchGuestPanel({
                         ) : null}
 
                         {!loadingBusinessDeals && businessDeals.length === 0 ? (
-                          <div className="flex flex-1 flex-col items-center justify-center rounded-[1.1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
                             <p className="m-0 text-[0.84rem] font-semibold text-slate-600">
                               No active deals for this business.
                             </p>
@@ -1706,19 +1751,21 @@ export function ScannerSearchGuestPanel({
                         delay: 0.16,
                         ease: standardEase,
                       }}
-                      className="-mx-5 overflow-hidden border-t border-[#e8edf5] bg-white sm:-mx-7"
+                      className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8fafc] to-white px-5 py-4 sm:px-7">
-                        <div className="min-w-0">
-                          <h3 className="m-0 flex items-center gap-2.5 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
-                            <span className="flex size-9 items-center justify-center rounded-xl bg-[#0e182b] text-white shadow-[0_6px_14px_rgba(14,24,43,0.2)]">
-                              <History className="size-4" aria-hidden />
-                            </span>
-                            Previously redeemed
-                          </h3>
-                          <p className="m-0 mt-1 pl-[2.9rem] text-[0.75rem] font-medium text-slate-500">
-                            Past rewards this guest has already used
-                          </p>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1877f2]">
+                            <History className="size-[1.05rem]" aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
+                              Previously redeemed
+                            </h3>
+                            <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                              Past rewards this guest has already used.
+                            </p>
+                          </div>
                         </div>
                         <span className="rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.72rem] font-bold tabular-nums text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)]">
                           {previousRedemptionsMeta?.total ??
@@ -1809,7 +1856,10 @@ export function ScannerSearchGuestPanel({
                                     </span>
                                   </td>
                                   <td className={tdClass}>
-                                    <span className="font-extrabold text-[#07111f]">
+                                    <span className="inline-flex items-center gap-2 font-extrabold text-[#07111f]">
+                                      <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1877f2]">
+                                        <Gift className="size-3.5" aria-hidden />
+                                      </span>
                                       {item.campaignName}
                                     </span>
                                   </td>
