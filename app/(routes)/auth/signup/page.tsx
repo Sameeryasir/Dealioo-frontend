@@ -6,6 +6,10 @@ import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoad
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { setAuthTokens } from "@/app/lib/auth-session";
+import {
+  trackProductCompleteRegistration,
+  trackProductLead,
+} from "@/app/lib/product-meta-pixel";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { registerUser } from "@/app/services/auth/register";
 import { sendOtp } from "@/app/services/auth/send-otp";
@@ -120,19 +124,38 @@ function SignupPageInner() {
       setSubmitting(true);
       try {
         if (invitation) {
-          // Create the invited account, then send them to login (do not auto-sign-in).
-          await registerWithInvitation({
+          const inviteResult = await registerWithInvitation({
             token: invitation.token,
             name: values.name,
             password: values.password,
             phone: values.phone,
           });
           setCredentials(values.email, values.password);
+          // Lead only after backend accepted a real invite signup action.
+          if (inviteResult.isNewCustomer) {
+            trackProductLead("signup_form_invite", {
+              email: values.email,
+              phone: values.phone,
+            });
+            trackProductCompleteRegistration({
+              email: values.email,
+              phone: values.phone,
+              externalId: String(inviteResult.user.id),
+              isNewCustomer: true,
+            });
+          }
           return { skipOtp: true as const, redirectToLogin: true as const };
         }
 
-        await registerUser(values);
+        const registerResult = await registerUser(values);
         setCredentials(values.email, values.password);
+        // Lead only when backend created a new account (not an existing user).
+        if (registerResult.isNewCustomer) {
+          trackProductLead("signup_form", {
+            email: values.email,
+            phone: values.phone,
+          });
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Signup failed. Please try again.";
@@ -154,7 +177,17 @@ function SignupPageInner() {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        const { token, refreshToken, user } = await verifyOtp(email, otp);
+        const { token, refreshToken, user, isNewCustomer } = await verifyOtp(
+          email,
+          otp,
+        );
+        // CompleteRegistration only when backend says this is a new customer.
+        trackProductCompleteRegistration({
+          email: user.email || email,
+          phone: user.phone || undefined,
+          externalId: String(user.id),
+          isNewCustomer,
+        });
         setAuthTokens(token, refreshToken);
         setSetupUser(user);
       } catch (error) {

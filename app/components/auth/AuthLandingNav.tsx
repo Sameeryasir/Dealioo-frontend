@@ -2,6 +2,12 @@
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
+import {
+  sectionIdFromHref,
+  trackProductButtonClick,
+  trackProductLead,
+  trackProductSectionViewed,
+} from "@/app/lib/product-meta-pixel";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -88,11 +94,23 @@ export function AuthLandingNav({
 
           {showNavLinks ? (
             <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
-              {navLinks.map(([label, href]) => (
-                <Link key={href} href={href} className="landing-nav-link text-sm font-medium transition-colors">
-                  {label}
-                </Link>
-              ))}
+              {navLinks.map(([label, href]) => {
+                const sectionId = sectionIdFromHref(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="landing-nav-link text-sm font-medium transition-colors"
+                    onClick={() => {
+                      if (sectionId) {
+                        trackProductSectionViewed(sectionId, "auth_nav");
+                      }
+                    }}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
             </nav>
           ) : (
             <span className="hidden flex-1 md:block" aria-hidden />
@@ -100,7 +118,14 @@ export function AuthLandingNav({
 
           <div className="hidden items-center gap-3 md:flex">
             {showGetStarted ? (
-              <Link href={signupHref} className="landing-btn-primary px-6 py-2.5 text-sm font-bold">
+              <Link
+                href={signupHref}
+                className="landing-btn-primary px-6 py-2.5 text-sm font-bold"
+                onClick={() => {
+                  trackProductButtonClick("Get Started", "nav");
+                  trackProductLead("signup_cta_nav");
+                }}
+              >
                 Get Started
               </Link>
             ) : null}
@@ -146,23 +171,35 @@ export function AuthLandingNav({
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               <ul className="landing-mobile-nav-list">
-                {navLinks.map(([label, href]) => (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      className="landing-mobile-nav-link"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
+                {navLinks.map(([label, href]) => {
+                  const sectionId = sectionIdFromHref(href);
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        className="landing-mobile-nav-link"
+                        onClick={() => {
+                          if (sectionId) {
+                            trackProductSectionViewed(sectionId, "auth_mobile_nav");
+                          }
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
               {showGetStarted ? (
                 <Link
                   href={signupHref}
                   className="landing-btn-primary landing-mobile-nav-cta"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    trackProductButtonClick("Get Started", "mobile_nav");
+                    trackProductLead("signup_cta_mobile_nav");
+                    setMenuOpen(false);
+                  }}
                 >
                   Get Started
                 </Link>

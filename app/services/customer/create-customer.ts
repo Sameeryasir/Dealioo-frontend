@@ -10,9 +10,11 @@ export type CreateCustomerPayload = {
 
 export type CreateCustomerResponse = {
   id: number;
+  /** Backend: true only when a new guest row was inserted. */
+  isNewCustomer: boolean;
 };
 
-function readCustomerId(data: unknown): number {
+function readCustomerCreateResult(data: unknown): CreateCustomerResponse {
   if (!data || typeof data !== "object") {
     throw new Error("Invalid customer response from server.");
   }
@@ -28,7 +30,10 @@ function readCustomerId(data: unknown): number {
   if (id == null || !Number.isFinite(id) || id < 1) {
     throw new Error("Invalid customer response from server.");
   }
-  return id;
+  return {
+    id,
+    isNewCustomer: o.isNewCustomer === true,
+  };
 }
 
 export async function createCustomer(
@@ -67,5 +72,5 @@ export async function createCustomer(
   }
 
   const json: unknown = await res.json();
-  return { id: readCustomerId(json) };
+  return readCustomerCreateResult(json);
 }

@@ -1,10 +1,8 @@
 "use client";
 
-/**
- * Get Started — white section; dark gradient card (shared section typography).
- */
 import { landingAuthHref } from "@/app/components/landing/landing-auth";
 import { scaleIn } from "@/app/components/landing/landing-motion";
+import { trackProductButtonClick, trackProductLead } from "@/app/lib/product-meta-pixel";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -43,6 +41,10 @@ export function LandingAuthEntry({ returnTo }: LandingAuthEntryProps) {
             <Link
               href={signupHref}
               className="landing-btn-primary flex h-12 w-full items-center justify-center rounded-xl text-sm font-bold"
+              onClick={() => {
+                trackProductButtonClick("Get Started", "auth_entry");
+                trackProductLead("signup_cta_auth_entry");
+              }}
             >
               Get Started
             </Link>
@@ -52,6 +54,7 @@ export function LandingAuthEntry({ returnTo }: LandingAuthEntryProps) {
             <Link
               href={loginHref}
               className="flex h-12 w-full items-center justify-center rounded-xl border border-white/30 bg-white/[0.04] text-sm font-bold text-white transition-colors hover:border-white/45 hover:bg-white/[0.08]"
+              onClick={() => trackProductButtonClick("Log In", "auth_entry")}
             >
               Log In
             </Link>

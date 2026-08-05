@@ -11,6 +11,7 @@ import { useSubscriptionPlans } from "@/app/hooks/use-subscription-plans";
 import { Reveal } from "@/app/components/landing/LandingMotionParts";
 import { BRAND_COLORS } from "@/app/components/landing/landing-brand";
 import { easeOut } from "@/app/components/landing/landing-motion";
+import { trackProductButtonClick, trackProductLead } from "@/app/lib/product-meta-pixel";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -370,6 +371,10 @@ export function LandingFinalCtaBand({ returnTo }: { returnTo?: string | null }) 
                 className="landing-final-cta-btn-primary"
                 whileHover={reduced ? undefined : { scale: 1.03, y: -2 }}
                 whileTap={reduced ? undefined : { scale: 0.98 }}
+                onClick={() => {
+                  trackProductButtonClick("Start free in 60 seconds", "final_cta");
+                  trackProductLead("signup_cta_final");
+                }}
               >
                 Start free in 60 seconds
                 <ArrowRight className="h-4 w-4" aria-hidden />
@@ -379,6 +384,10 @@ export function LandingFinalCtaBand({ returnTo }: { returnTo?: string | null }) 
                 className="landing-final-cta-btn-ghost"
                 whileHover={reduced ? undefined : { scale: 1.02 }}
                 whileTap={reduced ? undefined : { scale: 0.98 }}
+                onClick={() => {
+                  trackProductButtonClick("Get started free", "final_cta");
+                  trackProductLead("signup_cta_final");
+                }}
               >
                 Get started free
               </motion.a>
@@ -575,7 +584,6 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
             {plans.map((plan, i) => {
               const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";
-              // Growth Expert monthly: always show $500 list price with $299 discounted.
               const originalPrice =
                 tier.originalPrice ??
                 (isExpertPlan && billing === "monthly" ? "$500" : null);
@@ -640,6 +648,10 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                           ? "bg-brand-primary text-white shadow-[0_6px_20px_rgba(24,119,242,0.28)]"
                           : "border border-brand-border bg-white text-brand-navy hover:bg-brand-soft"
                       }`}
+                      onClick={() => {
+                        trackProductButtonClick(plan.cta || "Plan CTA", `pricing_${plan.id}`);
+                        trackProductLead(`signup_cta_pricing_${plan.id}`);
+                      }}
                     >
                       {plan.cta}
                     </motion.a>

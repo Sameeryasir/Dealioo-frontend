@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackProductLead } from "@/app/lib/product-meta-pixel";
 import {
   startGoogleAuth,
   type GoogleAuthMode,
 } from "@/app/services/auth/start-google-auth";
+
+export const GOOGLE_SIGNUP_FLAG = "rp_meta_google_signup";
 
 type GoogleAuthButtonProps = {
   disabled?: boolean;
@@ -12,9 +15,6 @@ type GoogleAuthButtonProps = {
   mode?: GoogleAuthMode;
 };
 
-/**
- * Continue with Google — redirects to Nest /api/auth/google?mode=login|signup.
- */
 export default function GoogleAuthButton({
   disabled = false,
   label = "Continue with Google",
@@ -22,11 +22,45 @@ export default function GoogleAuthButton({
 }: GoogleAuthButtonProps) {
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    const clearBusy = () => setBusy(false);
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      clearBusy();
+      if (event.persisted && mode === "signup") {
+        try {
+          sessionStorage.removeItem(GOOGLE_SIGNUP_FLAG);
+        } catch {}
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") clearBusy();
+    };
+
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", clearBusy);
+
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", clearBusy);
+    };
+  }, [mode]);
+
   return (
     <button
       type="button"
       disabled={disabled || busy}
       onClick={() => {
+        // Lead is intentional signup-start CTA; CompleteRegistration is gated later by backend isNewCustomer.
+        if (mode === "signup") {
+          trackProductLead("signup_google");
+          try {
+            sessionStorage.setItem(GOOGLE_SIGNUP_FLAG, "1");
+          } catch {}
+        }
         setBusy(true);
         startGoogleAuth(mode);
       }}

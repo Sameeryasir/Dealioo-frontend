@@ -11,6 +11,8 @@ export type RegisterPayload = {
 
 export type RegisterResponse = {
   message: string;
+  /** Backend source of truth: only true when a new account was created. */
+  isNewCustomer: boolean;
 };
 
 export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
@@ -28,7 +30,12 @@ export async function registerUser(payload: RegisterPayload): Promise<RegisterRe
       },
     );
 
-    return response.data;
+    const data = response.data;
+    return {
+      message: data.message,
+      // Default false if older servers omit the field — never invent "new".
+      isNewCustomer: data.isNewCustomer === true,
+    };
   } catch (error) {
     console.error("Register Error:", error);
 

@@ -96,6 +96,7 @@ export type RegisterWithInvitationResponse = {
   token: string;
   refreshToken: string;
   user: VerifyOtpUser;
+  isNewCustomer: boolean;
 };
 
 export type AcceptInvitationResponse = {
@@ -145,7 +146,10 @@ export async function registerWithInvitation(input: {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       },
     );
-    return response.data;
+    return {
+      ...response.data,
+      isNewCustomer: response.data.isNewCustomer === true,
+    };
   } catch (error) {
     throw new Error(
       readApiErrorMessage(error, "Could not create your account from this invitation."),

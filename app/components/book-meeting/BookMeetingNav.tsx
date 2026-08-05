@@ -1,6 +1,10 @@
 "use client";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
+import {
+  sectionIdFromHref,
+  trackProductSectionViewed,
+} from "@/app/lib/product-meta-pixel";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -73,11 +77,23 @@ export function BookMeetingNav({ onMenuOpenChange }: BookMeetingNavProps) {
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
-            {navLinks.map(([label, href]) => (
-              <Link key={href} href={href} className="landing-nav-link text-sm font-medium transition-colors">
-                {label}
-              </Link>
-            ))}
+            {navLinks.map(([label, href]) => {
+              const sectionId = sectionIdFromHref(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="landing-nav-link text-sm font-medium transition-colors"
+                  onClick={() => {
+                    if (sectionId) {
+                      trackProductSectionViewed(sectionId, "book_meeting_nav");
+                    }
+                  }}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -124,17 +140,25 @@ export function BookMeetingNav({ onMenuOpenChange }: BookMeetingNavProps) {
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               <ul className="landing-mobile-nav-list">
-                {navLinks.map(([label, href]) => (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      className="landing-mobile-nav-link"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
+                {navLinks.map(([label, href]) => {
+                  const sectionId = sectionIdFromHref(href);
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        className="landing-mobile-nav-link"
+                        onClick={() => {
+                          if (sectionId) {
+                            trackProductSectionViewed(sectionId, "book_meeting_mobile_nav");
+                          }
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
               <Link
                 href={signupHref}

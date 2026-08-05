@@ -20,11 +20,17 @@ export function setAuthTokens(accessToken: string, refreshToken: string): void {
   setSetupAccessToken(accessToken);
   setSetupRefreshToken(refreshToken);
   notifyAuthSessionChanged();
+  void import("@/app/lib/sync-product-meta-attribution")
+    .then((m) => m.syncProductMetaAttributionAfterAuth())
+    .catch(() => {});
 }
 
 export function clearAuthSession(): void {
   clearSetupAccessToken();
   clearSetupRefreshToken();
+  void import("@/app/lib/sync-product-meta-attribution")
+    .then((m) => m.resetProductMetaAttributionOnLogout())
+    .catch(() => {});
   notifyAuthSessionChanged();
 }
 

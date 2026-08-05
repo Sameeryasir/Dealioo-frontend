@@ -1,13 +1,15 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
+import { GOOGLE_SIGNUP_FLAG } from "@/app/components/auth/GoogleAuthButton";
 import { setAuthTokens } from "@/app/lib/auth-session";
+import { trackProductCompleteRegistration } from "@/app/lib/product-meta-pixel";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
+import { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 function GoogleAuthCompleteInner() {
   const router = useRouter();
@@ -21,6 +23,9 @@ function GoogleAuthCompleteInner() {
       const accessToken = params.get("accessToken")?.trim();
       const refreshToken = params.get("refreshToken")?.trim();
       const userB64 = params.get("user")?.trim();
+      // Backend source of truth (isNewCustomer preferred; isNewUser fallback).
+      const isNewCustomer =
+        params.get("isNewCustomer") === "1" || params.get("isNewUser") === "1";
 
       window.history.replaceState(null, "", window.location.pathname);
 
@@ -29,9 +34,24 @@ function GoogleAuthCompleteInner() {
         return;
       }
 
-      setAuthTokens(accessToken, refreshToken);
-
       const user = parseGoogleUser(userB64);
+
+      // Clear legacy signup click flag; do not use it for CompleteRegistration.
+      try {
+        sessionStorage.removeItem(GOOGLE_SIGNUP_FLAG);
+      } catch {}
+
+      // Fire CompleteRegistration only for brand-new accounts from backend.
+      if (isNewCustomer && user) {
+        trackProductCompleteRegistration({
+          email: user.email,
+          phone: user.phone || undefined,
+          externalId: String(user.id),
+          isNewCustomer: true,
+        });
+      }
+
+      setAuthTokens(accessToken, refreshToken);
       if (user) {
         setSetupUser(user);
       }

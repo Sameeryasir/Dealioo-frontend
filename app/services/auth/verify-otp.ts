@@ -42,6 +42,8 @@ export type VerifyOtpResponse = {
   token: string;
   refreshToken: string;
   user: VerifyOtpUser;
+  /** Backend: true only on first email verification (new registration). */
+  isNewCustomer: boolean;
 };
 
 export async function verifyOtp(
@@ -71,7 +73,11 @@ export async function verifyOtp(
       },
     );
 
-    return response.data;
+    const data = response.data;
+    return {
+      ...data,
+      isNewCustomer: data.isNewCustomer === true,
+    };
   } catch (error) {
     console.error("Verify OTP Error:", error);
 

@@ -1,11 +1,8 @@
 "use client";
 
-/**
- * Hero — outcome headline, audience line, journey simulator.
- * Business rule: primary CTA → signup; secondary → meeting booking form.
- */
 import { LandingLoopSimulator } from "@/app/components/landing/LandingLoopSimulator";
 import { headlineLine, easeOut } from "@/app/components/landing/landing-motion";
+import { trackProductButtonClick, trackProductLead } from "@/app/lib/product-meta-pixel";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import Link from "next/link";
@@ -90,19 +87,32 @@ export function LandingHero({ signupHref }: { signupHref: string }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.36, duration: 0.6, ease: easeOut }}
             >
-              <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+              <motion.div
+                className="landing-hero-action-item w-full min-w-0 md:w-auto"
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Link
                   href={signupHref}
-                  className="landing-btn-primary inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 px-6 text-[15px] font-bold sm:h-[3.25rem] sm:w-auto sm:min-w-[200px] sm:px-8 sm:text-base"
+                  className="landing-btn-primary inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 px-6 text-[15px] font-bold sm:h-[3.25rem] sm:px-8 sm:text-base md:w-auto md:min-w-[200px]"
+                  onClick={() => {
+                    trackProductButtonClick("Get Started", "hero");
+                    trackProductLead("signup_cta_hero");
+                  }}
                 >
                   Get Started
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </Link>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
+              <motion.div
+                className="landing-hero-action-item w-full min-w-0 md:w-auto"
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Link
                   href="/book-meeting"
-                  className="landing-btn-secondary landing-hero-btn-outline inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold sm:h-12 sm:w-auto"
+                  className="landing-btn-secondary landing-hero-btn-outline inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold sm:h-12 md:w-auto"
+                  onClick={() => trackProductButtonClick("Book a Meeting", "hero")}
                 >
                   <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
                   Book a Meeting

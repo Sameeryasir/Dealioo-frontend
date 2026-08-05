@@ -17,6 +17,12 @@ import {
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
 import { useLandingPageEntry } from "@/app/components/landing/useLandingPageEntry";
+import {
+  sectionIdFromHref,
+  trackProductButtonClick,
+  trackProductLead,
+  trackProductSectionViewed,
+} from "@/app/lib/product-meta-pixel";
 
 const LANDING_LOGO_SRC = "/black-logo.png";
 const LANDING_LOGO_WIDTH = 562;
@@ -114,11 +120,17 @@ export function LandingPageContent() {
             {navLinks.map(([label, href]) => {
               const isInternal = href.startsWith("/");
               const LinkTag = isInternal ? Link : "a";
+              const sectionId = sectionIdFromHref(href);
               return (
                 <LinkTag
                   key={href}
                   href={href}
                   className="landing-nav-link text-sm font-medium transition-colors"
+                  onClick={() => {
+                    if (sectionId) {
+                      trackProductSectionViewed(sectionId, "landing_nav");
+                    }
+                  }}
                 >
                   {label}
                 </LinkTag>
@@ -127,7 +139,14 @@ export function LandingPageContent() {
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link href={signupHref} className="landing-btn-primary px-6 py-2.5 text-sm font-bold">
+            <Link
+              href={signupHref}
+              className="landing-btn-primary px-6 py-2.5 text-sm font-bold"
+              onClick={() => {
+                trackProductButtonClick("Get Started", "nav");
+                trackProductLead("signup_cta_nav");
+              }}
+            >
               Get Started
             </Link>
           </div>
@@ -173,12 +192,18 @@ export function LandingPageContent() {
                 {navLinks.map(([label, href]) => {
                   const isInternal = href.startsWith("/");
                   const LinkTag = isInternal ? Link : "a";
+                  const sectionId = sectionIdFromHref(href);
                   return (
                     <li key={href}>
                       <LinkTag
                         href={href}
                         className="landing-mobile-nav-link"
-                        onClick={() => setMobileNavOpen(false)}
+                        onClick={() => {
+                          if (sectionId) {
+                            trackProductSectionViewed(sectionId, "landing_mobile_nav");
+                          }
+                          setMobileNavOpen(false);
+                        }}
                       >
                         {label}
                       </LinkTag>
@@ -189,7 +214,11 @@ export function LandingPageContent() {
               <Link
                 href={signupHref}
                 className="landing-btn-primary landing-mobile-nav-cta"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={() => {
+                  trackProductButtonClick("Get Started", "mobile_nav");
+                  trackProductLead("signup_cta_mobile_nav");
+                  setMobileNavOpen(false);
+                }}
               >
                 Get Started
               </Link>
@@ -296,23 +325,34 @@ function FooterCol({
     <div>
       <p className="landing-footer-title text-sm font-semibold">{title}</p>
       <ul className="landing-text-muted mt-3 space-y-2 text-sm">
-        {links.map(([label, href]) => (
-          <li key={label}>
-            {href.startsWith("mailto:") ? (
-              <a href={href} className="transition hover:text-brand-primary">
-                {label}
-              </a>
-            ) : href.startsWith("/") || href.startsWith("/auth/") ? (
-              <Link href={href} className="transition hover:text-brand-primary">
-                {label}
-              </Link>
-            ) : (
-              <a href={href} className="transition hover:text-brand-primary">
-                {label}
-              </a>
-            )}
-          </li>
-        ))}
+        {links.map(([label, href]) => {
+          const sectionId = sectionIdFromHref(href);
+          const onSectionClick = sectionId
+            ? () => trackProductSectionViewed(sectionId, "landing_footer")
+            : undefined;
+
+          return (
+            <li key={label}>
+              {href.startsWith("mailto:") ? (
+                <a href={href} className="transition hover:text-brand-primary">
+                  {label}
+                </a>
+              ) : href.startsWith("/") || href.startsWith("/auth/") ? (
+                <Link href={href} className="transition hover:text-brand-primary">
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  href={href}
+                  className="transition hover:text-brand-primary"
+                  onClick={onSectionClick}
+                >
+                  {label}
+                </a>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

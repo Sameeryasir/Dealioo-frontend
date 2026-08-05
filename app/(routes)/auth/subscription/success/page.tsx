@@ -4,14 +4,73 @@ import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
+import { trackProductSubscription } from "@/app/lib/product-meta-pixel";
 import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
+import { getSetupUser } from "@/app/lib/setup-user";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
+import { getSubscriptionPlans } from "@/app/services/subscription/get-subscription-plans";
 import {
   completeUserPlanCheckout,
   waitForActiveUserSubscription,
+  type UserSubscription,
 } from "@/app/services/subscription/user-subscription";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+
+const SUB_TRACK_PREFIX = "rp_meta_subscription_tracked:";
+
+function alreadyTrackedCheckout(sessionId: string): boolean {
+  try {
+    return sessionStorage.getItem(`${SUB_TRACK_PREFIX}${sessionId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markCheckoutTracked(sessionId: string) {
+  try {
+    sessionStorage.setItem(`${SUB_TRACK_PREFIX}${sessionId}`, "1");
+  } catch {}
+}
+
+async function resolvePlanValue(
+  planSlug: string,
+  billing: "monthly" | "annual",
+): Promise<number | undefined> {
+  try {
+    const plans = await getSubscriptionPlans();
+    const plan = plans.find((p) => p.slug === planSlug || p.id === planSlug);
+    if (!plan) return undefined;
+    const raw =
+      billing === "annual" ? plan.yearlyPrice : plan.monthlyPrice;
+    return raw != null && Number.isFinite(raw) ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function trackNewUserSubscriptionPayment(
+  sessionId: string,
+  subscription: UserSubscription,
+) {
+  if (alreadyTrackedCheckout(sessionId)) return;
+  markCheckoutTracked(sessionId);
+
+  const user = getSetupUser();
+  const value = await resolvePlanValue(
+    subscription.planSlug,
+    subscription.billingCycle,
+  );
+
+  trackProductSubscription({
+    planId: subscription.planSlug,
+    billing: subscription.billingCycle,
+    value,
+    currency: value != null ? "USD" : undefined,
+    email: user?.email,
+    externalId: user?.id != null ? String(user.id) : undefined,
+  });
+}
 
 function SubscriptionSuccessInner() {
   const router = useRouter();
@@ -46,6 +105,9 @@ function SubscriptionSuccessInner() {
           planId: subscription.planSlug,
           billing: subscription.billingCycle,
         });
+
+        await trackNewUserSubscriptionPayment(sessionId, subscription);
+        if (cancelled) return;
 
         invalidateOnboardingStatusCache();
 

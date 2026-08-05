@@ -66,7 +66,9 @@ export function ensureMetaPixel(pixelId: string | null | undefined): boolean {
 
 export function trackMetaPixelPageView(pixelId: string | null | undefined) {
   if (!ensureMetaPixel(pixelId)) return;
-  window.fbq?.("track", "PageView");
+  const id = pixelId?.trim();
+  if (!id) return;
+  window.fbq?.("trackSingle", id, "PageView");
 }
 
 export function trackMetaPixelEvent(
@@ -76,16 +78,16 @@ export function trackMetaPixelEvent(
 ) {
   if (typeof window === "undefined") return;
 
-  const ready =
-    Boolean(window.__rpMetaPixelInitialized) || ensureMetaPixel(pixelId);
-  if (!ready) return;
+  const id = pixelId?.trim() || window.__rpMetaPixelInitialized;
+  const ready = Boolean(id) && (Boolean(window.__rpMetaPixelInitialized) || ensureMetaPixel(id));
+  if (!ready || !id) return;
 
   const name = eventName.trim();
   if (!name) return;
 
   if (params && Object.keys(params).length > 0) {
-    window.fbq?.("track", name, params);
+    window.fbq?.("trackSingle", id, name, params);
   } else {
-    window.fbq?.("track", name);
+    window.fbq?.("trackSingle", id, name);
   }
 }

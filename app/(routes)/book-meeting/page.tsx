@@ -2,6 +2,7 @@
 
 import BookMeetingForm from "@/app/components/book-meeting/BookMeetingForm";
 import type { MeetingFormValues } from "@/app/components/book-meeting/book-meeting-config";
+import { trackProductFormSubmission } from "@/app/lib/product-meta-pixel";
 import { submitMeetingRequest } from "@/app/services/meeting/submitMeetingRequest";
 import { useCallback, useState } from "react";
 
@@ -14,6 +15,10 @@ export default function BookMeetingPage() {
     setSubmitting(true);
     try {
       await submitMeetingRequest(values);
+      trackProductFormSubmission("book_meeting", {
+        email: values.email,
+        phone: values.phone,
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not submit your request.";
