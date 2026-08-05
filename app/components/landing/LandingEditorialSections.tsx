@@ -589,6 +589,13 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
               const originalPrice =
                 tier.originalPrice ??
                 (isExpertPlan && billing === "monthly" ? "$500" : null);
+              // --- Talk to Us / Contact Sales: stop on thank-you (no signup checkout) ---
+              const ctaLower = (plan.cta || "").toLowerCase();
+              const isTalkToUsCta =
+                ctaLower.includes("talk to") || ctaLower.includes("contact");
+              const planCtaHref = isTalkToUsCta
+                ? `/auth/select-plan/thank-you?plan=${encodeURIComponent(plan.id)}`
+                : signupHref;
 
               return (
                 <Reveal key={plan.id} delay={i * 0.06} className="h-full">
@@ -642,7 +649,7 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                       <PricingPlanFeatures plan={plan} />
                     </div>
                     <motion.a
-                      href={signupHref}
+                      href={planCtaHref}
                       whileHover={reduced ? undefined : { scale: 1.02, y: -1 }}
                       whileTap={reduced ? undefined : { scale: 0.98 }}
                       className={`mt-auto flex h-9 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:text-sm ${
@@ -652,7 +659,11 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
                       }`}
                       onClick={() => {
                         trackProductButtonClick(plan.cta || "Plan CTA", `pricing_${plan.id}`);
-                        trackProductLead(`signup_cta_pricing_${plan.id}`);
+                        trackProductLead(
+                          isTalkToUsCta
+                            ? `talk_to_us_pricing_${plan.id}`
+                            : `signup_cta_pricing_${plan.id}`,
+                        );
                       }}
                     >
                       {plan.cta}

@@ -22,7 +22,6 @@ import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
-import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
 import {
   isPlanFitComplete,
@@ -33,12 +32,6 @@ import {
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-function isContactSalesPlan(planId: string, plans: readonly { id: string; cta?: string }[]): boolean {
-  const fromList = plans.find((plan) => plan.id === planId);
-  const cta = fromList?.cta ?? findPricingPlan(planId)?.cta ?? "";
-  return cta.toLowerCase().includes("contact");
-}
 
 type SignupSelectPlanPanelProps = {
   mode?: "checkout" | "upgrade";
@@ -218,13 +211,17 @@ export function SignupSelectPlanPanel({
     setSubmitting(true);
 
     try {
-      if (isContactSalesPlan(selectedPlanId, plans)) {
-        const salesEmail =
-          plans.find((plan) => plan.id === selectedPlanId)?.salesEmail ??
-          findPricingPlan(selectedPlanId)?.salesEmail ??
-          "support@dealioo.com";
-        window.location.href = `mailto:${salesEmail}?subject=${encodeURIComponent("Enterprise plan inquiry")}`;
-        setSubmitting(false);
+      // --- Temporary signup stop ---
+      // After plan-fit quiz + plan page, any CTA (Get Started / Talk to Us / etc.)
+      // goes to thank-you and stays there — no Stripe checkout for now.
+      if (mode === "checkout") {
+        saveSelectedSignupPlan({
+          planId: selectedPlanId,
+          billing: billingCycle,
+        });
+        router.replace(
+          `/auth/select-plan/thank-you?plan=${encodeURIComponent(selectedPlanId)}`,
+        );
         return;
       }
 
@@ -249,33 +246,11 @@ export function SignupSelectPlanPanel({
         void invalidateMySubscription();
         return;
       }
-
-      const checkout = await startUserPlanCheckout({
-        planSlug: selectedPlanId,
-        billingCycle,
-      });
-
-      saveSelectedSignupPlan({
-        planId: selectedPlanId,
-        billing: billingCycle,
-      });
-
-      window.location.href = checkout.checkoutUrl;
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : mode === "upgrade"
-            ? "Could not upgrade your plan. Try again."
-            : "Could not start checkout. Try again.";
-
-      if (
-        mode === "checkout" &&
-        message.toLowerCase().includes("already have an active subscription")
-      ) {
-        router.replace("/business/register");
-        return;
-      }
+          : "Could not upgrade your plan. Try again.";
 
       setErrorMessage(message);
       setSubmitting(false);
