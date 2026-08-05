@@ -3,6 +3,7 @@
 import BusinessDashboardCard from "@/app/components/BusinessDashboardCard";
 import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
 import { StarterPlanLimitDialog } from "@/app/components/StarterPlanLimitDialog";
+import { SuperAdminDashboard } from "@/app/components/SuperAdminDashboard";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
@@ -13,6 +14,7 @@ import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { isStarterBusinessLimitReachedForSubscription } from "@/app/lib/plan-limits";
+import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
@@ -34,6 +36,36 @@ function firstName(fullName: string | null | undefined): string {
 }
 
 export default function DashboardPage() {
+  const [isClient, setIsClient] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    setIsSuperAdmin(isSuperAdminUser());
+  }, []);
+
+  if (!isClient) {
+    return (
+      <section className="org-dashboard-section" aria-label="Dashboard">
+        <div className="brand-landing-section">
+          <SkeletonGrid
+            count={3}
+            className="org-dashboard-grid org-dashboard-grid--cards grid"
+            Card={BusinessCardSkeleton}
+          />
+        </div>
+      </section>
+    );
+  }
+
+  if (isSuperAdmin) {
+    return <SuperAdminDashboard />;
+  }
+
+  return <OwnerDashboardPage />;
+}
+
+function OwnerDashboardPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
