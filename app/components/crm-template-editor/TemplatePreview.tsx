@@ -52,7 +52,7 @@ function previewOuterChrome(
     return "flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto";
   }
   if (options.editorChrome) {
-    return "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-white";
+    return "flex w-full min-w-0 flex-col bg-white";
   }
   return "overflow-hidden rounded-2xl bg-white shadow-sm";
 }
@@ -194,7 +194,7 @@ export function TemplatePreview({
     editorChrome: editorStepPreviewChrome,
     fullPageShell: fullPageShellChrome,
   });
-  const fillFrame = fullPageShellChrome || editorStepPreviewChrome;
+  const fillFrame = fullPageShellChrome;
   const align = textAlign(layoutType);
   const signup =
     page.id === "signup" ? (page as SignUpTemplatePage) : null;

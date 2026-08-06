@@ -1,11 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  editorPremiumCardClass,
-  editorPanelTopShellClass,
-  editorFunnelProgressFillGradient,
-} from "@/app/components/crm-template-editor/editor-sidebar-theme";
+import { Filter } from "lucide-react";
 import {
   FUNNEL_PAGE_ORDER,
   TemplatePageList,
@@ -27,37 +22,33 @@ export function EditorLeftSidebar({
 }) {
   const order = pageOrder.length > 0 ? pageOrder : FUNNEL_PAGE_ORDER;
   const stepIndex = Math.max(0, order.indexOf(activeId));
-  const progress = ((stepIndex + 1) / order.length) * 100;
+
+  const header = (
+    <div className="shrink-0 border-b border-[#eef2f7] bg-white px-3.5 py-3.5 sm:px-4">
+      <div className="flex items-center gap-2">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-[#e8f1ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
+          <Filter className="size-3.5" strokeWidth={2.25} aria-hidden />
+        </span>
+        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-500">
+          Funnel Builder
+        </p>
+      </div>
+
+      <p className="m-0 mt-3 text-[1.05rem] font-extrabold leading-tight tracking-tight text-[#0e182b]">
+        Step {stepIndex + 1} of {order.length}
+      </p>
+
+      <p className="m-0 mt-2 text-[0.76rem] font-medium text-slate-500">
+        Build your customer journey
+      </p>
+    </div>
+  );
 
   if (compact) {
     return (
-      <aside
-        className={`${editorPremiumCardClass} flex h-full min-h-0 w-full flex-col`}
-      >
-        <div className={`${editorPanelTopShellClass} editor-funnel-top-shell`}>
-          <div className="editor-funnel-top-stack w-full">
-            <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              Funnel
-            </p>
-            <p className="m-0 mt-2 text-[0.9375rem] font-semibold leading-tight text-slate-900">
-              Step {stepIndex + 1} of {order.length}
-            </p>
-            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: editorFunnelProgressFillGradient }}
-                initial={false}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </div>
-            <p className="m-0 mt-2 text-[0.7rem] font-normal text-slate-500">
-              Select a step to preview or edit
-            </p>
-          </div>
-        </div>
-
-        <div className="shrink-0 px-2.5 pb-3 pt-2">
+      <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-none">
+        {header}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           <TemplatePageList
             activeId={activeId}
             onSelect={onSelect}
@@ -71,30 +62,9 @@ export function EditorLeftSidebar({
   }
 
   return (
-    <aside className="relative flex h-full min-h-0 w-full max-w-full flex-col border-r border-[#e8edf5] bg-[#f8fafc]">
-      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-3 py-2.5">
-        <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
-          Funnel flow
-        </p>
-        <p className="m-0 mt-1 text-[0.9rem] font-extrabold leading-tight tracking-tight text-[#07111f]">
-          Your funnel
-        </p>
-        <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-500">
-          Step {stepIndex + 1} of {order.length}
-        </p>
-
-        <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#e8edf5]">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: editorFunnelProgressFillGradient }}
-            initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </div>
-      </div>
-
-      <div className="scroll-smooth">
+    <aside className="relative flex h-full min-h-0 w-full max-w-full flex-col border-r border-[#e8edf5] bg-white">
+      {header}
+      <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-3 py-3 sm:px-3.5">
         <TemplatePageList
           activeId={activeId}
           onSelect={onSelect}

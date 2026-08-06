@@ -65,7 +65,7 @@ export function LandingHero({
 
   const placeholder = (
     <div
-      className={`flex flex-col items-center justify-center gap-2 px-4 py-10 text-center ${frameClass}`}
+      className={`flex flex-col items-center justify-center gap-2 px-4 py-8 text-center ${frameClass}`}
     >
       <span className="text-xs font-semibold">Image placeholder</span>
       <span className="text-[0.65rem] opacity-80">
@@ -117,7 +117,7 @@ function LandingBody({
   const paras = trimmed.split(/\n\n+/).filter(Boolean);
   return (
     <div
-      className={`mt-5 space-y-3.5 text-[0.9375rem] leading-relaxed ${colorStyle ? "" : bodyClass} ${centered ? "mx-auto max-w-prose text-center" : ""}`}
+      className={`space-y-3.5 text-[0.9375rem] leading-relaxed ${colorStyle ? "" : bodyClass} ${centered ? "mx-auto max-w-prose text-center" : ""}`}
       style={colorStyle}
     >
       {paras.map((p, i) => (
@@ -145,7 +145,7 @@ function LandingCta({
   onButtonClick?: (elementName: string) => void;
 }) {
   const className = [
-    "group relative mt-8 w-full",
+    "group relative w-full",
     landingTemplateCtaLayoutClass,
     centered ? "mx-auto max-w-sm" : "",
   ]
@@ -347,7 +347,7 @@ export function LandingPagePreview({
 
   const content = (
     <div
-      className={`flex flex-col gap-4 ${align} px-5 pb-8 pt-6 ${fillViewport ? "min-h-0 flex-1" : ""}`}
+      className={`flex flex-col gap-5 ${align} px-6 pb-10 pt-7 ${fillViewport ? "min-h-0 flex-1" : ""}`}
       style={pageBackgroundStyle(theme.background, theme.background)}
     >
       {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
@@ -356,7 +356,7 @@ export function LandingPagePreview({
 
   const rootClass = fillViewport
     ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
-    : "flex min-h-0 flex-col overflow-hidden";
+    : "flex w-full flex-col";
 
   if (layoutType === "split") {
     return (

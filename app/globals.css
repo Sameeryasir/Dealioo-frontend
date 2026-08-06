@@ -13453,23 +13453,23 @@ body:has(.auth-select-plan-page) {
 
 .funnel-editor-shell {
   padding: 0;
-  --rd-funnel-editor-edge-gap: 0.65rem;
+  --rd-funnel-editor-edge-gap: 0;
 }
 
 .rd-shell--campaign-immersive .funnel-editor-shell .crm-editor-embedded-grid-wrap {
-  padding-left: var(--rd-funnel-editor-edge-gap);
-  padding-right: var(--rd-funnel-editor-edge-gap);
+  padding-left: 0;
+  padding-right: 0;
 }
 
 @media (min-width: 1024px) {
   .funnel-editor-shell {
-    --rd-funnel-editor-edge-gap: 0.85rem;
+    --rd-funnel-editor-edge-gap: 0;
   }
 }
 
 @media (min-width: 1280px) {
   .funnel-editor-shell {
-    --rd-funnel-editor-edge-gap: 1rem;
+    --rd-funnel-editor-edge-gap: 0;
   }
 }
 
@@ -13501,7 +13501,7 @@ body:has(.auth-select-plan-page) {
 }
 
 .rd-shell--campaign-immersive .crm-editor-embedded-shell {
-  background: #ffffff;
+  background: #f4f6fa;
 }
 
 .rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
@@ -13510,10 +13510,9 @@ body:has(.auth-select-plan-page) {
   width: 100%;
   flex: 1 1 0%;
   height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-top: 0.25rem;
-  padding-bottom: 0.15rem;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .rd-shell--campaign-immersive .crm-editor-embedded-grid {
@@ -13526,22 +13525,22 @@ body:has(.auth-select-plan-page) {
   align-items: stretch;
   align-content: stretch;
   padding-inline: 0;
-  column-gap: 1.375rem;
+  column-gap: 0;
 }
 
 @media (min-width: 640px) {
   .rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
-    padding-top: 0.4rem;
+    padding-top: 0;
   }
 }
 
 @media (min-width: 1280px) {
   .rd-shell--campaign-immersive .crm-editor-embedded-grid-wrap {
-    padding-top: 0.45rem;
+    padding-top: 0;
   }
 
   .rd-shell--campaign-immersive .crm-editor-embedded-grid {
-    column-gap: 1.375rem;
+    column-gap: 0;
   }
 }
 

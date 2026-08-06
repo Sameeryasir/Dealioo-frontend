@@ -106,7 +106,7 @@ export function FunnelConfirmationView({
   }
 
   return (
-    <>
+    <div className="relative flex min-h-full w-full flex-1 flex-col">
       <FunnelMetaPixel
         pixelId={publicFunnel?.pixelId}
         stepKey="confirmation"
@@ -180,14 +180,16 @@ export function FunnelConfirmationView({
         </div>
       ) : null}
 
-      <TemplatePreview
-        page={pages.confirmation}
-        landingPage={pages.landing}
-        fullPageShellChrome
-        trackingFunnelId={funnelId}
-        campaignType={campaignType}
-        skipPaymentStep={isPostpaid}
-      />
-    </>
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+        <TemplatePreview
+          page={pages.confirmation}
+          landingPage={pages.landing}
+          fullPageShellChrome
+          trackingFunnelId={funnelId}
+          campaignType={campaignType}
+          skipPaymentStep={isPostpaid}
+        />
+      </div>
+    </div>
   );
 }

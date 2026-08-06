@@ -1,13 +1,13 @@
 "use client";
 
 import { useId } from "react";
+import { ChevronDown } from "lucide-react";
 import {
   colorInputValue,
   normalizeHexColor,
 } from "@/app/components/crm-template-editor/landing-content-colors";
 import {
   editorColorPickerBadgeClass,
-  editorColorPickerDividerClass,
   editorColorPickerHexInputClass,
   editorColorPickerResetClass,
   editorColorPickerShellClass,
@@ -26,6 +26,7 @@ export function ContentTextColorPicker({
   const inputId = useId();
   const pickerValue = colorInputValue(value, fallbackHex);
   const hasCustom = Boolean(normalizeHexColor(value));
+  const displayHex = hasCustom ? value : pickerValue;
 
   return (
     <div
@@ -34,8 +35,6 @@ export function ContentTextColorPicker({
       aria-label="Text color"
     >
       <span className={editorColorPickerBadgeClass}>Color</span>
-
-      <span className={editorColorPickerDividerClass} aria-hidden />
 
       <label
         htmlFor={`${inputId}-picker`}
@@ -55,28 +54,31 @@ export function ContentTextColorPicker({
           className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"
           aria-hidden
         />
-        {!hasCustom ? (
-          <span
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,transparent_42%,rgba(255,255,255,0.35)_42%,rgba(255,255,255,0.35)_58%,transparent_58%)]"
-            aria-hidden
-          />
-        ) : null}
       </label>
 
       <input
         type="text"
-        value={value}
+        value={displayHex}
         onChange={(e) => onChange(normalizeHexColor(e.target.value))}
-        placeholder="Default"
+        onFocus={(e) => {
+          if (!hasCustom) e.currentTarget.select();
+        }}
+        placeholder={fallbackHex}
         className={[
           editorColorPickerHexInputClass,
-          hasCustom
-            ? "font-semibold uppercase tracking-wide text-zinc-900"
-            : "italic text-zinc-400 placeholder:not-italic placeholder:font-medium placeholder:text-zinc-400",
+          "font-semibold uppercase tracking-wide text-slate-700",
         ].join(" ")}
         spellCheck={false}
         maxLength={7}
       />
+
+      <label
+        htmlFor={`${inputId}-picker`}
+        className="flex size-5 shrink-0 cursor-pointer items-center justify-center text-slate-400"
+        aria-hidden
+      >
+        <ChevronDown className="size-3.5" strokeWidth={2.25} />
+      </label>
 
       {hasCustom ? (
         <button

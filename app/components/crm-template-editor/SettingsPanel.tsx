@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import {
-  editorPremiumCardClass,
   editorPanelTopShellClass,
   editorSettingsPanelShellClass,
   editorSettingsPanelShellEmbeddedClass,
@@ -36,8 +35,8 @@ export function SettingsPanel({
   if (embedded) {
     if (!open) {
       return (
-        <aside className={`${shellClass} w-full`}>
-          <div className={`${editorPremiumCardClass} flex min-h-0 w-full flex-1 flex-col`}>
+        <aside className={`${shellClass} w-full bg-white`}>
+          <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
             {toolbar ? (
               <div className={editorPanelTopShellClass}>
                 {toolbar}
@@ -60,21 +59,22 @@ export function SettingsPanel({
     }
 
     return (
-      <aside className={`${shellClass} w-full`}>
-        <div
-          className={`${editorPremiumCardClass} flex min-h-0 w-full flex-1 flex-col`}
-        >
+      <aside className={`${shellClass} w-full bg-white`}>
+        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
           {toolbar ? (
             <div className={editorPanelTopShellClass}>
               {toolbar}
             </div>
           ) : null}
-          <div className="shrink-0 border-b border-slate-200 px-3 py-2">
-            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <div className="shrink-0 border-b border-[#eef2f7] px-3 py-2.5">
+            <span className="text-[0.72rem] font-extrabold text-[#0e182b]">
               Page settings
             </span>
+            <span className="mt-0.5 block text-[0.68rem] font-medium text-slate-500">
+              Template, content, media & sections
+            </span>
           </div>
-          <div className="editor-settings-scroll editor-settings-scroll--embedded min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2">
+          <div className="editor-settings-scroll editor-settings-scroll--embedded min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-2.5 py-2">
             <TemplateEditorSidebar
               page={page}
               onChange={onChange}
@@ -118,11 +118,6 @@ export function SettingsPanel({
           {toolbar}
         </div>
       ) : null}
-      <div className="shrink-0 border-b border-slate-200 px-3 py-2">
-        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
-          Page settings
-        </span>
-      </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
         <TemplateEditorSidebar
           page={page}

@@ -211,9 +211,6 @@ export function SignupSelectPlanPanel({
     setSubmitting(true);
 
     try {
-      // --- Temporary signup stop ---
-      // After plan-fit quiz + plan page, any CTA (Get Started / Talk to Us / etc.)
-      // goes to thank-you and stays there — no Stripe checkout for now.
       if (mode === "checkout") {
         saveSelectedSignupPlan({
           planId: selectedPlanId,

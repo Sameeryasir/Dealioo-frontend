@@ -2,29 +2,29 @@
 import { type ChangeEvent, useCallback, useEffect, useId, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlignLeft,
+  Box,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CreditCard,
   FileText,
-  Heading1,
-  Heading2,
+  GripVertical,
   Image as ImageIcon,
   LayoutTemplate,
-  ListOrdered,
   Mail,
   MousePointerClick,
+  Palette,
   Phone,
+  Search,
   Trash2,
   Upload,
   User,
   UserPlus,
   UserRound,
   ZoomIn,
-  Palette,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { FUNNEL_STEP_META } from "@/app/components/crm-template-editor/editor-ui/funnel-step-meta";
 import {
   CHECKOUT_TEMPLATE_OPTIONS,
   CheckoutTemplateType,
@@ -41,22 +41,17 @@ import {
   editorAccordionChevronOpenClass,
   editorAccordionHeaderButtonClass,
   editorAccordionHintClass,
-  editorAccordionIconClosedClass,
-  editorAccordionIconOpenClass,
-  editorAccordionShellClosedClass,
-  editorAccordionShellOpenClass,
   editorAccordionTitleClass,
+  editorContentBlockCardClass,
   editorContentInputClass,
   editorFieldIconChipClass,
   editorFieldIconChipInlineClass,
   editorFieldLabelClass,
   editorFieldLabelInlineClass,
   editorFieldLabelPlainClass,
-  editorInlineInputClass,
   editorSidebarBodyStrongClass,
   editorSidebarBodyTextClass,
   editorSidebarCaptionClass,
-  editorSidebarCheckboxLabelClass,
   editorSidebarFormFieldIconOffClass,
   editorSidebarFormFieldIconOnClass,
   editorSidebarFormFieldRowClass,
@@ -66,7 +61,6 @@ import {
   editorSidebarPrimaryButtonClass,
   editorSidebarRootClass,
   editorSidebarSecondaryButtonClass,
-  editorSidebarSectionDividerClass,
   editorSidebarUploadButtonClass,
 } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import { formDesignUsesSplitLayout } from "@/app/components/crm-template-editor/form-design-registry";
@@ -121,22 +115,112 @@ const FORM_FIELD_ICONS: Record<FormFieldId, LucideIcon> = {
 
 const SECTION_ICONS: Partial<Record<SectionId, LucideIcon>> = {
   templates: LayoutTemplate,
-  sections: ListOrdered,
+  sections: Box,
   content: FileText,
   media: ImageIcon,
   form: UserPlus,
   "checkout-templates": CreditCard,
-  style: Palette,
+  style: Search,
 };
+
+const SECTION_ICON_COLORS: Record<
+  SectionId,
+  { softBg: string; softFg: string; solidBg: string }
+> = {
+  templates: { softBg: "#f3e8ff", softFg: "#7c3aed", solidBg: "#7c3aed" },
+  content: { softBg: "#e8f1ff", softFg: "#1877f2", solidBg: "#1877f2" },
+  media: { softBg: "#dcfce7", softFg: "#16a34a", solidBg: "#16a34a" },
+  sections: { softBg: "#ffedd5", softFg: "#ea580c", solidBg: "#ea580c" },
+  style: { softBg: "#fce7f3", softFg: "#db2777", solidBg: "#db2777" },
+  form: { softBg: "#e0f2fe", softFg: "#0284c7", solidBg: "#0284c7" },
+  "checkout-templates": {
+    softBg: "#eef2ff",
+    softFg: "#4f46e5",
+    solidBg: "#4f46e5",
+  },
+};
+
+const SECTION_TONES: Record<
+  SectionId,
+  { openShell: string; closedShell: string }
+> = {
+  templates: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#c4b5fd] bg-white shadow-[0_8px_22px_rgba(124,58,237,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#ddd6fe]",
+  },
+  content: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#93c5fd] bg-white shadow-[0_8px_22px_rgba(24,119,242,0.08)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#dbeafe]",
+  },
+  media: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#86efac] bg-white shadow-[0_8px_22px_rgba(22,163,74,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#bbf7d0]",
+  },
+  style: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#f9a8d4] bg-white shadow-[0_8px_22px_rgba(219,39,119,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#fbcfe8]",
+  },
+  sections: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#fdba74] bg-white shadow-[0_8px_22px_rgba(234,88,12,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#fed7aa]",
+  },
+  form: {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#7dd3fc] bg-white shadow-[0_8px_22px_rgba(2,132,199,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#bae6fd]",
+  },
+  "checkout-templates": {
+    openShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#c7d2fe] bg-white shadow-[0_8px_22px_rgba(79,70,229,0.1)] transition-colors duration-150",
+    closedShell:
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#e0e7ff]",
+  },
+};
+
+function SectionIconChip({
+  id,
+  open,
+  Icon,
+}: {
+  id: SectionId;
+  open: boolean;
+  Icon: LucideIcon;
+}) {
+  const colors = SECTION_ICON_COLORS[id];
+  return (
+    <span
+      className="flex size-9 shrink-0 items-center justify-center rounded-[0.7rem]"
+      style={{
+        backgroundColor: open ? colors.solidBg : colors.softBg,
+        color: open ? "#ffffff" : colors.softFg,
+        boxShadow: open ? `0 6px 14px ${colors.solidBg}40` : undefined,
+      }}
+      aria-hidden
+    >
+      <Icon className="size-4" strokeWidth={2.25} />
+    </span>
+  );
+}
 
 const STACKED_SECTION_LABELS: Partial<
   Record<SectionId, { title: string; hint: string }>
 > = {
   templates: { title: "Template", hint: "Starter template selected" },
-  content: { title: "Content", hint: "Headline, text and buttons" },
-  media: { title: "Media", hint: "Hero image and positioning" },
-  sections: { title: "Sections & Order", hint: "Arrange page sections" },
-  style: { title: "Style", hint: "Colors, fonts and buttons" },
+  content: { title: "Content", hint: "Edit text, colors & styles" },
+  media: { title: "Media", hint: "Images, videos & icons" },
+  sections: { title: "Sections", hint: "Manage page sections" },
+  style: { title: "SEO", hint: "Search listing & meta" },
 };
 
 const STACKED_SECTION_ORDER: Partial<Record<SectionId, string>> = {
@@ -148,13 +232,150 @@ const STACKED_SECTION_ORDER: Partial<Record<SectionId, string>> = {
 };
 
 const SECTION_HINTS: Partial<Record<SectionId, string>> = {
-  templates: "Design presets & starter copy",
-  sections: "Drag blocks on the page",
-  content: "Headlines, body & buttons",
-  media: "Upload hero & adjust zoom",
+  templates: "Starter template selected",
+  sections: "Manage page sections",
+  content: "Edit text, colors & styles",
+  media: "Images, videos & icons",
   form: "Fields & form layout",
   "checkout-templates": "Layout & display options",
+  style: "Search listing & meta",
 };
+
+type ContentFocus =
+  | "heading"
+  | "subheading"
+  | "body"
+  | "button"
+  | "global"
+  | "navBack"
+  | "navNext"
+  | null;
+
+const CONTENT_ITEM_COLORS = {
+  heading: { softBg: "#e8f1ff", softFg: "#1877f2" },
+  subheading: { softBg: "#f3e8ff", softFg: "#7c3aed" },
+  body: { softBg: "#cffafe", softFg: "#0891b2" },
+  button: { softBg: "#ffedd5", softFg: "#ea580c" },
+  global: { softBg: "#eef2ff", softFg: "#4f46e5" },
+  navBack: { softBg: "#f1f5f9", softFg: "#475569" },
+  navNext: { softBg: "#dcfce7", softFg: "#16a34a" },
+} as const;
+
+function previewText(value: string, empty = "Add text…") {
+  const trimmed = value.trim();
+  if (!trimmed) return empty;
+  return trimmed.length > 42 ? `${trimmed.slice(0, 42)}…` : trimmed;
+}
+
+function ContentRailItem({
+  title,
+  preview,
+  badge = "1",
+  softBg,
+  softFg,
+  icon,
+  onClick,
+}: {
+  title: string;
+  preview: string;
+  badge?: string;
+  softBg: string;
+  softFg: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <li className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative flex w-full items-center gap-2.5 rounded-xl px-0.5 py-2 text-left transition-colors hover:bg-[#f8fafc]"
+      >
+        <span
+          className="relative z-[1] flex size-8 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-[#bfdbfe]"
+          aria-hidden
+        >
+          <span
+            className="flex size-7 items-center justify-center rounded-full text-[0.62rem] font-extrabold"
+            style={{ backgroundColor: softBg, color: softFg }}
+          >
+            {icon}
+          </span>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.8rem] font-bold leading-tight text-[#0e182b]">
+            {title}
+          </span>
+          <span className="mt-0.5 block truncate text-[0.7rem] leading-snug text-slate-500">
+            {preview}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className="flex size-5 items-center justify-center rounded-md bg-[#e8f1ff] text-[0.65rem] font-bold text-[#1877f2]">
+            {badge}
+          </span>
+          <ChevronRight
+            className="size-4 text-slate-400"
+            strokeWidth={2.25}
+            aria-hidden
+          />
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function ContentFocusEditor({
+  label,
+  hint,
+  softBg,
+  softFg,
+  icon,
+  onBack,
+  children,
+}: {
+  label: string;
+  hint: string;
+  softBg: string;
+  softFg: string;
+  icon: React.ReactNode;
+  onBack: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#e8edf5] bg-white text-slate-500 transition-colors hover:border-[#bfdbfe] hover:bg-[#f8fafc] hover:text-[#1877f2]"
+          aria-label={`Back to content list`}
+        >
+          <ChevronLeft className="size-3.5" strokeWidth={2.25} />
+        </button>
+        <span
+          className="flex size-7 shrink-0 items-center justify-center rounded-[0.55rem] text-[0.62rem] font-extrabold"
+          style={{ backgroundColor: softBg, color: softFg }}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.82rem] font-extrabold leading-tight text-[#0e182b]">
+            {label}
+          </span>
+          <span className="mt-0.5 block truncate text-[0.68rem] leading-snug text-slate-500">
+            {hint}
+          </span>
+        </span>
+      </div>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  );
+}
+
+const contentFocusInputClass =
+  "w-full rounded-[0.7rem] border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-[0.8rem] font-medium leading-snug text-[#0e182b] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-slate-400 hover:border-[#cbd5e1] hover:bg-white focus:border-[#1877f2] focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15 focus:ring-offset-0";
 
 const accordionEase = [0.22, 1, 0.36, 1] as const;
 
@@ -183,18 +404,17 @@ function UpgradePlanNavRow({
   hint?: string;
 }) {
   const Icon = SECTION_ICONS[id] ?? FileText;
+  const tone = SECTION_TONES[id];
   const subtitle = hint ?? SECTION_HINTS[id];
 
   return (
-    <motion.div className={editorAccordionShellClosedClass}>
+    <motion.div className={tone.closedShell}>
       <a
         href="/dashboard/upgrade-plan"
         className={editorAccordionHeaderButtonClass}
         title={`${title} — Upgrade plan to unlock`}
       >
-        <span className={editorAccordionIconClosedClass} aria-hidden>
-          <Icon className="size-4" strokeWidth={2.25} />
-        </span>
+        <SectionIconChip id={id} open={false} Icon={Icon} />
         <span className="min-w-0 flex-1">
           <span className={editorAccordionTitleClass}>{title}</span>
           {subtitle ? (
@@ -229,39 +449,40 @@ function AccordionSection({
   orderClassName?: string;
 }) {
   const Icon = SECTION_ICONS[id] ?? FileText;
+  const tone = SECTION_TONES[id];
   const subtitle = hint ?? SECTION_HINTS[id];
+  const accent = SECTION_ICON_COLORS[id].softFg;
 
   if (variant === "stack") {
     return (
       <div
-        className={`flex w-full flex-col overflow-hidden rounded-md border border-slate-200 bg-white transition-colors duration-150 ${
+        className={`flex w-full flex-col overflow-hidden rounded-[1.1rem] border bg-white transition-colors duration-150 ${
           open
-            ? "editor-settings-card--open shrink-0 border-slate-300"
-            : "editor-settings-card--closed shrink-0 hover:border-slate-300"
+            ? "editor-settings-card--open shrink-0"
+            : "editor-settings-card--closed shrink-0 border-[#e8edf5] hover:border-[#dbeafe]"
         } ${orderClassName ?? ""}`}
+        style={
+          open
+            ? {
+                borderColor: accent,
+                boxShadow: `0 8px 22px ${accent}22`,
+              }
+            : undefined
+        }
       >
         <button
           type="button"
           onClick={() => onToggle(id)}
           title={subtitle ? `${title} — ${subtitle}` : title}
-          className="editor-settings-stack-trigger flex w-full shrink-0 items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-slate-50"
+          className="editor-settings-stack-trigger flex w-full shrink-0 items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-slate-50/60"
         >
-          <span
-            className={`flex size-7 shrink-0 items-center justify-center rounded-md ${
-              open
-                ? "bg-[#1877f2] text-white"
-                : "bg-[#e8f2ff] text-[#1877f2]"
-            }`}
-            aria-hidden
-          >
-            <Icon className="size-3.5" strokeWidth={2} />
-          </span>
+          <SectionIconChip id={id} open={open} Icon={Icon} />
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.8125rem] font-semibold leading-tight text-slate-900">
+            <span className="block text-[0.88rem] font-extrabold leading-tight text-[#0e182b]">
               {title}
             </span>
-            {subtitle && !open ? (
-              <span className="mt-0.5 block truncate text-[0.7rem] text-slate-500">
+            {subtitle ? (
+              <span className="mt-0.5 block truncate text-[0.72rem] text-slate-500">
                 {subtitle}
               </span>
             ) : null}
@@ -270,12 +491,13 @@ function AccordionSection({
             animate={{ rotate: open ? 180 : 0 }}
             transition={accordionChevronTransition}
             className="flex size-6 shrink-0 items-center justify-center text-slate-400"
+            style={open ? { color: accent } : undefined}
           >
-            <ChevronDown className="size-3.5" strokeWidth={2} aria-hidden />
+            <ChevronDown className="size-4" strokeWidth={2.25} aria-hidden />
           </motion.span>
         </button>
         {open ? (
-          <div className="editor-settings-stack-panel border-t border-slate-100 bg-slate-50/40 px-3 pb-3 pt-2.5">
+          <div className="editor-settings-stack-panel border-t border-[#eef2f7] bg-white px-3.5 pb-3.5 pt-3">
             <div className="space-y-3">{children}</div>
           </div>
         ) : null}
@@ -285,22 +507,17 @@ function AccordionSection({
 
   return (
     <motion.div
-      className={`${open ? editorAccordionShellOpenClass : editorAccordionShellClosedClass} ${orderClassName ?? ""}`}
+      className={`${open ? tone.openShell : tone.closedShell} ${orderClassName ?? ""}`}
     >
       <button
         type="button"
         onClick={() => onToggle(id)}
         className={editorAccordionHeaderButtonClass}
       >
-        <span
-          className={open ? editorAccordionIconOpenClass : editorAccordionIconClosedClass}
-          aria-hidden
-        >
-          <Icon className="size-4" strokeWidth={2.25} />
-        </span>
+        <SectionIconChip id={id} open={open} Icon={Icon} />
         <span className="min-w-0 flex-1">
           <span className={editorAccordionTitleClass}>{title}</span>
-          {subtitle && !open ? (
+          {subtitle ? (
             <span className={editorAccordionHintClass}>{subtitle}</span>
           ) : null}
         </span>
@@ -310,6 +527,7 @@ function AccordionSection({
           className={
             open ? editorAccordionChevronOpenClass : editorAccordionChevronClosedClass
           }
+          style={open ? { color: accent } : undefined}
         >
           <ChevronDown className="size-4" strokeWidth={2.25} aria-hidden />
         </motion.span>
@@ -343,12 +561,14 @@ function Field({
   icon,
   as = "label",
   layout = "stacked",
+  appearance = "default",
   children,
 }: {
   label: string;
   icon?: React.ReactNode;
   as?: "label" | "div";
   layout?: "stacked" | "inline";
+  appearance?: "default" | "block";
   children: React.ReactNode;
 }) {
   const groupLabelId = useId();
@@ -397,7 +617,7 @@ function Field({
     }
 
     const labelRow = (
-      <span className="mb-2 flex items-center gap-2.5">
+      <span className="mb-2 flex items-center gap-2.5 pr-6">
         <span className={editorFieldIconChipClass} aria-hidden>
           {icon}
         </span>
@@ -410,9 +630,25 @@ function Field({
       </span>
     );
 
+    const grip =
+      appearance === "block" ? (
+        <span
+          className="absolute right-2.5 top-2.5 text-slate-300"
+          aria-hidden
+          title="Drag to reorder"
+        >
+          <GripVertical className="size-4" strokeWidth={2} />
+        </span>
+      ) : null;
+
     if (as === "div") {
       return (
-        <div className="block" role="group" aria-labelledby={groupLabelId}>
+        <div
+          className={appearance === "block" ? editorContentBlockCardClass : "block"}
+          role="group"
+          aria-labelledby={groupLabelId}
+        >
+          {grip}
           {labelRow}
           {children}
         </div>
@@ -420,7 +656,10 @@ function Field({
     }
 
     return (
-      <label className="block">
+      <label
+        className={appearance === "block" ? editorContentBlockCardClass : "block"}
+      >
+        {grip}
         {labelRow}
         {children}
       </label>
@@ -449,18 +688,24 @@ export function TemplateEditorSidebar({
   stackFillHeight?: boolean;
 }) {
   const mediaFileId = useId();
-  const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const [openSection, setOpenSection] = useState<SectionId | null>("content");
+  const [contentFocus, setContentFocus] = useState<ContentFocus>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const heroImageSrc = resolveUploadImageUrl(page.imageUrl);
 
   useEffect(() => {
-    setOpenSection(null);
+    setOpenSection("content");
+    setContentFocus(null);
   }, [page.id]);
 
   const toggle = useCallback((id: SectionId) => {
     setOpenSection((prev) => (prev === id ? null : id));
   }, []);
+
+  useEffect(() => {
+    if (openSection !== "content") setContentFocus(null);
+  }, [openSection]);
 
   const isOpen = useCallback(
     (id: SectionId) => openSection === id,
@@ -507,11 +752,11 @@ export function TemplateEditorSidebar({
 
   const accordionVariant = stackedLayout ? "stack" : "card";
   const sectionLabel = (id: SectionId, defaultTitle: string) =>
-    stackedLayout
-      ? (STACKED_SECTION_LABELS[id]?.title ?? defaultTitle)
-      : defaultTitle;
+    STACKED_SECTION_LABELS[id]?.title ?? defaultTitle;
   const sectionHint = (id: SectionId) =>
-    stackedLayout ? STACKED_SECTION_LABELS[id]?.hint : undefined;
+    stackedLayout
+      ? STACKED_SECTION_LABELS[id]?.hint
+      : SECTION_HINTS[id];
   const sectionOrder = (id: SectionId) =>
     stackedLayout ? STACKED_SECTION_ORDER[id] : undefined;
 
@@ -554,7 +799,7 @@ export function TemplateEditorSidebar({
           <>
             <AccordionSection
               id="templates"
-              title={sectionLabel("templates", "Starter templates")}
+              title={sectionLabel("templates", "Template")}
               hint={sectionHint("templates")}
               open={isOpen("templates")}
               onToggle={toggle}
@@ -578,29 +823,6 @@ export function TemplateEditorSidebar({
             </AccordionSection>
 
             <AccordionSection
-              id="sections"
-              title={sectionLabel("sections", "Section order")}
-              hint={sectionHint("sections")}
-              open={isOpen("sections")}
-              onToggle={toggle}
-              variant={accordionVariant}
-              orderClassName={sectionOrder("sections")}
-            >
-              <p className={`mb-3 ${editorSidebarBodyTextClass}`}>
-                Drag to reorder blocks on the landing page.
-              </p>
-              {landingPage ? (
-                <SortableSectionList
-                  items={landingSectionOrder(landingPage)}
-                  labels={LANDING_SECTION_LABELS}
-                  onReorder={(contentSectionOrder) =>
-                    onChange({ contentSectionOrder })
-                  }
-                />
-              ) : null}
-            </AccordionSection>
-
-            <AccordionSection
               id="content"
               title={sectionLabel("content", "Content")}
               hint={sectionHint("content")}
@@ -609,74 +831,251 @@ export function TemplateEditorSidebar({
               variant={accordionVariant}
               orderClassName={sectionOrder("content")}
             >
-              <div className="space-y-5">
-                <Field
-                  label="Heading"
-                  icon={<Heading1 className="size-4 shrink-0" strokeWidth={2} />}
-                >
-                  <input
-                    type="text"
-                    value={page.heading}
-                    onChange={(e) => onChange({ heading: e.target.value })}
-                    className={editorContentInputClass}
-                  />
-                  <ContentTextColorPicker
-                    value={landingPage?.headingColor ?? ""}
-                    onChange={(headingColor) => onChange({ headingColor })}
-                  />
-                </Field>
-                <Field
-                  label="Subheading"
-                  icon={<Heading2 className="size-4 shrink-0" strokeWidth={2} />}
-                >
-                  <textarea
-                    value={page.subheading}
-                    onChange={(e) => onChange({ subheading: e.target.value })}
-                    rows={3}
-                    className={`${editorContentInputClass} resize-y`}
-                  />
-                  <ContentTextColorPicker
-                    value={landingPage?.subheadingColor ?? ""}
-                    onChange={(subheadingColor) => onChange({ subheadingColor })}
-                  />
-                </Field>
-                <Field
-                  label="Body text"
-                  icon={<FileText className="size-4 shrink-0" strokeWidth={2} />}
-                >
-                  <textarea
-                    value={page.body}
-                    onChange={(e) => onChange({ body: e.target.value })}
-                    rows={8}
-                    className={`${editorContentInputClass} resize-y`}
-                  />
-                  <ContentTextColorPicker
-                    value={landingPage?.bodyColor ?? ""}
-                    onChange={(bodyColor) => onChange({ bodyColor })}
-                  />
-                </Field>
-                <Field
-                  label="Button text"
-                  icon={
-                    <MousePointerClick
-                      className="size-4 shrink-0"
-                      strokeWidth={2}
+              {contentFocus === null ? (
+                <div className="space-y-1">
+                  <ul className="relative m-0 list-none space-y-0.5 p-0">
+                    <span
+                      className="pointer-events-none absolute bottom-4 left-[0.95rem] top-4 w-px bg-[#bfdbfe]"
+                      aria-hidden
                     />
+                    <ContentRailItem
+                      title="Heading"
+                      preview={previewText(page.heading)}
+                      softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                      softFg={CONTENT_ITEM_COLORS.heading.softFg}
+                      icon={
+                        <span className="text-[0.62rem] font-extrabold leading-none">
+                          H1
+                        </span>
+                      }
+                      onClick={() => setContentFocus("heading")}
+                    />
+                    <ContentRailItem
+                      title="Subheading"
+                      preview={previewText(page.subheading)}
+                      softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                      softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                      icon={
+                        <span className="text-[0.62rem] font-extrabold leading-none">
+                          H2
+                        </span>
+                      }
+                      onClick={() => setContentFocus("subheading")}
+                    />
+                    <ContentRailItem
+                      title="Body text"
+                      preview={previewText(page.body)}
+                      softBg={CONTENT_ITEM_COLORS.body.softBg}
+                      softFg={CONTENT_ITEM_COLORS.body.softFg}
+                      icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                      onClick={() => setContentFocus("body")}
+                    />
+                    <ContentRailItem
+                      title="Button text"
+                      preview={previewText(page.buttonText, "Add button label…")}
+                      softBg={CONTENT_ITEM_COLORS.button.softBg}
+                      softFg={CONTENT_ITEM_COLORS.button.softFg}
+                      icon={
+                        <MousePointerClick
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                        />
+                      }
+                      onClick={() => setContentFocus("button")}
+                    />
+                  </ul>
+
+                  <button
+                    type="button"
+                    onClick={() => setContentFocus("global")}
+                    className="mt-2 flex w-full items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-2.5 py-2.5 text-left transition-colors hover:border-[#c7d2fe] hover:bg-white"
+                  >
+                    <span
+                      className="flex size-8 shrink-0 items-center justify-center rounded-[0.65rem]"
+                      style={{
+                        backgroundColor: CONTENT_ITEM_COLORS.global.softBg,
+                        color: CONTENT_ITEM_COLORS.global.softFg,
+                      }}
+                      aria-hidden
+                    >
+                      <Palette className="size-4" strokeWidth={2.25} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[0.8rem] font-bold text-[#0e182b]">
+                        Global styles
+                      </span>
+                      <span className="mt-0.5 block text-[0.7rem] text-slate-500">
+                        Page design & colors
+                      </span>
+                    </span>
+                    <ChevronRight
+                      className="size-4 shrink-0 text-slate-400"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                  </button>
+                </div>
+              ) : null}
+
+              {contentFocus === "heading" ? (
+                <ContentFocusEditor
+                  label="Heading"
+                  hint="Main title shown at the top of the page"
+                  softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.heading.softFg}
+                  icon={
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H1
+                    </span>
                   }
+                  onBack={() => setContentFocus(null)}
                 >
-                  <input
-                    type="text"
-                    value={page.buttonText}
-                    onChange={(e) => onChange({ buttonText: e.target.value })}
-                    className={editorContentInputClass}
-                  />
-                  <ContentTextColorPicker
-                    value={landingPage?.buttonTextColor ?? ""}
-                    onChange={(buttonTextColor) => onChange({ buttonTextColor })}
-                    fallbackHex="#FFFFFF"
-                  />
-                </Field>
-              </div>
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={page.heading}
+                      onChange={(e) => onChange({ heading: e.target.value })}
+                      className={contentFocusInputClass}
+                      placeholder="Enter heading…"
+                    />
+                  </label>
+                  <div>
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text color
+                    </span>
+                    <ContentTextColorPicker
+                      value={landingPage?.headingColor ?? ""}
+                      onChange={(headingColor) => onChange({ headingColor })}
+                    />
+                  </div>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "subheading" ? (
+                <ContentFocusEditor
+                  label="Subheading"
+                  hint="Supporting line under the main heading"
+                  softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                  icon={
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H2
+                    </span>
+                  }
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <textarea
+                      value={page.subheading}
+                      onChange={(e) => onChange({ subheading: e.target.value })}
+                      rows={3}
+                      className={`${contentFocusInputClass} min-h-[4.5rem] resize-y`}
+                      placeholder="Enter subheading…"
+                    />
+                  </label>
+                  <div>
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text color
+                    </span>
+                    <ContentTextColorPicker
+                      value={landingPage?.subheadingColor ?? ""}
+                      onChange={(subheadingColor) =>
+                        onChange({ subheadingColor })
+                      }
+                    />
+                  </div>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "body" ? (
+                <ContentFocusEditor
+                  label="Body text"
+                  hint="Main paragraph copy for this page"
+                  softBg={CONTENT_ITEM_COLORS.body.softBg}
+                  softFg={CONTENT_ITEM_COLORS.body.softFg}
+                  icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <textarea
+                      value={page.body}
+                      onChange={(e) => onChange({ body: e.target.value })}
+                      rows={4}
+                      className={`${contentFocusInputClass} min-h-[6rem] resize-y`}
+                      placeholder="Enter body text…"
+                    />
+                  </label>
+                  <div>
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text color
+                    </span>
+                    <ContentTextColorPicker
+                      value={landingPage?.bodyColor ?? ""}
+                      onChange={(bodyColor) => onChange({ bodyColor })}
+                    />
+                  </div>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "button" ? (
+                <ContentFocusEditor
+                  label="Button text"
+                  hint="Label shown on the call-to-action button"
+                  softBg={CONTENT_ITEM_COLORS.button.softBg}
+                  softFg={CONTENT_ITEM_COLORS.button.softFg}
+                  icon={
+                    <MousePointerClick className="size-3.5" strokeWidth={2.25} />
+                  }
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={page.buttonText}
+                      onChange={(e) => onChange({ buttonText: e.target.value })}
+                      className={contentFocusInputClass}
+                      placeholder="Enter button label…"
+                    />
+                  </label>
+                  <div>
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text color
+                    </span>
+                    <ContentTextColorPicker
+                      value={landingPage?.buttonTextColor ?? ""}
+                      onChange={(buttonTextColor) =>
+                        onChange({ buttonTextColor })
+                      }
+                      fallbackHex="#FFFFFF"
+                    />
+                  </div>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "global" ? (
+                <ContentFocusEditor
+                  label="Global styles"
+                  hint="Page design presets for colors and layout"
+                  softBg={CONTENT_ITEM_COLORS.global.softBg}
+                  softFg={CONTENT_ITEM_COLORS.global.softFg}
+                  icon={<Palette className="size-4" strokeWidth={2.25} />}
+                  onBack={() => setContentFocus(null)}
+                >
+                  {heroDesignPicker}
+                </ContentFocusEditor>
+              ) : null}
             </AccordionSection>
 
             <AccordionSection
@@ -689,8 +1088,6 @@ export function TemplateEditorSidebar({
               orderClassName={sectionOrder("media")}
             >
               <div className="space-y-4">
-                {!stackedLayout ? heroDesignPicker : null}
-
                 <Field
                   as="div"
                   label="Hero image"
@@ -787,19 +1184,28 @@ export function TemplateEditorSidebar({
               </div>
             </AccordionSection>
 
-            {stackedLayout ? (
-              <AccordionSection
-                id="style"
-                title={sectionLabel("style", "Style")}
-                hint={sectionHint("style")}
-                open={isOpen("style")}
-                onToggle={toggle}
-                variant={accordionVariant}
-                orderClassName={sectionOrder("style")}
-              >
-                {heroDesignPicker}
-              </AccordionSection>
-            ) : null}
+            <AccordionSection
+              id="sections"
+              title={sectionLabel("sections", "Sections")}
+              hint={sectionHint("sections")}
+              open={isOpen("sections")}
+              onToggle={toggle}
+              variant={accordionVariant}
+              orderClassName={sectionOrder("sections")}
+            >
+              <p className={`mb-3 ${editorSidebarBodyTextClass}`}>
+                Drag to reorder blocks on the landing page.
+              </p>
+              {landingPage ? (
+                <SortableSectionList
+                  items={landingSectionOrder(landingPage)}
+                  labels={LANDING_SECTION_LABELS}
+                  onReorder={(contentSectionOrder) =>
+                    onChange({ contentSectionOrder })
+                  }
+                />
+              ) : null}
+            </AccordionSection>
           </>
         ) : null}
 
@@ -807,50 +1213,139 @@ export function TemplateEditorSidebar({
           <>
             <AccordionSection
               id="content"
-              title="Summary"
+              title={sectionLabel("content", "Content")}
+              hint={sectionHint("content") ?? "Edit text, colors & styles"}
               open={isOpen("content")}
               onToggle={toggle}
+              variant={accordionVariant}
             >
-              <div className="space-y-4">
-                <Field
+              {contentFocus === null ? (
+                <ul className="relative m-0 list-none space-y-0.5 p-0">
+                  <span
+                    className="pointer-events-none absolute bottom-4 left-[0.95rem] top-4 w-px bg-[#bfdbfe]"
+                    aria-hidden
+                  />
+                  <ContentRailItem
+                    title="Payment details title"
+                    preview={previewText(payment.heading)}
+                    softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                    softFg={CONTENT_ITEM_COLORS.heading.softFg}
+                    icon={
+                      <span className="text-[0.62rem] font-extrabold leading-none">
+                        H1
+                      </span>
+                    }
+                    onClick={() => setContentFocus("heading")}
+                  />
+                  <ContentRailItem
+                    title="Intro text"
+                    preview={previewText(payment.subheading)}
+                    softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                    softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                    icon={
+                      <span className="text-[0.62rem] font-extrabold leading-none">
+                        H2
+                      </span>
+                    }
+                    onClick={() => setContentFocus("subheading")}
+                  />
+                  <ContentRailItem
+                    title="Submit button text"
+                    preview={previewText(payment.buttonText, "Add button label…")}
+                    softBg={CONTENT_ITEM_COLORS.button.softBg}
+                    softFg={CONTENT_ITEM_COLORS.button.softFg}
+                    icon={
+                      <MousePointerClick
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                      />
+                    }
+                    onClick={() => setContentFocus("button")}
+                  />
+                </ul>
+              ) : null}
+
+              {contentFocus === "heading" ? (
+                <ContentFocusEditor
                   label="Payment details title"
-                  icon={<Heading1 className="size-4 shrink-0" strokeWidth={2} />}
-                >
-                  <input
-                    type="text"
-                    value={payment.heading}
-                    onChange={(e) => onChange({ heading: e.target.value })}
-                    className={editorContentInputClass}
-                  />
-                </Field>
-                <Field
-                  label="Intro text"
-                  icon={<Heading2 className="size-4 shrink-0" strokeWidth={2} />}
-                >
-                  <textarea
-                    value={payment.subheading}
-                    onChange={(e) => onChange({ subheading: e.target.value })}
-                    rows={3}
-                    className={`${editorContentInputClass} resize-y`}
-                  />
-                </Field>
-                <Field
-                  label="Submit button text"
+                  hint="Title shown above the payment summary"
+                  softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.heading.softFg}
                   icon={
-                    <MousePointerClick
-                      className="size-4 shrink-0"
-                      strokeWidth={2}
-                    />
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H1
+                    </span>
                   }
+                  onBack={() => setContentFocus(null)}
                 >
-                  <input
-                    type="text"
-                    value={payment.buttonText}
-                    onChange={(e) => onChange({ buttonText: e.target.value })}
-                    className={editorContentInputClass}
-                  />
-                </Field>
-              </div>
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={payment.heading}
+                      onChange={(e) => onChange({ heading: e.target.value })}
+                      className={contentFocusInputClass}
+                      placeholder="Enter title…"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "subheading" ? (
+                <ContentFocusEditor
+                  label="Intro text"
+                  hint="Short intro under the payment title"
+                  softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                  icon={
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H2
+                    </span>
+                  }
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <textarea
+                      value={payment.subheading}
+                      onChange={(e) => onChange({ subheading: e.target.value })}
+                      rows={3}
+                      className={`${contentFocusInputClass} min-h-[4.5rem] resize-y`}
+                      placeholder="Enter intro text…"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "button" ? (
+                <ContentFocusEditor
+                  label="Submit button text"
+                  hint="Label on the pay / submit button"
+                  softBg={CONTENT_ITEM_COLORS.button.softBg}
+                  softFg={CONTENT_ITEM_COLORS.button.softFg}
+                  icon={
+                    <MousePointerClick className="size-3.5" strokeWidth={2.25} />
+                  }
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={payment.buttonText}
+                      onChange={(e) => onChange({ buttonText: e.target.value })}
+                      className={contentFocusInputClass}
+                      placeholder="Enter button label…"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
             </AccordionSection>
 
             <UpgradePlanNavRow
@@ -864,45 +1359,132 @@ export function TemplateEditorSidebar({
         {page.id === "confirmation" ? (
           <AccordionSection
             id="content"
-            title="Content"
+            title={sectionLabel("content", "Content")}
+            hint={sectionHint("content") ?? "Edit text, colors & styles"}
             open={isOpen("content")}
             onToggle={toggle}
+            variant={accordionVariant}
           >
-            <div className="space-y-5">
-              <Field
+            {contentFocus === null ? (
+              <ul className="relative m-0 list-none space-y-0.5 p-0">
+                <span
+                  className="pointer-events-none absolute bottom-4 left-[0.95rem] top-4 w-px bg-[#bfdbfe]"
+                  aria-hidden
+                />
+                <ContentRailItem
+                  title="Heading"
+                  preview={previewText(page.heading)}
+                  softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.heading.softFg}
+                  icon={
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H1
+                    </span>
+                  }
+                  onClick={() => setContentFocus("heading")}
+                />
+                <ContentRailItem
+                  title="Subheading"
+                  preview={previewText(page.subheading)}
+                  softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                  softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                  icon={
+                    <span className="text-[0.62rem] font-extrabold leading-none">
+                      H2
+                    </span>
+                  }
+                  onClick={() => setContentFocus("subheading")}
+                />
+                <ContentRailItem
+                  title="Body text"
+                  preview={previewText(page.body)}
+                  softBg={CONTENT_ITEM_COLORS.body.softBg}
+                  softFg={CONTENT_ITEM_COLORS.body.softFg}
+                  icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                  onClick={() => setContentFocus("body")}
+                />
+              </ul>
+            ) : null}
+
+            {contentFocus === "heading" ? (
+              <ContentFocusEditor
                 label="Heading"
-                icon={<Heading1 className="size-4 shrink-0" strokeWidth={2} />}
+                hint="Main title on the thank-you page"
+                softBg={CONTENT_ITEM_COLORS.heading.softBg}
+                softFg={CONTENT_ITEM_COLORS.heading.softFg}
+                icon={
+                  <span className="text-[0.62rem] font-extrabold leading-none">
+                    H1
+                  </span>
+                }
+                onBack={() => setContentFocus(null)}
               >
-                <input
-                  type="text"
-                  value={page.heading}
-                  onChange={(e) => onChange({ heading: e.target.value })}
-                  className={editorContentInputClass}
-                />
-              </Field>
-              <Field
+                <label className="block">
+                  <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                    Text
+                  </span>
+                  <input
+                    type="text"
+                    value={page.heading}
+                    onChange={(e) => onChange({ heading: e.target.value })}
+                    className={contentFocusInputClass}
+                    placeholder="Enter heading…"
+                  />
+                </label>
+              </ContentFocusEditor>
+            ) : null}
+
+            {contentFocus === "subheading" ? (
+              <ContentFocusEditor
                 label="Subheading"
-                icon={<Heading2 className="size-4 shrink-0" strokeWidth={2} />}
+                hint="Supporting line under the heading"
+                softBg={CONTENT_ITEM_COLORS.subheading.softBg}
+                softFg={CONTENT_ITEM_COLORS.subheading.softFg}
+                icon={
+                  <span className="text-[0.62rem] font-extrabold leading-none">
+                    H2
+                  </span>
+                }
+                onBack={() => setContentFocus(null)}
               >
-                <textarea
-                  value={page.subheading}
-                  onChange={(e) => onChange({ subheading: e.target.value })}
-                  rows={3}
-                  className={`${editorContentInputClass} resize-y`}
-                />
-              </Field>
-              <Field
+                <label className="block">
+                  <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                    Text
+                  </span>
+                  <textarea
+                    value={page.subheading}
+                    onChange={(e) => onChange({ subheading: e.target.value })}
+                    rows={3}
+                    className={`${contentFocusInputClass} min-h-[4.5rem] resize-y`}
+                    placeholder="Enter subheading…"
+                  />
+                </label>
+              </ContentFocusEditor>
+            ) : null}
+
+            {contentFocus === "body" ? (
+              <ContentFocusEditor
                 label="Body text"
-                icon={<FileText className="size-4 shrink-0" strokeWidth={2} />}
+                hint="Main message on the confirmation page"
+                softBg={CONTENT_ITEM_COLORS.body.softBg}
+                softFg={CONTENT_ITEM_COLORS.body.softFg}
+                icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                onBack={() => setContentFocus(null)}
               >
-                <textarea
-                  value={page.body}
-                  onChange={(e) => onChange({ body: e.target.value })}
-                  rows={8}
-                  className={`${editorContentInputClass} resize-y`}
-                />
-              </Field>
-            </div>
+                <label className="block">
+                  <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                    Text
+                  </span>
+                  <textarea
+                    value={page.body}
+                    onChange={(e) => onChange({ body: e.target.value })}
+                    rows={4}
+                    className={`${contentFocusInputClass} min-h-[6rem] resize-y`}
+                    placeholder="Enter body text…"
+                  />
+                </label>
+              </ContentFocusEditor>
+            ) : null}
           </AccordionSection>
         ) : null}
 
@@ -910,144 +1492,214 @@ export function TemplateEditorSidebar({
           <>
             <AccordionSection
               id="content"
-              title="Content"
+              title={sectionLabel("content", "Content")}
+              hint={sectionHint("content") ?? "Edit text, colors & styles"}
               open={isOpen("content")}
               onToggle={toggle}
+              variant={accordionVariant}
             >
-              <Field
-                label="Intro text"
-                icon={<FileText className="size-4 shrink-0" strokeWidth={2} />}
-              >
-                <textarea
-                  value={page.body}
-                  onChange={(e) => onChange({ body: e.target.value })}
-                  rows={6}
-                  className={`${editorContentInputClass} resize-y`}
-                  placeholder="Shown above the form on the sign up page"
-                />
-              </Field>
+              {contentFocus === null ? (
+                <ul className="relative m-0 list-none space-y-0.5 p-0">
+                  <span
+                    className="pointer-events-none absolute bottom-4 left-[0.95rem] top-4 w-px bg-[#bfdbfe]"
+                    aria-hidden
+                  />
+                  <ContentRailItem
+                    title="Intro text"
+                    preview={previewText(page.body, "Shown above the form…")}
+                    softBg={CONTENT_ITEM_COLORS.body.softBg}
+                    softFg={CONTENT_ITEM_COLORS.body.softFg}
+                    icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                    onClick={() => setContentFocus("body")}
+                  />
+                  <ContentRailItem
+                    title="Back button text"
+                    preview={previewText(signup.navBackLabel, "Add label…")}
+                    softBg={CONTENT_ITEM_COLORS.navBack.softBg}
+                    softFg={CONTENT_ITEM_COLORS.navBack.softFg}
+                    icon={
+                      <ChevronLeft className="size-3.5" strokeWidth={2.25} />
+                    }
+                    onClick={() => setContentFocus("navBack")}
+                  />
+                  <ContentRailItem
+                    title="Next button text"
+                    preview={previewText(signup.navNextLabel, "Add label…")}
+                    softBg={CONTENT_ITEM_COLORS.navNext.softBg}
+                    softFg={CONTENT_ITEM_COLORS.navNext.softFg}
+                    icon={
+                      <ChevronRight className="size-3.5" strokeWidth={2.25} />
+                    }
+                    onClick={() => setContentFocus("navNext")}
+                  />
+                </ul>
+              ) : null}
+
+              {contentFocus === "body" ? (
+                <ContentFocusEditor
+                  label="Intro text"
+                  hint="Shown above the form on the sign up page"
+                  softBg={CONTENT_ITEM_COLORS.body.softBg}
+                  softFg={CONTENT_ITEM_COLORS.body.softFg}
+                  icon={<AlignLeft className="size-3.5" strokeWidth={2.25} />}
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <textarea
+                      value={page.body}
+                      onChange={(e) => onChange({ body: e.target.value })}
+                      rows={4}
+                      className={`${contentFocusInputClass} min-h-[6rem] resize-y`}
+                      placeholder="Shown above the form on the sign up page"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "navBack" ? (
+                <ContentFocusEditor
+                  label="Back button text"
+                  hint="Label for the back navigation button"
+                  softBg={CONTENT_ITEM_COLORS.navBack.softBg}
+                  softFg={CONTENT_ITEM_COLORS.navBack.softFg}
+                  icon={<ChevronLeft className="size-3.5" strokeWidth={2.25} />}
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={signup.navBackLabel}
+                      onChange={(e) =>
+                        onChange({ navBackLabel: e.target.value })
+                      }
+                      className={contentFocusInputClass}
+                      placeholder="Back"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
+
+              {contentFocus === "navNext" ? (
+                <ContentFocusEditor
+                  label="Next button text"
+                  hint="Label for the continue / next button"
+                  softBg={CONTENT_ITEM_COLORS.navNext.softBg}
+                  softFg={CONTENT_ITEM_COLORS.navNext.softFg}
+                  icon={<ChevronRight className="size-3.5" strokeWidth={2.25} />}
+                  onBack={() => setContentFocus(null)}
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[0.68rem] font-semibold text-slate-500">
+                      Text
+                    </span>
+                    <input
+                      type="text"
+                      value={signup.navNextLabel}
+                      onChange={(e) =>
+                        onChange({ navNextLabel: e.target.value })
+                      }
+                      className={contentFocusInputClass}
+                      placeholder="Continue"
+                    />
+                  </label>
+                </ContentFocusEditor>
+              ) : null}
             </AccordionSection>
 
             <AccordionSection
               id="form"
               title="Form design"
+              hint="Fields & form layout"
               open={isOpen("form")}
               onToggle={toggle}
+              variant={accordionVariant}
             >
-            <div>
-              <p className={editorSidebarCaptionClass}>Form fields</p>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {FORM_FIELD_OPTIONS.map((f) => {
-                  const on = signup.formFieldIds.includes(f.id);
-                  const Icon = FORM_FIELD_ICONS[f.id];
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleFormField(f.id)}
-                      title={
-                        on
-                          ? `Included, click to remove (${f.label})`
-                          : `Not included, click to add (${f.label})`
-                      }
-                      className={editorSidebarFormFieldRowClass}
-                    >
-                      <span
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ring-1 ring-black/5 transition-[border-color,background-color,color] duration-200 ${
+              <div>
+                <p className={editorSidebarCaptionClass}>Form fields</p>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {FORM_FIELD_OPTIONS.map((f) => {
+                    const on = signup.formFieldIds.includes(f.id);
+                    const Icon = FORM_FIELD_ICONS[f.id];
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleFormField(f.id)}
+                        title={
                           on
-                            ? editorSidebarFormFieldIconOnClass
-                            : editorSidebarFormFieldIconOffClass
-                        }`}
-                        aria-hidden
+                            ? `Included, click to remove (${f.label})`
+                            : `Not included, click to add (${f.label})`
+                        }
+                        className={editorSidebarFormFieldRowClass}
                       >
-                        <Icon className="size-4 shrink-0" strokeWidth={2} />
-                      </span>
-                      <span
-                        className={`text-xs font-semibold ${on ? "text-zinc-900" : "text-zinc-500"}`}
-                      >
-                        {f.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="pt-2">
-              <p className={editorSidebarCaptionClass}>Design preset</p>
-              <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
-                <div className="grid grid-cols-1 gap-2.5">
-                {FORM_DESIGN_OPTIONS.filter(
-                  (opt) => !formDesignUsesSplitLayout(opt.value),
-                ).map((opt) => {
-                  const on = signup.formDesign === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() =>
-                        onChange({ formDesign: opt.value as FormDesign })
-                      }
-                      className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
-                        on
-                          ? editorSidebarPickerRowSelectedClass
-                          : editorSidebarPickerRowClass
-                      }`}
-                    >
-                      <FormDesignSwatch design={opt.value} selected={on} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-bold tracking-tight">
-                          {opt.label}
+                        <span
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ring-1 ring-black/5 transition-[border-color,background-color,color] duration-200 ${
+                            on
+                              ? editorSidebarFormFieldIconOnClass
+                              : editorSidebarFormFieldIconOffClass
+                          }`}
+                          aria-hidden
+                        >
+                          <Icon className="size-4 shrink-0" strokeWidth={2} />
                         </span>
                         <span
-                          className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                            on ? "text-slate-600" : "text-zinc-500"
-                          }`}
+                          className={`text-xs font-semibold ${on ? "text-zinc-900" : "text-zinc-500"}`}
                         >
-                          {opt.description}
+                          {f.label}
                         </span>
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-            <div className={`space-y-3 ${editorSidebarSectionDividerClass} pt-4`}>
-              <Field
-                layout="inline"
-                label="Back button text"
-                icon={
-                  <ChevronLeft className="size-3.5 shrink-0 sm:size-4" strokeWidth={2} />
-                }
-              >
-                <input
-                  type="text"
-                  value={signup.navBackLabel}
-                  onChange={(e) =>
-                    onChange({ navBackLabel: e.target.value })
-                  }
-                  className={editorInlineInputClass}
-                />
-              </Field>
-              <Field
-                layout="inline"
-                label="Next button text"
-                icon={
-                  <ChevronRight className="size-3.5 shrink-0 sm:size-4" strokeWidth={2} />
-                }
-              >
-                <input
-                  type="text"
-                  value={signup.navNextLabel}
-                  onChange={(e) =>
-                    onChange({ navNextLabel: e.target.value })
-                  }
-                  className={editorInlineInputClass}
-                />
-              </Field>
-            </div>
-          </AccordionSection>
+              <div className="pt-2">
+                <p className={editorSidebarCaptionClass}>Design preset</p>
+                <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {FORM_DESIGN_OPTIONS.filter(
+                      (opt) => !formDesignUsesSplitLayout(opt.value),
+                    ).map((opt) => {
+                      const on = signup.formDesign === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            onChange({ formDesign: opt.value as FormDesign })
+                          }
+                          className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
+                            on
+                              ? editorSidebarPickerRowSelectedClass
+                              : editorSidebarPickerRowClass
+                          }`}
+                        >
+                          <FormDesignSwatch design={opt.value} selected={on} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-bold tracking-tight">
+                              {opt.label}
+                            </span>
+                            <span
+                              className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
+                                on ? "text-slate-600" : "text-zinc-500"
+                              }`}
+                            >
+                              {opt.description}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </AccordionSection>
           </>
         ) : null}
     </div>

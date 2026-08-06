@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * What changed: Post–plan-fit “Get Started” (and other plan CTAs) land here.
- * Why: Temporary signup stop — thank-you only; no Stripe or next onboarding step.
- * Related: SignupSelectPlanPanel onContinue (checkout mode).
- */
-
 import { AuthLandingNav } from "@/app/components/auth/AuthLandingNav";
 import { findPricingPlan } from "@/app/components/landing/pricing-plans";
 import { CheckCircle2 } from "lucide-react";
@@ -16,21 +10,20 @@ function TalkToUsThankYouInner() {
   const searchParams = useSearchParams();
   const planId = searchParams.get("plan")?.trim() || "";
 
-  // --- Resolve plan label for a clearer thank-you message ---
   const planName = useMemo(() => {
     if (!planId) return null;
     return findPricingPlan(planId)?.name ?? null;
   }, [planId]);
 
   return (
-    <div className="auth-select-plan-page min-h-screen bg-brand-soft">
+    <div className="auth-select-plan-page flex min-h-dvh flex-col bg-brand-soft">
       <AuthLandingNav
         loginHref="/auth/login"
         signupHref="/auth/signup"
         showGetStarted={false}
         showNavLinks={false}
       />
-      <main className="auth-select-plan-main flex flex-1 items-center justify-center px-4 py-16">
+      <main className="auth-select-plan-main flex min-h-0 w-full flex-1 flex-col items-center justify-center px-4 py-16">
         <div className="mx-auto w-full max-w-lg rounded-3xl border border-[#e8edf5] bg-white px-6 py-10 text-center shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:px-10">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5ee]">
             <CheckCircle2
@@ -57,7 +50,7 @@ export default function TalkToUsThankYouPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-brand-soft text-sm text-brand-muted">
+        <div className="flex min-h-dvh items-center justify-center bg-brand-soft text-sm text-brand-muted">
           Loading…
         </div>
       }

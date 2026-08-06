@@ -20,12 +20,14 @@ export function LandingFunnelStepShell({
   heroImageUrl,
   heroImageScale,
   fillViewport = false,
+  minHeight,
   children,
 }: {
   landingPage: LandingTemplatePage;
   heroImageUrl: string;
   heroImageScale: number;
   fillViewport?: boolean;
+  minHeight?: number | null;
   children: ReactNode;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
@@ -49,7 +51,12 @@ export function LandingFunnelStepShell({
       className={
         fillViewport
           ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
-          : "flex min-h-0 flex-col overflow-hidden"
+          : "flex w-full flex-col"
+      }
+      style={
+        !fillViewport && minHeight != null && minHeight > 0
+          ? { minHeight }
+          : undefined
       }
     >
       <LandingHero

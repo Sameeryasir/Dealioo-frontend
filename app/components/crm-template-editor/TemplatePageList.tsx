@@ -42,25 +42,22 @@ export function TemplatePageList({
 
   return (
     <nav className="w-full [&_button]:cursor-pointer">
-      <ul
-        className={`m-0 list-none p-0 ${
-          compact
-            ? "flex flex-col divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white"
-            : "divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white"
-        }`}
-      >
-        {steps.map((step) => (
+      <ul className="m-0 list-none p-0">
+        {steps.map((step, index) => (
           <li key={step.id} className={compact ? "min-w-0 shrink-0" : ""}>
             <EditorPageItem
               title={step.title}
+              subtitle={step.subtitle}
               description={step.description}
               icon={step.icon}
+              iconWrapClass={step.iconWrapClass}
               selected={activeId === step.id}
               onSelect={() => onSelect(step.id)}
               onPreview={
                 onPreviewPage ? () => onPreviewPage(step.id) : undefined
               }
               compact={compact}
+              isLast={index === steps.length - 1}
             />
           </li>
         ))}
