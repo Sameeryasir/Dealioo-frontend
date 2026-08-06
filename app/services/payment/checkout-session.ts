@@ -17,15 +17,15 @@ export type CreateCheckoutSessionResponse = {
   session: CheckoutSessionDetails;
 };
 
-export async function getCheckoutSession(
+const checkoutResumeInflight = new Map<
+  string,
+  Promise<CheckoutSessionDetails>
+>();
+
+async function getCheckoutSessionOnce(
   token: string,
 ): Promise<CheckoutSessionDetails> {
-  const normalized = token.trim();
-  if (!normalized) {
-    throw new Error("Checkout link is missing or invalid.");
-  }
-
-  const params = new URLSearchParams({ token: normalized });
+  const params = new URLSearchParams({ token });
   const res = await fetch(
     `${getApiBaseUrl()}/payment/checkout/resume?${params.toString()}`,
     { method: "GET", cache: "no-store" },
@@ -48,6 +48,29 @@ export async function getCheckoutSession(
     ...raw,
     businessId: raw.businessId ?? raw.restaurantId ?? 0,
   };
+}
+
+export async function getCheckoutSession(
+  token: string,
+): Promise<CheckoutSessionDetails> {
+  const normalized = token.trim();
+  if (!normalized) {
+    throw new Error("Checkout link is missing or invalid.");
+  }
+
+  const inflight = checkoutResumeInflight.get(normalized);
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = getCheckoutSessionOnce(normalized).finally(() => {
+    if (checkoutResumeInflight.get(normalized) === request) {
+      checkoutResumeInflight.delete(normalized);
+    }
+  });
+
+  checkoutResumeInflight.set(normalized, request);
+  return request;
 }
 
 export async function createCheckoutSession(input: {

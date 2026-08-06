@@ -56,7 +56,6 @@ export function useFunnelStepGuard(
       forceFunnelLockedStep(funnelId, "signup");
 
       const campaignType = params.get("campaignType")?.trim();
-      // Postpaid guests pay in store — never send them to the payment step.
       if (checkoutToken && !paymentSucceeded && campaignType !== "postpaid") {
         router.replace(
           buildFunnelStepPath(
@@ -101,7 +100,6 @@ export function useFunnelStepGuard(
 
     if (step === "confirmation") {
       const locked = getFunnelLockedStep(funnelId);
-      // Postpaid funnels skip payment; signup locks confirmation directly.
       if (!paymentSucceeded && locked !== "confirmation") {
         const fallback =
           checkoutToken || locked === "payment" ? "payment" : "signup";

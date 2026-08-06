@@ -92,14 +92,23 @@ export function FunnelConfirmationView({
       searchParams.get("currency")?.trim().toUpperCase() || "USD";
     const value = parseCampaignPrice(searchParams.get("price"));
 
-    trackMetaPixelEvent(
-      "Purchase",
-      {
+    trackMetaPixelEvent("Purchase", {
+      params: {
         ...(value != null ? { value, currency } : { currency }),
       },
-      publicFunnel.pixelId,
-    );
-  }, [confirmedByServer, publicFunnel?.pixelId, searchParams]);
+      pixelId: publicFunnel.pixelId,
+      businessId: businessId ?? publicFunnel.businessId ?? null,
+      funnelId,
+      dedupeKey: `Purchase|${publicFunnel.pixelId}|${businessId ?? publicFunnel.businessId ?? ""}|${funnelId ?? ""}`,
+    });
+  }, [
+    confirmedByServer,
+    publicFunnel?.pixelId,
+    publicFunnel?.businessId,
+    businessId,
+    funnelId,
+    searchParams,
+  ]);
 
   if (!ready || isLoading) {
     return <FunnelPreviewSkeleton />;
@@ -109,6 +118,8 @@ export function FunnelConfirmationView({
     <div className="relative flex min-h-full w-full flex-1 flex-col">
       <FunnelMetaPixel
         pixelId={publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
         stepKey="confirmation"
       />
       <PaymentConfirmedSprinkles active={celebrate} />

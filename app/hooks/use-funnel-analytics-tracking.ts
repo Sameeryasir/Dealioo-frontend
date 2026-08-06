@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { ANALYTICS_EVENT_TYPES } from "@/app/lib/analytics-event-types";
 import {
   resolveFunnelStepContext,
@@ -10,6 +10,8 @@ import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { getOrCreateFunnelSessionId } from "@/app/lib/funnel-session-id";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackAnalyticsEvent } from "@/app/services/funnel/track-analytics-event";
+
+const sentAnalyticsKeys = new Set<string>();
 
 function buildAnalyticsContext(pageKey: string) {
   const step = resolveFunnelStepContext(pageKey);
@@ -26,13 +28,17 @@ function isCheckoutPage(pageName: string): boolean {
   return key === "payment" || key === "checkout";
 }
 
+function claimAnalyticsKey(key: string): boolean {
+  if (sentAnalyticsKeys.has(key)) return false;
+  sentAnalyticsKeys.add(key);
+  return true;
+}
+
 export function useFunnelAnalyticsTracking(
   funnelId: number | null | undefined,
   pageName: string,
 ) {
   const { session } = useCheckoutContext();
-  const lastPageViewKey = useRef<string | null>(null);
-  const lastCheckoutOpenKey = useRef<string | null>(null);
 
   const resolveCustomerId = useCallback(() => {
     return session?.customerId ?? null;
@@ -41,31 +47,29 @@ export function useFunnelAnalyticsTracking(
   useEffect(() => {
     if (funnelId == null || funnelId < 1) return;
 
-    const viewKey = `${funnelId}:${pageName}`;
-    if (lastPageViewKey.current === viewKey) return;
-    lastPageViewKey.current = viewKey;
-
     const customerId = resolveCustomerId();
     const ctx = buildAnalyticsContext(pageName);
 
-    void trackAnalyticsEvent({
-      funnelId,
-      eventType: ANALYTICS_EVENT_TYPES.PAGE_VIEW,
-      visitorId: ctx.visitorId,
-      sessionId: ctx.sessionId,
-      pagePath: ctx.pagePath,
-      stepName: ctx.stepName,
-      stepOrder: ctx.stepOrder,
-      ...(customerId != null ? { customerId } : {}),
-    }).catch((err) => {
-      console.warn("[Analytics] page_view track failed", err);
-    });
+    const pageViewKey = `page_view:${funnelId}:${pageName}:${ctx.sessionId}`;
+    if (claimAnalyticsKey(pageViewKey)) {
+      void trackAnalyticsEvent({
+        funnelId,
+        eventType: ANALYTICS_EVENT_TYPES.PAGE_VIEW,
+        visitorId: ctx.visitorId,
+        sessionId: ctx.sessionId,
+        pagePath: ctx.pagePath,
+        stepName: ctx.stepName,
+        stepOrder: ctx.stepOrder,
+        ...(customerId != null ? { customerId } : {}),
+      }).catch((err) => {
+        sentAnalyticsKeys.delete(pageViewKey);
+        console.warn("[Analytics] page_view track failed", err);
+      });
+    }
 
-    // Why: checkout opens is the simple “reached payment” metric (replaces sessions).
     if (isCheckoutPage(pageName)) {
-      const checkoutKey = `${funnelId}:${ctx.sessionId}:checkout`;
-      if (lastCheckoutOpenKey.current !== checkoutKey) {
-        lastCheckoutOpenKey.current = checkoutKey;
+      const checkoutKey = `checkout_open:${funnelId}:${ctx.sessionId}`;
+      if (claimAnalyticsKey(checkoutKey)) {
         void trackAnalyticsEvent({
           funnelId,
           eventType: ANALYTICS_EVENT_TYPES.CHECKOUT_OPEN,
@@ -76,11 +80,12 @@ export function useFunnelAnalyticsTracking(
           stepOrder: ctx.stepOrder,
           ...(customerId != null ? { customerId } : {}),
         }).catch((err) => {
+          sentAnalyticsKeys.delete(checkoutKey);
           console.warn("[Analytics] checkout_open track failed", err);
         });
       }
     }
-  }, [funnelId, pageName, resolveCustomerId]);
+  }, [funnelId, pageName]);
 
   const trackButtonClick = useCallback(
     (elementName: string, section = "CTA") => {

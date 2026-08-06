@@ -46,7 +46,12 @@ export function LandingFunnelPreview() {
 
   return (
     <>
-      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="landing" />
+      <FunnelMetaPixel
+        pixelId={publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="landing"
+      />
       {isLoading ? (
         <FunnelPreviewSkeleton />
       ) : (
@@ -56,6 +61,8 @@ export function LandingFunnelPreview() {
           landingCtaHref={landingCtaHref}
           fullPageShellChrome
           trackingFunnelId={funnelId}
+          metaPixelId={publicFunnel?.pixelId}
+          metaBusinessId={businessId ?? publicFunnel?.businessId}
         />
       )}
     </>

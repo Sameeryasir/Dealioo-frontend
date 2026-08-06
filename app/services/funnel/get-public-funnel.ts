@@ -18,17 +18,33 @@ export type PublicFunnelResponse = Pick<
   step?: PublicFunnelStep | string;
 };
 
-export async function fetchPublicFunnelById(
+const publicFunnelInflight = new Map<
+  string,
+  Promise<PublicFunnelResponse | null>
+>();
+
+function publicFunnelCacheKey(
+  funnelId: number,
+  options?: {
+    businessId?: number | null;
+    step?: PublicFunnelStep | null;
+  },
+): string {
+  const businessId =
+    options?.businessId != null && isPositiveInt(options.businessId)
+      ? options.businessId
+      : "";
+  const step = options?.step?.trim() || "";
+  return `${funnelId}|${businessId}|${step}`;
+}
+
+async function fetchPublicFunnelByIdOnce(
   funnelId: number,
   options?: {
     businessId?: number | null;
     step?: PublicFunnelStep | null;
   },
 ): Promise<PublicFunnelResponse | null> {
-  if (!isPositiveInt(funnelId)) {
-    throw new Error("Valid funnelId is required.");
-  }
-
   const params = new URLSearchParams();
   if (isPositiveInt(options?.businessId)) {
     params.set("businessId", String(options.businessId));
@@ -58,4 +74,31 @@ export async function fetchPublicFunnelById(
   }
 
   return (await res.json()) as PublicFunnelResponse;
+}
+
+export async function fetchPublicFunnelById(
+  funnelId: number,
+  options?: {
+    businessId?: number | null;
+    step?: PublicFunnelStep | null;
+  },
+): Promise<PublicFunnelResponse | null> {
+  if (!isPositiveInt(funnelId)) {
+    throw new Error("Valid funnelId is required.");
+  }
+
+  const key = publicFunnelCacheKey(funnelId, options);
+  const inflight = publicFunnelInflight.get(key);
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = fetchPublicFunnelByIdOnce(funnelId, options).finally(() => {
+    if (publicFunnelInflight.get(key) === request) {
+      publicFunnelInflight.delete(key);
+    }
+  });
+
+  publicFunnelInflight.set(key, request);
+  return request;
 }

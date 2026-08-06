@@ -58,18 +58,24 @@ function FunnelCampaignPaymentPageInner() {
     const currency =
       searchParams.get("currency")?.trim().toUpperCase() || "USD";
     const value = campaignPricing.subtotal;
+    const resolvedBusinessId = businessId ?? publicFunnel.businessId ?? null;
 
-    trackMetaPixelEvent(
-      "InitiateCheckout",
-      {
+    trackMetaPixelEvent("InitiateCheckout", {
+      params: {
         ...(value != null ? { value, currency } : { currency }),
       },
-      publicFunnel.pixelId,
-    );
+      pixelId: publicFunnel.pixelId,
+      businessId: resolvedBusinessId,
+      funnelId,
+      dedupeKey: `InitiateCheckout|${publicFunnel.pixelId}|${resolvedBusinessId ?? ""}|${funnelId ?? ""}`,
+    });
   }, [
     isPostpaid,
     isLoading,
     publicFunnel?.pixelId,
+    publicFunnel?.businessId,
+    businessId,
+    funnelId,
     campaignPricing.subtotal,
     searchParams,
   ]);
@@ -112,37 +118,41 @@ function FunnelCampaignPaymentPageInner() {
   const awaitingInitialCheckoutSession =
     Boolean(checkoutToken) && !ready && session == null;
 
-  if (isPostpaid || isLoading || awaitingInitialCheckoutSession) {
-    return (
-      <>
-        <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="payment" />
-        <FunnelPreviewSkeleton />
-      </>
-    );
-  }
-
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="payment" />
-      {showSetupHint ? (
-        <div className="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-950">
-          {checkoutError
-            ? checkoutError
-            : !checkoutToken
-              ? "Complete signup first to get your checkout link."
-              : "Add ?businessId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_BUSINESS_ID."}
-        </div>
-      ) : null}
-      <TemplatePreview
-        page={payment}
-        landingPage={landing}
-        interactiveForms
-        fullPageShellChrome
-        paymentStripeCheckout={paymentStripeCheckout}
-        campaignPricing={campaignPricing}
-        trackingFunnelId={funnelId}
+    <>
+      <FunnelMetaPixel
+        pixelId={publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="payment"
       />
-    </div>
+      {isPostpaid || isLoading || awaitingInitialCheckoutSession ? (
+        <FunnelPreviewSkeleton />
+      ) : (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+          {showSetupHint ? (
+            <div className="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+              {checkoutError
+                ? checkoutError
+                : !checkoutToken
+                  ? "Complete signup first to get your checkout link."
+                  : "Add ?businessId=… to the URL or set NEXT_PUBLIC_FUNNEL_PAYMENT_BUSINESS_ID."}
+            </div>
+          ) : null}
+          <TemplatePreview
+            page={payment}
+            landingPage={landing}
+            interactiveForms
+            fullPageShellChrome
+            paymentStripeCheckout={paymentStripeCheckout}
+            campaignPricing={campaignPricing}
+            trackingFunnelId={funnelId}
+            metaPixelId={publicFunnel?.pixelId}
+            metaBusinessId={businessId ?? publicFunnel?.businessId}
+          />
+        </div>
+      )}
+    </>
   );
 }
 

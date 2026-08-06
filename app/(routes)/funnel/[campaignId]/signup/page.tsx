@@ -57,30 +57,32 @@ function FunnelCampaignSignupInner() {
           })
       : undefined;
 
-  if (isLoading) {
-    return (
-      <>
-        <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="signup" />
-        <FunnelPreviewSkeleton />
-      </>
-    );
-  }
-
   return (
     <>
-      <FunnelMetaPixel pixelId={publicFunnel?.pixelId} stepKey="signup" />
-      <TemplatePreview
-        page={signup}
-        landingPage={landing}
-        signupNextHref={signupNextHref}
-        interactiveForms
-        submitCustomerOnSignupNext
-        skipPaymentStep={isPostpaid}
-        fullPageShellChrome
-        trackingFunnelId={funnelId}
-        checkoutBusinessId={businessId}
-        checkoutCampaignId={campaignId}
+      <FunnelMetaPixel
+        pixelId={publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="signup"
       />
+      {isLoading ? (
+        <FunnelPreviewSkeleton />
+      ) : (
+        <TemplatePreview
+          page={signup}
+          landingPage={landing}
+          signupNextHref={signupNextHref}
+          interactiveForms
+          submitCustomerOnSignupNext
+          skipPaymentStep={isPostpaid}
+          fullPageShellChrome
+          trackingFunnelId={funnelId}
+          checkoutBusinessId={businessId}
+          checkoutCampaignId={campaignId}
+          metaPixelId={publicFunnel?.pixelId}
+          metaBusinessId={businessId ?? publicFunnel?.businessId}
+        />
+      )}
     </>
   );
 }

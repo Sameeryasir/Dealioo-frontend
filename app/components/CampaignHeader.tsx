@@ -444,9 +444,9 @@ export default function CampaignHeader({
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 sm:space-y-4 sm:px-6 sm:py-5">
               {campaignId != null && landingTrackingUrl ? (
                 <>
-                  <div className="rounded-2xl border border-[#fbcfe8] bg-[#fdf2f8]/60 p-4">
+                  <div className="rounded-2xl border border-[#bfdbfe] bg-[#f4f8ff]/80 p-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#e1306c] text-white">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#1877f2] text-white">
                         <Sparkles
                           className="size-4"
                           strokeWidth={2.25}
@@ -454,7 +454,7 @@ export default function CampaignHeader({
                         />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9d174d]">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
                           Campaign
                         </p>
                         <p className="mt-0.5 truncate text-sm font-semibold text-zinc-900">
@@ -532,12 +532,12 @@ export default function CampaignHeader({
               )}
             </div>
 
-            <div className="shrink-0 border-t border-zinc-200 bg-gradient-to-b from-white to-zinc-50 px-5 py-4 sm:px-6">
+            <div className="shrink-0 border-t border-zinc-200 bg-gradient-to-b from-white to-[#f4f8ff] px-5 py-4 sm:px-6">
               <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setTrackingDialogOpen(false)}
-                  className="min-w-24 rounded-xl border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 sm:min-w-28"
+                  className="min-w-24 rounded-xl border border-[#bfdbfe] bg-white px-5 py-2.5 text-sm font-semibold text-[#1877f2] transition hover:bg-[#e8f1ff] sm:min-w-28"
                 >
                   Done
                 </button>

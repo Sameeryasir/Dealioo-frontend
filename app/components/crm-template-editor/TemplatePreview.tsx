@@ -150,6 +150,8 @@ export function TemplatePreview({
   campaignPricing,
   skipPaymentStep = false,
   campaignType = null,
+  metaPixelId = null,
+  metaBusinessId = null,
 }: {
   page: TemplatePage;
   landingPage: TemplatePage;
@@ -169,14 +171,37 @@ export function TemplatePreview({
   campaignPricing?: CampaignPricing | null;
   skipPaymentStep?: boolean;
   campaignType?: "prepaid" | "postpaid" | null;
+  metaPixelId?: string | null;
+  metaBusinessId?: number | null;
 }) {
   const resolvedCheckoutBusinessId =
     checkoutBusinessId ?? checkoutRestaurantId;
   const router = useRouter();
   const [signupSubmitting, setSignupSubmitting] = useState(false);
-  const { trackButtonClick } = useFunnelAnalyticsTracking(
-    trackingFunnelId,
-    page.id,
+  const { trackButtonClick: trackAnalyticsButtonClick } =
+    useFunnelAnalyticsTracking(trackingFunnelId, page.id);
+
+  const trackButtonClick = useCallback(
+    (elementName: string, section = "CTA") => {
+      trackAnalyticsButtonClick(elementName, section);
+      trackMetaPixelEvent("ButtonClicked", {
+        pixelId: metaPixelId,
+        businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
+        funnelId: trackingFunnelId,
+        params: {
+          buttonText: elementName,
+          section,
+          content_name: elementName,
+        },
+      });
+    },
+    [
+      trackAnalyticsButtonClick,
+      metaPixelId,
+      metaBusinessId,
+      resolvedCheckoutBusinessId,
+      trackingFunnelId,
+    ],
   );
 
   const isMobile = true;
@@ -270,8 +295,20 @@ export function TemplatePreview({
           }
         }
 
-        trackMetaPixelEvent("Lead");
-        trackMetaPixelEvent("CompleteRegistration");
+        trackMetaPixelEvent("Lead", {
+          pixelId: metaPixelId,
+          businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
+          funnelId: trackingFunnelId,
+          email,
+          phone,
+        });
+        trackMetaPixelEvent("CompleteRegistration", {
+          pixelId: metaPixelId,
+          businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
+          funnelId: trackingFunnelId,
+          email,
+          phone,
+        });
 
         if (
           signupSubmitFlow &&
@@ -333,6 +370,8 @@ export function TemplatePreview({
       resolvedCheckoutBusinessId,
       checkoutCampaignId,
       skipPaymentStep,
+      metaPixelId,
+      metaBusinessId,
     ],
   );
 
