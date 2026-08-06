@@ -91,6 +91,7 @@ export function BusinessQrScannerPanel({
               <ScannerScanCodePanel
                 businessId={businessId}
                 onCreateGuest={() => setActiveTab("create")}
+                onManualEntry={() => setActiveTab("search")}
               />
             ) : null}
 

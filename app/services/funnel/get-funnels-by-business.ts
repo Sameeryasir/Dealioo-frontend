@@ -5,12 +5,14 @@ export type RestaurantFunnelDeal = {
   id: number;
   campaignName: string;
   price: number | string | null;
+  imageUrl: string | null;
 };
 
 type FunnelApiRow = {
   id?: number;
   campaignName?: string;
   price?: number | string | null;
+  imageUrl?: string | null;
 };
 
 function mapFunnelRow(row: FunnelApiRow): RestaurantFunnelDeal | null {
@@ -19,10 +21,16 @@ function mapFunnelRow(row: FunnelApiRow): RestaurantFunnelDeal | null {
   const name = row.campaignName?.trim();
   if (!name) return null;
 
+  const imageUrl =
+    typeof row.imageUrl === "string" && row.imageUrl.trim()
+      ? row.imageUrl.trim()
+      : null;
+
   return {
     id: row.id,
     campaignName: name,
     price: row.price ?? null,
+    imageUrl,
   };
 }
 

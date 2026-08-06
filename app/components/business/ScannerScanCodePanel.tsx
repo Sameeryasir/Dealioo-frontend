@@ -1,14 +1,18 @@
 "use client";
 
 import {
+  ArrowDownToLine,
   CheckCircle2,
+  Focus,
   Gift,
   Loader2,
+  PencilLine,
+  QrCode,
   ScanLine,
   Sparkles,
+  SunMedium,
   UserCheck,
   Users,
-  Wallet,
   XCircle,
 } from "lucide-react";
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
@@ -61,16 +65,40 @@ const SCAN_STEPS = [
     icon: ScanLine,
     title: "Scan pass",
     description: "Point the camera at the guest's QR code.",
+    iconWrap: "bg-[#e8f1ff] text-[#1877f2] ring-[#dbeafe]",
+    stepWrap: "bg-[#1877f2] text-white",
   },
   {
     icon: UserCheck,
     title: "Confirm guest",
     description: "Review their profile and available rewards.",
+    iconWrap: "bg-[#ecfdf5] text-[#059669] ring-[#a7f3d0]",
+    stepWrap: "bg-[#10b981] text-white",
   },
   {
-    icon: Wallet,
+    icon: Gift,
     title: "Redeem offer",
     description: "Apply the deal and complete the order.",
+    iconWrap: "bg-[#f3e8ff] text-[#7e22ce] ring-[#e9d5ff]",
+    stepWrap: "bg-[#9333ea] text-white",
+  },
+] as const;
+
+const SCAN_TIPS = [
+  {
+    icon: SunMedium,
+    title: "Ensure good lighting",
+    description: "Avoid glare and shadows",
+  },
+  {
+    icon: Focus,
+    title: "Hold steady",
+    description: "Keep the QR code within the frame",
+  },
+  {
+    icon: ArrowDownToLine,
+    title: "Close distance",
+    description: "Move closer if the code isn't detected",
   },
 ] as const;
 
@@ -177,98 +205,158 @@ function ScannerSuccessState({
   );
 }
 
-function ScannerIdleState({ onStart }: { onStart: () => void }) {
+function ScannerIdleState({
+  onStart,
+  onManualEntry,
+}: {
+  onStart: () => void;
+  onManualEntry?: () => void;
+}) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: standardEase }}
-        className="overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
+        className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
       >
-        <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#f8fafc] px-3 py-1.5 text-[0.72rem] font-bold text-[#334155] ring-1 ring-[#e2e8f0]">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
-            <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
-              Camera standby
-            </p>
-          </div>
-          <p className="m-0 hidden text-[0.7rem] font-medium text-white/50 sm:block">
-            Counter scan mode
-          </p>
+            Camera ready
+          </span>
+          {onManualEntry ? (
+            <button
+              type="button"
+              onClick={onManualEntry}
+              className="inline-flex cursor-pointer items-center gap-1.5 text-[0.8rem] font-bold text-[#1877f2] transition hover:text-[#0f5ed7]"
+            >
+              <PencilLine className="size-3.5" strokeWidth={2.25} aria-hidden />
+              Switch to manual entry
+            </button>
+          ) : null}
         </div>
 
-        <div className="px-5 py-5 sm:px-7 sm:py-6">
-          <div className="mx-auto flex max-w-sm flex-col items-center text-center">
-            <div className="relative mb-4 aspect-square w-full max-w-[11rem]">
-              <div className="absolute inset-0 overflow-hidden rounded-[1.25rem] border border-[#e2e8f0] bg-[#f8fafc]">
+        <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)] lg:items-center lg:gap-7 sm:px-7 sm:py-7">
+          <div className="max-w-sm">
+            <p className="m-0 text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[#1877f2]">
+              Counter scan mode
+            </p>
+            <span
+              className="mt-2 block h-0.5 w-10 rounded-full bg-[#1877f2]"
+              aria-hidden
+            />
+            <h3 className="m-0 mt-4 text-[1.65rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.85rem]">
+              Scan guest pass
+            </h3>
+            <p className="m-0 mt-3 text-[0.88rem] font-medium leading-relaxed text-slate-500">
+              Scan the guest&apos;s QR code to verify their pass, confirm
+              details, and redeem their offer.
+            </p>
+            <button
+              type="button"
+              onClick={onStart}
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
+            >
+              <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
+              Start camera
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={onStart}
+              aria-label="Start camera and scan guest pass"
+              className="group relative w-full max-w-[18rem] cursor-pointer overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)] transition hover:ring-2 hover:ring-[#1877f2]/35"
+            >
+              <div className="relative aspect-[4/5] w-full sm:aspect-square">
+                <span
+                  className="absolute left-4 top-4 size-8 border-l-[3px] border-t-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute right-4 top-4 size-8 border-r-[3px] border-t-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute bottom-4 left-4 size-8 border-b-[3px] border-l-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
+                <span
+                  className="absolute bottom-4 right-4 size-8 border-b-[3px] border-r-[3px] border-[#1877f2]"
+                  aria-hidden
+                />
                 <motion.span
                   aria-hidden
-                  className="absolute left-3.5 right-3.5 z-10 h-0.5 rounded-full bg-[#1877f2]"
-                  initial={{ top: "14%" }}
-                  animate={{ top: ["14%", "86%", "14%"] }}
+                  className="absolute left-6 right-6 z-10 h-0.5 rounded-full bg-[#1877f2] shadow-[0_0_12px_rgba(24,119,242,0.85)]"
+                  initial={{ top: "18%" }}
+                  animate={{ top: ["18%", "78%", "18%"] }}
                   transition={{
                     duration: 2.4,
                     ease: "easeInOut",
                     repeat: Infinity,
                   }}
                 />
-                <span
-                  className="absolute left-0 top-0 size-6 border-l-[3px] border-t-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute right-0 top-0 size-6 border-r-[3px] border-t-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute bottom-0 left-0 size-6 border-b-[3px] border-l-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute bottom-0 right-0 size-6 border-b-[3px] border-r-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <div className="flex h-full items-center justify-center">
-                  <span className="flex size-14 items-center justify-center rounded-xl bg-[#0e182b] shadow-[0_8px_20px_rgba(14,24,43,0.2)]">
-                    <ScanLine
-                      className="size-7 text-white"
-                      strokeWidth={1.75}
-                      aria-hidden
-                    />
-                  </span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+                  <QrCode
+                    className="size-14 text-white/95 drop-shadow-sm transition group-hover:scale-105"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  <p className="m-0 text-center text-[0.78rem] font-semibold text-white/85">
+                    Position QR code within the frame
+                  </p>
                 </div>
               </div>
-            </div>
-
-            <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-              <Sparkles className="size-3" aria-hidden />
-              Ready to scan
-            </p>
-            <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
-              Scan a guest pass
-            </h3>
-            <p className="m-0 mt-1 max-w-[18rem] text-[0.78rem] font-medium leading-relaxed text-slate-500">
-              Point the camera at the QR, confirm the guest, and redeem at the
-              counter.
-            </p>
-
+            </button>
             <button
               type="button"
               onClick={onStart}
-              className="mt-4 inline-flex min-w-[11rem] items-center justify-center gap-2 rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5]"
+              className="mt-3.5 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-[#0e182b] shadow-sm transition hover:border-[#dbeafe] hover:text-[#1877f2]"
             >
-              <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
-              Start camera
+              <Sparkles className="size-3.5 text-[#1877f2]" aria-hidden />
+              Auto-detect on
+              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
             </button>
+          </div>
+
+          <div className="lg:pl-1">
+            <h4 className="m-0 text-[0.95rem] font-extrabold tracking-tight text-[#0e182b]">
+              Tips for best results
+            </h4>
+            <ul className="m-0 mt-4 flex list-none flex-col gap-3.5 p-0">
+              {SCAN_TIPS.map((tip) => {
+                const Icon = tip.icon;
+                return (
+                  <li key={tip.title} className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-[#f4f8ff] text-[#1877f2]">
+                      <Icon className="size-4" strokeWidth={2.1} aria-hidden />
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="m-0 text-[0.84rem] font-bold text-[#0e182b]">
+                        {tip.title}
+                      </p>
+                      <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                        {tip.description}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </div>
       </motion.div>
 
-      <div className="grid gap-2.5 sm:grid-cols-3">
+      <div className="relative grid gap-3 sm:grid-cols-3 sm:gap-4">
+        <span
+          className="pointer-events-none absolute left-[16%] right-[16%] top-[1.55rem] hidden border-t border-dashed border-[#dbeafe] sm:block"
+          aria-hidden
+        />
         {SCAN_STEPS.map((step, index) => {
           const Icon = step.icon;
           return (
@@ -281,24 +369,26 @@ function ScannerIdleState({ onStart }: { onStart: () => void }) {
                 delay: 0.08 + index * 0.06,
                 ease: standardEase,
               }}
-              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5"
+              className="relative rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
             >
-              <div className="flex items-start gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2] text-[0.7rem] font-bold text-white">
+              <div className="mb-3 flex items-center gap-2.5">
+                <span
+                  className={`flex size-9 items-center justify-center rounded-xl ring-1 ${step.iconWrap}`}
+                >
+                  <Icon className="size-4" strokeWidth={2.15} aria-hidden />
+                </span>
+                <span
+                  className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${step.stepWrap}`}
+                >
                   {index + 1}
                 </span>
-                <div className="min-w-0 pt-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
-                    <p className="m-0 text-[0.8rem] font-bold text-[#0e182b]">
-                      {step.title}
-                    </p>
-                  </div>
-                  <p className="m-0 mt-1 text-[0.7rem] leading-snug text-slate-500">
-                    {step.description}
-                  </p>
-                </div>
               </div>
+              <p className="m-0 text-[0.88rem] font-extrabold text-[#0e182b]">
+                {step.title}
+              </p>
+              <p className="m-0 mt-1 text-[0.74rem] leading-snug text-slate-500">
+                {step.description}
+              </p>
             </motion.div>
           );
         })}
@@ -309,43 +399,60 @@ function ScannerIdleState({ onStart }: { onStart: () => void }) {
 
 function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
   return (
-    <div className="mx-auto w-full max-w-lg">
-      <div className="mb-3 flex items-center justify-between gap-3 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-4 py-2">
-        <span className="inline-flex items-center gap-2 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1877f2]/60" />
-            <span className="relative inline-flex size-2 rounded-full bg-[#1877f2]" />
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f8ff] px-3 py-1.5 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1877f2]/55" />
+              <span className="relative inline-flex size-2 rounded-full bg-[#1877f2]" />
+            </span>
+            Scanning
           </span>
-          Scanning
-        </span>
-        <span className="text-[0.72rem] font-medium text-slate-500">
-          Align QR inside the frame
-        </span>
-      </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="cursor-pointer text-[0.8rem] font-bold text-slate-500 transition hover:text-[#1877f2]"
+          >
+            Cancel
+          </button>
+        </div>
 
-      <div className="relative overflow-hidden rounded-[1.35rem] border border-[#1877f2]/20 bg-[#07111f] shadow-[0_16px_40px_rgba(24,119,242,0.18)] ring-2 ring-[#1877f2]/15 ring-offset-2 ring-offset-white">
-        <div
-          id="qr-reader"
-          className="min-h-[320px] overflow-hidden [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover"
-        />
-        <span className="pointer-events-none absolute inset-0 rounded-[1.35rem] ring-1 ring-inset ring-white/10" aria-hidden />
-        <span className="pointer-events-none absolute left-5 top-5 size-8 border-l-2 border-t-2 border-[#1877f2]" aria-hidden />
-        <span className="pointer-events-none absolute right-5 top-5 size-8 border-r-2 border-t-2 border-[#1877f2]" aria-hidden />
-        <span className="pointer-events-none absolute bottom-5 left-5 size-8 border-b-2 border-l-2 border-[#1877f2]" aria-hidden />
-        <span className="pointer-events-none absolute bottom-5 right-5 size-8 border-b-2 border-r-2 border-[#1877f2]" aria-hidden />
+        <div className="px-5 py-5 sm:px-8 sm:py-6">
+          <div className="relative mx-auto max-w-md overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)]">
+            <div
+              id="qr-reader"
+              className="min-h-[320px] overflow-hidden [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover"
+            />
+            <span
+              className="pointer-events-none absolute left-5 top-5 size-8 border-l-[3px] border-t-[3px] border-[#1877f2]"
+              aria-hidden
+            />
+            <span
+              className="pointer-events-none absolute right-5 top-5 size-8 border-r-[3px] border-t-[3px] border-[#1877f2]"
+              aria-hidden
+            />
+            <span
+              className="pointer-events-none absolute bottom-5 left-5 size-8 border-b-[3px] border-l-[3px] border-[#1877f2]"
+              aria-hidden
+            />
+            <span
+              className="pointer-events-none absolute bottom-5 right-5 size-8 border-b-[3px] border-r-[3px] border-[#1877f2]"
+              aria-hidden
+            />
+          </div>
+          <p className="m-0 mt-4 text-center text-[0.8rem] font-medium text-slate-500">
+            Position QR code within the frame
+          </p>
+          <div className="mt-3 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-[#0e182b]">
+              <Sparkles className="size-3.5 text-[#1877f2]" aria-hidden />
+              Auto-detect on
+              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+            </span>
+          </div>
+        </div>
       </div>
-
-      <p className="mt-4 text-center text-[0.78rem] leading-relaxed text-slate-500">
-        Allow camera access if your browser asks. On a laptop, use the built-in
-        webcam and hold the QR code steady in the frame.
-      </p>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="mt-4 w-full cursor-pointer rounded-full border border-[#e8edf5] bg-white py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:border-[#dbeafe] hover:bg-[#f4f8ff] hover:text-[#1877f2]"
-      >
-        Cancel
-      </button>
     </div>
   );
 }
@@ -353,9 +460,11 @@ function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
 export function ScannerScanCodePanel({
   businessId,
   onCreateGuest,
+  onManualEntry,
 }: {
   businessId: number;
   onCreateGuest?: () => void;
+  onManualEntry?: () => void;
 }) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannedRef = useRef(false);
@@ -716,7 +825,7 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-2xl pb-6">
+      <div className="mx-auto w-full max-w-3xl pb-6">
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}
@@ -725,7 +834,10 @@ export function ScannerScanCodePanel({
         ) : (
         <div className="flex w-full flex-col">
           {scanState === "idle" ? (
-            <ScannerIdleState onStart={startScanner} />
+            <ScannerIdleState
+              onStart={startScanner}
+              onManualEntry={onManualEntry}
+            />
           ) : null}
 
           {scanState === "scanning" ? (

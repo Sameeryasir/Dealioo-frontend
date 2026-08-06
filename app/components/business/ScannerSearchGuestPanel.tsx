@@ -12,11 +12,13 @@ import {
   Mail,
   Megaphone,
   Phone,
+  ScanLine,
   Search,
-  Sparkles,
+  ShieldCheck,
   Trash2,
   UserCheck,
   UserRound,
+  Users,
   Wallet,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +31,7 @@ import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubt
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
@@ -69,16 +72,22 @@ const SEARCH_STEPS = [
     icon: Search,
     title: "Search guest",
     description: "Look up by name, email, or phone number.",
+    iconWrap: "bg-[#e8f1ff] text-[#1877f2] ring-[#dbeafe]",
+    stepWrap: "bg-[#1877f2] text-white",
   },
   {
-    icon: UserCheck,
+    icon: UserRound,
     title: "Open profile",
     description: "Review contact details and active deals.",
+    iconWrap: "bg-[#ecfdf5] text-[#059669] ring-[#a7f3d0]",
+    stepWrap: "bg-[#10b981] text-white",
   },
   {
-    icon: Wallet,
+    icon: Gift,
     title: "Redeem offer",
     description: "Apply rewards and complete the order.",
+    iconWrap: "bg-[#f3e8ff] text-[#7e22ce] ring-[#e9d5ff]",
+    stepWrap: "bg-[#9333ea] text-white",
   },
 ] as const;
 
@@ -94,12 +103,12 @@ function SearchHeroCard({
   onSearch: () => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: standardEase }}
-        className="overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
+        className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
       >
         <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
@@ -111,60 +120,100 @@ function SearchHeroCard({
               Guest lookup
             </p>
           </div>
-          <p className="m-0 hidden text-[0.7rem] font-medium text-white/50 sm:block">
+          <p className="m-0 hidden items-center gap-1.5 text-[0.7rem] font-medium text-white/55 sm:inline-flex">
             Counter search mode
+            <ScanLine className="size-3.5 text-white/45" aria-hidden />
           </p>
         </div>
 
-        <div className="px-5 py-5 sm:px-7 sm:py-6">
-          <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-            <Sparkles className="size-3" aria-hidden />
-            Ready to search
-          </p>
-          <h3 className="m-0 mt-2 text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
-            Find a guest quickly
-          </h3>
-          <p className="m-0 mt-1 max-w-md text-[0.78rem] font-medium leading-relaxed text-slate-500">
-            Search your guest list, open their profile, and redeem active deals.
-          </p>
+        <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:gap-8 sm:px-7 sm:py-7">
+          <div className="min-w-0">
+            <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#059669] ring-1 ring-[#a7f3d0]">
+              <ShieldCheck className="size-3.5" strokeWidth={2.25} aria-hidden />
+              Ready to search
+            </p>
+            <h3 className="m-0 mt-3.5 text-[1.55rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.75rem]">
+              Find a guest quickly
+            </h3>
+            <p className="m-0 mt-2 max-w-lg text-[0.88rem] font-medium leading-relaxed text-slate-500">
+              Search your guest list by name, email, or phone number to view
+              their profile and redeem active deals.
+            </p>
 
-          <div className="relative mt-4 min-w-0">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-[#1877f2]/70"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  onSearch();
-                }
-              }}
-              placeholder="Name, email, or phone..."
-              className="w-full rounded-full border border-[#e2e8f0] bg-[#f8fafc] py-2.5 pr-28 pl-11 text-[0.84rem] font-medium text-[#0e182b] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-            />
-            <button
-              type="button"
-              disabled={!query.trim() || searching}
-              onClick={onSearch}
-              className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.78rem] font-bold text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {searching ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                "Search"
-              )}
-            </button>
+            <div className="relative mt-5 min-w-0">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    onSearch();
+                  }
+                }}
+                placeholder="Name, email, or phone..."
+                className="w-full rounded-full border border-[#e2e8f0] bg-white py-3 pr-28 pl-11 text-[0.88rem] font-medium text-[#0e182b] shadow-[0_6px_18px_rgba(15,23,42,0.05)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+              />
+              <button
+                type="button"
+                disabled={!query.trim() || searching}
+                onClick={onSearch}
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer rounded-full bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {searching ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  "Search"
+                )}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="m-0 inline-flex items-center gap-1.5 text-[0.72rem] font-medium text-slate-500">
+                <ShieldCheck className="size-3.5 text-slate-400" aria-hidden />
+                Secure search · Your data is protected
+              </p>
+              <p className="m-0 text-[0.72rem] font-medium text-slate-400">
+                Type at least 2 characters
+              </p>
+            </div>
           </div>
-          <p className="m-0 mt-2.5 text-[0.7rem] font-medium text-slate-500">
-            Type at least 2 characters, then search.
-          </p>
+
+          <div className="relative mx-auto hidden w-full max-w-[15rem] lg:block" aria-hidden>
+            <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#f8fbff] to-white p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
+              <div className="flex items-center gap-3 border-b border-[#eef2f7] pb-4">
+                <span className="flex size-12 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.3)]">
+                  <UserRound className="size-6" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <span className="block h-2.5 w-24 rounded-full bg-[#dbeafe]" />
+                  <span className="block h-2 w-16 rounded-full bg-[#e2e8f0]" />
+                </div>
+              </div>
+              <div className="mt-4 space-y-2.5">
+                <span className="block h-2 w-full rounded-full bg-[#eef2f7]" />
+                <span className="block h-2 w-[85%] rounded-full bg-[#eef2f7]" />
+                <span className="block h-2 w-[60%] rounded-full bg-[#eef2f7]" />
+              </div>
+              <span className="mt-4 inline-flex rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-wide text-[#059669] ring-1 ring-[#a7f3d0]">
+                Active deals
+              </span>
+            </div>
+            <span className="absolute -bottom-3 -right-2 flex size-16 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_12px_28px_rgba(24,119,242,0.35)] ring-4 ring-white">
+              <Search className="size-7" strokeWidth={2.25} />
+            </span>
+          </div>
         </div>
       </motion.div>
 
-      <div className="grid gap-2.5 sm:grid-cols-3">
+      <div className="relative grid gap-3 sm:grid-cols-3 sm:gap-4">
+        <span
+          className="pointer-events-none absolute left-[16%] right-[16%] top-[1.65rem] hidden border-t border-dashed border-[#dbeafe] sm:block"
+          aria-hidden
+        />
         {SEARCH_STEPS.map((step, index) => {
           const Icon = step.icon;
           return (
@@ -177,27 +226,26 @@ function SearchHeroCard({
                 delay: 0.08 + index * 0.06,
                 ease: standardEase,
               }}
-              className="rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5"
+              className="relative rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
             >
-              <div className="flex items-start gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2] text-[0.7rem] font-bold text-white">
+              <div className="mb-3 flex items-center gap-2.5">
+                <span
+                  className={`flex size-9 items-center justify-center rounded-xl ring-1 ${step.iconWrap}`}
+                >
+                  <Icon className="size-4" strokeWidth={2.15} aria-hidden />
+                </span>
+                <span
+                  className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${step.stepWrap}`}
+                >
                   {index + 1}
                 </span>
-                <div className="min-w-0 pt-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Icon
-                      className="size-3.5 shrink-0 text-[#1877f2]"
-                      aria-hidden
-                    />
-                    <p className="m-0 text-[0.8rem] font-bold text-[#0e182b]">
-                      {step.title}
-                    </p>
-                  </div>
-                  <p className="m-0 mt-1 text-[0.7rem] leading-snug text-slate-500">
-                    {step.description}
-                  </p>
-                </div>
               </div>
+              <p className="m-0 text-[0.88rem] font-extrabold text-[#0e182b]">
+                {step.title}
+              </p>
+              <p className="m-0 mt-1 text-[0.74rem] leading-snug text-slate-500">
+                {step.description}
+              </p>
             </motion.div>
           );
         })}
@@ -211,6 +259,22 @@ function guestInitials(name: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
+const GUEST_AVATAR_TONES = [
+  "bg-[#1877f2] text-white",
+  "bg-[#7c3aed] text-white",
+  "bg-[#0d9488] text-white",
+  "bg-[#db2777] text-white",
+  "bg-[#d97706] text-white",
+] as const;
+
+function guestAvatarTone(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash + seed.charCodeAt(i) * (i + 1)) % 997;
+  }
+  return GUEST_AVATAR_TONES[hash % GUEST_AVATAR_TONES.length];
 }
 
 function formatDealPrice(price: number | string | null): string | null {
@@ -269,6 +333,7 @@ function BusinessDealCheckboxRow({
   onToggle: () => void;
 }) {
   const priceLabel = formatDealPrice(deal.price);
+  const imageSrc = resolveUploadImageUrl(deal.imageUrl);
 
   return (
     <li>
@@ -296,8 +361,17 @@ function BusinessDealCheckboxRow({
             <span className="size-1.5 rounded-full bg-white" />
           ) : null}
         </span>
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1877f2]">
-          <Megaphone className="size-4" aria-hidden />
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#eef5ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
+          {imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageSrc}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <Megaphone className="size-4" aria-hidden />
+          )}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
@@ -375,6 +449,8 @@ function DealSelectRow({
   onToggle: () => void;
   onRedeem: () => void;
 }) {
+  const imageSrc = resolveUploadImageUrl(deal.imageUrl);
+
   return (
     <li>
       <div
@@ -403,8 +479,17 @@ function DealSelectRow({
             <span className="size-1.5 rounded-full bg-white" aria-hidden />
           ) : null}
         </button>
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f1f5f9] text-[#64748b]">
-          <FileText className="size-4" aria-hidden />
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f1f5f9] text-[#64748b] ring-1 ring-[#e2e8f0]">
+          {imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageSrc}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <FileText className="size-4" aria-hidden />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
@@ -1122,20 +1207,25 @@ export function ScannerSearchGuestPanel({
 
     <div className="flex min-h-0 w-full flex-1 flex-col">
       {showTable ? (
-        <article className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] px-4 py-3.5 sm:px-6">
-            <div className="min-w-0">
-              <h3 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
-                Search results
-              </h3>
-              <p className="m-0 mt-0.5 text-[0.75rem] font-medium text-slate-500">
-                {meta?.total ?? 0} guest
-                {(meta?.total ?? 0) === 1 ? "" : "s"} found — tap a row to open
-                profile
-              </p>
+        <article className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#f8fafc]">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-white px-4 py-4 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
+                <Users className="size-5" strokeWidth={2.15} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h3 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-[#07111f]">
+                  Search results
+                </h3>
+                <p className="m-0 mt-0.5 text-[0.78rem] font-medium text-slate-500">
+                  {meta?.total ?? 0} guest
+                  {(meta?.total ?? 0) === 1 ? "" : "s"} found · Tap a row to open
+                  profile
+                </p>
+              </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
+              <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-[0.74rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#dbeafe]">
                 {meta?.total ?? 0} found
               </span>
               <button
@@ -1147,7 +1237,7 @@ export function ScannerSearchGuestPanel({
                   setQuery("");
                   setErrorMessage(null);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-[0.72rem] font-bold text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff]"
               >
                 <ArrowLeft className="size-3.5" aria-hidden />
                 Search again
@@ -1155,119 +1245,142 @@ export function ScannerSearchGuestPanel({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
-            <table className="w-full min-w-[40rem] border-collapse">
-              <thead className="sticky top-0 z-[1]">
-                <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
-                  <th className={`${thClass} w-12`}>
-                    <TableColumnHeader
-                      label="#"
-                      iconClassName={TABLE_HEAD_ICON_CLASS}
-                      labelClassName={TABLE_HEAD_LABEL_CLASS}
-                    />
-                  </th>
-                  <th className={thClass}>
-                    <TableColumnHeader
-                      icon={UserRound}
-                      label="Name"
-                      iconClassName={TABLE_HEAD_ICON_CLASS}
-                      labelClassName={TABLE_HEAD_LABEL_CLASS}
-                    />
-                  </th>
-                  <th className={thClass}>
-                    <TableColumnHeader
-                      icon={Mail}
-                      label="Email"
-                      iconClassName={TABLE_HEAD_ICON_CLASS}
-                      labelClassName={TABLE_HEAD_LABEL_CLASS}
-                    />
-                  </th>
-                  <th className={thClass}>
-                    <TableColumnHeader
-                      icon={Phone}
-                      label="Phone"
-                      iconClassName={TABLE_HEAD_ICON_CLASS}
-                      labelClassName={TABLE_HEAD_LABEL_CLASS}
-                    />
-                  </th>
-                  <th className={`${thClass} w-24 text-right`}>
-                    <span className={TABLE_HEAD_LABEL_CLASS}>Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {searching && results.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-14 text-center">
-                      <Loader2
-                        className="mx-auto size-6 animate-spin text-[#1877f2]"
-                        aria-hidden
+          <div className="min-h-0 flex-1 overflow-auto overscroll-contain p-4 sm:p-5">
+            <div className="overflow-hidden rounded-[1.25rem] border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <table className="w-full min-w-[42rem] border-collapse">
+                <thead>
+                  <tr className="border-b border-[#eef2f7] bg-[#fbfcfe]">
+                    <th className={`${thClass} w-14`}>
+                      <TableColumnHeader
+                        label="#"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
                       />
-                      <p className="mt-3 text-sm font-medium text-slate-600">
-                        Searching guests…
-                      </p>
-                    </td>
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={UserRound}
+                        label="Guest"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={Mail}
+                        label="Email"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={thClass}>
+                      <TableColumnHeader
+                        icon={Phone}
+                        label="Phone"
+                        iconClassName={TABLE_HEAD_ICON_CLASS}
+                        labelClassName={TABLE_HEAD_LABEL_CLASS}
+                      />
+                    </th>
+                    <th className={`${thClass} w-28 text-right`}>
+                      <span className={TABLE_HEAD_LABEL_CLASS}>Actions</span>
+                    </th>
                   </tr>
-                ) : null}
+                </thead>
+                <tbody>
+                  {searching && results.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-14 text-center">
+                        <Loader2
+                          className="mx-auto size-6 animate-spin text-[#1877f2]"
+                          aria-hidden
+                        />
+                        <p className="mt-3 text-sm font-medium text-slate-600">
+                          Searching guests…
+                        </p>
+                      </td>
+                    </tr>
+                  ) : null}
 
-                {!searching || results.length > 0
-                  ? results.map((guest, index) => {
-                      const rowNumber = rowOffset + index + 1;
-                      const displayName = guest.name?.trim() || "Guest";
-                      const initials = guestInitials(displayName);
+                  {!searching || results.length > 0
+                    ? results.map((guest, index) => {
+                        const rowNumber = rowOffset + index + 1;
+                        const displayName = guest.name?.trim() || "Guest";
+                        const initials = guestInitials(displayName);
+                        const phone = guest.phone?.trim();
 
-                      return (
-                        <tr
-                          key={guest.id}
-                          className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
-                          onClick={() => void handleSelectGuest(guest)}
-                        >
-                          <td className={tdClass}>
-                            <span className="text-xs font-semibold tabular-nums text-slate-400">
-                              {rowNumber}
-                            </span>
-                          </td>
-                          <td className={tdClass}>
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
-                                {initials}
+                        return (
+                          <tr
+                            key={guest.id}
+                            className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#f7faff]"
+                            onClick={() => void handleSelectGuest(guest)}
+                          >
+                            <td className={tdClass}>
+                              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#e8f1ff] text-[0.72rem] font-bold tabular-nums text-[#1877f2]">
+                                {rowNumber}
                               </span>
-                              <span className="truncate font-bold text-[#07111f]">
-                                {displayName}
+                            </td>
+                            <td className={tdClass}>
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span
+                                  className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${guestAvatarTone(displayName)}`}
+                                >
+                                  {initials}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="m-0 truncate font-bold text-[#07111f]">
+                                    {displayName}
+                                  </p>
+                                  <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-400">
+                                    Guest
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className={`${tdClass} max-w-[16rem]`}>
+                              <span
+                                className="inline-flex max-w-full items-center gap-2 text-slate-600"
+                                title={guest.email}
+                              >
+                                <span
+                                  className="size-1.5 shrink-0 rounded-full bg-emerald-500"
+                                  aria-hidden
+                                />
+                                <span className="truncate">{guest.email}</span>
                               </span>
-                            </div>
-                          </td>
-                          <td className={`${tdClass} max-w-[14rem]`}>
-                            <span
-                              className="block truncate text-slate-600"
-                              title={guest.email}
-                            >
-                              {guest.email}
-                            </span>
-                          </td>
-                          <td className={tdClass}>
-                            {guest.phone?.trim() ? (
-                              <span className="text-slate-600">{guest.phone}</span>
-                            ) : (
-                              <span className="text-slate-300">—</span>
-                            )}
-                          </td>
-                          <td className={`${tdClass} text-right`}>
-                            <span className="inline-flex items-center gap-1 text-[0.75rem] font-bold text-[#1877f2]">
-                              Open
-                              <ChevronRight className="size-3.5" aria-hidden />
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  : null}
-              </tbody>
-            </table>
+                            </td>
+                            <td className={tdClass}>
+                              {phone ? (
+                                <span className="inline-flex items-center gap-2 text-slate-600">
+                                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#ecfdf5] text-[#059669] ring-1 ring-[#a7f3d0]">
+                                    <Phone
+                                      className="size-3.5"
+                                      strokeWidth={2.15}
+                                      aria-hidden
+                                    />
+                                  </span>
+                                  {phone}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300">—</span>
+                              )}
+                            </td>
+                            <td className={`${tdClass} text-right`}>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f1ff] px-3 py-1.5 text-[0.75rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe] transition group-hover:bg-[#1877f2] group-hover:text-white group-hover:ring-[#1877f2]">
+                                Open
+                                <ChevronRight className="size-3.5" aria-hidden />
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    : null}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {meta && meta.totalPages > 1 ? (
-            <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-6">
+            <div className="shrink-0 border-t border-[#e8edf5] bg-white px-4 py-3 sm:px-6">
               <OffsetPagination
                 page={page}
                 totalPages={meta.totalPages}
@@ -1313,14 +1426,9 @@ export function ScannerSearchGuestPanel({
                       <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
                       <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
                     </span>
-                    <div className="min-w-0">
-                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        Guest profile
-                      </p>
-                      <p className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-[#0e182b]">
-                        {selectedProfile.customerName}
-                      </p>
-                    </div>
+                    <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
+                      Guest profile
+                    </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button

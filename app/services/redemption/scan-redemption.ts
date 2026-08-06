@@ -215,6 +215,7 @@ export type GuestActiveDeal = {
   paymentBadge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
   paymentStatus: string;
   campaignPrice?: number | null;
+  imageUrl?: string | null;
   expiresAt: string | null;
   canSelect?: boolean;
   qrToken?: string;
