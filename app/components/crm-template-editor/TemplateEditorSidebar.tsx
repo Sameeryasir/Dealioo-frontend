@@ -688,14 +688,14 @@ export function TemplateEditorSidebar({
   stackFillHeight?: boolean;
 }) {
   const mediaFileId = useId();
-  const [openSection, setOpenSection] = useState<SectionId | null>("content");
+  const [openSection, setOpenSection] = useState<SectionId | null>(null);
   const [contentFocus, setContentFocus] = useState<ContentFocus>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const heroImageSrc = resolveUploadImageUrl(page.imageUrl);
 
   useEffect(() => {
-    setOpenSection("content");
+    setOpenSection(null);
     setContentFocus(null);
   }, [page.id]);
 

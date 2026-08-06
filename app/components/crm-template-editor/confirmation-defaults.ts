@@ -14,6 +14,9 @@ export const CONFIRMATION_POSTPAID_DEFAULT_BODY = `We're glad you're with us. Ch
 
 You can pay when you visit — no payment was required to sign up.`;
 
+export const CONFIRMATION_POSTPAID_TRUST_LINE =
+  "Your offer is ready · Pay when you visit";
+
 const PLACEHOLDER_SNIPPET = "lorem ipsum";
 
 function isPlaceholderCopy(value: string | undefined | null): boolean {

@@ -10,7 +10,10 @@ import {
   normalizeLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
-import { resolveConfirmationContent } from "@/app/components/crm-template-editor/confirmation-defaults";
+import {
+  CONFIRMATION_POSTPAID_TRUST_LINE,
+  resolveConfirmationContent,
+} from "@/app/components/crm-template-editor/confirmation-defaults";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type {
   LandingTemplatePage,
@@ -78,6 +81,10 @@ export function ConfirmationPagePreview({
     ? { color: theme.bodyColor }
     : undefined;
   const copy = resolveConfirmationContent(page, campaignType);
+  const isPostpaid = campaignType === "postpaid";
+  const trustLine = isPostpaid
+    ? CONFIRMATION_POSTPAID_TRUST_LINE
+    : theme.trustLine;
 
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [landingHeight, setLandingHeight] = useState<number | null>(null);
@@ -176,9 +183,9 @@ export function ConfirmationPagePreview({
         />
 
         <p
-          className={`mt-6 text-[0.65rem] ${theme.trustClass} ${centered ? "text-center" : ""}`}
+          className={`mt-auto pt-6 text-[0.65rem] ${theme.trustClass} ${centered ? "text-center" : ""}`}
         >
-          {theme.trustLine}
+          {trustLine}
         </p>
       </LandingFunnelStepShell>
     </div>

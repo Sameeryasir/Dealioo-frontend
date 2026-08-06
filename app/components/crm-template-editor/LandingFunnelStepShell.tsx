@@ -45,6 +45,8 @@ export function LandingFunnelStepShell({
   });
   const heroStyle = getHeroDesignStyle(normalizeHeroDesign(landingPage.heroDesign));
   const centered = landingPage.layoutType === "centered";
+  const stretchToMinHeight =
+    !fillViewport && minHeight != null && minHeight > 0;
 
   return (
     <div
@@ -53,11 +55,10 @@ export function LandingFunnelStepShell({
           ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
           : "flex w-full flex-col"
       }
-      style={
-        !fillViewport && minHeight != null && minHeight > 0
-          ? { minHeight }
-          : undefined
-      }
+      style={{
+        ...pageBackgroundStyle(theme.background, theme.background),
+        ...(stretchToMinHeight ? { minHeight } : {}),
+      }}
     >
       <LandingHero
         url={heroImageUrl}
@@ -67,10 +68,18 @@ export function LandingFunnelStepShell({
         heroStyle={heroStyle}
       />
       <div
-        className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 pt-6 ${fillViewport ? "min-h-0 flex-1" : ""} ${centered ? "text-center" : "text-left"}`}
+        className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 pt-6 ${
+          fillViewport || stretchToMinHeight ? "min-h-0 flex-1" : ""
+        } ${centered ? "text-center" : "text-left"}`}
         style={pageBackgroundStyle(theme.background, theme.background)}
       >
-        <div className={`w-full min-w-0 ${fillViewport ? "flex min-h-0 flex-1 flex-col" : ""}`}>
+        <div
+          className={`w-full min-w-0 ${
+            fillViewport || stretchToMinHeight
+              ? "flex min-h-0 flex-1 flex-col"
+              : ""
+          }`}
+        >
           {children}
         </div>
       </div>

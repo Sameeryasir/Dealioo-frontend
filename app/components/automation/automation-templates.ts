@@ -52,6 +52,12 @@ const PAYMENT_REMINDER_SMS_CONFIG = {
   linkLabel: "View Your Pass",
 } as const;
 
+const SIGNUP_FOLLOW_UP_HOURS_SMS = {
+  message:
+    "Hi! This is Union Restaurant and Gameyard reaching out - thank you for signing up for our $4 Pretzel Bites offer yesterday 😄\n\nWe're open\nMonday-4pm-10pm\nTuesday-4pm-10pm\nWednesday-4pm-10pm\nThursday-4pm-10pm\nFriday-11am-11pm\nSaturday-11am-11pm\nSunday 11am-9pm\n\n*** Our kitchen closes at 9pm daily***\n\nGoogle Maps:\nhttps://maps.app.goo.gl/fjpQnUWj5DeUHi9r5\n\nMenu: https://uniongameyard.com/jeffersonville-union-pub-and-social-food-menu\n\nText us back if you have ideas, feedback, or wanna chat! This is your direct line to our team :)",
+  linkLabel: "Google Maps",
+} as const;
+
 export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
   id: "abandoned_cart",
   name: "Abandoned Cart",
@@ -589,9 +595,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       summary: "Follow-up with hours, menu, and Google Maps.",
       config: {
         flowBranch: FLOW_BRANCH_FOLLOW_UP,
-        message:
-          "Hi! This is Union Restaurant and Gameyard reaching out - thank you for signing up for our $4 Pretzel Bites offer yesterday 😄\n\nWe're open\nMonday-4pm-10pm\nTuesday-4pm-10pm\nWednesday-4pm-10pm\nThursday-4pm-10pm\nFriday-11am-11pm\nSaturday-11am-11pm\nSunday 11am-9pm\n\n*** Our kitchen closes at 9pm daily***\n\nGoogle Maps:\nhttps://maps.app.goo.gl/fjpQnUWj5DeUHi9r5\n\nMenu: https://uniongameyard.com/jeffersonville-union-pub-and-social-food-menu\n\nText us back if you have ideas, feedback, or wanna chat! This is your direct line to our team :)",
-        linkLabel: "Google Maps",
+        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
+        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
       },
     },
 
@@ -655,6 +660,18 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         message:
           "Hey! This is a friendly reminder that your $4 Pretzel Bites offer expires this Sunday.\n\nText us back if you need a link to your offer or our location. Both should be available if you scroll up :)",
+      },
+    },
+    {
+      key: "sms_offer_expiry_hours",
+      kind: "send_sms",
+      label: "Send Text",
+      summary: "Follow-up with hours, menu, and Google Maps.",
+      config: {
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
+        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
+        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
       },
     },
 
@@ -972,6 +989,18 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         linkLabel: "Pass Link",
       },
     },
+    {
+      key: "sms_weekend_pass_hours",
+      kind: "send_sms",
+      label: "Send Text",
+      summary: "Follow-up with hours, menu, and Google Maps.",
+      config: {
+        flowBranch: FLOW_BRANCH_WEEKEND_PASS,
+        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
+        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
+      },
+    },
   ],
   connections: [
     { sourceKey: "trigger", targetKey: "sms_pass_link" },
@@ -989,7 +1018,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     { sourceKey: "parallel_split_follow_up", targetKey: "wait_weekend_pass" },
     { sourceKey: "wait_offer_expiry", targetKey: "filter_offer_expiry" },
     { sourceKey: "filter_offer_expiry", targetKey: "sms_offer_expiry" },
-    { sourceKey: "sms_offer_expiry", targetKey: "wait_offer_expiry_3d" },
+    { sourceKey: "sms_offer_expiry", targetKey: "sms_offer_expiry_hours" },
+    { sourceKey: "sms_offer_expiry_hours", targetKey: "wait_offer_expiry_3d" },
     { sourceKey: "wait_offer_expiry_3d", targetKey: "filter_offer_expiry_3d" },
     { sourceKey: "filter_offer_expiry_3d", targetKey: "sms_offer_expiry_3d" },
     { sourceKey: "sms_offer_expiry_3d", targetKey: "wait_offer_expiry_tomorrow" },
@@ -1034,6 +1064,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     { sourceKey: "filter_why_didnt_come", targetKey: "sms_why_didnt_come" },
     { sourceKey: "wait_weekend_pass", targetKey: "filter_weekend_pass" },
     { sourceKey: "filter_weekend_pass", targetKey: "sms_weekend_pass" },
+    { sourceKey: "sms_weekend_pass", targetKey: "sms_weekend_pass_hours" },
   ],
 };
 

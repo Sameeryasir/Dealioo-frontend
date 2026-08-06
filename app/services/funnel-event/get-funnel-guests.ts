@@ -5,6 +5,9 @@ import { isPositiveInt } from "@/app/lib/numbers";
 
 export const FUNNEL_GUESTS_PAGE_SIZE = 10;
 
+export type FunnelGuestStatus = "new" | "returning";
+export type FunnelGuestTag = "signup" | "prepaid" | "postpaid";
+
 export type FunnelGuestRecord = {
   id: number;
   name: string;
@@ -12,6 +15,10 @@ export type FunnelGuestRecord = {
   phone: string | null;
   createdAt: string;
   updatedAt: string;
+  status: FunnelGuestStatus;
+  tags: FunnelGuestTag[];
+  hasPayment: boolean;
+  eventCount: number;
 };
 
 export type PaginatedFunnelGuestsResponse = {
@@ -23,6 +30,48 @@ export type PaginatedFunnelGuestsResponse = {
     totalPages: number;
   };
 };
+
+function normalizeGuest(raw: unknown): FunnelGuestRecord | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id = typeof o.id === "number" ? o.id : Number(o.id);
+  if (!Number.isFinite(id) || id < 1) return null;
+
+  const status: FunnelGuestStatus =
+    o.status === "returning" ? "returning" : "new";
+  const tags: FunnelGuestTag[] = Array.isArray(o.tags)
+    ? o.tags.filter(
+        (tag): tag is FunnelGuestTag =>
+          tag === "signup" || tag === "prepaid" || tag === "postpaid",
+      )
+    : ["signup"];
+
+  return {
+    id,
+    name: typeof o.name === "string" && o.name.trim() ? o.name.trim() : "Guest",
+    email: typeof o.email === "string" ? o.email : "",
+    phone: typeof o.phone === "string" && o.phone.trim() ? o.phone.trim() : null,
+    createdAt:
+      typeof o.createdAt === "string"
+        ? o.createdAt
+        : o.createdAt instanceof Date
+          ? o.createdAt.toISOString()
+          : "",
+    updatedAt:
+      typeof o.updatedAt === "string"
+        ? o.updatedAt
+        : o.updatedAt instanceof Date
+          ? o.updatedAt.toISOString()
+          : "",
+    status,
+    tags,
+    hasPayment: o.hasPayment === true,
+    eventCount:
+      typeof o.eventCount === "number"
+        ? o.eventCount
+        : Number(o.eventCount ?? 1) || 1,
+  };
+}
 
 export async function getFunnelGuests(
   funnelId: number,
@@ -55,5 +104,20 @@ export async function getFunnelGuests(
     );
   }
 
-  return (await res.json()) as PaginatedFunnelGuestsResponse;
+  const json = (await res.json()) as {
+    data?: unknown[];
+    meta?: PaginatedFunnelGuestsResponse["meta"];
+  };
+
+  return {
+    data: (json.data ?? [])
+      .map(normalizeGuest)
+      .filter((guest): guest is FunnelGuestRecord => guest != null),
+    meta: json.meta ?? {
+      page,
+      limit,
+      total: 0,
+      totalPages: 0,
+    },
+  };
 }
