@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
@@ -21,6 +21,7 @@ function FunnelCampaignSignupInner() {
     useFunnelGuestRoute();
   useFunnelStepGuard(funnelId, "signup");
 
+  const isDesignPreview = searchParams.get("preview") === "1";
   const campaignTypeParam = searchParams.get("campaignType")?.trim();
   const isPostpaid = campaignTypeParam === "postpaid";
   const campaignType: "prepaid" | "postpaid" | undefined =
@@ -60,7 +61,7 @@ function FunnelCampaignSignupInner() {
   return (
     <>
       <FunnelMetaPixel
-        pixelId={publicFunnel?.pixelId}
+        pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="signup"
@@ -71,16 +72,21 @@ function FunnelCampaignSignupInner() {
         <TemplatePreview
           page={signup}
           landingPage={landing}
-          signupNextHref={signupNextHref}
-          interactiveForms
-          submitCustomerOnSignupNext
+          signupNextHref={isDesignPreview ? undefined : signupNextHref}
+          interactiveForms={!isDesignPreview}
+          submitCustomerOnSignupNext={!isDesignPreview}
+          editorStepPreviewChrome={isDesignPreview}
           skipPaymentStep={isPostpaid}
           fullPageShellChrome
-          trackingFunnelId={funnelId}
-          checkoutBusinessId={businessId}
-          checkoutCampaignId={campaignId}
-          metaPixelId={publicFunnel?.pixelId}
-          metaBusinessId={businessId ?? publicFunnel?.businessId}
+          trackingFunnelId={isDesignPreview ? null : funnelId}
+          checkoutBusinessId={isDesignPreview ? null : businessId}
+          checkoutCampaignId={isDesignPreview ? null : campaignId}
+          metaPixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+          metaBusinessId={
+            isDesignPreview
+              ? null
+              : (businessId ?? publicFunnel?.businessId)
+          }
         />
       )}
     </>

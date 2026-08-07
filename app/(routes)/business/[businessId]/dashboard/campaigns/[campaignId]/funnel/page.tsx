@@ -32,7 +32,6 @@ export default function CampaignCrmTemplateEditorPage() {
         campaignPrice={campaign?.price}
         campaignOffer={campaign?.offer}
         campaignType={campaign?.campaignType}
-        interactivePreview
       />
     </div>
   );

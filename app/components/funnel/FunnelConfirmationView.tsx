@@ -29,6 +29,7 @@ export function FunnelConfirmationView({
   const searchParams = useSearchParams();
   const { session, ready } = useCheckoutContext();
 
+  const isDesignPreview = searchParams.get("preview") === "1";
   const campaignTypeParam = searchParams.get("campaignType")?.trim();
   const campaignType: "prepaid" | "postpaid" | null =
     campaignTypeParam === "postpaid" || campaignTypeParam === "prepaid"
@@ -40,10 +41,11 @@ export function FunnelConfirmationView({
 
   const { isPaid, isFailed, isConfirming } = usePaymentStatusPoll({
     paymentId,
-    enabled: ready && !isPostpaid && paymentId != null,
+    enabled:
+      !isDesignPreview && ready && !isPostpaid && paymentId != null,
   });
 
-  const confirmedByServer = !isPostpaid && isPaid;
+  const confirmedByServer = !isDesignPreview && !isPostpaid && isPaid;
   const celebrate = confirmedByServer;
 
   const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
@@ -53,6 +55,7 @@ export function FunnelConfirmationView({
   );
 
   useEffect(() => {
+    if (isDesignPreview) return;
     getOrCreateVisitorId();
     if (!celebrate || funnelId == null) return;
     if (trackedRef.current) return;
@@ -74,6 +77,7 @@ export function FunnelConfirmationView({
       console.warn("[Funnel] payment track failed", err);
     });
   }, [
+    isDesignPreview,
     celebrate,
     confirmedByServer,
     funnelId,
@@ -82,7 +86,7 @@ export function FunnelConfirmationView({
   ]);
 
   useEffect(() => {
-    if (!confirmedByServer) return;
+    if (isDesignPreview || !confirmedByServer) return;
     if (metaPurchaseTrackedRef.current) return;
     if (!publicFunnel?.pixelId) return;
 
@@ -102,6 +106,7 @@ export function FunnelConfirmationView({
       dedupeKey: `Purchase|${publicFunnel.pixelId}|${businessId ?? publicFunnel.businessId ?? ""}|${funnelId ?? ""}`,
     });
   }, [
+    isDesignPreview,
     confirmedByServer,
     publicFunnel?.pixelId,
     publicFunnel?.businessId,
@@ -117,14 +122,14 @@ export function FunnelConfirmationView({
   return (
     <div className="relative flex min-h-full w-full flex-1 flex-col">
       <FunnelMetaPixel
-        pixelId={publicFunnel?.pixelId}
+        pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="confirmation"
       />
       <PaymentConfirmedSprinkles active={celebrate} />
 
-      {paymentId != null && isConfirming && !isPostpaid ? (
+      {!isDesignPreview && paymentId != null && isConfirming && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="status"
@@ -150,7 +155,7 @@ export function FunnelConfirmationView({
         </div>
       ) : null}
 
-      {paymentId != null && confirmedByServer && !isPostpaid ? (
+      {!isDesignPreview && paymentId != null && confirmedByServer && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="status"
@@ -171,7 +176,7 @@ export function FunnelConfirmationView({
         </div>
       ) : null}
 
-      {paymentId != null && isFailed && !isPostpaid ? (
+      {!isDesignPreview && paymentId != null && isFailed && !isPostpaid ? (
         <div
           className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
           role="alert"
@@ -195,8 +200,9 @@ export function FunnelConfirmationView({
         <TemplatePreview
           page={pages.confirmation}
           landingPage={pages.landing}
+          editorStepPreviewChrome={isDesignPreview}
           fullPageShellChrome
-          trackingFunnelId={funnelId}
+          trackingFunnelId={isDesignPreview ? null : funnelId}
           campaignType={campaignType}
           skipPaymentStep={isPostpaid}
         />

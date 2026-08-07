@@ -16,6 +16,7 @@ export function LandingFunnelPreview() {
     useFunnelGuestRoute();
   useFunnelStepGuard(funnelId, "landing");
 
+  const isDesignPreview = searchParams.get("preview") === "1";
   const campaignPricing = useCampaignPricing(campaignId, businessId);
   const campaignTypeParam = searchParams.get("campaignType")?.trim();
   const campaignType =
@@ -31,7 +32,7 @@ export function LandingFunnelPreview() {
   const landing = pages.landing;
 
   const landingCtaHref =
-    funnelId != null
+    !isDesignPreview && funnelId != null
       ? buildFunnelPublicPath({
           funnelId,
           step: "signup",
@@ -47,7 +48,7 @@ export function LandingFunnelPreview() {
   return (
     <>
       <FunnelMetaPixel
-        pixelId={publicFunnel?.pixelId}
+        pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="landing"
@@ -59,10 +60,15 @@ export function LandingFunnelPreview() {
           page={landing}
           landingPage={landing}
           landingCtaHref={landingCtaHref}
+          editorStepPreviewChrome={isDesignPreview}
           fullPageShellChrome
-          trackingFunnelId={funnelId}
-          metaPixelId={publicFunnel?.pixelId}
-          metaBusinessId={businessId ?? publicFunnel?.businessId}
+          trackingFunnelId={isDesignPreview ? null : funnelId}
+          metaPixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+          metaBusinessId={
+            isDesignPreview
+              ? null
+              : (businessId ?? publicFunnel?.businessId)
+          }
         />
       )}
     </>

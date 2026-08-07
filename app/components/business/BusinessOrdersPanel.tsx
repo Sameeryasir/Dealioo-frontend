@@ -192,7 +192,6 @@ function eventCounterExtrasAmount(event: BusinessFunnelEvent): number {
   if (extras == null || !(extras > 0)) {
     return 0;
   }
-  // order_subtotal now stores counter extras only (not deal price).
   return extras;
 }
 
@@ -583,7 +582,7 @@ function OrderEventDetailDialog({
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               {campaignImageSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element -- remote campaign upload / CDN URL
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={campaignImageSrc}
                   alt=""
@@ -856,7 +855,6 @@ export function BusinessOrdersPanel({
   }, [statusFilter, dateFilter, deferredSearchQuery]);
 
   useEffect(() => {
-    // Only clamp after real meta is known — never while a page fetch is in flight.
     if (eventsQuery.isFetching || !meta) return;
     if (page > totalPages) {
       setPage(totalPages);

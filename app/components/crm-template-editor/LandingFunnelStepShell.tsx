@@ -52,12 +52,15 @@ export function LandingFunnelStepShell({
     <div
       className={
         fillViewport
-          ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
+          ? "flex min-h-full w-full flex-1 flex-col"
           : "flex w-full flex-col"
       }
       style={{
         ...pageBackgroundStyle(theme.background, theme.background),
         ...(stretchToMinHeight ? { minHeight } : {}),
+        ...(!fillViewport && !stretchToMinHeight
+          ? { minHeight: "47.5rem" }
+          : {}),
       }}
     >
       <LandingHero

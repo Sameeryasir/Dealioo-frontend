@@ -10,7 +10,6 @@ export function LandingDesignMiniPreview({
 }: {
   style: LandingDesignStyle;
   large?: boolean;
-  /** Full-width card preview for the Browse templates gallery. */
   wide?: boolean;
 }) {
   const heroGradient = `linear-gradient(135deg, ${style.primary} 0%, ${style.secondary} 100%)`;

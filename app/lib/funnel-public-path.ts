@@ -9,6 +9,7 @@ export type FunnelPublicPathQuery = {
   price?: number | string | null;
   checkoutToken?: string | null;
   campaignType?: "prepaid" | "postpaid" | null;
+  preview?: boolean;
 };
 
 export type BuildFunnelPublicPathInput = {
@@ -45,9 +46,50 @@ export function buildFunnelPublicPath({
   if (price != null && String(price).trim() !== "") {
     params.set("price", String(price).trim());
   }
+  if (query?.preview) {
+    params.set("preview", "1");
+  }
 
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
+}
+
+export function isFunnelDesignPreviewSearch(
+  search: string | null | undefined,
+): boolean {
+  if (!search) return false;
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  return params.get("preview") === "1";
+}
+
+export function buildFunnelDesignPreviewPath(
+  funnelId: number | string,
+  step: FunnelPublicStep,
+): string {
+  return buildFunnelPublicPath({
+    funnelId,
+    step,
+    query: { preview: true },
+  });
+}
+
+export function withFunnelDesignPreviewParam(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const parsed = new URL(trimmed, "http://local.invalid");
+    parsed.searchParams.set("preview", "1");
+    if (/^https?:\/\//i.test(trimmed)) {
+      return parsed.toString();
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return trimmed.includes("?")
+      ? `${trimmed}&preview=1`
+      : `${trimmed}?preview=1`;
+  }
 }
 
 export function buildFunnelPaymentConfirmationPath(

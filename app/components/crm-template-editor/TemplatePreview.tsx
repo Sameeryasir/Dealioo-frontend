@@ -145,7 +145,6 @@ export function TemplatePreview({
   trackingFunnelId = null,
   checkoutBusinessId = null,
   checkoutCampaignId = null,
-  /** @deprecated Use checkoutBusinessId */
   checkoutRestaurantId = null,
   campaignPricing,
   skipPaymentStep = false,
@@ -166,7 +165,6 @@ export function TemplatePreview({
   trackingFunnelId?: number | null;
   checkoutBusinessId?: number | null;
   checkoutCampaignId?: number | null;
-  /** @deprecated Use checkoutBusinessId */
   checkoutRestaurantId?: number | null;
   campaignPricing?: CampaignPricing | null;
   skipPaymentStep?: boolean;
@@ -178,11 +176,21 @@ export function TemplatePreview({
     checkoutBusinessId ?? checkoutRestaurantId;
   const router = useRouter();
   const [signupSubmitting, setSignupSubmitting] = useState(false);
+
+  const isEditorPreview = editorStepPreviewChrome;
+  const formsEnabled = interactiveForms && !isEditorPreview;
+  const trackingEnabled =
+    !isEditorPreview && trackingFunnelId != null && trackingFunnelId >= 1;
+
   const { trackButtonClick: trackAnalyticsButtonClick } =
-    useFunnelAnalyticsTracking(trackingFunnelId, page.id);
+    useFunnelAnalyticsTracking(
+      trackingEnabled ? trackingFunnelId : null,
+      page.id,
+    );
 
   const trackButtonClick = useCallback(
     (elementName: string, section = "CTA") => {
+      if (isEditorPreview || !trackingEnabled) return;
       trackAnalyticsButtonClick(elementName, section);
       trackMetaPixelEvent("ButtonClicked", {
         pixelId: metaPixelId,
@@ -196,6 +204,8 @@ export function TemplatePreview({
       });
     },
     [
+      isEditorPreview,
+      trackingEnabled,
       trackAnalyticsButtonClick,
       metaPixelId,
       metaBusinessId,
@@ -226,21 +236,32 @@ export function TemplatePreview({
   const showTopHero =
     !signup || !formDesignHidesTopHero(signup.formDesign);
   const landingCtaAsLink =
-    page.id === "landing" && landingCtaHref?.trim().length
+    !isEditorPreview &&
+    page.id === "landing" &&
+    landingCtaHref?.trim().length
       ? landingCtaHref.trim()
       : null;
   const signupNextAsLink =
-    page.id === "signup" && signupNextHref?.trim().length
+    !isEditorPreview &&
+    page.id === "signup" &&
+    signupNextHref?.trim().length
       ? signupNextHref.trim()
       : null;
   const signupBackAsLink =
-    page.id === "signup" && signupBackHref?.trim().length
+    !isEditorPreview &&
+    page.id === "signup" &&
+    signupBackHref?.trim().length
       ? signupBackHref.trim()
       : null;
+  const stripeCheckout = isEditorPreview ? null : paymentStripeCheckout;
+  const editorPreviewLockClass = isEditorPreview
+    ? "pointer-events-none select-none"
+    : "";
+  const previewButtonClick = isEditorPreview ? undefined : trackButtonClick;
 
   const signupSubmitFlow =
     Boolean(signup) &&
-    interactiveForms &&
+    formsEnabled &&
     submitCustomerOnSignupNext &&
     Boolean(signupNextAsLink);
 
@@ -391,15 +412,17 @@ export function TemplatePreview({
 
   if (page.id === "payment") {
     return (
-      <div className={`${shell} w-full min-w-0 ${fullPageLayoutClass}`}>
+      <div
+        className={`${shell} w-full min-w-0 ${fullPageLayoutClass} ${editorPreviewLockClass}`}
+      >
         <div
           className={`w-full min-w-0 ${frameInnerClass} ${previewFrameClass}`}
         >
           <PaymentPagePreview
             page={page}
             landingPage={landingPage}
-            interactive={interactiveForms}
-            stripeCheckout={paymentStripeCheckout}
+            interactive={formsEnabled}
+            stripeCheckout={stripeCheckout}
             campaignPricing={campaignPricing}
             fillViewport={fillFrame}
           />
@@ -410,9 +433,15 @@ export function TemplatePreview({
 
   if (page.id === "confirmation" && isLandingTemplatePage(landingPage)) {
     return (
-      <div className={`${shell} w-full min-w-0 ${fullPageLayoutClass}`}>
+      <div
+        className={`${shell} w-full min-w-0 ${fullPageLayoutClass} ${editorPreviewLockClass}`}
+      >
         <div
-          className={`w-full min-w-0 ${frameInnerClass} ${previewFrameClass}`}
+          className={`w-full min-w-0 ${
+            fillFrame
+              ? "flex min-h-full flex-1 flex-col"
+              : "overflow-visible"
+          } ${previewFrameClass}`}
         >
           <ConfirmationPagePreview
             page={page}
@@ -427,7 +456,7 @@ export function TemplatePreview({
 
   if (page.id === "signup" && signup && isLandingTemplatePage(landingPage)) {
     return (
-      <div className={`${shell} ${fullPageLayoutClass}`}>
+      <div className={`${shell} ${fullPageLayoutClass} ${editorPreviewLockClass}`}>
         <div
           className={`${frameInnerClass} ${previewFrameClass}`}
         >
@@ -438,11 +467,11 @@ export function TemplatePreview({
             heroImageScale={heroImageScale}
             signupBackHref={signupBackAsLink}
             signupNextHref={signupNextAsLink}
-            interactiveForms={interactiveForms}
+            interactiveForms={formsEnabled}
             signupSubmitFlow={signupSubmitFlow}
             signupSubmitting={signupSubmitting}
             onSignupSubmit={onSignupCustomerSubmit}
-            onButtonClick={trackButtonClick}
+            onButtonClick={previewButtonClick}
             fillViewport={fillFrame}
           />
         </div>
@@ -452,7 +481,7 @@ export function TemplatePreview({
 
   if (page.id === "landing") {
     return (
-      <div className={`${shell} ${fullPageLayoutClass}`}>
+      <div className={`${shell} ${fullPageLayoutClass} ${editorPreviewLockClass}`}>
         <div
           className={`${frameInnerClass} ${previewFrameClass}`}
         >
@@ -473,7 +502,7 @@ export function TemplatePreview({
             heroImageScale={heroImageScale}
             landingCtaHref={landingCtaAsLink}
             showTopHero={showTopHero}
-            onButtonClick={trackButtonClick}
+            onButtonClick={previewButtonClick}
             fillViewport={fillFrame}
           />
         </div>
@@ -521,7 +550,7 @@ export function TemplatePreview({
               <SignupFormFields
                 fieldIds={signup.formFieldIds}
                 design={signup.formDesign}
-                interactive={interactiveForms}
+                interactive={formsEnabled}
                 omitInteractiveForm
               />
             </div>
@@ -565,7 +594,7 @@ export function TemplatePreview({
               <SignupFormFields
                 fieldIds={signup.formFieldIds}
                 design={signup.formDesign}
-                interactive={interactiveForms}
+                interactive={formsEnabled}
               />
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -674,7 +703,7 @@ export function TemplatePreview({
                     <SignupFormFields
                       fieldIds={signup.formFieldIds}
                       design={signup.formDesign}
-                      interactive={interactiveForms}
+                      interactive={formsEnabled}
                       omitInteractiveForm
                     />
                   </div>
@@ -718,7 +747,7 @@ export function TemplatePreview({
                     <SignupFormFields
                       fieldIds={signup.formFieldIds}
                       design={signup.formDesign}
-                      interactive={interactiveForms}
+                      interactive={formsEnabled}
                     />
                   </div>
                   <div className="mt-6 flex w-full max-w-md flex-wrap justify-center gap-2">

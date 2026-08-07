@@ -122,7 +122,13 @@ export function ConfirmationPagePreview({
   ]);
 
   return (
-    <div className="relative w-full">
+    <div
+      className={
+        fillViewport
+          ? "relative flex min-h-full w-full flex-1 flex-col"
+          : "relative w-full"
+      }
+    >
       {!fillViewport ? (
         <div
           className="pointer-events-none absolute left-0 top-0 h-0 w-full overflow-hidden"

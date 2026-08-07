@@ -16,6 +16,7 @@ import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import {
+  buildFunnelDesignPreviewPath,
   buildFunnelPaymentConfirmationPath,
   buildFunnelPublicPath,
   resolveFunnelRouteId,
@@ -223,7 +224,6 @@ export function CrmTemplateEditor({
       const nextPages = mergeApiPagesIntoTemplateState(pages, apiPages);
       commitPages(nextPages);
 
-      // AI already wrote funnel_pages when funnelId is present — don't mark unsaved.
       const alreadyPersisted = funnelId != null && funnelId >= 1;
       if (alreadyPersisted) {
         setIsDirty(false);
@@ -370,37 +370,25 @@ export function CrmTemplateEditor({
         : activeId === "confirmation"
           ? "confirmation"
           : activeId;
-    const url =
-      isPostpaid && step === "confirmation"
-        ? buildFunnelPaymentConfirmationPath(previewRouteId, funnelLinkQuery, {
-            paymentConfirmed: true,
-          })
-        : buildFunnelPublicPath({
-            funnelId: previewRouteId,
-            step,
-            query: funnelLinkQuery,
-          });
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, [previewRouteId, activeId, funnelLinkQuery, isPostpaid]);
+    window.open(
+      buildFunnelDesignPreviewPath(previewRouteId, step),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, [previewRouteId, activeId, isPostpaid]);
 
   const handlePreviewPage = useCallback(
     (pageId: TemplatePageId) => {
       if (previewRouteId == null) return;
       if (isPostpaid && pageId === "payment") return;
       const step = pageId === "confirmation" ? "confirmation" : pageId;
-      const url =
-        isPostpaid && step === "confirmation"
-          ? buildFunnelPaymentConfirmationPath(previewRouteId, funnelLinkQuery, {
-              paymentConfirmed: true,
-            })
-          : buildFunnelPublicPath({
-              funnelId: previewRouteId,
-              step,
-              query: funnelLinkQuery,
-            });
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.open(
+        buildFunnelDesignPreviewPath(previewRouteId, step),
+        "_blank",
+        "noopener,noreferrer",
+      );
     },
-    [previewRouteId, funnelLinkQuery, isPostpaid],
+    [previewRouteId, isPostpaid],
   );
 
   const cancelDiscard = useCallback(() => setPendingNavId(null), []);

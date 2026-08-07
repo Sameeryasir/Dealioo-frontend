@@ -24,10 +24,11 @@ function FunnelCampaignPaymentPageInner() {
   const { checkoutToken, session, ready, error: checkoutError } =
     useCheckoutContext();
 
+  const isDesignPreview = searchParams.get("preview") === "1";
   const isPostpaid = searchParams.get("campaignType")?.trim() === "postpaid";
 
   useEffect(() => {
-    if (!isPostpaid || funnelId == null) return;
+    if (isDesignPreview || !isPostpaid || funnelId == null) return;
     router.replace(
       buildFunnelPaymentConfirmationPath(
         funnelId,
@@ -39,7 +40,14 @@ function FunnelCampaignPaymentPageInner() {
         { paymentConfirmed: true },
       ),
     );
-  }, [isPostpaid, funnelId, campaignId, businessId, router]);
+  }, [
+    isDesignPreview,
+    isPostpaid,
+    funnelId,
+    campaignId,
+    businessId,
+    router,
+  ]);
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
@@ -52,7 +60,7 @@ function FunnelCampaignPaymentPageInner() {
   const landing = pages.landing;
 
   useEffect(() => {
-    if (isPostpaid || isLoading) return;
+    if (isDesignPreview || isPostpaid || isLoading) return;
     if (!publicFunnel?.pixelId) return;
 
     const currency =
@@ -70,6 +78,7 @@ function FunnelCampaignPaymentPageInner() {
       dedupeKey: `InitiateCheckout|${publicFunnel.pixelId}|${resolvedBusinessId ?? ""}|${funnelId ?? ""}`,
     });
   }, [
+    isDesignPreview,
     isPostpaid,
     isLoading,
     publicFunnel?.pixelId,
@@ -81,7 +90,7 @@ function FunnelCampaignPaymentPageInner() {
   ]);
 
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
-    if (!session) return null;
+    if (isDesignPreview || !session) return null;
     const email = session.customerEmail?.trim();
     if (!email || !checkoutToken || funnelId == null || businessId == null) {
       return null;
@@ -101,6 +110,7 @@ function FunnelCampaignPaymentPageInner() {
       funnelPaymentId: session.funnelPaymentId,
     };
   }, [
+    isDesignPreview,
     session,
     checkoutToken,
     funnelId,
@@ -110,23 +120,29 @@ function FunnelCampaignPaymentPageInner() {
   ]);
 
   const showSetupHint =
+    !isDesignPreview &&
     ready &&
     Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()) &&
     paymentStripeCheckout == null &&
     funnelIdSegment.length > 0;
 
   const awaitingInitialCheckoutSession =
-    Boolean(checkoutToken) && !ready && session == null;
+    !isDesignPreview &&
+    Boolean(checkoutToken) &&
+    !ready &&
+    session == null;
 
   return (
     <>
       <FunnelMetaPixel
-        pixelId={publicFunnel?.pixelId}
+        pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="payment"
       />
-      {isPostpaid || isLoading || awaitingInitialCheckoutSession ? (
+      {(!isDesignPreview && isPostpaid) ||
+      isLoading ||
+      awaitingInitialCheckoutSession ? (
         <FunnelPreviewSkeleton />
       ) : (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
@@ -142,13 +158,20 @@ function FunnelCampaignPaymentPageInner() {
           <TemplatePreview
             page={payment}
             landingPage={landing}
-            interactiveForms
+            interactiveForms={!isDesignPreview}
+            editorStepPreviewChrome={isDesignPreview}
             fullPageShellChrome
-            paymentStripeCheckout={paymentStripeCheckout}
+            paymentStripeCheckout={
+              isDesignPreview ? null : paymentStripeCheckout
+            }
             campaignPricing={campaignPricing}
-            trackingFunnelId={funnelId}
-            metaPixelId={publicFunnel?.pixelId}
-            metaBusinessId={businessId ?? publicFunnel?.businessId}
+            trackingFunnelId={isDesignPreview ? null : funnelId}
+            metaPixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+            metaBusinessId={
+              isDesignPreview
+                ? null
+                : (businessId ?? publicFunnel?.businessId)
+            }
           />
         </div>
       )}

@@ -43,6 +43,8 @@ export function useFunnelStepGuard(
     const params = new URLSearchParams(
       search.startsWith("?") ? search.slice(1) : search,
     );
+    if (params.get("preview") === "1") return;
+
     const checkoutToken = params.get("checkoutToken")?.trim() || null;
     const paymentSucceeded = paymentSucceededFromUrl(search);
 
