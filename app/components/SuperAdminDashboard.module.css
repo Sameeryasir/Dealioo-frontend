@@ -1109,3 +1109,319 @@
 .drawerFooterBtn:hover {
   background: #eef5ff;
 }
+
+.meetingsCard {
+  overflow: hidden;
+  padding: 1.25rem 1.25rem 1.35rem;
+}
+
+.meetingsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+
+.meetingsHeadLeft {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.meetingsIcon {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.95rem;
+  background: var(--sa-blue-soft);
+  color: var(--sa-blue);
+}
+
+.meetingsFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.45rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--sa-line);
+  border-radius: 0.8rem;
+  background: #fff;
+  color: var(--sa-navy);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meetingsFilterBtn:hover {
+  background: #f8faff;
+}
+
+.meetingsListWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.meetingsTableShell {
+  min-width: 1040px;
+}
+
+.meetingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meetingItem {
+  padding: 1.1rem 1.15rem;
+  border: 1px solid #e8eef6;
+  border-radius: 1.1rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.meetingItem:hover {
+  border-color: #dbe7f5;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.meetingRow {
+  display: grid;
+  grid-template-columns:
+    4rem
+    minmax(11rem, 1.25fr)
+    minmax(12rem, 1.45fr)
+    minmax(9.5rem, 1.15fr)
+    minmax(7.5rem, 0.95fr)
+    minmax(7rem, 0.9fr)
+    minmax(7.5rem, 0.95fr)
+    minmax(7.5rem, 0.95fr)
+    2.6rem;
+  align-items: center;
+  gap: 0.85rem 1.15rem;
+}
+
+.meetingHeaderRow {
+  padding: 0 1.15rem 0.65rem;
+}
+
+.meetingIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.meetingIdentityText {
+  min-width: 0;
+}
+
+.meetingPersonName {
+  overflow: hidden;
+  color: var(--sa-navy);
+  font-size: 0.92rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meetingRowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.meetingMetaLabel {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meetingsContact {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.meetingsIdChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.32rem 0.55rem;
+  border-radius: 0.6rem;
+  background: var(--sa-blue-soft);
+  color: var(--sa-blue);
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.meetingsAvatar {
+  display: inline-flex;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--sa-blue-soft);
+  color: var(--sa-blue);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.meetingsCommitPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-top: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.meetingsCommitYes {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.meetingsCommitMaybe {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.meetingsCommitDot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.meetingsContactLine {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meetingsContactLine svg {
+  color: var(--sa-blue);
+  flex-shrink: 0;
+}
+
+.meetingsBizCell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.meetingsBizCell .bizMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 0.74rem;
+}
+
+.meetingsBizIcon {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  background: var(--sa-blue-soft);
+  color: var(--sa-blue);
+}
+
+.meetingsRolePill {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  overflow: hidden;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+  width: fit-content;
+}
+
+.meetingsTimeline {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  color: #059669;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.meetingsTimeline svg {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.meetingsRequested {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.22rem;
+}
+
+.meetingsRequestedTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--sa-navy);
+  font-size: 0.86rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.meetingsRequestedTop svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.meetingsRequested .createdSub {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 600;
+}

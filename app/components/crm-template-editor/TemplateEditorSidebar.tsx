@@ -127,7 +127,7 @@ const SECTION_ICON_COLORS: Record<
   SectionId,
   { softBg: string; softFg: string; solidBg: string }
 > = {
-  templates: { softBg: "#f3e8ff", softFg: "#7c3aed", solidBg: "#7c3aed" },
+  templates: { softBg: "#e8f1ff", softFg: "#1877f2", solidBg: "#1877f2" },
   content: { softBg: "#e8f1ff", softFg: "#1877f2", solidBg: "#1877f2" },
   media: { softBg: "#dcfce7", softFg: "#16a34a", solidBg: "#16a34a" },
   sections: { softBg: "#ffedd5", softFg: "#ea580c", solidBg: "#ea580c" },
@@ -146,9 +146,9 @@ const SECTION_TONES: Record<
 > = {
   templates: {
     openShell:
-      "overflow-hidden rounded-[1.1rem] border border-[#c4b5fd] bg-white shadow-[0_8px_22px_rgba(124,58,237,0.1)] transition-colors duration-150",
+      "overflow-hidden rounded-[1.1rem] border border-[#93c5fd] bg-white shadow-[0_8px_22px_rgba(24,119,242,0.08)] transition-colors duration-150",
     closedShell:
-      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#ddd6fe]",
+      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#dbeafe]",
   },
   content: {
     openShell:
@@ -808,9 +808,7 @@ export function TemplateEditorSidebar({
             >
               <p className={editorSidebarBodyTextClass}>
                 <strong className={editorSidebarBodyStrongClass}>Page design</strong>{" "}
-                sets colors, hero, layout, form & checkout. Use{" "}
-                <strong className={editorSidebarBodyStrongClass}>Starter copy</strong>{" "}
-                in Templates for headline & body text only.
+                sets colors, hero, layout, form & checkout for your funnel.
               </p>
               <button
                 type="button"

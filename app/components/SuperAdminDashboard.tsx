@@ -5,6 +5,10 @@ import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
+  getAdminMeetingRequests,
+  type AdminMeetingRequest,
+} from "@/app/services/admin/get-admin-meeting-requests";
+import {
   getAdminNotifications,
   type AdminNotificationItem,
 } from "@/app/services/admin/get-admin-notifications";
@@ -28,11 +32,15 @@ import {
   Clock3,
   CreditCard,
   Crown,
+  Filter,
   Hash,
   Loader2,
   Mail,
+  MapPin,
   Megaphone,
   MoreVertical,
+  Phone,
+  Briefcase,
   Store,
   RefreshCw,
   ScanLine,
@@ -272,6 +280,11 @@ export function SuperAdminDashboard() {
   const [query, setQuery] = useState("");
   const [businessPage, setBusinessPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
+  const [meetingPage, setMeetingPage] = useState(1);
+  const [meetingRequests, setMeetingRequests] = useState<AdminMeetingRequest[]>(
+    [],
+  );
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotificationItem[]>(
     [],
@@ -311,10 +324,23 @@ export function SuperAdminDashboard() {
     }
   }, []);
 
+  const loadMeetingRequests = useCallback(async () => {
+    setMeetingsLoading(true);
+    try {
+      const data = await getAdminMeetingRequests();
+      setMeetingRequests(data.items);
+    } catch {
+      setMeetingRequests([]);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadOverview();
     void loadNotifications();
-  }, [loadOverview, loadNotifications]);
+    void loadMeetingRequests();
+  }, [loadOverview, loadNotifications, loadMeetingRequests]);
 
   useEffect(() => {
     return subscribeAdminNotifications((item) => {
@@ -331,6 +357,7 @@ export function SuperAdminDashboard() {
   useEffect(() => {
     setBusinessPage(1);
     setUserPage(1);
+    setMeetingPage(1);
   }, [query]);
 
   useEffect(() => {
@@ -374,6 +401,30 @@ export function SuperAdminDashboard() {
     );
   }, [overview?.users, q]);
 
+  const filteredMeetings = useMemo(() => {
+    if (!q) return meetingRequests;
+    return meetingRequests.filter((m) =>
+      [
+        m.firstName,
+        m.lastName,
+        m.email,
+        m.phone,
+        m.businessName,
+        m.businessRole,
+        m.businessCategory,
+        m.cityLocation,
+        m.monthlyRevenue,
+        m.startTimeline,
+        m.meetingCommitment,
+        String(m.id),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [meetingRequests, q]);
+
   const businessTotalPages = Math.max(
     1,
     Math.ceil(filteredBusinesses.length / TABLE_PAGE_SIZE),
@@ -381,6 +432,10 @@ export function SuperAdminDashboard() {
   const userTotalPages = Math.max(
     1,
     Math.ceil(filteredUsers.length / TABLE_PAGE_SIZE),
+  );
+  const meetingTotalPages = Math.max(
+    1,
+    Math.ceil(filteredMeetings.length / TABLE_PAGE_SIZE),
   );
 
   useEffect(() => {
@@ -391,6 +446,10 @@ export function SuperAdminDashboard() {
     if (userPage > userTotalPages) setUserPage(userTotalPages);
   }, [userPage, userTotalPages]);
 
+  useEffect(() => {
+    if (meetingPage > meetingTotalPages) setMeetingPage(meetingTotalPages);
+  }, [meetingPage, meetingTotalPages]);
+
   const pagedBusinesses = useMemo(() => {
     const start = (businessPage - 1) * TABLE_PAGE_SIZE;
     return filteredBusinesses.slice(start, start + TABLE_PAGE_SIZE);
@@ -400,6 +459,11 @@ export function SuperAdminDashboard() {
     const start = (userPage - 1) * TABLE_PAGE_SIZE;
     return filteredUsers.slice(start, start + TABLE_PAGE_SIZE);
   }, [filteredUsers, userPage]);
+
+  const pagedMeetings = useMemo(() => {
+    const start = (meetingPage - 1) * TABLE_PAGE_SIZE;
+    return filteredMeetings.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredMeetings, meetingPage]);
 
   const revenueChart = useMemo(
     () =>
@@ -483,7 +547,7 @@ export function SuperAdminDashboard() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search businesses, users…"
+                placeholder="Search businesses, users, meetings…"
               />
             </label>
             <span className={styles.pillBtn}>
@@ -493,8 +557,12 @@ export function SuperAdminDashboard() {
             <button
               type="button"
               className={styles.iconBtn}
-              onClick={() => void loadOverview()}
-              disabled={loading}
+              onClick={() => {
+                void loadOverview();
+                void loadMeetingRequests();
+                void loadNotifications();
+              }}
+              disabled={loading || meetingsLoading}
               aria-label="Refresh overview"
             >
               {loading ? (
@@ -1135,6 +1203,158 @@ export function SuperAdminDashboard() {
               loading={loading}
               onPageChange={setUserPage}
               itemLabel="users"
+            />
+          ) : null}
+        </div>
+
+        <div className={`${styles.card} ${styles.tableCard} ${styles.meetingsCard}`}>
+          <div className={styles.meetingsHead}>
+            <div className={styles.meetingsHeadLeft}>
+              <span className={styles.meetingsIcon} aria-hidden>
+                <CalendarDays className="size-6" strokeWidth={2.25} />
+              </span>
+              <div>
+                <h2 className={styles.cardTitle}>Meeting requests</h2>
+                <p className={styles.cardSub}>
+                  {filteredMeetings.length === 1
+                    ? "1 user who booked a meeting"
+                    : `${filteredMeetings.length} users who booked a meeting`}
+                </p>
+              </div>
+            </div>
+            <button type="button" className={styles.meetingsFilterBtn}>
+              <Filter className="size-3.5" strokeWidth={2.25} aria-hidden />
+              Filter
+              <ChevronDown className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+          <div className={styles.meetingsListWrap}>
+            {meetingsLoading && meetingRequests.length === 0 ? (
+              <div className={styles.loadingBox}>
+                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
+              </div>
+            ) : filteredMeetings.length === 0 ? (
+              <p className={styles.empty}>No meeting requests yet.</p>
+            ) : (
+              <div className={styles.meetingsTableShell}>
+                <div className={`${styles.meetingRow} ${styles.meetingHeaderRow}`} aria-hidden>
+                  <span className={styles.meetingMetaLabel}>ID</span>
+                  <span className={styles.meetingMetaLabel}>Name</span>
+                  <span className={styles.meetingMetaLabel}>Contact</span>
+                  <span className={styles.meetingMetaLabel}>Business</span>
+                  <span className={styles.meetingMetaLabel}>Role</span>
+                  <span className={styles.meetingMetaLabel}>Location</span>
+                  <span className={styles.meetingMetaLabel}>Timeline</span>
+                  <span className={styles.meetingMetaLabel}>Requested</span>
+                  <span className={styles.meetingMetaLabel} />
+                </div>
+                <ul className={styles.meetingsList}>
+                  {pagedMeetings.map((m) => {
+                    const fullName = `${m.firstName} ${m.lastName}`.trim();
+                    const committed = m.meetingCommitment === "yes";
+                    const commitmentLabel = committed
+                      ? "Committed"
+                      : m.meetingCommitment === "not_sure"
+                        ? "Not sure"
+                        : m.meetingCommitment || "—";
+                    const businessSub = [m.businessCategory, m.monthlyRevenue]
+                      .filter(Boolean)
+                      .join(" · ");
+                    const roleLabel = (m.businessRole || "—").replaceAll("_", " ");
+                    return (
+                      <li key={m.id} className={styles.meetingItem}>
+                        <div className={styles.meetingRow}>
+                          <span className={styles.meetingsIdChip}>
+                            <Hash className="size-3" aria-hidden />
+                            {m.id}
+                          </span>
+                          <div className={styles.meetingIdentity}>
+                            <span className={styles.meetingsAvatar} aria-hidden>
+                              {initialsFromName(fullName || m.email)}
+                            </span>
+                            <div className={styles.meetingIdentityText}>
+                              <div className={styles.meetingPersonName}>
+                                {fullName || "—"}
+                              </div>
+                              <span
+                                className={`${styles.meetingsCommitPill} ${
+                                  committed
+                                    ? styles.meetingsCommitYes
+                                    : styles.meetingsCommitMaybe
+                                }`}
+                              >
+                                <span className={styles.meetingsCommitDot} aria-hidden />
+                                {commitmentLabel}
+                              </span>
+                            </div>
+                          </div>
+                          <div className={styles.meetingsContact}>
+                            <span className={styles.meetingsContactLine}>
+                              <Mail className="size-4" aria-hidden />
+                              {m.email}
+                            </span>
+                            <span className={styles.meetingsContactLine}>
+                              <Phone className="size-4" aria-hidden />
+                              {m.phone}
+                            </span>
+                          </div>
+                          <div className={styles.meetingsBizCell}>
+                            <span className={styles.meetingsBizIcon} aria-hidden>
+                              <Briefcase className="size-4" strokeWidth={2.25} />
+                            </span>
+                            <div>
+                              <div className={styles.meetingPersonName}>
+                                {m.businessName || "—"}
+                              </div>
+                              {businessSub ? (
+                                <div className={styles.bizMeta}>{businessSub}</div>
+                              ) : null}
+                            </div>
+                          </div>
+                          <span className={styles.meetingsRolePill}>{roleLabel}</span>
+                          <span className={styles.meetingsContactLine}>
+                            <MapPin className="size-4" aria-hidden />
+                            {m.cityLocation || "—"}
+                          </span>
+                          <span className={styles.meetingsTimeline}>
+                            <CalendarDays className="size-4" aria-hidden />
+                            {m.startTimeline || "—"}
+                          </span>
+                          <div className={styles.meetingsRequested}>
+                            <span className={styles.meetingsRequestedTop}>
+                              <Clock3 className="size-4" aria-hidden />
+                              {formatRelative(m.createdAt)}
+                            </span>
+                            <span className={styles.createdSub}>
+                              {formatAbsoluteDate(m.createdAt)}
+                            </span>
+                          </div>
+                          <div className={styles.meetingRowActions}>
+                            <button
+                              type="button"
+                              className={styles.moreBtn}
+                              aria-label={`More actions for ${fullName || m.email}`}
+                            >
+                              <MoreVertical className="size-4" aria-hidden />
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+          {filteredMeetings.length > 0 ? (
+            <OffsetPagination
+              page={meetingPage}
+              totalPages={meetingTotalPages}
+              total={filteredMeetings.length}
+              limit={TABLE_PAGE_SIZE}
+              loading={meetingsLoading}
+              onPageChange={setMeetingPage}
+              itemLabel="meeting requests"
             />
           ) : null}
         </div>

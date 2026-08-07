@@ -28,6 +28,8 @@ export type BusinessFunnelEvent = {
   funnelId: number;
   campaignId: number;
   campaignName: string;
+  /** Campaign hero/ad image when set on the campaign. */
+  campaignImageUrl?: string | null;
   customer: {
     id: number;
     name: string;

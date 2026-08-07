@@ -31,13 +31,17 @@ import {
 } from "@/app/lib/dashboard-brand-tones";
 import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
+import {
+  resolveUploadImageUrl,
+  spacesImageLoadProps,
+} from "@/app/lib/resolve-upload-image-url";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   getBusinessFunnelEvents,
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
-import { startTransition, useDeferredValue, useEffect, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
@@ -480,6 +484,18 @@ function CopyValueButton({ value }: { value: string }) {
   );
 }
 
+function OrderDetailIcon({
+  icon: Icon,
+}: {
+  icon: typeof Megaphone;
+}) {
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
+      <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+    </span>
+  );
+}
+
 function OrderDetailRow({
   icon: Icon,
   label,
@@ -494,12 +510,14 @@ function OrderDetailRow({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-3 py-1.5 ${className}`}>
-      <dt className="flex shrink-0 items-center gap-1.5 text-[0.82rem] font-bold text-slate-500">
-        <Icon className="size-3.5 text-[#1877f2]" strokeWidth={2.25} aria-hidden />
+    <div
+      className={`flex items-center justify-between gap-3 border-b border-[#eef2f7] py-3 last:border-b-0 ${className}`}
+    >
+      <dt className="flex min-w-0 shrink-0 items-center gap-2.5 text-[0.84rem] font-bold text-slate-500">
+        <OrderDetailIcon icon={Icon} />
         {label}
       </dt>
-      <dd className="m-0 flex min-w-0 max-w-[65%] items-center justify-end gap-0.5 text-right text-[0.88rem] font-bold text-black">
+      <dd className="m-0 flex min-w-0 max-w-[62%] items-center justify-end gap-0.5 text-right text-[0.88rem] font-bold text-black">
         {children}
         {copyValue ? <CopyValueButton value={copyValue} /> : null}
       </dd>
@@ -516,21 +534,42 @@ function OrderEventDetailDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  if (!open || !event) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!mounted || !open || !event) return null;
 
   const name = displayName(event);
-  const initial = guestInitial(name);
   const status = resolveDisplayStatus(event);
   const email = getCustomerEmail(event);
   const phone = getCustomerPhone(event);
   const paymentMedium = resolvePaymentMedium(event);
   const campaignLabel = formatTitleCase(event.campaignName);
+  const campaignInitial = guestInitial(campaignLabel || "Campaign");
+  const campaignImageSrc = resolveUploadImageUrl(event.campaignImageUrl);
   const amountDisplay = formatOrderAmountText(event, status);
   const netAmountText = formatCounterExtrasText(event);
 
-  return (
+  const dialog = (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/40 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-[#07111f]/40 p-4 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="order-detail-title"
@@ -543,17 +582,27 @@ function OrderEventDetailDialog({
         <div className="border-b border-[#e8edf5] px-4 py-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.8rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
-                {initial}
-              </span>
+              {campaignImageSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote campaign upload / CDN URL
+                <img
+                  src={campaignImageSrc}
+                  alt=""
+                  {...spacesImageLoadProps}
+                  className="size-11 shrink-0 rounded-full object-cover shadow-[0_4px_12px_rgba(24,119,242,0.18)] ring-1 ring-[#dbeafe]"
+                />
+              ) : (
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.9rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                  {campaignInitial}
+                </span>
+              )}
               <div className="min-w-0">
                 <h2
                   id="order-detail-title"
-                  className="m-0 truncate text-[1rem] font-extrabold tracking-tight text-black"
+                  className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-black"
                 >
-                  {name}
+                  {campaignLabel || "Campaign"}
                 </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${orderStatusBadgeClass(status)}`}
                   >
@@ -565,12 +614,20 @@ function OrderEventDetailDialog({
                   </span>
                   {paymentMedium ? (
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${
                         paymentMedium === "In store"
                           ? "bg-[#fff7ed] text-[#c2410c]"
                           : "bg-[#ecfdf5] text-[#047857]"
                       }`}
                     >
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${
+                          paymentMedium === "In store"
+                            ? "bg-[#ea580c]"
+                            : "bg-[#059669]"
+                        }`}
+                        aria-hidden
+                      />
                       {paymentMedium}
                     </span>
                   ) : null}
@@ -588,18 +645,40 @@ function OrderEventDetailDialog({
           </div>
         </div>
 
-        <div className="grid gap-2.5 px-4 py-3">
-          <dl className="m-0 flex flex-col gap-2 rounded-[0.9rem] border border-[#e8edf5] bg-[#f8fafc]/80 px-3.5 py-3">
-            <OrderDetailRow icon={Megaphone} label="Campaign">
-              <span className={`${DASHBOARD_CAMPAIGN_TAG} max-w-full gap-1 text-[0.8rem]`}>
-                <span className="truncate">{campaignLabel}</span>
-              </span>
-            </OrderDetailRow>
+        <div className="grid gap-3 px-4 py-3.5">
+          <div className="flex items-center gap-3 rounded-[1rem] bg-[#edf4ff] px-3 py-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.28)]">
+              <Megaphone className="size-4" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-[0.9rem] font-extrabold text-[#07111f]">
+                Campaign Overview
+              </p>
+              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
+                Here are the details of this campaign.
+              </p>
+            </div>
+            <span className="inline-flex max-w-[40%] shrink-0 items-center gap-1.5 rounded-full border border-[#f9a8d4] bg-[#fff1f7] px-2.5 py-1 text-[0.72rem] font-bold text-[#db2777]">
+              <UserRound className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="truncate">{name}</span>
+            </span>
+          </div>
 
+          <dl className="m-0 flex flex-col px-0.5">
             <OrderDetailRow icon={Layers} label="Medium">
-              <span className={paymentMedium ? "text-black" : "text-slate-400"}>
-                {paymentMedium ?? "—"}
-              </span>
+              {paymentMedium ? (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.72rem] font-bold ${
+                    paymentMedium === "In store"
+                      ? "bg-[#fff7ed] text-[#c2410c]"
+                      : "bg-[#ecfdf5] text-[#047857]"
+                  }`}
+                >
+                  {paymentMedium}
+                </span>
+              ) : (
+                <span className="text-slate-400">—</span>
+              )}
             </OrderDetailRow>
 
             <OrderDetailRow icon={CircleDollarSign} label="Offer amount">
@@ -607,6 +686,7 @@ function OrderEventDetailDialog({
                 {amountDisplay.text}
               </span>
             </OrderDetailRow>
+
             <OrderDetailRow icon={CircleDollarSign} label="Counter extras">
               <span className={netAmountText === "—" ? "text-slate-400" : "text-black"}>
                 {netAmountText}
@@ -614,7 +694,10 @@ function OrderEventDetailDialog({
             </OrderDetailRow>
 
             <OrderDetailRow icon={Calendar} label="Date">
-              {formatDateTimeShort(eventPaymentDate(event))}
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="size-3.5 shrink-0 text-slate-400" aria-hidden />
+                {formatDateTimeShort(eventPaymentDate(event))}
+              </span>
             </OrderDetailRow>
 
             <OrderDetailRow icon={Mail} label="Email" copyValue={email}>
@@ -633,6 +716,8 @@ function OrderEventDetailDialog({
       </div>
     </div>
   );
+
+  return createPortal(dialog, document.body);
 }
 
 function OrderRowActions({
@@ -722,6 +807,7 @@ export function BusinessOrdersPanel({
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] =
     useState<BusinessFunnelEvent | null>(null);
+  const closeOrderDetail = useCallback(() => setSelectedEvent(null), []);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
@@ -802,7 +888,7 @@ export function BusinessOrdersPanel({
       <OrderEventDetailDialog
         event={selectedEvent}
         open={selectedEvent != null}
-        onClose={() => setSelectedEvent(null)}
+        onClose={closeOrderDetail}
       />
 
       <div className="rd-premium-page">

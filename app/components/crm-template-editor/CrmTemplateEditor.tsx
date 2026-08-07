@@ -11,7 +11,6 @@ import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPane
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
 import { FunnelPageTemplateGallery } from "@/app/components/crm-template-editor/FunnelPageTemplateGallery";
-import type { FunnelLandingCopyTemplate } from "@/app/components/crm-template-editor/funnel-landing-copy-templates";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
 import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
@@ -423,7 +422,6 @@ export function CrmTemplateEditor({
   const landingPage =
     pages.landing.id === "landing" ? (pages.landing as LandingTemplatePage) : null;
   const activeDesignTemplateId = landingPage?.pageTemplateId ?? null;
-  const activeCopyTemplateId = landingPage?.copyTemplateId ?? null;
 
   const applyFunnelPageDesign = useCallback(
     (template: FunnelPageDesignTemplate) => {
@@ -462,30 +460,6 @@ export function CrmTemplateEditor({
               payment.checkoutTheme ?? DEFAULT_CHECKOUT_THEME,
               template.landingDesign,
             ),
-          },
-        };
-      });
-      setTemplateGalleryOpen(false);
-    },
-    [commitPages],
-  );
-
-  const applyFunnelLandingCopy = useCallback(
-    (template: FunnelLandingCopyTemplate) => {
-      setSaveStatus("idle");
-      setSaveError(null);
-      setIsDirty(true);
-      commitPages((prev) => {
-        const landing = prev.landing as LandingTemplatePage;
-        return {
-          ...prev,
-          landing: {
-            ...landing,
-            copyTemplateId: template.id,
-            heading: template.copy.heading,
-            subheading: template.copy.subheading,
-            body: template.copy.body,
-            buttonText: template.copy.buttonText,
           },
         };
       });
@@ -610,9 +584,7 @@ export function CrmTemplateEditor({
       open={templateGalleryOpen}
       onClose={() => setTemplateGalleryOpen(false)}
       activeDesignTemplateId={activeDesignTemplateId}
-      activeCopyTemplateId={activeCopyTemplateId}
       onApplyDesign={applyFunnelPageDesign}
-      onApplyCopy={applyFunnelLandingCopy}
     />
     </>
   );
