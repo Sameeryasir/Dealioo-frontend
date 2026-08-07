@@ -90,7 +90,7 @@ export default function BusinessDashboardPage() {
       <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
         {showIntegrationsInfo ? (
           <aside
-            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#bfdbfe] bg-gradient-to-r from-[#eff6ff] via-[#f8faff] to-[#fdf2f8] px-4 py-3.5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
+            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#bfdbfe] bg-[#f4f8ff] px-4 py-3.5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
             role="status"
             aria-label="Integrations needed"
           >

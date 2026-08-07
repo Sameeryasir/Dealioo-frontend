@@ -183,7 +183,7 @@ function SearchHeroCard({
           </div>
 
           <div className="relative mx-auto hidden w-full max-w-[15rem] lg:block" aria-hidden>
-            <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#f8fbff] to-white p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
+            <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-[#f8fbff] p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
               <div className="flex items-center gap-3 border-b border-[#eef2f7] pb-4">
                 <span className="flex size-12 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.3)]">
                   <UserRound className="size-6" strokeWidth={2} />
@@ -1545,7 +1545,7 @@ export function ScannerSearchGuestPanel({
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-gradient-to-br from-[#ecfdf5] to-white px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
+                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-[#ecfdf5] px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
                     >
                       <CheckCircle2
                         className="mt-0.5 size-5 shrink-0 text-emerald-600"
@@ -1574,7 +1574,7 @@ export function ScannerSearchGuestPanel({
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-gradient-to-br from-[#ecfdf5] to-white px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
+                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-[#ecfdf5] px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
                     >
                       <CheckCircle2
                         className="mt-0.5 size-5 shrink-0 text-emerald-600"

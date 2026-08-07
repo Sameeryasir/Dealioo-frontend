@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -12,10 +11,6 @@ import {
 } from "recharts";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
-import {
-  OverviewChartGradientDefs,
-  useLineChartGradient,
-} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
 import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
@@ -34,7 +29,6 @@ export function BusinessRevenueMiniChart({
   months: number;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
-  const gradient = useLineChartGradient(strokeColor);
   const chartData = data.map((row) => ({
     ...row,
     value: row.value / 100,
@@ -52,7 +46,6 @@ export function BusinessRevenueMiniChart({
       <div className="h-[190px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={190}>
           <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <OverviewChartGradientDefs stops={gradient.stops} />
             <CartesianGrid
               strokeDasharray="4 6"
               stroke="#e8edf5"
@@ -83,14 +76,6 @@ export function BusinessRevenueMiniChart({
               }
             />
             <Tooltip content={<OverviewChartTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${gradient.areaId})`}
-              fillOpacity={1}
-              tooltipType="none"
-            />
             <Line
               type="monotone"
               dataKey="value"

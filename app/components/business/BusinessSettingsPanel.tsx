@@ -673,7 +673,7 @@ export function BusinessSettingsPanel({
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Settings">
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(14.5rem,16.5rem)_minmax(0,1fr)] lg:items-stretch">
-          <aside className="relative flex flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-b from-white via-white to-[#f4f8ff] px-3.5 py-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+          <aside className="relative flex flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
             <span
               className="pointer-events-none absolute -top-8 left-1/2 size-28 -translate-x-1/2 rounded-full bg-[#1877f2]/10 blur-3xl"
               aria-hidden
@@ -715,7 +715,7 @@ export function BusinessSettingsPanel({
           </aside>
 
           <article className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
-            <header className="shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8faff] to-white px-5 py-4 sm:px-7 sm:py-5">
+            <header className="shrink-0 border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7 sm:py-5">
               <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
                 {businessId != null ? "Organization" : "Account"}
               </p>

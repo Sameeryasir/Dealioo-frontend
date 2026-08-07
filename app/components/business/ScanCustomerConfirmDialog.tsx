@@ -105,7 +105,7 @@ export function ScanCustomerConfirmDialog({
           className="flex max-h-[min(92dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.45)]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6">
+          <div className="relative shrink-0 overflow-hidden bg-[#1877f2] px-5 pb-5 pt-5 text-white sm:px-6 sm:pb-6 sm:pt-6">
             <div
               className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-blue-400/20 blur-2xl"
               aria-hidden
@@ -147,7 +147,7 @@ export function ScanCustomerConfirmDialog({
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 sm:space-y-4 sm:px-6 sm:py-5">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50/50 px-4 py-3 text-center ring-1 ring-blue-100/80">
+              <div className="rounded-2xl bg-[#f4f8ff] px-4 py-3 text-center ring-1 ring-blue-100/80">
                 <p className="text-3xl font-bold tabular-nums text-zinc-900">
                   {preview.totalVisits}
                 </p>
@@ -155,7 +155,7 @@ export function ScanCustomerConfirmDialog({
                   Previous visits
                 </p>
               </div>
-              <div className="rounded-2xl bg-gradient-to-br from-[#fdf2f8] to-[#fff1f2]/50 px-4 py-3 text-center ring-1 ring-[#fbcfe8]/80">
+              <div className="rounded-2xl bg-[#fdf2f8] px-4 py-3 text-center ring-1 ring-[#fbcfe8]/80">
                 <p className="text-3xl font-bold tabular-nums text-zinc-900">
                   {preview.rewardsAvailable}
                 </p>
@@ -256,7 +256,7 @@ export function ScanCustomerConfirmDialog({
             ) : null}
           </div>
 
-          <div className="shrink-0 border-t border-zinc-200 bg-gradient-to-b from-white to-zinc-50 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+          <div className="shrink-0 border-t border-zinc-200 bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
             <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 sm:text-base">
               <UserRound className="size-4 shrink-0 text-blue-600" aria-hidden />
               Are they redeeming an offer/reward today?
@@ -294,7 +294,7 @@ export function ScanCustomerConfirmDialog({
                 type="button"
                 onClick={onConfirm}
                 disabled={confirming || !redeemEnabled}
-                className="min-w-24 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:from-zinc-300 disabled:to-zinc-300 disabled:shadow-none sm:min-w-28"
+                className="min-w-24 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:shadow-none sm:min-w-28"
               >
                 {confirming ? "Processing…" : "Yes, redeem"}
               </button>

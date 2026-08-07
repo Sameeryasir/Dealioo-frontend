@@ -69,7 +69,7 @@ export function GuestChatComposer({
           onClick={() => void handleSend()}
           disabled={!canSend}
           aria-label="Send message"
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] text-white shadow-md shadow-[#1877f2]/25 transition hover:from-[#2b8fff] hover:via-[#1877f2] hover:to-[#1468e8] active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 disabled:from-zinc-200 disabled:via-zinc-200 disabled:to-zinc-200 disabled:shadow-none"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-md shadow-[#1877f2]/25 transition hover:bg-[#166fe5] active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none"
         >
           {sending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />

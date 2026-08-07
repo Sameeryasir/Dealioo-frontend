@@ -798,7 +798,7 @@ export function ScannerCreateGuestPanel({
                   className="relative mx-auto hidden w-full max-w-[15rem] lg:block"
                   aria-hidden
                 >
-                  <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-[#f8fbff] to-white p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
+                  <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-[#f8fbff] p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
                     <div className="flex items-center gap-3 border-b border-[#eef2f7] pb-4">
                       <span className="flex size-12 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.3)]">
                         <UserRound className="size-6" strokeWidth={2} />

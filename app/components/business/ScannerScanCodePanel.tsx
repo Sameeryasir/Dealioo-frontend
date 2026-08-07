@@ -110,7 +110,7 @@ function ScannerSuccessState({
   onScanAnother: () => void;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-[#bfdbfe]/90 bg-gradient-to-b from-[#eff6ff] via-white to-white shadow-[0_16px_40px_rgba(24,119,242,0.12)] ring-1 ring-[#1877f2]/10">
+    <div className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-[#bfdbfe]/90 bg-[#eff6ff] shadow-[0_16px_40px_rgba(24,119,242,0.12)] ring-1 ring-[#1877f2]/10">
       <span
         className="pointer-events-none absolute -top-16 left-1/2 size-48 -translate-x-1/2 rounded-full bg-[#1877f2]/20 blur-3xl"
         aria-hidden
@@ -121,7 +121,7 @@ function ScannerSuccessState({
       />
 
       <div className="relative px-5 pb-6 pt-8 text-center sm:px-8 sm:pb-8 sm:pt-10">
-        <div className="mx-auto mb-5 flex size-[4.5rem] items-center justify-center rounded-full bg-gradient-to-br from-[#3b82f6] to-[#1877f2] shadow-[0_12px_28px_rgba(24,119,242,0.35)] ring-4 ring-white">
+        <div className="mx-auto mb-5 flex size-[4.5rem] items-center justify-center rounded-full bg-[#1877f2] shadow-[0_12px_28px_rgba(24,119,242,0.35)] ring-4 ring-white">
           <CheckCircle2
             className="size-9 text-white"
             strokeWidth={2.5}
@@ -884,7 +884,7 @@ export function ScannerScanCodePanel({
           ) : null}
 
           {scanState === "error" ? (
-            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#fecaca] bg-gradient-to-b from-[#fef2f2] to-white px-4 py-8 text-center shadow-[0_10px_28px_rgba(239,68,68,0.08)]">
+            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-8 text-center shadow-[0_10px_28px_rgba(239,68,68,0.08)]">
               <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#fecaca]/80 shadow-sm">
                 <XCircle className="size-10 text-[#ef4444]" aria-hidden />
               </div>

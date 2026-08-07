@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -13,24 +12,12 @@ import {
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
-  OverviewChartGradientDefs,
-  useLineChartGradient,
-} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
-import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyMetricBarPoint } from "@/app/components/business/business-activity-chart-config";
 
-/**
- * Change summary:
- * - Replaced AnalyticsMetricMiniChart with an explicit-height line chart.
- * - Why: the mini chart canvas depends on funnel-overview CSS variables that are
- *   not present on the business dashboard, so the chart area collapsed to 0px.
- * - Related: BusinessRevenueMiniChart, BusinessActivityOverviewPanel.
- * - MCP context 7: matches the working revenue chart sizing pattern.
- */
 export function BusinessMembersMiniChart({
   data,
   total,
@@ -41,7 +28,6 @@ export function BusinessMembersMiniChart({
   months: number;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
-  const gradient = useLineChartGradient(strokeColor);
 
   return (
     <OverviewChartShell
@@ -52,11 +38,9 @@ export function BusinessMembersMiniChart({
       accent="pink"
       stat={total.toLocaleString()}
     >
-      {/* --- Chart area: fixed height so Recharts always has pixels to render --- */}
       <div className="h-[190px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={190}>
           <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <OverviewChartGradientDefs stops={gradient.stops} />
             <CartesianGrid
               strokeDasharray="4 6"
               stroke="#e8edf5"
@@ -80,14 +64,6 @@ export function BusinessMembersMiniChart({
               width={28}
             />
             <Tooltip content={<OverviewChartTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${gradient.areaId})`}
-              fillOpacity={1}
-              tooltipType="none"
-            />
             <Line
               type="monotone"
               dataKey="value"

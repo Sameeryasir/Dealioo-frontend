@@ -3,11 +3,11 @@
 import type { ReactNode } from "react";
 
 const accentTopBar: Record<string, string> = {
-  green: "from-[#34a853]/80 via-[#34a853]/40 to-transparent",
-  blue: "from-[#1877f2]/80 via-[#1877f2]/40 to-transparent",
-  pink: "from-[#e1306c]/80 via-[#e1306c]/40 to-transparent",
-  orange: "from-[#f77737]/80 via-[#f77737]/40 to-transparent",
-  multi: "from-[#34a853]/70 via-[#1877f2]/50 to-[#e1306c]/40",
+  green: "bg-[#34a853]",
+  blue: "bg-[#1877f2]",
+  pink: "bg-[#e1306c]",
+  orange: "bg-[#f77737]",
+  multi: "bg-[#1877f2]",
 };
 
 const accentGlow: Record<string, string> = {
@@ -40,7 +40,7 @@ export function OverviewChartShell({
       className={`group/chart relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-300 hover:border-[#1877f2]/25 hover:shadow-[0_14px_36px_rgba(24,119,242,0.1)] ${className}`}
     >
       <span
-        className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accentTopBar[accent]}`}
+        className={`pointer-events-none absolute inset-x-0 top-0 h-1 ${accentTopBar[accent]}`}
         aria-hidden
       />
       <span
@@ -69,7 +69,7 @@ export function OverviewChartShell({
       </div>
 
       <div
-        className={`relative mx-3 mb-3 flex min-h-0 flex-1 flex-col rounded-[1rem] bg-gradient-to-b from-[#f8fafc]/90 via-white to-white px-2 py-2 ring-1 ring-[#e8edf5]/80 sm:mx-4 sm:mb-4 sm:px-3 sm:py-3 ${minHeightClass}`}
+        className={`relative mx-3 mb-3 flex min-h-0 flex-1 flex-col rounded-[1rem] bg-white px-2 py-2 ring-1 ring-[#e8edf5]/80 sm:mx-4 sm:mb-4 sm:px-3 sm:py-3 ${minHeightClass}`}
       >
         {children}
       </div>

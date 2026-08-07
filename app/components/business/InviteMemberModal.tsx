@@ -45,7 +45,7 @@ const ROLE_OPTIONS: {
     label: "Manager",
     description: "Help run campaigns, orders, and daily business operations.",
     icon: Briefcase,
-    accent: "from-[#1877f2] to-[#0d5bb8]",
+    accent: "bg-[#1877f2]",
     ring: "ring-[#1877f2]/25",
   },
   {
@@ -53,7 +53,7 @@ const ROLE_OPTIONS: {
     label: "Staff",
     description: "Support the team with focused access to assigned work.",
     icon: UserCog,
-    accent: "from-[#6366f1] to-[#4f46e5]",
+    accent: "bg-[#6366f1]",
     ring: "ring-indigo-300/40",
   },
 ];
@@ -168,7 +168,7 @@ export function InviteMemberForm({
       }}
     >
       <div
-        className={`relative overflow-hidden border-b border-[#e8edf5]/80 bg-gradient-to-br from-[#e8f2ff] via-white to-[#f8fafc] ${
+        className={`relative overflow-hidden border-b border-[#e8edf5]/80 bg-white ${
           isInline ? "px-3.5 py-3.5 sm:px-5 sm:py-4" : "px-4 py-4 sm:px-6 sm:py-5"
         }`}
       >
@@ -179,7 +179,7 @@ export function InviteMemberForm({
         <div className="relative flex items-start justify-between gap-3 sm:gap-4">
           <div className="flex min-w-0 items-start gap-2.5 sm:gap-3.5">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-white shadow-sm sm:size-12"
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2] text-white shadow-sm sm:size-12"
               aria-hidden
             >
               <UserPlus className="size-5 sm:size-6" strokeWidth={2.25} />
@@ -270,7 +270,7 @@ export function InviteMemberForm({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span
-                      className={`flex size-9 items-center justify-center rounded-lg bg-gradient-to-br ${option.accent} text-white shadow-md sm:size-10 sm:rounded-xl`}
+                      className={`flex size-9 items-center justify-center rounded-lg ${option.accent} text-white shadow-md sm:size-10 sm:rounded-xl`}
                     >
                       <Icon
                         className="size-4 sm:size-5"
@@ -351,7 +351,7 @@ export function InviteMemberForm({
                   <span
                     className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-9 sm:rounded-xl ${
                       enabled
-                        ? "bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-white"
+                        ? "bg-[#1877f2] text-white"
                         : "bg-[#f1f5f9] text-slate-500"
                     }`}
                   >
@@ -421,7 +421,7 @@ export function InviteMemberForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70 ${
+          className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70 ${
             isInline ? "w-full sm:w-auto sm:min-w-[11rem]" : "w-full sm:w-auto"
           }`}
         >

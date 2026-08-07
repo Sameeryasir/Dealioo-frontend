@@ -13,10 +13,6 @@ import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/O
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
-  OverviewChartGradientDefs,
-  useBarChartGradients,
-} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
-import {
   OVERVIEW_BAR_CHART_MARGIN,
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MONTH_COUNT,
@@ -31,7 +27,6 @@ export function CheckInsBarChart({
   data: MonthlyCheckInsPoint[];
   months?: number;
 }) {
-  const gradients = useBarChartGradients();
   const checkInTotal = data.reduce((sum, row) => sum + row.checkIns, 0);
 
   return (
@@ -44,7 +39,6 @@ export function CheckInsBarChart({
       <div className="h-[250px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN}>
-            <OverviewChartGradientDefs stops={[gradients.stops[1]!]} />
             <CartesianGrid
               strokeDasharray="4 6"
               stroke="#e8edf5"
@@ -74,7 +68,7 @@ export function CheckInsBarChart({
             <Bar
               dataKey="checkIns"
               name="QR check-ins"
-              fill={`url(#${gradients.payments})`}
+              fill={OVERVIEW_CHART_COLORS.blue}
               radius={[8, 8, 2, 2]}
               maxBarSize={42}
             />

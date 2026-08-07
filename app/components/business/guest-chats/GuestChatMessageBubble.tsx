@@ -101,7 +101,7 @@ export function GuestChatMessageBubble({
     stackPosition === "first" || stackPosition === "middle" ? "mb-2" : "mb-4";
 
   const guestBubbleBg =
-    "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] ring-1 ring-white/20";
+    "bg-[#1877f2] ring-1 ring-white/20";
   const guestTailBg = "bg-[#0f5ed7]";
 
   const rowClass = isGuestMessage

@@ -64,7 +64,7 @@ function OverviewKpiTile({
 
   return (
     <div
-      className={`group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-gradient-to-b from-white to-[#f8faff] px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
+      className={`group flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
     >
       <span
         className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
@@ -187,7 +187,7 @@ export function BusinessActivityOverviewPanel({
         aria-hidden
       />
 
-      <div className="relative shrink-0 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8faff] via-white to-[#fdf2f8] px-3 py-3.5 sm:px-4 sm:py-4">
+      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-3 py-3.5 sm:px-4 sm:py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">

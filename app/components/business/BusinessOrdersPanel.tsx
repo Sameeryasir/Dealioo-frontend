@@ -386,7 +386,7 @@ function OrdersEmptyState({
           className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
           aria-hidden
         />
-        <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
+        <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-[#f4f8ff] shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
           <TrendingUp
             className="size-10 text-[#1877f2]"
             strokeWidth={1.75}

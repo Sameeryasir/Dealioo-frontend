@@ -351,7 +351,7 @@ export function BusinessMembersPanel({
           <button
             type="button"
             onClick={() => setInviteOpen(true)}
-            className="group inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:brightness-105"
+            className="group inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-2xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:brightness-105"
           >
             <span className="flex size-7 items-center justify-center rounded-xl bg-white/15 transition group-hover:bg-white/20">
               <Plus className="size-4" strokeWidth={2.5} aria-hidden />
@@ -381,9 +381,9 @@ export function BusinessMembersPanel({
             </div>
           ) : members.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-16 text-center">
-              <span className="relative mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-[#e8f2ff] to-white text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
+              <span className="relative mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-[#e8f2ff] text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
                 <Users className="size-9" strokeWidth={2} aria-hidden />
-                <span className="absolute -right-1 -top-1 flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-white shadow-md">
+                <span className="absolute -right-1 -top-1 flex size-7 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-md">
                   <UserPlus className="size-3.5" strokeWidth={2.5} aria-hidden />
                 </span>
               </span>
@@ -397,7 +397,7 @@ export function BusinessMembersPanel({
               <button
                 type="button"
                 onClick={() => setInviteOpen(true)}
-                className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/20 transition hover:brightness-105"
+                className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/20 transition hover:brightness-105"
               >
                 <UserPlus className="size-4" strokeWidth={2.25} aria-hidden />
                 Invite your first member
@@ -458,7 +458,7 @@ export function BusinessMembersPanel({
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0d5bb8] text-[0.75rem] font-bold text-white">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.75rem] font-bold text-white">
                               {initial}
                             </span>
                             <div className="min-w-0">

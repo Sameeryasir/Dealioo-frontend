@@ -172,7 +172,7 @@ export default function CampaignWelcomePage() {
                 {/* Google Ads — hidden for now
                 <div className="w-full px-0">
                   <div
-                    className="h-px bg-gradient-to-r from-transparent via-zinc-300/80 to-transparent"
+                    className="h-px bg-zinc-200"
                     aria-hidden
                   />
                 </div>

@@ -64,7 +64,7 @@ function CustomersTableSkeleton() {
     <div className="overflow-x-auto" aria-busy="true">
       <table className="min-w-full border-collapse">
         <thead>
-          <tr className="border-b border-[#e8edf5] bg-gradient-to-r from-[#e8f2ff]/80 via-[#f4f8ff]/55 to-white">
+          <tr className="border-b border-[#e8edf5] bg-[#f4f8ff]">
             <th className="whitespace-nowrap px-5 py-3 text-left">
               <Skeleton className="h-3 w-14" />
             </th>
@@ -332,9 +332,9 @@ export function BusinessProgramCustomersPanel({
         transition={{ duration: 0.45, delay: 0.14, ease: easeOut }}
         className={panelCardClass}
       >
-        <div className="relative border-b border-[#f1f5f9] bg-gradient-to-r from-[#e8f2ff]/70 via-white to-white px-5 py-4 sm:px-6">
+        <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
           <span
-            className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1877f2]/80 via-[#1877f2]/35 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1877f2]"
             aria-hidden
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -374,7 +374,7 @@ export function BusinessProgramCustomersPanel({
           </div>
         ) : customers.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-[#e8f2ff] to-white text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
+            <span className="mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-[#e8f2ff] text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
               <Users className="size-9" strokeWidth={2} aria-hidden />
             </span>
             <p className="text-base font-bold text-[#07111f]">No guests yet</p>
@@ -389,7 +389,7 @@ export function BusinessProgramCustomersPanel({
               <table className="min-w-full border-collapse">
                 <thead>
                   {/* Column accents: blue #1877f2 · green #34a853 · pink #f472b6 */}
-                  <tr className="border-b border-[#e8edf5] bg-gradient-to-r from-[#e8f2ff]/80 via-[#f4f8ff]/55 to-white">
+                  <tr className="border-b border-[#e8edf5] bg-[#f4f8ff]">
                     <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={UserRound}
@@ -502,7 +502,7 @@ export function BusinessProgramCustomersPanel({
             </div>
 
             {totalPages > 1 ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f1f5f9] bg-gradient-to-r from-white to-[#f8fafc] px-5 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f1f5f9] bg-white px-5 py-3.5">
                 <p className="text-xs font-semibold text-slate-500">
                   {rangeLabel}
                 </p>

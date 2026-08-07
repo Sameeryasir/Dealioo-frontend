@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Contact-only profile card (logo lives in the gradient hero).
- * Why: Business image belongs in the overview hero, not duplicated here.
- * Related: dashboard/page.tsx, open-business-settings.ts
- */
-
 import { Skeleton } from "@/app/components/skeleton";
 import { openBusinessSettings } from "@/app/lib/open-business-settings";
 import {
@@ -130,7 +124,7 @@ export function BusinessProfileCard({
 
   return (
     <article
-      className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-gradient-to-br from-white via-[#f8faff] to-[#eef5ff] px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5 sm:py-5"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5 sm:py-5"
       aria-label="Business profile"
     >
       <span
@@ -169,7 +163,7 @@ export function BusinessProfileCard({
             <button
               type="button"
               onClick={() => openBusinessSettings("general", businessId)}
-              className="mt-auto inline-flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0d5bb8] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.22)] transition duration-200 hover:brightness-105"
+              className="mt-auto inline-flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.22)] transition duration-200 hover:brightness-105"
             >
               <PencilLine className="size-3.5" strokeWidth={2.25} aria-hidden />
               Edit business

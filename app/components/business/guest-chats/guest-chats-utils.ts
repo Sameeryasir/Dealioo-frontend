@@ -130,7 +130,7 @@ export function matchesSearch(row: ChatCustomer, query: string): boolean {
 }
 
 export function guestAvatarSidebarClass(): string {
-  return "from-[#1366e0] via-[#1366e0] to-[#0f5ed0] shadow-[0_4px_14px_rgba(19,102,224,0.28)] ring-[#1366e0]/35";
+  return "bg-[#1877f2] shadow-[0_4px_14px_rgba(19,102,224,0.28)] ring-[#1366e0]/35";
 }
 
 export function channelGradientClass(channel: ConversationMessageKind | null | undefined): string {

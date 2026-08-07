@@ -124,7 +124,7 @@ function CampaignsFilterEmptyState({
   showClearFilters?: boolean;
 }) {
   return (
-    <div className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-[#dbeafe] bg-gradient-to-b from-[#f8fbff] to-white px-6 py-12 text-center">
+    <div className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-[#dbeafe] bg-[#f8fbff] px-6 py-12 text-center">
       <div className="relative mb-5 flex size-20 items-center justify-center">
         <span
           className="absolute inset-0 rounded-full bg-[#1877f2]/10 blur-xl"
@@ -286,7 +286,7 @@ export function BusinessCampaignsPanel({
 
   const campaignsToolbar = showToolbar ? (
     <div
-      className="relative shrink-0 overflow-hidden border-b border-[#e8edf5]/80 bg-gradient-to-br from-[#eef5ff] via-white to-[#f8fafc] px-3 py-4 sm:px-4"
+      className="relative shrink-0 overflow-hidden border-b border-[#e8edf5]/80 bg-white px-3 py-4 sm:px-4"
       aria-label="Campaign filters"
     >
       <span

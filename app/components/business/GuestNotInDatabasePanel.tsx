@@ -19,22 +19,7 @@ export function GuestNotInDatabasePanel({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[#0a1628]/20 bg-white shadow-lg shadow-[0_16px_40px_rgba(7,17,31,0.14)] ring-1 ring-[#07111f]/10">
-      <div
-        className="relative overflow-hidden px-5 py-4 text-white sm:px-6 sm:py-5"
-        style={{
-          background:
-            "linear-gradient(180deg, #07111f 0%, #0a1628 52%, #0f1f3d 100%)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 120% 40% at 50% 0%, rgba(24, 119, 242, 0.28) 0%, transparent 70%), radial-gradient(ellipse 120% 35% at 50% 100%, rgba(244, 114, 182, 0.16) 0%, transparent 70%)",
-          }}
-          aria-hidden
-        />
-
+      <div className="relative overflow-hidden bg-[#07111f] px-5 py-4 text-white sm:px-6 sm:py-5">
         <div className="relative flex items-center gap-2 text-white/70">
           <Sparkles className="size-3.5 shrink-0" aria-hidden />
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em]">

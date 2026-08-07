@@ -29,10 +29,10 @@ function GuestChatEmptyStateShell({
 }) {
   const accentClass =
     accent === "pink"
-      ? "from-[#e1306c] to-[#be185d] shadow-[#e1306c]/20 ring-[#fbcfe8]"
+      ? "bg-[#e1306c] shadow-[#e1306c]/20 ring-[#fbcfe8]"
       : accent === "zinc"
-        ? "from-zinc-500 to-zinc-600 shadow-zinc-500/15 ring-zinc-100"
-        : "from-blue-500 to-blue-600 shadow-blue-500/20 ring-blue-100";
+        ? "bg-zinc-500 shadow-zinc-500/15 ring-zinc-100"
+        : "bg-[#1877f2] shadow-blue-500/20 ring-blue-100";
 
   return (
     <motion.div
@@ -42,7 +42,7 @@ function GuestChatEmptyStateShell({
       className="flex h-full min-h-0 flex-1 flex-col items-center justify-center px-8 py-16 text-center"
     >
       <span
-        className={`relative flex size-20 items-center justify-center rounded-[1.35rem] bg-gradient-to-br text-white shadow-xl ring-8 ${accentClass}`}
+        className={`relative flex size-20 items-center justify-center rounded-[1.35rem] text-white shadow-xl ring-8 ${accentClass}`}
       >
         <Icon className="size-9" aria-hidden strokeWidth={ICON_STROKE} />
         <span className="absolute -right-1 -top-1 size-4 rounded-full bg-white/90 shadow-sm" aria-hidden />
