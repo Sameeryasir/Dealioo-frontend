@@ -3867,7 +3867,6 @@ body {
     @apply relative z-[1] text-brand-primary;
   }
 
-  /* --- Org business cards — same dark gradient + glow as dashboard banner --- */
   .org-biz-card {
     --org-card-blue: var(--brand-primary);
     --org-card-violet: var(--brand-violet);
@@ -3964,7 +3963,7 @@ body {
   }
 
   .org-biz-card--grid {
-    @apply flex h-full min-h-[21rem] flex-col rounded-[1.35rem] p-5;
+    @apply flex h-full min-h-[17.5rem] flex-col rounded-[1.35rem] p-5;
   }
 
   .org-biz-card--grid:hover {
@@ -3975,7 +3974,6 @@ body {
       0 18px 40px rgba(5, 7, 13, 0.35);
   }
 
-  /* Profile row — circular avatar stays in normal document flow */
   .org-biz-card-head {
     @apply relative z-[1] flex min-h-[4rem] shrink-0 items-start justify-between gap-3;
   }
@@ -4021,7 +4019,7 @@ body {
   }
 
   .org-biz-card-bento {
-    @apply mt-4 grid min-h-[5.75rem] flex-1 grid-cols-2 gap-0 overflow-hidden rounded-xl border;
+    @apply mt-3 grid min-h-[4.25rem] shrink-0 grid-cols-2 gap-0 overflow-hidden rounded-xl border;
     border-color: rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.05);
     box-shadow:
@@ -4030,7 +4028,7 @@ body {
   }
 
   .org-biz-card-bento-cell {
-    @apply flex min-h-[5.75rem] flex-col justify-between border-0 p-3.5;
+    @apply flex min-h-[4.25rem] flex-col justify-between border-0 p-2.5;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -4041,7 +4039,7 @@ body {
   }
 
   .org-biz-card-progress-wrap {
-    @apply flex min-h-[5.75rem] min-w-0 flex-col;
+    @apply flex min-h-[4.25rem] min-w-0 flex-col;
     border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
     background: transparent !important;
   }
@@ -4074,7 +4072,7 @@ body {
   }
 
   .org-biz-card-progress-ring {
-    @apply relative flex size-[3.35rem] shrink-0 items-center justify-center;
+    @apply relative flex size-[2.85rem] shrink-0 items-center justify-center;
     transform: translateZ(0);
   }
 
@@ -4119,7 +4117,6 @@ body {
     background: transparent !important;
   }
 
-  /* Location label stays pink; Profile setup / Name stay blue */
   .org-biz-card-location-eyebrow,
   .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
     color: #f472b6 !important;
@@ -4539,11 +4536,11 @@ body {
 
   @media (min-width: 1280px) {
     .org-biz-card--grid {
-      @apply h-full min-h-[21rem] p-5;
+      @apply h-full min-h-[17.5rem] p-5;
     }
 
     .org-biz-card-content {
-      @apply flex-1 pt-4;
+      @apply flex-1 pt-3;
     }
 
     .org-biz-card-bento {
@@ -4551,13 +4548,13 @@ body {
     }
 
     .org-biz-card-bento-cell {
-      @apply min-h-[5.5rem] p-3;
+      @apply min-h-[4.1rem] p-2.5;
     }
   }
 
   @media (min-width: 1536px) {
     .org-biz-card--grid {
-      @apply h-full min-h-[21rem];
+      @apply h-full min-h-[17.5rem];
     }
   }
 
@@ -4579,7 +4576,7 @@ body {
     }
 
     .org-biz-card--grid {
-      @apply h-full min-h-[19.5rem];
+      @apply h-full min-h-[16.5rem];
     }
   }
 

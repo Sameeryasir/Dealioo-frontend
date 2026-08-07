@@ -742,22 +742,24 @@ export function CampaignAdsPanel({
                           ) : null}
                         </button>
 
-                        <button
-                          type="button"
-                          title="Delete campaign"
-                          disabled={deletingCampaignId === c.id}
-                          onClick={() => setCampaignPendingDelete(c)}
-                          className="absolute right-3 top-3 rounded-lg p-1.5 text-zinc-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                        >
-                          {deletingCampaignId === c.id ? (
-                            <Loader2
-                              className="size-4 animate-spin"
-                              aria-hidden
-                            />
-                          ) : (
-                            <Trash2 className="size-4" aria-hidden />
-                          )}
-                        </button>
+                        {c.effectiveStatus?.toUpperCase() !== "ACTIVE" ? (
+                          <button
+                            type="button"
+                            title="Delete campaign"
+                            disabled={deletingCampaignId === c.id}
+                            onClick={() => setCampaignPendingDelete(c)}
+                            className="absolute right-3 top-3 rounded-lg p-1.5 text-zinc-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                          >
+                            {deletingCampaignId === c.id ? (
+                              <Loader2
+                                className="size-4 animate-spin"
+                                aria-hidden
+                              />
+                            ) : (
+                              <Trash2 className="size-4" aria-hidden />
+                            )}
+                          </button>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

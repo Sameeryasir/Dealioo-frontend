@@ -29,6 +29,12 @@ import {
   pusherBusinessAiEditUiChannel,
   type AiEditUiPusherPayload,
 } from "@/app/lib/pusher-ai-edit-ui";
+import {
+  PUSHER_ADMIN_NOTIFICATION_EVENT,
+  parseAdminNotificationPusherPayload,
+  pusherAdminNotificationsChannel,
+} from "@/app/lib/pusher-admin-notifications";
+import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
 
@@ -450,6 +456,19 @@ export function subscribeAiEditUiResult(
     onResult,
     parseAiEditUiPusherPayload,
     `ai-edit-ui-${businessId}`,
+  );
+}
+
+/** Live Super Admin platform notifications (private channel). */
+export function subscribeAdminNotifications(
+  onCreated: (payload: AdminNotificationItem) => void,
+): () => void {
+  return subscribeChannelEvent(
+    pusherAdminNotificationsChannel(),
+    PUSHER_ADMIN_NOTIFICATION_EVENT.CREATED,
+    onCreated,
+    parseAdminNotificationPusherPayload,
+    "admin-notifications",
   );
 }
 

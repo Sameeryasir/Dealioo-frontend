@@ -5,9 +5,14 @@ import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
+  getAdminNotifications,
+  type AdminNotificationItem,
+} from "@/app/services/admin/get-admin-notifications";
+import {
   getPlatformAdminOverview,
   type PlatformAdminOverview,
 } from "@/app/services/admin/get-platform-overview";
+import { subscribeAdminNotifications } from "@/app/lib/pusher-client";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -71,63 +76,19 @@ const TABLE_PAGE_SIZE = 8;
 const PLAN_COLORS = ["#1877f2", "#0ea5e9", "#0f766e", "#d97706", "#94a3b8"];
 const BRAND_BLUE = "#1877f2";
 
-const MOCK_NOTIFICATIONS = [
-  {
-    id: "n1",
-    title: "New business registered",
-    body: "Coders Lodge completed onboarding and is now active.",
-    time: "12 min ago",
-    type: "business" as const,
-    unread: true,
-  },
-  {
-    id: "n2",
-    title: "Payment received",
-    body: "Demo Bistro Islamabad paid US$49.00 for Growth AI.",
-    time: "41 min ago",
-    type: "payment" as const,
-    unread: true,
-  },
-  {
-    id: "n3",
-    title: "User joined platform",
-    body: "sameer.yasir@coderslodge.com signed up as Admin.",
-    time: "2h ago",
-    type: "user" as const,
-    unread: true,
-  },
-  {
-    id: "n4",
-    title: "Stripe connection issue",
-    body: "Butt karahi Stripe account needs re-authorization.",
-    time: "5h ago",
-    type: "alert" as const,
-    unread: false,
-  },
-  {
-    id: "n5",
-    title: "Campaign published",
-    body: "Weekend Pass campaign went live for test business.",
-    time: "Yesterday",
-    type: "campaign" as const,
-    unread: false,
-  },
-  {
-    id: "n6",
-    title: "Subscription upgraded",
-    body: "A user moved from Starter to Growth AI (annual).",
-    time: "2d ago",
-    type: "payment" as const,
-    unread: false,
-  },
-];
-
-function notificationIcon(type: (typeof MOCK_NOTIFICATIONS)[number]["type"]) {
-  if (type === "payment") return CreditCard;
+function notificationIcon(type: string) {
+  if (type === "payment" || type === "subscription") return CreditCard;
   if (type === "user") return UserPlus;
-  if (type === "alert") return AlertTriangle;
+  if (type === "system") return AlertTriangle;
   if (type === "campaign") return Megaphone;
   return Building2;
+}
+
+function notificationIconClass(type: string): string {
+  if (type === "payment" || type === "subscription") return styles.notifyIconGreen;
+  if (type === "system") return styles.notifyIconOrange;
+  if (type === "campaign") return styles.notifyIconTeal;
+  return styles.notifyIconBlue;
 }
 
 function greetingForNow(): string {
@@ -312,8 +273,12 @@ export function SuperAdminDashboard() {
   const [businessPage, setBusinessPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AdminNotificationItem[]>(
+    [],
+  );
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
-  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -332,9 +297,36 @@ export function SuperAdminDashboard() {
     }
   }, []);
 
+  const loadNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      const data = await getAdminNotifications();
+      setNotifications(data.items);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadOverview();
-  }, [loadOverview]);
+    void loadNotifications();
+  }, [loadOverview, loadNotifications]);
+
+  useEffect(() => {
+    return subscribeAdminNotifications((item) => {
+      setNotifications((prev) => {
+        if (prev.some((row) => row.id === item.id)) return prev;
+        return [item, ...prev].slice(0, 50);
+      });
+      if (!item.isRead) {
+        setUnreadCount((count) => count + 1);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     setBusinessPage(1);
@@ -517,7 +509,10 @@ export function SuperAdminDashboard() {
                 className={styles.iconBtn}
                 aria-label="Notifications"
                 aria-expanded={notificationsOpen}
-                onClick={() => setNotificationsOpen(true)}
+                onClick={() => {
+                  setNotificationsOpen(true);
+                  void loadNotifications();
+                }}
               >
                 <Bell className="size-4" />
               </button>
@@ -585,37 +580,38 @@ export function SuperAdminDashboard() {
                 </div>
 
                 <div className={styles.drawerList}>
-                  {MOCK_NOTIFICATIONS.map((item) => {
+                  {notificationsLoading && notifications.length === 0 ? (
+                    <p className={styles.drawerSub}>Loading notifications…</p>
+                  ) : null}
+                  {!notificationsLoading && notifications.length === 0 ? (
+                    <p className={styles.drawerSub}>No notifications yet.</p>
+                  ) : null}
+                  {notifications.map((item) => {
                     const Icon = notificationIcon(item.type);
+                    const unread = !item.isRead;
                     return (
                       <article
                         key={item.id}
                         className={`${styles.notifyItem} ${
-                          item.unread ? styles.notifyItemUnread : ""
+                          unread ? styles.notifyItemUnread : ""
                         }`}
                       >
                         <div
-                          className={`${styles.notifyIcon} ${
-                            item.type === "payment"
-                              ? styles.notifyIconGreen
-                              : item.type === "alert"
-                                ? styles.notifyIconOrange
-                                : item.type === "campaign"
-                                  ? styles.notifyIconTeal
-                                  : styles.notifyIconBlue
-                          }`}
+                          className={`${styles.notifyIcon} ${notificationIconClass(item.type)}`}
                         >
                           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
                         </div>
                         <div className={styles.notifyCopy}>
                           <div className={styles.notifyTop}>
                             <h3 className={styles.notifyTitle}>{item.title}</h3>
-                            {item.unread ? (
+                            {unread ? (
                               <span className={styles.notifyUnreadDot} aria-hidden />
                             ) : null}
                           </div>
                           <p className={styles.notifyBody}>{item.body}</p>
-                          <time className={styles.notifyTime}>{item.time}</time>
+                          <time className={styles.notifyTime}>
+                            {formatRelative(item.createdAt)}
+                          </time>
                         </div>
                       </article>
                     );

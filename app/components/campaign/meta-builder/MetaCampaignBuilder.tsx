@@ -658,7 +658,7 @@ export function MetaCampaignBuilder({
     publishStartedRef.current = true;
     setPublishing(true);
     setPublishPhase("QUEUED");
-    setPublishStep("preparing");
+    setPublishStep(null);
     setPublishProgress(0);
     setError(null);
 

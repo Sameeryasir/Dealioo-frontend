@@ -53,7 +53,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [radiusEnabled, setRadiusEnabled] = useState(false);
+  const [radiusEnabled, setRadiusEnabled] = useState(true);
   const [dropPinEnabled, setDropPinEnabled] = useState(false);
   const [excludeEnabled, setExcludeEnabled] = useState(
     () => locations.some((loc) => loc.mode === "exclude"),
@@ -245,6 +245,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
       longitude: result.longitude,
       radius: 16,
       distanceUnit: "kilometer",
+      useRadius: true,
     };
 
     let nextLocations = locations.filter(
@@ -324,6 +325,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
       longitude,
       radius: 16,
       distanceUnit: "kilometer",
+      useRadius: true,
     };
 
     const withoutUsCountry = locations.filter(
@@ -545,9 +547,16 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                   const checked = e.target.checked;
                   setRadiusEnabled(checked);
                   if (checked) {
-                    setActiveLocationId(
-                      addressPins[0]?.id ?? activeLocationId,
-                    );
+                    const targetId =
+                      addressPins[0]?.id ?? activeLocationId;
+                    setActiveLocationId(targetId);
+                    if (targetId) {
+                      updateLocation(targetId, {
+                        useRadius: true,
+                        radius: 16,
+                        distanceUnit: "kilometer",
+                      });
+                    }
                   }
                 }}
                 className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#1877f2] focus:ring-[#1877f2]/30"
@@ -648,6 +657,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                             updateLocation(activeLocation.id, {
                               radius: km,
                               distanceUnit: "kilometer",
+                              useRadius: true,
                             })
                           }
                           className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
@@ -671,6 +681,8 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                         onChange={(e) =>
                           updateLocation(activeLocation.id, {
                             radius: Number.parseInt(e.target.value, 10),
+                            distanceUnit: "kilometer",
+                            useRadius: true,
                           })
                         }
                         className="min-w-[140px] flex-1"
@@ -683,6 +695,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
                         onChange={(e) =>
                           updateLocation(activeLocation.id, {
                             radius: Number.parseInt(e.target.value, 10) || 1,
+                            useRadius: true,
                           })
                         }
                         className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm"

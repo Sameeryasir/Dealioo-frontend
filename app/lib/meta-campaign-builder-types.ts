@@ -59,6 +59,10 @@ export type AdSetLocationTarget = {
   longitude?: number;
   radius?: number;
   distanceUnit?: MetaDistanceUnit;
+  /** When true, publish as Meta custom_locations (pin + radius). */
+  useRadius?: boolean;
+  metaKey?: string;
+  metaType?: "country" | "region" | "city";
 };
 
 export type MetaCampaignBudgetType = "daily" | "lifetime";

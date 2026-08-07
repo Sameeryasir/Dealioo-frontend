@@ -45,7 +45,6 @@ import {
 } from "@/app/lib/meta-account-currency";
 
 export const PUBLISH_PROGRESS_STEPS = [
-  { key: "preparing", label: "Preparing" },
   { key: "campaign", label: "Creating Campaign" },
   { key: "adset", label: "Creating Ad Set" },
   { key: "media", label: "Uploading Image" },
@@ -56,7 +55,9 @@ export const PUBLISH_PROGRESS_STEPS = [
 
 function resolveActiveStepIndex(publishStep: string | null | undefined): number {
   const normalized = (publishStep ?? "").toLowerCase();
-  if (!normalized || normalized === "queued") return 0;
+  if (!normalized || normalized === "queued" || normalized === "preparing") {
+    return 0;
+  }
   const idx = PUBLISH_PROGRESS_STEPS.findIndex((s) => s.key === normalized);
   return idx >= 0 ? idx : 0;
 }

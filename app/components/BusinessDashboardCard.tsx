@@ -39,7 +39,6 @@ export default function BusinessDashboardCard({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  // --- Progress count-up (animate % + ring when the card loads) ---
   const [displayProgress, setDisplayProgress] = useState(0);
   const [isCountingProgress, setIsCountingProgress] = useState(true);
 
@@ -69,7 +68,6 @@ export default function BusinessDashboardCard({
   const remainingSteps = Math.max(0, setup.totalCount - setup.completedCount);
   const isReady = progress >= 100;
 
-  // Count the % from 0 → target so users see progress being calculated on load
   useEffect(() => {
     const target = Math.min(100, Math.max(0, Math.round(progress)));
     const prefersReducedMotion =
@@ -91,7 +89,6 @@ export default function BusinessDashboardCard({
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - startMs) / durationMs);
-      // Ease-out so the last numbers settle smoothly
       const eased = 1 - (1 - t) ** 3;
       setDisplayProgress(Math.round(eased * target));
       if (t < 1) {
@@ -106,7 +103,6 @@ export default function BusinessDashboardCard({
     return () => cancelAnimationFrame(frameId);
   }, [progress]);
 
-  /* Higher SVG resolution = smoother anti-aliased ring when scaled down */
   const ringView = 96;
   const ringCenter = ringView / 2;
   const circleRadius = 38;
@@ -286,12 +282,6 @@ export default function BusinessDashboardCard({
             <div className="org-biz-card-bento">
               <BusinessProfileSetupPopover setup={setup}>
                 <div className="org-biz-card-progress-row">
-                  <div className="org-biz-card-progress-copy">
-                    <span className="org-biz-card-bento-eyebrow">
-                      Profile setup
-                    </span>
-                    <p className="org-biz-card-setup-status">{setupStatusText}</p>
-                  </div>
                   <div
                     className="org-biz-card-progress-ring"
                     data-complete={ringComplete ? "true" : undefined}
@@ -342,6 +332,12 @@ export default function BusinessDashboardCard({
                     <span className="org-biz-card-setup-pct" aria-hidden>
                       {displayProgress}%
                     </span>
+                  </div>
+                  <div className="org-biz-card-progress-copy">
+                    <span className="org-biz-card-bento-eyebrow">
+                      Profile setup
+                    </span>
+                    <p className="org-biz-card-setup-status">{setupStatusText}</p>
                   </div>
                 </div>
               </BusinessProfileSetupPopover>

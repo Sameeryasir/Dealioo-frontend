@@ -70,6 +70,7 @@ export function buildLocationsFromAudience(audience?: {
         longitude: audience.longitude,
         radius: audience.radius ?? 16,
         distanceUnit: audience.distanceUnit ?? "kilometer",
+        useRadius: true,
       },
     ];
   }
@@ -306,6 +307,7 @@ async function reverseGeocodeLocation(
         longitude,
         radius: 16,
         distanceUnit: "kilometer",
+        useRadius: true,
       };
     }
 
