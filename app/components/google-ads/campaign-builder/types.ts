@@ -223,7 +223,8 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     logoPreviewUrl: "",
     logoFileName: "",
     businessDescription: "",
-    onboardingDone: false,
+    // Skip opening "describe your business" screen — start on campaign goal.
+    onboardingDone: true,
     dailyBudget: 40,
     startDate: "",
     endDate: "",

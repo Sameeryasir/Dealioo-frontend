@@ -9,7 +9,9 @@ import {
   editorSettingsSlotEmbeddedClass,
   editorShellClass,
   editorShellEmbeddedClass,
+  editorShellGridAiOpenClass,
   editorShellGridClass,
+  editorShellGridEmbeddedAiOpenClass,
   editorShellGridEmbeddedClass,
   editorShellGridWrapEmbeddedClass,
   editorSidebarSlotClass,
@@ -35,13 +37,19 @@ export function EditorShell({
 }) {
   const hasAssistant = assistantPanel != null;
   const gridClass = embedded
-    ? editorShellGridEmbeddedClass
-    : editorShellGridClass;
+    ? hasAssistant
+      ? editorShellGridEmbeddedAiOpenClass
+      : editorShellGridEmbeddedClass
+    : hasAssistant
+      ? editorShellGridAiOpenClass
+      : editorShellGridClass;
   const shellClass = embedded ? editorShellEmbeddedClass : editorShellClass;
   const sidebarClass = embedded
     ? editorSidebarSlotEmbeddedClass
     : editorSidebarSlotClass;
-  const canvasClass = embedded ? editorCanvasSlotEmbeddedClass : editorCanvasSlotClass;
+  const canvasClass = embedded
+    ? editorCanvasSlotEmbeddedClass
+    : editorCanvasSlotClass;
   const settingsClass = embedded
     ? editorSettingsSlotEmbeddedClass
     : editorSettingsSlotClass;
@@ -53,14 +61,19 @@ export function EditorShell({
         <div className={editorNavbarSlotClass}>{navbar}</div>
       ) : null}
       <div className={canvasClass}>{canvas}</div>
-      <div
-        className={`${settingsClass} relative ${
-          hasAssistant ? "overflow-visible" : ""
-        }`}
-      >
-        {settingsPanel}
+      <div className={`${settingsClass} relative`}>
+        <div
+          className={
+            hasAssistant
+              ? "pointer-events-none invisible h-full min-h-0 min-w-0"
+              : "h-full min-h-0 min-w-0"
+          }
+          aria-hidden={hasAssistant}
+        >
+          {settingsPanel}
+        </div>
         {hasAssistant ? (
-          <div className="absolute inset-y-0 right-0 z-30 flex w-[22rem] max-w-[min(22rem,100vw)] min-h-0 min-w-0 flex-col overflow-hidden shadow-lg shadow-slate-900/10 [&>aside]:h-full [&>aside]:min-h-0 [&>aside]:min-w-0">
+          <div className="absolute inset-0 z-30 flex min-h-0 min-w-0 flex-col overflow-hidden bg-white [&>aside]:h-full [&>aside]:min-h-0 [&>aside]:min-w-0 [&>aside]:w-full">
             {assistantPanel}
           </div>
         ) : null}

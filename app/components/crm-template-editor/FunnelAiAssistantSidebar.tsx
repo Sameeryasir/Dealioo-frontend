@@ -927,7 +927,7 @@ export function FunnelAiAssistantSidebar({
             </div>
           ) : null}
           <form
-            className="flex items-end gap-2.5"
+            className="flex min-w-0 items-end gap-2.5"
             onSubmit={(e) => {
               e.preventDefault();
               void sendMessage(input);
@@ -949,7 +949,7 @@ export function FunnelAiAssistantSidebar({
                 }
               }}
               placeholder="Ask about this funnel step…"
-              className="min-h-[3rem] flex-1 resize-none rounded-xl border border-[#e8edf5] bg-white px-3.5 py-2.5 text-[0.78rem] font-medium text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-4 focus:ring-[#1877f2]/12 disabled:opacity-60"
+              className="min-h-[3rem] min-w-0 flex-1 resize-none rounded-xl border border-[#e8edf5] bg-white px-3.5 py-2.5 text-[0.78rem] font-medium text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-4 focus:ring-[#1877f2]/12 disabled:opacity-60"
             />
             <button
               type="submit"

@@ -9,7 +9,7 @@ import {
   googleBuilderSecondaryButtonClass,
   googleBuilderShellClass,
 } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
-import { renderCampaignBuilderStep, StepOnboarding } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
+import { renderCampaignBuilderStep } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
 import {
   clearGoogleCampaignDraft,
   loadGoogleCampaignDraft,
@@ -112,7 +112,7 @@ export function CampaignBuilderWizard({
   
   const [syncingDraft, setSyncingDraft] = useState(false);
   const [goalSaveError, setGoalSaveError] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Business-description onboarding removed — wizard opens on goal step.
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipAutosave = useRef(true);
   const formDataRef = useRef(formData);
@@ -235,8 +235,7 @@ export function CampaignBuilderWizard({
         fresh.websiteUrl = defaultWebsiteUrl.trim();
         fresh.landingPageUrl = defaultWebsiteUrl.trim();
       }
-      applyWorkingCopy(fresh, 1);
-      setShowOnboarding(!fresh.onboardingDone);
+      applyWorkingCopy({ ...fresh, onboardingDone: true }, 1);
     };
 
     setServerDraftId(storedDraftId);
@@ -251,19 +250,14 @@ export function CampaignBuilderWizard({
         TOTAL_WIZARD_STEPS,
         Math.max(1, localDraft.currentStep ?? 1),
       );
-      const hasProgress =
-        Boolean(localDraft.goal) ||
-        uiStep > 1 ||
-        Boolean(localDraft.campaignName?.trim());
       const normalized: GoogleCampaignBuilderDraft = {
         ...createDefaultDraft(),
         ...localDraft,
         currentStep: uiStep,
-        onboardingDone: localDraft.onboardingDone || hasProgress,
+        onboardingDone: true,
         wizardVersion: 2,
       };
       applyWorkingCopy(normalized, uiStep);
-      setShowOnboarding(!normalized.onboardingDone && uiStep <= 1 && !hasProgress);
       const priorSteps = Array.from(
         { length: Math.max(0, uiStep - 1) },
         (_, i) => i + 1,
@@ -336,10 +330,7 @@ export function CampaignBuilderWizard({
               localNow.businessDescription ||
               remote.draftData?.businessDescription ||
               "",
-            onboardingDone:
-              localNow.onboardingDone ||
-              remote.draftData?.onboardingDone ||
-              Boolean(localNow.goal || remote.draftData?.goal),
+            onboardingDone: true,
             idealCustomers:
               localNow.idealCustomers?.length
                 ? localNow.idealCustomers
@@ -353,7 +344,6 @@ export function CampaignBuilderWizard({
             savedAt: new Date().toISOString(),
           };
           applyWorkingCopy(merged, merged.currentStep);
-          setShowOnboarding(false);
           saveGoogleCampaignDraft(businessId, merged);
           savedStepSnapshotsRef.current = seedSavedStepSnapshots(
             merged,
@@ -370,9 +360,7 @@ export function CampaignBuilderWizard({
           campaignName:
             remote.campaignName || remote.draftData?.campaignName || "",
           businessDescription: remote.draftData?.businessDescription ?? "",
-          onboardingDone:
-            remote.draftData?.onboardingDone ??
-            Boolean(remote.draftData?.goal),
+          onboardingDone: true,
           idealCustomers: remote.draftData?.idealCustomers ?? [],
           productsServices: remote.draftData?.productsServices ?? [],
           currentStep: uiStep,
@@ -381,7 +369,6 @@ export function CampaignBuilderWizard({
         };
 
         applyWorkingCopy(resumed, uiStep);
-        setShowOnboarding(!resumed.onboardingDone && uiStep <= 1);
         saveGoogleCampaignDraft(businessId, resumed);
         savedStepSnapshotsRef.current = seedSavedStepSnapshots(
           resumed,
@@ -513,15 +500,7 @@ export function CampaignBuilderWizard({
   };
 
   const handleBack = () => {
-    if (showOnboarding) {
-      void persistProgressAndClose();
-      return;
-    }
     if (step <= 1) {
-      if (!draft.onboardingDone) {
-        setShowOnboarding(true);
-        return;
-      }
       void persistProgressAndClose();
       return;
     }
@@ -1031,9 +1010,7 @@ export function CampaignBuilderWizard({
               id={titleId}
               className="truncate text-lg font-extrabold tracking-tight text-[#07111f]"
             >
-              {showOnboarding
-                ? "Describe your business"
-                : (STEP_TITLES[step - 1] ?? "Create campaign")}
+              {STEP_TITLES[step - 1] ?? "Create campaign"}
             </h2>
           </div>
         </div>
@@ -1087,38 +1064,21 @@ export function CampaignBuilderWizard({
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-3xl pb-10">
           <AnimatePresence mode="wait">
-            {showOnboarding ? (
-              <div key="onboarding">
-                <StepOnboarding
-                  draft={draft}
-                  onChange={patchDraft}
-                  onSkip={() => {
-                    patchDraft({ onboardingDone: true });
-                    setShowOnboarding(false);
-                  }}
-                  onContinue={() => {
-                    patchDraft({ onboardingDone: true });
-                    setShowOnboarding(false);
-                  }}
-                />
-              </div>
-            ) : (
-              <div key={`${step}`}>
-                {renderCampaignBuilderStep(step, {
-                  businessId,
-                  draft,
-                  errors,
-                  onChange: patchDraft,
-                  onEditStep: goToStep,
-                  publishing,
-                  publishProgress,
-                  publishPhase,
-                  publishStep,
-                  publishError,
-                  publishSuccess,
-                })}
-              </div>
-            )}
+            <div key={`${step}`}>
+              {renderCampaignBuilderStep(step, {
+                businessId,
+                draft,
+                errors,
+                onChange: patchDraft,
+                onEditStep: goToStep,
+                publishing,
+                publishProgress,
+                publishPhase,
+                publishStep,
+                publishError,
+                publishSuccess,
+              })}
+            </div>
           </AnimatePresence>
         </div>
       </main>
@@ -1130,7 +1090,7 @@ export function CampaignBuilderWizard({
           disabled={busy}
           className={`${googleBuilderSecondaryButtonClass} disabled:opacity-50`}
         >
-          {showOnboarding || step === 1 ? "Cancel" : "Back"}
+          {step === 1 ? "Cancel" : "Back"}
         </button>
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           {publishSuccess && resolvedAdsConsoleUrl ? (
@@ -1148,38 +1108,36 @@ export function CampaignBuilderWizard({
               {goalSaveError}
             </p>
           ) : null}
-          {showOnboarding ? null : (
-            <button
-              type="button"
-              disabled={nextDisabled}
-              onClick={() => {
-                if (publishSuccess) {
-                  void persistProgressAndClose();
-                  return;
-                }
-                if (isLastStep) {
-                  void handlePublish();
-                  return;
-                }
-                void handleContinue();
-              }}
-              className={`${googleBuilderPrimaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
-            >
-              {publishing ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Publishing…
-                </>
-              ) : savingGoal ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Saving…
-                </>
-              ) : (
-                primaryLabel
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={nextDisabled}
+            onClick={() => {
+              if (publishSuccess) {
+                void persistProgressAndClose();
+                return;
+              }
+              if (isLastStep) {
+                void handlePublish();
+                return;
+              }
+              void handleContinue();
+            }}
+            className={`${googleBuilderPrimaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {publishing ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Publishing…
+              </>
+            ) : savingGoal ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              primaryLabel
+            )}
+          </button>
         </div>
       </footer>
     </div>

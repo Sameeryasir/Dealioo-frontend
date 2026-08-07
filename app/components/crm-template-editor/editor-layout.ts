@@ -1,11 +1,17 @@
 export const editorWorkspaceColsEmbeddedClass =
   "lg:grid-cols-[17.5rem_minmax(0,1fr)_17.5rem]";
 
+export const editorWorkspaceColsEmbeddedAiOpenClass =
+  "lg:grid-cols-[16rem_minmax(0,1fr)_22rem] xl:grid-cols-[16.5rem_minmax(0,1fr)_24rem]";
+
 export const editorWorkspaceColsEmbeddedWithAssistantClass =
   "lg:grid-cols-[15rem_minmax(0,1fr)_15rem_18rem] xl:grid-cols-[16rem_minmax(0,1fr)_16rem_19rem]";
 
 export const editorWorkspaceColsClass =
   "lg:grid-cols-[10.25rem_minmax(0,1fr)_14.25rem] xl:grid-cols-[11rem_minmax(0,1fr)_15.5rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_16.5rem]";
+
+export const editorWorkspaceColsAiOpenClass =
+  "lg:grid-cols-[10.25rem_minmax(0,1fr)_20rem] xl:grid-cols-[11rem_minmax(0,1fr)_22rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_24rem]";
 
 export const editorWorkspaceColsWithAssistantClass =
   "lg:grid-cols-[10.25rem_minmax(0,1fr)_13rem_16rem] xl:grid-cols-[11rem_minmax(0,1fr)_14rem_17rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_15rem_18rem]";
@@ -24,6 +30,12 @@ export const editorShellGridEmbeddedClass = [
   "lg:items-stretch",
 ].join(" ");
 
+export const editorShellGridEmbeddedAiOpenClass = [
+  "crm-editor-embedded-grid grid h-full w-full grid-cols-1",
+  editorWorkspaceColsEmbeddedAiOpenClass,
+  "lg:items-stretch",
+].join(" ");
+
 export const editorShellGridEmbeddedWithAssistantClass = [
   "crm-editor-embedded-grid grid h-full w-full grid-cols-1",
   editorWorkspaceColsEmbeddedWithAssistantClass,
@@ -33,6 +45,12 @@ export const editorShellGridEmbeddedWithAssistantClass = [
 export const editorShellGridClass = [
   "grid h-full min-h-0 w-full flex-1 grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden",
   editorWorkspaceColsClass,
+  "lg:grid-rows-[auto_minmax(0,1fr)]",
+].join(" ");
+
+export const editorShellGridAiOpenClass = [
+  "grid h-full min-h-0 w-full flex-1 grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden",
+  editorWorkspaceColsAiOpenClass,
   "lg:grid-rows-[auto_minmax(0,1fr)]",
 ].join(" ");
 
