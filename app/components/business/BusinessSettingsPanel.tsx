@@ -1010,8 +1010,8 @@ export function BusinessSettingsPanel({
                           ) : null}
                         </div>
                         <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                          Pull ad spend, impressions, reach, clicks, and campaign
-                          stats from Meta.
+                          Pull ad spend, impressions, reach, clicks, CTR, CPC,
+                          CPM, frequency, and results from Meta.
                         </p>
                         {metaConnected && metaAdAccountId ? (
                           <IntegrationAccountChip

@@ -11604,6 +11604,35 @@ body:has(.auth-select-plan-page) {
   background: #ffffff;
 }
 
+.rd-shell--meta-ads .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-shell--meta-ads .rd-topbar {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rd-main-scroll.rd-main-scroll--meta-ads,
+.rd-main-scroll.rd-main-scroll--meta-ads.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--meta-ads.rd-main-scroll--sidebar-expanded {
+  background: #ffffff;
+  padding: 0;
+}
+
+.rd-main-scroll--meta-ads > .meta-ads-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: calc(100dvh - var(--rd-header-h));
+  border: none;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+  padding: 0;
+}
+
 .rd-main-scroll.rd-main-scroll--guest-chats,
 .rd-main-scroll.rd-main-scroll--guest-chats.rd-main-scroll--sidebar-collapsed,
 .rd-main-scroll.rd-main-scroll--guest-chats.rd-main-scroll--sidebar-expanded,

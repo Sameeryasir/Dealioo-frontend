@@ -11,12 +11,14 @@ import {
 import { isAutomationBuilderPath } from "@/app/lib/automation-builder-route";
 import { isCampaignImmersivePath } from "@/app/lib/campaign-immersive-route";
 import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
+import { isMetaAdsPath } from "@/app/lib/meta-ads-route";
 
 function DashboardShellInner({ children }: { children: ReactNode }) {
   const { expanded } = useSidebarExpand();
   const pathname = usePathname();
   const immersiveCampaign = isCampaignImmersivePath(pathname);
   const guestChatsFullPage = isGuestChatsPath(pathname);
+  const metaAdsFullPage = isMetaAdsPath(pathname);
   const automationBuilder = isAutomationBuilderPath(pathname);
   const hideAppSidebar = automationBuilder;
 
@@ -25,8 +27,8 @@ function DashboardShellInner({ children }: { children: ReactNode }) {
       className={`rd-shell rd-shell--app ${
         immersiveCampaign ? "rd-shell--campaign-immersive" : ""
       } ${guestChatsFullPage ? "rd-shell--guest-chats" : ""} ${
-        automationBuilder ? "rd-shell--automation-builder" : ""
-      }`}
+        metaAdsFullPage ? "rd-shell--meta-ads" : ""
+      } ${automationBuilder ? "rd-shell--automation-builder" : ""}`}
     >
       <div
         className={`rd-shell-frame ${
@@ -52,6 +54,8 @@ function DashboardShellInner({ children }: { children: ReactNode }) {
               immersiveCampaign ? "rd-main-scroll--campaign-immersive" : ""
             } ${
               guestChatsFullPage ? "rd-main-scroll--guest-chats" : ""
+            } ${
+              metaAdsFullPage ? "rd-main-scroll--meta-ads" : ""
             } ${
               hideAppSidebar
                 ? "rd-main-scroll--sidebar-hidden"

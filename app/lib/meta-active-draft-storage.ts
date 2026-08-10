@@ -101,6 +101,5 @@ export function isResumableMetaDraft(draft: MetaCampaignDraft): boolean {
   const status = (draft.status ?? "").toLowerCase();
   const publishStatus = (draft.publishStatus ?? "").toUpperCase();
   if (status === "published" || publishStatus === "PUBLISHED") return false;
-  if (status === "failed" || publishStatus === "FAILED") return false;
   return true;
 }

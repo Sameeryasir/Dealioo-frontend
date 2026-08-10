@@ -83,9 +83,10 @@ export function MetricStatCardAccent({
 }) {
   const s = accentToneStyles[tone];
 
+  // Top accent uses matching radius; overflow-hidden keeps the bar inside the card
   return (
     <div
-      className={`relative flex h-full min-h-[5.5rem] flex-col overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${s.card} ${
+      className={`relative flex h-full min-h-[5.5rem] flex-col overflow-hidden rounded-2xl border p-4 pt-5 shadow-sm transition hover:shadow-md ${s.card} ${
         highlight ? "ring-2 ring-blue-400/30" : "ring-1 ring-zinc-950/[0.03]"
       }`}
     >
@@ -93,7 +94,7 @@ export function MetricStatCardAccent({
         className={`absolute inset-x-0 top-0 h-1 ${s.accent} opacity-80`}
         aria-hidden
       />
-      <div className="flex items-center gap-3 pt-0.5">
+      <div className="flex items-center gap-3">
         <span
           className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ring-4 ${s.accent} ${s.ring}`}
         >
