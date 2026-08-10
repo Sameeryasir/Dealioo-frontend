@@ -9,6 +9,7 @@ export type CampaignGoalId =
   | "LEADS"
   | "WEBSITE_TRAFFIC"
   | "AWARENESS"
+  | "LOCAL_VISITS"
   | "APP_PROMOTION";
 
 export type {
@@ -26,6 +27,7 @@ export type SalesChannelId =
 
 export type LeadContactMethodId =
   | "CONTACT_FORM"
+  | "GOOGLE_LEAD_FORM"
   | "PHONE_CALLS"
   | "WHATSAPP"
   | "APPOINTMENT_BOOKING";
@@ -93,9 +95,25 @@ export type GoogleCampaignBuilderDraft = {
 
   salesChannel: SalesChannelId | null;
   businessLocation: string;
+  businessLocationLat: number | null;
+  businessLocationLng: number | null;
   leadContactMethods: LeadContactMethodId[];
   landingPageUrl: string;
   businessPhone: string;
+  phoneCountryCode: string;
+  whatsAppNumber: string;
+  whatsAppMessage: string;
+  bookingPageUrl: string;
+  googleLeadFormHeadline: string;
+  googleLeadFormDescription: string;
+  googleLeadFormFields: string[];
+  googleLeadFormCta: string;
+  googleLeadFormCtaDescription: string;
+  googleLeadFormPrivacyUrl: string;
+  googleLeadFormThankYouHeadline: string;
+  googleLeadFormThankYouMessage: string;
+  googleLeadFormPostSubmitAction: string;
+  googleLeadFormPostSubmitUrl: string;
   trafficAction: TrafficActionId | null;
   businessAddress: string;
   businessHours: string;
@@ -209,9 +227,26 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     goalDetailSubstep: 0,
     salesChannel: null,
     businessLocation: "",
+    businessLocationLat: null,
+    businessLocationLng: null,
     leadContactMethods: [],
     landingPageUrl: "",
     businessPhone: "",
+    phoneCountryCode: "+1",
+    whatsAppNumber: "",
+    whatsAppMessage: "",
+    bookingPageUrl: "",
+    googleLeadFormHeadline: "Get a Free Quote",
+    googleLeadFormDescription:
+      "Tell us what you need and our team will contact you.",
+    googleLeadFormFields: ["FULL_NAME", "EMAIL", "PHONE"],
+    googleLeadFormCta: "GET_QUOTE",
+    googleLeadFormCtaDescription: "Get your free quote today",
+    googleLeadFormPrivacyUrl: "",
+    googleLeadFormThankYouHeadline: "Thank you!",
+    googleLeadFormThankYouMessage: "We'll contact you shortly.",
+    googleLeadFormPostSubmitAction: "VISIT_WEBSITE",
+    googleLeadFormPostSubmitUrl: "",
     trafficAction: null,
     businessAddress: "",
     businessHours: "",
@@ -310,6 +345,12 @@ export const GOAL_OPTIONS: {
     title: "Brand Awareness",
     description: "Reach more people and increase visibility.",
   },
+  {
+    id: "LOCAL_VISITS",
+    title: "Local Visits",
+    description:
+      "Encourage people to visit or contact a physical business.",
+  },
 ];
 
 export const SALES_CHANNEL_OPTIONS: {
@@ -345,14 +386,59 @@ export const SALES_CHANNEL_OPTIONS: {
 ];
 
 export const LEAD_CONTACT_OPTIONS: {
-  id: LeadContactMethodId;
+  id: Exclude<LeadContactMethodId, "WHATSAPP" | "APPOINTMENT_BOOKING">;
   title: string;
+  description: string;
 }[] = [
-  { id: "CONTACT_FORM", title: "Contact Form" },
-  { id: "PHONE_CALLS", title: "Phone Calls" },
-  { id: "WHATSAPP", title: "WhatsApp" },
-  { id: "APPOINTMENT_BOOKING", title: "Appointment Booking" },
+  {
+    id: "CONTACT_FORM",
+    title: "Website Form",
+    description: "Send people to your website form.",
+  },
+  {
+    id: "GOOGLE_LEAD_FORM",
+    title: "Google Lead Form",
+    description: "Collect leads directly through Google.",
+  },
+  {
+    id: "PHONE_CALLS",
+    title: "Phone Calls",
+    description: "Encourage customers to call.",
+  },
 ];
+
+export const LEAD_PHONE_COUNTRY_CODES = [
+  { code: "+1", label: "US/CA (+1)" },
+  { code: "+44", label: "UK (+44)" },
+  { code: "+61", label: "AU (+61)" },
+  { code: "+91", label: "IN (+91)" },
+  { code: "+971", label: "AE (+971)" },
+  { code: "+92", label: "PK (+92)" },
+  { code: "+49", label: "DE (+49)" },
+  { code: "+33", label: "FR (+33)" },
+] as const;
+
+export const GOOGLE_LEAD_FORM_FIELD_OPTIONS = [
+  { id: "FULL_NAME", label: "Full name" },
+  { id: "EMAIL", label: "Email" },
+  { id: "PHONE", label: "Phone" },
+  { id: "CITY", label: "City" },
+  { id: "COMPANY_NAME", label: "Company name" },
+] as const;
+
+export const GOOGLE_LEAD_FORM_CTA_OPTIONS = [
+  { id: "LEARN_MORE", label: "Learn more" },
+  { id: "GET_QUOTE", label: "Get quote" },
+  { id: "APPLY_NOW", label: "Apply now" },
+  { id: "SIGN_UP", label: "Sign up" },
+  { id: "CONTACT_US", label: "Contact us" },
+] as const;
+
+export const GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS = [
+  { id: "VISIT_WEBSITE", label: "Visit website" },
+  { id: "DOWNLOAD", label: "Download" },
+  { id: "LEARN_MORE", label: "Learn more" },
+] as const;
 
 export const TRAFFIC_ACTION_OPTIONS: {
   id: TrafficActionId;

@@ -135,6 +135,8 @@ export function generateCampaignName(
       return brand ? `${brand} Traffic` : "Traffic Campaign";
     case "AWARENESS":
       return brand ? `${brand} Promotion` : "Business Promotion Campaign";
+    case "LOCAL_VISITS":
+      return brand ? `${brand} Local Visits - ${month}` : `Local Visits - ${month}`;
     case "APP_PROMOTION":
       return brand ? `${brand} App` : "App Promotion Campaign";
     default:
@@ -225,19 +227,24 @@ export function generateAdSuggestions(
   let path2 = "offer";
   if (draft.goal === "LEADS") path2 = "contact";
   if (draft.goal === "SALES") path2 = "shop";
+  if (draft.goal === "LOCAL_VISITS") path2 = "visit";
 
   let callToAction: CallToActionId = "LEARN_MORE";
   if (draft.goal === "SALES") callToAction = "SHOP_NOW";
   if (draft.goal === "LEADS") callToAction = "GET_QUOTE";
-  if (type.toLowerCase().includes("restaurant") || type === "Cafe") {
+  if (
+    draft.goal !== "LOCAL_VISITS" &&
+    (type.toLowerCase().includes("restaurant") || type === "Cafe")
+  ) {
     callToAction = "ORDER_ONLINE";
   }
+  if (draft.goal === "LOCAL_VISITS") callToAction = "CALL_NOW";
 
   return {
     id: uid("ad"),
     finalUrl: url,
-    headlines: headlinePool.slice(0, 15),
-    descriptions: descriptionPool.slice(0, 4),
+    headlines: headlinePool.slice(0, 3),
+    descriptions: descriptionPool.slice(0, 2),
     path1,
     path2,
     callToAction,

@@ -602,9 +602,30 @@ export function CampaignBuilderWizard({
           salesChannel: draft.salesChannel,
           websiteUrl: draft.websiteUrl,
           businessLocation: draft.businessLocation,
+          businessLocationLat: draft.businessLocationLat,
+          businessLocationLng: draft.businessLocationLng,
           businessPhone: draft.businessPhone,
-          leadContactMethods: draft.leadContactMethods,
+          leadContactMethods: draft.leadContactMethods
+            .filter((id) => id !== "WHATSAPP" && id !== "APPOINTMENT_BOOKING")
+            .slice(0, 1),
           landingPageUrl: draft.landingPageUrl || draft.websiteUrl,
+          phoneCountryCode: draft.phoneCountryCode,
+          whatsAppNumber: draft.whatsAppNumber,
+          whatsAppMessage: draft.whatsAppMessage,
+          bookingPageUrl: draft.bookingPageUrl,
+          googleLeadFormHeadline: draft.googleLeadFormHeadline,
+          googleLeadFormDescription: draft.googleLeadFormDescription,
+          googleLeadFormFields: draft.googleLeadFormFields,
+          googleLeadFormCta: draft.googleLeadFormCta,
+          googleLeadFormCtaDescription: draft.googleLeadFormCtaDescription,
+          googleLeadFormPrivacyUrl: draft.googleLeadFormPrivacyUrl,
+          googleLeadFormThankYouHeadline: draft.googleLeadFormThankYouHeadline,
+          googleLeadFormThankYouMessage: draft.googleLeadFormThankYouMessage,
+          googleLeadFormPostSubmitAction: draft.googleLeadFormPostSubmitAction,
+          googleLeadFormPostSubmitUrl:
+            draft.googleLeadFormPostSubmitUrl ||
+            draft.websiteUrl ||
+            draft.landingPageUrl,
           trafficAction: draft.trafficAction,
           businessName: draft.businessName,
           businessCategory: draft.businessCategory,
@@ -637,6 +658,7 @@ export function CampaignBuilderWizard({
           websiteUrl: info.websiteUrl || draft.websiteUrl,
           businessCategory: info.businessCategory || draft.businessCategory,
           logoFileName: info.logoFileName || draft.logoFileName,
+          logoPreviewUrl: info.logoPreviewUrl || draft.logoPreviewUrl,
           currentStep: 3,
           savedAt: new Date().toISOString(),
         };

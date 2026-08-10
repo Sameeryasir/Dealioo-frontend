@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
   Cell,
   Label,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,14 +15,16 @@ import {
   YAxis,
 } from "recharts";
 import {
+  Activity,
   AlertCircle,
+  BarChart3,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Eye,
   ImageIcon,
+  Link2,
   Loader2,
   Megaphone,
   MoreHorizontal,
@@ -30,6 +32,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Target,
   Trash2,
   TrendingUp,
   Users,
@@ -71,7 +74,27 @@ type MetaAdsAnalyticsDashboardProps = {
   onCampaignPageChange: (page: number) => void;
 };
 
-const PLACEMENT_COLORS = ["#1877F2", "#833AB4", "#E1306C", "#94a3b8", "#10b981"];
+const INSTAGRAM_GRADIENT_ID = "meta-placement-instagram-gradient";
+const INSTAGRAM_GRADIENT_CSS =
+  "linear-gradient(45deg, #405DE6 0%, #833AB4 25%, #FD1D1D 50%, #F77737 75%, #FCAF45 100%)";
+
+function placementFill(name: string, index: number): string {
+  const key = name.trim().toLowerCase().replace(/_/g, " ");
+  if (key.includes("instagram")) return `url(#${INSTAGRAM_GRADIENT_ID})`;
+  if (key.includes("facebook")) return "#1877F2";
+  if (key.includes("thread")) return "#000000";
+  if (key.includes("messenger")) return "#00B2FF";
+  if (key.includes("audience")) return "#94a3b8";
+  const fallback = ["#1877F2", "#833AB4", "#F77737", "#94a3b8", "#10b981"];
+  return fallback[index % fallback.length];
+}
+
+function placementLegendBackground(name: string, index: number): string {
+  const key = name.trim().toLowerCase().replace(/_/g, " ");
+  if (key.includes("instagram")) return INSTAGRAM_GRADIENT_CSS;
+  if (key.includes("thread")) return "#000000";
+  return placementFill(name, index);
+}
 
 function ThreadsLogo({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -90,21 +113,21 @@ function placementDisplayName(raw: string): string {
   const key = raw.trim().toLowerCase().replace(/_/g, " ");
   if (key.includes("facebook")) return "Facebook";
   if (key.includes("instagram")) return "Instagram";
-  if (key.includes("threads")) return "Threads";
+  if (key.includes("thread")) return "Threads";
   if (key.includes("messenger")) return "Messenger";
   if (key.includes("audience")) return "Audience Network";
   return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function PlacementBrandIcon({ name }: { name: string }) {
-  const key = name.trim().toLowerCase();
+  const key = name.trim().toLowerCase().replace(/_/g, " ");
   if (key.includes("facebook")) {
     return <FacebookLogo className="size-5" />;
   }
   if (key.includes("instagram")) {
     return <InstagramLogo className="size-5" idSuffix="placement" />;
   }
-  if (key.includes("threads")) {
+  if (key.includes("thread")) {
     return <ThreadsLogo className="size-5" />;
   }
   return (
@@ -220,37 +243,52 @@ function KpiCard({
   value,
   hint,
   tone,
+  statusText,
 }: {
   icon: typeof Wallet;
   label: string;
   value: string;
-  hint: string;
+  hint?: string;
   tone: "blue" | "violet" | "emerald" | "amber" | "zinc";
+  statusText?: string | null;
 }) {
   const tones = {
     blue: "bg-[#1877f2]",
-    violet: "bg-violet-600",
-    emerald: "bg-emerald-600",
-    amber: "bg-amber-500",
-    zinc: "bg-zinc-900",
+    violet: "bg-[#7C3AED]",
+    emerald: "bg-[#059669]",
+    amber: "bg-[#EA580C]",
+    zinc: "bg-[#0F172A]",
   } as const;
 
   return (
-    <div className="rounded-2xl border border-[#e8edf5] bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.04)]">
       <div className="flex items-start gap-3">
         <span
-          className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-white ${tones[tone]}`}
+          className={`flex size-11 shrink-0 items-center justify-center rounded-2xl text-white ${tones[tone]}`}
         >
           <Icon className="size-5" aria-hidden />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             {label}
           </p>
-          <p className="mt-0.5 text-2xl font-bold tracking-tight tabular-nums text-[#07111f]">
+          <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-[#0F172A]">
             {value}
           </p>
-          <p className="mt-1 text-xs font-medium text-emerald-600">{hint}</p>
+          {statusText ? (
+            <p
+              className={`mt-1 text-xs font-bold uppercase tracking-wide ${
+                statusText.toUpperCase().includes("ACTIVE") &&
+                !statusText.toUpperCase().includes("INACTIVE")
+                  ? "text-emerald-600"
+                  : "text-[#7C3AED]"
+              }`}
+            >
+              {statusText}
+            </p>
+          ) : hint ? (
+            <p className="mt-1 text-xs font-medium text-slate-500">{hint}</p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -262,19 +300,24 @@ function Panel({
   action,
   children,
   className = "",
+  showChevron = false,
 }: {
   title: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  showChevron?: boolean;
 }) {
   return (
     <section
-      className={`rounded-2xl border border-[#e8edf5] bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] sm:p-5 ${className}`}
+      className={`rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.04)] sm:p-5 ${className}`}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="m-0 text-base font-bold tracking-tight text-[#07111f]">
+        <h3 className="m-0 inline-flex items-center gap-1 text-base font-bold tracking-tight text-[#0F172A]">
           {title}
+          {showChevron ? (
+            <ChevronRight className="size-4 text-slate-400" aria-hidden />
+          ) : null}
         </h3>
         {action}
       </div>
@@ -524,37 +567,51 @@ export function MetaAdsAnalyticsDashboard({
   const safePage = Math.min(pagination?.page ?? 1, totalPages);
   const totalFiltered = pagination?.total ?? campaigns.length;
 
-  const dateLabel = stats.datePreset.replace(/_/g, " ");
-  const statsScopeHint = selectedCampaign
-    ? selectedCampaign.name
-    : `${dateLabel} · live sync`;
+  const activeStatusText = selectedCampaign
+    ? formatMetaDeliveryStatus(selectedCampaign.effectiveStatus)
+    : activeCount === 0 && totalCampaignCount > 0
+      ? "PAUSED"
+      : null;
 
   const breakdownTiles = [
     {
       label: "CTR",
       value: avgCtr == null ? "N/A" : formatMetaPercent(String(avgCtr)),
+      icon: TrendingUp,
+      tone: "bg-[#E8F1FF] text-[#1877f2]",
     },
     {
       label: "CPC",
       value:
         avgCpc == null ? "N/A" : formatMetaRateMoney(String(avgCpc), currency),
+      icon: MousePointerClick,
+      tone: "bg-[#F3E8FF] text-[#7C3AED]",
     },
     {
       label: "CPM",
       value:
         avgCpm == null ? "N/A" : formatMetaRateMoney(String(avgCpm), currency),
+      icon: BarChart3,
+      tone: "bg-[#FFF4E5] text-[#EA580C]",
     },
     {
       label: "Frequency",
-      value: avgFrequency == null ? "N/A" : formatMetaFrequency(String(avgFrequency)),
+      value:
+        avgFrequency == null
+          ? "N/A"
+          : formatMetaFrequency(String(avgFrequency)),
+      icon: Activity,
+      tone: "bg-[#E7F8EF] text-[#059669]",
     },
     {
       label: primaryAcross
         ? formatMetaActionType(primaryAcross.actionType)
-        : "Results",
+        : "Link Click",
       value: primaryAcross
         ? formatMetaCount(primaryAcross.value)
         : "N/A",
+      icon: Link2,
+      tone: "bg-[#E8F1FF] text-[#1877f2]",
     },
     {
       label: "Cost per result",
@@ -562,11 +619,13 @@ export function MetaAdsAnalyticsDashboard({
         primaryAcross?.cost != null
           ? formatMetaRateMoney(String(primaryAcross.cost), currency)
           : "N/A",
+      icon: Target,
+      tone: "bg-[#FCE7F3] text-[#DB2777]",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="-mx-1 space-y-6 rounded-3xl bg-white px-1 py-1 sm:px-2 sm:py-2">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 max-w-2xl">
           <div className="flex items-center gap-3">
@@ -598,7 +657,7 @@ export function MetaAdsAnalyticsDashboard({
             type="button"
             onClick={onRefresh}
             disabled={insightsLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60"
           >
             <RefreshCw
               className={`size-4 ${insightsLoading ? "animate-spin" : ""}`}
@@ -610,7 +669,7 @@ export function MetaAdsAnalyticsDashboard({
             href={adsManagerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
           >
             Open Ads Manager
             <ExternalLink className="size-4" aria-hidden />
@@ -653,61 +712,50 @@ export function MetaAdsAnalyticsDashboard({
           label="Total spend"
           tone="blue"
           value={
-            insightsLoading
-              ? "…"
-              : selectedCampaign
-                ? formatMetaSpend(selectedCampaign.insights?.spend, currency)
-                : formatMetaSpend(String(totalSpend), currency)
+            selectedCampaign
+              ? formatMetaSpend(selectedCampaign.insights?.spend, currency)
+              : formatMetaSpend(String(totalSpend), currency)
           }
-          hint={statsScopeHint}
         />
         <KpiCard
           icon={Eye}
           label="Impressions"
           tone="violet"
           value={
-            insightsLoading
-              ? "…"
-              : selectedCampaign
-                ? formatMetaCount(selectedCampaign.insights?.impressions)
-                : formatMetaCount(String(totalImpressions))
+            selectedCampaign
+              ? formatMetaCount(selectedCampaign.insights?.impressions)
+              : formatMetaCount(String(totalImpressions))
           }
-          hint={statsScopeHint}
         />
         <KpiCard
           icon={Users}
           label="Reach"
           tone="emerald"
           value={
-            insightsLoading
-              ? "…"
-              : selectedCampaign
-                ? formatMetaCount(selectedCampaign.insights?.reach)
-                : formatMetaCount(String(totalReach))
+            selectedCampaign
+              ? formatMetaCount(selectedCampaign.insights?.reach)
+              : formatMetaCount(String(totalReach))
           }
-          hint={statsScopeHint}
         />
         <KpiCard
           icon={MousePointerClick}
           label="Clicks"
           tone="amber"
           value={
-            insightsLoading
-              ? "…"
-              : selectedCampaign
-                ? formatMetaCount(selectedCampaign.insights?.clicks)
-                : formatMetaCount(String(totalClicks))
+            selectedCampaign
+              ? formatMetaCount(selectedCampaign.insights?.clicks)
+              : formatMetaCount(String(totalClicks))
           }
-          hint={statsScopeHint}
         />
         <KpiCard
           icon={TrendingUp}
           label="Active campaigns"
           tone="zinc"
           value={`${activeCount} / ${totalCampaignCount}`}
+          statusText={activeStatusText}
           hint={
-            selectedCampaign
-              ? formatMetaDeliveryStatus(selectedCampaign.effectiveStatus)
+            activeStatusText
+              ? undefined
               : `${activeCount} running`
           }
         />
@@ -717,15 +765,7 @@ export function MetaAdsAnalyticsDashboard({
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.9fr)]">
         <div className="min-w-0 space-y-5">
-          <Panel
-            title="Performance overview"
-            action={
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600">
-                Daily
-                <ChevronDown className="size-3.5" aria-hidden />
-              </span>
-            }
-          >
+          <Panel title="Performance overview">
             <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-[#1877f2]" /> Spend
@@ -750,73 +790,118 @@ export function MetaAdsAnalyticsDashboard({
               <div className="h-64 w-full min-w-0 min-h-[16rem]">
                 <ChartMount height={256}>
                   <ResponsiveContainer width="100%" height={256} minWidth={0}>
-                    <LineChart
+                    <AreaChart
                       data={dailySeries}
                       margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
                     >
-                    <CartesianGrid
-                      strokeDasharray="4 6"
-                      stroke="#e8edf5"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }}
-                      axisLine={false}
-                      tickLine={false}
-                      minTickGap={28}
-                    />
-                    <YAxis
-                      yAxisId="spend"
-                      tick={{ fill: "#94a3b8", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={44}
-                    />
-                    <YAxis
-                      yAxisId="volume"
-                      orientation="right"
-                      tick={{ fill: "#94a3b8", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={40}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: "1px solid #e8edf5",
-                        fontSize: 12,
-                      }}
-                    />
-                    <Line
-                      yAxisId="spend"
-                      type="monotone"
-                      dataKey="spend"
-                      name="Spend"
-                      stroke="#1877f2"
-                      strokeWidth={2.5}
-                      dot={showChartDots ? { r: 3 } : false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Line
-                      yAxisId="volume"
-                      type="monotone"
-                      dataKey="impressions"
-                      name="Impressions"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      dot={showChartDots ? { r: 3 } : false}
-                    />
-                    <Line
-                      yAxisId="volume"
-                      type="monotone"
-                      dataKey="clicks"
-                      name="Clicks"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      dot={showChartDots ? { r: 3 } : false}
-                    />
-                    </LineChart>
+                      <defs>
+                        <linearGradient
+                          id="metaSpendFill"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#1877f2"
+                            stopOpacity={0.28}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#1877f2"
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="metaImpressionsFill"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#8b5cf6"
+                            stopOpacity={0.18}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#8b5cf6"
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="4 6"
+                        stroke="#e8edf5"
+                        vertical
+                      />
+                      <XAxis
+                        dataKey="label"
+                        tick={{
+                          fill: "#94a3b8",
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        minTickGap={28}
+                      />
+                      <YAxis
+                        yAxisId="spend"
+                        tick={{ fill: "#94a3b8", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={44}
+                      />
+                      <YAxis
+                        yAxisId="volume"
+                        orientation="right"
+                        tick={{ fill: "#94a3b8", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={40}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #e8edf5",
+                          fontSize: 12,
+                        }}
+                      />
+                      <Area
+                        yAxisId="spend"
+                        type="monotone"
+                        dataKey="spend"
+                        name="Spend"
+                        stroke="#1877f2"
+                        strokeWidth={2.5}
+                        fill="url(#metaSpendFill)"
+                        dot={showChartDots ? { r: 3 } : false}
+                        activeDot={{ r: 4 }}
+                      />
+                      <Area
+                        yAxisId="volume"
+                        type="monotone"
+                        dataKey="impressions"
+                        name="Impressions"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        fill="url(#metaImpressionsFill)"
+                        dot={showChartDots ? { r: 3 } : false}
+                      />
+                      <Area
+                        yAxisId="volume"
+                        type="monotone"
+                        dataKey="clicks"
+                        name="Clicks"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        fill="transparent"
+                        dot={showChartDots ? { r: 3 } : false}
+                      />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartMount>
               </div>
@@ -1094,23 +1179,33 @@ export function MetaAdsAnalyticsDashboard({
         <div className="min-w-0 space-y-5">
           <Panel title="Performance breakdown">
             <div className="grid grid-cols-2 gap-3">
-              {breakdownTiles.map((tile) => (
-                <div
-                  key={tile.label}
-                  className="rounded-xl border border-[#eef2f7] bg-[#f8fafc] px-3 py-3"
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    {tile.label}
-                  </p>
-                  <p className="mt-1 text-lg font-bold tabular-nums text-[#07111f]">
-                    {insightsLoading ? "…" : tile.value}
-                  </p>
-                </div>
-              ))}
+              {breakdownTiles.map((tile) => {
+                const Icon = tile.icon;
+                return (
+                  <div
+                    key={tile.label}
+                    className="flex items-center gap-3 rounded-xl border border-[#eef2f7] bg-white px-3 py-3 shadow-[0_1px_4px_rgba(15,23,42,0.03)]"
+                  >
+                    <span
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${tile.tone}`}
+                    >
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        {tile.label}
+                      </p>
+                      <p className="mt-0.5 text-lg font-bold tabular-nums text-[#07111f]">
+                        {tile.value}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Panel>
 
-          <Panel title="Top placements">
+          <Panel title="Top placements" showChevron>
             {placementShares.rows.length === 0 ? (
               <EmptyChartNote message="Placement insights will show when Meta returns publisher platform data." />
             ) : (
@@ -1119,6 +1214,21 @@ export function MetaAdsAnalyticsDashboard({
                   <ChartMount height={152}>
                     <ResponsiveContainer width={152} height={152}>
                       <PieChart>
+                        <defs>
+                          <linearGradient
+                            id={INSTAGRAM_GRADIENT_ID}
+                            x1="0"
+                            y1="1"
+                            x2="1"
+                            y2="0"
+                          >
+                            <stop offset="0%" stopColor="#405DE6" />
+                            <stop offset="25%" stopColor="#833AB4" />
+                            <stop offset="50%" stopColor="#FD1D1D" />
+                            <stop offset="75%" stopColor="#F77737" />
+                            <stop offset="100%" stopColor="#FCAF45" />
+                          </linearGradient>
+                        </defs>
                         <Pie
                           data={placementShares.rows}
                           dataKey="value"
@@ -1132,9 +1242,7 @@ export function MetaAdsAnalyticsDashboard({
                           {placementShares.rows.map((row, i) => (
                             <Cell
                               key={row.name}
-                              fill={
-                                PLACEMENT_COLORS[i % PLACEMENT_COLORS.length]
-                              }
+                              fill={placementFill(row.name, i)}
                             />
                           ))}
                           <Label
@@ -1183,8 +1291,7 @@ export function MetaAdsAnalyticsDashboard({
                         <span
                           className="size-2.5 shrink-0 rounded-full"
                           style={{
-                            background:
-                              PLACEMENT_COLORS[i % PLACEMENT_COLORS.length],
+                            background: placementLegendBackground(row.name, i),
                           }}
                           aria-hidden
                         />
@@ -1208,9 +1315,9 @@ export function MetaAdsAnalyticsDashboard({
             )}
           </Panel>
 
-          <Panel title="Audience insights">
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] pb-3">
+          <Panel title="Audience insights" showChevron>
+            <ul className="m-0 list-none space-y-0 p-0 text-sm">
+              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3 first:pt-0">
                 <span className="text-slate-500">Top countries</span>
                 <span className="text-right font-semibold text-[#07111f]">
                   {countryShares.rows[0]
@@ -1218,15 +1325,15 @@ export function MetaAdsAnalyticsDashboard({
                     : "N/A"}
                 </span>
               </li>
-              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] pb-3">
+              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3">
                 <span className="text-slate-500">Top placement</span>
                 <span className="text-right font-semibold capitalize text-[#07111f]">
                   {placementShares.rows[0]
-                    ? `${placementShares.rows[0].name.replace(/_/g, " ")} (${placementShares.rows[0].pct.toFixed(1)}%)`
+                    ? `${placementDisplayName(placementShares.rows[0].name)} (${placementShares.rows[0].pct.toFixed(1)}%)`
                     : "N/A"}
                 </span>
               </li>
-              <li className="flex items-start justify-between gap-3">
+              <li className="flex items-start justify-between gap-3 py-3 last:pb-0">
                 <span className="text-slate-500">Top age group</span>
                 <span className="text-right font-semibold text-[#07111f]">
                   {ageShares.rows[0]

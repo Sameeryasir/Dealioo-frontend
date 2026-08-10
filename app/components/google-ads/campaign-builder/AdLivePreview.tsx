@@ -35,7 +35,7 @@ export function AdLivePreview({ ad, businessName }: AdLivePreviewProps) {
     <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.06)]">
       <div className="border-b border-[#e8edf5] bg-gradient-to-r from-[#f4f8ff] to-white px-4 py-3">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
-          Live preview
+          Google ad preview
         </p>
         <p className="mt-0.5 text-xs text-slate-500">
           How customers may see your ad

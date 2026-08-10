@@ -8,6 +8,7 @@ export type GoogleAdsCampaignInsight = {
   impressions: string | null;
   clicks: string | null;
   conversions: string | null;
+  conversionValue: string | null;
 };
 
 export type GoogleAdsCampaign = {

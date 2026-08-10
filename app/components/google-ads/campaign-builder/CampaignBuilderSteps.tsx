@@ -4,10 +4,10 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Check,
-  ChevronDown,
   Flag,
   Globe,
   ImageIcon,
+  ImagePlus,
   Layers,
   ListChecks,
   Loader2,
@@ -23,7 +23,6 @@ import {
   Store,
   Tag,
   Trash2,
-  Upload,
   Users,
   Wallet,
   X,
@@ -49,6 +48,8 @@ import {
   toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
 import { generateGoogleKeywordsWithAi } from "@/app/services/google-ads/generate-google-keywords";
+import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { toast } from "sonner";
 import {
   BudgetSlider,
@@ -58,11 +59,13 @@ import {
   SearchableMultiSelect,
   SearchableSelect,
   SelectableCard,
+  SimpleSelect,
   StepShell,
   ToggleSwitch,
   inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
+import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-builder/BusinessLocationPicker";
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
@@ -87,15 +90,17 @@ const LocationRadiusMap = dynamic(
 );
 import {
   BUSINESS_CATEGORY_OPTIONS,
-  CTA_OPTIONS,
   GOAL_OPTIONS,
+  GOOGLE_LEAD_FORM_CTA_OPTIONS,
+  GOOGLE_LEAD_FORM_FIELD_OPTIONS,
+  GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS,
   IDEAL_CUSTOMER_OPTIONS,
   LANGUAGE_OPTIONS,
   LEAD_CONTACT_OPTIONS,
+  LEAD_PHONE_COUNTRY_CODES,
   SALES_CHANNEL_OPTIONS,
   TOTAL_WIZARD_STEPS,
   TRAFFIC_ACTION_OPTIONS,
-  type CallToActionId,
   type CampaignGoalId,
   type GoogleCampaignBuilderDraft,
   type LeadContactMethodId,
@@ -128,6 +133,7 @@ const GOAL_ICONS: Record<
   LEADS: Users,
   WEBSITE_TRAFFIC: MousePointerClick,
   AWARENESS: Megaphone,
+  LOCAL_VISITS: MapPin,
 };
 
 const SALES_CHANNEL_ICONS: Record<SalesChannelId, LucideIcon> = {
@@ -223,8 +229,103 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
+async function fileToLogoDataUrl(file: File): Promise<string> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Could not read that image."));
+      el.src = objectUrl;
+    });
+
+    const maxEdge = 512;
+    const scale = Math.min(
+      1,
+      maxEdge / Math.max(image.naturalWidth, image.naturalHeight, 1),
+    );
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not process that image.");
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const keepPng =
+      file.type === "image/png" ||
+      file.name.toLowerCase().endsWith(".png") ||
+      file.name.toLowerCase().endsWith(".webp");
+    return keepPng
+      ? canvas.toDataURL("image/png")
+      : canvas.toDataURL("image/jpeg", 0.9);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+export function StepCampaignDetails({
+  businessId,
+  draft,
+  errors,
+  onChange,
+}: StepProps) {
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const didPrefillFromBusiness = useRef(false);
+  const { data: businessProfile } = useBusinessByIdQuery(businessId);
+  const [logoProcessing, setLogoProcessing] = useState(false);
+  const [logoBroken, setLogoBroken] = useState(false);
+  const logoSrc = resolveUploadImageUrl(draft.logoPreviewUrl);
+  const hasLogo = Boolean(logoSrc) && !logoBroken;
+
+  const isSalesGoal = draft.goal === "SALES";
+  const isLeadsGoal = draft.goal === "LEADS";
+  const salesChannel = draft.salesChannel;
+  const needsSalesWebsite =
+    salesChannel === "WEBSITE" ||
+    salesChannel === "ONLINE_STORE" ||
+    salesChannel === "MULTIPLE";
+  const needsSalesStoreLocation =
+    salesChannel === "PHYSICAL_STORE" || salesChannel === "MULTIPLE";
+  const showMultiplePhone = salesChannel === "MULTIPLE";
+
+  useEffect(() => {
+    setLogoBroken(false);
+  }, [draft.logoPreviewUrl]);
+
+  useEffect(() => {
+    if (!businessProfile || didPrefillFromBusiness.current) return;
+    didPrefillFromBusiness.current = true;
+
+    const patch: Partial<GoogleCampaignBuilderDraft> = {};
+    if (!draft.businessName.trim() && businessProfile.name?.trim()) {
+      patch.businessName = businessProfile.name.trim();
+      patch.extensionBusinessName =
+        draft.extensionBusinessName || businessProfile.name.trim();
+    }
+    if (!draft.websiteUrl.trim() && businessProfile.websiteUrl?.trim()) {
+      patch.websiteUrl = businessProfile.websiteUrl.trim();
+    }
+    if (!draft.businessPhone.trim() && businessProfile.phoneNumber?.trim()) {
+      patch.businessPhone = businessProfile.phoneNumber.trim();
+      patch.phoneNumber = businessProfile.phoneNumber.trim();
+    }
+    if (!draft.logoPreviewUrl.trim() && businessProfile.logoUrl?.trim()) {
+      patch.logoPreviewUrl = resolveUploadImageUrl(businessProfile.logoUrl);
+      patch.logoFileName = draft.logoFileName || "Business logo";
+    }
+    if (Object.keys(patch).length > 0) onChange(patch);
+  }, [
+    businessProfile,
+    draft.businessName,
+    draft.businessPhone,
+    draft.extensionBusinessName,
+    draft.logoFileName,
+    draft.logoPreviewUrl,
+    draft.websiteUrl,
+    onChange,
+  ]);
 
   const clearLogo = () => {
     if (draft.logoPreviewUrl.startsWith("blob:")) {
@@ -242,27 +343,45 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
     if (draft.logoPreviewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(draft.logoPreviewUrl);
     }
-    onChange({
-      logoPreviewUrl: URL.createObjectURL(file),
-      logoFileName: file.name,
-    });
+    setLogoProcessing(true);
+    void fileToLogoDataUrl(file)
+      .then((dataUrl) => {
+        onChange({
+          logoPreviewUrl: dataUrl,
+          logoFileName: file.name,
+        });
+      })
+      .catch(() => {
+        onChange({ logoPreviewUrl: "", logoFileName: "" });
+        toast.error("Could not load that logo. Try a PNG or JPG under 5 MB.");
+      })
+      .finally(() => {
+        setLogoProcessing(false);
+        if (logoInputRef.current) logoInputRef.current.value = "";
+      });
   };
 
-  const toggleLeadMethod = (id: LeadContactMethodId) => {
-    const exists = draft.leadContactMethods.includes(id);
-    onChange({
-      leadContactMethods: exists
-        ? draft.leadContactMethods.filter((m) => m !== id)
-        : [...draft.leadContactMethods, id],
-    });
+  const selectPrimaryLeadMethod = (id: LeadContactMethodId) => {
+    onChange({ leadContactMethods: [id] });
   };
+
+  const primaryLeadMethod =
+    draft.leadContactMethods.find((id) =>
+      LEAD_CONTACT_OPTIONS.some((option) => option.id === id),
+    ) ?? null;
+
+  const stepDescription = isSalesGoal
+    ? "Tell us where customers buy from you so we can optimize your campaign for sales."
+    : isLeadsGoal
+      ? "Choose one primary way customers should take action so we can optimize for that lead."
+      : "A few basics about your business, plus anything specific to your goal.";
 
   return (
     <StepShell
       step={2}
       total={TOTAL_WIZARD_STEPS}
       title="Tell us about your campaign"
-      description="A few basics about your business, plus anything specific to your goal."
+      description={stepDescription}
     >
       <Panel className="space-y-4">
         <Field
@@ -292,14 +411,20 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
             placeholder="Acme Coffee"
           />
         </Field>
-        <Field label="Website" error={errors.websiteUrl}>
-          <input
-            className={inputClass(errors.websiteUrl)}
-            value={draft.websiteUrl}
-            onChange={(e) => onChange({ websiteUrl: e.target.value })}
-            placeholder="https://www.example.com"
-          />
-        </Field>
+        {!isSalesGoal && !isLeadsGoal ? (
+          <Field
+            label="Website URL"
+            hint="Paste your Dealioo funnel tracking link."
+            error={errors.websiteUrl}
+          >
+            <input
+              className={inputClass(errors.websiteUrl)}
+              value={draft.websiteUrl}
+              onChange={(e) => onChange({ websiteUrl: e.target.value })}
+              placeholder="https://…"
+            />
+          </Field>
+        ) : null}
         <SearchableSelect
           label="Business category"
           options={BUSINESS_CATEGORY_OPTIONS}
@@ -309,97 +434,61 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
           placeholder="Search categories"
         />
 
-        <div className="space-y-1.5">
+        <div className="space-y-3">
           <div>
             <p className="text-sm font-bold text-[#07111f]">Logo</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Optional — shown in ad previews when you add extensions
+              Upload your business logo. Recommended size:{" "}
+              <span className="font-semibold text-[#4285F4]">512x512 px</span>.
             </p>
           </div>
 
-          <div className="grid gap-4 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 sm:grid-cols-[minmax(0,1fr)_140px] sm:items-center">
-            <div className="min-w-0 space-y-3">
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="sr-only"
-                onChange={(e) => onLogoSelected(e.target.files?.[0])}
-              />
-
-              {draft.logoPreviewUrl ? (
-                <>
-                  <p className="truncate text-sm font-semibold text-[#07111f]">
-                    {draft.logoFileName || "Logo selected"}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Looks good — you can change or remove it anytime.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#4285F4]/30 bg-white px-3 py-2 text-sm font-semibold text-[#4285F4] transition hover:bg-[#e8f0fe]"
-                    >
-                      <Upload className="size-3.5" aria-hidden />
-                      Change
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearLogo}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                      Remove
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-[#07111f]">
-                    Upload a square logo
-                  </p>
-                  <p className="text-xs leading-relaxed text-slate-500">
-                    PNG or JPG works best. Aim for a clear square image.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => logoInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#4285F4] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3367d6]"
-                  >
-                    <Upload className="size-3.5" aria-hidden />
-                    Choose logo
-                  </button>
-                </>
-              )}
-            </div>
-
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => onLogoSelected(e.target.files?.[0])}
+          />
+          {hasLogo ? (
+            <img
+              src={logoSrc}
+              alt={draft.logoFileName || "Logo preview"}
+              className="max-h-40 rounded-lg object-contain"
+              onError={() => setLogoBroken(true)}
+            />
+          ) : null}
+          <button
+            type="button"
+            disabled={logoProcessing}
+            onClick={() => logoInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-3 text-sm font-semibold text-[#07111f] shadow-sm transition hover:bg-[#f4f8ff] disabled:opacity-60"
+          >
+            {logoProcessing ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <ImagePlus className="size-4" aria-hidden />
+            )}
+            {logoProcessing
+              ? "Uploading…"
+              : hasLogo
+                ? "Replace logo"
+                : "Upload logo"}
+          </button>
+          {hasLogo ? (
             <button
               type="button"
-              onClick={() => logoInputRef.current?.click()}
-              className="relative mx-auto flex size-[120px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#c5d4f0] bg-white shadow-sm transition hover:border-[#4285F4] hover:bg-[#f4f8ff] sm:mx-0 sm:justify-self-end"
-              aria-label={draft.logoPreviewUrl ? "Change logo" : "Upload logo"}
+              disabled={logoProcessing}
+              onClick={clearLogo}
+              className="text-sm font-semibold text-slate-500 transition hover:text-red-600 disabled:opacity-60"
             >
-              {draft.logoPreviewUrl ? (
-                <img
-                  src={draft.logoPreviewUrl}
-                  alt="Logo preview"
-                  className="size-full object-contain p-2"
-                />
-              ) : (
-                <span className="flex flex-col items-center gap-1 text-slate-400">
-                  <ImageIcon className="size-7" aria-hidden />
-                  <span className="text-[0.65rem] font-semibold uppercase tracking-wide">
-                    Preview
-                  </span>
-                </span>
-              )}
+              Remove logo
             </button>
-          </div>
+          ) : null}
         </div>
       </Panel>
 
-      {draft.goal === "SALES" ? (
+      {isSalesGoal ? (
         <>
           <Panel className="space-y-3">
             <p className="text-sm font-bold text-[#07111f]">
@@ -427,31 +516,76 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
             ) : null}
           </Panel>
 
-          {(draft.salesChannel === "PHYSICAL_STORE" ||
-            draft.salesChannel === "MULTIPLE") && (
+          {salesChannel === "WEBSITE" ? (
             <Panel>
-              <SearchableSelect
-                label="Business location"
+              <Field
+                label="Website URL / landing page"
                 required
-                options={[
-                  "Downtown",
-                  "City Center",
-                  "Mall Location",
-                  "Suburb",
-                  "Airport Area",
-                  ...draft.cities,
-                ].filter(Boolean)}
+                hint="Paste your Dealioo funnel tracking link."
+                error={errors.websiteUrl}
+              >
+                <input
+                  className={inputClass(errors.websiteUrl)}
+                  value={draft.websiteUrl}
+                  onChange={(e) => onChange({ websiteUrl: e.target.value })}
+                  placeholder="https://…"
+                />
+              </Field>
+            </Panel>
+          ) : null}
+
+          {salesChannel === "ONLINE_STORE" ? (
+            <Panel className="space-y-4">
+              <Field
+                label="Store URL"
+                required
+                hint="Paste your Dealioo funnel tracking link."
+                error={errors.websiteUrl}
+              >
+                <input
+                  className={inputClass(errors.websiteUrl)}
+                  value={draft.websiteUrl}
+                  onChange={(e) => onChange({ websiteUrl: e.target.value })}
+                  placeholder="https://…"
+                />
+              </Field>
+              <Field
+                label="Purchase tracking"
+                hint="Optional — conversion ID, pixel, or tracking note"
+              >
+                <input
+                  className={inputClass()}
+                  value={draft.conversionGoals}
+                  onChange={(e) =>
+                    onChange({ conversionGoals: e.target.value })
+                  }
+                  placeholder="e.g. Google Ads purchase conversion"
+                />
+              </Field>
+            </Panel>
+          ) : null}
+
+          {salesChannel === "PHYSICAL_STORE" ? (
+            <Panel>
+              <BusinessLocationPicker
+                label="Where is your store?"
+                description="Search your store address, use current location, or place a pin on the map."
                 value={draft.businessLocation}
-                onChange={(businessLocation) => onChange({ businessLocation })}
-                placeholder="Search location type"
+                latitude={draft.businessLocationLat}
+                longitude={draft.businessLocationLng}
                 error={errors.businessLocation}
+                onChange={(patch) => onChange(patch)}
               />
             </Panel>
-          )}
+          ) : null}
 
-          {draft.salesChannel === "PHONE_ORDERS" && (
+          {salesChannel === "PHONE_ORDERS" ? (
             <Panel>
-              <Field label="Business phone" required error={errors.businessPhone}>
+              <Field
+                label="Phone number"
+                required
+                error={errors.businessPhone}
+              >
                 <input
                   className={inputClass(errors.businessPhone)}
                   value={draft.businessPhone}
@@ -465,58 +599,106 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
                 />
               </Field>
             </Panel>
-          )}
+          ) : null}
+
+          {salesChannel === "MULTIPLE" ? (
+            <div className="space-y-4">
+              {needsSalesWebsite ? (
+                <Panel>
+                  <Field
+                    label="Website / store URL"
+                    required
+                    hint="Paste your Dealioo funnel tracking link."
+                    error={errors.websiteUrl}
+                  >
+                    <input
+                      className={inputClass(errors.websiteUrl)}
+                      value={draft.websiteUrl}
+                      onChange={(e) => onChange({ websiteUrl: e.target.value })}
+                      placeholder="https://…"
+                    />
+                  </Field>
+                </Panel>
+              ) : null}
+              {needsSalesStoreLocation ? (
+                <Panel>
+                  <BusinessLocationPicker
+                    label="Store location"
+                    description="Add the physical store customers can visit."
+                    value={draft.businessLocation}
+                    latitude={draft.businessLocationLat}
+                    longitude={draft.businessLocationLng}
+                    error={errors.businessLocation}
+                    onChange={(patch) => onChange(patch)}
+                  />
+                </Panel>
+              ) : null}
+              {showMultiplePhone ? (
+                <Panel>
+                  <Field label="Phone number" hint="Optional">
+                    <input
+                      className={inputClass()}
+                      value={draft.businessPhone}
+                      onChange={(e) =>
+                        onChange({
+                          businessPhone: e.target.value,
+                          phoneNumber: e.target.value,
+                        })
+                      }
+                      placeholder="+1 555 0100"
+                    />
+                  </Field>
+                </Panel>
+              ) : null}
+            </div>
+          ) : null}
         </>
       ) : null}
 
-      {draft.goal === "LEADS" ? (
-        <>
-          <Panel className="space-y-3">
+      {isLeadsGoal ? (
+        <Panel className="space-y-4">
+          <div>
             <p className="text-sm font-bold text-[#07111f]">
-              How should customers contact you?
+              How do you want to generate leads?
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {LEAD_CONTACT_OPTIONS.map((option) => {
-                const selected = draft.leadContactMethods.includes(option.id);
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => toggleLeadMethod(option.id)}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${
-                      selected
-                        ? "border-[#4285F4] bg-[#f4f8ff] ring-1 ring-[#4285F4]"
-                        : "border-[#e8edf5] bg-white hover:border-[#4285F4]/40"
-                    }`}
-                  >
-                    <span
-                      className={`flex size-5 items-center justify-center rounded border ${
-                        selected
-                          ? "border-[#4285F4] bg-[#4285F4] text-white"
-                          : "border-slate-300 bg-white"
-                      }`}
-                    >
-                      {selected ? (
-                        <Check className="size-3" strokeWidth={3} />
-                      ) : null}
-                    </span>
-                    <span className="text-sm font-bold text-[#07111f]">
-                      {option.title}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {errors.leadContactMethods ? (
-              <p className="text-sm font-medium text-red-500">
-                {errors.leadContactMethods}
-              </p>
-            ) : null}
-          </Panel>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Choose the primary action you want customers to take.
+            </p>
+          </div>
 
-          {draft.leadContactMethods.includes("CONTACT_FORM") ? (
-            <Panel>
-              <Field label="Landing page URL" required error={errors.landingPageUrl}>
+          <div
+            className="grid gap-3 sm:grid-cols-2"
+            role="radiogroup"
+            aria-label="Primary lead method"
+          >
+            {LEAD_CONTACT_OPTIONS.map((option) => (
+              <SelectableCard
+                key={option.id}
+                selectionMode="radio"
+                selected={primaryLeadMethod === option.id}
+                title={option.title}
+                description={option.description}
+                onClick={() => selectPrimaryLeadMethod(option.id)}
+              />
+            ))}
+          </div>
+          {errors.leadContactMethods ? (
+            <p className="text-sm font-medium text-red-500">
+              {errors.leadContactMethods}
+            </p>
+          ) : null}
+
+          {primaryLeadMethod === "CONTACT_FORM" ? (
+            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+              <p className="text-sm font-bold text-[#07111f]">
+                Website Form
+              </p>
+              <Field
+                label="Landing page URL"
+                required
+                hint="Paste your Dealioo funnel tracking link."
+                error={errors.landingPageUrl}
+              >
                 <input
                   className={inputClass(errors.landingPageUrl)}
                   value={draft.landingPageUrl || draft.websiteUrl}
@@ -526,30 +708,310 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
                       websiteUrl: draft.websiteUrl || e.target.value,
                     })
                   }
-                  placeholder="https://www.example.com/contact"
+                  placeholder="https://…"
                 />
               </Field>
-            </Panel>
+            </div>
           ) : null}
 
-          {draft.leadContactMethods.includes("PHONE_CALLS") ? (
-            <Panel>
-              <Field label="Business phone" required error={errors.businessPhone}>
+          {primaryLeadMethod === "GOOGLE_LEAD_FORM" ? (
+            <div className="space-y-5 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  Google Lead Form
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Create your lead form
+                </p>
+              </div>
+
+              <Field
+                label="Business name"
+                required
+                error={errors.businessName}
+              >
                 <input
-                  className={inputClass(errors.businessPhone)}
-                  value={draft.businessPhone}
+                  className={inputClass(errors.businessName)}
+                  value={draft.businessName}
                   onChange={(e) =>
                     onChange({
-                      businessPhone: e.target.value,
-                      phoneNumber: e.target.value,
+                      businessName: e.target.value,
+                      extensionBusinessName:
+                        draft.extensionBusinessName || e.target.value,
                     })
                   }
-                  placeholder="+1 555 0100"
+                  placeholder="Coderslodge"
                 />
               </Field>
-            </Panel>
+
+              <Field
+                label="Headline"
+                required
+                error={errors.googleLeadFormHeadline}
+              >
+                <input
+                  className={inputClass(errors.googleLeadFormHeadline)}
+                  value={draft.googleLeadFormHeadline}
+                  onChange={(e) =>
+                    onChange({ googleLeadFormHeadline: e.target.value })
+                  }
+                  placeholder="Get a Free Quote"
+                />
+              </Field>
+
+              <Field
+                label="Description"
+                required
+                error={errors.googleLeadFormDescription}
+              >
+                <textarea
+                  className={`${inputClass(errors.googleLeadFormDescription)} min-h-[80px]`}
+                  value={draft.googleLeadFormDescription}
+                  onChange={(e) =>
+                    onChange({ googleLeadFormDescription: e.target.value })
+                  }
+                  placeholder="Tell us what you need and our team will contact you."
+                />
+              </Field>
+
+              <Field
+                label="Call to action"
+                required
+                error={errors.googleLeadFormCta}
+              >
+                <SimpleSelect
+                  aria-label="Call to action"
+                  value={draft.googleLeadFormCta}
+                  options={GOOGLE_LEAD_FORM_CTA_OPTIONS.map((cta) => ({
+                    id: cta.id,
+                    label: cta.label,
+                  }))}
+                  onChange={(googleLeadFormCta) =>
+                    onChange({ googleLeadFormCta })
+                  }
+                  error={errors.googleLeadFormCta}
+                  placeholder="Choose a call to action"
+                />
+              </Field>
+
+              <Field
+                label="CTA description"
+                required
+                error={errors.googleLeadFormCtaDescription}
+              >
+                <input
+                  className={inputClass(errors.googleLeadFormCtaDescription)}
+                  value={draft.googleLeadFormCtaDescription}
+                  onChange={(e) =>
+                    onChange({ googleLeadFormCtaDescription: e.target.value })
+                  }
+                  placeholder="Get your free quote today"
+                />
+              </Field>
+
+              <div className="space-y-2 border-t border-[#dbeafe] pt-4">
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  Information to collect
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {GOOGLE_LEAD_FORM_FIELD_OPTIONS.map((field) => {
+                    const checked = draft.googleLeadFormFields.includes(
+                      field.id,
+                    );
+                    return (
+                      <button
+                        key={field.id}
+                        type="button"
+                        onClick={() => {
+                          const next = checked
+                            ? draft.googleLeadFormFields.filter(
+                                (id) => id !== field.id,
+                              )
+                            : [...draft.googleLeadFormFields, field.id];
+                          onChange({ googleLeadFormFields: next });
+                        }}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition ${
+                          checked
+                            ? "border-[#4285F4] bg-white text-[#4285F4]"
+                            : "border-[#e8edf5] bg-white text-slate-600"
+                        }`}
+                      >
+                        <span
+                          className={`flex size-4 items-center justify-center rounded border ${
+                            checked
+                              ? "border-[#4285F4] bg-[#4285F4] text-white"
+                              : "border-slate-300"
+                          }`}
+                        >
+                          {checked ? (
+                            <Check className="size-2.5" strokeWidth={3} />
+                          ) : null}
+                        </span>
+                        {field.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {errors.googleLeadFormFields ? (
+                  <p className="text-xs font-medium text-red-500">
+                    {errors.googleLeadFormFields}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-3 border-t border-[#dbeafe] pt-4">
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  Privacy
+                </p>
+                <Field
+                  label="Privacy policy URL"
+                  required
+                  error={errors.googleLeadFormPrivacyUrl}
+                >
+                  <input
+                    className={inputClass(errors.googleLeadFormPrivacyUrl)}
+                    value={draft.googleLeadFormPrivacyUrl}
+                    onChange={(e) =>
+                      onChange({ googleLeadFormPrivacyUrl: e.target.value })
+                    }
+                    placeholder="https://example.com/privacy"
+                  />
+                </Field>
+              </div>
+
+              <div className="space-y-3 border-t border-[#dbeafe] pt-4">
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  After submission
+                </p>
+                <Field
+                  label="Headline"
+                  required
+                  error={errors.googleLeadFormThankYouHeadline}
+                >
+                  <input
+                    className={inputClass(errors.googleLeadFormThankYouHeadline)}
+                    value={draft.googleLeadFormThankYouHeadline}
+                    onChange={(e) =>
+                      onChange({
+                        googleLeadFormThankYouHeadline: e.target.value,
+                      })
+                    }
+                    placeholder="Thank you!"
+                  />
+                </Field>
+                <Field
+                  label="Message"
+                  required
+                  error={errors.googleLeadFormThankYouMessage}
+                >
+                  <textarea
+                    className={`${inputClass(errors.googleLeadFormThankYouMessage)} min-h-[72px]`}
+                    value={draft.googleLeadFormThankYouMessage}
+                    onChange={(e) =>
+                      onChange({
+                        googleLeadFormThankYouMessage: e.target.value,
+                      })
+                    }
+                    placeholder="We'll contact you shortly."
+                  />
+                </Field>
+                <Field
+                  label="Post-submit action"
+                  required
+                  error={errors.googleLeadFormPostSubmitAction}
+                >
+                  <SimpleSelect
+                    aria-label="Post-submit action"
+                    value={draft.googleLeadFormPostSubmitAction}
+                    options={GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS.map(
+                      (action) => ({
+                        id: action.id,
+                        label: action.label,
+                      }),
+                    )}
+                    onChange={(googleLeadFormPostSubmitAction) =>
+                      onChange({ googleLeadFormPostSubmitAction })
+                    }
+                    error={errors.googleLeadFormPostSubmitAction}
+                    placeholder="Choose a post-submit action"
+                  />
+                </Field>
+                {draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE" ||
+                draft.googleLeadFormPostSubmitAction === "DOWNLOAD" ||
+                draft.googleLeadFormPostSubmitAction === "LEARN_MORE" ? (
+                  <Field
+                    label="Post-submit URL"
+                    required={
+                      draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE"
+                    }
+                    hint="Paste your Dealioo funnel tracking link."
+                    error={errors.googleLeadFormPostSubmitUrl}
+                  >
+                    <input
+                      className={inputClass(
+                        errors.googleLeadFormPostSubmitUrl,
+                      )}
+                      value={
+                        draft.googleLeadFormPostSubmitUrl ||
+                        draft.websiteUrl ||
+                        draft.landingPageUrl
+                      }
+                      onChange={(e) =>
+                        onChange({
+                          googleLeadFormPostSubmitUrl: e.target.value,
+                          websiteUrl: draft.websiteUrl || e.target.value,
+                        })
+                      }
+                      placeholder="https://example.com"
+                    />
+                  </Field>
+                ) : null}
+              </div>
+            </div>
           ) : null}
-        </>
+
+          {primaryLeadMethod === "PHONE_CALLS" ? (
+            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+              <p className="text-sm font-bold text-[#07111f]">Phone Calls</p>
+              <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <Field label="Country" required>
+                  <select
+                    className={inputClass()}
+                    value={draft.phoneCountryCode}
+                    onChange={(e) =>
+                      onChange({ phoneCountryCode: e.target.value })
+                    }
+                  >
+                    {LEAD_PHONE_COUNTRY_CODES.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field
+                  label="Business phone number"
+                  required
+                  hint="Customers will be encouraged to call this number from your ads."
+                  error={errors.businessPhone}
+                >
+                  <input
+                    className={inputClass(errors.businessPhone)}
+                    value={draft.businessPhone}
+                    onChange={(e) =>
+                      onChange({
+                        businessPhone: e.target.value,
+                        phoneNumber: e.target.value,
+                      })
+                    }
+                    placeholder="416-555-0123"
+                  />
+                </Field>
+              </div>
+            </div>
+          ) : null}
+
+        </Panel>
       ) : null}
 
       {draft.goal === "WEBSITE_TRAFFIC" ? (
@@ -614,6 +1076,48 @@ export function StepCampaignDetails({ draft, errors, onChange }: StepProps) {
             placeholder="Select hours"
           />
         </Panel>
+      ) : null}
+
+      {draft.goal === "LOCAL_VISITS" ? (
+        <div className="space-y-4">
+          <Panel>
+            <BusinessLocationPicker
+              value={draft.businessLocation}
+              latitude={draft.businessLocationLat}
+              longitude={draft.businessLocationLng}
+              error={errors.businessLocation}
+              onChange={(patch) => onChange(patch)}
+            />
+          </Panel>
+          <Panel className="space-y-4">
+            <Field label="Business phone" required error={errors.businessPhone}>
+              <input
+                className={inputClass(errors.businessPhone)}
+                value={draft.businessPhone}
+                onChange={(e) =>
+                  onChange({
+                    businessPhone: e.target.value,
+                    phoneNumber: e.target.value,
+                  })
+                }
+                placeholder="+1 555 0100"
+              />
+            </Field>
+            <SearchableSelect
+              label="Business hours"
+              options={[
+                "Open 24/7",
+                "Mon–Fri 9am–5pm",
+                "Mon–Sat 10am–8pm",
+                "Weekends only",
+                "By appointment",
+              ]}
+              value={draft.businessHours}
+              onChange={(businessHours) => onChange({ businessHours })}
+              placeholder="Select hours"
+            />
+          </Panel>
+        </div>
       ) : null}
 
       {draft.goal === "APP_PROMOTION" ? (
@@ -1273,20 +1777,61 @@ export function StepProductsServices({
   );
 }
 
-export function StepAds({ draft, errors, onChange }: StepProps) {
-  const [showPaths, setShowPaths] = useState(false);
+const MIN_RSA_HEADLINES = 3;
+const MAX_RSA_HEADLINES = 15;
+const MIN_RSA_DESCRIPTIONS = 2;
+const MAX_RSA_DESCRIPTIONS = 4;
 
+function padAdSlots(values: string[], min: number, max: number): string[] {
+  const next = values.slice(0, max);
+  while (next.length < min) next.push("");
+  return next;
+}
+
+export function StepAds({ draft, errors, onChange }: StepProps) {
   useEffect(() => {
     if (!draft.adsGenerated) {
       onChange({
         ads: [generateAdSuggestions(draft)],
         adsGenerated: true,
       });
+      return;
+    }
+    const current = draft.ads[0];
+    if (!current) return;
+    const headlines = padAdSlots(
+      current.headlines,
+      MIN_RSA_HEADLINES,
+      MAX_RSA_HEADLINES,
+    );
+    const descriptions = padAdSlots(
+      current.descriptions,
+      MIN_RSA_DESCRIPTIONS,
+      MAX_RSA_DESCRIPTIONS,
+    );
+    if (
+      headlines.length !== current.headlines.length ||
+      descriptions.length !== current.descriptions.length
+    ) {
+      onChange({
+        ads: [{ ...current, headlines, descriptions }],
+      });
     }
   }, [draft, draft.adsGenerated, onChange]);
 
   const ad = draft.ads[0];
   if (!ad) return null;
+
+  const headlines = padAdSlots(
+    ad.headlines,
+    MIN_RSA_HEADLINES,
+    MAX_RSA_HEADLINES,
+  );
+  const descriptions = padAdSlots(
+    ad.descriptions,
+    MIN_RSA_DESCRIPTIONS,
+    MAX_RSA_DESCRIPTIONS,
+  );
 
   const updateAd = (patch: Partial<typeof ad>) => {
     onChange({ ads: [{ ...ad, ...patch }] });
@@ -1297,154 +1842,229 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
       step={7}
       total={TOTAL_WIZARD_STEPS}
       title="Write your ad"
-      description="We drafted headlines and descriptions for you. Edit anything before moving on."
+      description="Required: Final URL, 3 headlines, and 2 descriptions. Everything else is optional."
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel className="space-y-4">
-          <button
-            type="button"
-            onClick={() =>
-              onChange({
-                ads: [generateAdSuggestions(draft)],
-                adsGenerated: true,
-              })
-            }
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4285F4] to-[#1a73e8] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(66,133,244,0.28)] transition hover:brightness-105"
+        <Panel className="space-y-5">
+          <Field
+            label="Final URL"
+            required
+            hint="Paste your Dealioo funnel tracking link."
+            error={errors.finalUrl}
           >
-            <Sparkles className="size-4" aria-hidden />
-            Generate with AI
-          </button>
-
-          <Field label="Final URL" required error={errors.finalUrl}>
             <input
               className={inputClass(errors.finalUrl)}
               value={ad.finalUrl}
               onChange={(e) => updateAd({ finalUrl: e.target.value })}
+              placeholder="https://…"
             />
           </Field>
 
-          <div className="space-y-2">
-            <p className="text-sm font-bold text-[#07111f]">Headlines</p>
+          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  Headlines
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Add at least {MIN_RSA_HEADLINES} headlines.
+                </p>
+                <p className="text-xs text-slate-500">
+                  More variations can help Google optimize your ad.
+                </p>
+              </div>
+              <p className="text-sm font-semibold tabular-nums text-slate-500">
+                {headlines.length} / {MAX_RSA_HEADLINES}
+              </p>
+            </div>
             {errors.headlines ? (
-              <p className="text-xs font-medium text-red-500">{errors.headlines}</p>
+              <p className="text-xs font-medium text-red-500">
+                {errors.headlines}
+              </p>
             ) : null}
-            {ad.headlines.map((headline, index) => (
+            {headlines.map((headline, index) => (
               <div key={`h-${index}`} className="space-y-1">
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-slate-500">
                     Headline {index + 1}
+                    {index < MIN_RSA_HEADLINES ? (
+                      <span className="text-red-500"> *</span>
+                    ) : null}
                   </span>
-                  <CharCount value={headline} max={HEADLINE_MAX} />
+                  <div className="flex items-center gap-2">
+                    <CharCount value={headline} max={HEADLINE_MAX} />
+                    {index >= MIN_RSA_HEADLINES ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = headlines.filter((_, i) => i !== index);
+                          updateAd({
+                            headlines: padAdSlots(
+                              next,
+                              MIN_RSA_HEADLINES,
+                              MAX_RSA_HEADLINES,
+                            ),
+                          });
+                        }}
+                        className="text-slate-400 transition hover:text-red-500"
+                        aria-label={`Remove headline ${index + 1}`}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <input
-                  className={inputClass()}
+                  className={inputClass(
+                    index < MIN_RSA_HEADLINES && errors.headlines
+                      ? errors.headlines
+                      : undefined,
+                  )}
                   value={headline}
                   maxLength={HEADLINE_MAX}
                   onChange={(e) => {
-                    const headlines = [...ad.headlines];
-                    headlines[index] = e.target.value;
-                    updateAd({ headlines });
+                    const next = [...headlines];
+                    next[index] = e.target.value;
+                    updateAd({ headlines: next });
                   }}
                 />
               </div>
             ))}
+            {headlines.length < MAX_RSA_HEADLINES ? (
+              <button
+                type="button"
+                onClick={() => updateAd({ headlines: [...headlines, ""] })}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4285F4] transition hover:text-[#1a73e8]"
+              >
+                <Plus className="size-4" aria-hidden />
+                Add headline
+              </button>
+            ) : null}
+            <p className="text-xs text-slate-500">
+              Recommended: Add more variations for better optimization.
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-bold text-[#07111f]">Descriptions</p>
+          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                  Descriptions
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Add at least {MIN_RSA_DESCRIPTIONS} descriptions.
+                </p>
+              </div>
+              <p className="text-sm font-semibold tabular-nums text-slate-500">
+                {descriptions.length} / {MAX_RSA_DESCRIPTIONS}
+              </p>
+            </div>
             {errors.descriptions ? (
               <p className="text-xs font-medium text-red-500">
                 {errors.descriptions}
               </p>
             ) : null}
-            {ad.descriptions.map((description, index) => (
+            {descriptions.map((description, index) => (
               <div key={`d-${index}`} className="space-y-1">
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-slate-500">
                     Description {index + 1}
+                    {index < MIN_RSA_DESCRIPTIONS ? (
+                      <span className="text-red-500"> *</span>
+                    ) : null}
                   </span>
-                  <CharCount value={description} max={DESCRIPTION_MAX} />
+                  <div className="flex items-center gap-2">
+                    <CharCount value={description} max={DESCRIPTION_MAX} />
+                    {index >= MIN_RSA_DESCRIPTIONS ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = descriptions.filter(
+                            (_, i) => i !== index,
+                          );
+                          updateAd({
+                            descriptions: padAdSlots(
+                              next,
+                              MIN_RSA_DESCRIPTIONS,
+                              MAX_RSA_DESCRIPTIONS,
+                            ),
+                          });
+                        }}
+                        className="text-slate-400 transition hover:text-red-500"
+                        aria-label={`Remove description ${index + 1}`}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <textarea
-                  className={`${inputClass()} min-h-[72px]`}
+                  className={`${inputClass(
+                    index < MIN_RSA_DESCRIPTIONS && errors.descriptions
+                      ? errors.descriptions
+                      : undefined,
+                  )} min-h-[72px]`}
                   value={description}
                   maxLength={DESCRIPTION_MAX}
                   onChange={(e) => {
-                    const descriptions = [...ad.descriptions];
-                    descriptions[index] = e.target.value;
-                    updateAd({ descriptions });
+                    const next = [...descriptions];
+                    next[index] = e.target.value;
+                    updateAd({ descriptions: next });
                   }}
                 />
               </div>
             ))}
+            {descriptions.length < MAX_RSA_DESCRIPTIONS ? (
+              <button
+                type="button"
+                onClick={() =>
+                  updateAd({ descriptions: [...descriptions, ""] })
+                }
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4285F4] transition hover:text-[#1a73e8]"
+              >
+                <Plus className="size-4" aria-hidden />
+                Add description
+              </button>
+            ) : null}
           </div>
 
-          <Field label="Call to action">
-            <select
-              className={inputClass()}
-              value={ad.callToAction}
-              onChange={(e) =>
-                updateAd({ callToAction: e.target.value as CallToActionId })
-              }
-            >
-              {CTA_OPTIONS.map((cta) => (
-                <option key={cta.id} value={cta.id}>
-                  {cta.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <div className="rounded-xl border border-[#e8edf5]">
-            <button
-              type="button"
-              onClick={() => setShowPaths((v) => !v)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left"
-              aria-expanded={showPaths}
-            >
-              <span className="text-sm font-bold text-[#07111f]">
-                Display paths
-                <span className="ml-1.5 font-normal text-slate-400">
-                  (optional)
-                </span>
-              </span>
-              <ChevronDown
-                className={`size-4 text-slate-500 transition ${
-                  showPaths ? "rotate-180" : ""
-                }`}
-                aria-hidden
-              />
-            </button>
-            {showPaths ? (
-              <div className="grid gap-3 border-t border-[#e8edf5] p-4 sm:grid-cols-2">
-                <Field label="Display path 1">
-                  <div className="space-y-1">
-                    <div className="flex justify-end">
-                      <CharCount value={ad.path1} max={PATH_MAX} />
-                    </div>
-                    <input
-                      className={inputClass()}
-                      value={ad.path1}
-                      maxLength={PATH_MAX}
-                      onChange={(e) => updateAd({ path1: e.target.value })}
-                    />
+          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                Display URL
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">Optional</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Path 1">
+                <div className="space-y-1">
+                  <div className="flex justify-end">
+                    <CharCount value={ad.path1} max={PATH_MAX} />
                   </div>
-                </Field>
-                <Field label="Display path 2">
-                  <div className="space-y-1">
-                    <div className="flex justify-end">
-                      <CharCount value={ad.path2} max={PATH_MAX} />
-                    </div>
-                    <input
-                      className={inputClass()}
-                      value={ad.path2}
-                      maxLength={PATH_MAX}
-                      onChange={(e) => updateAd({ path2: e.target.value })}
-                    />
+                  <input
+                    className={inputClass()}
+                    value={ad.path1}
+                    maxLength={PATH_MAX}
+                    onChange={(e) => updateAd({ path1: e.target.value })}
+                    placeholder="hand-care"
+                  />
+                </div>
+              </Field>
+              <Field label="Path 2">
+                <div className="space-y-1">
+                  <div className="flex justify-end">
+                    <CharCount value={ad.path2} max={PATH_MAX} />
                   </div>
-                </Field>
-              </div>
-            ) : null}
+                  <input
+                    className={inputClass()}
+                    value={ad.path2}
+                    maxLength={PATH_MAX}
+                    onChange={(e) => updateAd({ path2: e.target.value })}
+                    placeholder="appointment"
+                  />
+                </div>
+              </Field>
+            </div>
           </div>
         </Panel>
 
@@ -1704,7 +2324,7 @@ export function StepReviewPublish({
       description="Everything looks set. Double-check the summary, preview the ad, then publish to Google Ads."
     >
       <div className="space-y-5 pb-2">
-        <section className="relative overflow-hidden rounded-2xl border border-[#d2e3fc] bg-gradient-to-br from-[#4285F4] via-[#3b78e7] to-[#1a73e8] p-5 text-white shadow-[0_18px_40px_rgba(66,133,244,0.28)] sm:p-6">
+        <section className="relative overflow-hidden rounded-2xl border border-[#d2e3fc] bg-[#4285F4] p-5 text-white shadow-[0_18px_40px_rgba(66,133,244,0.28)] sm:p-6">
           <div
             className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl"
             aria-hidden

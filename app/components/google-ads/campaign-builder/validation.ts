@@ -86,19 +86,71 @@ function validateGoalDetailsFields(
   }
 
   if (draft.goal === "LEADS") {
-    if (draft.leadContactMethods.length === 0) {
-      errors.leadContactMethods = "Select at least one contact method.";
+    const primaryLeadMethod =
+      draft.leadContactMethods.find(
+        (id) =>
+          id === "CONTACT_FORM" ||
+          id === "GOOGLE_LEAD_FORM" ||
+          id === "PHONE_CALLS",
+      ) ?? null;
+    if (
+      !primaryLeadMethod ||
+      draft.leadContactMethods.filter(
+        (id) => id !== "WHATSAPP" && id !== "APPOINTMENT_BOOKING",
+      ).length !== 1
+    ) {
+      errors.leadContactMethods = "Choose one primary lead method.";
     }
     if (
-      draft.leadContactMethods.includes("CONTACT_FORM") &&
+      primaryLeadMethod === "CONTACT_FORM" &&
       !isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)
     ) {
       errors.landingPageUrl = "Add a valid landing page URL.";
     }
-    if (
-      draft.leadContactMethods.includes("PHONE_CALLS") &&
-      !draft.businessPhone.trim()
-    ) {
+    if (primaryLeadMethod === "GOOGLE_LEAD_FORM") {
+      if (!draft.businessName.trim()) {
+        errors.businessName = "Add a business name.";
+      }
+      if (!draft.googleLeadFormHeadline.trim()) {
+        errors.googleLeadFormHeadline = "Add a lead form headline.";
+      }
+      if (!draft.googleLeadFormDescription.trim()) {
+        errors.googleLeadFormDescription = "Add a lead form description.";
+      }
+      if (!draft.googleLeadFormCta.trim()) {
+        errors.googleLeadFormCta = "Choose a call to action.";
+      }
+      if (!draft.googleLeadFormCtaDescription.trim()) {
+        errors.googleLeadFormCtaDescription = "Add a CTA description.";
+      }
+      if (draft.googleLeadFormFields.length === 0) {
+        errors.googleLeadFormFields = "Select at least one form field.";
+      }
+      if (!isValidHttpUrl(draft.googleLeadFormPrivacyUrl)) {
+        errors.googleLeadFormPrivacyUrl = "Add a valid privacy policy URL.";
+      }
+      if (!draft.googleLeadFormThankYouHeadline.trim()) {
+        errors.googleLeadFormThankYouHeadline = "Add a thank-you headline.";
+      }
+      if (!draft.googleLeadFormThankYouMessage.trim()) {
+        errors.googleLeadFormThankYouMessage = "Add a thank-you message.";
+      }
+      if (!draft.googleLeadFormPostSubmitAction.trim()) {
+        errors.googleLeadFormPostSubmitAction = "Choose a post-submit action.";
+      }
+      if (
+        draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE" &&
+        !isValidHttpUrl(
+          draft.googleLeadFormPostSubmitUrl ||
+            draft.websiteUrl ||
+            draft.landingPageUrl,
+        )
+      ) {
+        errors.googleLeadFormPostSubmitUrl =
+          "Add a website URL for the post-submit action.";
+      }
+    }
+    if (primaryLeadMethod === "PHONE_CALLS" && !draft.businessPhone.trim()) {
       errors.businessPhone = "Add a phone number.";
     }
   }
@@ -118,6 +170,15 @@ function validateGoalDetailsFields(
     }
     if (!draft.businessCategory.trim()) {
       errors.businessCategory = "Choose a business category.";
+    }
+  }
+
+  if (draft.goal === "LOCAL_VISITS") {
+    if (!draft.businessLocation.trim()) {
+      errors.businessLocation = "Add your business location.";
+    }
+    if (!draft.businessPhone.trim()) {
+      errors.businessPhone = "Add a phone number.";
     }
   }
 
@@ -211,13 +272,17 @@ export function validateStep(
       }
       const headlines = ad.headlines.map((h) => h.trim()).filter(Boolean);
       if (headlines.length < 3) {
-        errors.headlines = "Keep at least 3 headlines.";
+        errors.headlines = "Add at least 3 headlines.";
+      } else if (ad.headlines.length > 15) {
+        errors.headlines = "You can add up to 15 headlines.";
       } else if (headlines.some((h) => h.length > HEADLINE_MAX)) {
         errors.headlines = `Each headline must be ${HEADLINE_MAX} characters or fewer.`;
       }
       const descriptions = ad.descriptions.map((d) => d.trim()).filter(Boolean);
       if (descriptions.length < 2) {
-        errors.descriptions = "Keep at least 2 descriptions.";
+        errors.descriptions = "Add at least 2 descriptions.";
+      } else if (ad.descriptions.length > 4) {
+        errors.descriptions = "You can add up to 4 descriptions.";
       } else if (descriptions.some((d) => d.length > DESCRIPTION_MAX)) {
         errors.descriptions = `Each description must be ${DESCRIPTION_MAX} characters or fewer.`;
       }

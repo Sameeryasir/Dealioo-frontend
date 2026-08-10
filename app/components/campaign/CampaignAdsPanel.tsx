@@ -253,6 +253,10 @@ export function CampaignAdsPanel({
       setAdStatsError(null);
 
       if (!opts?.refresh && stats.isStale) {
+        if (!silent) {
+          setAdStatsLoading(false);
+          setInsightsLoading(false);
+        }
         const refreshId = ++statsRequestIdRef.current;
         void getFacebookAdCampaignStats(businessId, {
           includeInsights: true,
@@ -266,6 +270,7 @@ export function CampaignAdsPanel({
             setAdStats(fresh);
           })
           .catch(() => {});
+        return;
       }
     } catch (e) {
       if (requestId !== statsRequestIdRef.current) return;

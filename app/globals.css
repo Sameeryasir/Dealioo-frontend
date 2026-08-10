@@ -3782,13 +3782,13 @@ body {
     }
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     .org-dashboard-grid--cards {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
-  @media (min-width: 1536px) {
+  @media (min-width: 1700px) {
     .org-dashboard-grid--cards {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }

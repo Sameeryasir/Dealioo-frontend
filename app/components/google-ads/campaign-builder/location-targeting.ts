@@ -383,6 +383,55 @@ export function buildLocationTargetingPayload(input: {
   };
 }
 
+export async function reverseGeocodeCoordinates(
+  latitude: number,
+  longitude: number,
+): Promise<{ label: string; latitude: number; longitude: number } | null> {
+  try {
+    const params = new URLSearchParams({
+      lat: String(latitude),
+      lon: String(longitude),
+      lang: "en",
+    });
+    const response = await fetch(
+      `https://photon.komoot.io/reverse?${params.toString()}`,
+    );
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      features?: Array<{
+        properties?: Record<string, string | undefined>;
+      }>;
+    };
+    const properties = data.features?.[0]?.properties ?? {};
+    const street =
+      [properties.housenumber, properties.street].filter(Boolean).join(" ") ||
+      properties.name?.trim();
+    const locality =
+      properties.city?.trim() ||
+      properties.town?.trim() ||
+      properties.village?.trim() ||
+      properties.county?.trim();
+    const region = properties.state?.trim();
+    const country = properties.country?.trim();
+    const label = [street, locality, region, country]
+      .filter(Boolean)
+      .join(", ");
+
+    if (!label) {
+      return {
+        label: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+        latitude,
+        longitude,
+      };
+    }
+
+    return { label, latitude, longitude };
+  } catch {
+    return null;
+  }
+}
+
 export async function searchGoogleAdsLocations(
   query: string,
 ): Promise<GoogleAdsLocationRef[]> {
@@ -420,7 +469,7 @@ export async function searchGoogleAdsLocations(
       const [longitude, latitude] = feature.geometry.coordinates;
       const properties = feature.properties;
       const type = inferTypeFromPhoton(properties);
-      const name =
+      const primary =
         type === "postal_code"
           ? properties.postcode || properties.name || trimmed
           : properties.name ||
@@ -428,6 +477,16 @@ export async function searchGoogleAdsLocations(
             properties.state ||
             properties.country ||
             trimmed;
+      const locality =
+        properties.city?.trim() ||
+        properties.town?.trim() ||
+        properties.village?.trim();
+      const region = properties.state?.trim();
+      const country = properties.country?.trim();
+      const extras = [locality, region, country].filter(
+        (part) => part && part.toLowerCase() !== primary.toLowerCase(),
+      );
+      const name = extras.length ? `${primary}, ${extras.join(", ")}` : primary;
       const id = `geo-${type}-${properties.osm_id || `${longitude}-${latitude}-${index}`}`;
 
       return {

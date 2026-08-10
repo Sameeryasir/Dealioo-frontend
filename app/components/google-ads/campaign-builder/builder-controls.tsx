@@ -50,6 +50,7 @@ export function SelectableCard({
   icon,
   onClick,
   badge,
+  selectionMode = "check",
 }: {
   selected: boolean;
   title: string;
@@ -57,10 +58,14 @@ export function SelectableCard({
   icon?: ReactNode;
   onClick: () => void;
   badge?: string;
+  /** "radio" = single-select indicator (primary lead method); "check" = default */
+  selectionMode?: "check" | "radio";
 }) {
   return (
     <button
       type="button"
+      role={selectionMode === "radio" ? "radio" : undefined}
+      aria-checked={selectionMode === "radio" ? selected : undefined}
       onClick={onClick}
       className={`relative w-full rounded-2xl border px-5 py-5 text-left transition duration-200 ${
         selected
@@ -68,7 +73,20 @@ export function SelectableCard({
           : "border-[#e8edf5] bg-white hover:-translate-y-0.5 hover:border-[#4285F4]/50 hover:shadow-md"
       }`}
     >
-      {selected ? (
+      {selectionMode === "radio" ? (
+        <span
+          className={`absolute right-4 top-4 flex size-5 items-center justify-center rounded-full border-2 ${
+            selected
+              ? "border-[#4285F4] bg-white"
+              : "border-slate-300 bg-white"
+          }`}
+          aria-hidden
+        >
+          {selected ? (
+            <span className="size-2.5 rounded-full bg-[#4285F4]" />
+          ) : null}
+        </span>
+      ) : selected ? (
         <span className="absolute right-4 top-4 flex size-6 items-center justify-center rounded-full bg-[#4285F4] text-white">
           <Check className="size-3.5" strokeWidth={3} aria-hidden />
         </span>
@@ -98,6 +116,101 @@ export function SelectableCard({
         </p>
       ) : null}
     </button>
+  );
+}
+
+export function SimpleSelect({
+  value,
+  options,
+  onChange,
+  placeholder = "Select…",
+  error,
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  options: Array<{ id: string; label: string }>;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  error?: string;
+  "aria-label"?: string;
+}) {
+  const listId = useId();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((option) => option.id === value) ?? null;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`${googleBuilderInputClass} flex items-center justify-between gap-2 text-left ${
+          error ? builderInputErrorClass : ""
+        }`}
+      >
+        <span className={selected ? "text-[#07111f]" : "text-slate-400"}>
+          {selected?.label ?? placeholder}
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-30 mt-1.5 max-h-56 w-full overflow-y-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.14)]"
+        >
+          {options.map((option) => {
+            const isSelected = option.id === value;
+            return (
+              <li key={option.id} role="option" aria-selected={isSelected}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-medium transition ${
+                    isSelected
+                      ? "bg-[#f4f8ff] text-[#4285F4]"
+                      : "text-[#07111f] hover:bg-[#f8fafc]"
+                  }`}
+                  onClick={() => {
+                    onChange(option.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {isSelected ? (
+                    <Check className="size-4 shrink-0" aria-hidden />
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 

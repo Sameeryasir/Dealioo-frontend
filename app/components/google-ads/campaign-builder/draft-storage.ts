@@ -176,8 +176,24 @@ export function saveGoogleCampaignDraft(
     savedAt: new Date().toISOString(),
   };
   if (typeof window !== "undefined") {
-    
-    window.localStorage.setItem(recoveryKey(businessId), JSON.stringify(next));
+    try {
+      window.localStorage.setItem(recoveryKey(businessId), JSON.stringify(next));
+    } catch {
+      try {
+        const slim: GoogleCampaignBuilderDraft = {
+          ...next,
+          logoPreviewUrl: next.logoPreviewUrl.startsWith("data:")
+            ? ""
+            : next.logoPreviewUrl,
+        };
+        window.localStorage.setItem(
+          recoveryKey(businessId),
+          JSON.stringify(slim),
+        );
+      } catch {
+        // Ignore local cache failures; in-memory draft still holds the logo.
+      }
+    }
     const meta = loadGoogleDraftLocalMeta(businessId);
     saveGoogleDraftLocalMeta(businessId, {
       ...meta,

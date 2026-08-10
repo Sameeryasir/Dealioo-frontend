@@ -41,7 +41,7 @@ export function TableColumnHeader({
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-1.5 leading-none">
       {Icon ? (
         <Icon
           className={`size-3.5 shrink-0 ${iconClassName}`}
@@ -50,7 +50,7 @@ export function TableColumnHeader({
         />
       ) : null}
       <span
-        className={`text-[0.65rem] font-bold uppercase tracking-[0.12em] ${labelClassName}`}
+        className={`text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none ${labelClassName}`}
       >
         {label}
       </span>

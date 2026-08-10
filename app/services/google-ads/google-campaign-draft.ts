@@ -44,6 +44,7 @@ export type GoogleCampaignStepSaveResponse = {
   websiteUrl?: string;
   businessCategory?: string;
   logoFileName?: string;
+  logoPreviewUrl?: string;
 };
 
 export type GoogleCampaignDraftResumeResponse = {
@@ -144,9 +145,25 @@ export async function saveGoogleGoalDetailsStep(
     salesChannel?: SalesChannelId | null;
     websiteUrl?: string;
     businessLocation?: string;
+    businessLocationLat?: number | null;
+    businessLocationLng?: number | null;
     businessPhone?: string;
     leadContactMethods?: LeadContactMethodId[];
     landingPageUrl?: string;
+    phoneCountryCode?: string;
+    whatsAppNumber?: string;
+    whatsAppMessage?: string;
+    bookingPageUrl?: string;
+    googleLeadFormHeadline?: string;
+    googleLeadFormDescription?: string;
+    googleLeadFormFields?: string[];
+    googleLeadFormCta?: string;
+    googleLeadFormCtaDescription?: string;
+    googleLeadFormPrivacyUrl?: string;
+    googleLeadFormThankYouHeadline?: string;
+    googleLeadFormThankYouMessage?: string;
+    googleLeadFormPostSubmitAction?: string;
+    googleLeadFormPostSubmitUrl?: string;
     trafficAction?: TrafficActionId | null;
     businessName?: string;
     businessCategory?: string;

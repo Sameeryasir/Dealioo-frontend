@@ -1,8 +1,5 @@
 "use client";
 
-import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
-import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
-import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -16,20 +13,22 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
+  BarChart3,
   CalendarDays,
-  Footprints,
+  Download,
   Loader2,
   Mail,
+  MoreHorizontal,
   Phone,
+  Search,
   UserRound,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
-  Bar,
-  BarChart,
+  Area,
+  AreaChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -37,6 +36,7 @@ import {
 } from "recharts";
 
 const JOINING_TREND_MONTHS = 6;
+const BRAND = "#1877f2";
 
 const panelCardClass =
   "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
@@ -59,27 +59,51 @@ function customerInitial(customer: BusinessCustomerRecord): string {
   return (customer.email.charAt(0) || "?").toUpperCase();
 }
 
+function SectionIcon({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)]"
+      style={{ background: BRAND }}
+      aria-hidden
+    >
+      {children}
+    </span>
+  );
+}
+
+function exportGuestsCsv(customers: BusinessCustomerRecord[]) {
+  const header = ["Name", "Email", "Phone", "Visits", "Joining date"];
+  const rows = customers.map((c) => [
+    c.name,
+    c.email,
+    c.phone ?? "",
+    String(c.visitCount),
+    formatJoiningDate(c.joiningDate),
+  ]);
+  const escape = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
+  const csv = [header, ...rows]
+    .map((row) => row.map(escape).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "guest-roster.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function CustomersTableSkeleton() {
   return (
     <div className="overflow-x-auto" aria-busy="true">
       <table className="min-w-full border-collapse">
         <thead>
-          <tr className="border-b border-[#e8edf5] bg-[#f4f8ff]">
-            <th className="whitespace-nowrap px-5 py-3 text-left">
-              <Skeleton className="h-3 w-14" />
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-left">
-              <Skeleton className="h-3 w-12" />
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-left">
-              <Skeleton className="h-3 w-12" />
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-left">
-              <Skeleton className="h-3 w-12" />
-            </th>
-            <th className="whitespace-nowrap px-5 py-3 text-left">
-              <Skeleton className="h-3 w-20" />
-            </th>
+          <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <th key={i} className="whitespace-nowrap px-4 py-3 text-left">
+                <Skeleton className="h-3 w-14" />
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -100,25 +124,19 @@ function CustomersTableSkeleton() {
                 </div>
               </td>
               <td className="px-4 py-3.5">
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="size-3.5 shrink-0 rounded" />
-                  <Skeleton className="h-4 w-40" />
-                </div>
+                <Skeleton className="h-4 w-40" />
               </td>
               <td className="px-4 py-3.5">
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="size-3.5 shrink-0 rounded" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
+                <Skeleton className="h-4 w-24" />
               </td>
               <td className="px-4 py-3.5">
                 <Skeleton className="h-4 w-8" />
               </td>
-              <td className="px-5 py-3.5">
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="size-3.5 shrink-0 rounded" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
+              <td className="px-4 py-3.5">
+                <Skeleton className="h-4 w-24" />
+              </td>
+              <td className="px-4 py-3.5">
+                <Skeleton className="size-8 rounded-lg" />
               </td>
             </tr>
           ))}
@@ -128,151 +146,181 @@ function CustomersTableSkeleton() {
   );
 }
 
-function JoiningTrendChart({ businessId }: { businessId: number }) {
+function JoiningTrendChart({
+  businessId,
+  totalGuests,
+}: {
+  businessId: number;
+  totalGuests: number;
+}) {
   const trendQuery = useQuery({
     queryKey: ["business-joining-trend", businessId, JOINING_TREND_MONTHS],
     queryFn: () => getBusinessJoiningTrend(businessId, JOINING_TREND_MONTHS),
     staleTime: 30_000,
   });
 
-  const data = trendQuery.data ?? [];
+  const chartData = trendQuery.data ?? [];
   const totalJoined = useMemo(
-    () => data.reduce((sum, point) => sum + point.joined, 0),
-    [data],
+    () => chartData.reduce((sum, point) => sum + point.joined, 0),
+    [chartData],
   );
-  const peakJoined = useMemo(
-    () => data.reduce((max, point) => Math.max(max, point.joined), 0),
-    [data],
-  );
-  const currentMonthKey = data.length > 0 ? data[data.length - 1]?.monthKey : null;
+  const guestsLabel = totalGuests > 0 ? totalGuests : totalJoined;
 
   return (
-    <OverviewChartShell
-      title="Guest joining trend"
-      subtitle={`Guests joined per month · last ${JOINING_TREND_MONTHS} months`}
-      minHeightClass="min-h-[300px]"
-      accent="blue"
-      stat={
-        trendQuery.isLoading || trendQuery.isError
-          ? undefined
-          : totalJoined.toLocaleString()
-      }
-    >
-      {trendQuery.isLoading ? (
-        <Skeleton className="h-[250px] w-full rounded-xl" />
-      ) : trendQuery.isError ? (
-        <div className="flex flex-col items-center gap-2 py-14 text-center">
-          <p className="text-sm text-red-700">
-            {getApiErrorMessage(
-              trendQuery.error,
-              "Could not load joining trend.",
-            )}
-          </p>
-          <button
-            type="button"
-            onClick={() => void trendQuery.refetch()}
-            className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#f8fafc]"
-          >
-            Try again
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="h-[250px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={data}
-                margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
-                barCategoryGap="22%"
-              >
-                <defs>
-                  {/* Brand blue only — #1877f2 (opacity for depth, not other blue hexes) */}
-                  <linearGradient id="programJoinBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1877f2" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#1877f2" stopOpacity={0.85} />
-                  </linearGradient>
-                  <linearGradient
-                    id="programJoinBarMuted"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor="#1877f2" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#1877f2" stopOpacity={0.18} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="4 6"
-                  stroke="#e8edf5"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
-                  axisLine={{ stroke: "#e8edf5" }}
-                  tickLine={false}
-                  interval={0}
-                  height={34}
-                  dy={6}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={32}
-                />
-                <Tooltip
-                  cursor={{ fill: "rgba(24,119,242,0.06)", radius: 8 }}
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid #e8edf5",
-                    boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [
-                    `${Number(value) || 0} guest${Number(value) === 1 ? "" : "s"}`,
-                    "Joined",
-                  ]}
-                />
-                <Bar
-                  dataKey="joined"
-                  name="Joined"
-                  radius={[10, 10, 3, 3]}
-                  maxBarSize={44}
-                >
-                  {data.map((point) => {
-                    const isPeak =
-                      peakJoined > 0 && point.joined === peakJoined;
-                    const isCurrent = point.monthKey === currentMonthKey;
-                    return (
-                      <Cell
-                        key={point.monthKey}
-                        fill={
-                          isPeak || isCurrent
-                            ? "url(#programJoinBar)"
-                            : "url(#programJoinBarMuted)"
-                        }
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+    <div className={panelCardClass}>
+      <div className="relative border-b border-[#f1f5f9] px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <SectionIcon>
+              <Users className="size-5" strokeWidth={2.25} />
+            </SectionIcon>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+                  Guest joining trend
+                </h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#f4f8ff] px-2 py-0.5 text-[10px] font-semibold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                  <CalendarDays className="size-2.5 shrink-0" aria-hidden />
+                  {JOINING_TREND_MONTHS} mo
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs font-medium text-slate-500">
+                Guests joined per month
+              </p>
+            </div>
           </div>
-          <OverviewChartLegend
-            items={[
-              {
-                label: "Joined",
-                value: totalJoined.toLocaleString(),
-                color: OVERVIEW_CHART_COLORS.blue,
-              },
-            ]}
-          />
-        </>
-      )}
-    </OverviewChartShell>
+
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <span className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 text-xs font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
+              <Users className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="leading-none">
+                {guestsLabel.toLocaleString()} guest
+                {guestsLabel === 1 ? "" : "s"}
+              </span>
+            </span>
+            {!trendQuery.isLoading && !trendQuery.isError ? (
+              <div className="flex h-14 min-w-[5.5rem] flex-col items-center justify-center rounded-2xl border border-[#e8edf5] bg-white px-3.5 text-center shadow-sm">
+                <p className="text-xl font-extrabold tabular-nums leading-none text-[#07111f]">
+                  {guestsLabel.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Total Guests
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-5">
+        <div className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-[#eef2f7] bg-[#fbfdff] p-3 sm:p-4">
+          {trendQuery.isLoading ? (
+            <Skeleton className="h-[250px] w-full rounded-xl" />
+          ) : trendQuery.isError ? (
+            <div className="flex flex-col items-center gap-2 py-14 text-center">
+              <p className="text-sm text-red-700">
+                {getApiErrorMessage(
+                  trendQuery.error,
+                  "Could not load joining trend.",
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => void trendQuery.refetch()}
+                className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#f8fafc]"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="h-[250px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 16, right: 12, left: 0, bottom: 4 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="programJoinArea"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={BRAND}
+                          stopOpacity={0.28}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={BRAND}
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="4 6"
+                      stroke="#e8edf5"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
+                      axisLine={{ stroke: "#e8edf5" }}
+                      tickLine={false}
+                      interval={0}
+                      height={34}
+                      dy={6}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={32}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "1px solid #e8edf5",
+                        boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
+                        fontSize: 12,
+                      }}
+                      formatter={(value) => [
+                        `${Number(value) || 0} guest${
+                          Number(value) === 1 ? "" : "s"
+                        }`,
+                        "Joined",
+                      ]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="joined"
+                      name="Joined"
+                      stroke={BRAND}
+                      strokeWidth={2.5}
+                      fill="url(#programJoinArea)"
+                      dot={{ r: 3, fill: BRAND, strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-2 pt-1 text-xs font-semibold leading-none text-slate-500">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: BRAND }}
+                  aria-hidden
+                />
+                Joined
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -282,6 +330,7 @@ export function BusinessProgramCustomersPanel({
   businessId: number;
 }) {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
   const customersQuery = useQuery({
     queryKey: ["business-customers", businessId, page],
@@ -294,6 +343,17 @@ export function BusinessProgramCustomersPanel({
   const meta = customersQuery.data?.meta;
   const totalPages = meta?.totalPages ?? 1;
   const total = meta?.total ?? 0;
+
+  const filteredCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) => {
+      const haystack = [c.name, c.email, c.phone ?? ""]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [customers, search]);
 
   const isLoading = customersQuery.isLoading;
   const loadError = customersQuery.isError
@@ -309,21 +369,12 @@ export function BusinessProgramCustomersPanel({
 
   return (
     <section className="space-y-5">
-      {total > 0 ? (
-        <div className="flex flex-wrap items-center justify-end gap-3 px-1">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f8ff] px-3 py-1.5 text-xs font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
-            <Users className="size-3.5" strokeWidth={2.25} aria-hidden />
-            {total.toLocaleString()} guest{total === 1 ? "" : "s"}
-          </span>
-        </div>
-      ) : null}
-
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.42, ease: easeOut }}
       >
-        <JoiningTrendChart businessId={businessId} />
+        <JoiningTrendChart businessId={businessId} totalGuests={total} />
       </motion.div>
 
       <motion.div
@@ -333,24 +384,50 @@ export function BusinessProgramCustomersPanel({
         className={panelCardClass}
       >
         <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
-          <span
-            className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1877f2]"
-            aria-hidden
-          />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-extrabold tracking-tight text-[#07111f]">
-                Guest roster
-              </h2>
-              <p className="mt-0.5 text-xs font-medium text-slate-500">
-                Contact details, visits, and joining date
-              </p>
+            <div className="flex min-w-0 items-center gap-3">
+              <SectionIcon>
+                <UserRound className="size-5" strokeWidth={2.25} />
+              </SectionIcon>
+              <div className="min-w-0">
+                <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+                  Guest roster
+                </h2>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  Contact details, visits, and joining date
+                </p>
+              </div>
             </div>
-            {rangeLabel ? (
-              <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.7rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
-                {rangeLabel}
-              </span>
-            ) : null}
+
+            <div className="flex h-10 flex-wrap items-center gap-2">
+              <label className="relative block h-9">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+                  aria-hidden
+                />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search guests…"
+                  aria-label="Search guests"
+                  className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-3 text-xs leading-none text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-56"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => exportGuestsCsv(filteredCustomers)}
+                disabled={filteredCustomers.length === 0}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#1877f2] px-3 text-xs font-semibold leading-none text-white shadow-sm transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="size-3.5 shrink-0" aria-hidden />
+                Export
+              </button>
+              {rangeLabel ? (
+                <span className="inline-flex h-9 items-center rounded-full bg-[#f4f8ff] px-2.5 text-[0.7rem] font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                  {rangeLabel}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -383,13 +460,16 @@ export function BusinessProgramCustomersPanel({
               with this business.
             </p>
           </div>
+        ) : filteredCustomers.length === 0 ? (
+          <div className="px-6 py-14 text-center text-sm text-slate-500">
+            No guests match “{search.trim()}”.
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse">
                 <thead>
-                  {/* Column accents: blue #1877f2 · green #34a853 · pink #f472b6 */}
-                  <tr className="border-b border-[#e8edf5] bg-[#f4f8ff]">
+                  <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
                     <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={UserRound}
@@ -410,19 +490,19 @@ export function BusinessProgramCustomersPanel({
                       <TableColumnHeader
                         icon={Phone}
                         label="Phone"
-                        iconClassName="text-[#34a853]"
-                        labelClassName="text-[#34a853]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
-                        icon={Footprints}
+                        icon={BarChart3}
                         label="Visits"
-                        iconClassName="text-[#f472b6]"
-                        labelClassName="text-[#f472b6]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
-                    <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={CalendarDays}
                         label="Joining date"
@@ -430,22 +510,27 @@ export function BusinessProgramCustomersPanel({
                         labelClassName="text-[#1877f2]"
                       />
                     </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <span className="inline-flex items-center text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#1877f2]">
+                        Actions
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {customers.map((customer, index) => (
+                  {filteredCustomers.map((customer, index) => (
                     <tr
                       key={customer.id}
                       className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f4f8ff]/70 ${
                         index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
                       }`}
                     >
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 align-middle">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
+                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold leading-none text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
                             {customerInitial(customer)}
                           </span>
-                          <div className="min-w-0">
+                          <div className="min-w-0 leading-tight">
                             <p className="truncate text-sm font-bold text-[#07111f]">
                               {customer.name}
                             </p>
@@ -455,45 +540,56 @@ export function BusinessProgramCustomersPanel({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        {/* Lucide Mail — icon only, no bg box */}
-                        <p className="flex min-w-0 items-center gap-1.5 truncate text-sm text-slate-700">
+                      <td className="px-4 py-3.5 align-middle">
+                        <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                           <Mail
                             className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           <span className="truncate">{customer.email}</span>
-                        </p>
+                        </span>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3.5 align-middle">
                         {customer.phone ? (
-                          // Lucide Phone — icon only, no bg box
-                          <p className="flex min-w-0 items-center gap-1.5 truncate text-sm text-slate-700">
+                          <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                             <Phone
-                              className="size-3.5 shrink-0 text-[#34a853]"
+                              className="size-3.5 shrink-0 text-[#1877f2]"
                               aria-hidden
                             />
                             <span className="truncate">{customer.phone}</span>
-                          </p>
+                          </span>
                         ) : (
-                          <p className="text-sm text-slate-400">—</p>
+                          <span className="text-sm leading-none text-slate-400">
+                            —
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5">
-                        {/* Visit count — number only in #f472b6 (no pill background) */}
-                        <span className="text-sm font-extrabold tabular-nums text-[#f472b6]">
+                      <td className="px-4 py-3.5 align-middle">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-normal tabular-nums leading-none text-slate-700">
+                          <BarChart3
+                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            aria-hidden
+                          />
                           {customer.visitCount}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5">
-                        {/* Lucide CalendarDays — icon + date, no pill bg */}
-                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                      <td className="px-4 py-3.5 align-middle">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold leading-none text-slate-700">
                           <CalendarDays
                             className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           {formatJoiningDate(customer.joiningDate)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3.5 align-middle">
+                        <button
+                          type="button"
+                          aria-label={`Actions for ${customer.name}`}
+                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:bg-[#f8fafc] hover:text-slate-600"
+                        >
+                          <MoreHorizontal className="size-4" aria-hidden />
+                        </button>
                       </td>
                     </tr>
                   ))}
