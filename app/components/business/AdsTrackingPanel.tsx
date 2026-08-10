@@ -1,7 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Info, Loader2, RefreshCw, Save } from "lucide-react";
+/**
+ * Change: Ads Tracking screen matches the Connect tracking pixels card UI.
+ * Why: Connected vs not-connected should read like the settings mock (badges, accent bar, toggle).
+ * Related: business-tracking.ts, ads-tracking pages
+ */
+
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Loader2,
+  RefreshCw,
+  Save,
+  ChartColumn,
+  TrendingUp,
+} from "lucide-react";
 import {
   GoogleAdsLogo,
   MetaLogo,
@@ -49,6 +64,42 @@ function isSameTrackingForm(
     a.pixelId === b.pixelId &&
     a.gtmId === b.gtmId &&
     a.isActive === b.isActive
+  );
+}
+
+function ConnectionBadge({ connected }: { connected: boolean }) {
+  return connected ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+      <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+      Connected
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[0.7rem] font-semibold text-amber-700 ring-1 ring-amber-200">
+      <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
+      Not connected
+    </span>
+  );
+}
+
+function TrackingCard({
+  accent,
+  children,
+}: {
+  accent: "meta" | "gtm";
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+      <div className="flex min-w-0">
+        <div
+          className={`w-1.5 shrink-0 self-stretch rounded-l-2xl ${
+            accent === "meta" ? "bg-[#1877f2]" : "bg-amber-400"
+          }`}
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1 p-5 sm:p-6">{children}</div>
+      </div>
+    </section>
   );
 }
 
@@ -186,6 +237,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           nextIsActive = saved.isActive;
         }
       } catch {
+        // Keep empty defaults when tracking has not been saved yet.
       }
 
       if (cancelled) return;
@@ -240,6 +292,10 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const hasUnsavedChanges =
     hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
 
+  const metaConnected = Boolean(pixelId.trim());
+  const gtmConnected = Boolean(gtmId.trim());
+  const trackingActive = isActive && metaConnected;
+
   useEffect(() => {
     if (!saveSuccess) return;
     const timer = window.setTimeout(() => setSaveSuccess(null), 2500);
@@ -271,25 +327,37 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     }
   };
 
-  return (
-    <div className="bg-white px-4 py-8 sm:px-8 sm:py-10">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1877f2]">
-            Ads tracking
-          </p>
-          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#07111f] sm:text-3xl">
-            Connect tracking pixels
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Configure tracking pixel IDs for analytics and conversions. These
-            IDs will be used across funnels for this business.
-          </p>
-        </div>
+  const fieldClass =
+    "mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15";
+  const refreshBtnClass =
+    "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#bfdbfe] bg-white px-3 text-xs font-semibold text-[#1877f2] transition hover:bg-[#eff6ff] disabled:opacity-50";
 
-        <div className="rounded-xl border border-[#dbeafe] bg-[#e8f2ff]/70 px-4 py-3 text-sm text-slate-600">
-          <div className="flex items-start gap-2">
-            <Info className="mt-0.5 size-4 shrink-0 text-[#1877f2]" aria-hidden />
+  return (
+    <div className="box-border w-full min-w-0 bg-[#f5f7fb] px-4 py-6 pb-16 sm:px-8 sm:py-8 sm:pb-20">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
+        <header className="flex min-w-0 items-start gap-3.5">
+          <span className="mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)]">
+            <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#1877f2]">
+              Ads tracking
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#07111f] sm:text-[1.75rem]">
+              Connect tracking pixels.
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
+              Configure tracking pixel IDs for analytics and conversions. These
+              IDs will be used across funnels for this business.
+            </p>
+          </div>
+        </header>
+
+        <div className="rounded-xl border border-[#bfdbfe] bg-[#e8f2ff]/80 px-4 py-3 text-sm text-slate-600">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white">
+              <Info className="size-3" strokeWidth={2.75} aria-hidden />
+            </span>
             <p>
               Saved IDs load first. Meta pixels and Google Tag Manager
               containers are fetched only when that ID is not saved yet. You can
@@ -299,15 +367,12 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#e8f2ff]">
-                <MetaLogo className="size-4" />
-              </span>
-              <h3 className="text-base font-semibold text-[#07111f]">
-                Meta Pixel
-              </h3>
+        <TrackingCard accent="meta">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+              <MetaLogo className="size-6 shrink-0" />
+              <h3 className="text-base font-bold text-[#07111f]">Meta Pixel</h3>
+              <ConnectionBadge connected={metaConnected} />
             </div>
             <button
               type="button"
@@ -318,7 +383,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                 });
               }}
               disabled={pixelsLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
+              className={refreshBtnClass}
             >
               {pixelsLoading ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -338,10 +403,13 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
           {pixelsError ? (
             <div
-              className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+              className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
               role="alert"
             >
-              {pixelsError} You can still enter a Pixel ID manually below.
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>
+                {pixelsError} You can still enter a Pixel ID manually below.
+              </span>
             </div>
           ) : null}
 
@@ -357,7 +425,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                 onChange={(e) => {
                   if (e.target.value) setPixelId(e.target.value);
                 }}
-                className="mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                className={`${fieldClass} bg-[#f8fafc]`}
               >
                 <option value="" disabled>
                   Choose a pixel
@@ -371,40 +439,79 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             </label>
           ) : null}
 
-          <label className="block text-sm font-medium text-[#07111f]">
+          <label className="block text-sm font-semibold text-[#07111f]">
             Meta Pixel ID
-            <input
-              value={pixelId}
-              onChange={(e) => setPixelId(e.target.value)}
-              placeholder="Meta Pixel ID (optional)"
-              className="mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
-            />
+            <span className="relative mt-1.5 block">
+              <input
+                value={pixelId}
+                onChange={(e) => setPixelId(e.target.value)}
+                placeholder="Meta Pixel ID"
+                className={`${fieldClass} mt-0 pr-10`}
+              />
+              {metaConnected ? (
+                <CheckCircle2
+                  className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-emerald-500"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+              ) : null}
+            </span>
           </label>
-          <p className="mt-1.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
             Filled automatically from Meta when available. You can edit or type
             a different Pixel ID manually. Leave empty if not used.
           </p>
 
-          <label className="mt-4 flex items-center gap-2.5 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="size-4 rounded border-[#dbeafe] text-[#1877f2]"
-            />
-            Tracking active
-          </label>
-        </section>
-
-        <section className="rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#eef6ff]">
-                <GoogleAdsLogo className="size-4" />
+          <div className="mt-5 flex flex-col gap-3 border-t border-[#eef2f7] pt-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isActive}
+              onClick={() => setIsActive((current) => !current)}
+              className="flex items-start gap-3 text-left"
+            >
+              <span
+                className={`mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition ${
+                  isActive ? "bg-[#1877f2]" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`size-5 rounded-full bg-white shadow-sm transition ${
+                    isActive ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
               </span>
-              <h3 className="text-base font-semibold text-[#07111f]">
+              <span>
+                <span className="block text-sm font-bold text-[#07111f]">
+                  Tracking active
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  Events from this pixel will be tracked across your funnels.
+                </span>
+              </span>
+            </button>
+
+            <div
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+                trackingActive
+                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                  : "bg-slate-50 text-slate-500 ring-1 ring-slate-200"
+              }`}
+            >
+              <TrendingUp className="size-3.5" aria-hidden />
+              {trackingActive ? "Status Active" : "Status Off"}
+            </div>
+          </div>
+        </TrackingCard>
+
+        <TrackingCard accent="gtm">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+              <GoogleAdsLogo className="size-6 shrink-0" />
+              <h3 className="text-base font-bold text-[#07111f]">
                 Google Tag Manager
               </h3>
+              <ConnectionBadge connected={gtmConnected} />
             </div>
             <button
               type="button"
@@ -415,7 +522,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                 });
               }}
               disabled={gtmLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#e2e8f0] bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-[#bfdbfe] hover:bg-[#f8fafc] hover:text-[#1877f2] disabled:opacity-50"
             >
               {gtmLoading ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -435,10 +542,15 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
           {gtmError ? (
             <div
-              className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+              className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
               role="alert"
             >
-              {gtmError} You can still enter a GTM ID manually below.
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>
+                {gtmError} You can still enter a GTM ID manually below. Connect
+                Google Ads in Settings if you want containers listed
+                automatically.
+              </span>
             </div>
           ) : null}
 
@@ -454,7 +566,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                 onChange={(e) => {
                   if (e.target.value) setGtmId(e.target.value);
                 }}
-                className="mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+                className={`${fieldClass} bg-[#f8fafc]`}
               >
                 <option value="" disabled>
                   Choose a container
@@ -468,25 +580,24 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             </label>
           ) : null}
 
-          <label className="block text-sm font-medium text-[#07111f]">
-            Google Tag Manager ID
+          <label className="block text-sm font-semibold text-[#07111f]">
+            Google Tag Manager ID (optional)
             <input
               value={gtmId}
               onChange={(e) => setGtmId(e.target.value)}
-              placeholder="Google Tag Manager ID (optional)"
-              className="mt-1.5 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+              placeholder="GTM-XXXXXXX"
+              className={fieldClass}
             />
           </label>
-          <p className="mt-1.5 text-xs text-slate-500">
-            Filled automatically from Google when available (e.g. GTM-XXXXX).
-            You can edit or type a different ID manually. Leave empty if not
-            used.
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+            Filled automatically from Google when available. You can edit or
+            type a different ID manually. Leave empty if not used.
           </p>
-        </section>
+        </TrackingCard>
 
         {saveError ? (
           <div
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
             role="alert"
           >
             {saveError}
@@ -506,7 +617,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             onClick={() => {
               void handleSave();
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(24,119,242,0.22)] transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />

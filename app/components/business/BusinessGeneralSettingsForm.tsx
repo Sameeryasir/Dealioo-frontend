@@ -65,6 +65,7 @@ export type BusinessProfilePreviewSection =
 type BusinessGeneralSettingsFormProps = {
   businessId: number;
   activeSection?: BusinessProfilePreviewSection;
+  focus?: string | null;
 };
 
 const PREVIEW_TITLES: Record<
@@ -342,9 +343,19 @@ function BusinessLogoAvatar({
   );
 }
 
+const GENERAL_FOCUS_IDS: Record<string, string> = {
+  info: "business-settings-name",
+  logo: "business-settings-logo",
+  contact: "business-settings-email",
+  address: "business-settings-city",
+  branch: "business-settings-branch",
+  twilio: "business-settings-twilio",
+};
+
 export function BusinessGeneralSettingsForm({
   businessId,
   activeSection = "general",
+  focus = null,
 }: BusinessGeneralSettingsFormProps) {
   const queryClient = useQueryClient();
   const detailsRef = useRef<HTMLElement>(null);
@@ -374,6 +385,25 @@ export function BusinessGeneralSettingsForm({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeSection !== "general") return;
+    const key = focus?.trim().toLowerCase() ?? "";
+    const targetId = GENERAL_FOCUS_IDS[key];
+    if (!targetId) return;
+    const timer = window.setTimeout(() => {
+      const el =
+        document.getElementById(targetId) ??
+        (key === "twilio"
+          ? document.getElementById("business-details")
+          : null);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [activeSection, focus, isPending]);
 
   useEffect(() => {
     if (!business) return;
@@ -571,13 +601,15 @@ export function BusinessGeneralSettingsForm({
           {/* Overview card — exact mock */}
           <section className="shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5">
             <div className="flex items-start gap-5">
-              <BusinessLogoAvatar
-                disabled={saving}
-                previewUrl={logoSrc}
-                file={logoFile}
-                businessName={form.name}
-                onFile={setLogoFile}
-              />
+              <div id="business-settings-logo" className="scroll-mt-24">
+                <BusinessLogoAvatar
+                  disabled={saving}
+                  previewUrl={logoSrc}
+                  file={logoFile}
+                  businessName={form.name}
+                  onFile={setLogoFile}
+                />
+              </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
                 <div className="flex items-start justify-between gap-3">
@@ -614,7 +646,10 @@ export function BusinessGeneralSettingsForm({
                     <span className="truncate">{locationLabel}</span>
                   </span>
                   <span className="hidden h-3.5 w-px bg-[#E5E7EB] sm:block" aria-hidden />
-                  <span className="inline-flex items-center gap-1.5 sm:pl-3">
+                  <span
+                    id="business-settings-branch"
+                    className="inline-flex items-center gap-1.5 sm:pl-3"
+                  >
                     <GitBranch
                       className="size-3.5 shrink-0 text-slate-400"
                       strokeWidth={2.25}
@@ -632,7 +667,7 @@ export function BusinessGeneralSettingsForm({
           <section
             ref={detailsRef}
             id="business-details"
-            className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
+            className="flex min-h-0 flex-1 scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
           >
             <header className="flex shrink-0 items-center gap-3 px-5 py-3.5 xl:px-6">
               <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F1FF] text-[#2F6BFF]">

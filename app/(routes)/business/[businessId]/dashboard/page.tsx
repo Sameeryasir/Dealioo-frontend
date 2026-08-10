@@ -55,7 +55,7 @@ export default function BusinessDashboardPage() {
       getFacebookConnectionStatus(getSetupAccessToken(), businessId!),
   });
 
-  const stripeConnected = Boolean(restaurant?.stripeAccountId?.trim());
+  const stripeConnected = restaurant?.stripeConnected === true;
   const metaConnected = Boolean(metaStatusQuery.data?.connected);
   const integrationsLoading =
     !restaurant || metaStatusQuery.isPending;
@@ -75,7 +75,14 @@ export default function BusinessDashboardPage() {
   const activityData = activityChartQuery.data;
   const integrationsHref =
     businessId != null
-      ? businessSettingsHref(businessId, "integrations")
+      ? businessSettingsHref(businessId, "integrations", {
+          focus:
+            missingIntegrations.length === 1
+              ? missingIntegrations[0] === "stripe"
+                ? "stripe"
+                : "meta"
+              : undefined,
+        })
       : "/dashboard/settings/integrations";
 
   const infoMessage =
@@ -90,7 +97,7 @@ export default function BusinessDashboardPage() {
       <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
         {showIntegrationsInfo ? (
           <aside
-            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#bfdbfe] bg-[#f4f8ff] px-4 py-3.5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
+            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#e8edf5] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
             role="status"
             aria-label="Integrations needed"
           >

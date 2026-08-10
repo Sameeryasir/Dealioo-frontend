@@ -20,8 +20,8 @@ export default function BusinessAdsTrackingPage() {
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Ads Tracking">
       <div className="rd-premium-page campaign-immersive-page">
-        <article className="campaign-immersive-shell rd-premium-panel overflow-hidden">
-          <div className="campaign-immersive-tab-panel min-h-0 flex-1 overflow-y-auto">
+        <article className="campaign-immersive-shell rd-premium-panel min-h-0">
+          <div className="campaign-immersive-tab-panel min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
             <AdsTrackingPanel businessId={businessId} />
           </div>
         </article>

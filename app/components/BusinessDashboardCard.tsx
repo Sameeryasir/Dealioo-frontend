@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
-import { BusinessProfileSetupPopover } from "@/app/components/business/BusinessProfileSetupPopover";
+import { BusinessSetupPopover } from "@/app/components/business/BusinessSetupPopover";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
-import { getBusinessProfileSetup } from "@/app/lib/business-profile-setup";
+import { getBusinessSetup } from "@/app/lib/business-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import {
   resolveUploadImageUrl,
@@ -22,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 type Props = {
@@ -35,6 +36,7 @@ export default function BusinessDashboardCard({
   layout = "grid",
 }: Props) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { name, branchCount, city, state, country, logoUrl, id } = business;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -63,10 +65,10 @@ export default function BusinessDashboardCard({
   const branchLabel =
     branches === 1 ? "1 branch" : `${branches} branches`;
 
-  const setup = getBusinessProfileSetup(business);
+  // Single source of truth — card only renders getBusinessSetup() output.
+  const setup = getBusinessSetup(business);
   const progress = setup.progressPercent;
-  const remainingSteps = Math.max(0, setup.totalCount - setup.completedCount);
-  const isReady = progress >= 100;
+  const isReady = setup.isComplete;
 
   useEffect(() => {
     const target = Math.min(100, Math.max(0, Math.round(progress)));
@@ -115,11 +117,7 @@ export default function BusinessDashboardCard({
 
   const setupStatusText = isCountingProgress
     ? "Calculating…"
-    : isReady
-      ? `${setup.completedCount} steps completed`
-      : remainingSteps === 1
-        ? "1 step left"
-        : `${remainingSteps} steps left`;
+    : `${setup.completedCount} of ${setup.totalCount} complete`;
 
   const cardAriaLabel = `${name}${isReady ? ", ready" : ", in setup"}. Open dashboard.`;
 
@@ -274,13 +272,9 @@ export default function BusinessDashboardCard({
             <div className="org-biz-card-head-actions">{deleteButton}</div>
           </div>
 
-          <Link
-            href={dashboardHref}
-            className="org-biz-card-content no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35 focus-visible:ring-offset-2"
-            aria-label={cardAriaLabel}
-          >
+          <div className="org-biz-card-content">
             <div className="org-biz-card-bento">
-              <BusinessProfileSetupPopover setup={setup}>
+              <BusinessSetupPopover setup={setup}>
                 <div className="org-biz-card-progress-row">
                   <div
                     className="org-biz-card-progress-ring"
@@ -335,16 +329,32 @@ export default function BusinessDashboardCard({
                   </div>
                   <div className="org-biz-card-progress-copy">
                     <span className="org-biz-card-bento-eyebrow">
-                      Profile setup
+                      Business setup
                     </span>
                     <p className="org-biz-card-setup-status">{setupStatusText}</p>
+                    {!isCountingProgress && setup.nextRecommendedStep ? (
+                      <button
+                        type="button"
+                        data-setup-next
+                        className="org-biz-card-setup-next-btn"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          router.push(setup.nextRecommendedStep!.href);
+                        }}
+                      >
+                        Next: {setup.nextRecommendedStep.ctaLabel} →
+                      </button>
+                    ) : null}
                   </div>
                 </div>
-              </BusinessProfileSetupPopover>
+              </BusinessSetupPopover>
 
-              <div
-                className="org-biz-card-bento-cell org-biz-card-location-tile"
+              <Link
+                href={dashboardHref}
+                className="org-biz-card-bento-cell org-biz-card-location-tile no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35 focus-visible:ring-offset-2"
                 title={fullAddress || undefined}
+                aria-label={cardAriaLabel}
               >
                 <div className="org-biz-card-location-copy">
                   <span className="org-biz-card-bento-eyebrow org-biz-card-location-eyebrow">
@@ -355,24 +365,28 @@ export default function BusinessDashboardCard({
                     <span className="org-biz-card-location-city">{cityLabel}</span>
                   </p>
                 </div>
-                <span className="org-biz-card-location-meta text-white">
+                <span className="org-biz-card-location-meta">
                   <Building2
-                    className="size-3 shrink-0 text-white"
+                    className="size-3 shrink-0"
                     strokeWidth={2.25}
                     aria-hidden
                   />
-                  <span className="text-white">{branchLabel}</span>
+                  <span>{branchLabel}</span>
                 </span>
-              </div>
+              </Link>
             </div>
 
-            <div className="org-biz-card-footer org-biz-card-footer--bento">
+            <Link
+              href={dashboardHref}
+              className="org-biz-card-footer org-biz-card-footer--bento no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35 focus-visible:ring-offset-2"
+              aria-label={cardAriaLabel}
+            >
               <span className="org-biz-card-cta">
                 Open dashboard
                 <ArrowUpRight className="size-4" strokeWidth={2.25} aria-hidden />
               </span>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </div>
       </div>
       {confirmDialog}

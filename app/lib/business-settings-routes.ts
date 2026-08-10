@@ -28,11 +28,25 @@ export function businessSettingsBasePath(businessId: string | number): string {
   return `/business/${businessId}/dashboard/settings`;
 }
 
+export type BusinessSettingsFocus =
+  | "info"
+  | "logo"
+  | "contact"
+  | "address"
+  | "branch"
+  | "twilio"
+  | "stripe"
+  | "meta";
+
 export function businessSettingsHref(
   businessId: string | number,
   section: BusinessSettingsSection = "general",
+  options?: { focus?: BusinessSettingsFocus | string },
 ): string {
-  return `${businessSettingsBasePath(businessId)}/${section}`;
+  const path = `${businessSettingsBasePath(businessId)}/${section}`;
+  const focus = options?.focus?.trim();
+  if (!focus) return path;
+  return `${path}?focus=${encodeURIComponent(focus)}`;
 }
 
 export function orgSettingsBasePath(): string {

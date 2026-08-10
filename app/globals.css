@@ -3874,37 +3874,15 @@ body {
     --org-card-amber: var(--brand-amber);
     --org-card-teal: var(--brand-teal);
     @apply relative overflow-hidden transition duration-300;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%);
-    box-shadow:
-      0 1px 2px rgba(5, 7, 13, 0.35),
-      0 14px 32px rgba(5, 7, 13, 0.28);
-    color: #ffffff;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    color: #0f172a;
   }
 
-  .org-biz-card::before {
-    content: "";
-    position: absolute;
-    top: -15%;
-    right: -5%;
-    width: 42%;
-    height: 70%;
-    pointer-events: none;
-    z-index: 0;
-    background: radial-gradient(ellipse, rgba(24, 119, 242, 0.22) 0%, transparent 72%);
-  }
-
+  .org-biz-card::before,
   .org-biz-card::after {
-    content: "";
-    position: absolute;
-    bottom: -20%;
-    left: -8%;
-    width: 38%;
-    height: 65%;
-    pointer-events: none;
-    z-index: 0;
-    display: block;
-    background: radial-gradient(ellipse, rgba(23, 119, 242, 0.16) 0%, transparent 70%);
+    display: none;
   }
 
   .org-biz-card-inner {
@@ -3929,17 +3907,17 @@ body {
   }
 
   .org-biz-card-delete {
-    @apply inline-flex size-9 cursor-pointer items-center justify-center rounded-xl border transition;
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 8px rgba(5, 7, 13, 0.25);
+    @apply inline-flex size-8 cursor-pointer items-center justify-center rounded-full border transition;
+    color: #64748b;
+    border-color: #e8edf5;
+    background: #f8fafc;
+    box-shadow: none;
   }
 
   .org-biz-card-delete:hover {
-    color: #ffffff;
-    border-color: rgba(252, 165, 165, 0.55);
-    background: rgba(239, 68, 68, 0.28);
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2;
   }
 
   .org-biz-card-delete:focus-visible {
@@ -3967,11 +3945,9 @@ body {
   }
 
   .org-biz-card--grid:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow:
-      0 4px 12px rgba(24, 119, 242, 0.16),
-      0 18px 40px rgba(5, 7, 13, 0.35);
+    transform: translateY(-2px);
+    border-color: #dbe4f0;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
   }
 
   .org-biz-card-head {
@@ -3980,25 +3956,28 @@ body {
 
   .org-biz-card-identity {
     @apply flex min-w-0 flex-1 items-center gap-3;
+    color: inherit;
   }
 
   .org-biz-card-avatar {
     position: static !important;
     inset: auto !important;
     transform: none !important;
-    @apply relative z-[1] flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white p-1.5 sm:size-16;
-    box-shadow: 0 4px 14px rgba(5, 7, 13, 0.35);
+    @apply relative z-[1] flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white p-1.5 sm:size-16;
+    border-color: #e8edf5;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   }
 
   .org-biz-card--grid:hover .org-biz-card-avatar {
     transform: none !important;
-    box-shadow: 0 4px 14px rgba(5, 7, 13, 0.35);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   }
 
   .org-biz-card-avatar--placeholder {
-    @apply border-white/15 p-0;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(24, 119, 242, 0.18) 100%);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    @apply p-0;
+    border-color: #dbeafe;
+    background: #eff6ff;
+    box-shadow: none;
   }
 
   .org-biz-card-avatar-img {
@@ -4006,7 +3985,7 @@ body {
   }
 
   .org-biz-card-avatar-placeholder {
-    @apply flex size-full items-center justify-center text-white/45;
+    @apply flex size-full items-center justify-center text-slate-400;
   }
 
   .org-biz-card-content {
@@ -4019,16 +3998,14 @@ body {
   }
 
   .org-biz-card-bento {
-    @apply mt-3 grid min-h-[4.25rem] shrink-0 grid-cols-2 gap-0 overflow-hidden rounded-xl border;
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 4px 14px rgba(5, 7, 13, 0.2);
+    @apply mt-3 grid min-h-[5.5rem] shrink-0 grid-cols-2 gap-0 overflow-hidden rounded-xl border;
+    border-color: #e8edf5;
+    background: #ffffff;
+    box-shadow: none;
   }
 
   .org-biz-card-bento-cell {
-    @apply flex min-h-[4.25rem] flex-col justify-between border-0 p-2.5;
+    @apply flex min-h-[4.25rem] flex-col justify-between border-0 p-3;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -4040,7 +4017,7 @@ body {
 
   .org-biz-card-progress-wrap {
     @apply flex min-h-[4.25rem] min-w-0 flex-col;
-    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-right: 1px solid #e8edf5 !important;
     background: transparent !important;
   }
 
@@ -4055,7 +4032,7 @@ body {
   .org-biz-card-progress-wrap--interactive:hover,
   .org-biz-card-progress-wrap--interactive:focus-visible {
     outline: none;
-    background: rgba(255, 255, 255, 0.06) !important;
+    background: #f8fafc !important;
   }
 
   .org-biz-card-progress-row {
@@ -4068,20 +4045,20 @@ body {
 
   .org-biz-card-setup-pct {
     @apply pointer-events-none relative z-[1] m-0 text-center text-[0.72rem] font-bold leading-none tracking-tight tabular-nums;
-    color: #93c5fd;
+    color: #1877f2;
   }
 
   .org-biz-card-progress-ring {
-    @apply relative flex size-[2.85rem] shrink-0 items-center justify-center;
+    @apply relative flex size-[3.15rem] shrink-0 items-center justify-center;
     transform: translateZ(0);
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-setup-pct {
-    color: #93c5fd;
+    color: #1877f2;
   }
 
   .org-biz-card-progress-ring:not([data-complete="true"]) .org-biz-card-setup-pct {
-    color: #93c5fd;
+    color: #1877f2;
   }
 
   .org-biz-card-progress-svg {
@@ -4097,7 +4074,7 @@ body {
   }
 
   .org-biz-card-progress-ring-track {
-    stroke: rgba(255, 255, 255, 0.14);
+    stroke: #e2e8f0;
   }
 
   .org-biz-card-progress-ring-fill {
@@ -4109,7 +4086,7 @@ body {
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-track {
-    stroke: rgba(23, 119, 242, 0.2);
+    stroke: #dbeafe;
   }
 
   .org-biz-card-location-tile {
@@ -4126,62 +4103,117 @@ body {
     color: #f472b6 !important;
   }
 
-  .org-biz-setup-popover {
+  .org-biz-setup-modal-root {
     position: fixed;
+    inset: 0;
     z-index: 80;
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-    pointer-events: none;
-    transition:
-      opacity 0.16s ease,
-      transform 0.16s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
   }
 
-  .org-biz-setup-popover[data-placement="above"] {
-    transform: translateY(6px) scale(0.98);
+  .org-biz-setup-popover-backdrop {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(15, 23, 42, 0.35);
+    cursor: default;
   }
 
-  .org-biz-setup-popover[data-placement="below"] {
-    transform: translateY(-6px) scale(0.98);
+  .org-biz-setup-modal {
+    --org-biz-setup-modal-size: min(26rem, calc(100vw - 2.5rem), calc(100vh - 2.5rem));
+    position: relative;
+    z-index: 1;
+    width: var(--org-biz-setup-modal-size);
+    height: var(--org-biz-setup-modal-size);
+    animation: org-biz-setup-modal-in 0.18s ease;
   }
 
-  .org-biz-setup-popover[data-placement="right"] {
-    transform: translateX(-6px) scale(0.98);
+  @keyframes org-biz-setup-modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
-  .org-biz-setup-popover[data-placement="left"] {
-    transform: translateX(6px) scale(0.98);
+  .org-biz-setup-modal-head-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
-  .org-biz-setup-popover--visible {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-    pointer-events: auto;
+  .org-biz-setup-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .org-biz-setup-modal-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
   }
 
   .org-biz-setup-popover-inner {
-    max-height: min(60vh, 22rem);
+    height: 100%;
+    max-height: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-radius: 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: linear-gradient(165deg, #121a2b 0%, #0b1220 100%);
-    box-shadow:
-      0 18px 40px rgba(15, 23, 42, 0.35),
-      0 0 0 1px rgba(24, 119, 242, 0.1);
+    border-radius: 1rem;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
   }
 
-  .org-biz-setup-popover--complete .org-biz-setup-popover-inner {
-    max-height: none;
+  .org-biz-setup-popover-inner::before {
+    content: "";
+    display: block;
+    height: 0.35rem;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, #1877f2 0%, #7c3aed 55%, #0284c7 100%);
+  }
+
+  .org-biz-setup-modal--complete .org-biz-setup-popover-inner {
+    height: 100%;
+  }
+
+  .org-biz-setup-modal--complete .org-biz-setup-popover-complete {
+    flex: 1;
+    justify-content: center;
+    padding: 1.5rem;
   }
 
   .org-biz-setup-popover-complete {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
     padding: 0.95rem 1rem 1.05rem;
+  }
+
+  .org-biz-setup-popover-complete .org-biz-setup-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
   }
 
   .org-biz-setup-popover-complete-icon {
@@ -4200,16 +4232,17 @@ body {
     margin: 0.45rem 0 0;
     font-size: 0.72rem;
     font-weight: 700;
-    color: rgba(226, 232, 240, 0.9);
+    color: #0f172a;
   }
 
   .org-biz-setup-popover--complete .org-biz-setup-popover-subtitle {
-    color: rgba(203, 213, 225, 0.95);
+    color: #64748b;
   }
 
   .org-biz-setup-popover-head {
-    padding: 0.85rem 0.95rem 0.7rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.85rem 0.95rem 0.75rem;
+    border-bottom: 1px solid #e8edf5;
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
   }
 
   .org-biz-setup-popover-title {
@@ -4217,24 +4250,102 @@ body {
     font-size: 0.82rem;
     font-weight: 800;
     letter-spacing: -0.01em;
-    color: #f8fafc;
+    color: #0f172a;
   }
 
   .org-biz-setup-popover-subtitle {
-    margin: 0.25rem 0 0;
+    margin: 0.35rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     font-size: 0.7rem;
     line-height: 1.35;
-    color: rgba(148, 163, 184, 0.95);
+    color: #64748b;
+  }
+
+  .org-biz-setup-progress-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-progress-pct {
+    color: #1877f2;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-popover-groups {
+    margin: 0;
+    padding: 0.55rem 0.7rem 0.65rem;
+    overflow-y: auto;
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .org-biz-setup-popover-group {
+    border-radius: 0.75rem;
+    padding: 0.4rem 0.35rem 0.35rem;
+  }
+
+  .org-biz-setup-popover-group[data-group="business_profile"] {
+    background: #eff6ff;
+  }
+
+  .org-biz-setup-popover-group[data-group="operations"] {
+    background: #ecfdf5;
+  }
+
+  .org-biz-setup-popover-group[data-group="payments"] {
+    background: #f5f3ff;
+  }
+
+  .org-biz-setup-popover-group[data-group="marketing"] {
+    background: #f0f9ff;
+  }
+
+  .org-biz-setup-popover-group-label {
+    margin: 0 0 0.2rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .org-biz-setup-popover-group[data-group="business_profile"]
+    .org-biz-setup-popover-group-label {
+    color: #2563eb;
+  }
+
+  .org-biz-setup-popover-group[data-group="operations"]
+    .org-biz-setup-popover-group-label {
+    color: #059669;
+  }
+
+  .org-biz-setup-popover-group[data-group="payments"]
+    .org-biz-setup-popover-group-label {
+    color: #7c3aed;
+  }
+
+  .org-biz-setup-popover-group[data-group="marketing"]
+    .org-biz-setup-popover-group-label {
+    color: #0284c7;
   }
 
   .org-biz-setup-popover-list {
     margin: 0;
-    padding: 0.45rem 0.55rem;
+    padding: 0;
     list-style: none;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.12rem;
   }
 
   .org-biz-setup-popover-item {
@@ -4254,27 +4365,48 @@ body {
   }
 
   .org-biz-setup-popover-item--done {
-    color: rgba(134, 239, 172, 0.72);
+    color: #64748b;
+    opacity: 1;
+  }
+
+  .org-biz-setup-popover-item--done svg {
+    color: #22c55e;
   }
 
   .org-biz-setup-popover-item--todo {
-    color: rgba(226, 232, 240, 0.9);
+    color: #0f172a;
     cursor: pointer;
+    background: rgba(255, 255, 255, 0.8);
     transition: background 0.12s ease, color 0.12s ease;
   }
 
   .org-biz-setup-popover-item--todo:hover {
-    background: rgba(24, 119, 242, 0.14);
-    color: #93c5fd;
+    background: #ffffff;
+    color: #1877f2;
   }
 
   .org-biz-setup-popover-item--todo svg {
-    color: #60a5fa;
+    color: #1877f2;
+  }
+
+  .org-biz-setup-popover-group[data-group="payments"]
+    .org-biz-setup-popover-item--todo svg {
+    color: #7c3aed;
+  }
+
+  .org-biz-setup-popover-group[data-group="marketing"]
+    .org-biz-setup-popover-item--todo svg {
+    color: #0284c7;
+  }
+
+  .org-biz-setup-popover-group[data-group="operations"]
+    .org-biz-setup-popover-item--todo svg {
+    color: #059669;
   }
 
   .org-biz-setup-popover-footer {
     padding: 0.7rem 0.85rem 0.85rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid #e8edf5;
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
@@ -4286,7 +4418,7 @@ body {
     gap: 0.15rem;
     font-size: 0.7rem;
     font-weight: 700;
-    color: rgba(226, 232, 240, 0.88);
+    color: #0f172a;
   }
 
   .org-biz-setup-popover-cta {
@@ -4315,7 +4447,7 @@ body {
     margin: 0;
     font-size: 0.72rem;
     font-weight: 600;
-    color: #86efac;
+    color: #16a34a;
     text-align: center;
   }
 
@@ -4325,7 +4457,7 @@ body {
 
   .org-biz-card-location-value {
     @apply m-0 flex min-w-0 items-center gap-1 text-[13px] font-semibold leading-snug;
-    color: #ffffff !important;
+    color: #0f172a !important;
   }
 
   .org-biz-card-location-city {
@@ -4334,11 +4466,11 @@ body {
 
   .org-biz-card-location-meta {
     @apply mt-1 inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold leading-snug;
-    color: #ffffff !important;
+    color: #64748b !important;
   }
 
   .org-biz-card-location-meta svg {
-    color: #ffffff !important;
+    color: #94a3b8 !important;
   }
 
   .org-biz-card-footer--bento {
@@ -4350,19 +4482,15 @@ body {
   .org-biz-card-footer--bento .org-biz-card-cta {
     @apply inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-[14px] font-semibold;
     border: none;
-    background: #1777f2;
-    color: var(--brand-white);
-    box-shadow:
-      0 4px 14px rgba(23, 119, 242, 0.28),
-      0 1px 0 rgba(255, 255, 255, 0.2) inset;
+    background: #1877f2;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(24, 119, 242, 0.22);
   }
 
   .org-biz-card--grid:hover .org-biz-card-footer--bento .org-biz-card-cta {
-    background: #1468d6;
+    background: #0f5ed7;
     transform: none;
-    box-shadow:
-      0 6px 18px rgba(23, 119, 242, 0.34),
-      0 1px 0 rgba(255, 255, 255, 0.2) inset;
+    box-shadow: 0 6px 18px rgba(24, 119, 242, 0.28);
   }
 
   .org-biz-card--list {
@@ -4374,23 +4502,21 @@ body {
   }
 
   .org-biz-card--list:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow:
-      0 1px 2px rgba(5, 7, 13, 0.3),
-      0 8px 24px rgba(5, 7, 13, 0.28);
+    border-color: #dbe4f0;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
   }
 
   .org-biz-card-logo {
     @apply flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border;
-    border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: #e8edf5;
+    background: #f8fafc;
   }
 
   .org-biz-card-status {
     @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wide;
-    color: #93c5fd;
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(147, 197, 253, 0.35);
+    color: #1877f2;
+    background: #eff6ff;
+    border-color: #dbeafe;
     box-shadow: none;
   }
 
@@ -4415,7 +4541,7 @@ body {
 
   .org-biz-card-title {
     @apply m-0 min-w-0 truncate text-[1.125rem] font-bold leading-snug tracking-[-0.02em];
-    color: #ffffff;
+    color: #0f172a;
   }
 
   .org-biz-card--list .org-biz-card-title {
@@ -4424,7 +4550,7 @@ body {
 
   .org-biz-card-category {
     @apply m-0 text-[13px] font-medium leading-snug;
-    color: rgba(255, 255, 255, 0.55);
+    color: #64748b;
   }
 
   .org-biz-card--list .org-biz-card-category {
@@ -4433,39 +4559,52 @@ body {
 
   .org-biz-card-description {
     @apply mt-1.5 line-clamp-2 text-[13px] leading-snug;
-    color: rgba(255, 255, 255, 0.65);
+    color: #64748b;
   }
 
   .org-biz-card-setup-status {
     @apply m-0 line-clamp-1 min-h-[1.25rem] text-[13px] font-semibold leading-snug;
-    color: rgba(255, 255, 255, 0.75);
+    color: #0f172a;
+  }
+
+  .org-biz-card-setup-next-btn {
+    @apply m-0 max-w-full truncate border-0 bg-transparent p-0 text-left text-[0.68rem] font-medium leading-snug;
+    color: #94a3b8;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .org-biz-card-setup-next-btn:hover {
+    color: #1877f2;
+    text-decoration: none;
   }
 
   .org-biz-card-progress-wrap .org-biz-card-setup-status {
-    color: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
   }
 
   .org-biz-card-progress-row:has(
       .org-biz-card-progress-ring:not([data-complete="true"])
     )
     .org-biz-card-setup-status {
-    color: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
   }
 
   .org-biz-card-cta {
     @apply inline-flex shrink-0 items-center gap-1 text-sm font-semibold;
-    color: #ffffff;
+    color: #1877f2;
   }
 
   .org-biz-card-thumb {
     @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border;
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: #e8edf5;
     background: #ffffff;
   }
 
   .org-biz-card-thumb--placeholder {
-    @apply border-white/15 p-0;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(24, 119, 242, 0.18) 100%);
+    @apply p-0;
+    border-color: #dbeafe;
+    background: #eff6ff;
   }
 
   .org-biz-card-thumb .org-biz-card-avatar-img {
@@ -4486,16 +4625,16 @@ body {
 
   .org-biz-card-meta-inline {
     @apply mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs;
-    color: rgba(255, 255, 255, 0.55);
+    color: #64748b;
   }
 
   .org-biz-card-list-cta {
     @apply relative z-[1] hidden shrink-0 items-center gap-1 text-sm font-semibold sm:inline-flex;
-    color: #93c5fd;
+    color: #1877f2;
   }
 
   .org-biz-card--list:hover .org-biz-card-list-cta {
-    color: #bfdbfe;
+    color: #1468d6;
   }
 
   .org-dashboard-first-run {

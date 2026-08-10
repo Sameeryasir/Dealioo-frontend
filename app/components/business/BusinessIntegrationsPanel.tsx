@@ -92,7 +92,7 @@ export function BusinessIntegrationsPanel({
         return;
       }
       const business = await fetchBusinessById(token, businessId);
-      setStripeConnected(Boolean(business.stripeAccountId?.trim()));
+      setStripeConnected(business.stripeConnected === true);
     } catch (e) {
       setStripeError(
         e instanceof Error ? e.message : "Could not check Stripe connection.",

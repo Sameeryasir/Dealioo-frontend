@@ -12,7 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
@@ -117,15 +117,18 @@ const integrationCardThemes = {
 
 function IntegrationCardShell({
   theme,
+  id,
   children,
 }: {
   theme: keyof typeof integrationCardThemes;
+  id?: string;
   children: ReactNode;
 }) {
   const t = integrationCardThemes[theme];
   return (
     <li
-      className={`overflow-hidden rounded-[1.35rem] border border-[#e8edf5] shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${t.surface}`}
+      id={id}
+      className={`scroll-mt-24 overflow-hidden rounded-[1.35rem] border border-[#e8edf5] shadow-[0_6px_18px_rgba(15,23,42,0.04)] ${t.surface}`}
     >
       <div className={`h-1.5 w-full ${t.accent}`} aria-hidden />
       <div className="p-5">{children}</div>
@@ -302,7 +305,9 @@ export function BusinessSettingsPanel({
   businessId,
 }: BusinessSettingsPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const settingsFocus = searchParams.get("focus")?.trim().toLowerCase() || "";
 
   type ConnectStatus = "idle" | "loading" | "error";
   const [stripeConnected, setStripeConnected] = useState(false);
@@ -346,7 +351,8 @@ export function BusinessSettingsPanel({
         return;
       }
       const business = await fetchBusinessById(token, businessId);
-      setStripeConnected(Boolean(business.stripeAccountId?.trim()));
+      // Use the sanitized connection flag — an account id alone is not enough.
+      setStripeConnected(business.stripeConnected === true);
       if (business.name?.trim()) {
         setBusinessName(business.name.trim());
       }
@@ -423,6 +429,23 @@ export function BusinessSettingsPanel({
     if (section !== "scanning" || businessId == null) return;
     router.replace(`/business/${businessId}/dashboard/scanning`);
   }, [section, businessId, router]);
+
+  useEffect(() => {
+    if (section !== "integrations" || integrationSetup) return;
+    const targetId =
+      settingsFocus === "stripe"
+        ? "settings-integration-stripe"
+        : settingsFocus === "meta"
+          ? "settings-integration-meta"
+          : "";
+    if (!targetId) return;
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(targetId)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [section, settingsFocus, integrationSetup, stripeStatusLoading, metaStatusLoading]);
 
   useEffect(() => {
     if (businessId == null) return;
@@ -664,6 +687,7 @@ export function BusinessSettingsPanel({
           <BusinessGeneralSettingsForm
             businessId={businessId}
             activeSection={activeSection}
+            focus={settingsFocus}
           />
         </div>
       </section>
@@ -880,7 +904,7 @@ export function BusinessSettingsPanel({
                   }
                 />
                 <ul className="space-y-4">
-                  <IntegrationCardShell theme="stripe">
+                  <IntegrationCardShell theme="stripe" id="settings-integration-stripe">
                     <div className="flex flex-wrap items-center gap-5 lg:flex-nowrap lg:justify-between">
                       <span
                         aria-hidden
@@ -965,7 +989,7 @@ export function BusinessSettingsPanel({
                     ) : null}
                   </IntegrationCardShell>
 
-                  <IntegrationCardShell theme="facebook">
+                  <IntegrationCardShell theme="facebook" id="settings-integration-meta">
                     <div className="flex flex-wrap items-center gap-5 lg:flex-nowrap lg:justify-between">
                       <span
                         aria-hidden
