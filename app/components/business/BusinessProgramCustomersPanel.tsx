@@ -38,6 +38,15 @@ import {
 const JOINING_TREND_MONTHS = 6;
 const BRAND = "#1877f2";
 
+const LOGO = {
+  blue: "#0B69FC",
+  pink: "#F83071",
+  orange: "#FD7137",
+  purple: "#AD20E3",
+  green: "#00B34C",
+  yellow: "#FCB825",
+} as const;
+
 const panelCardClass =
   "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
@@ -53,10 +62,20 @@ function formatJoiningDate(value: string): string {
   });
 }
 
-function customerInitial(customer: BusinessCustomerRecord): string {
-  const fromName = customer.name.trim().charAt(0);
-  if (fromName) return fromName.toUpperCase();
-  return (customer.email.charAt(0) || "?").toUpperCase();
+function customerInitials(customer: BusinessCustomerRecord): string {
+  const parts = customer.name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  const email = customer.email.trim();
+  if (email.length >= 2) return email.slice(0, 2).toUpperCase();
+  return (email.charAt(0) || "?").toUpperCase();
 }
 
 function SectionIcon({ children }: { children: ReactNode }) {
@@ -386,9 +405,12 @@ export function BusinessProgramCustomersPanel({
         <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <SectionIcon>
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]"
+                aria-hidden
+              >
                 <UserRound className="size-5" strokeWidth={2.25} />
-              </SectionIcon>
+              </span>
               <div className="min-w-0">
                 <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
                   Guest roster
@@ -410,20 +432,28 @@ export function BusinessProgramCustomersPanel({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search guests…"
                   aria-label="Search guests"
-                  className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-3 text-xs leading-none text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-56"
+                  className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-3 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
                 />
               </label>
               <button
                 type="button"
                 onClick={() => exportGuestsCsv(filteredCustomers)}
                 disabled={filteredCustomers.length === 0}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#1877f2] px-3 text-xs font-semibold leading-none text-white shadow-sm transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold leading-none text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: LOGO.blue }}
               >
                 <Download className="size-3.5 shrink-0" aria-hidden />
                 Export
               </button>
               {rangeLabel ? (
-                <span className="inline-flex h-9 items-center rounded-full bg-[#f4f8ff] px-2.5 text-[0.7rem] font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                <span
+                  className="inline-flex h-9 items-center rounded-full px-2.5 text-[0.7rem] font-bold leading-none ring-1"
+                  style={{
+                    background: "color-mix(in srgb, #0B69FC 8%, #ffffff)",
+                    color: LOGO.blue,
+                    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${LOGO.blue} 28%, transparent)`,
+                  }}
+                >
                   {rangeLabel}
                 </span>
               ) : null}
@@ -451,7 +481,12 @@ export function BusinessProgramCustomersPanel({
           </div>
         ) : customers.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-[#e8f2ff] text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
+            <span
+              className="mb-5 flex size-20 items-center justify-center rounded-[1.35rem] text-white shadow-[0_12px_30px_rgba(11,105,252,0.18)]"
+              style={{
+                background: `linear-gradient(145deg, ${LOGO.blue}, ${LOGO.purple} 55%, ${LOGO.pink})`,
+              }}
+            >
               <Users className="size-9" strokeWidth={2} aria-hidden />
             </span>
             <p className="text-base font-bold text-[#07111f]">No guests yet</p>
@@ -474,44 +509,44 @@ export function BusinessProgramCustomersPanel({
                       <TableColumnHeader
                         icon={UserRound}
                         label="Guest"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
+                        iconClassName="text-[#0B69FC]"
+                        labelClassName="text-[#0B69FC]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={Mail}
                         label="Email"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
+                        iconClassName="text-[#AD20E3]"
+                        labelClassName="text-[#AD20E3]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={Phone}
                         label="Phone"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
+                        iconClassName="text-[#FD7137]"
+                        labelClassName="text-[#FD7137]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={BarChart3}
                         label="Visits"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
+                        iconClassName="text-[#00B34C]"
+                        labelClassName="text-[#00B34C]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={CalendarDays}
                         label="Joining date"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
+                        iconClassName="text-[#F83071]"
+                        labelClassName="text-[#F83071]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
-                      <span className="inline-flex items-center text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#1877f2]">
+                      <span className="inline-flex items-center text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#FCB825]">
                         Actions
                       </span>
                     </th>
@@ -521,14 +556,14 @@ export function BusinessProgramCustomersPanel({
                   {filteredCustomers.map((customer, index) => (
                     <tr
                       key={customer.id}
-                      className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f4f8ff]/70 ${
+                      className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f0f5ff] ${
                         index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
                       }`}
                     >
                       <td className="px-5 py-3.5 align-middle">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold leading-none text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
-                            {customerInitial(customer)}
+                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                            {customerInitials(customer)}
                           </span>
                           <div className="min-w-0 leading-tight">
                             <p className="truncate text-sm font-bold text-[#07111f]">
@@ -543,7 +578,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                           <Mail
-                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            className="size-3.5 shrink-0 text-[#AD20E3]"
                             aria-hidden
                           />
                           <span className="truncate">{customer.email}</span>
@@ -553,7 +588,7 @@ export function BusinessProgramCustomersPanel({
                         {customer.phone ? (
                           <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                             <Phone
-                              className="size-3.5 shrink-0 text-[#1877f2]"
+                              className="size-3.5 shrink-0 text-[#FD7137]"
                               aria-hidden
                             />
                             <span className="truncate">{customer.phone}</span>
@@ -567,7 +602,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex items-center gap-1.5 text-sm font-normal tabular-nums leading-none text-slate-700">
                           <BarChart3
-                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            className="size-3.5 shrink-0 text-[#00B34C]"
                             aria-hidden
                           />
                           {customer.visitCount}
@@ -576,7 +611,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex items-center gap-1.5 text-sm font-semibold leading-none text-slate-700">
                           <CalendarDays
-                            className="size-3.5 shrink-0 text-[#1877f2]"
+                            className="size-3.5 shrink-0 text-[#F83071]"
                             aria-hidden
                           />
                           {formatJoiningDate(customer.joiningDate)}
@@ -586,7 +621,7 @@ export function BusinessProgramCustomersPanel({
                         <button
                           type="button"
                           aria-label={`Actions for ${customer.name}`}
-                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:bg-[#f8fafc] hover:text-slate-600"
+                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:border-[#FCB825]/50 hover:bg-[#FFF8E8] hover:text-[#FCB825]"
                         >
                           <MoreHorizontal className="size-4" aria-hidden />
                         </button>
@@ -609,13 +644,16 @@ export function BusinessProgramCustomersPanel({
                     onClick={() =>
                       setPage((current) => Math.max(1, current - 1))
                     }
-                    className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#0B69FC]/35 hover:bg-[#f0f5ff] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
                   </button>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
                     {customersQuery.isFetching ? (
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                      <Loader2
+                        className="size-3.5 animate-spin text-[#0B69FC]"
+                        aria-hidden
+                      />
                     ) : null}
                     Page {page} of {totalPages}
                   </span>
@@ -625,7 +663,7 @@ export function BusinessProgramCustomersPanel({
                     onClick={() =>
                       setPage((current) => Math.min(totalPages, current + 1))
                     }
-                    className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#0B69FC]/35 hover:bg-[#f0f5ff] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>

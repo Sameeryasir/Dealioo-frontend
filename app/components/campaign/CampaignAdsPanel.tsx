@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
-  Loader2,
 } from "lucide-react";
 import { MetaAdsAnalyticsDashboard } from "@/app/components/campaign/MetaAdsAnalyticsDashboard";
 import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
@@ -16,6 +15,67 @@ import {
 } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
+import { Skeleton } from "@/app/components/skeleton";
+
+function MetaAdsPanelSkeleton() {
+  return (
+    <div
+      className="-mx-1 space-y-6 rounded-3xl bg-white px-1 py-1 sm:px-2 sm:py-2"
+      aria-busy="true"
+      aria-label="Loading Meta Ads"
+    >
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-12 rounded-2xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-44 rounded-lg" />
+            <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
+            <Skeleton className="h-4 w-56 max-w-full rounded-lg" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-[5.5rem] rounded-2xl" />
+        ))}
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.9fr)]">
+        <div className="min-w-0 space-y-5">
+          <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+            <Skeleton className="mb-4 h-5 w-40 rounded-lg" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+          </div>
+          <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <Skeleton className="h-5 w-32 rounded-lg" />
+              <Skeleton className="h-9 w-52 rounded-lg" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+          <Skeleton className="mb-4 h-5 w-44 rounded-lg" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[4.5rem] rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 import {
   clearMetaDraftLocalState,
   isResumableMetaDraft,
@@ -387,7 +447,14 @@ export function CampaignAdsPanel({
     [businessId, invalidateDrafts, loadStats],
   );
 
-  const showAnalyticsDashboard = connectionPhase === "ready";
+  // Full dashboard skeleton until Meta connection + first stats API respond.
+  const showSkeleton =
+    connectionPhase === "loading" ||
+    (connectionPhase === "ready" && adStats === null && !adStatsError);
+
+  const showAnalyticsDashboard =
+    connectionPhase === "ready" &&
+    (adStats !== null || adStatsError !== null);
 
   const emptyStats: FacebookAdCampaignStats = {
     adAccountName: null,
@@ -416,10 +483,12 @@ export function CampaignAdsPanel({
     >
       <div
         className={`relative mx-auto w-full min-w-0 space-y-6 ${
-          showAnalyticsDashboard ? "max-w-[90rem]" : "max-w-3xl"
+          showSkeleton || showAnalyticsDashboard ? "max-w-[90rem]" : "max-w-3xl"
         }`}
       >
-        {showAnalyticsDashboard ? (
+        {showSkeleton ? (
+          <MetaAdsPanelSkeleton />
+        ) : showAnalyticsDashboard ? (
           <MetaAdsAnalyticsDashboard
             stats={adStats ?? emptyStats}
             insightsLoading={insightsLoading || adStatsLoading}
@@ -439,18 +508,6 @@ export function CampaignAdsPanel({
           />
         ) : (
           <div className="overflow-visible rounded-3xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]">
-            {connectionPhase === "loading" ? (
-              <div className="flex items-center gap-3 px-6 py-10">
-                <Loader2
-                  className="size-5 animate-spin text-[#1877f2]"
-                  aria-hidden
-                />
-                <p className="text-sm font-medium text-zinc-600">
-                  Checking Meta connection…
-                </p>
-              </div>
-            ) : null}
-
             {connectionPhase === "not_connected" ? (
               <div className="px-6 py-10 text-center sm:px-10">
                 <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-zinc-50 ring-1 ring-zinc-200/80">

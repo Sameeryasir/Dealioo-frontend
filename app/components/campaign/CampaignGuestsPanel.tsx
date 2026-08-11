@@ -1,14 +1,11 @@
 "use client";
 
 import {
-  Calendar,
   Check,
   Copy,
   Mail,
   MoreVertical,
   Phone,
-  Tag,
-  UserRound,
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,36 +20,32 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
-import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
-import {
-  formatDateTimeShort,
-  formatRelativeTimeAgo,
-} from "@/app/lib/datetime";
+import { formatPaidAtParts } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
 import {
   FUNNEL_GUESTS_PAGE_SIZE,
   type FunnelGuestRecord,
-  type FunnelGuestTag,
 } from "@/app/services/funnel-event/get-funnel-guests";
+
+// Dealioo logo palette — same scheme as Orders / Members tables.
+const LOGO = {
+  blue: "#0B69FC",
+  pink: "#F83071",
+  orange: "#FD7137",
+  purple: "#AD20E3",
+  green: "#00B34C",
+  yellow: "#FCB825",
+} as const;
 
 const guestsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
 const thClass = "funnel-guests-th whitespace-nowrap text-left align-middle";
 const tdClass = "funnel-guests-td text-left align-middle text-slate-700";
-
-const guestsHeadIconClass = "text-[#1877f2]";
-const guestsHeadLabelClass = "text-slate-600";
-
-const GUEST_AVATAR_TONES = [
-  "bg-[#1877f2] text-white",
-  "bg-[#7c3aed] text-white",
-  "bg-[#0d9488] text-white",
-  "bg-[#db2777] text-white",
-  "bg-[#d97706] text-white",
-] as const;
+const headLabelClass =
+  "text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none";
 
 const tableHeaderReveal = {
   hidden: { opacity: 0, y: -10 },
@@ -86,14 +79,6 @@ function guestInitials(name: string): string {
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
-function guestAvatarTone(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash + seed.charCodeAt(i) * (i + 1)) % 997;
-  }
-  return GUEST_AVATAR_TONES[hash % GUEST_AVATAR_TONES.length];
-}
-
 function whatsappHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 8) return null;
@@ -105,7 +90,7 @@ function GuestsTableSkeleton() {
     <div className="funnel-guests-table-skeleton overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
       <div className="border-b border-[#e8edf5] px-5 py-3">
         <div className="flex gap-8">
-          {Array.from({ length: 7 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} funnel className="h-3 w-12" />
           ))}
         </div>
@@ -118,15 +103,11 @@ function GuestsTableSkeleton() {
           <Skeleton funnel className="h-3 w-4" />
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <Skeleton funnel className="size-9 shrink-0 rounded-full" />
-            <div className="space-y-1.5">
-              <Skeleton funnel className="h-4 w-28" />
-              <Skeleton funnel className="h-3 w-14 rounded-full" />
-            </div>
+            <Skeleton funnel className="h-4 w-28" />
           </div>
           <Skeleton funnel className="h-4 w-32" />
           <Skeleton funnel className="h-4 w-20" />
-          <Skeleton funnel className="h-4 w-24" />
-          <Skeleton funnel className="h-5 w-24 rounded-full" />
+          <Skeleton funnel className="h-8 w-20" />
           <Skeleton funnel className="size-8 rounded-full" />
         </div>
       ))}
@@ -142,11 +123,11 @@ function GuestsEmptyState() {
           className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
           aria-hidden
         />
-        <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
-          <Users className="size-9 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
+        <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(11,105,252,0.12)]">
+          <Users className="size-9 text-[#0B69FC]" strokeWidth={1.75} aria-hidden />
         </span>
       </div>
-      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#0B69FC]">
         No guests yet
       </p>
       <h3 className="m-0 mt-2 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
@@ -159,42 +140,46 @@ function GuestsEmptyState() {
   );
 }
 
-function GuestsPanelHeader({ total }: { total: number }) {
+function GuestsPanelHeader() {
+  // Same header layout / logo blues as Orders panel (no total count pill).
   return (
-    <div className="funnel-guests-header">
-      <div className="funnel-guests-header__copy">
-        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-          Guests
+    <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]"
+          aria-hidden
+        >
+          <Users className="size-5" strokeWidth={2.25} />
         </span>
-        <span className="text-[0.72rem] font-medium text-slate-500">
-          Funnel signups & members
-        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+            Guests
+          </h2>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">
+            Funnel signups & members
+          </p>
+        </div>
       </div>
-      <span className="funnel-guests-header__total rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
-        {total} total
-      </span>
     </div>
   );
 }
 
-function GuestStatusBadge({ status }: { status: FunnelGuestRecord["status"] }) {
-  if (status === "returning") {
-    return (
-      <span className="funnel-guests-status funnel-guests-status--returning">
-        Returning
-      </span>
-    );
+function GuestJoinedAt({ iso }: { iso: string }) {
+  // Same layout/format as Orders "Paid at": time + day/month/year only.
+  const joined = formatPaidAtParts(iso);
+  if (!joined) {
+    return <span className="text-slate-300">N/A</span>;
   }
-  return (
-    <span className="funnel-guests-status funnel-guests-status--new">New</span>
-  );
-}
 
-function GuestTagPill({ tag }: { tag: FunnelGuestTag }) {
-  const label =
-    tag === "signup" ? "Signup" : tag === "prepaid" ? "Prepaid" : "Postpaid";
   return (
-    <span className={`funnel-guests-tag funnel-guests-tag--${tag}`}>{label}</span>
+    <span className="inline-flex flex-col gap-0.5 whitespace-nowrap">
+      <span className="text-sm font-bold tabular-nums text-[#07111f]">
+        {joined.time}
+      </span>
+      <span className="text-[0.68rem] font-medium tabular-nums text-slate-400">
+        {joined.date}
+      </span>
+    </span>
   );
 }
 
@@ -330,7 +315,7 @@ function GuestRowActions({ guest }: { guest: FunnelGuestRecord }) {
           disabled={!email}
           onClick={runEmail}
         >
-          <Mail className="size-3.5 text-[#7c3aed]" aria-hidden />
+          <Mail className="size-3.5" style={{ color: LOGO.purple }} aria-hidden />
           Email guest
         </button>
         <button
@@ -340,7 +325,7 @@ function GuestRowActions({ guest }: { guest: FunnelGuestRecord }) {
           disabled={!phone}
           onClick={runCall}
         >
-          <Phone className="size-3.5 text-[#ea580c]" aria-hidden />
+          <Phone className="size-3.5" style={{ color: LOGO.orange }} aria-hidden />
           Call guest
         </button>
         <button
@@ -350,7 +335,7 @@ function GuestRowActions({ guest }: { guest: FunnelGuestRecord }) {
           disabled={!wa}
           onClick={runWhatsApp}
         >
-          <WhatsAppIcon className="size-3.5 text-[#16a34a]" />
+          <WhatsAppIcon className="size-3.5 text-[#00B34C]" />
           WhatsApp
         </button>
       </div>
@@ -365,7 +350,7 @@ function GuestRowActions({ guest }: { guest: FunnelGuestRecord }) {
           e.stopPropagation();
           toggle();
         }}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-500 shadow-sm transition hover:bg-[#f8fafc] hover:text-[#07111f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+        className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf5] bg-white text-slate-400 transition hover:border-[#FCB825]/50 hover:bg-[#FFF8E8] hover:text-[#FCB825] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B69FC]/25"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Guest actions"
@@ -408,58 +393,24 @@ function GuestsTableSection({
               className="funnel-guests-head-row"
             >
               <th className={`${thClass} funnel-guests-th--index`}>
-                <TableColumnHeader
-                  label="#"
-                  iconClassName={guestsHeadIconClass}
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#0B69FC]`}>#</span>
               </th>
               <th className={`${thClass} funnel-guests-th--name`}>
-                <TableColumnHeader
-                  icon={UserRound}
-                  label="Name"
-                  iconClassName={guestsHeadIconClass}
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#0B69FC]`}>Name</span>
               </th>
               <th className={`${thClass} funnel-guests-th--email`}>
-                <TableColumnHeader
-                  icon={Mail}
-                  label="Email"
-                  iconClassName="text-[#7c3aed]"
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#AD20E3]`}>Email</span>
               </th>
               <th className={`${thClass} funnel-guests-th--phone`}>
-                <TableColumnHeader
-                  icon={Phone}
-                  label="Phone"
-                  iconClassName="text-[#ea580c]"
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#FD7137]`}>Phone</span>
               </th>
               <th className={`${thClass} funnel-guests-th--joined`}>
-                <TableColumnHeader
-                  icon={Calendar}
-                  label="Joined"
-                  iconClassName={guestsHeadIconClass}
-                  labelClassName={guestsHeadLabelClass}
-                />
-              </th>
-              <th className={`${thClass} funnel-guests-th--tags`}>
-                <TableColumnHeader
-                  icon={Tag}
-                  label="Tags"
-                  iconClassName="text-[#db2777]"
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#F83071]`}>Joined</span>
               </th>
               <th className={`${thClass} funnel-guests-th--actions`}>
-                <TableColumnHeader
-                  label="Actions"
-                  iconClassName="text-slate-400"
-                  labelClassName={guestsHeadLabelClass}
-                />
+                <span className={`${headLabelClass} text-[#FCB825]`}>
+                  Actions
+                </span>
               </th>
             </motion.tr>
           </thead>
@@ -471,13 +422,14 @@ function GuestsTableSection({
             {guests.map((guest, index) => {
               const rowNumber = rowOffset + index + 1;
               const initials = guestInitials(guest.name);
-              const wa = guest.phone ? whatsappHref(guest.phone) : null;
 
               return (
                 <motion.tr
                   key={guest.id}
                   variants={tableRowReveal}
-                  className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
+                  className={`group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#f0f5ff] ${
+                    index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
+                  }`}
                 >
                   <td className={`${tdClass} funnel-guests-td--index`}>
                     <span className="text-xs font-semibold tabular-nums text-slate-400">
@@ -486,18 +438,13 @@ function GuestsTableSection({
                   </td>
                   <td className={`${tdClass} funnel-guests-td--name`}>
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className={`funnel-guests-avatar flex size-9 shrink-0 items-center justify-center rounded-full text-[0.68rem] font-bold shadow-[0_4px_10px_rgba(15,23,42,0.12)] ${guestAvatarTone(guest.name || guest.email || String(guest.id))}`}
-                      >
+                      <span className="funnel-guests-avatar relative flex size-9 shrink-0 items-center justify-center rounded-full text-[0.68rem] font-bold leading-none">
                         {initials}
                       </span>
                       <div className="min-w-0">
                         <p className="m-0 truncate font-semibold text-[#07111f]">
                           {guest.name}
                         </p>
-                        <div className="mt-1">
-                          <GuestStatusBadge status={guest.status} />
-                        </div>
                       </div>
                     </div>
                   </td>
@@ -519,50 +466,18 @@ function GuestsTableSection({
                   </td>
                   <td className={`${tdClass} funnel-guests-td--phone`}>
                     {guest.phone ? (
-                      <div className="flex items-center gap-1.5">
-                        <a
-                          href={`tel:${guest.phone}`}
-                          className="whitespace-nowrap text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
-                        >
-                          {guest.phone}
-                        </a>
-                        {wa ? (
-                          <a
-                            href={wa}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex size-7 items-center justify-center rounded-lg text-[#16a34a] transition hover:bg-emerald-50"
-                            aria-label="Open WhatsApp"
-                            title="WhatsApp"
-                          >
-                            <WhatsAppIcon className="size-3.5" />
-                          </a>
-                        ) : null}
-                      </div>
+                      <a
+                        href={`tel:${guest.phone}`}
+                        className="whitespace-nowrap text-slate-600 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                      >
+                        {guest.phone}
+                      </a>
                     ) : (
                       <span className="text-slate-300">—</span>
                     )}
                   </td>
                   <td className={`${tdClass} funnel-guests-td--joined`}>
-                    <div className="flex flex-col gap-1">
-                      <span className="whitespace-nowrap text-slate-600">
-                        {formatDateTimeShort(guest.createdAt)}
-                      </span>
-                      <span className="funnel-guests-ago">
-                        {formatRelativeTimeAgo(guest.createdAt)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className={`${tdClass} funnel-guests-td--tags`}>
-                    <div className="flex flex-wrap gap-1.5">
-                      {guest.tags.length > 0 ? (
-                        guest.tags.map((tag) => (
-                          <GuestTagPill key={tag} tag={tag} />
-                        ))
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </div>
+                    <GuestJoinedAt iso={guest.createdAt} />
                   </td>
                   <td className={`${tdClass} funnel-guests-td--actions`}>
                     <GuestRowActions guest={guest} />
@@ -615,8 +530,6 @@ export function CampaignGuestsPanel({
     !isFunnelIdLoading && !loading && funnelId == null;
   const showEmpty =
     !showSkeleton && !error && funnelId != null && (meta?.total ?? 0) === 0;
-  const totalGuests = meta?.total ?? guests.length;
-
   useEffect(() => {
     if (showSkeleton || !error || alertDismissed) return;
     setAlertMessage(error);
@@ -635,7 +548,7 @@ export function CampaignGuestsPanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: standardEase }}
         >
-          <GuestsPanelHeader total={0} />
+          <GuestsPanelHeader />
           <GuestsTableSkeleton />
         </motion.div>
       ) : null}
@@ -662,7 +575,7 @@ export function CampaignGuestsPanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: standardEase }}
         >
-          <GuestsPanelHeader total={totalGuests} />
+          <GuestsPanelHeader />
           <GuestsTableSection
             guests={guests}
             rowOffset={rowOffset}

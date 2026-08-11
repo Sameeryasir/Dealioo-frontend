@@ -1,17 +1,12 @@
 "use client";
 
 import {
-  Calendar,
   Check,
-  CircleDollarSign,
-  Clock3,
+  Clock,
   Copy,
-  Layers,
   Mail,
   MoreVertical,
-  Settings2,
   ShoppingBag,
-  Target,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -23,27 +18,20 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
-import { StripeIcon } from "@/app/components/StripeLogo";
 import { Skeleton } from "@/app/components/skeleton";
-import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { useFunnelPayments } from "@/app/hooks/use-funnel-payments";
 import { paymentStatusBadgeClass } from "@/app/lib/badge-variants";
-import {
-  formatPaidAtParts,
-  formatRelativeTimeAgo,
-} from "@/app/lib/datetime";
+import { formatPaidAtParts } from "@/app/lib/datetime";
 import { formatCents } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
 import type { FunnelPayment } from "@/app/services/payment/get-funnel-payments";
 import { FUNNEL_ORDERS_PAGE_SIZE } from "@/app/services/payment/get-funnel-payments";
 
 const ordersCardClass =
-  "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+  "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
 const thClass = "funnel-orders-th whitespace-nowrap text-left align-middle";
 const tdClass = "funnel-orders-td text-left align-middle text-slate-700";
-
-const ordersHeadLabelClass = "text-slate-600";
 
 const tableHeaderReveal = {
   hidden: { opacity: 0, y: -10 },
@@ -82,96 +70,12 @@ function formatPaymentStatusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function isPendingStatus(status: string): boolean {
-  const s = status.trim().toLowerCase();
-  return s === "pending" || s === "processing" || s === "open";
-}
-
-function hasStripeChargeLink(payment: FunnelPayment): boolean {
-  return Boolean(payment.stripePaymentIntentId?.trim());
-}
-
-function resolvePlatformLabel(payment: FunnelPayment): {
-  kind: "stripe" | "online" | "in_store";
-  label: string;
-} {
-  const source = (payment.paymentSource ?? "").toUpperCase();
-  const channel = (payment.collectionChannel ?? "").toUpperCase();
-  const method = (payment.paymentMethod ?? "").toUpperCase();
-
-  // Only show Stripe when the medium really is Stripe (linked charge / paid online).
-  if (
-    (source === "STRIPE" || method === "ONLINE_CARD" || channel === "ONLINE") &&
-    hasStripeChargeLink(payment)
-  ) {
-    return { kind: "stripe", label: "Stripe" };
-  }
-
-  if (source === "SCANNER") return { kind: "in_store", label: "Scanner" };
-  if (method === "CASH") return { kind: "in_store", label: "Cash" };
-  if (method === "CARD") return { kind: "in_store", label: "Card" };
-  if (
-    source === "MANUAL" ||
-    channel === "IN_STORE" ||
-    method === "OTHER" ||
-    method === "IN_STORE"
-  ) {
-    return { kind: "in_store", label: "In store" };
-  }
-
-  // Prepaid pending before checkout: online medium, but not Stripe yet.
-  if (source === "STRIPE" || method === "ONLINE_CARD" || channel === "ONLINE") {
-    return { kind: "online", label: "Online" };
-  }
-
-  return { kind: "in_store", label: "In store" };
-}
-
-function PlatformCell({ payment }: { payment: FunnelPayment }) {
-  const platform = resolvePlatformLabel(payment);
-
-  if (platform.kind === "stripe") {
-    return (
-      <div className="flex flex-col items-start gap-1">
-        <StripeIcon className="funnel-orders-platform-icon !size-8 !rounded-lg shadow-none ring-0" />
-        <span className="text-[0.62rem] font-semibold text-[#7c3aed]">
-          Stripe
-        </span>
-      </div>
-    );
-  }
-
-  if (platform.kind === "online") {
-    return (
-      <div className="flex flex-col items-start gap-1">
-        <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#2563eb] ring-1 ring-[#bfdbfe]">
-          <CircleDollarSign className="size-3.5" strokeWidth={2.25} aria-hidden />
-        </span>
-        <span className="text-[0.62rem] font-semibold text-[#2563eb]">
-          Online
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-start gap-1">
-      <span className="funnel-orders-platform-fallback inline-flex size-8 items-center justify-center rounded-lg bg-[#ecfdf5] text-[#15803d] ring-1 ring-[#bbf7d0]">
-        <ShoppingBag className="size-3.5" strokeWidth={2.25} aria-hidden />
-      </span>
-      <span className="text-[0.62rem] font-semibold text-[#15803d]">
-        {platform.label}
-      </span>
-    </div>
-  );
-}
-
 function OrdersTableSkeleton() {
   return (
     <div className="funnel-orders-table-skeleton overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white ring-1 ring-black/[0.02]">
       <div className="border-b border-[#e8edf5] px-5 py-3">
         <div className="flex gap-8">
-          {Array.from({ length: 7 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} funnel className="h-3 w-12" />
           ))}
         </div>
@@ -182,7 +86,6 @@ function OrdersTableSkeleton() {
           className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-3.5 last:border-0"
         >
           <Skeleton funnel className="h-3 w-4" />
-          <Skeleton funnel className="size-9 shrink-0 rounded-lg" />
           <Skeleton funnel className="h-4 w-36" />
           <Skeleton funnel className="h-4 w-16" />
           <Skeleton funnel className="h-5 w-20 rounded-full" />
@@ -223,20 +126,25 @@ function OrdersEmptyState() {
   );
 }
 
-function OrdersPanelHeader({ total }: { total: number }) {
+function OrdersPanelHeader() {
   return (
-    <div className="funnel-orders-header">
-      <div className="funnel-orders-header__copy">
-        <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-          Orders
+    <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]"
+          aria-hidden
+        >
+          <ShoppingBag className="size-5" strokeWidth={2.25} />
         </span>
-        <span className="text-[0.72rem] font-medium text-slate-500">
-          Funnel checkout payments
-        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+            Orders
+          </h2>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">
+            Funnel checkout payments
+          </p>
+        </div>
       </div>
-      <span className="funnel-orders-header__total rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
-        {total} total
-      </span>
     </div>
   );
 }
@@ -279,28 +187,82 @@ function OrderPaidAt({ payment }: { payment: FunnelPayment }) {
   }
 
   return (
-    <span className="inline-flex flex-col gap-1 whitespace-nowrap">
+    <span className="inline-flex flex-col gap-0.5 whitespace-nowrap">
       <span className="text-sm font-bold tabular-nums text-[#07111f]">
         {paid.time}
       </span>
       <span className="text-[0.68rem] font-medium tabular-nums text-slate-400">
         {paid.date}
       </span>
-      <span className="funnel-orders-ago">{formatRelativeTimeAgo(iso)}</span>
     </span>
   );
 }
 
+function orderStatusBadgeClass(status: string): string {
+  const normalized = status.trim().toLowerCase();
+  // Match Members table: Status column stays in the orange family.
+  if (normalized === "paid" || normalized === "succeeded") {
+    return "bg-[#ecfdf5] text-emerald-700 ring-1 ring-emerald-200";
+  }
+  if (normalized === "pending" || normalized === "processing" || normalized === "open") {
+    return "bg-[#fff4ed] text-[#FD7137] ring-1 ring-[#fdba74]";
+  }
+  if (normalized === "failed" || normalized === "cancelled" || normalized === "canceled") {
+    return "bg-[#fff1f2] text-[#be123c] ring-1 ring-[#fecdd3]";
+  }
+  if (
+    normalized === "refunded" ||
+    normalized === "partially_refunded" ||
+    normalized === "disputed"
+  ) {
+    return "bg-[#fff8eb] text-[#b45309] ring-1 ring-[#fcd34d]";
+  }
+  return paymentStatusBadgeClass(status);
+}
+
 function OrderStatusBadge({ status }: { status: string }) {
-  const pending = isPendingStatus(status);
+  const normalized = status.trim().toLowerCase();
+  const label = formatPaymentStatusLabel(status);
+  const isPaid = normalized === "paid" || normalized === "succeeded";
+  const isPending =
+    normalized === "pending" ||
+    normalized === "processing" ||
+    normalized === "open";
+
+  // Paid / Pending: pill + solid icon circle (check / clock), matching product tags.
+  if (isPaid) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-emerald-700 ring-1 ring-emerald-200">
+        <span
+          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"
+          aria-hidden
+        >
+          <Check className="size-2.5" strokeWidth={3} />
+        </span>
+        {label}
+      </span>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4ed] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-[#c2410c] ring-1 ring-[#fdba74]">
+        <span
+          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#FD7137] text-white"
+          aria-hidden
+        >
+          <Clock className="size-2.5" strokeWidth={2.5} />
+        </span>
+        {label}
+      </span>
+    );
+  }
+
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold ${paymentStatusBadgeClass(status)}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${orderStatusBadgeClass(status)}`}
     >
-      {pending ? (
-        <Clock3 className="size-3 shrink-0" strokeWidth={2.5} aria-hidden />
-      ) : null}
-      {formatPaymentStatusLabel(status)}
+      {label}
     </span>
   );
 }
@@ -389,7 +351,7 @@ function OrderRowActions({ payment }: { payment: FunnelPayment }) {
           e.stopPropagation();
           toggle();
         }}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf5] bg-[#f8fafc] text-slate-500 transition hover:bg-white hover:text-[#07111f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+        className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf5] bg-white text-slate-400 transition hover:border-[#FCB825]/50 hover:bg-[#FFF8E8] hover:text-[#FCB825] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B69FC]/25"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Order actions"
@@ -477,58 +439,34 @@ function OrdersTableSection({
               className="funnel-orders-head-row"
             >
               <th className={`${thClass} funnel-orders-th--index`}>
-                <TableColumnHeader
-                  label="#"
-                  labelClassName={ordersHeadLabelClass}
-                />
-              </th>
-              <th className={`${thClass} funnel-orders-th--platform`}>
-                <TableColumnHeader
-                  icon={Layers}
-                  label="Platform"
-                  iconClassName="text-[#7c3aed]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#0B69FC]">
+                  #
+                </span>
               </th>
               <th className={`${thClass} funnel-orders-th--email`}>
-                <TableColumnHeader
-                  icon={Mail}
-                  label="Customer email"
-                  iconClassName="text-[#1877f2]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#0B69FC]">
+                  Customer email
+                </span>
               </th>
               <th className={`${thClass} funnel-orders-th--amount`}>
-                <TableColumnHeader
-                  icon={CircleDollarSign}
-                  label="Amount"
-                  iconClassName="text-[#16a34a]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#00B34C]">
+                  Amount
+                </span>
               </th>
               <th className={`${thClass} funnel-orders-th--status`}>
-                <TableColumnHeader
-                  icon={Target}
-                  label="Status"
-                  iconClassName="text-[#ea580c]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#FD7137]">
+                  Status
+                </span>
               </th>
               <th className={`${thClass} funnel-orders-th--paid`}>
-                <TableColumnHeader
-                  icon={Calendar}
-                  label="Paid at"
-                  iconClassName="text-[#7c3aed]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#F83071]">
+                  Paid at
+                </span>
               </th>
               <th className={`${thClass} funnel-orders-th--actions`}>
-                <TableColumnHeader
-                  icon={Settings2}
-                  label="Actions"
-                  iconClassName="text-[#7c3aed]"
-                  labelClassName={ordersHeadLabelClass}
-                />
+                <span className="text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#FCB825]">
+                  Actions
+                </span>
               </th>
             </motion.tr>
           </thead>
@@ -545,15 +483,14 @@ function OrdersTableSection({
                 <motion.tr
                   key={payment.id}
                   variants={tableRowReveal}
-                  className="group border-b border-[#f1f5f9] bg-white transition-colors duration-150 last:border-0 hover:bg-[#f8fafc]/80"
+                  className={`group border-b border-[#f1f5f9] transition-colors duration-150 last:border-b-0 hover:bg-[#f0f5ff] ${
+                    index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
+                  }`}
                 >
                   <td className={`${tdClass} funnel-orders-td--index`}>
                     <span className="text-xs font-semibold tabular-nums text-slate-400">
                       {rowOffset + index + 1}
                     </span>
-                  </td>
-                  <td className={`${tdClass} funnel-orders-td--platform`}>
-                    <PlatformCell payment={payment} />
                   </td>
                   <td className={`${tdClass} funnel-orders-td--email`}>
                     {email ? (
@@ -572,12 +509,14 @@ function OrdersTableSection({
                     )}
                   </td>
                   <td className={`${tdClass} funnel-orders-td--amount`}>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="whitespace-nowrap text-sm font-bold tabular-nums tracking-tight text-[#07111f]">
+                    <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+                      <span className="text-sm font-bold tabular-nums tracking-tight text-[#07111f]">
                         {formatCents(payment.amount, payment.currency)}
                       </span>
-                      <span className="funnel-orders-currency">{currency}</span>
-                    </div>
+                      <span className="text-[0.68rem] font-semibold uppercase tabular-nums text-slate-400">
+                        {currency}
+                      </span>
+                    </span>
                   </td>
                   <td className={`${tdClass} funnel-orders-td--status whitespace-nowrap`}>
                     <OrderStatusBadge status={payment.status} />
@@ -640,8 +579,6 @@ export function FunnelOrdersPanel({
     !isFunnelIdLoading && !isPaymentsLoading && funnelId == null;
   const showNoRecords =
     !showSkeleton && !error && funnelId != null && (meta?.total ?? 0) === 0;
-  const totalOrders = meta?.total ?? payments.length;
-
   useEffect(() => {
     if (showSkeleton || !error || alertDismissed) return;
     setAlertMessage(error);
@@ -660,7 +597,7 @@ export function FunnelOrdersPanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: standardEase }}
         >
-          <OrdersPanelHeader total={0} />
+          <OrdersPanelHeader />
           <OrdersTableSkeleton />
         </motion.div>
       ) : null}
@@ -686,7 +623,7 @@ export function FunnelOrdersPanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: standardEase }}
         >
-          <OrdersPanelHeader total={totalOrders} />
+          <OrdersPanelHeader />
 
           <OrdersTableSection
             payments={payments}

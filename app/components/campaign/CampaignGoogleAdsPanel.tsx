@@ -5,11 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   Check,
-  Loader2,
 } from "lucide-react";
 import { GoogleAdsAnalyticsDashboard } from "@/app/components/campaign/GoogleAdsAnalyticsDashboard";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
+import { Skeleton } from "@/app/components/skeleton";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
 import {
@@ -18,6 +18,66 @@ import {
   type GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
+
+function GoogleAdsPanelSkeleton() {
+  return (
+    <div
+      className="-mx-1 space-y-6 rounded-3xl bg-white px-1 py-1 sm:px-2 sm:py-2"
+      aria-busy="true"
+      aria-label="Loading Google Ads"
+    >
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-12 rounded-2xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-44 rounded-lg" />
+            <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
+            <Skeleton className="h-4 w-56 max-w-full rounded-lg" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-[5.5rem] rounded-2xl" />
+        ))}
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.9fr)]">
+        <div className="min-w-0 space-y-5">
+          <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+            <Skeleton className="mb-4 h-5 w-40 rounded-lg" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+          </div>
+          <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <Skeleton className="h-5 w-32 rounded-lg" />
+              <Skeleton className="h-9 w-52 rounded-lg" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[#EEF2F7] bg-white p-4 sm:p-5">
+          <Skeleton className="mb-4 h-5 w-44 rounded-lg" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[4.5rem] rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -129,9 +189,21 @@ export function CampaignGoogleAdsPanel({
     let cancelled = false;
 
     void (async () => {
+      // Keep stats loading true while we resolve connection + first stats fetch,
+      // so the UI stays on skeleton instead of an empty white dashboard.
+      setAdStatsLoading(true);
+      setAdStats(null);
+      setAdStatsError(null);
+
       const { connected, googleCustomerId: customerId } =
         await refreshConnection();
-      if (cancelled || !connected || !customerId) return;
+      if (cancelled) return;
+
+      if (!connected || !customerId) {
+        setAdStatsLoading(false);
+        return;
+      }
+
       await loadStats();
     })();
 
@@ -170,8 +242,19 @@ export function CampaignGoogleAdsPanel({
     ? `https://ads.google.com/aw/campaigns?ocid=${googleCustomerId}`
     : "https://ads.google.com";
 
-  const showAnalyticsDashboard =
+  const connectionReady =
     !googleLoading && googleConnected && Boolean(googleCustomerId);
+
+  // Skeleton until connection check finishes, and until the first stats API responds.
+  const showSkeleton =
+    googleLoading ||
+    (googleConnected &&
+      Boolean(googleCustomerId) &&
+      adStats === null &&
+      !adStatsError);
+
+  const showAnalyticsDashboard =
+    connectionReady && (adStats !== null || adStatsError !== null);
 
   const emptyStats: GoogleAdsCampaignStats = {
     customerId: googleCustomerId,
@@ -191,10 +274,12 @@ export function CampaignGoogleAdsPanel({
     >
       <div
         className={`relative mx-auto w-full min-w-0 space-y-6 ${
-          showAnalyticsDashboard ? "max-w-[90rem]" : "max-w-3xl"
+          showSkeleton || showAnalyticsDashboard ? "max-w-[90rem]" : "max-w-3xl"
         }`}
       >
-        {showAnalyticsDashboard ? (
+        {showSkeleton ? (
+          <GoogleAdsPanelSkeleton />
+        ) : showAnalyticsDashboard ? (
           <GoogleAdsAnalyticsDashboard
             stats={adStats ?? emptyStats}
             insightsLoading={adStatsLoading}
@@ -209,19 +294,7 @@ export function CampaignGoogleAdsPanel({
           />
         ) : (
           <div className="overflow-visible rounded-3xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]">
-            {googleLoading ? (
-              <div className="flex items-center gap-3 px-6 py-10">
-                <Loader2
-                  className="size-5 animate-spin text-[#1877f2]"
-                  aria-hidden
-                />
-                <p className="text-sm font-medium text-zinc-600">
-                  Checking Google Ads connection…
-                </p>
-              </div>
-            ) : null}
-
-            {!googleLoading && !googleConnected ? (
+            {!googleConnected ? (
               <div className="px-6 py-10 text-center sm:px-10">
                 <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-zinc-50 ring-1 ring-zinc-200/80">
                   <GoogleLogo className="size-9 opacity-80" />
@@ -253,7 +326,7 @@ export function CampaignGoogleAdsPanel({
               </div>
             ) : null}
 
-            {!googleLoading && googleConnected && !googleCustomerId ? (
+            {googleConnected && !googleCustomerId ? (
               <div className="flex flex-col gap-5 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                 <div className="flex items-start gap-4">
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">

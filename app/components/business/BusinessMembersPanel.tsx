@@ -2,12 +2,14 @@
 
 import {
   AlertCircle,
-  Check,
   Eye,
+  KeyRound,
   Loader2,
   Plus,
+  Shield,
   Trash2,
   UserPlus,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { InviteMemberModal } from "@/app/components/business/InviteMemberModal";
 import { Skeleton } from "@/app/components/skeleton";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { standardEase } from "@/app/lib/motion";
 import { getPermissionLabel } from "@/app/lib/member-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -27,17 +30,43 @@ import {
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import { type BusinessMemberListItem } from "@/app/services/member/types";
 
+const LOGO = {
+  blue: "#0B69FC",
+  pink: "#F83071",
+  orange: "#FD7137",
+  purple: "#AD20E3",
+  green: "#00B34C",
+  yellow: "#FCB825",
+} as const;
+
 const panelCardClass =
-  "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+  "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
+
+function memberInitials(member: BusinessMemberListItem): string {
+  const parts = member.name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  const email = member.email.trim();
+  if (email.length >= 2) return email.slice(0, 2).toUpperCase();
+  return (email.charAt(0) || "?").toUpperCase();
+}
 
 function memberStatusBadge(status: BusinessMemberListItem["status"]) {
+  // Status column uses orange — keep badges in that family (not green like Access).
   if (status === "owner") {
-    return "bg-[#ecfdf5] text-emerald-700 ring-emerald-200";
+    return "bg-[#fff4ed] text-[#c2410c] ring-[#fdba74]";
   }
   if (status === "pending") {
-    return "bg-amber-50 text-amber-700 ring-amber-200";
+    return "bg-[#fff8eb] text-[#b45309] ring-[#fcd34d]";
   }
-  return "bg-[#e8f2ff] text-[#1877f2] ring-[#bfdbfe]";
+  return "bg-[#fff4ed] text-[#FD7137] ring-[#fdba74]";
 }
 
 function memberStatusLabel(status: BusinessMemberListItem["status"]) {
@@ -136,10 +165,7 @@ function MemberDetailsModal({
 
   if (!member) return null;
 
-  // --- Member details dialog: simplified layout (less nested cards) ---
-  // What: Flattened role/status/permissions; email only in header.
-  // Why: Easier to scan; remove duplicate email block and heavy card chrome.
-  const initial = member.name.trim().charAt(0).toUpperCase() || "?";
+  const initials = memberInitials(member);
   const canRemove =
     member.status !== "owner" && member.id != null && member.id > 0;
   const permissionLabels =
@@ -172,8 +198,8 @@ function MemberDetailsModal({
           >
             <div className="flex items-start justify-between gap-3 border-b border-[#eef2f8] px-5 py-4">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white">
-                  {initial}
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                  {initials}
                 </span>
                 <div className="min-w-0">
                   <p
@@ -333,34 +359,38 @@ export function BusinessMembersPanel({
   return (
     <>
       <section className={embedded ? "space-y-4" : "space-y-5"}>
-        <div
-          className={`flex flex-wrap items-start justify-between gap-3 ${
-            embedded ? "" : "px-1"
-          }`}
-        >
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-[#07111f] sm:text-2xl">
-              Members
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Invite teammates, assign roles, and control exactly what each person
-              can access.
-            </p>
+        <div className={embedded ? "" : panelCardClass}>
+          <div className="relative border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe]"
+                  aria-hidden
+                >
+                  <UserRound className="size-5" strokeWidth={2.25} />
+                </span>
+                <div className="min-w-0">
+                  <h1 className="text-base font-extrabold tracking-tight text-[#07111f] sm:text-lg">
+                    Members
+                  </h1>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    Invite teammates, assign roles, and control access
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInviteOpen(true)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-xs font-semibold leading-none text-white shadow-sm transition hover:opacity-90"
+                style={{ background: LOGO.blue }}
+              >
+                <Plus className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
+                Invite member
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setInviteOpen(true)}
-            className="group inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-2xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:brightness-105"
-          >
-            <span className="flex size-7 items-center justify-center rounded-xl bg-white/15 transition group-hover:bg-white/20">
-              <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-            </span>
-            Invite member
-          </button>
-        </div>
-
-        <div className={embedded ? "" : panelCardClass}>
           {isLoading ? (
             <MembersTableSkeleton />
           ) : loadError ? (
@@ -397,7 +427,11 @@ export function BusinessMembersPanel({
               <button
                 type="button"
                 onClick={() => setInviteOpen(true)}
-                className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/20 transition hover:brightness-105"
+                className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl px-5 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
+                style={{
+                  background: LOGO.blue,
+                  boxShadow: "0 10px 24px rgba(11,105,252,0.22)",
+                }}
               >
                 <UserPlus className="size-4" strokeWidth={2.25} aria-hidden />
                 Invite your first member
@@ -421,28 +455,49 @@ export function BusinessMembersPanel({
 
               <table className="min-w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-[#f1f5f9]">
-                    <th className="px-5 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Member
+                  <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
+                    <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={UserRound}
+                        label="Member"
+                        iconClassName="text-[#0B69FC]"
+                        labelClassName="text-[#0B69FC]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Role
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={Shield}
+                        label="Role"
+                        iconClassName="text-[#AD20E3]"
+                        labelClassName="text-[#AD20E3]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Status
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={UserPlus}
+                        label="Status"
+                        iconClassName="text-[#FD7137]"
+                        labelClassName="text-[#FD7137]"
+                      />
                     </th>
-                    <th className="px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Access
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
+                        icon={KeyRound}
+                        label="Access"
+                        iconClassName="text-[#00B34C]"
+                        labelClassName="text-[#00B34C]"
+                      />
                     </th>
-                    <th className="px-5 py-3 text-right text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-                      Actions
+                    <th className="whitespace-nowrap px-5 py-3 text-right align-middle">
+                      <span className="inline-flex items-center justify-end text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#FCB825]">
+                        Actions
+                      </span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((member) => {
-                    const initial =
-                      member.name.trim().charAt(0).toUpperCase() || "?";
+                  {members.map((member, index) => {
+                    const initials = memberInitials(member);
                     const canViewDetails = member.status !== "owner";
                     const canRemove =
                       member.status !== "owner" &&
@@ -454,44 +509,46 @@ export function BusinessMembersPanel({
                     return (
                       <tr
                         key={`${member.status}-${member.email}-${member.id ?? "owner"}`}
-                        className="border-b border-[#f8fafc] last:border-0"
+                        className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f0f5ff] ${
+                          index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
+                        }`}
                       >
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3.5 align-middle">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.75rem] font-bold text-white">
-                              {initial}
+                            <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                              {initials}
                             </span>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-[#07111f]">
+                            <div className="min-w-0 leading-tight">
+                              <p className="truncate text-sm font-bold text-[#07111f]">
                                 {member.name}
                               </p>
-                              <p className="truncate text-xs text-slate-500">
+                              <p className="mt-0.5 truncate text-[0.7rem] font-medium text-slate-400">
                                 {member.email}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-sm font-medium text-slate-700">
+                        <td className="px-4 py-3.5 align-middle text-sm font-medium text-slate-700">
                           {member.role}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 align-middle">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold ring-1 ${memberStatusBadge(member.status)}`}
                           >
                             {memberStatusLabel(member.status)}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 align-middle">
                           <MemberAccessPills member={member} />
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-5 py-3.5 align-middle text-right">
                           {canViewDetails || canRemove ? (
                             <div className="inline-flex items-center justify-end gap-2">
                               {canViewDetails ? (
                                 <button
                                   type="button"
                                   onClick={() => setDetailsMember(member)}
-                                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f8fafc]"
+                                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#FCB825]/50 hover:bg-[#FFF8E8] hover:text-[#FCB825]"
                                 >
                                   <Eye className="size-3.5" aria-hidden />
                                   Details

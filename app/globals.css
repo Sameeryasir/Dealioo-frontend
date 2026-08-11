@@ -11621,6 +11621,86 @@ body:has(.auth-select-plan-page) {
   padding: 0;
 }
 
+.rd-shell--ads-tracking .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-shell--ads-tracking .rd-topbar {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rd-main-scroll.rd-main-scroll--ads-tracking,
+.rd-main-scroll.rd-main-scroll--ads-tracking.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--ads-tracking.rd-main-scroll--sidebar-expanded {
+  background: #ffffff;
+  padding: 0;
+}
+
+.rd-main-scroll--ads-tracking > .rd-premium,
+.rd-main-scroll--ads-tracking > .rd-premium--fill {
+  background: #ffffff;
+  padding: 0;
+  min-height: 100%;
+}
+
+.rd-shell--program .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-shell--program .rd-topbar {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rd-main-scroll.rd-main-scroll--program,
+.rd-main-scroll.rd-main-scroll--program.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--program.rd-main-scroll--sidebar-expanded {
+  background: #ffffff;
+}
+
+.rd-shell--members .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-shell--members .rd-topbar {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rd-main-scroll.rd-main-scroll--members,
+.rd-main-scroll.rd-main-scroll--members.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--members.rd-main-scroll--sidebar-expanded {
+  background: #ffffff;
+}
+
+.rd-shell--google-ads .rd-shell-column {
+  background: #ffffff;
+}
+
+.rd-shell--google-ads .rd-topbar {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rd-main-scroll.rd-main-scroll--google-ads,
+.rd-main-scroll.rd-main-scroll--google-ads.rd-main-scroll--sidebar-collapsed,
+.rd-main-scroll.rd-main-scroll--google-ads.rd-main-scroll--sidebar-expanded {
+  background: #ffffff;
+  padding: 0;
+}
+
+.rd-main-scroll--google-ads > .rd-premium,
+.rd-main-scroll--google-ads > .rd-premium--fill {
+  background: #ffffff;
+  padding: 0;
+  min-height: 100%;
+}
+
 .rd-main-scroll--meta-ads > .meta-ads-page {
   width: 100%;
   max-width: none;
@@ -12312,11 +12392,6 @@ body:has(.auth-select-plan-page) {
   width: 2.75rem;
 }
 
-.funnel-orders-th--platform,
-.funnel-orders-td--platform {
-  width: 5.5rem;
-}
-
 .funnel-orders-th--email,
 .funnel-orders-td--email {
   min-width: 12rem;
@@ -12342,23 +12417,6 @@ body:has(.auth-select-plan-page) {
 .funnel-orders-td--actions {
   width: 3.5rem;
   text-align: right;
-}
-
-.funnel-orders-platform-icon {
-  width: 2rem !important;
-  height: 2rem !important;
-}
-
-.funnel-orders-currency {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  background: #ecfdf5;
-  padding: 0.1rem 0.5rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #15803d;
-  box-shadow: inset 0 0 0 1px #bbf7d0;
 }
 
 .funnel-orders-ago {
@@ -12431,10 +12489,6 @@ body:has(.auth-select-plan-page) {
     font-size: 0.84rem;
   }
 
-  .funnel-orders-platform-icon {
-    width: 1.75rem !important;
-    height: 1.75rem !important;
-  }
 }
 
 .funnel-orders-pagination {
@@ -12629,7 +12683,8 @@ body:has(.auth-select-plan-page) {
 .funnel-guests-table thead th.funnel-guests-th {
   background: #f8fafc !important;
   border-bottom: 1px solid #e8edf5;
-  color: #64748b;
+  /* Column label colors come from logo palette classes in the panel. */
+  color: inherit;
   padding-top: 0.85rem;
   padding-bottom: 0.85rem;
 }
@@ -12674,12 +12729,7 @@ body:has(.auth-select-plan-page) {
 
 .funnel-guests-th--joined,
 .funnel-guests-td--joined {
-  min-width: 9rem;
-}
-
-.funnel-guests-th--tags,
-.funnel-guests-td--tags {
-  min-width: 9.5rem;
+  min-width: 8.5rem;
 }
 
 .funnel-guests-th--actions,
@@ -12692,67 +12742,9 @@ body:has(.auth-select-plan-page) {
   width: 2.25rem !important;
   height: 2.25rem !important;
   font-size: 0.68rem !important;
-}
-
-.funnel-guests-status {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.12rem 0.5rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.funnel-guests-status--new {
-  background: #ecfdf5;
-  color: #15803d;
-  box-shadow: inset 0 0 0 1px #bbf7d0;
-}
-
-.funnel-guests-status--returning {
-  background: #fff7ed;
-  color: #c2410c;
-  box-shadow: inset 0 0 0 1px #fed7aa;
-}
-
-.funnel-guests-tag {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.18rem 0.55rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-
-.funnel-guests-tag--signup {
-  background: #ecfdf5;
-  color: #15803d;
-  box-shadow: inset 0 0 0 1px #bbf7d0;
-}
-
-.funnel-guests-tag--prepaid {
-  background: #eff6ff;
-  color: #1d4ed8;
-  box-shadow: inset 0 0 0 1px #bfdbfe;
-}
-
-.funnel-guests-tag--postpaid {
-  background: #fff7ed;
-  color: #c2410c;
-  box-shadow: inset 0 0 0 1px #fed7aa;
-}
-
-.funnel-guests-ago {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  border-radius: 999px;
-  background: #eff6ff;
-  padding: 0.12rem 0.5rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #2563eb;
+  /* Light blue circle + blue initials (same as Members / Program guests). */
+  background: #e8f2ff !important;
+  color: #0b69fc !important;
   box-shadow: inset 0 0 0 1px #bfdbfe;
 }
 

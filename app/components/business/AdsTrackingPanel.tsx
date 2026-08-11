@@ -333,7 +333,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#bfdbfe] bg-white px-3 text-xs font-semibold text-[#1877f2] transition hover:bg-[#eff6ff] disabled:opacity-50";
 
   return (
-    <div className="box-border w-full min-w-0 bg-[#f5f7fb] px-4 py-6 pb-16 sm:px-8 sm:py-8 sm:pb-20">
+    <div className="box-border w-full min-w-0 bg-white px-4 py-6 pb-16 sm:px-8 sm:py-8 sm:pb-20">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
         <header className="flex min-w-0 items-start gap-3.5">
           <span className="mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)]">

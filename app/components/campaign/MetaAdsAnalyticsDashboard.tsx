@@ -766,6 +766,17 @@ export function MetaAdsAnalyticsDashboard({
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.9fr)]">
         <div className="min-w-0 space-y-5">
           <Panel title="Performance overview">
+            {bootstrapping ? (
+              <div className="space-y-3" aria-busy="true">
+                <div className="flex flex-wrap gap-4">
+                  <div className="h-3 w-16 animate-pulse rounded bg-[#eef2f7]" />
+                  <div className="h-3 w-20 animate-pulse rounded bg-[#eef2f7]" />
+                  <div className="h-3 w-14 animate-pulse rounded bg-[#eef2f7]" />
+                </div>
+                <div className="h-48 animate-pulse rounded-xl bg-[#f1f5f9]" />
+              </div>
+            ) : (
+              <>
             <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-[#1877f2]" /> Spend
@@ -906,6 +917,8 @@ export function MetaAdsAnalyticsDashboard({
                 </ChartMount>
               </div>
             )}
+              </>
+            )}
           </Panel>
 
           <Panel
@@ -971,18 +984,16 @@ export function MetaAdsAnalyticsDashboard({
                 </thead>
                 <tbody>
                   {bootstrapping ? (
-                    <tr>
-                      <td
-                        colSpan={12}
-                        className="border-b border-[#f1f5f9] py-10 text-center text-sm text-slate-500"
-                      >
-                        <Loader2
-                          className="mx-auto size-5 animate-spin text-[#1877f2]"
-                          aria-hidden
-                        />
-                        <p className="mt-2">Loading campaigns from Meta…</p>
-                      </td>
-                    </tr>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={`sk-${i}`}>
+                        <td
+                          colSpan={12}
+                          className="border-b border-[#f1f5f9] py-3"
+                        >
+                          <div className="h-12 animate-pulse rounded-xl bg-[#f1f5f9]" />
+                        </td>
+                      </tr>
+                    ))
                   ) : pageRows.length === 0 ? (
                     <tr>
                       <td colSpan={12} className="py-10 text-center">
@@ -1051,7 +1062,7 @@ export function MetaAdsAnalyticsDashboard({
                               <img
                                 src={c.imageUrl}
                                 alt=""
-                                className="size-full object-cover"
+                                className="size-full object-contain"
                                 loading="lazy"
                                 referrerPolicy="no-referrer"
                               />
@@ -1179,29 +1190,36 @@ export function MetaAdsAnalyticsDashboard({
         <div className="min-w-0 space-y-5">
           <Panel title="Performance breakdown">
             <div className="grid grid-cols-2 gap-3">
-              {breakdownTiles.map((tile) => {
-                const Icon = tile.icon;
-                return (
-                  <div
-                    key={tile.label}
-                    className="flex items-center gap-3 rounded-xl border border-[#eef2f7] bg-white px-3 py-3 shadow-[0_1px_4px_rgba(15,23,42,0.03)]"
-                  >
-                    <span
-                      className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${tile.tone}`}
-                    >
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        {tile.label}
-                      </p>
-                      <p className="mt-0.5 text-lg font-bold tabular-nums text-[#07111f]">
-                        {tile.value}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              {bootstrapping
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[4.5rem] animate-pulse rounded-xl border border-[#eef2f7] bg-[#f1f5f9]"
+                    />
+                  ))
+                : breakdownTiles.map((tile) => {
+                    const Icon = tile.icon;
+                    return (
+                      <div
+                        key={tile.label}
+                        className="flex items-center gap-3 rounded-xl border border-[#eef2f7] bg-white px-3 py-3 shadow-[0_1px_4px_rgba(15,23,42,0.03)]"
+                      >
+                        <span
+                          className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${tile.tone}`}
+                        >
+                          <Icon className="size-4" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            {tile.label}
+                          </p>
+                          <p className="mt-0.5 text-lg font-bold tabular-nums text-[#07111f]">
+                            {tile.value}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
             </div>
           </Panel>
 

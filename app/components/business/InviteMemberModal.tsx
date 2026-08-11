@@ -168,24 +168,20 @@ export function InviteMemberForm({
       }}
     >
       <div
-        className={`relative overflow-hidden border-b border-[#e8edf5]/80 bg-white ${
+        className={`relative shrink-0 border-b border-[#e8edf5] bg-white ${
           isInline ? "px-3.5 py-3.5 sm:px-5 sm:py-4" : "px-4 py-4 sm:px-6 sm:py-5"
         }`}
       >
-        <span
-          className="pointer-events-none absolute -right-8 -top-10 size-28 rounded-full bg-[#1877f2]/10 blur-2xl sm:size-36"
-          aria-hidden
-        />
         <div className="relative flex items-start justify-between gap-3 sm:gap-4">
-          <div className="flex min-w-0 items-start gap-2.5 sm:gap-3.5">
+          <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:gap-3.5">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2] text-white shadow-sm sm:size-12"
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:size-12"
               aria-hidden
             >
               <UserPlus className="size-5 sm:size-6" strokeWidth={2.25} />
             </span>
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:px-2.5 sm:py-1 sm:text-[0.68rem]">
+            <div className="min-w-0 flex-1 pr-1">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:px-2.5 sm:py-1 sm:text-[0.68rem]">
                 <Sparkles className="size-3" aria-hidden />
                 Team invite
               </div>
@@ -195,7 +191,7 @@ export function InviteMemberForm({
               >
                 Add a new member
               </h2>
-              <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
                 Send a secure email invitation, choose a role, and decide exactly
                 what this teammate can access.
               </p>
@@ -217,7 +213,9 @@ export function InviteMemberForm({
 
       <div
         className={`min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto sm:space-y-5 ${
-          isInline ? "px-3.5 py-4 sm:px-5 sm:py-5" : "px-4 py-4 sm:px-6 sm:py-5"
+          isInline
+            ? "px-3.5 py-4 pb-5 sm:px-5 sm:py-5 sm:pb-6"
+            : "px-4 py-4 pb-5 sm:px-6 sm:py-5 sm:pb-6"
         }`}
       >
         <div>
@@ -404,7 +402,7 @@ export function InviteMemberForm({
       </div>
 
       <div
-        className={`flex flex-col-reverse gap-2 border-t border-[#f1f5f9] sm:flex-row sm:justify-end ${
+        className={`flex shrink-0 flex-col-reverse gap-2 border-t border-[#f1f5f9] bg-white sm:flex-row sm:justify-end ${
           isInline ? "px-3.5 py-3.5 sm:px-5 sm:py-4" : "px-4 py-3.5 sm:px-6 sm:py-4"
         }`}
       >
@@ -488,7 +486,7 @@ export function InviteMemberModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.28, ease: standardEase }}
-            className="relative flex max-h-[min(92vh,100dvh)] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.22)] ring-1 ring-black/[0.03] sm:max-h-[92vh] sm:rounded-[1.5rem]"
+            className="relative flex max-h-[min(92vh,100dvh)] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.22)] ring-1 ring-black/[0.03] sm:max-h-[92vh] sm:rounded-[1.5rem]"
           >
             <InviteMemberForm
               businessId={businessId}

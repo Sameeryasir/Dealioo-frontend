@@ -88,23 +88,41 @@ export function GoogleAdsLogo({
   className = "h-5 w-5",
   monochrome = false,
 }: LogoProps) {
-  const fillYellow = monochrome ? "currentColor" : "#FBBC04";
-  const fillBlue = monochrome ? "currentColor" : "#4285F4";
-  const fillGreen = monochrome ? "currentColor" : "#34A853";
+  if (monochrome) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        role="img"
+      >
+        <path d="M13.2 4.5 20.2 18.8" />
+        <path d="M13.2 4.5 9.4 18.8" />
+        <path d="M10.8 4.5 3.8 18.8" />
+        <circle cx="6.2" cy="18.2" r="2.35" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 256 230" className={className} aria-hidden role="img">
       <path
-        fill={fillYellow}
+        fill="#FBBC04"
         d="M5.888 166.405 90.88 20.9c10.796 6.356 65.236 36.484 74.028 42.214L79.916 208.627c-9.295 12.28-85.804-23.587-74.028-42.23z"
       />
       <path
-        fill={fillBlue}
+        fill="#4285F4"
         d="M250.084 166.402 165.092 20.906C153.21 1.132 127.62-6.054 106.601 5.625S79.182 42.462 91.064 63.119l84.992 145.514c11.882 19.765 37.473 26.95 58.492 15.272c20.1-11.68 27.418-37.73 15.536-57.486z"
       />
       <ellipse
         cx="42.664"
         cy="187.924"
-        fill={fillGreen}
+        fill="#34A853"
         rx="42.664"
         ry="41.604"
       />
