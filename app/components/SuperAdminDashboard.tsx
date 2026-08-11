@@ -3,25 +3,19 @@
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
+import { SuperAdminNotifications } from "@/app/components/SuperAdminNotifications";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   getAdminMeetingRequests,
   type AdminMeetingRequest,
 } from "@/app/services/admin/get-admin-meeting-requests";
 import {
-  getAdminNotifications,
-  type AdminNotificationItem,
-} from "@/app/services/admin/get-admin-notifications";
-import {
   getPlatformAdminOverview,
   type PlatformAdminOverview,
 } from "@/app/services/admin/get-platform-overview";
-import { subscribeAdminNotifications } from "@/app/lib/pusher-client";
 import {
   ArrowDownRight,
   ArrowUpRight,
-  AlertTriangle,
-  Bell,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -30,14 +24,12 @@ import {
   CircleMinus,
   CircleOff,
   Clock3,
-  CreditCard,
   Crown,
   Filter,
   Hash,
   Loader2,
   Mail,
   MapPin,
-  Megaphone,
   MoreVertical,
   Phone,
   Briefcase,
@@ -53,9 +45,7 @@ import {
   UserPlus,
   Users,
   Wallet,
-  X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import {
   useCallback,
@@ -83,21 +73,6 @@ const TABLE_PAGE_SIZE = 8;
 
 const PLAN_COLORS = ["#1877f2", "#0ea5e9", "#0f766e", "#d97706", "#94a3b8"];
 const BRAND_BLUE = "#1877f2";
-
-function notificationIcon(type: string) {
-  if (type === "payment" || type === "subscription") return CreditCard;
-  if (type === "user") return UserPlus;
-  if (type === "system") return AlertTriangle;
-  if (type === "campaign") return Megaphone;
-  return Building2;
-}
-
-function notificationIconClass(type: string): string {
-  if (type === "payment" || type === "subscription") return styles.notifyIconGreen;
-  if (type === "system") return styles.notifyIconOrange;
-  if (type === "campaign") return styles.notifyIconTeal;
-  return styles.notifyIconBlue;
-}
 
 function greetingForNow(): string {
   const h = new Date().getHours();
@@ -285,12 +260,6 @@ export function SuperAdminDashboard() {
     [],
   );
   const [meetingsLoading, setMeetingsLoading] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<AdminNotificationItem[]>(
-    [],
-  );
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
 
   const loadOverview = useCallback(async () => {
@@ -310,20 +279,6 @@ export function SuperAdminDashboard() {
     }
   }, []);
 
-  const loadNotifications = useCallback(async () => {
-    setNotificationsLoading(true);
-    try {
-      const data = await getAdminNotifications();
-      setNotifications(data.items);
-      setUnreadCount(data.unreadCount);
-    } catch {
-      setNotifications([]);
-      setUnreadCount(0);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }, []);
-
   const loadMeetingRequests = useCallback(async () => {
     setMeetingsLoading(true);
     try {
@@ -338,41 +293,14 @@ export function SuperAdminDashboard() {
 
   useEffect(() => {
     void loadOverview();
-    void loadNotifications();
     void loadMeetingRequests();
-  }, [loadOverview, loadNotifications, loadMeetingRequests]);
-
-  useEffect(() => {
-    return subscribeAdminNotifications((item) => {
-      setNotifications((prev) => {
-        if (prev.some((row) => row.id === item.id)) return prev;
-        return [item, ...prev].slice(0, 50);
-      });
-      if (!item.isRead) {
-        setUnreadCount((count) => count + 1);
-      }
-    });
-  }, []);
+  }, [loadOverview, loadMeetingRequests]);
 
   useEffect(() => {
     setBusinessPage(1);
     setUserPage(1);
     setMeetingPage(1);
   }, [query]);
-
-  useEffect(() => {
-    if (!notificationsOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNotificationsOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [notificationsOpen]);
 
   const kpis = overview?.kpis;
   const q = query.trim().toLowerCase();
@@ -560,7 +488,6 @@ export function SuperAdminDashboard() {
               onClick={() => {
                 void loadOverview();
                 void loadMeetingRequests();
-                void loadNotifications();
               }}
               disabled={loading || meetingsLoading}
               aria-label="Refresh overview"
@@ -571,130 +498,9 @@ export function SuperAdminDashboard() {
                 <RefreshCw className="size-4" />
               )}
             </button>
-            <div className={styles.bellWrap}>
-              <button
-                type="button"
-                className={styles.iconBtn}
-                aria-label="Notifications"
-                aria-expanded={notificationsOpen}
-                onClick={() => {
-                  setNotificationsOpen(true);
-                  void loadNotifications();
-                }}
-              >
-                <Bell className="size-4" />
-              </button>
-              {unreadCount > 0 ? (
-                <span className={styles.bellBadge}>
-                  {Math.min(unreadCount, 99)}
-                </span>
-              ) : null}
-            </div>
+            <SuperAdminNotifications />
           </div>
         </div>
-
-        <AnimatePresence>
-          {notificationsOpen ? (
-            <>
-              <motion.button
-                type="button"
-                key="sa-notify-backdrop"
-                className={styles.drawerBackdrop}
-                aria-label="Close notifications"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                onClick={() => setNotificationsOpen(false)}
-              />
-              <motion.aside
-                key="sa-notify-panel"
-                className={styles.drawerPanel}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Notifications"
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "tween", duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className={styles.drawerHead}>
-                  <div className={styles.drawerHeadCopy}>
-                    <div className={styles.drawerTitleRow}>
-                      <h2 className={styles.drawerTitle}>Notifications</h2>
-                      {unreadCount > 0 ? (
-                        <span className={styles.drawerBadge}>{unreadCount} new</span>
-                      ) : null}
-                    </div>
-                    <p className={styles.drawerSub}>
-                      Platform alerts and account activity
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.drawerClose}
-                    aria-label="Close"
-                    onClick={() => setNotificationsOpen(false)}
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-
-                <div className={styles.drawerTabs} role="tablist" aria-label="Filter">
-                  <span className={`${styles.drawerTab} ${styles.drawerTabActive}`}>
-                    All
-                  </span>
-                  <span className={styles.drawerTab}>Unread</span>
-                </div>
-
-                <div className={styles.drawerList}>
-                  {notificationsLoading && notifications.length === 0 ? (
-                    <p className={styles.drawerSub}>Loading notifications…</p>
-                  ) : null}
-                  {!notificationsLoading && notifications.length === 0 ? (
-                    <p className={styles.drawerSub}>No notifications yet.</p>
-                  ) : null}
-                  {notifications.map((item) => {
-                    const Icon = notificationIcon(item.type);
-                    const unread = !item.isRead;
-                    return (
-                      <article
-                        key={item.id}
-                        className={`${styles.notifyItem} ${
-                          unread ? styles.notifyItemUnread : ""
-                        }`}
-                      >
-                        <div
-                          className={`${styles.notifyIcon} ${notificationIconClass(item.type)}`}
-                        >
-                          <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-                        </div>
-                        <div className={styles.notifyCopy}>
-                          <div className={styles.notifyTop}>
-                            <h3 className={styles.notifyTitle}>{item.title}</h3>
-                            {unread ? (
-                              <span className={styles.notifyUnreadDot} aria-hidden />
-                            ) : null}
-                          </div>
-                          <p className={styles.notifyBody}>{item.body}</p>
-                          <time className={styles.notifyTime}>
-                            {formatRelative(item.createdAt)}
-                          </time>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-
-                <div className={styles.drawerFooter}>
-                  <button type="button" className={styles.drawerFooterBtn}>
-                    Mark all as read
-                  </button>
-                </div>
-              </motion.aside>
-            </>
-          ) : null}
-        </AnimatePresence>
 
         {errorMessage ? (
           <div className="mb-4">
@@ -946,7 +752,7 @@ export function SuperAdminDashboard() {
           </div>
         </div>
 
-        <div className={`${styles.card} ${styles.tableCard}`}>
+        <div id="sa-businesses" className={`${styles.card} ${styles.tableCard}`}>
           <div className={styles.cardHead}>
             <div>
               <h2 className={styles.cardTitle}>Active Businesses</h2>
@@ -1091,7 +897,7 @@ export function SuperAdminDashboard() {
           ) : null}
         </div>
 
-        <div className={`${styles.card} ${styles.tableCard}`}>
+        <div id="sa-users" className={`${styles.card} ${styles.tableCard}`}>
           <div className={styles.cardHead}>
             <div>
               <h2 className={styles.cardTitle}>Users</h2>
