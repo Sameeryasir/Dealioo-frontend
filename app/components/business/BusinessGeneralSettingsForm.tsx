@@ -13,19 +13,24 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
-  Building2,
+  Briefcase,
+  Check,
   ChevronRight,
   FileText,
-  GitBranch,
   Globe,
+  Globe2,
   Link2,
   Loader2,
   Mail,
   MapPin,
+  MapPinned,
   MessageSquare,
   Pencil,
   Phone,
+  Shield,
   Store,
+  Target,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -92,15 +97,8 @@ type FormSnapshot = {
   branchCount: string;
 };
 
-function formatLocation(
-  city?: string | null,
-  state?: string | null,
-  country?: string | null,
-): string {
-  const parts = [city, state, country]
-    .map((part) => part?.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts.join(", ") : "Add your location";
+function displayOrDash(value: string): string {
+  return value.trim() || "—";
 }
 
 function formatTitleCase(value: string): string {
@@ -137,12 +135,19 @@ function ToneIcon({
   icon: Icon,
   tone,
   size = "md",
+  shape = "square",
 }: {
   icon: LucideIcon;
   tone: IconTone;
   size?: "sm" | "md";
+  shape?: "square" | "round";
 }) {
-  const box = size === "sm" ? "size-7 rounded-lg" : "size-8 rounded-[0.65rem]";
+  const box =
+    size === "sm"
+      ? shape === "round"
+        ? "size-9 rounded-full"
+        : "size-7 rounded-lg"
+      : "size-8 rounded-[0.65rem]";
   const glyph = size === "sm" ? "size-3.5" : "size-4";
   return (
     <span
@@ -171,12 +176,12 @@ function DetailField({
   className?: string;
 }) {
   return (
-    <div className={`flex items-start gap-2.5 py-1 ${className}`}>
-      <ToneIcon icon={icon} tone={tone} size="sm" />
+    <div className={`flex items-start gap-3 py-0.5 ${className}`}>
+      <ToneIcon icon={icon} tone={tone} size="sm" shape="round" />
       <div className="min-w-0 flex-1">
         <label
           htmlFor={htmlFor}
-          className="m-0 block text-[0.65rem] font-medium text-slate-500"
+          className="m-0 block text-[0.68rem] font-medium text-slate-400"
         >
           {label}
         </label>
@@ -192,7 +197,7 @@ function DetailField({
 }
 
 const fieldInputClass =
-  "w-full border-0 bg-transparent p-0 text-[0.86rem] font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
+  "w-full border-0 bg-transparent p-0 text-[0.9rem] font-bold text-[#0F172A] outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
 
 function BusinessLogoAvatar({
   previewUrl,
@@ -328,7 +333,10 @@ export function BusinessGeneralSettingsForm({
   }, [business]);
 
   const logoSrc = resolveUploadImageUrl(business?.logoUrl ?? null);
-  const locationLabel = formatLocation(form.city, form.state, form.country);
+  const cityLabel = displayOrDash(form.city);
+  const stateLabel = displayOrDash(form.state);
+  const countryLabel = displayOrDash(form.country);
+  const postalLabel = displayOrDash(form.postalCode);
   const displayName = formatTitleCase(form.name.trim() || "Your business");
   const twilioNumber = business?.twilioPhoneNumber?.trim() || "";
 
@@ -353,6 +361,40 @@ export function BusinessGeneralSettingsForm({
     const live = Math.round((filled / checks.length) * 100);
     return business?.summary?.monthlyUsagePercent ?? live;
   }, [business?.summary?.monthlyUsagePercent, form, logoSrc]);
+
+  const profileCompletion = useMemo(() => {
+    const items = [
+      {
+        id: "basic",
+        label: "Basic information",
+        done: Boolean(form.name.trim() && logoSrc),
+      },
+      {
+        id: "contact",
+        label: "Contact details",
+        done: Boolean(form.phoneNumber.trim() && form.email.trim()),
+      },
+      {
+        id: "details",
+        label: "Business details",
+        done: Boolean(form.websiteUrl.trim() && form.description.trim()),
+      },
+      {
+        id: "location",
+        label: "Location information",
+        done: Boolean(
+          form.city.trim() &&
+            form.state.trim() &&
+            form.country.trim() &&
+            form.postalCode.trim() &&
+            Number.parseInt(form.branchCount, 10) >= 1,
+        ),
+      },
+    ];
+    const doneCount = items.filter((item) => item.done).length;
+    const percent = Math.round((doneCount / items.length) * 100);
+    return { items, percent, complete: percent === 100 };
+  }, [form, logoSrc]);
 
   const quickActions = [
     {
@@ -399,7 +441,10 @@ export function BusinessGeneralSettingsForm({
           {/* Overview card — matches business profile mock */}
           <section className="shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5">
             <div className="flex items-start gap-4 sm:gap-5">
-              <div id="business-settings-logo" className="scroll-mt-24">
+              <div
+                id="business-settings-logo"
+                className="scroll-mt-24 shrink-0"
+              >
                 <BusinessLogoAvatar
                   previewUrl={logoSrc}
                   businessName={form.name}
@@ -421,6 +466,20 @@ export function BusinessGeneralSettingsForm({
                         Active
                       </span>
                     </div>
+                    <p
+                      id="business-settings-branch"
+                      className="m-0 mt-2 truncate text-[0.82rem] font-medium text-slate-500"
+                    >
+                      {[
+                        form.city.trim() || null,
+                        form.state.trim() || null,
+                        `${form.branchCount} ${
+                          Number(form.branchCount) === 1 ? "branch" : "branches"
+                        }`,
+                      ]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -431,171 +490,190 @@ export function BusinessGeneralSettingsForm({
                     Edit profile
                   </button>
                 </div>
-
-                <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[0.82rem] text-slate-600">
-                  <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
-                    <MapPin
-                      className="size-3.5 shrink-0 text-slate-400"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                    <span className="truncate">{locationLabel}</span>
-                  </span>
-                  <span className="hidden h-3.5 w-px bg-[#E5E7EB] sm:block" aria-hidden />
-                  <span
-                    id="business-settings-branch"
-                    className="inline-flex shrink-0 items-center gap-1.5"
-                  >
-                    <GitBranch
-                      className="size-3.5 shrink-0 text-slate-400"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                    {form.branchCount}{" "}
-                    {Number(form.branchCount) === 1 ? "branch" : "branches"}
-                  </span>
-                </div>
               </div>
             </div>
           </section>
 
-          {/* Business details — exact mock fields */}
           <section
             ref={detailsRef}
             id="business-details"
-            className="flex min-h-0 flex-1 scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
+            className="scroll-mt-24 shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5"
           >
-            <header className="flex shrink-0 items-center gap-3 px-5 py-3.5 xl:px-6">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F1FF] text-[#2F6BFF]">
+            <header className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#F3E8FF] text-[#8B5CF6]">
                 <FileText className="size-4" strokeWidth={2.25} aria-hidden />
               </span>
               <div className="min-w-0">
-                <h3 className="m-0 text-[1rem] font-bold text-[#0F172A]">
+                <h3 className="m-0 text-[1.05rem] font-bold text-[#0F172A]">
                   Business details
                 </h3>
-                <p className="m-0 mt-0.5 text-[0.78rem] text-slate-500">
+                <p className="m-0 mt-0.5 text-[0.8rem] text-slate-500">
                   Core information about your business
                 </p>
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 pb-3 xl:px-6">
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <DetailField
-                  label="Business name"
-                  htmlFor="business-settings-name"
-                  icon={Building2}
-                  tone="slate"
-                >
-                  <p
-                    id="business-settings-name"
-                    className={`${fieldInputClass} m-0`}
+            <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
+              <DetailField
+                label="Business name"
+                htmlFor="business-settings-name"
+                icon={Briefcase}
+                tone="purple"
+              >
+                <p id="business-settings-name" className={`${fieldInputClass} m-0`}>
+                  {displayOrDash(form.name)}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Phone number"
+                htmlFor="business-settings-phone"
+                icon={Phone}
+                tone="green"
+              >
+                <p id="business-settings-phone" className={`${fieldInputClass} m-0`}>
+                  {displayOrDash(form.phoneNumber)}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Email address"
+                htmlFor="business-settings-email"
+                icon={Mail}
+                tone="orange"
+              >
+                <p id="business-settings-email" className={`${fieldInputClass} m-0`}>
+                  {displayOrDash(form.email)}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Website"
+                htmlFor="business-settings-website"
+                icon={Globe2}
+                tone="blue"
+              >
+                {websiteHref && isValidOptionalHttpsWebsiteUrl(websiteHref) ? (
+                  <a
+                    id="business-settings-website"
+                    href={websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${fieldInputClass} m-0 block truncate text-[#2F6BFF] no-underline hover:underline`}
+                    title={websiteHref}
                   >
-                    {form.name.trim() || "—"}
+                    {websiteHref}
+                  </a>
+                ) : (
+                  <p
+                    id="business-settings-website"
+                    className={`${fieldInputClass} m-0 text-slate-400`}
+                  >
+                    {websiteHref || "—"}
+                  </p>
+                )}
+              </DetailField>
+
+              <DetailField
+                label="City"
+                htmlFor="business-settings-city"
+                icon={MapPin}
+                tone="blue"
+              >
+                <p id="business-settings-city" className={`${fieldInputClass} m-0`}>
+                  {cityLabel}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="State"
+                htmlFor="business-settings-state"
+                icon={MapPinned}
+                tone="purple"
+              >
+                <p id="business-settings-state" className={`${fieldInputClass} m-0`}>
+                  {stateLabel}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Country"
+                htmlFor="business-settings-country"
+                icon={Globe}
+                tone="green"
+              >
+                <p id="business-settings-country" className={`${fieldInputClass} m-0`}>
+                  {countryLabel}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Postal code"
+                htmlFor="business-settings-address"
+                icon={Mail}
+                tone="pink"
+              >
+                <p id="business-settings-postal" className={`${fieldInputClass} m-0`}>
+                  {postalLabel}
+                </p>
+              </DetailField>
+
+              {twilioNumber ? (
+                <DetailField
+                  label="Twilio number"
+                  htmlFor="business-settings-twilio"
+                  icon={MessageSquare}
+                  tone="purple"
+                >
+                  <p id="business-settings-twilio" className={`${fieldInputClass} m-0`}>
+                    {twilioNumber}
                   </p>
                 </DetailField>
-
-                <DetailField
-                  label="Phone number"
-                  htmlFor="business-settings-phone"
-                  icon={Phone}
-                  tone="green"
-                >
-                  <p
-                    id="business-settings-phone"
-                    className={`${fieldInputClass} m-0`}
-                  >
-                    {form.phoneNumber.trim() || "—"}
-                  </p>
-                </DetailField>
-
-                {twilioNumber ? (
-                  <DetailField
-                    label="Twilio number"
-                    htmlFor="business-settings-twilio"
-                    icon={MessageSquare}
-                    tone="purple"
-                  >
-                    <p
-                      id="business-settings-twilio"
-                      className={`${fieldInputClass} m-0`}
-                    >
-                      {twilioNumber}
-                    </p>
-                  </DetailField>
-                ) : null}
-
-                <DetailField
-                  label="Email address"
-                  htmlFor="business-settings-email"
-                  icon={Mail}
-                  tone="blue"
-                >
-                  <p
-                    id="business-settings-email"
-                    className={`${fieldInputClass} m-0`}
-                  >
-                    {form.email.trim() || "—"}
-                  </p>
-                </DetailField>
-
-                <DetailField
-                  label="Website"
-                  htmlFor="business-settings-website"
-                  icon={Globe}
-                  tone="blue"
-                >
-                  {websiteHref &&
-                  isValidOptionalHttpsWebsiteUrl(websiteHref) ? (
-                    <a
-                      id="business-settings-website"
-                      href={websiteHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${fieldInputClass} m-0 block truncate text-[#2F6BFF] no-underline hover:underline`}
-                      title={websiteHref}
-                    >
-                      {websiteHref}
-                    </a>
-                  ) : (
-                    <p
-                      id="business-settings-website"
-                      className={`${fieldInputClass} m-0 text-slate-400`}
-                    >
-                      {websiteHref || "—"}
-                    </p>
-                  )}
-                </DetailField>
-
-                <DetailField
-                  label="Address"
-                  htmlFor="business-settings-address"
-                  icon={MapPin}
-                  tone="blue"
-                >
-                  <p
-                    id="business-settings-address"
-                    className={`${fieldInputClass} m-0`}
-                  >
-                    {locationLabel === "Add your location" ? "—" : locationLabel}
-                  </p>
-                </DetailField>
-              </div>
+              ) : null}
 
               <DetailField
                 label="Business description"
                 htmlFor="business-settings-description"
                 icon={FileText}
-                tone="slate"
+                tone="yellow"
               >
                 <p
                   id="business-settings-description"
-                  className={`${fieldInputClass} m-0 min-h-[2.75rem] leading-relaxed`}
+                  className={`${fieldInputClass} m-0 leading-relaxed`}
                 >
-                  {form.description.trim() || "—"}
+                  {displayOrDash(form.description)}
                 </p>
               </DetailField>
+            </div>
+          </section>
 
+          <section className="shrink-0 overflow-visible rounded-2xl border border-[#D7E6FF] bg-[linear-gradient(180deg,#F4F8FF_0%,#EAF2FF_100%)] px-5 py-5 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6">
+            <h3 className="m-0 text-[1.15rem] font-extrabold tracking-tight text-[#0F172A]">
+              Keep your profile up to date
+            </h3>
+            <p className="m-0 mt-1.5 max-w-md text-[0.82rem] leading-relaxed text-slate-500">
+              An up-to-date profile helps you build trust with your customers
+              and get better results.
+            </p>
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="grid min-w-0 flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <ProfileBenefit
+                  icon={Shield}
+                  title="Build trust"
+                  copy="Increase customer confidence"
+                />
+                <ProfileBenefit
+                  icon={Target}
+                  title="Better targeting"
+                  copy="Reach the right audience"
+                />
+                <ProfileBenefit
+                  icon={BarChart3}
+                  title="Stronger campaigns"
+                  copy="Improve campaign performance"
+                />
+              </div>
+              <ProfileCompleteArt />
             </div>
           </section>
     </>
@@ -643,7 +721,7 @@ export function BusinessGeneralSettingsForm({
       </header>
 
       <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem] xl:gap-3.5">
-        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
           {isProfileView ? profileMain : previewMain}
         </div>
 
@@ -723,8 +801,148 @@ export function BusinessGeneralSettingsForm({
               </div>
             </div>
           </section>
+
+          {isProfileView ? (
+            <section className="relative shrink-0 overflow-hidden rounded-2xl border border-[#D7EDE4] bg-[linear-gradient(135deg,#F3FBF7_0%,#EEF6FF_100%)] px-3.5 py-3.5 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+              <ProfileCompletionSparkles />
+              <h3 className="relative m-0 text-[0.95rem] font-extrabold tracking-tight text-[#134E4A]">
+                Profile completion
+              </h3>
+              <p className="relative m-0 mt-1 text-[0.78rem] text-slate-500">
+                {profileCompletion.complete
+                  ? "Great! Your profile is complete."
+                  : "Finish the remaining items to complete your profile."}
+              </p>
+              <div className="relative mt-3 flex items-center gap-3">
+                <ProfileCompletionRing percent={profileCompletion.percent} />
+                <ul className="m-0 min-w-0 flex-1 list-none space-y-1.5 p-0">
+                  {profileCompletion.items.map((item) => (
+                    <li key={item.id} className="flex items-center gap-2">
+                      <span
+                        className={`flex size-4 shrink-0 items-center justify-center rounded-full ${
+                          item.done
+                            ? "bg-[#22C55E] text-white"
+                            : "bg-[#E2E8F0] text-transparent"
+                        }`}
+                        aria-hidden
+                      >
+                        <Check className="size-2.5" strokeWidth={3} />
+                      </span>
+                      <span
+                        className={`truncate text-[0.78rem] font-semibold ${
+                          item.done ? "text-[#0F172A]" : "text-slate-400"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ) : null}
         </aside>
       </div>
+    </div>
+  );
+}
+
+function ProfileBenefit({
+  icon: Icon,
+  title,
+  copy,
+}: {
+  icon: LucideIcon;
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/80 bg-white/90 px-3 py-3 shadow-[0_6px_16px_rgba(47,107,255,0.08)]">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-[#E8F1FF] text-[#2F6BFF]">
+        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+      </span>
+      <p className="m-0 mt-2 text-[0.82rem] font-bold text-[#0F172A]">{title}</p>
+      <p className="m-0 mt-0.5 text-[0.72rem] leading-snug text-slate-500">{copy}</p>
+    </div>
+  );
+}
+
+function ProfileCompleteArt() {
+  return (
+    <div className="relative hidden w-[9.75rem] shrink-0 sm:block" aria-hidden>
+      <div className="rounded-2xl bg-white p-3 pr-8 shadow-[0_16px_32px_rgba(15,23,42,0.12)] ring-1 ring-[#E8EDF5]">
+        <div className="flex items-center gap-2">
+          <span className="flex size-9 items-center justify-center rounded-full bg-[#EEF2FF] text-[#6366F1]">
+            <UserRound className="size-4" strokeWidth={2.25} />
+          </span>
+          <span className="h-2 flex-1 rounded-full bg-[#E8EDF5]" />
+        </div>
+        <span className="mt-3 block h-2 w-4/5 rounded-full bg-[#E8EDF5]" />
+        <span className="mt-2 block h-2 w-3/5 rounded-full bg-[#F1F5F9]" />
+      </div>
+      <span className="absolute right-1 top-1 flex size-9 items-center justify-center rounded-full bg-[#22C55E] text-white shadow-[0_8px_16px_rgba(34,197,94,0.3)] ring-4 ring-white">
+        <Check className="size-4" strokeWidth={3} />
+      </span>
+    </div>
+  );
+}
+
+function ProfileCompletionRing({ percent }: { percent: number }) {
+  const size = 88;
+  const stroke = 8;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.min(100, Math.max(0, percent));
+  const offset = circumference - (clamped / 100) * circumference;
+
+  return (
+    <div className="relative size-[5.5rem] shrink-0">
+      <svg viewBox={`0 0 ${size} ${size}`} className="size-full -rotate-90">
+        <defs>
+          <linearGradient id="profile-complete-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#34D399" />
+            <stop offset="100%" stopColor="#14B8A6" />
+          </linearGradient>
+        </defs>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#E2E8F0"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="url(#profile-complete-ring)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[1rem] font-extrabold leading-none text-[#0F172A]">
+          {clamped}%
+        </span>
+        <span className="mt-0.5 text-[0.58rem] font-semibold uppercase tracking-wide text-slate-400">
+          {clamped === 100 ? "Complete" : "To go"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ProfileCompletionSparkles() {
+  return (
+    <div className="pointer-events-none absolute right-2 top-2 h-10 w-14" aria-hidden>
+      <span className="absolute right-1 top-1 size-1.5 rotate-45 bg-[#FBBF24]" />
+      <span className="absolute right-5 top-0 size-1 rotate-45 bg-[#60A5FA]" />
+      <span className="absolute right-3 top-5 size-1 rotate-45 bg-[#F472B6]" />
+      <span className="absolute right-8 top-3 size-1 rotate-45 bg-[#34D399]" />
     </div>
   );
 }
