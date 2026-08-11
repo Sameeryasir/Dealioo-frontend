@@ -1,33 +1,19 @@
 "use client";
 
-import { isValidPhoneNumber } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { BusinessProfileEditModal } from "@/app/components/business/BusinessProfileEditModal";
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
-import {
-  locationFieldMessage,
-  validateBusinessLocation,
-} from "@/app/lib/business-location";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
-import {
-  isValidOptionalHttpsWebsiteUrl,
-  optionalHttpsWebsiteUrlMessage,
-} from "@/app/lib/website-url";
-import { businessQueryKeys } from "@/app/services/business/business-query-keys";
-import { updateBusiness } from "@/app/services/business/update-business";
-import { useQueryClient } from "@tanstack/react-query";
+import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import {
   AlertCircle,
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
-  Briefcase,
   Building2,
-  Camera,
-  CheckCircle2,
   ChevronRight,
   FileText,
   GitBranch,
@@ -40,22 +26,17 @@ import {
   Pencil,
   Phone,
   Store,
-  Tag,
   Users,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
   type ReactNode,
 } from "react";
-import { toast } from "sonner";
 
 export type BusinessProfilePreviewSection =
   | "general"
@@ -98,9 +79,6 @@ const ICON = {
 
 type IconTone = keyof typeof ICON;
 
-const MAX_LOGO_BYTES = 10 * 1024 * 1024;
-const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
-
 type FormSnapshot = {
   name: string;
   description: string;
@@ -132,10 +110,6 @@ function formatTitleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function isImageMime(mime: string): boolean {
-  return mime === "image/png" || mime === "image/jpeg" || mime === "image/webp";
 }
 
 function snapshotFromBusiness(
@@ -221,125 +195,40 @@ const fieldInputClass =
   "w-full border-0 bg-transparent p-0 text-[0.86rem] font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
 
 function BusinessLogoAvatar({
-  disabled,
   previewUrl,
-  file,
   businessName,
-  onFile,
 }: {
-  disabled: boolean;
   previewUrl: string | null;
-  file: File | null;
   businessName: string;
-  onFile: (file: File | null) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const filePreviewUrl = useMemo(() => {
-    if (!file || !isImageMime(file.type)) return null;
-    return URL.createObjectURL(file);
-  }, [file]);
-
-  useEffect(() => {
-    if (!filePreviewUrl) return;
-    return () => URL.revokeObjectURL(filePreviewUrl);
-  }, [filePreviewUrl]);
-
-  const displayUrl = filePreviewUrl ?? previewUrl;
   const shortLabel =
     formatTitleCase(businessName.trim()).split(/\s+/)[0] || "Biz";
 
-  const validateAndSet = useCallback(
-    (nextFile: File | null, inputEl: HTMLInputElement | null) => {
-      setLocalError(null);
-      if (!nextFile) {
-        onFile(null);
-        return;
-      }
-      if (!ACCEPT_IMAGES.split(",").includes(nextFile.type)) {
-        setLocalError("Use PNG, JPG, or WEBP only.");
-        if (inputEl) inputEl.value = "";
-        return;
-      }
-      if (nextFile.size > MAX_LOGO_BYTES) {
-        setLocalError("File must be 10MB or smaller.");
-        if (inputEl) inputEl.value = "";
-        return;
-      }
-      onFile(nextFile);
-    },
-    [onFile],
-  );
-
   return (
-    <div className="flex shrink-0 flex-col items-center">
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT_IMAGES}
-        className="hidden"
-        disabled={disabled}
-        onChange={(event: ChangeEvent<HTMLInputElement>) => {
-          validateAndSet(event.target.files?.[0] ?? null, event.target);
-        }}
-      />
-
-      {/* Logo tile — gradient placeholder + camera badge (mock). */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className="group relative size-[5.75rem] cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 xl:size-[6.5rem]"
-        aria-label="Upload business logo"
-      >
-        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff] transition group-hover:ring-[#2F6BFF]/45 group-focus-visible:ring-4 group-focus-visible:ring-[#2F6BFF]/25">
-          {displayUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={displayUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span
-              className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-white"
-              style={{
-                background:
-                  "linear-gradient(145deg, #3B82F6 0%, #6366F1 48%, #A855F7 100%)",
-              }}
-            >
-              <Store className="size-7 opacity-95" strokeWidth={1.75} aria-hidden />
-              <span className="max-w-full truncate text-[0.72rem] font-bold tracking-tight">
-                {shortLabel}
-              </span>
+    <div className="relative size-[5.75rem] shrink-0 xl:size-[6.5rem]">
+      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff]">
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt=""
+            className="h-full w-full object-contain p-1"
+          />
+        ) : (
+          <span
+            className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-white"
+            style={{
+              background:
+                "linear-gradient(145deg, #3B82F6 0%, #6366F1 48%, #A855F7 100%)",
+            }}
+          >
+            <Store className="size-7 opacity-95" strokeWidth={1.75} aria-hidden />
+            <span className="max-w-full truncate text-[0.72rem] font-bold tracking-tight">
+              {shortLabel}
             </span>
-          )}
-        </span>
-        <span className="absolute -bottom-1 -right-1 z-10 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-[#2F6BFF] text-white shadow-md">
-          <Camera className="size-3.5" strokeWidth={2.25} aria-hidden />
-        </span>
-      </button>
-
-      {file ? (
-        <button
-          type="button"
-          onClick={() => {
-            if (inputRef.current) inputRef.current.value = "";
-            onFile(null);
-          }}
-          className="mt-2 inline-flex cursor-pointer items-center gap-0.5 text-[0.78rem] font-semibold text-[#E11D48]"
-        >
-          <X className="size-3" aria-hidden />
-          Undo
-        </button>
-      ) : null}
-
-      {localError ? (
-        <p className="mt-0.5 max-w-[6.5rem] text-center text-[0.65rem] text-red-600">
-          {localError}
-        </p>
-      ) : null}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -379,7 +268,7 @@ const GENERAL_FOCUS_IDS: Record<string, string> = {
   info: "business-settings-name",
   logo: "business-settings-logo",
   contact: "business-settings-email",
-  address: "business-settings-city",
+  address: "business-settings-address",
   branch: "business-settings-branch",
   twilio: "business-settings-twilio",
 };
@@ -389,9 +278,7 @@ export function BusinessGeneralSettingsForm({
   activeSection = "general",
   focus = null,
 }: BusinessGeneralSettingsFormProps) {
-  const queryClient = useQueryClient();
   const detailsRef = useRef<HTMLElement>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
   const previewSection: BusinessProfilePreviewSection =
     activeSection === "members" || activeSection === "integrations"
       ? activeSection
@@ -413,10 +300,6 @@ export function BusinessGeneralSettingsForm({
     postalCode: "",
     branchCount: "1",
   });
-  const [baseline, setBaseline] = useState<FormSnapshot | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
@@ -442,130 +325,14 @@ export function BusinessGeneralSettingsForm({
     if (!business) return;
     const next = snapshotFromBusiness(business);
     setForm(next);
-    setBaseline(next);
-    setLogoFile(null);
   }, [business]);
-
-  const patchForm = useCallback((patch: Partial<FormSnapshot>) => {
-    setForm((prev) => ({ ...prev, ...patch }));
-  }, []);
 
   const logoSrc = resolveUploadImageUrl(business?.logoUrl ?? null);
   const locationLabel = formatLocation(form.city, form.state, form.country);
   const displayName = formatTitleCase(form.name.trim() || "Your business");
   const twilioNumber = business?.twilioPhoneNumber?.trim() || "";
 
-  const hasChanges = useMemo(() => {
-    if (!baseline) return false;
-    if (logoFile) return true;
-    return (
-      form.name !== baseline.name ||
-      form.description !== baseline.description ||
-      form.phoneNumber !== baseline.phoneNumber ||
-      form.email !== baseline.email ||
-      form.websiteUrl !== baseline.websiteUrl ||
-      form.city !== baseline.city ||
-      form.state !== baseline.state ||
-      form.country !== baseline.country ||
-      form.postalCode !== baseline.postalCode ||
-      form.branchCount !== baseline.branchCount
-    );
-  }, [baseline, form, logoFile]);
-
-  const canSave = useMemo(() => {
-    if (!form.name.trim()) return false;
-    if (!form.phoneNumber.trim() || !isValidPhoneNumber(form.phoneNumber)) {
-      return false;
-    }
-    if (
-      form.email.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
-    ) {
-      return false;
-    }
-    if (!isValidOptionalHttpsWebsiteUrl(form.websiteUrl)) return false;
-    if (
-      validateBusinessLocation({
-        city: form.city,
-        state: form.state,
-        postalCode: form.postalCode,
-        country: form.country,
-      })
-    ) {
-      return false;
-    }
-    const branches = Number.parseInt(form.branchCount, 10);
-    if (!Number.isFinite(branches) || branches < 1) return false;
-    return hasChanges;
-  }, [form, hasChanges]);
-
-  const handleDiscard = () => {
-    if (!baseline) return;
-    setForm(baseline);
-    setLogoFile(null);
-    setFormError(null);
-  };
-
   const openEditModal = () => setEditOpen(true);
-
-  const handleSave = async () => {
-    if (!canSave || saving) return;
-
-    const websiteError = optionalHttpsWebsiteUrlMessage(form.websiteUrl);
-    if (websiteError) {
-      setFormError(websiteError);
-      toast.error(websiteError);
-      return;
-    }
-
-    const locationError = validateBusinessLocation({
-      city: form.city,
-      state: form.state,
-      postalCode: form.postalCode,
-      country: form.country,
-    });
-    if (locationError) {
-      setFormError(locationError);
-      toast.error(locationError);
-      return;
-    }
-
-    setSaving(true);
-    setFormError(null);
-
-    try {
-      await updateBusiness(businessId, {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        phoneNumber: form.phoneNumber.trim(),
-        email: form.email.trim() || undefined,
-        websiteUrl: form.websiteUrl.trim() || undefined,
-        city: form.city.trim() || undefined,
-        state: form.state.trim() || undefined,
-        country: form.country.trim() || undefined,
-        postalCode: form.postalCode.trim() || undefined,
-        branchCount: Number.parseInt(form.branchCount, 10),
-        logoFile,
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: businessQueryKeys.detail(businessId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: businessQueryKeys.myLists(),
-      });
-
-      setLogoFile(null);
-      toast.success("Business profile updated.");
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Could not update business profile.";
-      setFormError(message);
-      toast.error(message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const totalCampaigns = business?.summary?.totalCampaigns ?? 0;
   const totalCustomers = business?.summary?.totalCustomers ?? 0;
@@ -580,13 +347,12 @@ export function BusinessGeneralSettingsForm({
       form.city.trim(),
       form.country.trim(),
       form.description.trim(),
-      Boolean(logoSrc || logoFile),
+      Boolean(logoSrc),
     ];
     const filled = checks.filter(Boolean).length;
     const live = Math.round((filled / checks.length) * 100);
-    if (hasChanges) return live;
     return business?.summary?.monthlyUsagePercent ?? live;
-  }, [business?.summary?.monthlyUsagePercent, form, hasChanges, logoFile, logoSrc]);
+  }, [business?.summary?.monthlyUsagePercent, form, logoSrc]);
 
   const quickActions = [
     {
@@ -635,11 +401,8 @@ export function BusinessGeneralSettingsForm({
             <div className="flex items-start gap-4 sm:gap-5">
               <div id="business-settings-logo" className="scroll-mt-24">
                 <BusinessLogoAvatar
-                  disabled={saving}
                   previewUrl={logoSrc}
-                  file={logoFile}
                   businessName={form.name}
-                  onFile={setLogoFile}
                 />
               </div>
 
@@ -724,15 +487,12 @@ export function BusinessGeneralSettingsForm({
                   icon={Building2}
                   tone="slate"
                 >
-                  <input
-                    ref={nameInputRef}
+                  <p
                     id="business-settings-name"
-                    className={fieldInputClass}
-                    value={form.name}
-                    onChange={(e) => patchForm({ name: e.target.value })}
-                    autoComplete="organization"
-                    placeholder="Your business name"
-                  />
+                    className={`${fieldInputClass} m-0`}
+                  >
+                    {form.name.trim() || "—"}
+                  </p>
                 </DetailField>
 
                 <DetailField
@@ -771,15 +531,12 @@ export function BusinessGeneralSettingsForm({
                   icon={Mail}
                   tone="blue"
                 >
-                  <input
+                  <p
                     id="business-settings-email"
-                    type="email"
-                    className={fieldInputClass}
-                    value={form.email}
-                    onChange={(e) => patchForm({ email: e.target.value })}
-                    autoComplete="email"
-                    placeholder="business@email.com"
-                  />
+                    className={`${fieldInputClass} m-0`}
+                  >
+                    {form.email.trim() || "—"}
+                  </p>
                 </DetailField>
 
                 <DetailField
@@ -811,35 +568,17 @@ export function BusinessGeneralSettingsForm({
                 </DetailField>
 
                 <DetailField
-                  label="Business category"
-                  htmlFor="business-settings-city"
-                  icon={Tag}
-                  tone="purple"
-                  error={locationFieldMessage("city", form.city)}
+                  label="Address"
+                  htmlFor="business-settings-address"
+                  icon={MapPin}
+                  tone="blue"
                 >
-                  <input
-                    id="business-settings-city"
-                    className={fieldInputClass}
-                    value={form.city}
-                    onChange={(e) => patchForm({ city: e.target.value })}
-                    placeholder="e.g. Marketing Agency"
-                  />
-                </DetailField>
-
-                <DetailField
-                  label="Industry"
-                  htmlFor="business-settings-country"
-                  icon={Briefcase}
-                  tone="yellow"
-                  error={locationFieldMessage("country", form.country)}
-                >
-                  <input
-                    id="business-settings-country"
-                    className={fieldInputClass}
-                    value={form.country}
-                    onChange={(e) => patchForm({ country: e.target.value })}
-                    placeholder="e.g. Digital Marketing"
-                  />
+                  <p
+                    id="business-settings-address"
+                    className={`${fieldInputClass} m-0`}
+                  >
+                    {locationLabel === "Add your location" ? "—" : locationLabel}
+                  </p>
                 </DetailField>
               </div>
 
@@ -849,88 +588,15 @@ export function BusinessGeneralSettingsForm({
                 icon={FileText}
                 tone="slate"
               >
-                <textarea
+                <p
                   id="business-settings-description"
-                  rows={2}
-                  className={`${fieldInputClass} min-h-[2.75rem] resize-none leading-relaxed`}
-                  value={form.description}
-                  onChange={(e) => patchForm({ description: e.target.value })}
-                  placeholder="What makes your business stand out?"
-                />
+                  className={`${fieldInputClass} m-0 min-h-[2.75rem] leading-relaxed`}
+                >
+                  {form.description.trim() || "—"}
+                </p>
               </DetailField>
 
-              {formError ? (
-                <div
-                  role="alert"
-                  className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[0.72rem] text-red-700"
-                >
-                  <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              ) : null}
             </div>
-
-            <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#E8EDF5] px-5 py-3 xl:px-6">
-              <div className="flex min-w-0 items-start gap-2">
-                {hasChanges ? (
-                  <>
-                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#F97316]" />
-                    <div className="min-w-0">
-                      <p className="m-0 text-[0.84rem] font-bold text-slate-700">
-                        Unsaved changes
-                      </p>
-                      <p className="m-0 mt-0.5 text-[0.72rem] text-slate-400">
-                        Save to keep your latest updates.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2
-                      className="mt-0.5 size-4 shrink-0 text-[#22C55E]"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                    <div className="min-w-0">
-                      <p className="m-0 text-[0.84rem] font-bold text-slate-700">
-                        Profile is up to date
-                      </p>
-                      <p className="m-0 mt-0.5 text-[0.72rem] text-slate-400">
-                        Great! Your business information is complete.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex shrink-0 gap-2">
-                {hasChanges ? (
-                  <button
-                    type="button"
-                    onClick={handleDiscard}
-                    disabled={saving}
-                    className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[0.84rem] font-semibold text-slate-600 disabled:opacity-60"
-                  >
-                    Discard
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={!canSave || saving}
-                  className="inline-flex h-10 min-w-[8.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#2563EB] px-5 text-[0.84rem] font-bold text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)] transition hover:from-[#2563EB] hover:to-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      Saving…
-                    </>
-                  ) : (
-                    "Save changes"
-                  )}
-                </button>
-              </div>
-            </footer>
           </section>
     </>
   );

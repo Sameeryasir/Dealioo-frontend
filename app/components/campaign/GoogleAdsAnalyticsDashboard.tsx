@@ -361,9 +361,7 @@ export function GoogleAdsAnalyticsDashboard({
                 Google ads
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Track spend, clicks, impressions, conversions, conversion value,
-                CTR, CPC, and cost per conversion from your linked Google Ads
-                account.
+                Track spend and performance for your linked Google Ads account.
               </p>
             </div>
           </div>

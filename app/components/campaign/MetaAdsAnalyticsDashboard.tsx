@@ -637,8 +637,7 @@ export function MetaAdsAnalyticsDashboard({
                 Meta ads
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Track spend, impressions, reach, clicks, CTR, CPC, CPM,
-                frequency, and results from your linked Meta ad account.
+                Track spend and performance for your linked Meta ads account.
               </p>
             </div>
           </div>

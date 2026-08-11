@@ -295,9 +295,9 @@ export default function BusinessDashboardCard({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="#0a84ff" />
-                          <stop offset="45%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#ff2d95" />
+                          <stop offset="0%" stopColor="#1877f2" />
+                          <stop offset="55%" stopColor="#833aba" />
+                          <stop offset="100%" stopColor="#ea5a8f" />
                         </linearGradient>
                       </defs>
                       <circle
