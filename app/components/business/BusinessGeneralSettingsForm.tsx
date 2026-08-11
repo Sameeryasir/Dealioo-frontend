@@ -1,11 +1,9 @@
 "use client";
 
-import {
-  BookMeetingPhoneInput,
-  isValidPhoneNumber,
-} from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import { isValidPhoneNumber } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
+import { BusinessProfileEditModal } from "@/app/components/business/BusinessProfileEditModal";
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import {
@@ -25,8 +23,10 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowUpRight,
+  BarChart3,
   Briefcase,
   Building2,
+  Camera,
   CheckCircle2,
   ChevronRight,
   FileText,
@@ -39,7 +39,7 @@ import {
   MessageSquare,
   Pencil,
   Phone,
-  ScanLine,
+  Store,
   Tag,
   Users,
   X,
@@ -91,6 +91,7 @@ const ICON = {
   green: { wrap: "bg-[#E8F8EF]", ink: "text-[#22C55E]" },
   pink: { wrap: "bg-[#FDE8F0]", ink: "text-[#E11D48]" },
   orange: { wrap: "bg-[#FFF1E6]", ink: "text-[#F97316]" },
+  yellow: { wrap: "bg-[#FFF8E8]", ink: "text-[#FCB825]" },
   purple: { wrap: "bg-[#F3E8FF]", ink: "text-[#8B5CF6]" },
   slate: { wrap: "bg-[#F1F5F9]", ink: "text-[#64748B]" },
 } as const;
@@ -196,9 +197,7 @@ function DetailField({
   className?: string;
 }) {
   return (
-    <div
-      className={`flex items-start gap-2.5 rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] px-3 py-2 ${className}`}
-    >
+    <div className={`flex items-start gap-2.5 py-1 ${className}`}>
       <ToneIcon icon={icon} tone={tone} size="sm" />
       <div className="min-w-0 flex-1">
         <label
@@ -248,7 +247,8 @@ function BusinessLogoAvatar({
   }, [filePreviewUrl]);
 
   const displayUrl = filePreviewUrl ?? previewUrl;
-  const initials = businessName.trim().slice(0, 2).toUpperCase() || "BZ";
+  const shortLabel =
+    formatTitleCase(businessName.trim()).split(/\s+/)[0] || "Biz";
 
   const validateAndSet = useCallback(
     (nextFile: File | null, inputEl: HTMLInputElement | null) => {
@@ -285,29 +285,39 @@ function BusinessLogoAvatar({
         }}
       />
 
+      {/* Logo tile — gradient placeholder + camera badge (mock). */}
       <button
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        className="group relative size-[5.5rem] cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 xl:size-[6.25rem]"
+        className="group relative size-[5.75rem] cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 xl:size-[6.5rem]"
         aria-label="Upload business logo"
       >
-        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-[0_8px_22px_rgba(15,23,42,0.1)] ring-1 ring-[#E2E8F0] transition group-hover:ring-[#2F6BFF]/35 group-focus-visible:ring-4 group-focus-visible:ring-[#2F6BFF]/25 xl:p-2.5">
+        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff] transition group-hover:ring-[#2F6BFF]/45 group-focus-visible:ring-4 group-focus-visible:ring-[#2F6BFF]/25">
           {displayUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={displayUrl}
               alt=""
-              className="max-h-full max-w-full object-contain"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center rounded-xl bg-[#0B2340] text-lg font-bold tracking-wide text-white/90">
-              {initials}
+            <span
+              className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-white"
+              style={{
+                background:
+                  "linear-gradient(145deg, #3B82F6 0%, #6366F1 48%, #A855F7 100%)",
+              }}
+            >
+              <Store className="size-7 opacity-95" strokeWidth={1.75} aria-hidden />
+              <span className="max-w-full truncate text-[0.72rem] font-bold tracking-tight">
+                {shortLabel}
+              </span>
             </span>
           )}
         </span>
-        <span className="absolute -bottom-1.5 -right-1.5 z-10 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-white text-slate-500 shadow-md">
-          <Pencil className="size-3" strokeWidth={2.5} aria-hidden />
+        <span className="absolute -bottom-1 -right-1 z-10 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-[#2F6BFF] text-white shadow-md">
+          <Camera className="size-3.5" strokeWidth={2.25} aria-hidden />
         </span>
       </button>
 
@@ -323,16 +333,7 @@ function BusinessLogoAvatar({
           <X className="size-3" aria-hidden />
           Undo
         </button>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-          className="mt-2 cursor-pointer text-[0.82rem] font-semibold text-[#2F6BFF] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Upload logo
-        </button>
-      )}
+      ) : null}
 
       {localError ? (
         <p className="mt-0.5 max-w-[6.5rem] text-center text-[0.65rem] text-red-600">
@@ -340,6 +341,37 @@ function BusinessLogoAvatar({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function ProfileCityscape({ className }: { className?: string }) {
+  // Soft skyline decoration for the page header (visual only).
+  return (
+    <svg
+      viewBox="0 0 220 88"
+      className={className}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M12 78V48l14-8 10 6v32H12Z"
+        fill="#BFDBFE"
+        opacity="0.85"
+      />
+      <path d="M42 78V36l18-10 16 9v43H42Z" fill="#93C5FD" opacity="0.9" />
+      <path d="M82 78V28l22-14 20 12v52H82Z" fill="#60A5FA" opacity="0.55" />
+      <path d="M128 78V42l14-8 12 7v37h-26Z" fill="#A7F3D0" opacity="0.7" />
+      <path d="M158 78V34l20-12 18 10v46h-38Z" fill="#93C5FD" opacity="0.75" />
+      <path d="M198 78V52l10-6 8 5v27h-18Z" fill="#BFDBFE" opacity="0.9" />
+      <rect x="50" y="48" width="4" height="6" rx="1" fill="#EFF6FF" />
+      <rect x="58" y="48" width="4" height="6" rx="1" fill="#EFF6FF" />
+      <rect x="50" y="58" width="4" height="6" rx="1" fill="#EFF6FF" />
+      <rect x="92" y="40" width="4" height="6" rx="1" fill="#DBEAFE" />
+      <rect x="100" y="40" width="4" height="6" rx="1" fill="#DBEAFE" />
+      <rect x="168" y="46" width="4" height="6" rx="1" fill="#EFF6FF" />
+      <rect x="176" y="46" width="4" height="6" rx="1" fill="#EFF6FF" />
+    </svg>
   );
 }
 
@@ -385,6 +417,7 @@ export function BusinessGeneralSettingsForm({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (activeSection !== "general") return;
@@ -473,10 +506,7 @@ export function BusinessGeneralSettingsForm({
     setFormError(null);
   };
 
-  const focusDetails = () => {
-    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    window.setTimeout(() => nameInputRef.current?.focus(), 200);
-  };
+  const openEditModal = () => setEditOpen(true);
 
   const handleSave = async () => {
     if (!canSave || saving) return;
@@ -596,11 +626,13 @@ export function BusinessGeneralSettingsForm({
     );
   }
 
+  const websiteHref = form.websiteUrl.trim();
+
   const profileMain = (
     <>
-          {/* Overview card — exact mock */}
+          {/* Overview card — matches business profile mock */}
           <section className="shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5">
-            <div className="flex items-start gap-5">
+            <div className="flex items-start gap-4 sm:gap-5">
               <div id="business-settings-logo" className="scroll-mt-24">
                 <BusinessLogoAvatar
                   disabled={saving}
@@ -617,27 +649,28 @@ export function BusinessGeneralSettingsForm({
                     <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
                       Business name
                     </p>
-                    <h2 className="m-0 mt-1 truncate text-[1.35rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.5rem]">
-                      {displayName}
-                    </h2>
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                      <h2 className="m-0 truncate text-[1.35rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.5rem]">
+                        {displayName}
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF5] px-2 py-0.5 text-[0.68rem] font-bold text-[#15803D] ring-1 ring-[#BBF7D0]">
+                        <span className="size-1.5 rounded-full bg-[#22C55E]" aria-hidden />
+                        Active
+                      </span>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={focusDetails}
-                    className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[0.8rem] font-semibold text-slate-700 transition hover:bg-[#F8FAFC]"
+                    onClick={openEditModal}
+                    className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-[#BFDBFE] bg-white px-3 text-[0.8rem] font-semibold text-[#2F6BFF] transition hover:bg-[#EFF6FF]"
                   >
                     <Pencil className="size-3.5" strokeWidth={2.25} aria-hidden />
                     Edit profile
                   </button>
                 </div>
 
-                <p className="m-0 mt-2 line-clamp-2 text-[0.88rem] leading-relaxed text-slate-500">
-                  {form.description.trim() ||
-                    "Add a short description so customers know what you offer."}
-                </p>
-
-                <div className="mt-3 flex flex-wrap items-center gap-x-0 gap-y-1.5 text-[0.82rem] text-slate-600">
-                  <span className="inline-flex min-w-0 items-center gap-1.5 pr-3">
+                <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[0.82rem] text-slate-600">
+                  <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
                     <MapPin
                       className="size-3.5 shrink-0 text-slate-400"
                       strokeWidth={2.25}
@@ -648,7 +681,7 @@ export function BusinessGeneralSettingsForm({
                   <span className="hidden h-3.5 w-px bg-[#E5E7EB] sm:block" aria-hidden />
                   <span
                     id="business-settings-branch"
-                    className="inline-flex items-center gap-1.5 sm:pl-3"
+                    className="inline-flex shrink-0 items-center gap-1.5"
                   >
                     <GitBranch
                       className="size-3.5 shrink-0 text-slate-400"
@@ -671,7 +704,7 @@ export function BusinessGeneralSettingsForm({
           >
             <header className="flex shrink-0 items-center gap-3 px-5 py-3.5 xl:px-6">
               <span className="flex size-9 items-center justify-center rounded-xl bg-[#E8F1FF] text-[#2F6BFF]">
-                <Building2 className="size-4" strokeWidth={2.25} aria-hidden />
+                <FileText className="size-4" strokeWidth={2.25} aria-hidden />
               </span>
               <div className="min-w-0">
                 <h3 className="m-0 text-[1rem] font-bold text-[#0F172A]">
@@ -683,7 +716,7 @@ export function BusinessGeneralSettingsForm({
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-2.5 overflow-hidden px-5 pb-3 xl:px-6">
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 pb-3 xl:px-6">
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <DetailField
                   label="Business name"
@@ -706,13 +739,14 @@ export function BusinessGeneralSettingsForm({
                   label="Phone number"
                   htmlFor="business-settings-phone"
                   icon={Phone}
-                  tone="slate"
+                  tone="green"
                 >
-                  <BookMeetingPhoneInput
-                    value={form.phoneNumber}
-                    onChange={(value) => patchForm({ phoneNumber: value })}
-                    wrapClassName="!gap-1 [&_input]:!text-[0.86rem] [&_input]:!font-semibold"
-                  />
+                  <p
+                    id="business-settings-phone"
+                    className={`${fieldInputClass} m-0`}
+                  >
+                    {form.phoneNumber.trim() || "—"}
+                  </p>
                 </DetailField>
 
                 {twilioNumber ? (
@@ -720,7 +754,7 @@ export function BusinessGeneralSettingsForm({
                     label="Twilio number"
                     htmlFor="business-settings-twilio"
                     icon={MessageSquare}
-                    tone="slate"
+                    tone="purple"
                   >
                     <p
                       id="business-settings-twilio"
@@ -735,7 +769,7 @@ export function BusinessGeneralSettingsForm({
                   label="Email address"
                   htmlFor="business-settings-email"
                   icon={Mail}
-                  tone="slate"
+                  tone="blue"
                 >
                   <input
                     id="business-settings-email"
@@ -752,25 +786,35 @@ export function BusinessGeneralSettingsForm({
                   label="Website"
                   htmlFor="business-settings-website"
                   icon={Globe}
-                  tone="slate"
-                  error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
+                  tone="blue"
                 >
-                  <input
-                    id="business-settings-website"
-                    type="url"
-                    inputMode="url"
-                    className={fieldInputClass}
-                    value={form.websiteUrl}
-                    onChange={(e) => patchForm({ websiteUrl: e.target.value })}
-                    placeholder="https://yourbusiness.com"
-                  />
+                  {websiteHref &&
+                  isValidOptionalHttpsWebsiteUrl(websiteHref) ? (
+                    <a
+                      id="business-settings-website"
+                      href={websiteHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${fieldInputClass} m-0 block truncate text-[#2F6BFF] no-underline hover:underline`}
+                      title={websiteHref}
+                    >
+                      {websiteHref}
+                    </a>
+                  ) : (
+                    <p
+                      id="business-settings-website"
+                      className={`${fieldInputClass} m-0 text-slate-400`}
+                    >
+                      {websiteHref || "—"}
+                    </p>
+                  )}
                 </DetailField>
 
                 <DetailField
                   label="Business category"
                   htmlFor="business-settings-city"
                   icon={Tag}
-                  tone="slate"
+                  tone="purple"
                   error={locationFieldMessage("city", form.city)}
                 >
                   <input
@@ -786,7 +830,7 @@ export function BusinessGeneralSettingsForm({
                   label="Industry"
                   htmlFor="business-settings-country"
                   icon={Briefcase}
-                  tone="slate"
+                  tone="yellow"
                   error={locationFieldMessage("country", form.country)}
                 >
                   <input
@@ -807,8 +851,8 @@ export function BusinessGeneralSettingsForm({
               >
                 <textarea
                   id="business-settings-description"
-                  rows={3}
-                  className={`${fieldInputClass} min-h-[3.25rem] resize-none leading-relaxed`}
+                  rows={2}
+                  className={`${fieldInputClass} min-h-[2.75rem] resize-none leading-relaxed`}
                   value={form.description}
                   onChange={(e) => patchForm({ description: e.target.value })}
                   placeholder="What makes your business stand out?"
@@ -826,25 +870,35 @@ export function BusinessGeneralSettingsForm({
               ) : null}
             </div>
 
-            <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-[#E8EDF5] px-5 py-3 xl:px-6">
-              <div className="flex min-w-0 items-center gap-2">
+            <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#E8EDF5] px-5 py-3 xl:px-6">
+              <div className="flex min-w-0 items-start gap-2">
                 {hasChanges ? (
                   <>
-                    <span className="size-2 shrink-0 rounded-full bg-[#F97316]" />
-                    <p className="m-0 truncate text-[0.84rem] font-medium text-slate-700">
-                      Unsaved changes
-                    </p>
+                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#F97316]" />
+                    <div className="min-w-0">
+                      <p className="m-0 text-[0.84rem] font-bold text-slate-700">
+                        Unsaved changes
+                      </p>
+                      <p className="m-0 mt-0.5 text-[0.72rem] text-slate-400">
+                        Save to keep your latest updates.
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>
                     <CheckCircle2
-                      className="size-4 shrink-0 text-[#22C55E]"
+                      className="mt-0.5 size-4 shrink-0 text-[#22C55E]"
                       strokeWidth={2.25}
                       aria-hidden
                     />
-                    <p className="m-0 truncate text-[0.84rem] text-slate-500">
-                      Profile is up to date
-                    </p>
+                    <div className="min-w-0">
+                      <p className="m-0 text-[0.84rem] font-bold text-slate-700">
+                        Profile is up to date
+                      </p>
+                      <p className="m-0 mt-0.5 text-[0.72rem] text-slate-400">
+                        Great! Your business information is complete.
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
@@ -864,7 +918,7 @@ export function BusinessGeneralSettingsForm({
                   type="button"
                   onClick={() => void handleSave()}
                   disabled={!canSave || saving}
-                  className="inline-flex h-10 min-w-[8.25rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#2F6BFF] px-5 text-[0.84rem] font-bold text-white shadow-[0_6px_14px_rgba(47,107,255,0.28)] transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-10 min-w-[8.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#2563EB] px-5 text-[0.84rem] font-bold text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)] transition hover:from-[#2563EB] hover:to-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? (
                     <>
@@ -905,28 +959,36 @@ export function BusinessGeneralSettingsForm({
 
   return (
     <div className="business-profile-fit flex h-full min-h-0 flex-col overflow-hidden">
-      <header className="mb-3 shrink-0">
+      <BusinessProfileEditModal
+        open={editOpen}
+        businessId={businessId}
+        onClose={() => setEditOpen(false)}
+      />
+      <header className="relative mb-3 shrink-0 pr-[7.5rem] sm:pr-[10rem]">
         <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.7rem]">
           {previewMeta.title}
         </h1>
         <p className="m-0 mt-1 text-[0.88rem] text-slate-500">
           {previewMeta.subtitle}
         </p>
+        {isProfileView ? (
+          <ProfileCityscape className="pointer-events-none absolute -right-1 top-0 h-[4.5rem] w-[9rem] opacity-90 sm:h-[5.25rem] sm:w-[11rem]" />
+        ) : null}
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.25rem] xl:gap-3.5">
+      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem] xl:gap-3.5">
         <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
           {isProfileView ? profileMain : previewMain}
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-2.5 overflow-hidden xl:gap-3">
+        <aside className="flex min-h-0 flex-col gap-2.5 overflow-y-auto xl:gap-3">
           <section className="shrink-0 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
             <header className="border-b border-[#E8EDF5] px-3.5 py-2.5">
               <h3 className="m-0 text-[0.86rem] font-bold text-[#0F172A]">
                 Quick actions
               </h3>
             </header>
-            <ul className="m-0 list-none p-1.5">
+            <ul className="m-0 list-none divide-y divide-[#F1F5F9] p-0">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 const selected = previewSection === action.id;
@@ -934,9 +996,9 @@ export function BusinessGeneralSettingsForm({
                   <li key={action.href}>
                     <Link
                       href={action.href}
-                      className={`flex items-center gap-2.5 rounded-xl px-2 py-2 text-[0.8rem] font-semibold no-underline transition ${
+                      className={`flex items-center gap-2.5 px-3.5 py-2.5 text-[0.8rem] font-semibold no-underline transition ${
                         selected
-                          ? "bg-[#F1F5F9] text-[#0F172A]"
+                          ? "bg-[#F8FAFC] text-[#0F172A]"
                           : "text-slate-700 hover:bg-[#F8FAFC]"
                       }`}
                       aria-current={selected ? "page" : undefined}
@@ -957,9 +1019,9 @@ export function BusinessGeneralSettingsForm({
             </ul>
           </section>
 
-          <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+          <section className="shrink-0 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
             <header className="flex items-center gap-2 border-b border-[#E8EDF5] px-3.5 py-2.5">
-              <ToneIcon icon={ScanLine} tone="blue" size="sm" />
+              <ToneIcon icon={BarChart3} tone="purple" size="sm" />
               <h3 className="m-0 text-[0.86rem] font-bold text-[#0F172A]">
                 Business summary
               </h3>
@@ -986,16 +1048,15 @@ export function BusinessGeneralSettingsForm({
                     {usagePercent}% of limit
                   </p>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#E8EDF5]">
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#E8EDF5]">
                   <div
                     className="h-full rounded-full bg-[#2F6BFF] transition-[width]"
-                    style={{ width: `${usagePercent}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, usagePercent))}%` }}
                   />
                 </div>
               </div>
             </div>
           </section>
-
         </aside>
       </div>
     </div>

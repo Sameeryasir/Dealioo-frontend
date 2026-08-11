@@ -4,8 +4,9 @@ import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { motion, useReducedMotion } from "framer-motion";
-import { CheckCircle2, HelpCircle, Megaphone } from "lucide-react";
+import { CheckCircle2, Megaphone } from "lucide-react";
 
 export type RegisterBusinessMetaAdsQuestionStepProps = {
   onHasAccount: () => void;
@@ -46,7 +47,7 @@ export default function RegisterBusinessMetaAdsQuestionStep({
         <section className={styles.card}>
           <header className={styles.header}>
             <span className={styles.badge}>
-              <HelpCircle className="h-4 w-4" aria-hidden />
+              <MetaLogo className="h-5 w-5" />
             </span>
             <h2 className={styles.title}>
               Do you have a{" "}

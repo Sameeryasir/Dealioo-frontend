@@ -13,10 +13,10 @@ type RegisterBusinessTwilioNumberFieldProps = {
   selectedSid: string;
   isLoading: boolean;
   disabled?: boolean;
-  /** Hide inner label when the parent field already shows one. */
   hideLabel?: boolean;
-  /** Shorter trigger for tight layouts (e.g. Business profile no-scroll). */
   compact?: boolean;
+  brand?: boolean;
+  allAssigned?: boolean;
   onSelect: (sid: string) => void;
 };
 
@@ -27,6 +27,8 @@ export function RegisterBusinessTwilioNumberField({
   disabled = false,
   hideLabel = false,
   compact = false,
+  brand = false,
+  allAssigned = false,
   onSelect,
 }: RegisterBusinessTwilioNumberFieldProps) {
   const labelId = useId();
@@ -152,24 +154,50 @@ export function RegisterBusinessTwilioNumberField({
           className={`flex w-full cursor-pointer items-center rounded-xl border border-[#e8edf5] bg-white text-left shadow-sm outline-none transition hover:border-[#1877f2]/35 hover:bg-[#f8faff] focus-visible:border-[#1877f2]/45 focus-visible:ring-4 focus-visible:ring-[#1877f2]/12 disabled:cursor-not-allowed disabled:opacity-60 ${
             compact
               ? "h-10 gap-2 px-2.5"
-              : "h-14 gap-3 px-4"
+              : brand
+                ? "h-[3.35rem] gap-3 px-3.5"
+                : "h-14 gap-3 px-4"
           }`}
         >
           <span
-            className={`flex shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2] ${
-              compact ? "size-7" : "size-8"
+            className={`flex shrink-0 items-center justify-center ${
+              brand
+                ? "size-9 rounded-full text-white shadow-[0_8px_18px_rgba(124,58,237,0.28)]"
+                : compact
+                  ? "size-7 rounded-lg bg-[#e8f2ff] text-[#1877f2]"
+                  : "size-8 rounded-lg bg-[#e8f2ff] text-[#1877f2]"
             }`}
+            style={
+              brand
+                ? {
+                    background:
+                      "linear-gradient(135deg, #1877f2 0%, #7c3aed 55%, #db2777 100%)",
+                  }
+                : undefined
+            }
             aria-hidden
           >
             {isLoading ? (
               <Loader2
-                className={compact ? "size-3.5 animate-spin" : "size-4 animate-spin"}
+                className={
+                  brand
+                    ? "size-4 animate-spin text-white"
+                    : compact
+                      ? "size-3.5 animate-spin"
+                      : "size-4 animate-spin"
+                }
                 strokeWidth={2.25}
               />
             ) : (
               <Phone
-                className={compact ? "size-3.5" : "size-4"}
-                strokeWidth={2.25}
+                className={
+                  brand
+                    ? "size-4 text-white"
+                    : compact
+                      ? "size-3.5"
+                      : "size-4"
+                }
+                strokeWidth={2.4}
               />
             )}
           </span>
@@ -195,7 +223,11 @@ export function RegisterBusinessTwilioNumberField({
               </>
             ) : (
               <span className="block text-sm font-medium text-zinc-500">
-                {numbers.length === 0 ? "No numbers found" : "Select a number"}
+                {allAssigned
+                  ? "All numbers are assigned"
+                  : numbers.length === 0
+                    ? "No numbers found"
+                    : "Select a number"}
               </span>
             )}
           </span>

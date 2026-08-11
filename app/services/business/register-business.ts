@@ -19,6 +19,7 @@ export type RegisterBusinessPayload = {
   description?: string;
   websiteUrl?: string;
   logoFile?: File | null;
+  logoUrl?: string | null;
   city?: string;
   state?: string;
   postalCode?: string;
@@ -138,6 +139,11 @@ export async function registerBusiness(
   if (payload.logoFile instanceof File) {
     const logoFile = await compressImageForUpload(payload.logoFile);
     formData.append("file", logoFile, logoFile.name);
+  } else {
+    const existingLogoUrl = payload.logoUrl?.trim();
+    if (existingLogoUrl) {
+      formData.append("logoUrl", existingLogoUrl);
+    }
   }
 
   try {

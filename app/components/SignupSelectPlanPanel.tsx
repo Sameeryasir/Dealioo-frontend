@@ -22,6 +22,7 @@ import { saveSelectedSignupPlan } from "@/app/lib/selected-plan-storage";
 import { useInvalidateMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
+import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
 import {
   isPlanFitComplete,
@@ -29,7 +30,6 @@ import {
   type PlanFitAnswers,
   type PlanFitPlanId,
 } from "@/app/lib/plan-fit-questionnaire";
-import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -40,7 +40,6 @@ type SignupSelectPlanPanelProps = {
 export function SignupSelectPlanPanel({
   mode = "checkout",
 }: SignupSelectPlanPanelProps) {
-  const router = useRouter();
   const invalidateMySubscription = useInvalidateMyUserSubscription();
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
@@ -216,9 +215,11 @@ export function SignupSelectPlanPanel({
           planId: selectedPlanId,
           billing: billingCycle,
         });
-        router.replace(
-          `/auth/select-plan/thank-you?plan=${encodeURIComponent(selectedPlanId)}`,
-        );
+        const checkout = await startUserPlanCheckout({
+          planSlug: selectedPlanId,
+          billingCycle,
+        });
+        window.location.assign(checkout.checkoutUrl);
         return;
       }
 
@@ -247,12 +248,14 @@ export function SignupSelectPlanPanel({
       const message =
         error instanceof Error
           ? error.message
-          : "Could not upgrade your plan. Try again.";
+          : mode === "checkout"
+            ? "Could not start checkout. Try again."
+            : "Could not upgrade your plan. Try again.";
 
       setErrorMessage(message);
       setSubmitting(false);
     }
-  }, [billingCycle, invalidateMySubscription, mode, plans, router, selectedPlanId]);
+  }, [billingCycle, invalidateMySubscription, mode, plans, selectedPlanId]);
 
   if (loading || (mode === "checkout" && !planFitReady)) {
     return <OnboardingPageLoading />;

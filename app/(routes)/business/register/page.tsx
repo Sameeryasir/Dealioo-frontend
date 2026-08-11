@@ -3,6 +3,13 @@
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
+import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
+import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
+import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
+import RegisterBusinessInviteStep from "@/app/components/register-business/RegisterBusinessInviteStep";
+import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
+import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
+import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
@@ -19,6 +26,12 @@ import { type AdminBusiness } from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
 import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
+import {
+  clearPostCreateOnboarding,
+  readPostCreateOnboarding,
+  writePostCreateOnboarding,
+  type PostCreateStep,
+} from "@/app/lib/post-create-onboarding";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -45,6 +58,11 @@ async function userCanRegisterBusiness(
   }
 }
 
+type CreatedBusiness = {
+  id: number;
+  name: string;
+};
+
 export default function RegisterBusinessPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -52,6 +70,11 @@ export default function RegisterBusinessPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gateReady, setGateReady] = useState(false);
+  const [createdBusiness, setCreatedBusiness] = useState<CreatedBusiness | null>(
+    null,
+  );
+  const [postCreateStep, setPostCreateStep] =
+    useState<PostCreateStep>("metaQuestion");
 
   useEffect(() => {
     let cancelled = false;
@@ -85,9 +108,22 @@ export default function RegisterBusinessPage() {
           return;
         }
 
-        if (status.businessCreated && isStarterSubscription(subscription)) {
+        if (
+          status.businessCreated &&
+          isStarterSubscription(subscription) &&
+          !readPostCreateOnboarding()
+        ) {
           router.replace(resolvePostAuthPath(status));
           return;
+        }
+
+        const saved = readPostCreateOnboarding();
+        if (saved && !cancelled) {
+          setCreatedBusiness({
+            id: saved.businessId,
+            name: saved.businessName,
+          });
+          setPostCreateStep(saved.step);
         }
 
         if (!cancelled) setGateReady(true);
@@ -97,6 +133,14 @@ export default function RegisterBusinessPage() {
         if (!canRegister) {
           router.replace("/auth/select-plan");
           return;
+        }
+        const saved = readPostCreateOnboarding();
+        if (saved) {
+          setCreatedBusiness({
+            id: saved.businessId,
+            name: saved.businessName,
+          });
+          setPostCreateStep(saved.step);
         }
         setGateReady(true);
       }
@@ -108,6 +152,53 @@ export default function RegisterBusinessPage() {
       cancelled = true;
     };
   }, [queryClient, router]);
+
+  const savePostCreateStep = useCallback(
+    (step: PostCreateStep, business?: CreatedBusiness | null) => {
+      const nextBusiness = business ?? createdBusiness;
+      setPostCreateStep(step);
+      if (!nextBusiness) return;
+      writePostCreateOnboarding({
+        businessId: nextBusiness.id,
+        businessName: nextBusiness.name,
+        step,
+      });
+    },
+    [createdBusiness],
+  );
+
+  const goToDashboard = useCallback(() => {
+    clearPostCreateOnboarding();
+    router.replace("/dashboard?setup=1");
+  }, [router]);
+
+  const goToFacebookStep = useCallback(() => {
+    savePostCreateStep("facebook");
+  }, [savePostCreateStep]);
+
+  const goToMetaQuestionStep = useCallback(() => {
+    savePostCreateStep("metaQuestion");
+  }, [savePostCreateStep]);
+
+  const goToMetaCreateStep = useCallback(() => {
+    savePostCreateStep("metaCreate");
+  }, [savePostCreateStep]);
+
+  const goToStripeQuestionStep = useCallback(() => {
+    savePostCreateStep("stripeQuestion");
+  }, [savePostCreateStep]);
+
+  const goToStripeCreateStep = useCallback(() => {
+    savePostCreateStep("stripeCreate");
+  }, [savePostCreateStep]);
+
+  const goToStripeConnectStep = useCallback(() => {
+    savePostCreateStep("stripe");
+  }, [savePostCreateStep]);
+
+  const goToInviteStep = useCallback(() => {
+    savePostCreateStep("invite");
+  }, [savePostCreateStep]);
 
   const onCreateBusiness = useCallback(
     async (
@@ -124,6 +215,7 @@ export default function RegisterBusinessPage() {
           description: pendingForm.description.trim() || undefined,
           websiteUrl: pendingForm.websiteUrl || undefined,
           logoFile: pendingForm.logoFile ?? null,
+          logoUrl: pendingForm.logoUrl ?? null,
           city: pendingForm.city,
           state: pendingForm.state,
           postalCode: pendingForm.postalCode,
@@ -162,7 +254,14 @@ export default function RegisterBusinessPage() {
           queryKey: businessQueryKeys.myLists(),
         });
         invalidateOnboardingStatusCache();
-        router.replace("/dashboard?setup=1");
+
+        const created = {
+          id: businessId,
+          name: pendingForm.name.trim(),
+        };
+        setCreatedBusiness(created);
+        savePostCreateStep("metaQuestion", created);
+        setSubmitting(false);
       } catch (error) {
         const message =
           error instanceof Error
@@ -172,11 +271,85 @@ export default function RegisterBusinessPage() {
         setSubmitting(false);
       }
     },
-    [accessToken, queryClient, router],
+    [accessToken, queryClient, savePostCreateStep],
   );
 
   if (!gateReady) {
     return <OnboardingPageLoading />;
+  }
+
+  if (createdBusiness && postCreateStep === "metaQuestion") {
+    return (
+      <RegisterBusinessMetaAdsQuestionStep
+        onHasAccount={goToFacebookStep}
+        onNoAccount={goToMetaCreateStep}
+        onSkip={goToStripeQuestionStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "metaCreate") {
+    return (
+      <RegisterBusinessCreateMetaAdAccountStep
+        onContinue={goToFacebookStep}
+        onBack={goToMetaQuestionStep}
+        onSkip={goToStripeQuestionStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "facebook") {
+    return (
+      <RegisterBusinessFacebookConnectStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToStripeQuestionStep}
+        onBack={goToMetaQuestionStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "stripeQuestion") {
+    return (
+      <RegisterBusinessStripeQuestionStep
+        onHasAccount={goToStripeConnectStep}
+        onNoAccount={goToStripeCreateStep}
+        onSkip={goToInviteStep}
+        onBack={goToFacebookStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "stripeCreate") {
+    return (
+      <RegisterBusinessCreateStripeAccountStep
+        onContinue={goToStripeConnectStep}
+        onBack={goToStripeQuestionStep}
+        onSkip={goToInviteStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "stripe") {
+    return (
+      <RegisterBusinessStripeConnectStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToInviteStep}
+        onBack={goToStripeQuestionStep}
+      />
+    );
+  }
+
+  if (createdBusiness) {
+    return (
+      <RegisterBusinessInviteStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
+        onContinue={goToDashboard}
+        onBack={goToStripeQuestionStep}
+      />
+    );
   }
 
   return (

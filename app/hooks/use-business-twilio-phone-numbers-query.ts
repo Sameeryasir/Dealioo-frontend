@@ -17,6 +17,7 @@ const EMPTY_TWILIO_NUMBERS: TwilioPhoneNumbersResponse = {
   numbers: [],
   selectedPhoneSid: null,
   selectedPhoneNumber: null,
+  allAssigned: false,
 };
 
 export function useAvailableTwilioPhoneNumbersQuery(options?: {
@@ -36,6 +37,7 @@ export function useAvailableTwilioPhoneNumbersQuery(options?: {
     numbers: query.data?.numbers ?? EMPTY_TWILIO_NUMBERS.numbers,
     selectedPhoneSid: query.data?.selectedPhoneSid ?? null,
     selectedPhoneNumber: query.data?.selectedPhoneNumber ?? null,
+    allAssigned: Boolean(query.data?.allAssigned),
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isPending: query.isPending,

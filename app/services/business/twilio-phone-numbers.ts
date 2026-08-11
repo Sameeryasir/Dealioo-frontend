@@ -13,6 +13,7 @@ export type TwilioPhoneNumbersResponse = {
   numbers: TwilioPhoneNumberOption[];
   selectedPhoneSid: string | null;
   selectedPhoneNumber: string | null;
+  allAssigned?: boolean;
 };
 
 export type AssociatedTwilioPhoneNumber = {
@@ -43,10 +44,12 @@ export async function getAvailableTwilioPhoneNumbers(): Promise<TwilioPhoneNumbe
   }
 
   const json = (await res.json()) as TwilioPhoneNumbersResponse;
+  const numbers = Array.isArray(json.numbers) ? json.numbers : [];
   return {
-    numbers: Array.isArray(json.numbers) ? json.numbers : [],
+    numbers,
     selectedPhoneSid: json.selectedPhoneSid ?? null,
     selectedPhoneNumber: json.selectedPhoneNumber ?? null,
+    allAssigned: Boolean(json.allAssigned),
   };
 }
 

@@ -29,12 +29,12 @@ export const REGISTER_BUSINESS_STEP_UI: Record<
   about: {
     lead: "Tell us more about your ",
     accent: "business",
-    subtitle: "Optional details help customers find you.",
+    subtitle: "Email and description help customers find you. Website is optional.",
   },
   location: {
     lead: "Where are you ",
     accent: "located?",
-    subtitle: "Add your address and logo.",
+    subtitle: "Add your address and logo to help customers find you.",
   },
   number: {
     lead: "Choose your ",

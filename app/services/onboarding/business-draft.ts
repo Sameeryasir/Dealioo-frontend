@@ -77,6 +77,37 @@ export async function getBusinessOnboardingDraft(): Promise<BusinessOnboardingDr
   return normalizeDraft(data);
 }
 
+export async function uploadBusinessDraftLogo(
+  file: File,
+): Promise<BusinessOnboardingDraft> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `${getApiBaseUrl()}/onboarding/business-draft/logo`;
+  const res = await authenticatedFetch(
+    url,
+    {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: formData,
+    },
+    60_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiMessageFromResponse(res, "Could not upload business logo."),
+    );
+  }
+
+  const data: unknown = await res.json();
+  const draft = normalizeDraft(data);
+  if (!draft?.logoUrl) {
+    throw new Error("Logo uploaded, but no image URL was returned.");
+  }
+  return draft;
+}
+
 export async function saveBusinessOnboardingDraft(input: {
   step?: string;
   payload?: BusinessOnboardingDraftPayload;

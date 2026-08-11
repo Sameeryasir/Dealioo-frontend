@@ -589,13 +589,10 @@ export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
               const originalPrice =
                 tier.originalPrice ??
                 (isExpertPlan && billing === "monthly" ? "$500" : null);
-              // --- Talk to Us / Contact Sales: stop on thank-you (no signup checkout) ---
               const ctaLower = (plan.cta || "").toLowerCase();
               const isTalkToUsCta =
                 ctaLower.includes("talk to") || ctaLower.includes("contact");
-              const planCtaHref = isTalkToUsCta
-                ? `/auth/select-plan/thank-you?plan=${encodeURIComponent(plan.id)}`
-                : signupHref;
+              const planCtaHref = signupHref;
 
               return (
                 <Reveal key={plan.id} delay={i * 0.06} className="h-full">
