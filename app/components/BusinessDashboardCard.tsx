@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Change: Grid card matches the business-card mock (name + Active, setup/location tiles, Open dashboard).
+ * Why: Align dashboard cards with the approved design without dropping delete.
+ * Related: app/globals.css (.org-biz-card*), BusinessSetupPopover
+ * MCP Context 7: keep delete + setup popover; only restyle the grid face.
+ */
+
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { BusinessSetupPopover } from "@/app/components/business/BusinessSetupPopover";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
@@ -20,6 +27,7 @@ import {
   Loader2,
   MapPin,
   Trash2,
+  UserCog,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,11 +53,17 @@ export default function BusinessDashboardCard({
   const [isCountingProgress, setIsCountingProgress] = useState(true);
 
   const fullAddress = [city, state, country].filter(Boolean).join(", ");
-  const cityLabel =
-    [city, state]
-      .map((part) => part?.trim())
-      .filter(Boolean)
-      .join(" / ") || "Add location";
+  // Mock layout: "Washington / District of Columbia, United States"
+  const cityState = [city, state]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" / ");
+  const countryLabel = country?.trim() ?? "";
+  const cityLabel = cityState
+    ? countryLabel
+      ? `${cityState}, ${countryLabel}`
+      : cityState
+    : countryLabel || "Add location";
   const logoSrc = resolveUploadImageUrl(logoUrl);
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;
@@ -265,8 +279,13 @@ export default function BusinessDashboardCard({
                 {logoMark}
               </span>
               <div className="org-biz-card-main">
-                <span className="org-biz-card-name-label">Name</span>
-                <h2 className="org-biz-card-title">{name}</h2>
+                <div className="org-biz-card-title-row">
+                  <h2 className="org-biz-card-title">{name}</h2>
+                  <span className="org-biz-card-status org-biz-card-status--active">
+                    <span className="org-biz-card-status-dot" aria-hidden />
+                    Active
+                  </span>
+                </div>
               </div>
             </Link>
             <div className="org-biz-card-head-actions">{deleteButton}</div>
@@ -275,6 +294,10 @@ export default function BusinessDashboardCard({
           <div className="org-biz-card-content">
             <div className="org-biz-card-bento">
               <BusinessSetupPopover setup={setup}>
+                <span className="org-biz-card-bento-eyebrow">
+                  <UserCog className="size-3" strokeWidth={2.5} aria-hidden />
+                  Business setup
+                </span>
                 <div className="org-biz-card-progress-row">
                   <div
                     className="org-biz-card-progress-ring"
@@ -328,9 +351,6 @@ export default function BusinessDashboardCard({
                     </span>
                   </div>
                   <div className="org-biz-card-progress-copy">
-                    <span className="org-biz-card-bento-eyebrow">
-                      Business setup
-                    </span>
                     <p className="org-biz-card-setup-status">{setupStatusText}</p>
                     {!isCountingProgress && setup.nextRecommendedStep ? (
                       <button
@@ -343,7 +363,7 @@ export default function BusinessDashboardCard({
                           router.push(setup.nextRecommendedStep!.href);
                         }}
                       >
-                        Next: {setup.nextRecommendedStep.ctaLabel} →
+                        Next: {setup.nextRecommendedStep.ctaLabel}
                       </button>
                     ) : null}
                   </div>
