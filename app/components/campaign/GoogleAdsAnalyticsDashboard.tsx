@@ -13,7 +13,6 @@ import {
   Eye,
   Loader2,
   Megaphone,
-  MoreHorizontal,
   MousePointerClick,
   Plus,
   RefreshCw,
@@ -559,7 +558,10 @@ export function GoogleAdsAnalyticsDashboard({
                     <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
                       Cost/Conv.
                     </th>
-                    <th className="border-b border-[#eef2f7] pb-2 font-semibold" />
+                    <th
+                      className="sticky right-0 z-[1] border-b border-[#eef2f7] bg-white pb-2 pl-2 text-right font-semibold"
+                      aria-label="Actions"
+                    />
                   </tr>
                 </thead>
                 <tbody>
@@ -608,7 +610,7 @@ export function GoogleAdsAnalyticsDashboard({
                         <tr
                           key={c.id}
                           aria-selected={isSelected}
-                          className="cursor-pointer align-middle text-[#07111f] transition hover:bg-[#f8fbff]"
+                          className="group cursor-pointer align-middle text-[#07111f] transition hover:bg-[#f8fbff]"
                           onClick={() => {
                             setSelectedCampaignId((prev) =>
                               prev === c.id ? null : c.id,
@@ -683,41 +685,27 @@ export function GoogleAdsAnalyticsDashboard({
                               ? "N/A"
                               : formatMetaRateMoney(String(costConv), currency)}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3">
+                          <td className="sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white py-3 pl-2 group-hover:bg-[#f8fbff]">
                             <div className="flex items-center justify-end gap-1">
-                              {status !== "ENABLED" && status !== "ACTIVE" ? (
-                                <button
-                                  type="button"
-                                  title="Delete campaign"
-                                  disabled={deletingCampaignId === c.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteCampaign(c);
-                                  }}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                                >
-                                  {deletingCampaignId === c.id ? (
-                                    <Loader2
-                                      className="size-4 animate-spin"
-                                      aria-hidden
-                                    />
-                                  ) : (
-                                    <Trash2 className="size-4" aria-hidden />
-                                  )}
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="rounded-lg p-1.5 text-slate-400"
-                                  aria-label="More"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal
-                                    className="size-4"
+                              <button
+                                type="button"
+                                title="Delete campaign"
+                                disabled={deletingCampaignId === c.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteCampaign(c);
+                                }}
+                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                              >
+                                {deletingCampaignId === c.id ? (
+                                  <Loader2
+                                    className="size-4 animate-spin"
                                     aria-hidden
                                   />
-                                </button>
-                              )}
+                                ) : (
+                                  <Trash2 className="size-4" aria-hidden />
+                                )}
+                              </button>
                             </div>
                           </td>
                         </tr>

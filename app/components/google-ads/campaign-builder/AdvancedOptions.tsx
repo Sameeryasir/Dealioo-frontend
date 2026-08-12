@@ -36,7 +36,6 @@ type AdvancedOptionsProps = {
 
 const CAMPAIGN_TYPES: { id: CampaignTypeId; label: string }[] = [
   { id: "SEARCH", label: "Search" },
-  { id: "DISPLAY", label: "Display" },
   { id: "PERFORMANCE_MAX", label: "Performance Max" },
 ];
 
@@ -170,7 +169,11 @@ export function AdvancedOptions({
             >
               <SimpleSelect
                 aria-label="Campaign type"
-                value={draft.campaignType}
+                value={
+                  draft.campaignType === "DISPLAY"
+                    ? "SEARCH"
+                    : draft.campaignType
+                }
                 options={CAMPAIGN_TYPES}
                 onChange={(value) =>
                   onChange({ campaignType: value as CampaignTypeId })

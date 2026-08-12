@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
   MapContainer,
@@ -45,6 +45,20 @@ function toMeters(radius: number, unit: RadiusUnitId): number {
   return radius * 1000;
 }
 
+function clearLeafletContainer(root: HTMLElement | null) {
+  if (!root) return;
+  const leafletNode = root.querySelector(".leaflet-container") as
+    | (HTMLElement & { _leaflet_id?: number })
+    | null;
+  if (!leafletNode) return;
+  try {
+    delete leafletNode._leaflet_id;
+  } catch {
+    /* ignore */
+  }
+  leafletNode.innerHTML = "";
+}
+
 function MapViewportSync({
   center,
   zoom,
@@ -62,6 +76,24 @@ function MapViewportSync({
       /* map may already be torn down */
     }
   }, [center, map, zoom]);
+
+  return null;
+}
+
+function MapReadyFix() {
+  const map = useMap();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        if (!map.getContainer()?.isConnected) return;
+        map.invalidateSize();
+      } catch {
+        /* map may already be torn down */
+      }
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [map]);
 
   return null;
 }
@@ -107,6 +139,10 @@ export function GoogleAdsLocationsMap({
   onDropPin,
   onSelectPin,
 }: GoogleAdsLocationsMapProps) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
+
   const activePin = useMemo(
     () => getActivePin(locations, activeLocationId),
     [activeLocationId, locations],
@@ -127,48 +163,74 @@ export function GoogleAdsLocationsMap({
     activePin?.radiusUnit === "MILES" ? "MILES" : "KILOMETERS";
   const circleMeters = toMeters(activeRadiusValue, activeRadiusUnit);
 
+  useEffect(() => {
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      if (!cancelled) setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      setReady(false);
+      clearLeafletContainer(shellRef.current);
+      setMapKey((key) => key + 1);
+    };
+  }, []);
+
   return (
-    <div className="relative z-0 isolate h-64 w-full overflow-hidden rounded-lg border border-[#e8edf5]">
-      <MapContainer
-        center={center}
-        zoom={zoom}
-        scrollWheelZoom
-        className="!z-0 h-full w-full"
-        style={{ cursor: dropPinMode ? "crosshair" : "grab", zIndex: 0 }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapViewportSync center={center} zoom={zoom} />
-        <DropPinHandler enabled={dropPinMode} onDropPin={onDropPin} />
-
-        {addressPins.map((loc) => (
-          <Marker
-            key={`${loc.mode}-${loc.id}`}
-            position={[loc.latitude!, loc.longitude!]}
-            icon={
-              loc.mode === "exclude" ? EXCLUDE_PIN_ICON : INCLUDE_PIN_ICON
-            }
-            eventHandlers={{
-              click: () => onSelectPin?.(loc.id),
-            }}
+    <div
+      ref={shellRef}
+      className="relative z-0 isolate h-64 w-full overflow-hidden rounded-lg border border-[#e8edf5]"
+    >
+      {!ready ? (
+        <div className="flex h-full w-full items-center justify-center bg-[#f4f8ff] text-sm text-slate-500">
+          Loading map…
+        </div>
+      ) : (
+        <MapContainer
+          key={mapKey}
+          center={center}
+          zoom={zoom}
+          scrollWheelZoom
+          className="!z-0 h-full w-full"
+          style={{ cursor: dropPinMode ? "crosshair" : "grab", zIndex: 0 }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-        ))}
+          <MapReadyFix />
+          <MapViewportSync center={center} zoom={zoom} />
+          <DropPinHandler enabled={dropPinMode} onDropPin={onDropPin} />
 
-        {activePin ? (
-          <Circle
-            center={[activePin.latitude!, activePin.longitude!]}
-            radius={circleMeters}
-            pathOptions={{
-              color: activePin.mode === "exclude" ? "#e11d48" : "#4285F4",
-              fillColor: activePin.mode === "exclude" ? "#e11d48" : "#4285F4",
-              fillOpacity: 0.15,
-              weight: 2,
-            }}
-          />
-        ) : null}
-      </MapContainer>
+          {addressPins.map((loc) => (
+            <Marker
+              key={`${loc.mode}-${loc.id}`}
+              position={[loc.latitude!, loc.longitude!]}
+              icon={
+                loc.mode === "exclude" ? EXCLUDE_PIN_ICON : INCLUDE_PIN_ICON
+              }
+              eventHandlers={{
+                click: () => onSelectPin?.(loc.id),
+              }}
+            />
+          ))}
+
+          {activePin && activePin.mode === "include" ? (
+            <Circle
+              center={[activePin.latitude!, activePin.longitude!]}
+              radius={circleMeters}
+              pathOptions={{
+                color: "#4285F4",
+                fillColor: "#4285F4",
+                fillOpacity: 0.15,
+                weight: 2,
+              }}
+            />
+          ) : null}
+        </MapContainer>
+      )}
 
       {dropPinMode ? (
         <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-[#4285F4] px-3 py-1.5 text-xs font-semibold text-white shadow">

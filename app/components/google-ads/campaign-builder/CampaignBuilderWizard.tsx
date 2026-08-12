@@ -15,6 +15,7 @@ import {
   loadGoogleCampaignDraft,
   loadGoogleCampaignServerDraftId,
   loadGoogleDraftLocalMeta,
+  mergeGoogleDraftWithLocalRecovery,
   saveGoogleCampaignDraft,
   saveGoogleCampaignServerDraftId,
   saveGoogleDraftLocalMeta,
@@ -252,7 +253,24 @@ export function CampaignBuilderWizard({
 
 
     if (storedDraftId) {
-      applyFreshDefaults();
+      if (localDraft) {
+        const uiStep = Math.min(
+          TOTAL_WIZARD_STEPS,
+          Math.max(1, localDraft.currentStep ?? 1),
+        );
+        applyWorkingCopy(
+          {
+            ...createDefaultDraft(),
+            ...localDraft,
+            currentStep: uiStep,
+            onboardingDone: true,
+            wizardVersion: 2,
+          },
+          uiStep,
+        );
+      } else {
+        applyFreshDefaults();
+      }
       syncInFlightRef.current = true;
       setSyncingDraft(true);
 
@@ -278,89 +296,68 @@ export function CampaignBuilderWizard({
             updatedAt: remote.lastSavedAt,
           });
 
-          const localNow = localDraft
-            ? {
-                ...createDefaultDraft(),
-                ...localDraft,
-                onboardingDone: true,
-                wizardVersion: 2 as const,
-              }
-            : null;
-          const localUiStep = localNow
-            ? Math.min(
-                TOTAL_WIZARD_STEPS,
-                Math.max(1, localNow.currentStep ?? 1),
-              )
-            : 1;
           const remoteUiStep = beStepToUiStep(
             remote.currentStep || remote.draftData?.currentStep || 1,
           );
+          const merged = mergeGoogleDraftWithLocalRecovery({
+            remote: {
+              draftData: remote.draftData,
+              goal: remote.goal,
+              campaignName: remote.campaignName,
+              lastSavedAt: remote.lastSavedAt,
+              version: remote.version,
+              currentStep: remote.currentStep,
+            },
+            localDraft,
+            localMeta: meta,
+            remoteUiStep,
+          });
 
-          if (localNow) {
-            const merged: GoogleCampaignBuilderDraft = {
-              ...createDefaultDraft(),
-              ...(remote.draftData ?? {}),
-              ...localNow,
-              goal:
-                localNow.goal ??
-                remote.goal ??
-                remote.draftData?.goal ??
-                null,
-              campaignName:
-                localNow.campaignName ||
-                remote.campaignName ||
-                remote.draftData?.campaignName ||
-                "",
-              businessDescription:
-                localNow.businessDescription ||
-                remote.draftData?.businessDescription ||
-                "",
-              onboardingDone: true,
-              idealCustomers: localNow.idealCustomers?.length
-                ? localNow.idealCustomers
-                : (remote.draftData?.idealCustomers ?? []),
-              productsServices: localNow.productsServices?.length
-                ? localNow.productsServices
-                : (remote.draftData?.productsServices ?? []),
-              currentStep: Math.max(localUiStep, remoteUiStep),
-              wizardVersion: 2,
-              savedAt: new Date().toISOString(),
-            };
-            applyWorkingCopy(merged, merged.currentStep);
-            saveGoogleCampaignDraft(businessId, merged);
-            savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-              merged,
-              beCompletedToUiCompleted(serverCompletedStepsRef.current),
-            );
-            return;
-          }
-
-          const uiStep = remoteUiStep;
-          const resumed: GoogleCampaignBuilderDraft = {
-            ...createDefaultDraft(),
-            ...(remote.draftData ?? {}),
-            goal: remote.goal ?? remote.draftData?.goal ?? null,
-            campaignName:
-              remote.campaignName || remote.draftData?.campaignName || "",
-            businessDescription: remote.draftData?.businessDescription ?? "",
-            onboardingDone: true,
-            idealCustomers: remote.draftData?.idealCustomers ?? [],
-            productsServices: remote.draftData?.productsServices ?? [],
-            currentStep: uiStep,
-            wizardVersion: 2,
-            savedAt: remote.lastSavedAt ?? new Date().toISOString(),
-          };
-
-          applyWorkingCopy(resumed, uiStep);
-          saveGoogleCampaignDraft(businessId, resumed);
+          applyWorkingCopy(merged, merged.currentStep);
+          saveGoogleCampaignDraft(businessId, merged);
           savedStepSnapshotsRef.current = seedSavedStepSnapshots(
-            resumed,
+            merged,
             beCompletedToUiCompleted(serverCompletedStepsRef.current),
           );
-        } catch {
+        } catch (err) {
           if (cancelled) return;
-          clearPublishedDraftLocally();
-          applyFreshDefaults();
+          const message =
+            err instanceof Error ? err.message.toLowerCase() : "";
+          const notFound =
+            message.includes("not found") || message.includes("draft not found");
+
+          if (notFound) {
+            saveGoogleDraftLocalMeta(businessId, {
+              draftId: null,
+              serverVersion: null,
+              updatedAt: meta.updatedAt,
+            });
+            setServerDraftId(null);
+            setServerVersion(null);
+            serverDraftIdRef.current = null;
+            serverVersionRef.current = null;
+          }
+
+          if (localDraft) {
+            const uiStep = Math.min(
+              TOTAL_WIZARD_STEPS,
+              Math.max(1, localDraft.currentStep ?? 1),
+            );
+            const normalized: GoogleCampaignBuilderDraft = {
+              ...createDefaultDraft(),
+              ...localDraft,
+              currentStep: uiStep,
+              onboardingDone: true,
+              wizardVersion: 2,
+            };
+            applyWorkingCopy(normalized, uiStep);
+            savedStepSnapshotsRef.current = seedSavedStepSnapshots(
+              normalized,
+              Array.from({ length: Math.max(0, uiStep - 1) }, (_, i) => i + 1),
+            );
+          } else if (notFound) {
+            applyFreshDefaults();
+          }
         } finally {
           syncInFlightRef.current = false;
           if (!cancelled) setSyncingDraft(false);
@@ -425,12 +422,14 @@ export function CampaignBuilderWizard({
   useEffect(() => {
     if (!open) return;
     if (publishSuccess) return;
+    if (syncInFlightRef.current) return;
     if (skipAutosave.current) {
       skipAutosave.current = false;
       return;
     }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
+      if (syncInFlightRef.current) return;
       saveGoogleCampaignDraft(businessId, draft);
       setHasAutosaved(true);
     }, 700);
@@ -997,8 +996,6 @@ export function CampaignBuilderWizard({
       }
       setPublishError(null);
       clearPublishedDraftLocally();
-
-      applyWorkingCopy(buildFreshDraft(), TOTAL_WIZARD_STEPS);
       skipAutosave.current = true;
     } catch (err) {
       setPublishSuccess(false);

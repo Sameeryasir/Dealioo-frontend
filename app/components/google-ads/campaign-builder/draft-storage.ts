@@ -3,9 +3,11 @@ import {
   createDefaultDraft,
   type GoogleCampaignBuilderDraft,
 } from "@/app/components/google-ads/campaign-builder/types";
+import { toDealiooPublicAdsUrl } from "@/app/components/google-ads/campaign-builder/destination";
 import {
   deriveLegacyLocationFields,
   migrateLegacyLocations,
+  withDefaultLocationRadius,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
 import { beStepToUiStep } from "@/app/components/google-ads/campaign-builder/step-mapping";
 
@@ -53,13 +55,72 @@ function normalizeDraft(
       ? Math.min(TOTAL_WIZARD_STEPS, Math.max(1, rawStep))
       : beStepToUiStep(rawStep);
 
+  const fallbackRadius =
+    typeof parsed.radiusValue === "number" && parsed.radiusValue >= 1
+      ? parsed.radiusValue
+      : typeof legacy.radiusValue === "number" && legacy.radiusValue >= 1
+        ? legacy.radiusValue
+        : 16;
+  const fallbackUnit = normalizeRadiusUnit(
+    parsed.radiusUnit ?? legacy.radiusUnit,
+  );
+  const targetLocations = migrated.targetLocations.map((row) =>
+    withDefaultLocationRadius(row, fallbackRadius, fallbackUnit),
+  );
+  const excludedLocationTargets = migrated.excludedLocationTargets.map(
+    (row) => ({
+      ...row,
+      radiusValue: undefined,
+      radiusUnit: undefined,
+    }),
+  );
+  const legacyNormalized = deriveLegacyLocationFields(targetLocations);
+  const destinationType =
+    parsed.destinationType ??
+    (parsed.salesChannel === "PHONE_ORDERS" ||
+    (Array.isArray(parsed.leadContactMethods) &&
+      parsed.leadContactMethods.includes("PHONE_CALLS"))
+      ? "phone"
+      : parsed.salesChannel === "PHYSICAL_STORE"
+        ? "physical_location"
+        : Array.isArray(parsed.leadContactMethods) &&
+            parsed.leadContactMethods.includes("GOOGLE_LEAD_FORM")
+          ? "google_lead_form"
+          : parsed.websiteUrl || parsed.landingPageUrl
+            ? "external_website"
+            : null);
+
+  const websiteUrl =
+    destinationType === "dealioo_funnel"
+      ? toDealiooPublicAdsUrl(parsed.websiteUrl ?? "")
+      : (parsed.websiteUrl ?? "");
+  const landingPageUrl =
+    destinationType === "dealioo_funnel"
+      ? toDealiooPublicAdsUrl(parsed.landingPageUrl ?? websiteUrl)
+      : (parsed.landingPageUrl ?? "");
+  const ads = Array.isArray(parsed.ads)
+    ? parsed.ads.map((ad, index) =>
+        index === 0 && destinationType === "dealioo_funnel"
+          ? {
+              ...ad,
+              finalUrl: toDealiooPublicAdsUrl(
+                ad.finalUrl || landingPageUrl || websiteUrl,
+              ),
+            }
+          : ad,
+      )
+    : parsed.ads;
+
   return {
     ...createDefaultDraft(),
     ...parsed,
     ...migrated,
     ...legacy,
-    excludedLocations: migrated.excludedLocationTargets.map((row) => row.name),
-    radiusUnit: normalizeRadiusUnit(parsed.radiusUnit),
+    ...legacyNormalized,
+    targetLocations,
+    excludedLocationTargets,
+    excludedLocations: excludedLocationTargets.map((row) => row.name),
+    radiusUnit: fallbackUnit,
     radiusCenter: parsed.radiusCenter ?? null,
     presenceOption: parsed.presenceOption ?? "PRESENCE",
     businessDescription: parsed.businessDescription ?? "",
@@ -70,20 +131,10 @@ function normalizeDraft(
     productsServices: Array.isArray(parsed.productsServices)
       ? parsed.productsServices
       : [],
-    destinationType:
-      parsed.destinationType ??
-      (parsed.salesChannel === "PHONE_ORDERS" ||
-      (Array.isArray(parsed.leadContactMethods) &&
-        parsed.leadContactMethods.includes("PHONE_CALLS"))
-        ? "phone"
-        : parsed.salesChannel === "PHYSICAL_STORE"
-          ? "physical_location"
-          : Array.isArray(parsed.leadContactMethods) &&
-              parsed.leadContactMethods.includes("GOOGLE_LEAD_FORM")
-            ? "google_lead_form"
-            : parsed.websiteUrl || parsed.landingPageUrl
-              ? "external_website"
-              : null),
+    destinationType,
+    websiteUrl,
+    landingPageUrl,
+    ads: ads ?? createDefaultDraft().ads,
     selectedFunnelId:
       typeof parsed.selectedFunnelId === "number"
         ? parsed.selectedFunnelId
@@ -95,6 +146,125 @@ function normalizeDraft(
     currentStep,
     wizardVersion: 2,
   };
+}
+
+function pickNonEmptyArray<T>(local: T[] | undefined, remote: T[] | undefined): T[] {
+  if (Array.isArray(local) && local.length > 0) return local;
+  if (Array.isArray(remote) && remote.length > 0) return remote;
+  return Array.isArray(local) ? local : Array.isArray(remote) ? remote : [];
+}
+
+function pickFilledString(local: string | undefined, remote: string | undefined): string {
+  if (typeof local === "string" && local.trim()) return local;
+  if (typeof remote === "string" && remote.trim()) return remote;
+  return local ?? remote ?? "";
+}
+
+export function mergeGoogleDraftWithLocalRecovery(options: {
+  remote: {
+    draftData?: Partial<GoogleCampaignBuilderDraft> | null;
+    goal?: GoogleCampaignBuilderDraft["goal"] | null;
+    campaignName?: string | null;
+    lastSavedAt?: string | null;
+    version: number;
+    currentStep?: number | null;
+  };
+  localDraft: GoogleCampaignBuilderDraft | null;
+  localMeta: GoogleDraftLocalMeta;
+  remoteUiStep: number;
+}): GoogleCampaignBuilderDraft {
+  const remoteBase = normalizeDraft({
+    ...createDefaultDraft(),
+    ...(options.remote.draftData ?? {}),
+    goal:
+      options.remote.goal ??
+      options.remote.draftData?.goal ??
+      null,
+    campaignName:
+      options.remote.campaignName ||
+      options.remote.draftData?.campaignName ||
+      "",
+    businessDescription: options.remote.draftData?.businessDescription ?? "",
+    onboardingDone: true,
+    currentStep: options.remoteUiStep,
+    wizardVersion: 2,
+    savedAt: options.remote.lastSavedAt ?? new Date().toISOString(),
+  });
+
+  if (!options.localDraft) {
+    return remoteBase;
+  }
+
+  const local = normalizeDraft({
+    ...options.localDraft,
+    onboardingDone: true,
+    wizardVersion: 2,
+  });
+  const preferLocal = shouldOfferLocalRestore({
+    localUpdatedAt: local.savedAt ?? options.localMeta.updatedAt,
+    serverUpdatedAt: options.remote.lastSavedAt ?? null,
+    localVersion: options.localMeta.serverVersion,
+    serverVersion: options.remote.version,
+  });
+
+  const primary = preferLocal ? local : remoteBase;
+  const secondary = preferLocal ? remoteBase : local;
+
+  const targetLocations = pickNonEmptyArray(
+    primary.targetLocations,
+    secondary.targetLocations,
+  );
+  const excludedLocationTargets = pickNonEmptyArray(
+    primary.excludedLocationTargets,
+    secondary.excludedLocationTargets,
+  );
+  const ads = pickNonEmptyArray(primary.ads, secondary.ads);
+  const idealCustomers = pickNonEmptyArray(
+    primary.idealCustomers,
+    secondary.idealCustomers,
+  );
+  const productsServices = pickNonEmptyArray(
+    primary.productsServices,
+    secondary.productsServices,
+  );
+  const languages = pickNonEmptyArray(primary.languages, secondary.languages);
+  const suggestedKeywords = pickNonEmptyArray(
+    primary.suggestedKeywords,
+    secondary.suggestedKeywords,
+  );
+
+  return normalizeDraft({
+    ...secondary,
+    ...primary,
+    goal: primary.goal ?? secondary.goal ?? null,
+    campaignName: pickFilledString(primary.campaignName, secondary.campaignName),
+    businessName: pickFilledString(primary.businessName, secondary.businessName),
+    businessDescription: pickFilledString(
+      primary.businessDescription,
+      secondary.businessDescription,
+    ),
+    websiteUrl: pickFilledString(primary.websiteUrl, secondary.websiteUrl),
+    landingPageUrl: pickFilledString(
+      primary.landingPageUrl,
+      secondary.landingPageUrl,
+    ),
+    logoPreviewUrl: pickFilledString(
+      primary.logoPreviewUrl,
+      secondary.logoPreviewUrl,
+    ),
+    targetLocations,
+    excludedLocationTargets,
+    ads,
+    adsGenerated: ads.length > 0 ? primary.adsGenerated || secondary.adsGenerated : false,
+    idealCustomers,
+    productsServices,
+    languages,
+    suggestedKeywords,
+    currentStep: Math.max(local.currentStep ?? 1, remoteBase.currentStep ?? 1),
+    onboardingDone: true,
+    wizardVersion: 2,
+    savedAt: new Date().toISOString(),
+  });
 }
 
 export function loadGoogleDraftLocalMeta(

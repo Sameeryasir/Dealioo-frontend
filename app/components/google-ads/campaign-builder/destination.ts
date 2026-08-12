@@ -5,6 +5,33 @@ import type {
   GoogleCampaignBuilderDraft,
 } from "@/app/components/google-ads/campaign-builder/types";
 
+const DEALIOO_PUBLIC_ORIGIN = (
+  process.env.NEXT_PUBLIC_DEALIOO_PUBLIC_URL || "https://www.dealioo.io"
+).replace(/\/$/, "");
+
+function isDevTunnelHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host.includes("ngrok") ||
+    host === "localhost" ||
+    host.endsWith(".local") ||
+    host === "127.0.0.1"
+  );
+}
+
+/** Google Ads final URLs must use the public Dealioo host, not local/ngrok tunnels. */
+export function toDealiooPublicAdsUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    if (!isDevTunnelHost(parsed.hostname)) return trimmed;
+    return `${DEALIOO_PUBLIC_ORIGIN}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 export function isFunnelPublished(funnel: Funnel): boolean {
   if (funnel.published === true) return true;
   if (funnel.published === false) return false;
@@ -24,7 +51,10 @@ export function resolveCampaignDestinationUrl(
     draft.destinationType === "dealioo_funnel" ||
     draft.destinationType === "external_website"
   ) {
-    return primary || fallback;
+    const url = primary || fallback;
+    return draft.destinationType === "dealioo_funnel"
+      ? toDealiooPublicAdsUrl(url)
+      : url;
   }
 
   return fallback || primary;
@@ -58,13 +88,15 @@ export function applyFunnelDestination(
   funnel: Funnel,
   businessId: number,
 ): Partial<GoogleCampaignBuilderDraft> {
-  const url = buildFunnelLandingTrackingUrl({
-    funnelId: funnel.id,
-    campaignId: funnel.id,
-    businessId,
-    price: funnel.price,
-    campaignType: funnel.campaignType,
-  });
+  const url = toDealiooPublicAdsUrl(
+    buildFunnelLandingTrackingUrl({
+      funnelId: funnel.id,
+      campaignId: funnel.id,
+      businessId,
+      price: funnel.price,
+      campaignType: funnel.campaignType,
+    }),
+  );
 
   return {
     destinationType: "dealioo_funnel",

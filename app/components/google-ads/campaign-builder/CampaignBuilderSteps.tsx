@@ -8,8 +8,6 @@ import {
   Building2,
   Calendar,
   Check,
-  ChevronDown,
-  ChevronUp,
   Clock,
   ExternalLink,
   Eye,
@@ -80,28 +78,11 @@ import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-bui
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
-  resolveCurrentLocationTarget,
   resolveLocationCoordinates,
-  reverseGeocodeCoordinates,
   withDefaultLocationRadius,
   type GoogleAdsLocationRef,
   type RadiusUnitId,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
-
-const LocationRadiusMap = dynamic(
-  () =>
-    import("@/app/components/google-ads/campaign-builder/LocationRadiusMap").then(
-      (mod) => mod.LocationRadiusMap,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-72 items-center justify-center rounded-xl border border-[#e8edf5] bg-[#f4f8ff] text-sm text-slate-500">
-        Loading map…
-      </div>
-    ),
-  },
-);
 
 const GoogleAdsLocationsMap = dynamic(
   () =>
@@ -1348,16 +1329,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
       null,
   );
   const [activeList, setActiveList] = useState<"include" | "exclude">("include");
-  const [advancedOpen, setAdvancedOpen] = useState(true);
-  const [radiusEnabled, setRadiusEnabled] = useState(true);
-  const [dropPinEnabled, setDropPinEnabled] = useState(false);
-  const [detectingLocation, setDetectingLocation] = useState(false);
-  const [detectError, setDetectError] = useState<string | null>(null);
-  const didAutoDetectRef = useRef(false);
-  const onChangeRef = useRef(onChange);
-  const draftRef = useRef(draft);
-  onChangeRef.current = onChange;
-  draftRef.current = draft;
 
   const activeLocation = useMemo(() => {
     if (activeList === "exclude") {
@@ -1393,7 +1364,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
     activeLocation?.radiusUnit === "MILES" ? "MILES" : "KILOMETERS";
 
   const usesRadiusOnMap =
-    radiusEnabled &&
     activeLocation != null &&
     activeLocation.type !== "country" &&
     activeCoords != null;
@@ -1409,14 +1379,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
     [draft.excludedLocationTargets, draft.targetLocations],
   );
 
-  const addressPinCount = mapPins.filter(
-    (row) =>
-      row.type !== "country" &&
-      typeof row.latitude === "number" &&
-      typeof row.longitude === "number",
-  ).length;
-
-  const showMap = radiusEnabled || dropPinEnabled;
   const radiusPct = ((activeRadiusValue - 1) / 79) * 100;
 
   const legacyFromLocation = (location: GoogleAdsLocationRef | null) => {
@@ -1477,53 +1439,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
     });
   };
 
-  useEffect(() => {
-    if (didAutoDetectRef.current) return;
-    if (draftRef.current.targetLocations.length > 0) {
-      didAutoDetectRef.current = true;
-      return;
-    }
-
-    let cancelled = false;
-    didAutoDetectRef.current = true;
-    setDetectingLocation(true);
-    setDetectError(null);
-
-    void resolveCurrentLocationTarget()
-      .then((detected) => {
-        if (cancelled || !detected) return;
-        if (draftRef.current.targetLocations.length > 0) return;
-
-        const pin = withDefaultLocationRadius(detected, 16, "KILOMETERS");
-        const targetLocations = [pin];
-        setActiveList("include");
-        setActiveLocationId(pin.id);
-        setRadiusEnabled(true);
-        setAdvancedOpen(true);
-        onChangeRef.current({
-          targetLocations,
-          ...deriveLegacyLocationFields(targetLocations),
-          ...legacyFromLocation(pin),
-        });
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setDetectError(
-          err instanceof Error
-            ? err.message
-            : "Could not detect your current location.",
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setDetectingLocation(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const applyTargetLocations = (incoming: GoogleAdsLocationRef[]) => {
     const targetLocations = incoming.map((row) =>
       withDefaultLocationRadius(row, 16, "KILOMETERS"),
@@ -1532,16 +1447,9 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
       targetLocations.find((row) => row.id === activeLocationId) ??
       targetLocations[targetLocations.length - 1] ??
       null;
-    const coords = resolveLocationCoordinates(nextActive);
-    const isPinLocation =
-      nextActive != null && nextActive.type !== "country" && coords != null;
 
     setActiveList("include");
     setActiveLocationId(nextActive?.id ?? null);
-    if (isPinLocation) {
-      setRadiusEnabled(true);
-      setAdvancedOpen(true);
-    }
     onChange({
       targetLocations,
       ...deriveLegacyLocationFields(targetLocations),
@@ -1553,35 +1461,33 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
     setActiveList("include");
     setActiveLocationId(location.id);
     onChange(legacyFromLocation(location));
-    if (location.type !== "country") {
-      setRadiusEnabled(true);
-      setAdvancedOpen(true);
-    }
   };
 
   const activateExclude = (location: GoogleAdsLocationRef) => {
     setActiveList("exclude");
     setActiveLocationId(location.id);
-    if (location.type !== "country") {
-      setRadiusEnabled(true);
-      setAdvancedOpen(true);
-    }
   };
 
   const applyExcludedLocations = (incoming: GoogleAdsLocationRef[]) => {
-    const excludedLocationTargets = incoming.map((row) =>
-      withDefaultLocationRadius(row, 16, "KILOMETERS"),
-    );
+    const excludedLocationTargets = incoming.map((row) => {
+      if (row.type === "country") {
+        return { ...row, radiusValue: undefined, radiusUnit: undefined };
+      }
+      const coords = resolveLocationCoordinates(row);
+      return {
+        ...row,
+        latitude: row.latitude ?? coords?.latitude,
+        longitude: row.longitude ?? coords?.longitude,
+        radiusValue: undefined,
+        radiusUnit: undefined,
+      };
+    });
     const nextActive =
       excludedLocationTargets.find((row) => row.id === activeLocationId) ??
       excludedLocationTargets[excludedLocationTargets.length - 1] ??
       null;
     setActiveList("exclude");
     setActiveLocationId(nextActive?.id ?? null);
-    if (nextActive && nextActive.type !== "country") {
-      setRadiusEnabled(true);
-      setAdvancedOpen(true);
-    }
     onChange({
       excludedLocationTargets,
       excludedLocations: excludedLocationTargets.map((row) => row.name),
@@ -1591,35 +1497,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
   const handleMapRadiusChange = (radiusValue: number) => {
     if (!activeLocation || !usesRadiusOnMap) return;
     updateActiveLocation({ radiusValue });
-  };
-
-  const handleDropPin = (latitude: number, longitude: number) => {
-    void reverseGeocodeCoordinates(latitude, longitude).then((resolved) => {
-      const name =
-        resolved?.label ||
-        `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-      const pin = withDefaultLocationRadius(
-        {
-          type: "city",
-          id: `geo-pin-${latitude.toFixed(5)}-${longitude.toFixed(5)}`,
-          name,
-          latitude,
-          longitude,
-        },
-        16,
-        "KILOMETERS",
-      );
-      const withoutDup = draft.targetLocations.filter((row) => row.id !== pin.id);
-      const targetLocations = [...withoutDup, pin];
-      setActiveList("include");
-      setActiveLocationId(pin.id);
-      setRadiusEnabled(true);
-      onChange({
-        targetLocations,
-        ...deriveLegacyLocationFields(targetLocations),
-        ...legacyFromLocation(pin),
-      });
-    });
   };
 
   return (
@@ -1645,199 +1522,6 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
           }
         />
 
-        {detectingLocation ? (
-          <div className="flex gap-3 rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
-            <Loader2 className="size-4 shrink-0 animate-spin text-[#4285F4]" aria-hidden />
-            <p className="text-sm text-slate-500">Detecting your location…</p>
-          </div>
-        ) : null}
-        {detectError && draft.targetLocations.length === 0 ? (
-          <p className="text-xs font-medium text-slate-500">{detectError}</p>
-        ) : null}
-
-        <div className="overflow-hidden rounded-xl border border-[#e8edf5]">
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen((open) => !open)}
-            className="flex w-full items-center justify-between bg-[#f8fafc] px-4 py-3 text-left"
-          >
-            <span className="text-sm font-semibold text-[#07111f]">
-              Advanced location options
-            </span>
-            {advancedOpen ? (
-              <ChevronUp className="size-4 text-slate-500" aria-hidden />
-            ) : (
-              <ChevronDown className="size-4 text-slate-500" aria-hidden />
-            )}
-          </button>
-
-          {advancedOpen ? (
-            <div className="space-y-4 border-t border-[#e8edf5] bg-white p-4">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={radiusEnabled}
-                  onChange={(e) => setRadiusEnabled(e.target.checked)}
-                  className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#4285F4] focus:ring-[#4285F4]/30"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-[#07111f]">
-                    Radius targeting
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    Each city keeps its own radius — change one without affecting others.
-                  </span>
-                </span>
-              </label>
-
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={dropPinEnabled}
-                  onChange={(e) => setDropPinEnabled(e.target.checked)}
-                  className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#4285F4] focus:ring-[#4285F4]/30"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-[#07111f]">
-                    Drop pin
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    Click the map to place a marker and set a radius.
-                  </span>
-                </span>
-              </label>
-
-              {showMap ? (
-                <div className="space-y-3">
-                  {usesRadiusOnMap ? (
-                    <div className="space-y-2 rounded-xl border border-[#e8edf5] bg-[#f8fafc] p-3">
-                      <p className="text-xs font-semibold text-slate-500">
-                        Radius for “{activeLocation?.name}” only
-                        {activeList === "exclude" ? " (exclude)" : ""}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {RADIUS_PRESETS_KM.map((km) => (
-                          <button
-                            key={km}
-                            type="button"
-                            onClick={() =>
-                              updateActiveLocation({
-                                radiusValue: km,
-                                radiusUnit: "KILOMETERS",
-                              })
-                            }
-                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                              activeRadiusValue === km &&
-                              activeRadiusUnit !== "MILES"
-                                ? "bg-[#4285F4] text-white"
-                                : "border border-[#e8edf5] bg-white text-slate-600"
-                            }`}
-                          >
-                            {km} km
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          type="range"
-                          min={1}
-                          max={80}
-                          value={activeRadiusValue}
-                          onChange={(e) =>
-                            handleMapRadiusChange(
-                              Number.parseInt(e.target.value, 10),
-                            )
-                          }
-                          className="google-budget-slider h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full"
-                          style={{
-                            background: `linear-gradient(to right, #4285F4 0%, #4285F4 ${radiusPct}%, #e8edf5 ${radiusPct}%, #e8edf5 100%)`,
-                          }}
-                          aria-label="Radius slider"
-                        />
-                        <input
-                          type="number"
-                          min={1}
-                          max={80}
-                          value={activeRadiusValue}
-                          onChange={(e) =>
-                            handleMapRadiusChange(
-                              Math.min(
-                                80,
-                                Math.max(
-                                  1,
-                                  Number.parseInt(e.target.value, 10) || 1,
-                                ),
-                              ),
-                            )
-                          }
-                          className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm"
-                          aria-label="Radius value"
-                        />
-                        <div className="flex overflow-hidden rounded-lg border border-[#e8edf5] bg-white">
-                          {(
-                            [
-                              ["KILOMETERS", "km"],
-                              ["MILES", "mi"],
-                            ] as const
-                          ).map(([value, label]) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() =>
-                                updateActiveLocation({ radiusUnit: value })
-                              }
-                              className={`px-2.5 py-1 text-xs font-semibold ${
-                                activeRadiusUnit === value
-                                  ? "bg-[#4285F4] text-white"
-                                  : "text-slate-600"
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : radiusEnabled ? (
-                    <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f8fbff] px-3 py-2 text-xs text-slate-600">
-                      Select or search a city/address first, then set a radius.
-                      Country-only targeting does not use the map.
-                    </p>
-                  ) : null}
-
-                  {addressPinCount > 0 || dropPinEnabled ? (
-                    <GoogleAdsLocationsMap
-                      locations={mapPins}
-                      activeLocationId={activeLocation?.id ?? null}
-                      dropPinMode={dropPinEnabled}
-                      onDropPin={handleDropPin}
-                      onSelectPin={(id) => {
-                        const include = draft.targetLocations.find(
-                          (row) => row.id === id,
-                        );
-                        if (include) {
-                          activateInclude(include);
-                          return;
-                        }
-                        const exclude = draft.excludedLocationTargets.find(
-                          (row) => row.id === id,
-                        );
-                        if (exclude) activateExclude(exclude);
-                      }}
-                    />
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
-                      Add a city or turn on Drop pin to use the map.
-                    </p>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      </Panel>
-
-      <Panel className="space-y-5">
         <LocationAutocomplete
           icon={MapPinOff}
           label="Exclude locations"
@@ -1846,8 +1530,122 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
           onActivate={activateExclude}
           activeId={activeList === "exclude" ? activeLocation?.id ?? null : null}
           placeholder="Search places to exclude..."
-          description="Optional — set a radius for each excluded place so ads avoid that area."
+          description="Optional — excludes the whole place (Google does not support exclude-by-radius)."
         />
+
+        <div className="space-y-3">
+          {usesRadiusOnMap && activeList === "include" ? (
+            <div className="space-y-2 rounded-xl border border-[#e8edf5] bg-[#f8fafc] p-3">
+              <p className="text-xs font-semibold text-slate-500">
+                Radius for “{activeLocation?.name}” only
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {RADIUS_PRESETS_KM.map((km) => (
+                  <button
+                    key={km}
+                    type="button"
+                    onClick={() =>
+                      updateActiveLocation({
+                        radiusValue: km,
+                        radiusUnit: "KILOMETERS",
+                      })
+                    }
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                      activeRadiusValue === km && activeRadiusUnit !== "MILES"
+                        ? "bg-[#4285F4] text-white"
+                        : "border border-[#e8edf5] bg-white text-slate-600"
+                    }`}
+                  >
+                    {km} km
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={80}
+                  value={activeRadiusValue}
+                  onChange={(e) =>
+                    handleMapRadiusChange(Number.parseInt(e.target.value, 10))
+                  }
+                  className="google-budget-slider h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full"
+                  style={{
+                    background: `linear-gradient(to right, #4285F4 0%, #4285F4 ${radiusPct}%, #e8edf5 ${radiusPct}%, #e8edf5 100%)`,
+                  }}
+                  aria-label="Radius slider"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={80}
+                  value={activeRadiusValue}
+                  onChange={(e) =>
+                    handleMapRadiusChange(
+                      Math.min(
+                        80,
+                        Math.max(1, Number.parseInt(e.target.value, 10) || 1),
+                      ),
+                    )
+                  }
+                  className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm"
+                  aria-label="Radius value"
+                />
+                <div className="flex overflow-hidden rounded-lg border border-[#e8edf5] bg-white">
+                  {(
+                    [
+                      ["KILOMETERS", "km"],
+                      ["MILES", "mi"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        updateActiveLocation({ radiusUnit: value })
+                      }
+                      className={`px-2.5 py-1 text-xs font-semibold ${
+                        activeRadiusUnit === value
+                          ? "bg-[#4285F4] text-white"
+                          : "text-slate-600"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : activeList === "exclude" && activeLocation ? (
+            <p className="rounded-xl border border-dashed border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              “{activeLocation.name}” will be excluded as a whole place (no
+              radius).
+            </p>
+          ) : !usesRadiusOnMap ? (
+            <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f8fbff] px-3 py-2 text-xs text-slate-600">
+              Select or search a city/address first, then set a radius.
+              Country-only targeting does not use a radius circle.
+            </p>
+          ) : null}
+
+          <GoogleAdsLocationsMap
+            locations={mapPins}
+            activeLocationId={activeLocation?.id ?? null}
+            dropPinMode={false}
+            onDropPin={() => {}}
+            onSelectPin={(id) => {
+              const include = draft.targetLocations.find((row) => row.id === id);
+              if (include) {
+                activateInclude(include);
+                return;
+              }
+              const exclude = draft.excludedLocationTargets.find(
+                (row) => row.id === id,
+              );
+              if (exclude) activateExclude(exclude);
+            }}
+          />
+        </div>
       </Panel>
 
       <Panel>
