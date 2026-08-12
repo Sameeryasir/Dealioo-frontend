@@ -3,7 +3,6 @@
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
-import { SuperAdminNotifications } from "@/app/components/SuperAdminNotifications";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   getAdminMeetingRequests,
@@ -16,6 +15,7 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Activity,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -33,7 +33,6 @@ import {
   MoreVertical,
   Phone,
   Briefcase,
-  Store,
   RefreshCw,
   ScanLine,
   Search,
@@ -70,15 +69,16 @@ import {
 } from "recharts";
 
 const TABLE_PAGE_SIZE = 8;
-
-const PLAN_COLORS = ["#1877f2", "#0ea5e9", "#0f766e", "#d97706", "#94a3b8"];
 const BRAND_BLUE = "#1877f2";
+const BRAND_PURPLE = "#7c3aed";
+
+const PLAN_COLORS = ["#7c3aed", "#1877f2", "#0f766e", "#d97706", "#94a3b8"];
 
 function greetingForNow(): string {
   const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 17) return "Good Afternoon";
-  return "Good Evening";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function firstName(fullName: string): string {
@@ -458,9 +458,8 @@ export function SuperAdminDashboard() {
       <div className={styles.inner}>
         <div className={styles.hero}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Super Admin</p>
             <p className={styles.greeting}>
-              {greetingForNow()}, {firstName(displayName)}
+              {greetingForNow()}, {firstName(displayName)}! 👋
             </p>
             <h1 className={styles.title}>Platform Overview</h1>
             <p className={styles.subtitle}>
@@ -475,7 +474,7 @@ export function SuperAdminDashboard() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search businesses, users, meetings…"
+                placeholder="Search businesses, users..."
               />
             </label>
             <span className={styles.pillBtn}>
@@ -498,7 +497,6 @@ export function SuperAdminDashboard() {
                 <RefreshCw className="size-4" />
               )}
             </button>
-            <SuperAdminNotifications />
           </div>
         </div>
 
@@ -526,8 +524,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.businessesChangePct}
                 hint="vs prior 30 days"
                 icon={Building2}
-                accent={BRAND_BLUE}
-                soft="#e8f1ff"
+                accent="#7c3aed"
+                soft="#f3e8ff"
               />
               <KpiCard
                 label="Active Businesses"
@@ -535,7 +533,7 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.activeBusinessesChangePct}
                 hint="Onboarding completed"
                 icon={ShieldCheck}
-                accent="#0f766e"
+                accent="#059669"
                 soft="#ecfdf5"
               />
               <KpiCard
@@ -544,8 +542,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.usersChangePct}
                 hint="vs prior 30 days"
                 icon={Users}
-                accent="#0369a1"
-                soft="#e0f2fe"
+                accent="#2563eb"
+                soft="#dbeafe"
               />
               <KpiCard
                 label="New Users Today"
@@ -553,8 +551,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.newUsersChangePct}
                 hint="vs yesterday"
                 icon={UserPlus}
-                accent="#b45309"
-                soft="#fff7ed"
+                accent="#ea580c"
+                soft="#ffedd5"
               />
               <KpiCard
                 label="Orders Today"
@@ -562,8 +560,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.ordersChangePct}
                 hint="Paid orders"
                 icon={ShoppingBag}
-                accent="#be185d"
-                soft="#fdf2f8"
+                accent="#db2777"
+                soft="#fce7f3"
               />
               <KpiCard
                 label="Revenue Today"
@@ -571,16 +569,16 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.revenueChangePct}
                 hint="vs yesterday"
                 icon={Wallet}
-                accent="#0f766e"
-                soft="#ecfdf5"
+                accent="#059669"
+                soft="#d1fae5"
               />
               <KpiCard
                 label="Platform Health"
                 value="99.9%"
                 hint="All systems operational"
-                icon={ShieldCheck}
-                accent="#15803d"
-                soft="#f0fdf4"
+                icon={Activity}
+                accent="#2563eb"
+                soft="#dbeafe"
               />
             </>
           )}
@@ -606,8 +604,8 @@ export function SuperAdminDashboard() {
                     <AreaChart data={revenueChart}>
                       <defs>
                         <linearGradient id="saRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={BRAND_BLUE} stopOpacity={0.32} />
-                          <stop offset="100%" stopColor={BRAND_BLUE} stopOpacity={0} />
+                          <stop offset="0%" stopColor={BRAND_PURPLE} stopOpacity={0.35} />
+                          <stop offset="100%" stopColor={BRAND_PURPLE} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid stroke="#eef2f7" vertical={false} />
@@ -633,7 +631,7 @@ export function SuperAdminDashboard() {
                       <Area
                         type="monotone"
                         dataKey="value"
-                        stroke={BRAND_BLUE}
+                        stroke={BRAND_PURPLE}
                         strokeWidth={2.5}
                         fill="url(#saRevenue)"
                       />
@@ -677,7 +675,14 @@ export function SuperAdminDashboard() {
                         width={28}
                       />
                       <Tooltip />
-                      <Bar dataKey="count" fill={BRAND_BLUE} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {businessChart.map((_, index) => (
+                          <Cell
+                            key={`biz-bar-${index}`}
+                            fill={index % 2 === 0 ? BRAND_BLUE : BRAND_PURPLE}
+                          />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -754,11 +759,16 @@ export function SuperAdminDashboard() {
 
         <div id="sa-businesses" className={`${styles.card} ${styles.tableCard}`}>
           <div className={styles.cardHead}>
-            <div>
-              <h2 className={styles.cardTitle}>Active Businesses</h2>
-              <p className={styles.cardSub}>
-                {filteredBusinesses.length} businesses on the platform
-              </p>
+            <div className={styles.tableHeadLeft}>
+              <span className={styles.tableHeadIcon} aria-hidden>
+                <Building2 className="size-5" strokeWidth={2.25} />
+              </span>
+              <div>
+                <h2 className={styles.cardTitle}>Active Businesses</h2>
+                <p className={styles.cardSub}>
+                  {filteredBusinesses.length} businesses on the platform
+                </p>
+              </div>
             </div>
           </div>
           <div className={styles.tableWrap}>
@@ -808,7 +818,7 @@ export function SuperAdminDashboard() {
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={b.logoUrl} alt="" />
                               ) : (
-                                <Store className="size-4" strokeWidth={2.25} aria-hidden />
+                                <Building2 className="size-4" strokeWidth={2.25} aria-hidden />
                               )}
                             </div>
                             <div>
@@ -829,14 +839,17 @@ export function SuperAdminDashboard() {
                                 {b.ownerName ?? "—"}
                               </div>
                               <div className={styles.bizMeta}>
-                                {b.ownerEmail ?? "—"}
+                                <span className={styles.metaWithIcon}>
+                                  <Mail className="size-3" aria-hidden />
+                                  {b.ownerEmail ?? "—"}
+                                </span>
                               </div>
                             </div>
                           </div>
                         </td>
                         <td>
                           <span className={`${styles.planTag} ${plan.className}`}>
-                            <PlanIcon className="size-3.5" aria-hidden />
+                            <PlanIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
                             {plan.label}
                           </span>
                         </td>
@@ -848,15 +861,25 @@ export function SuperAdminDashboard() {
                                 : styles.statusWarn
                             }`}
                           >
-                            <span className={styles.statusDot} aria-hidden />
+                            {b.onboardingCompleted ? (
+                              <CheckCircle2 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                            ) : (
+                              <Clock3 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                            )}
                             {b.onboardingCompleted ? "Active" : "Setup"}
                           </span>
                         </td>
                         <td>
                           <div className={styles.createdStack}>
-                            <span>{formatRelative(b.createdAt)}</span>
+                            <span className={styles.metaWithIcon}>
+                              <Clock3 className="size-3.5" aria-hidden />
+                              {formatRelative(b.createdAt)}
+                            </span>
                             <span className={styles.createdSub}>
-                              {formatAbsoluteDate(b.createdAt)}
+                              <span className={styles.metaWithIcon}>
+                                <CalendarDays className="size-3" aria-hidden />
+                                {formatAbsoluteDate(b.createdAt)}
+                              </span>
                             </span>
                           </div>
                         </td>
@@ -899,11 +922,16 @@ export function SuperAdminDashboard() {
 
         <div id="sa-users" className={`${styles.card} ${styles.tableCard}`}>
           <div className={styles.cardHead}>
-            <div>
-              <h2 className={styles.cardTitle}>Users</h2>
-              <p className={styles.cardSub}>
-                {filteredUsers.length} accounts in the users table
-              </p>
+            <div className={styles.tableHeadLeft}>
+              <span className={styles.tableHeadIcon} aria-hidden>
+                <Users className="size-5" strokeWidth={2.25} />
+              </span>
+              <div>
+                <h2 className={styles.cardTitle}>Users</h2>
+                <p className={styles.cardSub}>
+                  {filteredUsers.length} accounts in the users table
+                </p>
+              </div>
             </div>
           </div>
           <div className={styles.tableWrap}>
@@ -934,7 +962,7 @@ export function SuperAdminDashboard() {
                       <tr key={u.id}>
                         <td>
                           <span className={styles.idChip}>
-                            <Hash className="size-3" aria-hidden />
+                            <Hash className="size-3" strokeWidth={2.25} aria-hidden />
                             {u.id}
                           </span>
                         </td>
@@ -957,13 +985,13 @@ export function SuperAdminDashboard() {
                         </td>
                         <td>
                           <span className={styles.metaWithIcon}>
-                            <Mail className="size-3.5" aria-hidden />
+                            <Mail className="size-3.5" strokeWidth={2.25} aria-hidden />
                             {u.email}
                           </span>
                         </td>
                         <td>
                           <span className={`${styles.roleTag} ${role.className}`}>
-                            <RoleIcon className="size-3.5" aria-hidden />
+                            <RoleIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
                             {role.label}
                           </span>
                         </td>
@@ -974,22 +1002,30 @@ export function SuperAdminDashboard() {
                             }`}
                           >
                             {u.isActive ? (
-                              <CheckCircle2 className="size-3.5" aria-hidden />
+                              <CheckCircle2 className="size-3.5" strokeWidth={2.25} aria-hidden />
                             ) : (
-                              <CircleOff className="size-3.5" aria-hidden />
+                              <CircleOff className="size-3.5" strokeWidth={2.25} aria-hidden />
                             )}
                             {u.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
                         <td>
-                          <span className={styles.metaWithIcon}>
-                            <CalendarDays className="size-3.5" aria-hidden />
-                            {formatRelative(u.createdAt)}
-                          </span>
+                          <div className={styles.createdStack}>
+                            <span className={styles.metaWithIcon}>
+                              <CalendarDays className="size-3.5" strokeWidth={2.25} aria-hidden />
+                              {formatRelative(u.createdAt)}
+                            </span>
+                            <span className={styles.createdSub}>
+                              <span className={styles.metaWithIcon}>
+                                <Clock3 className="size-3" strokeWidth={2.25} aria-hidden />
+                                {formatAbsoluteDate(u.createdAt)}
+                              </span>
+                            </span>
+                          </div>
                         </td>
                         <td>
                           <span className={styles.metaWithIcon}>
-                            <Clock3 className="size-3.5" aria-hidden />
+                            <Clock3 className="size-3.5" strokeWidth={2.25} aria-hidden />
                             {u.lastLoginAt ? formatRelative(u.lastLoginAt) : "Never"}
                           </span>
                         </td>
@@ -1164,6 +1200,7 @@ export function SuperAdminDashboard() {
             />
           ) : null}
         </div>
+
 
       </div>
     </section>

@@ -1,19 +1,19 @@
 .page {
   --sa-navy: #0b1f3a;
   --sa-blue: #1877f2;
+  --sa-purple: #7c3aed;
   --sa-blue-soft: #e8f1ff;
   --sa-muted: #64748b;
-  --sa-line: #e6edf5;
-  --sa-bg: #f0f4f9;
+  --sa-line: #e8eef6;
+  --sa-bg: #f4f7fb;
   --sa-card: #ffffff;
-  --sa-shadow: 0 1px 0 rgba(15, 23, 42, 0.03), 0 10px 28px rgba(15, 23, 42, 0.05);
+  --sa-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
 
   width: 100%;
   flex: 1 1 auto;
   min-height: 100%;
   min-width: 0;
-  background:
-    linear-gradient(180deg, #eaf2fb 0%, var(--sa-bg) 220px, var(--sa-bg) 100%);
+  background: var(--sa-bg);
   color: var(--sa-navy);
 }
 
@@ -41,61 +41,50 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.15rem;
-  padding: 1.15rem 1.2rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 1.35rem;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(232, 241, 255, 0.88));
-  box-shadow: var(--sa-shadow);
+  margin-bottom: 1.25rem;
+  padding: 0.15rem 0.1rem 0.35rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 @media (min-width: 960px) {
   .hero {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 1.25rem;
-    padding: 1.25rem 1.5rem;
+    padding: 0.25rem 0.1rem 0.5rem;
   }
 }
 
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.45rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  background: var(--sa-blue-soft);
-  color: var(--sa-blue);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .greeting {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--sa-muted);
+  font-size: 0.95rem;
+  font-weight: 550;
+  color: #64748b;
 }
 
 .title {
-  margin: 0.15rem 0 0;
-  font-size: clamp(1.7rem, 2.6vw, 2.15rem);
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.85rem, 2.8vw, 2.35rem);
   font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-  color: var(--sa-navy);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  color: #0f172a;
 }
 
 .subtitle {
-  margin: 0.4rem 0 0;
-  max-width: 34rem;
+  margin: 0.45rem 0 0;
+  max-width: 36rem;
   font-size: 0.92rem;
   line-height: 1.45;
-  color: var(--sa-muted);
+  color: #64748b;
 }
 
 .heroCopy {
@@ -217,10 +206,35 @@
   flex-shrink: 0;
 }
 
+.bellWrapNavbar {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.navBellBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid #e5eaf5;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.navBellBtn:hover {
+  background: #f8fafc;
+  border-color: #d0d7e4;
+  color: #0f172a;
+}
+
 .bellBadge {
   position: absolute;
-  top: -0.15rem;
-  right: -0.15rem;
+  top: -0.1rem;
+  right: -0.1rem;
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -235,6 +249,7 @@
   font-weight: 800;
   line-height: 1;
   pointer-events: none;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 .kpiGrid {
@@ -259,27 +274,21 @@
 .kpiCard {
   position: relative;
   overflow: hidden;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--sa-line);
-  border-radius: 1.1rem;
-  background: var(--sa-card);
-  box-shadow: var(--sa-shadow);
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 1.15rem;
+  background: var(--kpi-soft, #ffffff);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .kpiCard::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--kpi-accent, var(--sa-blue));
+  display: none;
 }
 
 .kpiCard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
 .kpiTop {
@@ -291,19 +300,19 @@
 
 .kpiLabel {
   margin: 0;
-  font-size: 0.66rem;
-  font-weight: 750;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--sa-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: #64748b;
 }
 
 .kpiValue {
-  margin: 0.4rem 0 0;
-  font-size: 1.4rem;
+  margin: 0.45rem 0 0;
+  font-size: 1.55rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--sa-navy);
+  letter-spacing: -0.035em;
+  color: #0f172a;
   font-variant-numeric: tabular-nums;
 }
 
@@ -311,12 +320,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 0.75rem;
-  background: var(--kpi-soft, var(--sa-blue-soft));
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.8rem;
+  background: #ffffff;
   color: var(--kpi-accent, var(--sa-blue));
   flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .kpiTrend {
@@ -378,7 +388,7 @@
 .card {
   border: 1px solid var(--sa-line);
   border-radius: 1.2rem;
-  background: var(--sa-card);
+  background: #ffffff;
   box-shadow: var(--sa-shadow);
   overflow: hidden;
 }
@@ -389,6 +399,25 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1.05rem 1.15rem 0.4rem;
+}
+
+.tableHeadLeft {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tableHeadIcon {
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.8rem;
+  background: var(--sa-blue-soft);
+  color: var(--sa-blue);
 }
 
 .cardTitle {
@@ -414,12 +443,13 @@
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--sa-blue);
+  color: var(--sa-purple);
   font-variant-numeric: tabular-nums;
 }
 
 .tableCard {
   margin-bottom: 1rem;
+  background: #ffffff;
 }
 
 .tableWrap {
@@ -439,7 +469,7 @@
   top: 0;
   z-index: 1;
   padding: 0.75rem 1.1rem;
-  background: #f7faff;
+  background: #ffffff;
   color: var(--sa-muted);
   font-size: 0.66rem;
   font-weight: 800;
@@ -1120,6 +1150,18 @@
 .notifyIconTeal {
   background: #ccfbf1;
   color: #0f766e;
+}
+
+.notifyIconBrand {
+  background: #f8fafc;
+  border: 1px solid #e8edf5;
+  color: inherit;
+}
+
+.notifyIconBrandFail {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: inherit;
 }
 
 .notifyCopy {

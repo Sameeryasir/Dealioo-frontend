@@ -2651,6 +2651,21 @@ body {
     z-index: 60;
   }
 
+  .sa-nav-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .sa-top-nav {
+    background: #ffffff;
+  }
+
+  .sa-top-nav.landing-nav-scrolled {
+    background: #ffffff;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+  }
+
   .org-nav-account-trigger {
     display: inline-flex;
     width: 2.5rem;

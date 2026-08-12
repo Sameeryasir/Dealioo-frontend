@@ -1,13 +1,11 @@
 "use client";
 
-/**
- * Change summary:
- * What: Super Admin bell + notification drawer on the overview toolbar.
- * Why: Keep notifications next to search / date / refresh on Platform Overview.
- * Related: SuperAdminDashboard.tsx, use-admin-notifications-feed.ts
- */
-
 import styles from "@/app/components/SuperAdminDashboard.module.css";
+import {
+  FacebookLogo,
+  GoogleAdsLogo,
+  StripeLogo,
+} from "@/app/components/landing/LandingIntegrationLogos";
 import { useAdminNotificationsFeed } from "@/app/hooks/use-admin-notifications-feed";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,42 +14,77 @@ import {
   Bell,
   CalendarDays,
   Check,
-  CreditCard,
   Mail,
   Megaphone,
   Phone,
   Store,
   User,
   X,
+  type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-function notificationIcon(type: string, eventKey?: string) {
-  if (eventKey === "stripe_connected" || eventKey === "stripe_failed") {
-    return CreditCard;
+type NotifyIconKind = "lucide" | "brand";
+
+type NotifyIconSpec = {
+  kind: NotifyIconKind;
+  Lucide?: LucideIcon;
+  brand?: ReactNode;
+};
+
+function notificationIcon(type: string, eventKey?: string): NotifyIconSpec {
+  if (
+    eventKey === "stripe_connected" ||
+    eventKey === "stripe_failed" ||
+    eventKey === "subscription_purchased"
+  ) {
+    return {
+      kind: "brand",
+      brand: <StripeLogo className="size-4" />,
+    };
   }
   if (eventKey === "meta_connected" || eventKey === "meta_failed") {
-    return Megaphone;
+    return {
+      kind: "brand",
+      brand: <FacebookLogo className="size-4" />,
+    };
   }
   if (eventKey === "google_connected" || eventKey === "google_failed") {
-    return Megaphone;
+    return {
+      kind: "brand",
+      brand: <GoogleAdsLogo className="size-4" />,
+    };
   }
   if (eventKey === "twilio_connected" || eventKey === "twilio_failed") {
-    return Phone;
+    return { kind: "lucide", Lucide: Phone };
   }
-  if (eventKey === "meeting_requested") return CalendarDays;
-  if (type === "payment" || type === "subscription") return Mail;
-  if (type === "user") return User;
-  if (type === "system") return AlertTriangle;
-  if (type === "campaign") return Megaphone;
-  return Store;
+  if (eventKey === "meeting_requested") {
+    return { kind: "lucide", Lucide: CalendarDays };
+  }
+  if (type === "payment" || type === "subscription") {
+    return { kind: "lucide", Lucide: Mail };
+  }
+  if (type === "user") return { kind: "lucide", Lucide: User };
+  if (type === "system") return { kind: "lucide", Lucide: AlertTriangle };
+  if (type === "campaign") return { kind: "lucide", Lucide: Megaphone };
+  return { kind: "lucide", Lucide: Store };
 }
 
 function notificationIconClass(type: string, eventKey?: string): string {
+  if (
+    eventKey === "stripe_connected" ||
+    eventKey === "stripe_failed" ||
+    eventKey === "subscription_purchased" ||
+    eventKey === "meta_connected" ||
+    eventKey === "meta_failed" ||
+    eventKey === "google_connected" ||
+    eventKey === "google_failed"
+  ) {
+    return eventKey.endsWith("_failed")
+      ? styles.notifyIconBrandFail
+      : styles.notifyIconBrand;
+  }
   if (eventKey?.endsWith("_failed")) return styles.notifyIconRose;
-  if (eventKey === "stripe_connected") return styles.notifyIconGreen;
-  if (eventKey === "meta_connected") return styles.notifyIconBlue;
-  if (eventKey === "google_connected") return styles.notifyIconTeal;
   if (eventKey === "twilio_connected") return styles.notifyIconOrange;
   if (eventKey === "meeting_requested") return styles.notifyIconBlue;
   if (type === "payment" || type === "subscription") return styles.notifyIconRose;
@@ -104,7 +137,11 @@ function groupNotificationsByDay(items: AdminNotificationItem[]) {
   return groups;
 }
 
-export function SuperAdminNotifications() {
+export function SuperAdminNotifications({
+  variant = "toolbar",
+}: {
+  variant?: "toolbar" | "navbar";
+}) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"all" | "unread">("all");
   const feed = useAdminNotificationsFeed(tab === "unread" ? "unread" : "read");
@@ -116,6 +153,7 @@ export function SuperAdminNotifications() {
     () => groupNotificationsByDay(feed.items),
     [feed.items],
   );
+  const isNavbar = variant === "navbar";
 
   useEffect(() => {
     if (!open) return;
@@ -131,7 +169,6 @@ export function SuperAdminNotifications() {
     };
   }, [open]);
 
-  // Load older items when the list is scrolled to the end.
   useEffect(() => {
     if (!open) return;
     const root = listRef.current;
@@ -152,10 +189,10 @@ export function SuperAdminNotifications() {
 
   return (
     <>
-      <div className={styles.bellWrap}>
+      <div className={`${styles.bellWrap}${isNavbar ? ` ${styles.bellWrapNavbar}` : ""}`}>
         <button
           type="button"
-          className={styles.iconBtn}
+          className={isNavbar ? styles.navBellBtn : styles.iconBtn}
           aria-label="Notifications"
           aria-expanded={open}
           onClick={() => setOpen(true)}
@@ -273,14 +310,22 @@ export function SuperAdminNotifications() {
                 <section key={group.label} className={styles.notifyGroup}>
                   <h3 className={styles.notifyGroupLabel}>{group.label}</h3>
                   {group.items.map((item) => {
-                    const Icon = notificationIcon(item.type, item.eventKey);
+                    const icon = notificationIcon(item.type, item.eventKey);
                     const unread = !item.isRead;
                     return (
                       <article key={item.id} className={styles.notifyItem}>
                         <div
                           className={`${styles.notifyIcon} ${notificationIconClass(item.type, item.eventKey)}`}
                         >
-                          <Icon className="size-4" strokeWidth={2.1} aria-hidden />
+                          {icon.kind === "brand" ? (
+                            icon.brand
+                          ) : icon.Lucide ? (
+                            <icon.Lucide
+                              className="size-4"
+                              strokeWidth={2.1}
+                              aria-hidden
+                            />
+                          ) : null}
                         </div>
                         <div className={styles.notifyCopy}>
                           <h3 className={styles.notifyTitle}>{item.title}</h3>

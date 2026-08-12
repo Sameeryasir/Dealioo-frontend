@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * Change: Grid card matches the business-card mock (name + Active, setup/location tiles, Open dashboard).
- * Why: Align dashboard cards with the approved design without dropping delete.
- * Related: app/globals.css (.org-biz-card*), BusinessSetupPopover
- * MCP Context 7: keep delete + setup popover; only restyle the grid face.
- */
-
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { BusinessSetupPopover } from "@/app/components/business/BusinessSetupPopover";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
@@ -53,7 +46,6 @@ export default function BusinessDashboardCard({
   const [isCountingProgress, setIsCountingProgress] = useState(true);
 
   const fullAddress = [city, state, country].filter(Boolean).join(", ");
-  // Mock layout: "Washington / District of Columbia, United States"
   const cityState = [city, state]
     .map((part) => part?.trim())
     .filter(Boolean)
@@ -79,7 +71,6 @@ export default function BusinessDashboardCard({
   const branchLabel =
     branches === 1 ? "1 branch" : `${branches} branches`;
 
-  // Single source of truth — card only renders getBusinessSetup() output.
   const setup = getBusinessSetup(business);
   const progress = setup.progressPercent;
   const isReady = setup.isComplete;

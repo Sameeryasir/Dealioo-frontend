@@ -1,8 +1,10 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { SuperAdminNotifications } from "@/app/components/SuperAdminNotifications";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
+import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
@@ -21,11 +23,13 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const menuRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     queueMicrotask(() => {
       setUser(getSetupUser());
+      setIsSuperAdmin(isSuperAdminUser());
     });
   }, []);
 
@@ -65,7 +69,9 @@ export default function Navbar() {
     <header
       className={`brand-landing-nav transition-all duration-300 ${
         navScrolled ? "landing-nav-scrolled" : ""
-      } ${menuOpen ? "landing-nav-menu-open" : ""}`}
+      } ${menuOpen ? "landing-nav-menu-open" : ""} ${
+        isSuperAdmin ? "sa-top-nav" : ""
+      }`}
     >
       <div className="brand-landing-section brand-landing-nav-inner">
         <Link href="/dashboard" className="landing-nav-logo shrink-0 py-0.5">
@@ -79,7 +85,14 @@ export default function Navbar() {
           />
         </Link>
 
-        <div ref={menuRootRef} className="org-nav-account ml-auto">
+        <div
+          ref={menuRootRef}
+          className={`org-nav-account ml-auto${isSuperAdmin ? " sa-nav-actions" : ""}`}
+        >
+          {isSuperAdmin ? (
+            <SuperAdminNotifications variant="navbar" />
+          ) : null}
+
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
