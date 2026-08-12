@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, X, type LucideIcon } from "lucide-react";
 import {
   formatLocationOption,
   isSameLocation,
+  locationRadiusLabel,
+  matchStaticLocations,
   searchGoogleAdsLocations,
   type GoogleAdsLocationRef,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
@@ -20,6 +22,7 @@ type LocationAutocompleteProps = {
   single?: boolean;
   activeId?: string | null;
   onActivate?: (location: GoogleAdsLocationRef) => void;
+  icon?: LucideIcon;
 };
 
 export function LocationAutocomplete({
@@ -33,6 +36,7 @@ export function LocationAutocomplete({
   single = false,
   activeId = null,
   onActivate,
+  icon: Icon,
 }: LocationAutocompleteProps) {
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -44,33 +48,60 @@ export function LocationAutocomplete({
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setResults([]);
       setLoading(false);
       setSearched(false);
       return;
     }
 
+    const notSelected = (rows: GoogleAdsLocationRef[]) =>
+      rows.filter(
+        (row) => !values.some((selected) => isSameLocation(selected, row)),
+      );
+
+
+    const instant = notSelected(matchStaticLocations(trimmed));
+    setResults(instant);
+    setActiveIndex(0);
+    setOpen(true);
+    setSearched(true);
+
+    if (trimmed.length < 2) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setLoading(true);
-      void searchGoogleAdsLocations(query)
+      void searchGoogleAdsLocations(trimmed, controller.signal)
         .then((rows) => {
-          const filtered = rows.filter(
-            (row) => !values.some((selected) => isSameLocation(selected, row)),
-          );
-          setResults(filtered);
+          if (cancelled) return;
+          setResults(notSelected(rows));
           setActiveIndex(0);
           setSearched(true);
           setOpen(true);
         })
-        .catch(() => {
-          setResults([]);
+        .catch((err) => {
+          if (cancelled) return;
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setResults(notSelected(matchStaticLocations(trimmed)));
           setSearched(true);
+          setOpen(true);
         })
-        .finally(() => setLoading(false));
-    }, 280);
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 100);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timer);
+    };
   }, [query, values]);
 
   useEffect(() => {
@@ -101,7 +132,13 @@ export function LocationAutocomplete({
   };
 
   return (
-    <div ref={rootRef} className="space-y-2">
+    <div ref={rootRef} className="flex gap-3">
+      {Icon ? (
+        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+          <Icon className="size-5" aria-hidden />
+        </span>
+      ) : null}
+      <div className="min-w-0 flex-1 space-y-2">
       <div>
         <p className="text-sm font-bold text-[#07111f]">
           {label}
@@ -143,6 +180,9 @@ export function LocationAutocomplete({
                           ? "Region"
                           : location.type.charAt(0).toUpperCase() +
                             location.type.slice(1)}
+                      {locationRadiusLabel(location)
+                        ? ` · ${locationRadiusLabel(location)}`
+                        : ""}
                     </span>
                   </span>
                   {location.type === "country" ? (
@@ -239,9 +279,14 @@ export function LocationAutocomplete({
             role="listbox"
             className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-lg"
           >
-            {loading ? (
+            {loading && results.length === 0 ? (
               <li className="px-3 py-2.5 text-sm text-slate-500">
                 Searching locations…
+              </li>
+            ) : null}
+            {loading && results.length > 0 ? (
+              <li className="px-3 py-1.5 text-xs text-slate-400">
+                Updating results…
               </li>
             ) : null}
             {!loading && searched && results.length === 0 ? (
@@ -249,34 +294,33 @@ export function LocationAutocomplete({
                 No locations found. Try another search.
               </li>
             ) : null}
-            {!loading
-              ? results.map((location, index) => (
-                  <li key={`${location.type}-${location.id}-${location.name}`}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={index === activeIndex}
-                      className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
-                        index === activeIndex
-                          ? "bg-[#f4f8ff] text-[#4285F4]"
-                          : "text-[#07111f] hover:bg-[#f8fafc]"
-                      }`}
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => selectLocation(location)}
-                    >
-                      <span className="font-semibold">{location.name}</span>
-                      <span className="text-xs font-medium text-slate-400">
-                        {formatLocationOption(location).split(" · ")[1]}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              : null}
+            {results.map((location, index) => (
+              <li key={`${location.type}-${location.id}-${location.name}`}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
+                    index === activeIndex
+                      ? "bg-[#f4f8ff] text-[#4285F4]"
+                      : "text-[#07111f] hover:bg-[#f8fafc]"
+                  }`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => selectLocation(location)}
+                >
+                  <span className="font-semibold">{location.name}</span>
+                  <span className="text-xs font-medium text-slate-400">
+                    {formatLocationOption(location).split(" · ")[1]}
+                  </span>
+                </button>
+              </li>
+            ))}
           </ul>
         ) : null}
       </div>
 
       {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+      </div>
     </div>
   );
 }

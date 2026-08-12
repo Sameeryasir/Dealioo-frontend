@@ -1,7 +1,26 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import {
+  Ban,
+  ChevronDown,
+  Clock,
+  DollarSign,
+  EyeOff,
+  Filter,
+  Flag,
+  Globe2,
+  Link2,
+  Megaphone,
+  MonitorSmartphone,
+  ShieldOff,
+  SlidersHorizontal,
+  Target,
+  TrendingUp,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { SimpleSelect } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import { googleBuilderInputClass } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
 import type {
   BidStrategyId,
@@ -12,6 +31,7 @@ import type {
 type AdvancedOptionsProps = {
   draft: GoogleCampaignBuilderDraft;
   onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
+  layout?: "auto" | "stack";
 };
 
 const CAMPAIGN_TYPES: { id: CampaignTypeId; label: string }[] = [
@@ -40,21 +60,34 @@ function toggleInList(list: string[], value: string): string[] {
 function AdvField({
   label,
   hint,
+  icon: Icon,
   children,
+  className = "",
 }: {
   label: string;
   hint?: string;
+  icon: LucideIcon;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex h-full flex-col gap-1.5">
-      <div className="min-h-[2.85rem]">
-        <p className="text-sm font-bold text-[#07111f]">{label}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-          {hint || "\u00A0"}
-        </p>
+    <div
+      className={`flex h-full flex-col gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 ${className}`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4] shadow-sm">
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-[#07111f]">{label}</p>
+          {hint ? (
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+              {hint}
+            </p>
+          ) : null}
+        </div>
       </div>
-      <div className="mt-auto w-full">{children}</div>
+      <div className="mt-auto w-full min-w-0">{children}</div>
     </div>
   );
 }
@@ -83,76 +116,93 @@ function ChipButton({
   );
 }
 
-export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
+export function AdvancedOptions({
+  draft,
+  onChange,
+  layout = "auto",
+}: AdvancedOptionsProps) {
   const [open, setOpen] = useState(false);
+  const pairGrid =
+    layout === "stack"
+      ? "grid gap-3 grid-cols-1"
+      : "grid gap-3 grid-cols-1 md:grid-cols-2 md:items-stretch";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white">
+    <div
+      className={`rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.04)] ${
+        open ? "overflow-visible" : "overflow-hidden"
+      }`}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-[#f8fafc]"
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-[#f8fafc]"
         aria-expanded={open}
       >
-        <div>
-          <p className="text-sm font-bold text-[#07111f]">Advanced Settings</p>
-          <p className="mt-0.5 text-xs text-slate-500">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f0fe] text-[#4285F4]">
+          <SlidersHorizontal className="size-5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold text-[#07111f]">Advanced Settings</p>
+            <span className="rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#4285F4]">
+              Optional
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
             Optional, expert-level settings — hidden by default. Most campaigns
             never need to touch these.
           </p>
         </div>
         <ChevronDown
-          className={`size-4 text-slate-500 transition ${open ? "rotate-180" : ""}`}
+          className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
           aria-hidden
         />
       </button>
 
       {open ? (
-        <div className="space-y-5 border-t border-[#e8edf5] p-5">
-          <div className="grid gap-4 sm:grid-cols-2 sm:items-stretch">
+        <div className="space-y-3 border-t border-[#e8edf5] bg-[#fcfdff] p-4 sm:p-5">
+          <div className={pairGrid}>
             <AdvField
+              icon={Megaphone}
               label="Campaign type"
               hint="Usually Search is best for text ads."
             >
-              <select
-                className={googleBuilderInputClass}
+              <SimpleSelect
+                aria-label="Campaign type"
                 value={draft.campaignType}
-                onChange={(e) =>
-                  onChange({ campaignType: e.target.value as CampaignTypeId })
+                options={CAMPAIGN_TYPES}
+                onChange={(value) =>
+                  onChange({ campaignType: value as CampaignTypeId })
                 }
-              >
-                {CAMPAIGN_TYPES.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select campaign type"
+              />
             </AdvField>
             <AdvField
+              icon={Target}
               label="Bidding focus"
               hint="Choose how Google spends your budget."
             >
-              <select
-                className={googleBuilderInputClass}
+              <SimpleSelect
+                aria-label="Bidding focus"
                 value={draft.bidStrategy}
-                onChange={(e) =>
-                  onChange({ bidStrategy: e.target.value as BidStrategyId })
+                options={BID_STRATEGIES}
+                onChange={(value) =>
+                  onChange({ bidStrategy: value as BidStrategyId })
                 }
-              >
-                {BID_STRATEGIES.map((strategy) => (
-                  <option key={strategy.id} value={strategy.id}>
-                    {strategy.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select bidding focus"
+              />
             </AdvField>
           </div>
 
           {(draft.bidStrategy === "TARGET_CPA" ||
             draft.bidStrategy === "TARGET_ROAS") && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={pairGrid}>
               {draft.bidStrategy === "TARGET_CPA" ? (
-                <AdvField label="Target cost per conversion ($)">
+                <AdvField
+                  icon={DollarSign}
+                  label="Target cost per conversion ($)"
+                >
                   <input
                     className={googleBuilderInputClass}
                     inputMode="decimal"
@@ -163,7 +213,10 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
                 </AdvField>
               ) : null}
               {draft.bidStrategy === "TARGET_ROAS" ? (
-                <AdvField label="Target return on ad spend (%)">
+                <AdvField
+                  icon={TrendingUp}
+                  label="Target return on ad spend (%)"
+                >
                   <input
                     className={googleBuilderInputClass}
                     inputMode="decimal"
@@ -177,6 +230,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           )}
 
           <AdvField
+            icon={Clock}
             label="Ad schedule"
             hint="Leave blank to run all day, every day."
           >
@@ -188,8 +242,12 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             />
           </AdvField>
 
-          <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
-            <AdvField label="Devices" hint="Pick where people can see your ads.">
+          <div className={pairGrid}>
+            <AdvField
+              icon={MonitorSmartphone}
+              label="Devices"
+              hint="Pick where people can see your ads."
+            >
               <div className="flex flex-wrap gap-2">
                 {DEVICE_OPTIONS.map((device) => (
                   <ChipButton
@@ -209,6 +267,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               </div>
             </AdvField>
             <AdvField
+              icon={Globe2}
               label="Where ads can show"
               hint="Search is recommended for text ads."
             >
@@ -232,7 +291,11 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             </AdvField>
           </div>
 
-          <AdvField label="IP exclusions" hint="Optional. One per line.">
+          <AdvField
+            icon={ShieldOff}
+            label="IP exclusions"
+            hint="Optional. One per line."
+          >
             <textarea
               className={`${googleBuilderInputClass} min-h-[88px] resize-y`}
               value={draft.ipExclusions}
@@ -241,8 +304,9 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             />
           </AdvField>
 
-          <div className="grid gap-4 sm:grid-cols-2 sm:items-stretch">
+          <div className={pairGrid}>
             <AdvField
+              icon={Link2}
               label="URL tracking parameters"
               hint="Optional. Appended to your final URL."
             >
@@ -256,6 +320,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               />
             </AdvField>
             <AdvField
+              icon={Flag}
               label="Conversion goals"
               hint="Optional notes for your team."
             >
@@ -270,8 +335,9 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             </AdvField>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 sm:items-stretch">
+          <div className={pairGrid}>
             <AdvField
+              icon={Ban}
               label="Brand exclusions"
               hint="Optional. Competitor brands to avoid."
             >
@@ -283,6 +349,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
               />
             </AdvField>
             <AdvField
+              icon={EyeOff}
               label="Frequency capping (Display)"
               hint="Optional. How often someone can see your ad."
             >
@@ -298,6 +365,7 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
           </div>
 
           <AdvField
+            icon={Filter}
             label="Content exclusions"
             hint="Optional. Topics or categories to avoid."
           >
@@ -309,21 +377,27 @@ export function AdvancedOptions({ draft, onChange }: AdvancedOptionsProps) {
             />
           </AdvField>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3">
-            <input
-              type="checkbox"
-              className="mt-1 size-4 rounded border-slate-300 text-[#4285F4] focus:ring-[#4285F4]"
-              checked={draft.audienceExpansion}
-              onChange={(e) =>
-                onChange({ audienceExpansion: e.target.checked })
-              }
-            />
-            <span>
-              <span className="block text-sm font-bold text-[#07111f]">
-                Audience expansion
-              </span>
-              <span className="mt-0.5 block text-xs text-slate-500">
-                Let the system find similar people beyond your selected audiences
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 transition hover:border-[#d2e3fc]">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4] shadow-sm">
+              <Users className="size-4" aria-hidden />
+            </span>
+            <span className="flex min-w-0 flex-1 items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 shrink-0 rounded border-slate-300 text-[#4285F4] focus:ring-[#4285F4]"
+                checked={draft.audienceExpansion}
+                onChange={(e) =>
+                  onChange({ audienceExpansion: e.target.checked })
+                }
+              />
+              <span>
+                <span className="block text-sm font-bold text-[#07111f]">
+                  Audience expansion
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  Let the system find similar people beyond your selected
+                  audiences
+                </span>
               </span>
             </span>
           </label>

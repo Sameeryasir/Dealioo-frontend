@@ -39,6 +39,13 @@ export type TrafficActionId =
   | "DOWNLOAD"
   | "CONTACT_US";
 
+export type DestinationTypeId =
+  | "dealioo_funnel"
+  | "external_website"
+  | "google_lead_form"
+  | "phone"
+  | "physical_location";
+
 export type AgeRangeId = "18-24" | "25-34" | "35-44" | "45-54" | "55+";
 
 export type KeywordMatchType = "BROAD" | "PHRASE" | "EXACT";
@@ -98,6 +105,9 @@ export type GoogleCampaignBuilderDraft = {
   businessLocationLat: number | null;
   businessLocationLng: number | null;
   leadContactMethods: LeadContactMethodId[];
+  destinationType: DestinationTypeId | null;
+  selectedFunnelId: number | null;
+  selectedFunnelName: string;
   landingPageUrl: string;
   businessPhone: string;
   phoneCountryCode: string;
@@ -221,6 +231,14 @@ export function createEmptySitelink(
   };
 }
 
+function todayIsoDateLocal(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function createDefaultDraft(): GoogleCampaignBuilderDraft {
   return {
     goal: null,
@@ -230,6 +248,9 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     businessLocationLat: null,
     businessLocationLng: null,
     leadContactMethods: [],
+    destinationType: null,
+    selectedFunnelId: null,
+    selectedFunnelName: "",
     landingPageUrl: "",
     businessPhone: "",
     phoneCountryCode: "+1",
@@ -258,10 +279,9 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     logoPreviewUrl: "",
     logoFileName: "",
     businessDescription: "",
-    // Skip opening "describe your business" screen — start on campaign goal.
     onboardingDone: true,
-    dailyBudget: 40,
-    startDate: "",
+    dailyBudget: 20,
+    startDate: todayIsoDateLocal(),
     endDate: "",
     countries: [],
     regions: [],
@@ -327,61 +347,51 @@ export const GOAL_OPTIONS: {
   {
     id: "SALES",
     title: "Sales",
-    description: "Increase online purchases and revenue.",
+    description: "Get more purchases or orders from potential customers.",
   },
   {
     id: "LEADS",
     title: "Leads",
     description:
-      "Generate enquiries, form submissions, phone calls, or bookings.",
+      "Get more calls, forms, bookings, or enquiries from potential customers.",
   },
   {
     id: "WEBSITE_TRAFFIC",
     title: "Website Traffic",
-    description: "Drive more visitors to a website or landing page.",
+    description: "Send more potential customers to your funnel or website.",
   },
   {
     id: "AWARENESS",
     title: "Brand Awareness",
-    description: "Reach more people and increase visibility.",
+    description: "Reach more people and increase awareness of your business.",
   },
   {
     id: "LOCAL_VISITS",
     title: "Local Visits",
     description:
-      "Encourage people to visit or contact a physical business.",
+      "Get more people to visit or contact your physical business.",
   },
 ];
 
 export const SALES_CHANNEL_OPTIONS: {
-  id: SalesChannelId;
+  id: Extract<SalesChannelId, "WEBSITE" | "PHONE_ORDERS" | "PHYSICAL_STORE">;
   title: string;
   description: string;
 }[] = [
   {
     id: "WEBSITE",
-    title: "Website",
-    description: "Customers buy on your website.",
-  },
-  {
-    id: "ONLINE_STORE",
-    title: "Online Store",
-    description: "Customers shop in your ecommerce store.",
-  },
-  {
-    id: "PHYSICAL_STORE",
-    title: "Physical Store",
-    description: "Customers visit your location.",
+    title: "Online",
+    description: "Customers buy on your funnel or website.",
   },
   {
     id: "PHONE_ORDERS",
-    title: "Phone Orders",
+    title: "By Phone",
     description: "Customers call to buy or book.",
   },
   {
-    id: "MULTIPLE",
-    title: "Multiple",
-    description: "A mix of website and store sales.",
+    id: "PHYSICAL_STORE",
+    title: "At My Location",
+    description: "Customers visit your physical business.",
   },
 ];
 
@@ -392,18 +402,18 @@ export const LEAD_CONTACT_OPTIONS: {
 }[] = [
   {
     id: "CONTACT_FORM",
-    title: "Website Form",
-    description: "Send people to your website form.",
+    title: "Dealioo / Website Form",
+    description: "Send customers to a landing page with a lead form.",
   },
   {
     id: "GOOGLE_LEAD_FORM",
     title: "Google Lead Form",
-    description: "Collect leads directly through Google.",
+    description: "Collect leads directly in Google without leaving search.",
   },
   {
     id: "PHONE_CALLS",
     title: "Phone Calls",
-    description: "Encourage customers to call.",
+    description: "Encourage customers to call your business.",
   },
 ];
 
@@ -599,25 +609,12 @@ export const TOTAL_WIZARD_STEPS = 9;
 
 export const STEP_TITLES = [
   "Campaign Goal",
-  "Campaign Details",
+  "Campaign Setup",
   "Budget",
   "Locations & Languages",
   "Target Customers",
   "Products & Services",
-  "Ads",
-  "Business Details",
+  "Create Ad",
+  "Ad Enhancements",
   "Review & Publish",
-] as const;
-
-export const IDEAL_CUSTOMER_OPTIONS = [
-  "Homeowners",
-  "Restaurant owners",
-  "Parents",
-  "Small businesses",
-  "Students",
-  "Professionals",
-  "Local shoppers",
-  "Property managers",
-  "Healthcare patients",
-  "Travelers",
 ] as const;

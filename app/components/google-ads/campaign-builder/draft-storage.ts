@@ -70,6 +70,28 @@ function normalizeDraft(
     productsServices: Array.isArray(parsed.productsServices)
       ? parsed.productsServices
       : [],
+    destinationType:
+      parsed.destinationType ??
+      (parsed.salesChannel === "PHONE_ORDERS" ||
+      (Array.isArray(parsed.leadContactMethods) &&
+        parsed.leadContactMethods.includes("PHONE_CALLS"))
+        ? "phone"
+        : parsed.salesChannel === "PHYSICAL_STORE"
+          ? "physical_location"
+          : Array.isArray(parsed.leadContactMethods) &&
+              parsed.leadContactMethods.includes("GOOGLE_LEAD_FORM")
+            ? "google_lead_form"
+            : parsed.websiteUrl || parsed.landingPageUrl
+              ? "external_website"
+              : null),
+    selectedFunnelId:
+      typeof parsed.selectedFunnelId === "number"
+        ? parsed.selectedFunnelId
+        : null,
+    selectedFunnelName:
+      typeof parsed.selectedFunnelName === "string"
+        ? parsed.selectedFunnelName
+        : "",
     currentStep,
     wizardVersion: 2,
   };
@@ -191,7 +213,7 @@ export function saveGoogleCampaignDraft(
           JSON.stringify(slim),
         );
       } catch {
-        // Ignore local cache failures; in-memory draft still holds the logo.
+
       }
     }
     const meta = loadGoogleDraftLocalMeta(businessId);

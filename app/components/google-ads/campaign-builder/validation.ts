@@ -61,25 +61,33 @@ function validateGoalDetailsFields(
   if (!draft.goal) return;
 
   if (draft.goal === "SALES") {
-    if (!draft.salesChannel) {
-      errors.salesChannel = "Choose how customers buy from you.";
-    } else {
-      const needsWebsite =
-        draft.salesChannel === "WEBSITE" ||
-        draft.salesChannel === "ONLINE_STORE" ||
-        draft.salesChannel === "MULTIPLE";
-      const needsLocation =
-        draft.salesChannel === "PHYSICAL_STORE" ||
-        draft.salesChannel === "MULTIPLE";
-      const needsPhone = draft.salesChannel === "PHONE_ORDERS";
+    const channel =
+      draft.salesChannel === "ONLINE_STORE" || draft.salesChannel === "MULTIPLE"
+        ? "WEBSITE"
+        : draft.salesChannel;
 
-      if (needsWebsite && !isValidHttpUrl(draft.websiteUrl)) {
-        errors.websiteUrl = "Enter a valid website URL.";
+    if (!channel) {
+      errors.salesChannel = "Choose how customers complete a purchase.";
+    } else if (channel === "WEBSITE") {
+      if (
+        draft.destinationType !== "dealioo_funnel" &&
+        draft.destinationType !== "external_website"
+      ) {
+        errors.destinationType = "Choose where customers should go.";
+      } else if (
+        draft.destinationType === "dealioo_funnel" &&
+        !draft.selectedFunnelId
+      ) {
+        errors.destinationType = "Select a published Dealioo funnel.";
+      } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
+        errors.websiteUrl = "Enter a valid destination URL.";
       }
-      if (needsLocation && !draft.businessLocation.trim()) {
+    } else if (channel === "PHYSICAL_STORE") {
+      if (!draft.businessLocation.trim()) {
         errors.businessLocation = "Add your business location.";
       }
-      if (needsPhone && !draft.businessPhone.trim()) {
+    } else if (channel === "PHONE_ORDERS") {
+      if (!draft.businessPhone.trim()) {
         errors.businessPhone = "Add a phone number.";
       }
     }
@@ -99,13 +107,24 @@ function validateGoalDetailsFields(
         (id) => id !== "WHATSAPP" && id !== "APPOINTMENT_BOOKING",
       ).length !== 1
     ) {
-      errors.leadContactMethods = "Choose one primary lead method.";
+      errors.leadContactMethods = "Choose how you would like to receive leads.";
     }
-    if (
-      primaryLeadMethod === "CONTACT_FORM" &&
-      !isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)
-    ) {
-      errors.landingPageUrl = "Add a valid landing page URL.";
+    if (primaryLeadMethod === "CONTACT_FORM") {
+      if (
+        draft.destinationType !== "dealioo_funnel" &&
+        draft.destinationType !== "external_website"
+      ) {
+        errors.destinationType = "Choose where customers should go.";
+      } else if (
+        draft.destinationType === "dealioo_funnel" &&
+        !draft.selectedFunnelId
+      ) {
+        errors.destinationType = "Select a published Dealioo funnel.";
+      } else if (
+        !isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)
+      ) {
+        errors.landingPageUrl = "Add a valid landing page URL.";
+      }
     }
     if (primaryLeadMethod === "GOOGLE_LEAD_FORM") {
       if (!draft.businessName.trim()) {
@@ -156,20 +175,27 @@ function validateGoalDetailsFields(
   }
 
   if (draft.goal === "WEBSITE_TRAFFIC") {
-    if (!isValidHttpUrl(draft.websiteUrl)) {
+    if (
+      draft.destinationType !== "dealioo_funnel" &&
+      draft.destinationType !== "external_website"
+    ) {
+      errors.destinationType = "Choose where we should send visitors.";
+    } else if (
+      draft.destinationType === "dealioo_funnel" &&
+      !draft.selectedFunnelId
+    ) {
+      errors.destinationType = "Select a published Dealioo funnel.";
+    } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
       errors.websiteUrl = "Enter a valid website URL.";
     }
     if (!draft.trafficAction) {
-      errors.trafficAction = "Choose the action visitors should take.";
+      errors.trafficAction = "Choose what visitors should do.";
     }
   }
 
   if (draft.goal === "AWARENESS") {
     if (!draft.businessName.trim()) {
       errors.businessName = "Add your business name.";
-    }
-    if (!draft.businessCategory.trim()) {
-      errors.businessCategory = "Choose a business category.";
     }
   }
 
@@ -236,22 +262,25 @@ export function validateStep(
     if (draft.languages.length === 0) {
       errors.languages = "Select at least one language.";
     }
-    if (draft.radiusEnabled) {
-      if (!draft.radiusValue || draft.radiusValue < 1) {
-        errors.radiusValue = "Enter a radius of at least 1.";
-      }
-      if (
-        forPublish &&
-        !draft.radiusCenter?.id &&
-        (draft.radiusLat == null || draft.radiusLng == null)
-      ) {
-        errors.radiusCenter = "Pick a center point for the optional radius.";
+
+    const pinWithoutRadius = draft.targetLocations.find((row) => {
+      if (row.type === "country") return false;
+      const hasCoords =
+        typeof row.latitude === "number" && typeof row.longitude === "number";
+      const hasRadius =
+        typeof row.radiusValue === "number" && row.radiusValue >= 1;
+      return !hasCoords || !hasRadius;
+    });
+    if (pinWithoutRadius) {
+      errors.radiusValue = `Set a map radius for ${pinWithoutRadius.name}.`;
+      if (forPublish) {
+        errors.radiusCenter = `Click ${pinWithoutRadius.name} and set its radius on the map before publishing.`;
       }
     }
   }
 
   if (step === 5 && draft.idealCustomers.length === 0) {
-    errors.idealCustomers = "Tell us who your ideal customers are.";
+    errors.idealCustomers = "Tell us who you are trying to reach.";
   }
 
   if (step === 6) {
@@ -267,9 +296,26 @@ export function validateStep(
     if (!ad) {
       errors.ads = "Create at least one ad.";
     } else {
-      if (!isValidHttpUrl(ad.finalUrl)) {
+      const finalUrl =
+        ad.finalUrl.trim() ||
+        draft.landingPageUrl.trim() ||
+        draft.websiteUrl.trim();
+      const needsLandingUrl =
+        draft.destinationType === "dealioo_funnel" ||
+        draft.destinationType === "external_website" ||
+        draft.destinationType == null;
+
+      if (needsLandingUrl && !isValidHttpUrl(finalUrl)) {
+        errors.finalUrl = "Add a valid landing page URL.";
+      } else if (!needsLandingUrl && finalUrl && !isValidHttpUrl(finalUrl)) {
         errors.finalUrl = "Add a valid final URL.";
+      } else if (!needsLandingUrl && !isValidHttpUrl(finalUrl)) {
+        if (!isValidHttpUrl(draft.websiteUrl)) {
+          errors.finalUrl =
+            "Add a website URL so Google can show your ad (from business profile or Step 2).";
+        }
       }
+
       const headlines = ad.headlines.map((h) => h.trim()).filter(Boolean);
       if (headlines.length < 3) {
         errors.headlines = "Add at least 3 headlines.";
@@ -294,19 +340,21 @@ export function validateStep(
       }
 
       if (forPublish) {
-        const websiteHost = safeHostname(draft.websiteUrl);
-        const finalHost = safeHostname(ad.finalUrl);
-        if (
+        const websiteHost = safeHostname(draft.websiteUrl || draft.landingPageUrl);
+        const finalHost = safeHostname(finalUrl);
+        const isOnlineSales =
           draft.goal === "SALES" &&
           (draft.salesChannel === "WEBSITE" ||
             draft.salesChannel === "ONLINE_STORE" ||
-            draft.salesChannel === "MULTIPLE") &&
+            draft.salesChannel === "MULTIPLE");
+        if (
+          isOnlineSales &&
           websiteHost &&
           finalHost &&
           websiteHost !== finalHost
         ) {
           errors.finalUrl =
-            "Ad final URL should use the same website domain as your sales site.";
+            "Ad landing page should match the destination you chose earlier.";
         }
       }
     }

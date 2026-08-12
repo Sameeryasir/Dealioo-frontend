@@ -3,19 +3,33 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  Ban,
+  BarChart3,
+  Building2,
+  Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  Eye,
+  FileText,
   Flag,
+  FolderKanban,
   Globe,
   ImageIcon,
   ImagePlus,
-  Layers,
-  ListChecks,
+  Info,
+  Languages,
+  Link2,
   Loader2,
   MapPin,
+  MapPinOff,
   Megaphone,
   MousePointerClick,
   Phone,
   Plus,
+  Radar,
   Rocket,
   ShoppingBag,
   ShoppingCart,
@@ -23,6 +37,7 @@ import {
   Store,
   Tag,
   Trash2,
+  Type,
   Users,
   Wallet,
   X,
@@ -37,13 +52,10 @@ import {
   enabledKeywords,
   estimateMetrics,
   generateAdSuggestions,
-  generateAudienceFromIdealCustomers,
   generateCallouts,
   generateNegativesFromProducts,
-  generateSitelinks,
   generateSnippetValues,
   inferBusinessTypeFromProducts,
-  MAX_SITELINKS,
   prefillFromBusinessDescription,
   toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
@@ -61,7 +73,6 @@ import {
   SelectableCard,
   SimpleSelect,
   StepShell,
-  ToggleSwitch,
   inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
@@ -69,7 +80,10 @@ import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-bui
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
+  resolveCurrentLocationTarget,
   resolveLocationCoordinates,
+  reverseGeocodeCoordinates,
+  withDefaultLocationRadius,
   type GoogleAdsLocationRef,
   type RadiusUnitId,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
@@ -88,13 +102,27 @@ const LocationRadiusMap = dynamic(
     ),
   },
 );
+
+const GoogleAdsLocationsMap = dynamic(
+  () =>
+    import("@/app/components/google-ads/campaign-builder/GoogleAdsLocationsMap").then(
+      (mod) => mod.GoogleAdsLocationsMap,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-56 items-center justify-center rounded-xl border border-[#e8edf5] bg-[#f8fafc] text-sm text-slate-500">
+        Loading map…
+      </div>
+    ),
+  },
+);
 import {
   BUSINESS_CATEGORY_OPTIONS,
   GOAL_OPTIONS,
   GOOGLE_LEAD_FORM_CTA_OPTIONS,
   GOOGLE_LEAD_FORM_FIELD_OPTIONS,
   GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS,
-  IDEAL_CUSTOMER_OPTIONS,
   LANGUAGE_OPTIONS,
   LEAD_CONTACT_OPTIONS,
   LEAD_PHONE_COUNTRY_CODES,
@@ -110,8 +138,19 @@ import {
 import {
   DESCRIPTION_MAX,
   HEADLINE_MAX,
-  PATH_MAX,
 } from "@/app/components/google-ads/campaign-builder/validation";
+import { DestinationPicker } from "@/app/components/google-ads/campaign-builder/DestinationPicker";
+import {
+  applyNonUrlDestination,
+  destinationLabel,
+  formatBusinessAddressLine,
+  resolveCampaignDestinationUrl,
+  withSyncedAdFinalUrl,
+} from "@/app/components/google-ads/campaign-builder/destination";
+import {
+  mergeIdealCustomerOptions,
+  suggestIdealCustomers,
+} from "@/app/components/google-ads/campaign-builder/ideal-customer-suggestions";
 
 function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
   const unitLabel = unit === "MILES" ? "miles" : "km";
@@ -136,12 +175,13 @@ const GOAL_ICONS: Record<
   LOCAL_VISITS: MapPin,
 };
 
-const SALES_CHANNEL_ICONS: Record<SalesChannelId, LucideIcon> = {
+const SALES_CHANNEL_ICONS: Record<
+  Extract<SalesChannelId, "WEBSITE" | "PHONE_ORDERS" | "PHYSICAL_STORE">,
+  LucideIcon
+> = {
   WEBSITE: Globe,
-  ONLINE_STORE: ShoppingCart,
   PHYSICAL_STORE: Store,
   PHONE_ORDERS: Phone,
-  MULTIPLE: Layers,
 };
 
 function CharCount({ value, max }: { value: string; max: number }) {
@@ -155,21 +195,60 @@ function CharCount({ value, max }: { value: string; max: number }) {
 
 function MetricTiles({ dailyBudget }: { dailyBudget: number }) {
   const m = estimateMetrics(dailyBudget);
+
+  const tiles: {
+    label: string;
+    value: string;
+    footnote: string;
+    Icon: LucideIcon;
+    iconWrap: string;
+    iconColor: string;
+  }[] = [
+    {
+      label: "Est. monthly spend",
+      value: m.monthlySpend,
+      footnote: "Based on daily budget",
+      Icon: BarChart3,
+      iconWrap: "bg-[#ecfdf5]",
+      iconColor: "text-emerald-600",
+    },
+    {
+      label: "Est. clicks",
+      value: m.clicks,
+      footnote: "Rough estimate",
+      Icon: MousePointerClick,
+      iconWrap: "bg-[#f3e8ff]",
+      iconColor: "text-violet-600",
+    },
+    {
+      label: "Est. impressions",
+      value: m.impressions,
+      footnote: "How often ads may show",
+      Icon: Eye,
+      iconWrap: "bg-[#fff7ed]",
+      iconColor: "text-orange-500",
+    },
+  ];
+
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      {[
-        ["Est. monthly spend", m.monthlySpend],
-        ["Est. clicks", m.clicks],
-        ["Est. impressions", m.impressions],
-      ].map(([label, value]) => (
+      {tiles.map(({ label, value, footnote, Icon, iconWrap, iconColor }) => (
         <div
           key={label}
-          className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-3"
+          className="flex gap-3 rounded-2xl border border-[#e8edf5] bg-white px-4 py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.03)]"
         >
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-            {label}
-          </p>
-          <p className="mt-1 text-sm font-bold text-[#07111f]">{value}</p>
+          <span
+            className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconWrap} ${iconColor}`}
+          >
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+              {label}
+            </p>
+            <p className="mt-1 text-sm font-bold text-[#07111f]">{value}</p>
+            <p className="mt-0.5 text-[0.65rem] text-slate-400">{footnote}</p>
+          </div>
         </div>
       ))}
     </div>
@@ -198,21 +277,60 @@ function RemovableChip({
   );
 }
 
+function SetupSectionTitle({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <div className="min-w-0 pt-0.5">
+        <p className="text-sm font-bold text-[#07111f]">{title}</p>
+        {description ? (
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+            {description}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function SetupFieldIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <span className="mt-7 inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+      <Icon className="size-5" aria-hidden />
+    </span>
+  );
+}
+
 export function StepGoal({ draft, errors, onChange }: StepProps) {
   return (
     <StepShell
       step={1}
       total={TOTAL_WIZARD_STEPS}
-      title="What's your campaign goal?"
-      description="Pick one goal. We'll personalize every next screen for you."
+      title="What do you want this campaign to achieve?"
+      description="Choose the goal that best matches what you want to accomplish with this campaign."
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        role="radiogroup"
+        aria-label="Campaign goal"
+      >
         {GOAL_OPTIONS.map((goal) => {
           const Icon =
             GOAL_ICONS[goal.id as Exclude<CampaignGoalId, "APP_PROMOTION">];
           return (
             <SelectableCard
               key={goal.id}
+              selectionMode="radio"
               selected={draft.goal === goal.id}
               title={goal.title}
               description={goal.description}
@@ -225,6 +343,31 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
       {errors.goal ? (
         <p className="text-sm font-medium text-red-500">{errors.goal}</p>
       ) : null}
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e8f0fe] text-[#4285F4]">
+            <Info className="size-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-[#07111f]">
+              Not sure which goal to choose?
+            </p>
+            <p className="mt-0.5 text-sm text-slate-500">
+              You can learn more about each goal and how it works in Google Ads.
+            </p>
+          </div>
+        </div>
+        <a
+          href="https://support.google.com/google-ads/answer/7515513"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] shadow-sm transition hover:bg-white hover:border-[#d2e3fc]"
+        >
+          Learn more
+          <ExternalLink className="size-3.5 text-slate-400" aria-hidden />
+        </a>
+      </div>
     </StepShell>
   );
 }
@@ -281,14 +424,11 @@ export function StepCampaignDetails({
 
   const isSalesGoal = draft.goal === "SALES";
   const isLeadsGoal = draft.goal === "LEADS";
-  const salesChannel = draft.salesChannel;
-  const needsSalesWebsite =
-    salesChannel === "WEBSITE" ||
-    salesChannel === "ONLINE_STORE" ||
-    salesChannel === "MULTIPLE";
-  const needsSalesStoreLocation =
-    salesChannel === "PHYSICAL_STORE" || salesChannel === "MULTIPLE";
-  const showMultiplePhone = salesChannel === "MULTIPLE";
+
+  const salesChannel: SalesChannelId | null =
+    draft.salesChannel === "ONLINE_STORE" || draft.salesChannel === "MULTIPLE"
+      ? "WEBSITE"
+      : draft.salesChannel;
 
   useEffect(() => {
     setLogoBroken(false);
@@ -297,6 +437,13 @@ export function StepCampaignDetails({
   useEffect(() => {
     if (!businessProfile || didPrefillFromBusiness.current) return;
     didPrefillFromBusiness.current = true;
+
+    const addressLine = formatBusinessAddressLine({
+      city: businessProfile.city,
+      state: businessProfile.state,
+      postalCode: businessProfile.postalCode,
+      country: businessProfile.country,
+    });
 
     const patch: Partial<GoogleCampaignBuilderDraft> = {};
     if (!draft.businessName.trim() && businessProfile.name?.trim()) {
@@ -315,9 +462,17 @@ export function StepCampaignDetails({
       patch.logoPreviewUrl = resolveUploadImageUrl(businessProfile.logoUrl);
       patch.logoFileName = draft.logoFileName || "Business logo";
     }
+    if (!draft.businessAddress.trim() && addressLine) {
+      patch.businessAddress = addressLine;
+    }
+    if (!draft.businessLocation.trim() && addressLine) {
+      patch.businessLocation = addressLine;
+    }
     if (Object.keys(patch).length > 0) onChange(patch);
   }, [
     businessProfile,
+    draft.businessAddress,
+    draft.businessLocation,
     draft.businessName,
     draft.businessPhone,
     draft.extensionBusinessName,
@@ -362,6 +517,31 @@ export function StepCampaignDetails({
   };
 
   const selectPrimaryLeadMethod = (id: LeadContactMethodId) => {
+    if (id === "CONTACT_FORM") {
+      onChange({
+        leadContactMethods: [id],
+        destinationType:
+          draft.destinationType === "dealioo_funnel" ||
+          draft.destinationType === "external_website"
+            ? draft.destinationType
+            : null,
+      });
+      return;
+    }
+    if (id === "GOOGLE_LEAD_FORM") {
+      onChange({
+        leadContactMethods: [id],
+        ...applyNonUrlDestination("google_lead_form"),
+      });
+      return;
+    }
+    if (id === "PHONE_CALLS") {
+      onChange({
+        leadContactMethods: [id],
+        ...applyNonUrlDestination("phone"),
+      });
+      return;
+    }
     onChange({ leadContactMethods: [id] });
   };
 
@@ -370,141 +550,195 @@ export function StepCampaignDetails({
       LEAD_CONTACT_OPTIONS.some((option) => option.id === id),
     ) ?? null;
 
-  const stepDescription = isSalesGoal
-    ? "Tell us where customers buy from you so we can optimize your campaign for sales."
-    : isLeadsGoal
-      ? "Choose one primary way customers should take action so we can optimize for that lead."
-      : "A few basics about your business, plus anything specific to your goal.";
+  const selectSalesChannel = (id: SalesChannelId) => {
+    if (id === "WEBSITE") {
+      onChange({
+        salesChannel: id,
+        destinationType:
+          draft.destinationType === "dealioo_funnel" ||
+          draft.destinationType === "external_website"
+            ? draft.destinationType
+            : null,
+      });
+      return;
+    }
+    if (id === "PHONE_ORDERS") {
+      onChange({
+        salesChannel: id,
+        ...applyNonUrlDestination("phone"),
+      });
+      return;
+    }
+    if (id === "PHYSICAL_STORE") {
+      onChange({
+        salesChannel: id,
+        ...applyNonUrlDestination("physical_location"),
+      });
+      return;
+    }
+    onChange({ salesChannel: id });
+  };
 
   return (
     <StepShell
       step={2}
       total={TOTAL_WIZARD_STEPS}
-      title="Tell us about your campaign"
-      description={stepDescription}
+      title="Set up your campaign"
+      description="We prefilled what we already know about your business. Tell us how customers should reach you."
     >
       <Panel className="space-y-4">
-        <Field
-          label="Campaign name"
-          required
-          hint="Choose a clear name you'll recognize later."
-          error={errors.campaignName}
-        >
-          <input
-            className={inputClass(errors.campaignName)}
-            value={draft.campaignName}
-            onChange={(e) => onChange({ campaignName: e.target.value })}
-            placeholder="e.g. Spring sales campaign"
-          />
-        </Field>
-        <Field label="Business name" required error={errors.businessName}>
-          <input
-            className={inputClass(errors.businessName)}
-            value={draft.businessName}
-            onChange={(e) =>
-              onChange({
-                businessName: e.target.value,
-                extensionBusinessName:
-                  draft.extensionBusinessName || e.target.value,
-              })
-            }
-            placeholder="Acme Coffee"
-          />
-        </Field>
-        {!isSalesGoal && !isLeadsGoal ? (
-          <Field
-            label="Website URL"
-            hint="Paste your Dealioo funnel tracking link."
-            error={errors.websiteUrl}
-          >
-            <input
-              className={inputClass(errors.websiteUrl)}
-              value={draft.websiteUrl}
-              onChange={(e) => onChange({ websiteUrl: e.target.value })}
-              placeholder="https://…"
-            />
-          </Field>
-        ) : null}
-        <SearchableSelect
-          label="Business category"
-          options={BUSINESS_CATEGORY_OPTIONS}
-          value={draft.businessCategory}
-          onChange={(businessCategory) => onChange({ businessCategory })}
-          error={errors.businessCategory}
-          placeholder="Search categories"
+        <SetupSectionTitle
+          icon={FileText}
+          title="Campaign information"
+          description="Basics for this campaign. We filled in what we already know."
         />
-
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-bold text-[#07111f]">Logo</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Upload your business logo. Recommended size:{" "}
-              <span className="font-semibold text-[#4285F4]">512x512 px</span>.
-            </p>
-          </div>
-
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            className="hidden"
-            onChange={(e) => onLogoSelected(e.target.files?.[0])}
-          />
-          {hasLogo ? (
-            <img
-              src={logoSrc}
-              alt={draft.logoFileName || "Logo preview"}
-              className="max-h-40 rounded-lg object-contain"
-              onError={() => setLogoBroken(true)}
-            />
-          ) : null}
-          <button
-            type="button"
-            disabled={logoProcessing}
-            onClick={() => logoInputRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 py-3 text-sm font-semibold text-[#07111f] shadow-sm transition hover:bg-[#f4f8ff] disabled:opacity-60"
-          >
-            {logoProcessing ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <ImagePlus className="size-4" aria-hidden />
-            )}
-            {logoProcessing
-              ? "Uploading…"
-              : hasLogo
-                ? "Replace logo"
-                : "Upload logo"}
-          </button>
-          {hasLogo ? (
-            <button
-              type="button"
-              disabled={logoProcessing}
-              onClick={clearLogo}
-              className="text-sm font-semibold text-slate-500 transition hover:text-red-600 disabled:opacity-60"
+        <div className="flex items-start gap-3">
+          <SetupFieldIcon icon={Tag} />
+          <div className="min-w-0 flex-1">
+            <Field
+              label="Campaign name"
+              required
+              hint="Choose a clear name you'll recognize later."
+              error={errors.campaignName}
             >
-              Remove logo
-            </button>
-          ) : null}
+              <input
+                className={inputClass(errors.campaignName)}
+                value={draft.campaignName}
+                onChange={(e) => onChange({ campaignName: e.target.value })}
+                placeholder="e.g. Spring sales campaign"
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <SetupFieldIcon icon={Building2} />
+          <div className="min-w-0 flex-1">
+            <Field label="Business name" required error={errors.businessName}>
+              <input
+                className={inputClass(errors.businessName)}
+                value={draft.businessName}
+                onChange={(e) =>
+                  onChange({
+                    businessName: e.target.value,
+                    extensionBusinessName:
+                      draft.extensionBusinessName || e.target.value,
+                  })
+                }
+                placeholder="Acme Coffee"
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <SetupFieldIcon icon={FolderKanban} />
+          <div className="min-w-0 flex-1">
+            <SearchableSelect
+              label="Business category"
+              options={BUSINESS_CATEGORY_OPTIONS}
+              value={draft.businessCategory}
+              onChange={(businessCategory) => onChange({ businessCategory })}
+              error={errors.businessCategory}
+              placeholder="Search categories"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3">
+          <SetupFieldIcon icon={ImageIcon} />
+          <div className="min-w-0 flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-bold text-[#07111f]">Business logo</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Loaded from your business profile when available.
+              </p>
+            </div>
+
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => onLogoSelected(e.target.files?.[0])}
+            />
+
+            {hasLogo ? (
+              <div className="relative overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-4">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+                  <div className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafc] p-3 ring-1 ring-[#e8edf5]">
+                    <img
+                      src={logoSrc}
+                      alt={draft.logoFileName || "Logo preview"}
+                      className="max-h-full max-w-full object-contain"
+                      onError={() => setLogoBroken(true)}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1 text-center sm:text-left">
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
+                      Logo preview
+                    </p>
+                    <p className="mt-1 truncate text-base font-extrabold text-[#07111f]">
+                      {draft.businessName.trim() || "Your business"}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-500">
+                      {draft.logoFileName || "Business logo"}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={logoProcessing}
+                      onClick={clearLogo}
+                      className="mt-3 text-sm font-semibold text-slate-500 transition hover:text-red-600 disabled:opacity-60"
+                    >
+                      Remove logo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={logoProcessing}
+                onClick={() => logoInputRef.current?.click()}
+                className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#dbeafe] bg-[#f8fbff] px-4 py-8 text-sm font-semibold text-[#07111f] transition hover:border-[#4285F4]/40 hover:bg-[#f4f8ff] disabled:opacity-60"
+              >
+                {logoProcessing ? (
+                  <Loader2
+                    className="size-5 animate-spin text-[#4285F4]"
+                    aria-hidden
+                  />
+                ) : (
+                  <ImagePlus className="size-5 text-[#4285F4]" aria-hidden />
+                )}
+                {logoProcessing ? "Uploading…" : "Upload logo"}
+                <span className="text-xs font-medium text-slate-400">
+                  PNG, JPG, or WebP up to 5 MB
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       </Panel>
 
       {isSalesGoal ? (
         <>
           <Panel className="space-y-3">
-            <p className="text-sm font-bold text-[#07111f]">
-              How do customers buy from you?
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <SetupSectionTitle
+              icon={ShoppingCart}
+              title="How do customers complete a purchase?"
+              description="Choose the main way people buy from you."
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
               {SALES_CHANNEL_OPTIONS.map((option) => {
                 const Icon = SALES_CHANNEL_ICONS[option.id];
                 return (
                   <SelectableCard
                     key={option.id}
-                    selected={draft.salesChannel === option.id}
+                    selectionMode="radio"
+                    selected={salesChannel === option.id}
                     title={option.title}
                     description={option.description}
                     icon={<Icon className="size-5" aria-hidden />}
-                    onClick={() => onChange({ salesChannel: option.id })}
+                    onClick={() => selectSalesChannel(option.id)}
                   />
                 );
               })}
@@ -517,140 +751,71 @@ export function StepCampaignDetails({
           </Panel>
 
           {salesChannel === "WEBSITE" ? (
-            <Panel>
-              <Field
-                label="Website URL / landing page"
-                required
-                hint="Paste your Dealioo funnel tracking link."
-                error={errors.websiteUrl}
-              >
-                <input
-                  className={inputClass(errors.websiteUrl)}
-                  value={draft.websiteUrl}
-                  onChange={(e) => onChange({ websiteUrl: e.target.value })}
-                  placeholder="https://…"
-                />
-              </Field>
-            </Panel>
-          ) : null}
-
-          {salesChannel === "ONLINE_STORE" ? (
-            <Panel className="space-y-4">
-              <Field
-                label="Store URL"
-                required
-                hint="Paste your Dealioo funnel tracking link."
-                error={errors.websiteUrl}
-              >
-                <input
-                  className={inputClass(errors.websiteUrl)}
-                  value={draft.websiteUrl}
-                  onChange={(e) => onChange({ websiteUrl: e.target.value })}
-                  placeholder="https://…"
-                />
-              </Field>
-              <Field
-                label="Purchase tracking"
-                hint="Optional — conversion ID, pixel, or tracking note"
-              >
-                <input
-                  className={inputClass()}
-                  value={draft.conversionGoals}
-                  onChange={(e) =>
-                    onChange({ conversionGoals: e.target.value })
-                  }
-                  placeholder="e.g. Google Ads purchase conversion"
-                />
-              </Field>
-            </Panel>
+            <DestinationPicker
+              businessId={businessId}
+              draft={draft}
+              errors={errors}
+              onChange={onChange}
+            />
           ) : null}
 
           {salesChannel === "PHYSICAL_STORE" ? (
             <Panel>
               <BusinessLocationPicker
-                label="Where is your store?"
-                description="Search your store address, use current location, or place a pin on the map."
+                label="Business location"
+                description="Search your address, use current location, or place a pin on the map."
                 value={draft.businessLocation}
                 latitude={draft.businessLocationLat}
                 longitude={draft.businessLocationLng}
                 error={errors.businessLocation}
-                onChange={(patch) => onChange(patch)}
+                onChange={(patch) =>
+                  onChange({
+                    ...patch,
+                    ...applyNonUrlDestination("physical_location"),
+                  })
+                }
               />
             </Panel>
           ) : null}
 
           {salesChannel === "PHONE_ORDERS" ? (
             <Panel>
-              <Field
-                label="Phone number"
-                required
-                error={errors.businessPhone}
-              >
-                <input
-                  className={inputClass(errors.businessPhone)}
-                  value={draft.businessPhone}
-                  onChange={(e) =>
-                    onChange({
-                      businessPhone: e.target.value,
-                      phoneNumber: e.target.value,
-                    })
-                  }
-                  placeholder="+1 555 0100"
-                />
-              </Field>
-            </Panel>
-          ) : null}
-
-          {salesChannel === "MULTIPLE" ? (
-            <div className="space-y-4">
-              {needsSalesWebsite ? (
-                <Panel>
-                  <Field
-                    label="Website / store URL"
-                    required
-                    hint="Paste your Dealioo funnel tracking link."
-                    error={errors.websiteUrl}
+              <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <Field label="Country code" required>
+                  <select
+                    className={inputClass()}
+                    value={draft.phoneCountryCode}
+                    onChange={(e) =>
+                      onChange({ phoneCountryCode: e.target.value })
+                    }
                   >
-                    <input
-                      className={inputClass(errors.websiteUrl)}
-                      value={draft.websiteUrl}
-                      onChange={(e) => onChange({ websiteUrl: e.target.value })}
-                      placeholder="https://…"
-                    />
-                  </Field>
-                </Panel>
-              ) : null}
-              {needsSalesStoreLocation ? (
-                <Panel>
-                  <BusinessLocationPicker
-                    label="Store location"
-                    description="Add the physical store customers can visit."
-                    value={draft.businessLocation}
-                    latitude={draft.businessLocationLat}
-                    longitude={draft.businessLocationLng}
-                    error={errors.businessLocation}
-                    onChange={(patch) => onChange(patch)}
+                    {LEAD_PHONE_COUNTRY_CODES.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field
+                  label="Phone number"
+                  required
+                  error={errors.businessPhone}
+                >
+                  <input
+                    className={inputClass(errors.businessPhone)}
+                    value={draft.businessPhone}
+                    onChange={(e) =>
+                      onChange({
+                        businessPhone: e.target.value,
+                        phoneNumber: e.target.value,
+                        ...applyNonUrlDestination("phone"),
+                      })
+                    }
+                    placeholder="555 0100"
                   />
-                </Panel>
-              ) : null}
-              {showMultiplePhone ? (
-                <Panel>
-                  <Field label="Phone number" hint="Optional">
-                    <input
-                      className={inputClass()}
-                      value={draft.businessPhone}
-                      onChange={(e) =>
-                        onChange({
-                          businessPhone: e.target.value,
-                          phoneNumber: e.target.value,
-                        })
-                      }
-                      placeholder="+1 555 0100"
-                    />
-                  </Field>
-                </Panel>
-              ) : null}
-            </div>
+                </Field>
+              </div>
+            </Panel>
           ) : null}
         </>
       ) : null}
@@ -659,15 +824,15 @@ export function StepCampaignDetails({
         <Panel className="space-y-4">
           <div>
             <p className="text-sm font-bold text-[#07111f]">
-              How do you want to generate leads?
+              How would you like to receive leads?
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Choose the primary action you want customers to take.
+              Choose one primary way customers should contact you.
             </p>
           </div>
 
           <div
-            className="grid gap-3 sm:grid-cols-2"
+            className="grid gap-3 sm:grid-cols-3"
             role="radiogroup"
             aria-label="Primary lead method"
           >
@@ -689,60 +854,25 @@ export function StepCampaignDetails({
           ) : null}
 
           {primaryLeadMethod === "CONTACT_FORM" ? (
-            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
-              <p className="text-sm font-bold text-[#07111f]">
-                Website Form
-              </p>
-              <Field
-                label="Landing page URL"
-                required
-                hint="Paste your Dealioo funnel tracking link."
-                error={errors.landingPageUrl}
-              >
-                <input
-                  className={inputClass(errors.landingPageUrl)}
-                  value={draft.landingPageUrl || draft.websiteUrl}
-                  onChange={(e) =>
-                    onChange({
-                      landingPageUrl: e.target.value,
-                      websiteUrl: draft.websiteUrl || e.target.value,
-                    })
-                  }
-                  placeholder="https://…"
-                />
-              </Field>
-            </div>
+            <DestinationPicker
+              businessId={businessId}
+              draft={draft}
+              errors={errors}
+              onChange={onChange}
+              title="Where should customers go?"
+            />
           ) : null}
 
           {primaryLeadMethod === "GOOGLE_LEAD_FORM" ? (
             <div className="space-y-5 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
               <div>
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
+                <p className="text-sm font-bold text-[#07111f]">
                   Google Lead Form
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Create your lead form
+                  Collect leads without sending people away from Google.
                 </p>
               </div>
-
-              <Field
-                label="Business name"
-                required
-                error={errors.businessName}
-              >
-                <input
-                  className={inputClass(errors.businessName)}
-                  value={draft.businessName}
-                  onChange={(e) =>
-                    onChange({
-                      businessName: e.target.value,
-                      extensionBusinessName:
-                        draft.extensionBusinessName || e.target.value,
-                    })
-                  }
-                  placeholder="Coderslodge"
-                />
-              </Field>
 
               <Field
                 label="Headline"
@@ -810,8 +940,8 @@ export function StepCampaignDetails({
               </Field>
 
               <div className="space-y-2 border-t border-[#dbeafe] pt-4">
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                  Information to collect
+                <p className="text-sm font-bold text-[#07111f]">
+                  Fields to collect
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {GOOGLE_LEAD_FORM_FIELD_OPTIONS.map((field) => {
@@ -860,9 +990,6 @@ export function StepCampaignDetails({
               </div>
 
               <div className="space-y-3 border-t border-[#dbeafe] pt-4">
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                  Privacy
-                </p>
                 <Field
                   label="Privacy policy URL"
                   required
@@ -880,11 +1007,11 @@ export function StepCampaignDetails({
               </div>
 
               <div className="space-y-3 border-t border-[#dbeafe] pt-4">
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                  After submission
+                <p className="text-sm font-bold text-[#07111f]">
+                  Thank-you screen
                 </p>
                 <Field
-                  label="Headline"
+                  label="Thank-you headline"
                   required
                   error={errors.googleLeadFormThankYouHeadline}
                 >
@@ -900,7 +1027,7 @@ export function StepCampaignDetails({
                   />
                 </Field>
                 <Field
-                  label="Message"
+                  label="Thank-you message"
                   required
                   error={errors.googleLeadFormThankYouMessage}
                 >
@@ -944,7 +1071,6 @@ export function StepCampaignDetails({
                     required={
                       draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE"
                     }
-                    hint="Paste your Dealioo funnel tracking link."
                     error={errors.googleLeadFormPostSubmitUrl}
                   >
                     <input
@@ -974,7 +1100,7 @@ export function StepCampaignDetails({
             <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
               <p className="text-sm font-bold text-[#07111f]">Phone Calls</p>
               <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <Field label="Country" required>
+                <Field label="Country code" required>
                   <select
                     className={inputClass()}
                     value={draft.phoneCountryCode}
@@ -990,9 +1116,9 @@ export function StepCampaignDetails({
                   </select>
                 </Field>
                 <Field
-                  label="Business phone number"
+                  label="Business phone"
                   required
-                  hint="Customers will be encouraged to call this number from your ads."
+                  hint="Prefilled from your business profile when available."
                   error={errors.businessPhone}
                 >
                   <input
@@ -1010,37 +1136,50 @@ export function StepCampaignDetails({
               </div>
             </div>
           ) : null}
-
         </Panel>
       ) : null}
 
       {draft.goal === "WEBSITE_TRAFFIC" ? (
-        <Panel className="space-y-3">
-          <p className="text-sm font-bold text-[#07111f]">
-            What should visitors do?
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {TRAFFIC_ACTION_OPTIONS.map((option) => (
-              <SelectableCard
-                key={option.id}
-                selected={draft.trafficAction === option.id}
-                title={option.label}
-                onClick={() =>
-                  onChange({ trafficAction: option.id as TrafficActionId })
-                }
-              />
-            ))}
-          </div>
-          {errors.trafficAction ? (
-            <p className="text-sm font-medium text-red-500">
-              {errors.trafficAction}
+        <>
+          <DestinationPicker
+            businessId={businessId}
+            draft={draft}
+            errors={errors}
+            onChange={onChange}
+            title="Where should we send visitors?"
+          />
+          <Panel className="space-y-3">
+            <p className="text-sm font-bold text-[#07111f]">
+              What should visitors do?
             </p>
-          ) : null}
-        </Panel>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {TRAFFIC_ACTION_OPTIONS.map((option) => (
+                <SelectableCard
+                  key={option.id}
+                  selectionMode="radio"
+                  selected={draft.trafficAction === option.id}
+                  title={option.label}
+                  onClick={() =>
+                    onChange({ trafficAction: option.id as TrafficActionId })
+                  }
+                />
+              ))}
+            </div>
+            {errors.trafficAction ? (
+              <p className="text-sm font-medium text-red-500">
+                {errors.trafficAction}
+              </p>
+            ) : null}
+          </Panel>
+        </>
       ) : null}
 
       {draft.goal === "AWARENESS" ? (
         <Panel className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Prefilled from your business profile — edit only if something
+            changed.
+          </p>
           <Field label="Business address">
             <input
               className={inputClass()}
@@ -1082,11 +1221,17 @@ export function StepCampaignDetails({
         <div className="space-y-4">
           <Panel>
             <BusinessLocationPicker
+              label="Business location"
               value={draft.businessLocation}
               latitude={draft.businessLocationLat}
               longitude={draft.businessLocationLng}
               error={errors.businessLocation}
-              onChange={(patch) => onChange(patch)}
+              onChange={(patch) =>
+                onChange({
+                  ...patch,
+                  ...applyNonUrlDestination("physical_location"),
+                })
+              }
             />
           </Panel>
           <Panel className="space-y-4">
@@ -1141,33 +1286,52 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
     <StepShell
       step={3}
       total={TOTAL_WIZARD_STEPS}
-      title="Set a comfortable daily budget"
-      description="No jargon — just how much you're happy to spend each day."
+      title="Set up your budget"
+      description="Set a daily budget you're comfortable with. Advanced Google settings stay hidden unless you need them."
     >
-      <BudgetSlider
-        value={draft.dailyBudget}
-        onChange={(dailyBudget) => onChange({ dailyBudget })}
-      />
-      {errors.dailyBudget ? (
-        <p className="text-sm font-medium text-red-500">{errors.dailyBudget}</p>
-      ) : null}
-      <MetricTiles dailyBudget={draft.dailyBudget} />
-      <Panel className="grid gap-4 sm:grid-cols-2">
-        <Field label="Start date" hint="Optional">
-          <input
-            type="date"
-            className={inputClass()}
-            value={draft.startDate}
-            onChange={(e) => onChange({ startDate: e.target.value })}
-          />
+      <div className="space-y-4">
+        <BudgetSlider
+          value={draft.dailyBudget}
+          onChange={(dailyBudget) => onChange({ dailyBudget })}
+        />
+        {errors.dailyBudget ? (
+          <p className="text-sm font-medium text-red-500">{errors.dailyBudget}</p>
+        ) : null}
+        <MetricTiles dailyBudget={draft.dailyBudget} />
+      </div>
+
+      <Panel className="grid gap-5 sm:grid-cols-2">
+        <Field label="Start date" hint="Defaults to today">
+          <div className="relative">
+            <Calendar
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              type="date"
+              className={`${inputClass()} pl-10`}
+              value={draft.startDate}
+              onChange={(e) => onChange({ startDate: e.target.value })}
+            />
+          </div>
         </Field>
-        <Field label="End date" hint="Optional" error={errors.endDate}>
-          <input
-            type="date"
-            className={inputClass(errors.endDate)}
-            value={draft.endDate}
-            onChange={(e) => onChange({ endDate: e.target.value })}
-          />
+        <Field
+          label="End date"
+          hint="Leave empty to run continuously"
+          error={errors.endDate}
+        >
+          <div className="relative">
+            <Calendar
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              type="date"
+              className={`${inputClass(errors.endDate)} pl-10`}
+              value={draft.endDate}
+              onChange={(e) => onChange({ endDate: e.target.value })}
+            />
+          </div>
         </Field>
       </Panel>
 
@@ -1177,77 +1341,193 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
 }
 
 export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
-  const [mapFocusToken, setMapFocusToken] = useState(0);
+  const RADIUS_PRESETS_KM = [1, 5, 10, 16, 25, 50, 80] as const;
   const [activeLocationId, setActiveLocationId] = useState<string | null>(
-    draft.targetLocations[0]?.id ?? null,
+    draft.targetLocations.find((row) => row.type !== "country")?.id ??
+      draft.targetLocations[0]?.id ??
+      null,
   );
+  const [activeList, setActiveList] = useState<"include" | "exclude">("include");
+  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const [radiusEnabled, setRadiusEnabled] = useState(true);
+  const [dropPinEnabled, setDropPinEnabled] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
+  const didAutoDetectRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const draftRef = useRef(draft);
+  onChangeRef.current = onChange;
+  draftRef.current = draft;
 
   const activeLocation = useMemo(() => {
-    const fromId = draft.targetLocations.find(
-      (row) => row.id === activeLocationId,
+    if (activeList === "exclude") {
+      return (
+        draft.excludedLocationTargets.find((row) => row.id === activeLocationId) ??
+        draft.excludedLocationTargets[draft.excludedLocationTargets.length - 1] ??
+        null
+      );
+    }
+    return (
+      draft.targetLocations.find((row) => row.id === activeLocationId) ??
+      draft.targetLocations.find((row) => row.type !== "country") ??
+      draft.targetLocations[draft.targetLocations.length - 1] ??
+      null
     );
-    if (fromId) return fromId;
-    return draft.targetLocations[draft.targetLocations.length - 1] ?? null;
-  }, [activeLocationId, draft.targetLocations]);
+  }, [
+    activeList,
+    activeLocationId,
+    draft.excludedLocationTargets,
+    draft.targetLocations,
+  ]);
 
   const activeCoords = useMemo(
     () => resolveLocationCoordinates(activeLocation),
     [activeLocation],
   );
 
+  const activeRadiusValue = Math.min(
+    80,
+    Math.max(1, activeLocation?.radiusValue ?? draft.radiusValue ?? 16),
+  );
+  const activeRadiusUnit: RadiusUnitId =
+    activeLocation?.radiusUnit === "MILES" ? "MILES" : "KILOMETERS";
+
   const usesRadiusOnMap =
+    radiusEnabled &&
     activeLocation != null &&
     activeLocation.type !== "country" &&
     activeCoords != null;
 
-  const syncRadiusFromLocation = (
-    location: GoogleAdsLocationRef | null,
-    extras?: Partial<{
-      radiusValue: number;
-      radiusUnit: RadiusUnitId;
-      latitude: number;
-      longitude: number;
-    }>,
-  ) => {
-    if (!location) {
+  const mapPins = useMemo(
+    () => [
+      ...draft.targetLocations.map((row) => ({ ...row, mode: "include" as const })),
+      ...draft.excludedLocationTargets.map((row) => ({
+        ...row,
+        mode: "exclude" as const,
+      })),
+    ],
+    [draft.excludedLocationTargets, draft.targetLocations],
+  );
+
+  const addressPinCount = mapPins.filter(
+    (row) =>
+      row.type !== "country" &&
+      typeof row.latitude === "number" &&
+      typeof row.longitude === "number",
+  ).length;
+
+  const showMap = radiusEnabled || dropPinEnabled;
+  const radiusPct = ((activeRadiusValue - 1) / 79) * 100;
+
+  const legacyFromLocation = (location: GoogleAdsLocationRef | null) => {
+    const coords = resolveLocationCoordinates(location);
+    const isPin =
+      location != null && location.type !== "country" && coords != null;
+    const value = location?.radiusValue ?? 16;
+    const unit: RadiusUnitId =
+      location?.radiusUnit === "MILES" ? "MILES" : "KILOMETERS";
+    return {
+      radiusEnabled: isPin,
+      radiusCenter:
+        isPin && location && coords
+          ? { ...location, latitude: coords.latitude, longitude: coords.longitude }
+          : null,
+      radiusLat: coords?.latitude ?? null,
+      radiusLng: coords?.longitude ?? null,
+      radiusValue: value,
+      radiusUnit: unit,
+      radiusTargeting: isPin ? formatRadiusLabel(value, unit) : "",
+      presenceOption: "PRESENCE" as const,
+    };
+  };
+
+  const updateActiveLocation = (patch: {
+    radiusValue?: number;
+    radiusUnit?: RadiusUnitId;
+    latitude?: number;
+    longitude?: number;
+  }) => {
+    if (!activeLocation || activeLocation.type === "country") return;
+
+    const updated = withDefaultLocationRadius({
+      ...activeLocation,
+      ...patch,
+      radiusValue: patch.radiusValue ?? activeLocation.radiusValue ?? 16,
+      radiusUnit: patch.radiusUnit ?? activeLocation.radiusUnit ?? "KILOMETERS",
+    });
+
+    if (activeList === "exclude") {
+      const next = draft.excludedLocationTargets.map((row) =>
+        row.id === activeLocation.id ? updated : row,
+      );
       onChange({
-        radiusEnabled: false,
-        radiusCenter: null,
-        radiusTargeting: "",
-        presenceOption: "PRESENCE",
+        excludedLocationTargets: next,
+        excludedLocations: next.map((row) => row.name),
       });
       return;
     }
 
-    const coords =
-      extras?.latitude != null && extras?.longitude != null
-        ? { latitude: extras.latitude, longitude: extras.longitude }
-        : resolveLocationCoordinates(location);
-
-    const isPinLocation = location.type !== "country" && coords != null;
-    const nextValue = extras?.radiusValue ?? draft.radiusValue;
-    const nextUnit = extras?.radiusUnit ?? draft.radiusUnit;
-    const nextCenter =
-      isPinLocation && coords
-        ? { ...location, latitude: coords.latitude, longitude: coords.longitude }
-        : null;
-
+    const next = draft.targetLocations.map((row) =>
+      row.id === activeLocation.id ? updated : row,
+    );
     onChange({
-      radiusEnabled: Boolean(isPinLocation),
-      radiusCenter: nextCenter,
-      radiusValue: nextValue,
-      radiusUnit: nextUnit,
-      radiusLat: coords?.latitude ?? null,
-      radiusLng: coords?.longitude ?? null,
-      radiusTargeting: isPinLocation
-        ? formatRadiusLabel(nextValue, nextUnit)
-        : "",
-      presenceOption: "PRESENCE",
+      targetLocations: next,
+      ...deriveLegacyLocationFields(next),
+      ...legacyFromLocation(updated),
     });
   };
 
-  const applyTargetLocations = (targetLocations: GoogleAdsLocationRef[]) => {
-    const legacy = deriveLegacyLocationFields(targetLocations);
+  useEffect(() => {
+    if (didAutoDetectRef.current) return;
+    if (draftRef.current.targetLocations.length > 0) {
+      didAutoDetectRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    didAutoDetectRef.current = true;
+    setDetectingLocation(true);
+    setDetectError(null);
+
+    void resolveCurrentLocationTarget()
+      .then((detected) => {
+        if (cancelled || !detected) return;
+        if (draftRef.current.targetLocations.length > 0) return;
+
+        const pin = withDefaultLocationRadius(detected, 16, "KILOMETERS");
+        const targetLocations = [pin];
+        setActiveList("include");
+        setActiveLocationId(pin.id);
+        setRadiusEnabled(true);
+        setAdvancedOpen(true);
+        onChangeRef.current({
+          targetLocations,
+          ...deriveLegacyLocationFields(targetLocations),
+          ...legacyFromLocation(pin),
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setDetectError(
+          err instanceof Error
+            ? err.message
+            : "Could not detect your current location.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setDetectingLocation(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applyTargetLocations = (incoming: GoogleAdsLocationRef[]) => {
+    const targetLocations = incoming.map((row) =>
+      withDefaultLocationRadius(row, 16, "KILOMETERS"),
+    );
     const nextActive =
       targetLocations.find((row) => row.id === activeLocationId) ??
       targetLocations[targetLocations.length - 1] ??
@@ -1256,188 +1536,325 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
     const isPinLocation =
       nextActive != null && nextActive.type !== "country" && coords != null;
 
+    setActiveList("include");
     setActiveLocationId(nextActive?.id ?? null);
+    if (isPinLocation) {
+      setRadiusEnabled(true);
+      setAdvancedOpen(true);
+    }
     onChange({
       targetLocations,
-      ...legacy,
-      presenceOption: "PRESENCE",
-      radiusEnabled: Boolean(isPinLocation),
-      radiusCenter:
-        isPinLocation && nextActive && coords
-          ? { ...nextActive, latitude: coords.latitude, longitude: coords.longitude }
-          : null,
-      radiusLat: coords?.latitude ?? null,
-      radiusLng: coords?.longitude ?? null,
-      radiusTargeting: isPinLocation
-        ? formatRadiusLabel(draft.radiusValue, draft.radiusUnit)
-        : "",
+      ...deriveLegacyLocationFields(targetLocations),
+      ...legacyFromLocation(nextActive),
     });
-    setMapFocusToken((token) => token + 1);
   };
 
-  const activateLocation = (location: GoogleAdsLocationRef) => {
+  const activateInclude = (location: GoogleAdsLocationRef) => {
+    setActiveList("include");
     setActiveLocationId(location.id);
-    syncRadiusFromLocation(location);
-    setMapFocusToken((token) => token + 1);
+    onChange(legacyFromLocation(location));
+    if (location.type !== "country") {
+      setRadiusEnabled(true);
+      setAdvancedOpen(true);
+    }
   };
 
-  const applyExcludedLocations = (
-    excludedLocationTargets: GoogleAdsLocationRef[],
-  ) => {
+  const activateExclude = (location: GoogleAdsLocationRef) => {
+    setActiveList("exclude");
+    setActiveLocationId(location.id);
+    if (location.type !== "country") {
+      setRadiusEnabled(true);
+      setAdvancedOpen(true);
+    }
+  };
+
+  const applyExcludedLocations = (incoming: GoogleAdsLocationRef[]) => {
+    const excludedLocationTargets = incoming.map((row) =>
+      withDefaultLocationRadius(row, 16, "KILOMETERS"),
+    );
+    const nextActive =
+      excludedLocationTargets.find((row) => row.id === activeLocationId) ??
+      excludedLocationTargets[excludedLocationTargets.length - 1] ??
+      null;
+    setActiveList("exclude");
+    setActiveLocationId(nextActive?.id ?? null);
+    if (nextActive && nextActive.type !== "country") {
+      setRadiusEnabled(true);
+      setAdvancedOpen(true);
+    }
     onChange({
       excludedLocationTargets,
       excludedLocations: excludedLocationTargets.map((row) => row.name),
     });
   };
 
-  const handleMapPinMove = (latitude: number, longitude: number) => {
-    if (!activeLocation || activeLocation.type === "country") return;
-
-    const updated: GoogleAdsLocationRef = {
-      ...activeLocation,
-      latitude,
-      longitude,
-    };
-    const nextTargets = draft.targetLocations.map((row) =>
-      row.id === activeLocation.id ? updated : row,
-    );
-
-    onChange({
-      targetLocations: nextTargets,
-      ...deriveLegacyLocationFields(nextTargets),
-    });
-    syncRadiusFromLocation(updated, { latitude, longitude });
-    setMapFocusToken((token) => token + 1);
-  };
-
   const handleMapRadiusChange = (radiusValue: number) => {
     if (!activeLocation || !usesRadiusOnMap) return;
-    syncRadiusFromLocation(activeLocation, { radiusValue });
+    updateActiveLocation({ radiusValue });
+  };
+
+  const handleDropPin = (latitude: number, longitude: number) => {
+    void reverseGeocodeCoordinates(latitude, longitude).then((resolved) => {
+      const name =
+        resolved?.label ||
+        `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      const pin = withDefaultLocationRadius(
+        {
+          type: "city",
+          id: `geo-pin-${latitude.toFixed(5)}-${longitude.toFixed(5)}`,
+          name,
+          latitude,
+          longitude,
+        },
+        16,
+        "KILOMETERS",
+      );
+      const withoutDup = draft.targetLocations.filter((row) => row.id !== pin.id);
+      const targetLocations = [...withoutDup, pin];
+      setActiveList("include");
+      setActiveLocationId(pin.id);
+      setRadiusEnabled(true);
+      onChange({
+        targetLocations,
+        ...deriveLegacyLocationFields(targetLocations),
+        ...legacyFromLocation(pin),
+      });
+    });
   };
 
   return (
     <StepShell
       step={4}
       total={TOTAL_WIZARD_STEPS}
-      title="Where should your ads show?"
-      description="Add the places you want to reach, then choose your languages."
+      title="Where are your customers?"
+      description="Add the places you want to reach, then choose languages. English is selected by default."
     >
-      <Panel className="space-y-4">
+      <Panel className="space-y-5">
         <LocationAutocomplete
+          icon={MapPin}
           label="Countries, states, or cities"
+          description="Search and add places. Click a chip to set that place’s own radius."
           required
           values={draft.targetLocations}
           onChange={applyTargetLocations}
-          onActivate={activateLocation}
-          activeId={activeLocation?.id ?? null}
+          onActivate={activateInclude}
+          activeId={activeList === "include" ? activeLocation?.id ?? null : null}
           placeholder="Search countries, states, cities, postal codes..."
-          error={errors.targetLocations}
+          error={
+            errors.targetLocations || errors.radiusCenter || errors.radiusValue
+          }
         />
 
-        {activeLocation && usesRadiusOnMap ? (
-          <div className="space-y-3">
-            <p className="text-sm font-bold text-[#07111f]">
-              Radius around {activeLocation.name}
-              <span className="ml-2 font-normal text-slate-400">
-                (optional)
-              </span>
-            </p>
-
-            <LocationRadiusMap
-              latitude={activeCoords!.latitude}
-              longitude={activeCoords!.longitude}
-              radiusValue={draft.radiusValue}
-              radiusUnit={draft.radiusUnit}
-              showRadius
-              countryZoom={false}
-              focusToken={mapFocusToken}
-              onPinMove={handleMapPinMove}
-              onRadiusChange={handleMapRadiusChange}
-            />
-
-            <div className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff] p-4">
-              <p className="mb-2 text-xs font-semibold text-slate-500">
-                How far around this place should we reach customers?
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="range"
-                  min={1}
-                  max={80}
-                  value={Math.min(80, Math.max(1, draft.radiusValue))}
-                  onChange={(e) =>
-                    handleMapRadiusChange(Number.parseInt(e.target.value, 10))
-                  }
-                  className="h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
-                  aria-label="Radius slider"
-                />
-                <input
-                  type="number"
-                  min={1}
-                  max={80}
-                  value={draft.radiusValue}
-                  onChange={(e) =>
-                    handleMapRadiusChange(
-                      Math.min(
-                        80,
-                        Math.max(1, Number.parseInt(e.target.value, 10) || 1),
-                      ),
-                    )
-                  }
-                  className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
-                  aria-label="Radius value"
-                />
-                <select
-                  value={draft.radiusUnit === "MILES" ? "mile" : "kilometer"}
-                  onChange={(e) =>
-                    syncRadiusFromLocation(activeLocation, {
-                      radiusUnit:
-                        e.target.value === "mile" ? "MILES" : "KILOMETERS",
-                    })
-                  }
-                  className="rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm text-[#07111f]"
-                  aria-label="Radius unit"
-                >
-                  <option value="kilometer">km</option>
-                  <option value="mile">mi</option>
-                </select>
-              </div>
-              {errors.radiusValue ? (
-                <p className="mt-2 text-xs font-medium text-red-500">
-                  {errors.radiusValue}
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">
-                  {draft.radiusValue} {draft.radiusUnit === "MILES" ? "mi" : "km"}{" "}
-                  around this place · drag the map pin to adjust
-                </p>
-              )}
-            </div>
+        {detectingLocation ? (
+          <div className="flex gap-3 rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
+            <Loader2 className="size-4 shrink-0 animate-spin text-[#4285F4]" aria-hidden />
+            <p className="text-sm text-slate-500">Detecting your location…</p>
           </div>
-        ) : activeLocation ? (
-          <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
-            {activeLocation.name} is a whole country — no radius needed.
-          </p>
-        ) : (
-          <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
-            Add a location above to start targeting your ads.
-          </p>
-        )}
+        ) : null}
+        {detectError && draft.targetLocations.length === 0 ? (
+          <p className="text-xs font-medium text-slate-500">{detectError}</p>
+        ) : null}
+
+        <div className="overflow-hidden rounded-xl border border-[#e8edf5]">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            className="flex w-full items-center justify-between bg-[#f8fafc] px-4 py-3 text-left"
+          >
+            <span className="text-sm font-semibold text-[#07111f]">
+              Advanced location options
+            </span>
+            {advancedOpen ? (
+              <ChevronUp className="size-4 text-slate-500" aria-hidden />
+            ) : (
+              <ChevronDown className="size-4 text-slate-500" aria-hidden />
+            )}
+          </button>
+
+          {advancedOpen ? (
+            <div className="space-y-4 border-t border-[#e8edf5] bg-white p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={radiusEnabled}
+                  onChange={(e) => setRadiusEnabled(e.target.checked)}
+                  className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#4285F4] focus:ring-[#4285F4]/30"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-[#07111f]">
+                    Radius targeting
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Each city keeps its own radius — change one without affecting others.
+                  </span>
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={dropPinEnabled}
+                  onChange={(e) => setDropPinEnabled(e.target.checked)}
+                  className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#4285F4] focus:ring-[#4285F4]/30"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-[#07111f]">
+                    Drop pin
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Click the map to place a marker and set a radius.
+                  </span>
+                </span>
+              </label>
+
+              {showMap ? (
+                <div className="space-y-3">
+                  {usesRadiusOnMap ? (
+                    <div className="space-y-2 rounded-xl border border-[#e8edf5] bg-[#f8fafc] p-3">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Radius for “{activeLocation?.name}” only
+                        {activeList === "exclude" ? " (exclude)" : ""}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {RADIUS_PRESETS_KM.map((km) => (
+                          <button
+                            key={km}
+                            type="button"
+                            onClick={() =>
+                              updateActiveLocation({
+                                radiusValue: km,
+                                radiusUnit: "KILOMETERS",
+                              })
+                            }
+                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                              activeRadiusValue === km &&
+                              activeRadiusUnit !== "MILES"
+                                ? "bg-[#4285F4] text-white"
+                                : "border border-[#e8edf5] bg-white text-slate-600"
+                            }`}
+                          >
+                            {km} km
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="range"
+                          min={1}
+                          max={80}
+                          value={activeRadiusValue}
+                          onChange={(e) =>
+                            handleMapRadiusChange(
+                              Number.parseInt(e.target.value, 10),
+                            )
+                          }
+                          className="google-budget-slider h-2 min-w-[140px] flex-1 cursor-pointer appearance-none rounded-full"
+                          style={{
+                            background: `linear-gradient(to right, #4285F4 0%, #4285F4 ${radiusPct}%, #e8edf5 ${radiusPct}%, #e8edf5 100%)`,
+                          }}
+                          aria-label="Radius slider"
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          max={80}
+                          value={activeRadiusValue}
+                          onChange={(e) =>
+                            handleMapRadiusChange(
+                              Math.min(
+                                80,
+                                Math.max(
+                                  1,
+                                  Number.parseInt(e.target.value, 10) || 1,
+                                ),
+                              ),
+                            )
+                          }
+                          className="w-14 rounded border border-[#e8edf5] bg-white px-2 py-1 text-sm"
+                          aria-label="Radius value"
+                        />
+                        <div className="flex overflow-hidden rounded-lg border border-[#e8edf5] bg-white">
+                          {(
+                            [
+                              ["KILOMETERS", "km"],
+                              ["MILES", "mi"],
+                            ] as const
+                          ).map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                updateActiveLocation({ radiusUnit: value })
+                              }
+                              className={`px-2.5 py-1 text-xs font-semibold ${
+                                activeRadiusUnit === value
+                                  ? "bg-[#4285F4] text-white"
+                                  : "text-slate-600"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : radiusEnabled ? (
+                    <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f8fbff] px-3 py-2 text-xs text-slate-600">
+                      Select or search a city/address first, then set a radius.
+                      Country-only targeting does not use the map.
+                    </p>
+                  ) : null}
+
+                  {addressPinCount > 0 || dropPinEnabled ? (
+                    <GoogleAdsLocationsMap
+                      locations={mapPins}
+                      activeLocationId={activeLocation?.id ?? null}
+                      dropPinMode={dropPinEnabled}
+                      onDropPin={handleDropPin}
+                      onSelectPin={(id) => {
+                        const include = draft.targetLocations.find(
+                          (row) => row.id === id,
+                        );
+                        if (include) {
+                          activateInclude(include);
+                          return;
+                        }
+                        const exclude = draft.excludedLocationTargets.find(
+                          (row) => row.id === id,
+                        );
+                        if (exclude) activateExclude(exclude);
+                      }}
+                    />
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
+                      Add a city or turn on Drop pin to use the map.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </Panel>
 
-      <Panel className="space-y-4">
+      <Panel className="space-y-5">
         <LocationAutocomplete
+          icon={MapPinOff}
           label="Exclude locations"
           values={draft.excludedLocationTargets}
           onChange={applyExcludedLocations}
+          onActivate={activateExclude}
+          activeId={activeList === "exclude" ? activeLocation?.id ?? null : null}
           placeholder="Search places to exclude..."
-          description="Optional — your ads won't show to people here."
+          description="Optional — set a radius for each excluded place so ads avoid that area."
         />
       </Panel>
 
       <Panel>
         <SearchableMultiSelect
+          icon={Languages}
           label="Languages"
+          description="People who speak these languages can see your ads."
           required
           options={LANGUAGE_OPTIONS}
           values={draft.languages}
@@ -1450,75 +1867,141 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepTargetCustomers({ draft, errors, onChange }: StepProps) {
+export function StepTargetCustomers({
+  businessId,
+  draft,
+  errors,
+  onChange,
+}: StepProps) {
   const [customText, setCustomText] = useState("");
+  const { data: businessProfile } = useBusinessByIdQuery(businessId);
 
-  const displayOptions = useMemo(() => {
-    const base: string[] = [...IDEAL_CUSTOMER_OPTIONS];
-    const extras = draft.idealCustomers.filter((item) => !base.includes(item));
-    return [...base, ...extras];
-  }, [draft.idealCustomers]);
+  const suggestionResult = useMemo(
+    () =>
+      suggestIdealCustomers({
+        businessName: draft.businessName || businessProfile?.name || "",
+        businessCategory: draft.businessCategory,
+        businessType: draft.businessType,
+        businessDescription:
+          draft.businessDescription || businessProfile?.description || "",
+        productsServices: draft.productsServices,
+        goal: draft.goal,
+      }),
+    [
+      businessProfile?.description,
+      businessProfile?.name,
+      draft.businessCategory,
+      draft.businessDescription,
+      draft.businessName,
+      draft.businessType,
+      draft.goal,
+      draft.productsServices,
+    ],
+  );
+
+  const displayOptions = useMemo(
+    () =>
+      mergeIdealCustomerOptions(
+        suggestionResult.suggestions,
+        draft.idealCustomers,
+      ),
+    [draft.idealCustomers, suggestionResult.suggestions],
+  );
 
   const applyIdealCustomers = (idealCustomers: string[]) => {
-    const audience = generateAudienceFromIdealCustomers(idealCustomers);
-    onChange({ idealCustomers, ...audience });
+    onChange({ idealCustomers });
   };
 
   const addCustom = () => {
-    const value = customText.trim();
-    if (!value || draft.idealCustomers.includes(value)) return;
+    const value = customText.trim().replace(/\s+/g, " ");
+    if (!value) return;
+    const exists = draft.idealCustomers.some(
+      (item) => item.toLowerCase() === value.toLowerCase(),
+    );
+    if (exists) {
+      setCustomText("");
+      return;
+    }
     applyIdealCustomers([...draft.idealCustomers, value]);
     setCustomText("");
   };
+
+  const suggestionHeading = suggestionResult.isFallback
+    ? "Suggested for your business"
+    : `Suggested for ${suggestionResult.label}`;
 
   return (
     <StepShell
       step={5}
       total={TOTAL_WIZARD_STEPS}
-      title="Who are your ideal customers?"
-      description="Tap every group that fits your business. You can add your own too."
+      title="Who are you trying to reach?"
+      description="Tell us about your ideal customers. Dealioo will use this to improve your campaign recommendations."
     >
-      <Panel className="space-y-4">
-        <ChipToggleGroup
-          options={displayOptions}
-          values={draft.idealCustomers}
-          onChange={applyIdealCustomers}
-        />
-        {errors.idealCustomers ? (
-          <p className="text-sm font-medium text-red-500">
-            {errors.idealCustomers}
-          </p>
-        ) : null}
-
-        <Field label="Add a custom customer type" hint="Optional">
-          <div className="flex gap-2">
-            <input
-              className={inputClass()}
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              placeholder="e.g. Wedding planners"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustom();
-                }
-              }}
+      <Panel className="space-y-5">
+        {/* Suggested audiences — soft blue icon matches Budget / Locations fields */}
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <Users className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-3">
+            <p className="text-sm font-bold text-[#07111f]">{suggestionHeading}</p>
+            <ChipToggleGroup
+              options={displayOptions}
+              values={draft.idealCustomers}
+              onChange={applyIdealCustomers}
             />
-            <button
-              type="button"
-              onClick={addCustom}
-              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <Plus className="size-3.5" />
-              Add
-            </button>
+            {errors.idealCustomers ? (
+              <p className="text-sm font-medium text-red-500">
+                {errors.idealCustomers}
+              </p>
+            ) : null}
           </div>
-        </Field>
+        </div>
+
+        {/* Custom customer type — same icon + input + Add row as the mockup */}
+        <div className="flex gap-3 border-t border-[#e8edf5] pt-5">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <Plus className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <p className="text-sm font-bold text-[#07111f]">
+              + Add custom customer type
+            </p>
+            <div className="flex gap-2">
+              <input
+                className={inputClass()}
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="e.g. First-time home buyers"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustom();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={addCustom}
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
       </Panel>
 
-      <p className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3 text-sm text-slate-500">
-        We'll set audience targeting automatically from your answers.
-      </p>
+      <div className="flex gap-3 rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
+        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4]">
+          <Info className="size-4" aria-hidden />
+        </span>
+        <p className="text-sm leading-relaxed text-slate-500">
+          Dealioo will use your selections to improve keywords, ad content, and
+          audience recommendations.
+        </p>
+      </div>
     </StepShell>
   );
 }
@@ -1624,75 +2107,98 @@ export function StepProductsServices({
     <StepShell
       step={6}
       total={TOTAL_WIZARD_STEPS}
-      title="What products or services do you offer?"
-      description="List what you sell — we'll turn this into search keywords with AI."
+      title="What products or services would you like to promote?"
+      description="Add what you sell — then generate keywords Dealioo can use for your ads."
     >
-      <Panel className="space-y-3">
-        <Field
-          label="Products or services"
-          required
-          hint="Add one or many. Multi-word names are fine (e.g. Air Conditioning Installation). Separate several with commas."
-          error={errors.productsServices}
-        >
-          <div className="flex gap-2">
-            <input
-              className={inputClass(errors.productsServices)}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="e.g. Emergency plumbing, HVAC Repair"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addProducts(text);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => addProducts(text)}
-              className="inline-flex items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <Plus className="size-3.5" />
-              Add
-            </button>
-          </div>
-        </Field>
-        {draft.productsServices.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {draft.productsServices.map((item) => (
-              <RemovableChip
-                key={item}
-                label={item}
-                onRemove={() => removeProduct(item)}
+      <Panel className="space-y-4">
+        {/* Products / services — soft blue icon matches other builder steps */}
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <ShoppingBag className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div>
+              <p className="text-sm font-bold text-[#07111f]">
+                Products or services
+                <span className="text-red-500"> *</span>
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Add one or many. Multi-word names are fine (e.g. Air Conditioning
+                Installation). Separate several with commas.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <input
+                className={inputClass(errors.productsServices)}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="e.g. Catering, Private dining"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addProducts(text);
+                  }
+                }}
               />
-            ))}
+              <button
+                type="button"
+                onClick={() => addProducts(text)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add
+              </button>
+            </div>
+            {errors.productsServices ? (
+              <p className="text-xs font-medium text-red-500">
+                {errors.productsServices}
+              </p>
+            ) : null}
+            {draft.productsServices.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {draft.productsServices.map((item) => (
+                  <RemovableChip
+                    key={item}
+                    label={item}
+                    onRemove={() => removeProduct(item)}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
       </Panel>
 
-      <Panel className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-[#07111f]">
-              Keyword suggestions
-            </p>
-            <p className="text-xs text-slate-500">
-              {enabledKeywords(draft).length} selected
-            </p>
+      <Panel className="space-y-4">
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <Sparkles className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-[#07111f]">
+                  Keyword suggestions
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {enabledKeywords(draft).length} selected
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={draft.productsServices.length === 0 || generating}
+                onClick={() => void runGenerate()}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              >
+                {generating ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="size-4" aria-hidden />
+                )}
+                {generating ? "Generating…" : "Generate Keywords"}
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            disabled={draft.productsServices.length === 0 || generating}
-            onClick={() => void runGenerate()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3367d6] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {generating ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="size-4" aria-hidden />
-            )}
-            {generating ? "Generating…" : "Generate keywords"}
-          </button>
         </div>
 
         {draft.suggestedKeywords.length > 0 ? (
@@ -1700,7 +2206,7 @@ export function StepProductsServices({
             {draft.suggestedKeywords.map((keyword) => (
               <div
                 key={keyword.id}
-                className="flex items-center gap-3 rounded-xl border border-[#e8edf5] px-3 py-2.5"
+                className="flex items-center gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5"
               >
                 <button
                   type="button"
@@ -1742,17 +2248,22 @@ export function StepProductsServices({
                       ),
                     })
                   }
-                  className="text-slate-400 hover:text-red-500"
+                  className="text-slate-400 transition hover:text-red-500"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-4" aria-hidden />
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
-            Add a product or service above, then generate suggestions.
-          </p>
+          <div className="flex gap-3 rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4]">
+              <Tag className="size-4" aria-hidden />
+            </span>
+            <p className="text-sm text-slate-500">
+              Add a product or service above, then generate suggestions.
+            </p>
+          </div>
         )}
         {errors.keywords ? (
           <p className="text-xs font-medium text-red-500">{errors.keywords}</p>
@@ -1761,15 +2272,30 @@ export function StepProductsServices({
 
       {draft.negativeKeywords.length > 0 ? (
         <Panel className="space-y-3">
-          <p className="text-sm font-bold text-[#07111f]">Searches to avoid</p>
-          <div className="flex flex-wrap gap-2">
-            {draft.negativeKeywords.map((word) => (
-              <RemovableChip
-                key={word}
-                label={word}
-                onRemove={() => removeNegative(word)}
-              />
-            ))}
+          <div className="flex gap-3">
+            <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+              <Ban className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
+                <p className="text-sm font-bold text-[#07111f]">
+                  Searches to avoid
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Words that should not trigger your ads (for example “jobs” or
+                  “free”).
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {draft.negativeKeywords.map((word) => (
+                  <RemovableChip
+                    key={word}
+                    label={word}
+                    onRemove={() => removeNegative(word)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </Panel>
       ) : null}
@@ -1788,7 +2314,9 @@ function padAdSlots(values: string[], min: number, max: number): string[] {
   return next;
 }
 
-export function StepAds({ draft, errors, onChange }: StepProps) {
+export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
+  const [changingDestination, setChangingDestination] = useState(false);
+
   useEffect(() => {
     if (!draft.adsGenerated) {
       onChange({
@@ -1799,6 +2327,8 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
     }
     const current = draft.ads[0];
     if (!current) return;
+
+    const destinationUrl = resolveCampaignDestinationUrl(draft);
     const headlines = padAdSlots(
       current.headlines,
       MIN_RSA_HEADLINES,
@@ -1809,12 +2339,27 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
       MIN_RSA_DESCRIPTIONS,
       MAX_RSA_DESCRIPTIONS,
     );
+
+    const needsUrlSync =
+      Boolean(destinationUrl) &&
+      current.finalUrl.trim() !== destinationUrl &&
+      (draft.destinationType === "dealioo_funnel" ||
+        !current.finalUrl.trim());
+
     if (
       headlines.length !== current.headlines.length ||
-      descriptions.length !== current.descriptions.length
+      descriptions.length !== current.descriptions.length ||
+      needsUrlSync
     ) {
       onChange({
-        ads: [{ ...current, headlines, descriptions }],
+        ads: [
+          {
+            ...current,
+            headlines,
+            descriptions,
+            finalUrl: needsUrlSync ? destinationUrl : current.finalUrl,
+          },
+        ],
       });
     }
   }, [draft, draft.adsGenerated, onChange]);
@@ -1837,46 +2382,194 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
     onChange({ ads: [{ ...ad, ...patch }] });
   };
 
+  const destinationUrl = resolveCampaignDestinationUrl(draft);
+  const isFunnelDestination = draft.destinationType === "dealioo_funnel";
+  const isExternalDestination = draft.destinationType === "external_website";
+  const usesLandingUrl = isFunnelDestination || isExternalDestination;
+  const showLandingEditor =
+    changingDestination || (!isFunnelDestination && usesLandingUrl);
+
+  const regenerate = () => {
+    const next = generateAdSuggestions(draft);
+    onChange({
+      ads: [
+        {
+          ...next,
+          id: ad.id,
+          finalUrl: destinationUrl || next.finalUrl || ad.finalUrl,
+          path1: ad.path1 || next.path1,
+          path2: ad.path2 || next.path2,
+        },
+      ],
+      adsGenerated: true,
+    });
+  };
+
   return (
     <StepShell
       step={7}
       total={TOTAL_WIZARD_STEPS}
-      title="Write your ad"
-      description="Required: Final URL, 3 headlines, and 2 descriptions. Everything else is optional."
+      title="Let's create your ad"
+      description="We suggested headlines and descriptions from your earlier answers. Edit anything before publishing."
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Panel className="space-y-5">
-          <Field
-            label="Final URL"
-            required
-            hint="Paste your Dealioo funnel tracking link."
-            error={errors.finalUrl}
-          >
-            <input
-              className={inputClass(errors.finalUrl)}
-              value={ad.finalUrl}
-              onChange={(e) => updateAd({ finalUrl: e.target.value })}
-              placeholder="https://…"
-            />
-          </Field>
-
-          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                  Headlines
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Add at least {MIN_RSA_HEADLINES} headlines.
-                </p>
-                <p className="text-xs text-slate-500">
-                  More variations can help Google optimize your ad.
-                </p>
+          {usesLandingUrl ? (
+            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+              <div className="flex gap-3">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4] shadow-sm">
+                  <Link2 className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[#07111f]">
+                        Landing page
+                      </p>
+                      {isFunnelDestination ? (
+                        <>
+                          <p className="mt-1 text-sm font-semibold text-[#07111f]">
+                            {draft.selectedFunnelName || "Dealioo Funnel"}
+                          </p>
+                          <p className="mt-0.5 break-all text-xs text-slate-500">
+                            {destinationUrl || ad.finalUrl}
+                          </p>
+                          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+                            <Check className="size-3" aria-hidden />
+                            Connected
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-1 break-all text-xs text-slate-500">
+                          {destinationUrl || ad.finalUrl || "Add a website URL"}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChangingDestination((v) => !v)}
+                      className="text-xs font-bold text-[#4285F4] hover:underline"
+                    >
+                      {changingDestination ? "Done" : "Change destination"}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm font-semibold tabular-nums text-slate-500">
-                {headlines.length} / {MAX_RSA_HEADLINES}
-              </p>
+
+              {showLandingEditor ? (
+                isFunnelDestination ? (
+                  <DestinationPicker
+                    businessId={businessId}
+                    draft={draft}
+                    errors={errors}
+                    onChange={(patch) => {
+                      onChange(withSyncedAdFinalUrl(draft, patch));
+                    }}
+                  />
+                ) : (
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                      <Globe className="size-5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <Field
+                        label="Website URL"
+                        required
+                        error={errors.finalUrl}
+                      >
+                        <input
+                          className={inputClass(errors.finalUrl)}
+                          value={ad.finalUrl || draft.websiteUrl}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            onChange(
+                              withSyncedAdFinalUrl(draft, {
+                                destinationType: "external_website",
+                                websiteUrl: value,
+                                landingPageUrl: value,
+                                ads: [{ ...ad, finalUrl: value }],
+                              }),
+                            );
+                          }}
+                          placeholder="https://…"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                )
+              ) : null}
+              {errors.finalUrl && !showLandingEditor ? (
+                <p className="text-sm font-medium text-red-500">
+                  {errors.finalUrl}
+                </p>
+              ) : null}
             </div>
+          ) : (
+            <div className="space-y-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4">
+              <div className="flex gap-3">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                  <ExternalLink className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div>
+                    <p className="text-sm font-bold text-[#07111f]">
+                      {destinationLabel(draft)}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      This campaign focuses on{" "}
+                      {destinationLabel(draft).toLowerCase()}. A website URL is
+                      still used behind the scenes when Google needs one.
+                    </p>
+                  </div>
+                  <Field
+                    label="Website URL (optional fallback)"
+                    error={errors.finalUrl}
+                  >
+                    <input
+                      className={inputClass(errors.finalUrl)}
+                      value={ad.finalUrl || draft.websiteUrl}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onChange({
+                          websiteUrl: value || draft.websiteUrl,
+                          ads: [{ ...ad, finalUrl: value }],
+                        });
+                      }}
+                      placeholder="https://…"
+                    />
+                  </Field>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Headlines */}
+          <div className="space-y-4 border-t border-[#e8edf5] pt-5">
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                <Type className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[#07111f]">Headlines</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      At least {MIN_RSA_HEADLINES} required · up to{" "}
+                      {MAX_RSA_HEADLINES}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={regenerate}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1.5 text-sm font-semibold text-[#4285F4] transition hover:bg-[#e8f0fe]"
+                  >
+                    <Sparkles className="size-4" aria-hidden />
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {errors.headlines ? (
               <p className="text-xs font-medium text-red-500">
                 {errors.headlines}
@@ -1940,24 +2633,30 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
                 Add headline
               </button>
             ) : null}
-            <p className="text-xs text-slate-500">
-              Recommended: Add more variations for better optimization.
-            </p>
           </div>
 
-          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                  Descriptions
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Add at least {MIN_RSA_DESCRIPTIONS} descriptions.
-                </p>
+          {/* Descriptions */}
+          <div className="space-y-4 border-t border-[#e8edf5] pt-5">
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                <FileText className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[#07111f]">
+                      Descriptions
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      At least {MIN_RSA_DESCRIPTIONS} required · up to{" "}
+                      {MAX_RSA_DESCRIPTIONS}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold tabular-nums text-slate-500">
+                    {descriptions.length} / {MAX_RSA_DESCRIPTIONS}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm font-semibold tabular-nums text-slate-500">
-                {descriptions.length} / {MAX_RSA_DESCRIPTIONS}
-              </p>
             </div>
             {errors.descriptions ? (
               <p className="text-xs font-medium text-red-500">
@@ -2027,45 +2726,6 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
               </button>
             ) : null}
           </div>
-
-          <div className="space-y-3 border-t border-[#e8edf5] pt-5">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-[#07111f]">
-                Display URL
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">Optional</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Path 1">
-                <div className="space-y-1">
-                  <div className="flex justify-end">
-                    <CharCount value={ad.path1} max={PATH_MAX} />
-                  </div>
-                  <input
-                    className={inputClass()}
-                    value={ad.path1}
-                    maxLength={PATH_MAX}
-                    onChange={(e) => updateAd({ path1: e.target.value })}
-                    placeholder="hand-care"
-                  />
-                </div>
-              </Field>
-              <Field label="Path 2">
-                <div className="space-y-1">
-                  <div className="flex justify-end">
-                    <CharCount value={ad.path2} max={PATH_MAX} />
-                  </div>
-                  <input
-                    className={inputClass()}
-                    value={ad.path2}
-                    maxLength={PATH_MAX}
-                    onChange={(e) => updateAd({ path2: e.target.value })}
-                    placeholder="appointment"
-                  />
-                </div>
-              </Field>
-            </div>
-          </div>
         </Panel>
 
         <div className="lg:sticky lg:top-4 lg:self-start">
@@ -2077,6 +2737,9 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
 }
 
 export function StepBusinessDetails({ draft, onChange }: StepProps) {
+  const [editingBusinessInfo, setEditingBusinessInfo] = useState(false);
+  const [calloutDraft, setCalloutDraft] = useState("");
+
   useEffect(() => {
     if (draft.assetsGenerated) return;
     const type =
@@ -2089,175 +2752,291 @@ export function StepBusinessDetails({ draft, onChange }: StepProps) {
       callouts: generateCallouts(type),
       structuredSnippetHeader: draft.structuredSnippetHeader || "Services",
       structuredSnippetValues: generateSnippetValues(type),
-      sitelinks: generateSitelinks(draft.websiteUrl, type),
+      sitelinks: [],
       assetsGenerated: true,
     });
   }, [draft, draft.assetsGenerated, onChange]);
+
+  const phoneReady = Boolean(draft.phoneNumber.trim() || draft.businessPhone.trim());
+  const addressReady = Boolean(draft.businessAddress.trim());
+  const hoursReady = Boolean(draft.businessHours.trim());
+
+  const addCallout = () => {
+    const next = calloutDraft.trim().slice(0, 25);
+    if (!next || draft.callouts.includes(next)) return;
+    onChange({ callouts: [...draft.callouts, next] });
+    setCalloutDraft("");
+  };
 
   return (
     <StepShell
       step={8}
       total={TOTAL_WIZARD_STEPS}
-      title="A few more business details"
-      description="We'll add callouts, sitelinks, and other ad extras automatically."
+      title="Enhance your ad"
+      description="Add short benefits that can appear with your ad. Business details are loaded from your profile."
     >
       <Panel className="space-y-4">
-        <Field label="Phone number">
-          <input
-            className={inputClass()}
-            value={draft.phoneNumber}
-            onChange={(e) =>
-              onChange({
-                phoneNumber: e.target.value,
-                businessPhone: e.target.value,
-              })
-            }
-            placeholder="+1 555 0100"
-          />
-        </Field>
-        <Field label="Business address">
-          <input
-            className={inputClass()}
-            value={draft.businessAddress}
-            onChange={(e) => onChange({ businessAddress: e.target.value })}
-            placeholder="123 Main Street"
-          />
-        </Field>
-        <SearchableSelect
-          label="Business hours"
-          options={[
-            "Open 24/7",
-            "Mon–Fri 9am–5pm",
-            "Mon–Sat 10am–8pm",
-            "Weekends only",
-            "By appointment",
-          ]}
-          value={draft.businessHours}
-          onChange={(businessHours) => onChange({ businessHours })}
-          placeholder="Select hours"
-        />
-      </Panel>
-
-      <Panel className="space-y-3">
-        <p className="text-sm font-bold text-[#07111f]">Callouts</p>
-        <p className="text-xs text-slate-500">
-          Short highlights shown under your ad. Tap to remove any you don't want.
-        </p>
-        <ChipToggleGroup
-          options={draft.callouts}
-          values={draft.callouts}
-          onChange={(callouts) => onChange({ callouts })}
-        />
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              callouts: generateCallouts(
-                draft.businessType ||
-                  inferBusinessTypeFromProducts(
-                    draft.productsServices,
-                    "Local Business",
-                  ),
-              ),
-            })
-          }
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4285F4]"
-        >
-          <Sparkles className="size-3.5" aria-hidden />
-          Refresh suggestions
-        </button>
-      </Panel>
-
-      {draft.sitelinks.length > 0 ? (
-        <Panel className="space-y-3">
-          <div>
-            <p className="text-sm font-bold text-[#07111f]">
-              Helpful links (sitelinks)
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Up to {MAX_SITELINKS} quick links appear below your ad. Turn any
-              off if it doesn't apply to your business.
-            </p>
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <Building2 className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-[#07111f]">
+                  Business information
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Used for call extensions and location details.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBusinessInfo((v) => !v)}
+                className="shrink-0 text-xs font-bold text-[#4285F4] hover:underline"
+              >
+                {editingBusinessInfo ? "Done" : "Edit"}
+              </button>
+            </div>
           </div>
-          <div className="space-y-2">
-            {draft.sitelinks.map((link) => (
-              <ToggleSwitch
-                key={link.id}
-                checked={link.enabled}
-                label={link.text || "Sitelink"}
-                description={link.enabled ? "Shown under your ad" : "Hidden"}
-                onChange={(enabled) =>
+        </div>
+
+        {!editingBusinessInfo ? (
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                {
+                  label: "Phone",
+                  value:
+                    draft.phoneNumber || draft.businessPhone || "Not set",
+                  ready: phoneReady,
+                  Icon: Phone,
+                  iconWrap: "bg-[#ecfdf5]",
+                  iconColor: "text-emerald-600",
+                },
+                {
+                  label: "Address",
+                  value: draft.businessAddress || "Not set",
+                  ready: addressReady,
+                  Icon: MapPin,
+                  iconWrap: "bg-[#eff6ff]",
+                  iconColor: "text-[#4285F4]",
+                },
+                {
+                  label: "Business Hours",
+                  value: draft.businessHours || "Not set",
+                  ready: hoursReady,
+                  Icon: Clock,
+                  iconWrap: "bg-[#fff7ed]",
+                  iconColor: "text-orange-500",
+                },
+              ] as const
+            ).map(({ label, value, ready, Icon, iconWrap, iconColor }) => (
+              <div
+                key={label}
+                className="flex gap-3 rounded-2xl border border-[#e8edf5] bg-white px-4 py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.03)]"
+              >
+                <span
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconWrap} ${iconColor}`}
+                >
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                    {label}
+                    {ready ? (
+                      <Check className="size-3 text-emerald-600" aria-hidden />
+                    ) : null}
+                  </p>
+                  <p
+                    className={`mt-1 break-words text-sm font-semibold leading-snug ${
+                      ready ? "text-[#07111f]" : "text-slate-400"
+                    }`}
+                  >
+                    {value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4 border-t border-[#e8edf5] pt-4">
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-emerald-600">
+                <Phone className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <Field label="Phone number">
+                  <input
+                    className={inputClass()}
+                    value={draft.phoneNumber}
+                    onChange={(e) =>
+                      onChange({
+                        phoneNumber: e.target.value,
+                        businessPhone: e.target.value,
+                      })
+                    }
+                    placeholder="+1 555 0100"
+                  />
+                </Field>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] text-[#4285F4]">
+                <MapPin className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <Field label="Business address">
+                  <input
+                    className={inputClass()}
+                    value={draft.businessAddress}
+                    onChange={(e) =>
+                      onChange({ businessAddress: e.target.value })
+                    }
+                    placeholder="123 Main Street"
+                  />
+                </Field>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#fff7ed] text-orange-500">
+                <Clock className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <SearchableSelect
+                  label="Business hours"
+                  options={[
+                    "Open 24/7",
+                    "Mon–Fri 9am–5pm",
+                    "Mon–Sat 10am–8pm",
+                    "Weekends only",
+                    "By appointment",
+                  ]}
+                  value={draft.businessHours}
+                  onChange={(businessHours) => onChange({ businessHours })}
+                  placeholder="Select hours"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Panel>
+
+      <Panel className="space-y-4">
+        <div className="flex gap-3">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+            <Megaphone className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-bold text-[#07111f]">Callouts</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Add short benefits that can appear with your ad.
+              </p>
+            </div>
+            <ChipToggleGroup
+              options={draft.callouts}
+              values={draft.callouts}
+              onChange={(callouts) => onChange({ callouts })}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-[220px] flex-1 gap-2">
+                <input
+                  className={inputClass()}
+                  value={calloutDraft}
+                  maxLength={25}
+                  onChange={(e) => setCalloutDraft(e.target.value)}
+                  placeholder="e.g. Free Consultation"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCallout();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={addCallout}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
+                >
+                  <Plus className="size-3.5" aria-hidden />
+                  Add
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
                   onChange({
-                    sitelinks: draft.sitelinks.map((item) =>
-                      item.id === link.id ? { ...item, enabled } : item,
+                    callouts: generateCallouts(
+                      draft.businessType ||
+                        inferBusinessTypeFromProducts(
+                          draft.productsServices,
+                          "Local Business",
+                        ),
                     ),
                   })
                 }
-              />
-            ))}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4285F4] transition hover:text-[#1a73e8]"
+              >
+                <Sparkles className="size-4" aria-hidden />
+                Refresh suggestions
+              </button>
+            </div>
           </div>
-        </Panel>
-      ) : null}
+        </div>
+      </Panel>
     </StepShell>
   );
 }
 
-function GoogleStatChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5">
-      <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 break-all text-sm font-semibold leading-snug text-[#07111f]">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function GoogleReviewSection({
+function ReviewRow({
   icon: Icon,
-  title,
-  subtitle,
+  label,
+  value,
+  detail,
   onEdit,
   children,
 }: {
   icon: LucideIcon;
-  title: string;
-  subtitle?: string;
-  onEdit?: () => void;
-  children: ReactNode;
+  label: string;
+  value: string;
+  detail?: string;
+  onEdit: () => void;
+  children?: ReactNode;
 }) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
-      <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] bg-gradient-to-r from-[#f8fbff] via-white to-white px-5 py-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[#d2e3fc] bg-white text-[#4285F4] shadow-sm">
-            <Icon className="size-4" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-base font-extrabold tracking-tight text-[#07111f]">
-              {title}
-            </h3>
-            {subtitle ? (
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                {subtitle}
+    <div className="flex items-start gap-3 border-b border-[#e8edf5] py-4 last:border-b-0">
+      <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+              {label}
+            </p>
+            <p className="mt-1 text-sm font-bold leading-snug text-[#07111f]">
+              {value}
+            </p>
+            {detail ? (
+              <p className="mt-0.5 line-clamp-2 break-all text-xs leading-relaxed text-slate-500">
+                {detail}
               </p>
             ) : null}
           </div>
-        </div>
-        {onEdit ? (
           <button
             type="button"
             onClick={onEdit}
-            className="shrink-0 text-xs font-bold text-[#4285F4] hover:underline"
+            className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-[#4285F4] transition hover:bg-[#f4f8ff]"
           >
             Edit
           </button>
-        ) : null}
+        </div>
+        {/* Extra content (e.g. keyword chips) stays under the text, left-aligned */}
+        {children ? <div className="mt-2.5">{children}</div> : null}
       </div>
-      <div className="min-w-0 p-5">{children}</div>
-    </section>
+    </div>
   );
 }
 
@@ -2286,7 +3065,6 @@ export function StepReviewPublish({
     GOAL_OPTIONS.find((g) => g.id === draft.goal)?.title ?? "Not set";
   const metrics = estimateMetrics(draft.dailyBudget);
   const keywords = enabledKeywords(draft);
-  const keywordsSample = keywords.slice(0, 6).join(", ") || "—";
 
   const locationsLabel =
     [
@@ -2302,7 +3080,22 @@ export function StepReviewPublish({
       .join(" · ") || "—";
 
   const budgetLabel = `$${draft.dailyBudget}/day`;
-  const enabledSitelinksCount = draft.sitelinks.filter((s) => s.enabled).length;
+  const destinationUrl = resolveCampaignDestinationUrl(draft);
+  const destinationTitle = destinationLabel(draft);
+  const destinationPrimary =
+    draft.destinationType === "dealioo_funnel"
+      ? draft.selectedFunnelName || "Dealioo Funnel"
+      : destinationTitle;
+  const destinationSecondary =
+    draft.destinationType === "dealioo_funnel"
+      ? destinationUrl || undefined
+      : destinationUrl && destinationUrl !== destinationTitle
+        ? destinationUrl
+        : undefined;
+
+  const headlineCount = draft.ads[0]?.headlines.filter(Boolean).length || 0;
+  const descriptionCount =
+    draft.ads[0]?.descriptions.filter(Boolean).length || 0;
 
   const clampedProgress = Math.min(
     100,
@@ -2320,45 +3113,44 @@ export function StepReviewPublish({
     <StepShell
       step={9}
       total={TOTAL_WIZARD_STEPS}
-      title="Review & publish"
-      description="Everything looks set. Double-check the summary, preview the ad, then publish to Google Ads."
+      title="Ready to launch?"
+      description="Review your campaign summary, then publish. Dealioo handles the Google Ads setup for you."
     >
       <div className="space-y-5 pb-2">
-        <section className="relative overflow-hidden rounded-2xl border border-[#d2e3fc] bg-[#4285F4] p-5 text-white shadow-[0_18px_40px_rgba(66,133,244,0.28)] sm:p-6">
-          <div
-            className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -bottom-16 left-10 size-48 rounded-full bg-white/10 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white/90 backdrop-blur-sm">
-                <Rocket className="size-3.5" aria-hidden />
-                {publishStateLabel}
+        {/* Soft summary — not a loud billboard */}
+        <section className="rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.04)] sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#e8f0fe] text-[#4285F4]">
+                <Rocket className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0fe] px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#4285F4]">
+                  {publishStateLabel}
+                </p>
+                <h3 className="mt-2 truncate text-xl font-extrabold tracking-tight text-[#07111f] sm:text-2xl">
+                  {draft.campaignName || "Untitled campaign"}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {goalTitle}
+                  {draft.businessName ? ` · ${draft.businessName}` : ""}
+                </p>
               </div>
-              <h3 className="mt-3 truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
-                {draft.campaignName || "Untitled campaign"}
-              </h3>
-              <p className="mt-1.5 text-sm text-white/80">
-                {goalTitle} · {draft.businessName || "Your business"} ·{" "}
-                {budgetLabel}
-              </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
-              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+            <div className="grid grid-cols-2 gap-2 sm:min-w-[260px]">
+              <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
                   Daily budget
                 </p>
-                <p className="mt-1 text-sm font-bold">{budgetLabel}</p>
+                <p className="mt-1 text-sm font-bold text-[#07111f]">
+                  {budgetLabel}
+                </p>
               </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-sm">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/70">
+              <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
                   Est. monthly
                 </p>
-                <p className="mt-1 line-clamp-2 text-sm font-bold">
+                <p className="mt-1 text-sm font-bold text-[#07111f]">
                   {metrics.monthlySpend}
                 </p>
               </div>
@@ -2367,13 +3159,13 @@ export function StepReviewPublish({
         </section>
 
         {showProgress ? (
-          <section className="overflow-hidden rounded-2xl border border-[#d2e3fc] bg-[#f8fbff] p-5 shadow-sm ring-1 ring-[#4285F4]/10">
+          <section className="overflow-hidden rounded-2xl border border-[#d2e3fc] bg-[#f8fbff] p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-bold text-[#07111f]">
                 {publishSuccess
-                  ? "Campaign published"
+                  ? "Campaign created"
                   : publishing
-                    ? "Publishing to Google Ads…"
+                    ? "Creating your campaign..."
                     : "Publish progress"}
               </p>
               <span className="text-xs font-bold tabular-nums text-[#4285F4]">
@@ -2382,7 +3174,7 @@ export function StepReviewPublish({
             </div>
 
             <div
-              className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-[#4285F4]/15"
+              className="mt-3 h-2 overflow-hidden rounded-full bg-white ring-1 ring-[#4285F4]/15"
               role="progressbar"
               aria-valuenow={clampedProgress}
               aria-valuemin={0}
@@ -2396,7 +3188,7 @@ export function StepReviewPublish({
 
             <p className="mt-2 text-xs text-slate-500">
               {publishSuccess
-                ? "You're all set. We handled the technical setup behind the scenes."
+                ? "Pending Google Review — your campaign is submitted."
                 : publishPhase || "Preparing your campaign"}
             </p>
 
@@ -2429,7 +3221,7 @@ export function StepReviewPublish({
                           ? "bg-emerald-500 text-white"
                           : current
                             ? "bg-[#4285F4] text-white"
-                            : "bg-white ring-1 ring-[#d2e3fc] text-slate-400"
+                            : "bg-white text-slate-400 ring-1 ring-[#d2e3fc]"
                       }`}
                     >
                       {done ? (
@@ -2450,160 +3242,141 @@ export function StepReviewPublish({
           </section>
         ) : null}
 
-        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-          <div className="min-w-0 space-y-4">
-            <GoogleReviewSection
-              icon={Flag}
-              title="Campaign"
-              subtitle="Goal, name, and business"
-              onEdit={() => onEditStep(2)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <GoogleStatChip label="Goal" value={goalTitle} />
-                <GoogleStatChip
-                  label="Campaign name"
-                  value={draft.campaignName || "—"}
-                />
-                <GoogleStatChip
-                  label="Business"
-                  value={draft.businessName || "—"}
-                />
-                <GoogleStatChip
-                  label="Website"
-                  value={draft.websiteUrl || draft.landingPageUrl || "—"}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => onEditStep(1)}
-                className="mt-3 text-xs font-bold text-[#4285F4] hover:underline"
-              >
-                Edit goal
-              </button>
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={Wallet}
-              title="Budget"
-              subtitle="What you'll spend and roughly what you'll get"
-              onEdit={() => onEditStep(3)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-3">
-                <GoogleStatChip label="Daily budget" value={budgetLabel} />
-                <GoogleStatChip
-                  label="Est. monthly"
-                  value={metrics.monthlySpend}
-                />
-                <GoogleStatChip label="Est. clicks" value={metrics.clicks} />
-              </div>
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={MapPin}
-              title="Locations & languages"
-              subtitle="Where and in which languages your ads run"
-              onEdit={() => onEditStep(4)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <GoogleStatChip label="Locations" value={locationsLabel} />
-                <GoogleStatChip
-                  label="Languages"
-                  value={draft.languages.join(", ") || "—"}
-                />
-              </div>
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={Users}
-              title="Target customers"
-              subtitle="Who your ads are shown to"
-              onEdit={() => onEditStep(5)}
-            >
-              <GoogleStatChip
-                label="Ideal customers"
-                value={draft.idealCustomers.join(", ") || "—"}
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:items-start">
+          {/* One checklist card instead of seven heavy sections */}
+          <Panel className="!p-0 overflow-hidden">
+            <div className="border-b border-[#e8edf5] px-5 py-4">
+              <p className="text-sm font-bold text-[#07111f]">
+                Campaign checklist
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Everything looks good? Edit any row, then publish.
+              </p>
+            </div>
+            <div className="px-5">
+              <ReviewRow
+                icon={Flag}
+                label="Goal & name"
+                value={`${goalTitle} · ${draft.campaignName || "Untitled"}`}
+                onEdit={() => onEditStep(1)}
               />
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={Tag}
-              title="Keywords"
-              subtitle="What people search to find your ads"
-              onEdit={() => onEditStep(6)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <GoogleStatChip
-                  label="Keywords"
-                  value={`${keywords.length} selected`}
-                />
-                <GoogleStatChip label="Sample" value={keywordsSample} />
-              </div>
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={Megaphone}
-              title="Ads"
-              subtitle="Headlines and copy people will see"
-              onEdit={() => onEditStep(7)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <GoogleStatChip
-                  label="Headlines"
-                  value={`${draft.ads[0]?.headlines.filter(Boolean).length || 0} written`}
-                />
-                <GoogleStatChip
-                  label="Descriptions"
-                  value={`${draft.ads[0]?.descriptions.filter(Boolean).length || 0} written`}
-                />
-              </div>
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={Phone}
-              title="Business details"
-              subtitle="Extra info shown alongside your ad"
-              onEdit={() => onEditStep(8)}
-            >
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <GoogleStatChip
-                  label="Phone"
-                  value={draft.phoneNumber || "—"}
-                />
-                <GoogleStatChip
-                  label="Address"
-                  value={draft.businessAddress || "—"}
-                />
-                <GoogleStatChip
-                  label="Callouts"
-                  value={`${draft.callouts.length} callouts`}
-                />
-                <GoogleStatChip
-                  label="Sitelinks"
-                  value={`${enabledSitelinksCount} links`}
-                />
-              </div>
-            </GoogleReviewSection>
-          </div>
+              <ReviewRow
+                icon={Link2}
+                label="Destination"
+                value={destinationPrimary}
+                detail={destinationSecondary}
+                onEdit={() => onEditStep(2)}
+              />
+              <ReviewRow
+                icon={Wallet}
+                label="Budget & dates"
+                value={`${budgetLabel} · starts ${draft.startDate || "today"}`}
+                detail={
+                  draft.endDate
+                    ? `Ends ${draft.endDate}`
+                    : "Runs continuously"
+                }
+                onEdit={() => onEditStep(3)}
+              />
+              <ReviewRow
+                icon={MapPin}
+                label="Locations & languages"
+                value={locationsLabel}
+                detail={draft.languages.join(", ") || undefined}
+                onEdit={() => onEditStep(4)}
+              />
+              <ReviewRow
+                icon={Users}
+                label="Customers"
+                value={draft.idealCustomers.join(", ") || "Not set"}
+                onEdit={() => onEditStep(5)}
+              />
+              <ReviewRow
+                icon={ShoppingBag}
+                label="Products & keywords"
+                value={
+                  draft.productsServices.join(", ") || "No products added"
+                }
+                detail={`${keywords.length} keyword${keywords.length === 1 ? "" : "s"} selected`}
+                onEdit={() => onEditStep(6)}
+              >
+                {keywords.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {keywords.slice(0, 8).map((word) => (
+                      <span
+                        key={word}
+                        className="rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-2.5 py-0.5 text-[0.7rem] font-semibold text-[#4285F4]"
+                      >
+                        {word}
+                      </span>
+                    ))}
+                    {keywords.length > 8 ? (
+                      <span className="self-center px-1 text-[0.7rem] font-semibold text-slate-400">
+                        +{keywords.length - 8} more
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </ReviewRow>
+              <ReviewRow
+                icon={Megaphone}
+                label="Ad copy"
+                value={`${headlineCount} headline${headlineCount === 1 ? "" : "s"} · ${descriptionCount} description${descriptionCount === 1 ? "" : "s"}`}
+                onEdit={() => onEditStep(7)}
+              />
+              <ReviewRow
+                icon={Phone}
+                label="Enhancements"
+                value={
+                  [
+                    draft.phoneNumber || draft.businessPhone || null,
+                    draft.callouts.length
+                      ? `${draft.callouts.length} callouts`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "No extras yet"
+                }
+                detail={draft.businessAddress || undefined}
+                onEdit={() => onEditStep(8)}
+              />
+            </div>
+          </Panel>
 
           <aside className="min-w-0 space-y-4 lg:sticky lg:top-4">
-            <GoogleReviewSection
-              icon={ImageIcon}
-              title="Ad preview"
-              subtitle="How it may look in Google Search"
-              onEdit={() => onEditStep(7)}
-            >
+            <Panel className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                  <ImageIcon className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-[#07111f]">
+                        Ad preview
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        How it may look in Google Search
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onEditStep(7)}
+                      className="shrink-0 text-xs font-bold text-[#4285F4] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              </div>
               {draft.ads[0] ? (
                 <AdLivePreview
                   ad={draft.ads[0]}
                   businessName={draft.businessName}
                 />
               ) : (
-                <div className="rounded-xl border border-dashed border-[#d2e3fc] bg-[#f8fbff] px-4 py-10 text-center">
-                  <ImageIcon
-                    className="mx-auto size-8 text-[#4285F4]/50"
-                    aria-hidden
-                  />
-                  <p className="mt-3 text-sm font-semibold text-[#07111f]">
+                <div className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-8 text-center">
+                  <p className="text-sm font-semibold text-[#07111f]">
                     No ad creative yet
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -2611,39 +3384,12 @@ export function StepReviewPublish({
                   </p>
                 </div>
               )}
-            </GoogleReviewSection>
-
-            <GoogleReviewSection
-              icon={ListChecks}
-              title="Quick links"
-              subtitle="Jump back to any step"
-            >
-              <div className="flex flex-wrap gap-2">
-                {[
-                  [1, "Goal"],
-                  [2, "Campaign"],
-                  [3, "Budget"],
-                  [4, "Locations"],
-                  [5, "Customers"],
-                  [6, "Keywords"],
-                  [7, "Ads"],
-                  [8, "Business details"],
-                ].map(([step, label]) => (
-                  <button
-                    key={String(step)}
-                    type="button"
-                    onClick={() => onEditStep(Number(step))}
-                    className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-xs font-bold text-[#4285F4] transition hover:border-[#d2e3fc] hover:bg-[#f8fbff]"
-                  >
-                    Edit {label}
-                  </button>
-                ))}
-              </div>
-            </GoogleReviewSection>
-
-            <AdvancedOptions draft={draft} onChange={onChange} />
+            </Panel>
           </aside>
         </div>
+
+        {/* Full-width below checklist + preview — avoids cramped sidebar 2-col fields */}
+        <AdvancedOptions draft={draft} onChange={onChange} />
       </div>
     </StepShell>
   );

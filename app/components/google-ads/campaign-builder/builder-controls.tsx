@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { Check, ChevronDown, Search, X, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { googleBuilderInputClass } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
 import { builderInputErrorClass } from "@/app/components/campaign/meta-builder/builder-ui";
@@ -58,7 +58,6 @@ export function SelectableCard({
   icon?: ReactNode;
   onClick: () => void;
   badge?: string;
-  /** "radio" = single-select indicator (primary lead method); "check" = default */
   selectionMode?: "check" | "radio";
 }) {
   return (
@@ -105,7 +104,7 @@ export function SelectableCard({
       <p className="pr-8 text-base font-bold text-[#07111f]">
         {title}
         {badge ? (
-          <span className="ml-2 text-xs font-semibold text-slate-400">
+          <span className="ml-2 inline-flex items-center rounded-md bg-[#e8f0fe] px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#4285F4]">
             {badge}
           </span>
         ) : null}
@@ -251,8 +250,33 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const locked: Array<{ node: HTMLElement; overflow: string }> = [];
+    let node: HTMLElement | null = rootRef.current?.parentElement ?? null;
+    while (node) {
+      const { overflowY } = window.getComputedStyle(node);
+      if (overflowY === "auto" || overflowY === "scroll") {
+        locked.push({ node, overflow: node.style.overflow });
+        node.style.overflow = "hidden";
+      }
+      node = node.parentElement;
+    }
+
+    const bodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      for (const row of locked) {
+        row.node.style.overflow = row.overflow;
+      }
+      document.body.style.overflow = bodyOverflow;
+    };
+  }, [open]);
+
   return (
-    <div ref={rootRef} className="space-y-1.5">
+    <div ref={rootRef} className="relative space-y-1.5">
       <label htmlFor={id} className="block text-sm font-bold text-[#07111f]">
         {label}
         {required ? <span className="text-red-500"> *</span> : null}
@@ -260,6 +284,7 @@ export function SearchableSelect({
       <button
         id={id}
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={`${googleBuilderInputClass} flex items-center justify-between gap-2 text-left ${
           error ? builderInputErrorClass : ""
@@ -268,10 +293,15 @@ export function SearchableSelect({
         <span className={value ? "text-[#07111f]" : "text-slate-400"}>
           {value || placeholder}
         </span>
-        <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+        <ChevronDown
+          className={`size-4 shrink-0 text-slate-400 transition ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
       </button>
       {open ? (
-        <div className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-40 mt-1.5 overflow-hidden rounded-xl border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
           <div className="flex items-center gap-2 border-b border-[#e8edf5] px-3 py-2">
             <Search className="size-4 text-slate-400" aria-hidden />
             <input
@@ -282,7 +312,7 @@ export function SearchableSelect({
               placeholder="Type to search"
             />
           </div>
-          <ul className="max-h-56 overflow-y-auto py-1">
+          <ul className="max-h-44 overflow-y-auto overscroll-contain py-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-sm text-slate-400">No matches</li>
             ) : (
@@ -325,6 +355,8 @@ export function SearchableMultiSelect({
   placeholder = "Search and select…",
   error,
   required,
+  icon: Icon,
+  description,
 }: {
   label: string;
   options: string[];
@@ -333,6 +365,8 @@ export function SearchableMultiSelect({
   placeholder?: string;
   error?: string;
   required?: boolean;
+  icon?: LucideIcon;
+  description?: string;
 }) {
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
@@ -344,11 +378,22 @@ export function SearchableMultiSelect({
   }, [options, query, values]);
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-bold text-[#07111f]">
-        {label}
-        {required ? <span className="text-red-500"> *</span> : null}
-      </p>
+    <div className="flex gap-3">
+      {Icon ? (
+        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+          <Icon className="size-5" aria-hidden />
+        </span>
+      ) : null}
+      <div className="min-w-0 flex-1 space-y-2">
+      <div>
+        <p className="text-sm font-bold text-[#07111f]">
+          {label}
+          {required ? <span className="text-red-500"> *</span> : null}
+        </p>
+        {description ? (
+          <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+        ) : null}
+      </div>
       {values.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {values.map((value) => (
@@ -398,6 +443,7 @@ export function SearchableMultiSelect({
         </div>
       </div>
       {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+      </div>
     </div>
   );
 }
@@ -432,13 +478,16 @@ export function ChipToggleGroup({
                 onChange([option]);
               }
             }}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               selected
                 ? "border-[#4285F4] bg-[#e8f0fe] text-[#4285F4]"
                 : "border-[#e8edf5] bg-white text-[#07111f] hover:bg-[#f4f8ff]"
             }`}
           >
             {option}
+            {selected ? (
+              <Check className="size-3.5" strokeWidth={3} aria-hidden />
+            ) : null}
           </button>
         );
       })}
@@ -499,16 +548,26 @@ export function BudgetSlider({
   min?: number;
   max?: number;
 }) {
+  const pct = Math.max(
+    0,
+    Math.min(100, ((value - min) / Math.max(1, max - min)) * 100),
+  );
+
   return (
-    <div className="space-y-4 rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm">
-      <div className="flex items-end justify-between gap-3">
+    <div className="space-y-5 rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.04)] sm:p-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-[#07111f]">Daily budget</p>
-          <p className="text-xs text-slate-500">Drag to set your comfort level</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Drag the slider to set your comfort level
+          </p>
         </div>
-        <p className="text-3xl font-extrabold tracking-tight text-[#4285F4]">
-          ${value}
-        </p>
+        <div className="text-right">
+          <p className="text-3xl font-extrabold tracking-tight text-[#4285F4] sm:text-4xl">
+            ${value}
+          </p>
+          <p className="mt-0.5 text-xs font-medium text-slate-400">per day</p>
+        </div>
       </div>
       <input
         type="range"
@@ -517,7 +576,11 @@ export function BudgetSlider({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#e8edf5] accent-[#4285F4]"
+        aria-label="Daily budget"
+        className="google-budget-slider h-2 w-full cursor-pointer appearance-none rounded-full"
+        style={{
+          background: `linear-gradient(to right, #4285F4 0%, #4285F4 ${pct}%, #e8edf5 ${pct}%, #e8edf5 100%)`,
+        }}
       />
       <div className="flex justify-between text-xs text-slate-400">
         <span>${min}</span>

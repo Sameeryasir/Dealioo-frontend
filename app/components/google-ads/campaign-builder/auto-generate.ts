@@ -6,6 +6,7 @@ import type {
   SitelinkDraft,
   SuggestedKeyword,
 } from "@/app/components/google-ads/campaign-builder/types";
+import { resolveCampaignDestinationUrl } from "@/app/components/google-ads/campaign-builder/destination";
 
 const KEYWORD_LIBRARY: Record<string, string[]> = {
   Restaurant: [
@@ -219,9 +220,7 @@ export function generateAdSuggestions(
   ].map(clampDescription);
 
   const url =
-    draft.websiteUrl.trim() ||
-    draft.landingPageUrl.trim() ||
-    "https://www.example.com";
+    resolveCampaignDestinationUrl(draft) || "https://www.example.com";
 
   let path1 = type.toLowerCase().replace(/\s+/g, "-").slice(0, 15);
   let path2 = "offer";

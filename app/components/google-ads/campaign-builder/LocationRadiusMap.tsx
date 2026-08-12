@@ -29,6 +29,7 @@ type LocationRadiusMapProps = {
   showRadius?: boolean;
   countryZoom?: boolean;
   focusToken: number;
+  accent?: "include" | "exclude";
   onPinMove: (latitude: number, longitude: number) => void;
   onRadiusChange?: (radiusValue: number) => void;
 };
@@ -68,10 +69,19 @@ function createPinIcon() {
   });
 }
 
-function createRadiusHandleIcon() {
+function createExcludePinIcon() {
+  return L.divIcon({
+    className: "rp-map-pin-icon",
+    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#e11d48;border:3px solid white;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+  });
+}
+
+function createRadiusHandleIcon(color = "#4285F4") {
   return L.divIcon({
     className: "rp-map-radius-handle-icon",
-    html: `<div title="Drag to resize radius" style="width:22px;height:22px;border-radius:9999px;background:#ffffff;border:3px solid #4285F4;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:ew-resize"></div>`,
+    html: `<div title="Drag to resize radius" style="width:22px;height:22px;border-radius:9999px;background:#ffffff;border:3px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:ew-resize"></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
@@ -165,12 +175,14 @@ function RadiusResizeHandle({
   center,
   meters,
   radiusUnit,
+  handleColor,
   suppressClickRef,
   onRadiusChange,
 }: {
   center: [number, number];
   meters: number;
   radiusUnit: MapRadiusUnit;
+  handleColor: string;
   suppressClickRef: MutableRefObject<boolean>;
   onRadiusChange: (radiusValue: number) => void;
 }) {
@@ -193,7 +205,7 @@ function RadiusResizeHandle({
     const marker = L.marker(
       offsetEast(centerRef.current[0], centerRef.current[1], metersRef.current),
       {
-        icon: createRadiusHandleIcon(),
+        icon: createRadiusHandleIcon(handleColor),
         draggable: true,
         zIndexOffset: 1000,
         keyboard: false,
@@ -241,7 +253,7 @@ function RadiusResizeHandle({
         map.dragging.enable();
       }
     };
-  }, [map, suppressClickRef]);
+  }, [handleColor, map, suppressClickRef]);
 
   useEffect(() => {
     if (draggingRef.current || !markerRef.current) return;
@@ -275,6 +287,7 @@ export function LocationRadiusMap({
   showRadius = true,
   countryZoom = false,
   focusToken,
+  accent = "include",
   onPinMove,
   onRadiusChange,
 }: LocationRadiusMapProps) {
@@ -287,7 +300,11 @@ export function LocationRadiusMap({
   );
   const meters = toMeters(radiusValue, radiusUnit);
   const suppressClickRef = useRef(false);
-  const pinIcon = useMemo(() => createPinIcon(), []);
+  const ringColor = accent === "exclude" ? "#e11d48" : "#4285F4";
+  const pinIcon = useMemo(
+    () => (accent === "exclude" ? createExcludePinIcon() : createPinIcon()),
+    [accent],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -365,8 +382,8 @@ export function LocationRadiusMap({
                 center={center}
                 radius={meters}
                 pathOptions={{
-                  color: "#4285F4",
-                  fillColor: "#4285F4",
+                  color: ringColor,
+                  fillColor: ringColor,
                   fillOpacity: 0.15,
                   weight: 2,
                 }}
@@ -376,6 +393,7 @@ export function LocationRadiusMap({
                   center={center}
                   meters={meters}
                   radiusUnit={radiusUnit}
+                  handleColor={ringColor}
                   suppressClickRef={suppressClickRef}
                   onRadiusChange={onRadiusChange}
                 />

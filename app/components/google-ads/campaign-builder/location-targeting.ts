@@ -4,12 +4,16 @@ export type GoogleAdsLocationType =
   | "city"
   | "postal_code";
 
+export type RadiusUnitId = "KILOMETERS" | "MILES";
+
 export type GoogleAdsLocationRef = {
   type: GoogleAdsLocationType;
   id: string;
   name: string;
   latitude?: number;
   longitude?: number;
+  radiusValue?: number;
+  radiusUnit?: RadiusUnitId;
 };
 
 export type PresenceOptionId =
@@ -17,8 +21,6 @@ export type PresenceOptionId =
   | "SEARCH"
   | "PRESENCE_OR_INTEREST"
   | "PRESENCE_NOT_EXCLUDED";
-
-export type RadiusUnitId = "KILOMETERS" | "MILES";
 
 export type LocationTargetingPayload = {
   locations: GoogleAdsLocationRef[];
@@ -244,6 +246,69 @@ const STATIC_REGION_CITY_SEED: GoogleAdsLocationRef[] = [
     longitude: -0.1278,
   },
   {
+    type: "state",
+    id: "pk-punjab",
+    name: "Punjab, Pakistan",
+    latitude: 31.1704,
+    longitude: 72.7097,
+  },
+  {
+    type: "city",
+    id: "pk-islamabad",
+    name: "Islamabad, Pakistan",
+    latitude: 33.6844,
+    longitude: 73.0479,
+  },
+  {
+    type: "city",
+    id: "pk-rawalpindi",
+    name: "Rawalpindi, Punjab, Pakistan",
+    latitude: 33.5651,
+    longitude: 73.0169,
+  },
+  {
+    type: "city",
+    id: "pk-lahore",
+    name: "Lahore, Punjab, Pakistan",
+    latitude: 31.5204,
+    longitude: 74.3587,
+  },
+  {
+    type: "city",
+    id: "pk-karachi",
+    name: "Karachi, Sindh, Pakistan",
+    latitude: 24.8607,
+    longitude: 67.0011,
+  },
+  {
+    type: "city",
+    id: "pk-faisalabad",
+    name: "Faisalabad, Punjab, Pakistan",
+    latitude: 31.4504,
+    longitude: 73.135,
+  },
+  {
+    type: "city",
+    id: "pk-multan",
+    name: "Multan, Punjab, Pakistan",
+    latitude: 30.1575,
+    longitude: 71.5249,
+  },
+  {
+    type: "city",
+    id: "pk-peshawar",
+    name: "Peshawar, Khyber Pakhtunkhwa, Pakistan",
+    latitude: 34.0151,
+    longitude: 71.5249,
+  },
+  {
+    type: "city",
+    id: "pk-chakwal",
+    name: "Chakwal, Punjab, Pakistan",
+    latitude: 32.9328,
+    longitude: 72.863,
+  },
+  {
     type: "postal_code",
     id: "9031953",
     name: "2000",
@@ -432,8 +497,109 @@ export async function reverseGeocodeCoordinates(
   }
 }
 
+export function getBrowserCurrentPosition(
+  timeoutMs = 5000,
+): Promise<{ latitude: number; longitude: number }> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(new Error("Location is not supported in this browser."));
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      reject(new Error("Timed out while getting your location."));
+    }, timeoutMs);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.clearTimeout(timer);
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (err) => {
+        window.clearTimeout(timer);
+        reject(
+          new Error(
+            err.code === err.PERMISSION_DENIED
+              ? "Location permission was denied. Search for a place instead."
+              : "Could not read your current location. Search for a place instead.",
+          ),
+        );
+      },
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 300_000 },
+    );
+  });
+}
+
+export async function resolveCurrentLocationTarget(): Promise<GoogleAdsLocationRef | null> {
+  const coords = await getBrowserCurrentPosition();
+  const reverse = await reverseGeocodeCoordinates(
+    coords.latitude,
+    coords.longitude,
+  );
+  const label =
+    reverse?.label ||
+    `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+
+  const parts = label.split(",").map((part) => part.trim()).filter(Boolean);
+  const name =
+    parts.length >= 3
+      ? parts.slice(-3).join(", ")
+      : parts.length >= 2
+        ? parts.slice(-2).join(", ")
+        : label;
+
+  return withDefaultLocationRadius({
+    type: "city",
+    id: `geo-current-${coords.latitude.toFixed(5)}-${coords.longitude.toFixed(5)}`,
+    name,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+  });
+}
+
+export function matchStaticLocations(query: string): GoogleAdsLocationRef[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return [...GOOGLE_ADS_COUNTRY_LOCATIONS, ...STATIC_REGION_CITY_SEED]
+    .filter((row) => row.name.toLowerCase().includes(q))
+    .slice(0, 12);
+}
+
+export function withDefaultLocationRadius(
+  location: GoogleAdsLocationRef,
+  fallbackValue = 16,
+  fallbackUnit: RadiusUnitId = "KILOMETERS",
+): GoogleAdsLocationRef {
+  if (location.type === "country") {
+    return { ...location, radiusValue: undefined, radiusUnit: undefined };
+  }
+  const coords = resolveLocationCoordinates(location);
+  return {
+    ...location,
+    latitude: location.latitude ?? coords?.latitude,
+    longitude: location.longitude ?? coords?.longitude,
+    radiusValue:
+      typeof location.radiusValue === "number" && location.radiusValue >= 1
+        ? location.radiusValue
+        : fallbackValue,
+    radiusUnit: location.radiusUnit === "MILES" ? "MILES" : fallbackUnit,
+  };
+}
+
+export function locationRadiusLabel(location: GoogleAdsLocationRef): string | null {
+  if (location.type === "country") return null;
+  const value = location.radiusValue;
+  if (typeof value !== "number" || value < 1) return null;
+  const unit = location.radiusUnit === "MILES" ? "mi" : "km";
+  return `${value} ${unit}`;
+}
+
 export async function searchGoogleAdsLocations(
   query: string,
+  signal?: AbortSignal,
 ): Promise<GoogleAdsLocationRef[]> {
   const trimmed = query.trim();
   if (trimmed.length < 1) return [];
@@ -447,14 +613,21 @@ export async function searchGoogleAdsLocations(
     return staticHits;
   }
 
+  const timeoutMs = 4000;
+  const timeoutController = new AbortController();
+  const timeoutId = window.setTimeout(() => timeoutController.abort(), timeoutMs);
+  const onParentAbort = () => timeoutController.abort();
+  signal?.addEventListener("abort", onParentAbort);
+
   try {
     const params = new URLSearchParams({
       q: trimmed,
-      limit: "10",
+      limit: "8",
       lang: "en",
     });
     const response = await fetch(
       `https://photon.komoot.io/api/?${params.toString()}`,
+      { signal: timeoutController.signal },
     );
     if (!response.ok) return staticHits;
 
@@ -507,8 +680,14 @@ export async function searchGoogleAdsLocations(
       merged.push(row);
     }
     return merged.slice(0, 16);
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) {
+      throw err instanceof Error ? err : new DOMException("Aborted", "AbortError");
+    }
     return staticHits;
+  } finally {
+    window.clearTimeout(timeoutId);
+    signal?.removeEventListener("abort", onParentAbort);
   }
 }
 

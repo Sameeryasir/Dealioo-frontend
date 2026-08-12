@@ -4,6 +4,7 @@ import type {
   AdCreativeDraft,
   AgeRangeId,
   CampaignGoalId,
+  DestinationTypeId,
   GenderId,
   GoogleAdsLocationRef,
   GoogleCampaignBuilderDraft,
@@ -149,6 +150,9 @@ export async function saveGoogleGoalDetailsStep(
     businessLocationLng?: number | null;
     businessPhone?: string;
     leadContactMethods?: LeadContactMethodId[];
+    destinationType?: DestinationTypeId | null;
+    selectedFunnelId?: number | null;
+    selectedFunnelName?: string;
     landingPageUrl?: string;
     phoneCountryCode?: string;
     whatsAppNumber?: string;

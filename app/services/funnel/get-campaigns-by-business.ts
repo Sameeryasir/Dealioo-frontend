@@ -108,6 +108,10 @@ function coerceCampaign(value: unknown): Funnel | null {
     offer,
     price: typeof price === "number" || typeof price === "string" ? price : undefined,
     campaignType,
+    published:
+      typeof o.published === "boolean"
+        ? o.published
+        : status.trim().toLowerCase() === "published",
     status,
     createdAt,
     updatedAt,
