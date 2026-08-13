@@ -319,15 +319,8 @@ export function MetaPrivacyPolicyContent() {
                 <strong className="font-semibold text-[var(--landing-text)]">
                   Facebook → Settings → Business integrations
                 </strong>
-                . For data deletion requests, contact us at{" "}
-                <a
-                  href="mailto:support@dealioo.com"
-                  className="font-semibold underline underline-offset-2"
-                  style={{ color: BRAND_COLORS.blue }}
-                >
-                  support@dealioo.com
-                </a>
-                .
+                . For data deletion requests, contact us through Dealioo
+                support.
               </p>
             </PrivacyBlock>
           </div>
@@ -360,14 +353,6 @@ export function MetaPrivacyPolicyContent() {
                   >
                     Privacy Policy
                   </Link>
-                </li>
-                <li>
-                  <a
-                    href="mailto:support@dealioo.com"
-                    className="transition hover:text-brand-primary"
-                  >
-                    Contact
-                  </a>
                 </li>
               </ul>
             </div>
