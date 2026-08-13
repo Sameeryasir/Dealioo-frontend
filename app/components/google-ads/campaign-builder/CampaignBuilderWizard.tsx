@@ -280,6 +280,9 @@ export function CampaignBuilderWizard({
           if (cancelled) return;
 
           const remoteStatus = (remote.status ?? "").toUpperCase();
+          const remotePublishStatus = (
+            remote.publishStatus ?? ""
+          ).toUpperCase();
           if (remoteStatus === "PUBLISHED") {
             clearPublishedDraftLocally();
             applyFreshDefaults();
@@ -313,7 +316,23 @@ export function CampaignBuilderWizard({
             remoteUiStep,
           });
 
-          applyWorkingCopy(merged, merged.currentStep);
+          const publishFailed =
+            remoteStatus === "FAILED" || remotePublishStatus === "FAILED";
+          const failureMessage = remote.errorMessage?.trim() || null;
+          if (publishFailed && failureMessage) {
+            setPublishError(failureMessage);
+            setPublishProgress(
+              typeof remote.publishProgress === "number"
+                ? remote.publishProgress
+                : 0,
+            );
+            setPublishStep(remote.publishStep ?? null);
+            setPublishPhase("Publish failed");
+            applyWorkingCopy(merged, TOTAL_WIZARD_STEPS);
+          } else {
+            applyWorkingCopy(merged, merged.currentStep);
+          }
+
           saveGoogleCampaignDraft(businessId, merged);
           savedStepSnapshotsRef.current = seedSavedStepSnapshots(
             merged,
@@ -1004,7 +1023,8 @@ export function CampaignBuilderWizard({
         "Could not publish your campaign. Please try again.",
       );
       setPublishError(message);
-      toast.error(message);
+      setPublishPhase("Publish failed");
+      toast.error("Publish failed. See the reason on Review, then try again.");
     } finally {
       setPublishing(false);
     }
@@ -1021,7 +1041,9 @@ export function CampaignBuilderWizard({
   const primaryLabel = isLastStep
     ? publishSuccess
       ? "Done"
-      : "Publish Campaign"
+      : publishError
+        ? "Try again"
+        : "Publish Campaign"
     : "Next";
   
   const busy = publishing || savingGoal;

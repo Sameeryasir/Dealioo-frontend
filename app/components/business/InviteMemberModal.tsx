@@ -4,9 +4,11 @@ import {
   AlertCircle,
   Briefcase,
   Check,
+  ChevronDown,
   KeyRound,
   Loader2,
   Mail,
+  Megaphone,
   Send,
   Shield,
   Sparkles,
@@ -16,21 +18,272 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { standardEase } from "@/app/lib/motion";
 import {
+  CAMPAIGN_ACTION_OPTIONS,
+  CAMPAIGNS_MODULE_ACCENT,
+  GOOGLE_CAMPAIGN_ACTION_OPTIONS,
+  GOOGLE_CAMPAIGNS_MODULE_ACCENT,
+  META_CAMPAIGN_ACTION_OPTIONS,
+  META_CAMPAIGNS_MODULE_ACCENT,
   getDefaultPermissionsForRole,
-  getPermissionOptionsForRole,
+  getModulePermissionOptionsForRole,
+  getSelectedCampaignActions,
+  getSelectedGoogleCampaignActions,
+  getSelectedMetaCampaignActions,
+  roleSupportsCampaignModule,
+  roleSupportsGoogleCampaignModule,
+  roleSupportsMetaCampaignModule,
+  type PermissionAccent,
 } from "@/app/lib/member-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
+import {
+  GoogleAdsLogo,
+  MetaLogo,
+} from "@/app/components/landing/LandingIntegrationLogos";
 import { inviteBusinessMember } from "@/app/services/member/business-members";
 import {
+  CAMPAIGN_ACTION_PERMISSIONS,
+  GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
+  META_CAMPAIGN_ACTION_PERMISSIONS,
   type BusinessMemberPermission,
   type BusinessMemberRole,
+  type CampaignActionPermission,
+  type GoogleCampaignActionPermission,
+  type MetaCampaignActionPermission,
 } from "@/app/services/member/types";
+
+type PermissionIcon = ComponentType<{
+  className?: string;
+  strokeWidth?: number;
+  monochrome?: boolean;
+}>;
+
+function ModuleActionPicker<T extends string>({
+  options,
+  selected,
+  disabled,
+  onToggle,
+  accent = "blue",
+}: {
+  options: { value: T; label: string }[];
+  selected: T[];
+  disabled?: boolean;
+  onToggle: (action: T) => void;
+  accent?: "blue" | "meta" | "google";
+}) {
+  const tones =
+    accent === "meta"
+      ? {
+          panel: "from-[#f0f7ff] to-[#e7f3ff]/90",
+          checkedBorder: "border-[#0081FB]/40",
+          checkedRing: "ring-[#0081FB]/20",
+          checkedShadow: "shadow-[0_4px_12px_rgba(0,129,251,0.14)]",
+          boxOn:
+            "border-[#0081FB] bg-[#0081FB] shadow-[0_2px_6px_rgba(0,129,251,0.35)]",
+          labelOn: "text-[#0064c8]",
+          hoverBorder: "hover:border-[#b3d7ff]",
+          hoverCheck: "group-hover:border-[#0081FB]",
+        }
+      : accent === "google"
+        ? {
+            panel: "from-[#fffdf5] to-[#fff8e1]/90",
+            checkedBorder: "border-[#FBBC04]/50",
+            checkedRing: "ring-[#FBBC04]/25",
+            checkedShadow: "shadow-[0_4px_12px_rgba(251,188,4,0.18)]",
+            boxOn:
+              "border-[#FBBC04] bg-[#FBBC04] shadow-[0_2px_6px_rgba(251,188,4,0.4)]",
+            labelOn: "text-[#b06000]",
+            hoverBorder: "hover:border-[#fde68a]",
+            hoverCheck: "group-hover:border-[#FBBC04]",
+          }
+        : {
+            panel: "from-[#f8fafc] to-[#eff6ff]/80",
+            checkedBorder: "border-[#2563eb]/35",
+            checkedRing: "ring-[#2563eb]/15",
+            checkedShadow: "shadow-[0_4px_12px_rgba(37,99,235,0.12)]",
+            boxOn:
+              "border-[#2563eb] bg-[#2563eb] shadow-[0_2px_6px_rgba(37,99,235,0.35)]",
+            labelOn: "text-[#1e3a8a]",
+            hoverBorder: "hover:border-[#bfdbfe]",
+            hoverCheck: "group-hover:border-[#93c5fd]",
+          };
+
+  return (
+    <div
+      className={`mt-3 w-full rounded-xl border border-white/80 bg-gradient-to-b ${tones.panel} p-2`}
+    >
+      <div className="grid grid-cols-2 gap-1.5">
+        {options.map((action) => {
+          const checked = selected.includes(action.value);
+
+          return (
+            <button
+              key={action.value}
+              type="button"
+              disabled={disabled}
+              aria-pressed={checked}
+              onClick={() => onToggle(action.value)}
+              className={`group flex min-h-[2.25rem] w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border bg-white px-2 py-1.5 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+                checked
+                  ? `${tones.checkedBorder} ${tones.checkedShadow} ring-1 ${tones.checkedRing}`
+                  : `border-[#e5e7eb] ${tones.hoverBorder} hover:bg-white hover:shadow-sm`
+              }`}
+            >
+              <span
+                className={`flex size-4 shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200 ${
+                  checked
+                    ? `${tones.boxOn} text-white`
+                    : `border-[#d1d5db] bg-[#f9fafb] ${tones.hoverCheck}`
+                }`}
+                aria-hidden
+              >
+                <Check
+                  className={`size-2.5 transition-all duration-200 ${
+                    checked
+                      ? "scale-100 opacity-100"
+                      : "scale-75 opacity-0"
+                  }`}
+                  strokeWidth={3}
+                />
+              </span>
+              <span
+                className={`truncate text-xs font-semibold tracking-tight ${
+                  checked ? tones.labelOn : "text-[#111827]"
+                }`}
+              >
+                {action.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const fieldInputClass =
   "h-11 w-full rounded-xl border border-[#e8edf5] bg-[#f8fafc]/80 pl-11 pr-4 text-base text-[#07111f] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/40 focus:bg-white focus:ring-4 focus:ring-[#1877f2]/10 sm:h-12 sm:rounded-2xl sm:text-sm";
+
+function PermissionToggle({
+  enabled,
+  onColorClass,
+  disabled,
+  label,
+  onClick,
+}: {
+  enabled: boolean;
+  onColorClass: string;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative h-[22px] w-[40px] shrink-0 cursor-pointer rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        enabled ? onColorClass : "bg-[#d1d5db]"
+      }`}
+    >
+      <span
+        className={`absolute top-[2px] size-[18px] rounded-full bg-white shadow-sm transition-[left] ${
+          enabled ? "left-[20px]" : "left-[2px]"
+        }`}
+      />
+    </button>
+  );
+}
+
+function PermissionModuleCard({
+  icon: Icon,
+  accent,
+  label,
+  description,
+  enabled,
+  disabled,
+  expandable,
+  expanded,
+  onToggleExpand,
+  onToggleEnabled,
+  brandIcon = false,
+  children,
+}: {
+  icon: PermissionIcon;
+  accent: PermissionAccent;
+  label: string;
+  description: string;
+  enabled: boolean;
+  disabled?: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  onToggleEnabled: () => void;
+  brandIcon?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col rounded-xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${accent.iconBg} ${accent.iconColor}`}
+        >
+          {brandIcon ? (
+            <Icon className="size-5" aria-hidden />
+          ) : (
+            <Icon className="size-[18px]" strokeWidth={2.25} aria-hidden />
+          )}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[0.9375rem] font-semibold leading-snug text-[#111827]">
+            {label}
+          </p>
+          <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-snug text-[#6b7280]">
+            {description}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <PermissionToggle
+            enabled={enabled}
+            onColorClass={accent.toggleOn}
+            disabled={disabled}
+            label={`Toggle ${label}`}
+            onClick={onToggleEnabled}
+          />
+          {expandable ? (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+              disabled={disabled || !enabled}
+              onClick={onToggleExpand}
+              className="flex size-7 cursor-pointer items-center justify-center rounded-md text-[#9ca3af] outline-none transition hover:bg-[#f3f4f6] hover:text-[#4b5563] focus-visible:ring-2 focus-visible:ring-[#2563eb]/25 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronDown
+                className={`size-4 transition-transform ${
+                  expanded ? "rotate-180" : ""
+                }`}
+                strokeWidth={2.25}
+                aria-hidden
+              />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {expandable && enabled && expanded ? (
+        <div className="w-full">{children}</div>
+      ) : null}
+    </div>
+  );
+}
 
 const ROLE_OPTIONS: {
   value: BusinessMemberRole;
@@ -39,19 +292,22 @@ const ROLE_OPTIONS: {
   icon: typeof Briefcase;
   accent: string;
   ring: string;
+  recommended?: boolean;
 }[] = [
   {
     value: "Manager",
     label: "Manager",
-    description: "Help run campaigns, orders, and daily business operations.",
+    description:
+      "Full access to manage campaigns, orders, customers, and team performance.",
     icon: Briefcase,
     accent: "bg-[#1877f2]",
     ring: "ring-[#1877f2]/25",
+    recommended: true,
   },
   {
     value: "Staff",
     label: "Staff",
-    description: "Support the team with focused access to assigned work.",
+    description: "Limited access to assigned tasks and customer interactions.",
     icon: UserCog,
     accent: "bg-[#6366f1]",
     ring: "ring-indigo-300/40",
@@ -88,6 +344,9 @@ export function InviteMemberForm({
     () => getDefaultPermissionsForRole("Manager"),
   );
   const [error, setError] = useState<string | null>(null);
+  const [campaignsExpanded, setCampaignsExpanded] = useState(true);
+  const [metaCampaignsExpanded, setMetaCampaignsExpanded] = useState(true);
+  const [googleCampaignsExpanded, setGoogleCampaignsExpanded] = useState(true);
 
   const inviteMutation = useMutation({
     mutationFn: () =>
@@ -106,10 +365,29 @@ export function InviteMemberForm({
     },
   });
 
-  const permissionOptions = useMemo(
-    () => getPermissionOptionsForRole(role),
+  const modulePermissionOptions = useMemo(
+    () => getModulePermissionOptionsForRole(role),
     [role],
   );
+  const showCampaignModule = roleSupportsCampaignModule(role);
+  const showMetaCampaignModule = roleSupportsMetaCampaignModule(role);
+  const showGoogleCampaignModule = roleSupportsGoogleCampaignModule(role);
+  const selectedCampaignActions = useMemo(
+    () => getSelectedCampaignActions(permissions),
+    [permissions],
+  );
+  const selectedMetaCampaignActions = useMemo(
+    () => getSelectedMetaCampaignActions(permissions),
+    [permissions],
+  );
+  const selectedGoogleCampaignActions = useMemo(
+    () => getSelectedGoogleCampaignActions(permissions),
+    [permissions],
+  );
+  const campaignsModuleEnabled = selectedCampaignActions.length > 0;
+  const metaCampaignsModuleEnabled = selectedMetaCampaignActions.length > 0;
+  const googleCampaignsModuleEnabled =
+    selectedGoogleCampaignActions.length > 0;
 
   const canSubmit =
     email.trim().length > 0 &&
@@ -119,35 +397,179 @@ export function InviteMemberForm({
   const handleRoleChange = (nextRole: BusinessMemberRole) => {
     setRole(nextRole);
     setPermissions(getDefaultPermissionsForRole(nextRole));
+    setCampaignsExpanded(true);
+    setMetaCampaignsExpanded(true);
+    setGoogleCampaignsExpanded(true);
   };
+
+  const stripLegacyCampaignFlags = (
+    list: BusinessMemberPermission[],
+  ): BusinessMemberPermission[] =>
+    list.filter(
+      (item) =>
+        item !== "campaigns" &&
+        item !== "meta_ads" &&
+        item !== "meta_campaigns",
+    );
 
   const togglePermission = (permission: BusinessMemberPermission) => {
     setPermissions((current) => {
       const isOn = current.includes(permission);
-
-      if (isOn && permission === "meta_ads") {
-        return current.filter(
-          (item) => item !== "meta_ads" && item !== "meta_campaigns",
-        );
-      }
-
       if (isOn) {
         return current.filter((item) => item !== permission);
       }
-
-      if (permission === "meta_campaigns") {
-        const next = new Set<BusinessMemberPermission>(current);
-        next.add("meta_ads");
-        next.add("meta_campaigns");
-        return [...next];
-      }
-
       return [...current, permission];
     });
   };
 
+  const setCampaignModuleEnabled = (enabled: boolean) => {
+    setPermissions((current) => {
+      const withoutCampaignKeys = stripLegacyCampaignFlags(current).filter(
+        (item) =>
+          !(CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(item),
+      );
+
+      if (!enabled) {
+        return withoutCampaignKeys;
+      }
+
+      return [...withoutCampaignKeys, ...CAMPAIGN_ACTION_PERMISSIONS];
+    });
+    if (enabled) {
+      setCampaignsExpanded(true);
+    }
+  };
+
+  const setMetaCampaignModuleEnabled = (enabled: boolean) => {
+    setPermissions((current) => {
+      const withoutMetaKeys = stripLegacyCampaignFlags(current).filter(
+        (item) =>
+          !(META_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
+            item,
+          ),
+      );
+
+      if (!enabled) {
+        return withoutMetaKeys;
+      }
+
+      return [...withoutMetaKeys, ...META_CAMPAIGN_ACTION_PERMISSIONS];
+    });
+    if (enabled) {
+      setMetaCampaignsExpanded(true);
+    }
+  };
+
+  const toggleCampaignAction = (action: CampaignActionPermission) => {
+    setPermissions((current) => {
+      const base = stripLegacyCampaignFlags(current);
+      const selected = new Set(getSelectedCampaignActions(base));
+
+      if (selected.has(action)) {
+        selected.delete(action);
+      } else {
+        selected.add(action);
+      }
+
+      const withoutCampaignKeys = base.filter(
+        (item) =>
+          !(CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(item),
+      );
+
+      return [
+        ...withoutCampaignKeys,
+        ...CAMPAIGN_ACTION_PERMISSIONS.filter((key) => selected.has(key)),
+      ];
+    });
+  };
+
+  const toggleMetaCampaignAction = (action: MetaCampaignActionPermission) => {
+    setPermissions((current) => {
+      const base = stripLegacyCampaignFlags(current);
+      const selected = new Set(getSelectedMetaCampaignActions(base));
+
+      if (selected.has(action)) {
+        selected.delete(action);
+      } else {
+        selected.add(action);
+      }
+
+      const withoutMetaKeys = base.filter(
+        (item) =>
+          !(META_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
+            item,
+          ),
+      );
+
+      return [
+        ...withoutMetaKeys,
+        ...META_CAMPAIGN_ACTION_PERMISSIONS.filter((key) => selected.has(key)),
+      ];
+    });
+  };
+
+  const setGoogleCampaignModuleEnabled = (enabled: boolean) => {
+    setPermissions((current) => {
+      const withoutGoogleKeys = stripLegacyCampaignFlags(current).filter(
+        (item) =>
+          !(GOOGLE_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
+            item,
+          ),
+      );
+
+      if (!enabled) {
+        return withoutGoogleKeys;
+      }
+
+      return [...withoutGoogleKeys, ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS];
+    });
+    if (enabled) {
+      setGoogleCampaignsExpanded(true);
+    }
+  };
+
+  const toggleGoogleCampaignAction = (
+    action: GoogleCampaignActionPermission,
+  ) => {
+    setPermissions((current) => {
+      const base = stripLegacyCampaignFlags(current);
+      const selected = new Set(getSelectedGoogleCampaignActions(base));
+
+      if (selected.has(action)) {
+        selected.delete(action);
+      } else {
+        selected.add(action);
+      }
+
+      const withoutGoogleKeys = base.filter(
+        (item) =>
+          !(GOOGLE_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
+            item,
+          ),
+      );
+
+      return [
+        ...withoutGoogleKeys,
+        ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS.filter((key) =>
+          selected.has(key),
+        ),
+      ];
+    });
+  };
+
   const selectAllPermissions = () => {
-    setPermissions(permissionOptions.map((option) => option.value));
+    const moduleValues = modulePermissionOptions.map((option) => option.value);
+    const next: BusinessMemberPermission[] = [...moduleValues];
+    if (showCampaignModule) {
+      next.push(...CAMPAIGN_ACTION_PERMISSIONS);
+    }
+    if (showMetaCampaignModule) {
+      next.push(...META_CAMPAIGN_ACTION_PERMISSIONS);
+    }
+    if (showGoogleCampaignModule) {
+      next.push(...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS);
+    }
+    setPermissions(next);
   };
 
   const clearAllPermissions = () => {
@@ -284,6 +706,11 @@ export function InviteMemberForm({
                   </div>
                   <p className="mt-2.5 text-sm font-bold text-[#07111f] sm:mt-3">
                     {option.label}
+                    {option.recommended ? (
+                      <span className="ml-2 inline-flex rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#1877f2]">
+                        Recommended
+                      </span>
+                    ) : null}
                   </p>
                   <p className="mt-1 text-[0.7rem] leading-relaxed text-slate-500 sm:text-xs">
                     {option.description}
@@ -295,9 +722,9 @@ export function InviteMemberForm({
         </div>
 
         <div>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-slate-700">
-              <KeyRound className="size-3.5 text-[#1877f2]" aria-hidden />
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+            <span className="flex items-center gap-2 text-base font-semibold text-[#111827]">
+              <KeyRound className="size-4 text-[#2563eb]" aria-hidden />
               Access permissions
             </span>
             <div className="flex items-center gap-2">
@@ -305,76 +732,126 @@ export function InviteMemberForm({
                 type="button"
                 onClick={selectAllPermissions}
                 disabled={inviteMutation.isPending}
-                className="cursor-pointer text-[0.72rem] font-semibold text-[#1877f2] transition hover:text-[#0d5bb8] disabled:cursor-not-allowed disabled:opacity-60"
+                className="cursor-pointer text-sm font-medium text-[#2563eb] transition hover:text-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Allow all
               </button>
-              <span className="text-slate-300" aria-hidden>
+              <span className="text-[#d1d5db]" aria-hidden>
                 |
               </span>
               <button
                 type="button"
                 onClick={clearAllPermissions}
                 disabled={inviteMutation.isPending}
-                className="cursor-pointer text-[0.72rem] font-semibold text-slate-500 transition hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="cursor-pointer text-sm font-medium text-[#6b7280] transition hover:text-[#374151] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Deny all
               </button>
             </div>
           </div>
 
-          <p className="mb-3 text-xs leading-relaxed text-slate-500">
-            Choose what this person can open in your business dashboard. Role
-            presets are applied automatically, but you control the final access.
+          <p className="mb-3 text-sm leading-relaxed text-[#6b7280]">
+            Choose exactly what this person can access. You can change these
+            anytime.
           </p>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5">
-            {permissionOptions.map((option) => {
-              const enabled = permissions.includes(option.value);
-              const Icon = option.icon;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => togglePermission(option.value)}
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+            {showCampaignModule ? (
+              <PermissionModuleCard
+                icon={Megaphone}
+                accent={CAMPAIGNS_MODULE_ACCENT}
+                label="Campaigns"
+                description="View and manage marketing campaigns."
+                enabled={campaignsModuleEnabled}
+                disabled={inviteMutation.isPending}
+                expandable
+                expanded={campaignsExpanded}
+                onToggleExpand={() =>
+                  setCampaignsExpanded((current) => !current)
+                }
+                onToggleEnabled={() =>
+                  setCampaignModuleEnabled(!campaignsModuleEnabled)
+                }
+              >
+                <ModuleActionPicker
+                  options={CAMPAIGN_ACTION_OPTIONS}
+                  selected={selectedCampaignActions}
                   disabled={inviteMutation.isPending}
-                  aria-pressed={enabled}
-                  className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 text-left transition sm:gap-3 sm:rounded-2xl sm:p-3.5 ${
-                    enabled
-                      ? "border-[#1877f2] bg-[#f4f8ff] ring-1 ring-[#1877f2]/20"
-                      : "border-[#e8edf5] bg-white hover:border-[#dbeafe] hover:bg-[#f8fbff]"
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-9 sm:rounded-xl ${
-                      enabled
-                        ? "bg-[#1877f2] text-white"
-                        : "bg-[#f1f5f9] text-slate-500"
-                    }`}
-                  >
-                    <Icon className="size-3.5 sm:size-4" strokeWidth={2.25} aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[0.8125rem] font-bold text-[#07111f] sm:text-sm">
-                        {option.label}
-                      </span>
-                      <span
-                        className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                          enabled
-                            ? "border-[#1877f2] bg-[#1877f2] text-white"
-                            : "border-slate-300 bg-white text-transparent"
-                        }`}
-                      >
-                        <Check className="size-3" strokeWidth={3} aria-hidden />
-                      </span>
-                    </span>
-                    <span className="mt-1 block text-[0.7rem] leading-relaxed text-slate-500 sm:text-xs">
-                      {option.description}
-                    </span>
-                  </span>
-                </button>
+                  onToggle={toggleCampaignAction}
+                  accent="blue"
+                />
+              </PermissionModuleCard>
+            ) : null}
+
+            {showMetaCampaignModule ? (
+              <PermissionModuleCard
+                icon={MetaLogo}
+                brandIcon
+                accent={META_CAMPAIGNS_MODULE_ACCENT}
+                label="Meta Campaigns"
+                description="View and manage Meta Ads campaigns."
+                enabled={metaCampaignsModuleEnabled}
+                disabled={inviteMutation.isPending}
+                expandable
+                expanded={metaCampaignsExpanded}
+                onToggleExpand={() =>
+                  setMetaCampaignsExpanded((current) => !current)
+                }
+                onToggleEnabled={() =>
+                  setMetaCampaignModuleEnabled(!metaCampaignsModuleEnabled)
+                }
+              >
+                <ModuleActionPicker
+                  options={META_CAMPAIGN_ACTION_OPTIONS}
+                  selected={selectedMetaCampaignActions}
+                  disabled={inviteMutation.isPending}
+                  onToggle={toggleMetaCampaignAction}
+                  accent="meta"
+                />
+              </PermissionModuleCard>
+            ) : null}
+
+            {showGoogleCampaignModule ? (
+              <PermissionModuleCard
+                icon={GoogleAdsLogo}
+                brandIcon
+                accent={GOOGLE_CAMPAIGNS_MODULE_ACCENT}
+                label="Google Campaigns"
+                description="View and manage Google Ads campaigns."
+                enabled={googleCampaignsModuleEnabled}
+                disabled={inviteMutation.isPending}
+                expandable
+                expanded={googleCampaignsExpanded}
+                onToggleExpand={() =>
+                  setGoogleCampaignsExpanded((current) => !current)
+                }
+                onToggleEnabled={() =>
+                  setGoogleCampaignModuleEnabled(!googleCampaignsModuleEnabled)
+                }
+              >
+                <ModuleActionPicker
+                  options={GOOGLE_CAMPAIGN_ACTION_OPTIONS}
+                  selected={selectedGoogleCampaignActions}
+                  disabled={inviteMutation.isPending}
+                  onToggle={toggleGoogleCampaignAction}
+                  accent="google"
+                />
+              </PermissionModuleCard>
+            ) : null}
+
+            {modulePermissionOptions.map((option) => {
+              const enabled = permissions.includes(option.value);
+              return (
+                <PermissionModuleCard
+                  key={option.value}
+                  icon={option.icon}
+                  accent={option.accent}
+                  label={option.label}
+                  description={option.description}
+                  enabled={enabled}
+                  disabled={inviteMutation.isPending}
+                  onToggleEnabled={() => togglePermission(option.value)}
+                />
               );
             })}
           </div>

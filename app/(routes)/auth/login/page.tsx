@@ -5,6 +5,7 @@ import LoginForm from "@/app/components/LoginForm";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
+import { resolveInviteAuthHrefs } from "@/app/lib/invite-auth-links";
 import {
   fetchAuthenticatedOnboardingDestination,
 } from "@/app/lib/onboarding-redirect";
@@ -17,13 +18,6 @@ import { validateOtp } from "@/app/services/auth/validate-otp";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-function buildAuthHref(base: string, returnTo: string | null) {
-  if (returnTo != null && returnTo.trim() !== "") {
-    return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
-  }
-  return base;
-}
-
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,8 +28,15 @@ function LoginPageInner() {
 
   const returnTo = searchParams.get("returnTo");
   const oauthError = searchParams.get("error");
-  const loginHref = useMemo(() => buildAuthHref("/auth/login", returnTo), [returnTo]);
-  const signupHref = useMemo(() => buildAuthHref("/auth/signup", returnTo), [returnTo]);
+  const inviteTokenParam = searchParams.get("inviteToken");
+  const { loginHref, signupHref } = useMemo(
+    () =>
+      resolveInviteAuthHrefs({
+        inviteToken: inviteTokenParam,
+        returnTo,
+      }),
+    [inviteTokenParam, returnTo],
+  );
 
   useEffect(() => {
     if (oauthError?.trim()) {

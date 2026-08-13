@@ -294,7 +294,6 @@ export default function SignupForm({
         setAccountCreated(true);
         if (result?.skipOtp) {
           clearSignupProgress();
-          // Invited users create the account, then sign in on the login page.
           if (result.redirectToLogin) {
             router.push("/auth/login");
             return;

@@ -2,10 +2,41 @@ export const BUSINESS_MEMBER_ROLES = ["Manager", "Staff"] as const;
 
 export type BusinessMemberRole = (typeof BUSINESS_MEMBER_ROLES)[number];
 
+export const CAMPAIGN_ACTION_PERMISSIONS = [
+  "campaigns_view",
+  "campaigns_create",
+  "campaigns_edit",
+  "campaigns_delete",
+] as const;
+
+export type CampaignActionPermission =
+  (typeof CAMPAIGN_ACTION_PERMISSIONS)[number];
+
+export const META_CAMPAIGN_ACTION_PERMISSIONS = [
+  "meta_campaigns_view",
+  "meta_campaigns_create",
+  "meta_campaigns_delete",
+] as const;
+
+export type MetaCampaignActionPermission =
+  (typeof META_CAMPAIGN_ACTION_PERMISSIONS)[number];
+
+export const GOOGLE_CAMPAIGN_ACTION_PERMISSIONS = [
+  "google_campaigns_view",
+  "google_campaigns_create",
+  "google_campaigns_delete",
+] as const;
+
+export type GoogleCampaignActionPermission =
+  (typeof GOOGLE_CAMPAIGN_ACTION_PERMISSIONS)[number];
+
 export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
+  ...CAMPAIGN_ACTION_PERMISSIONS,
   "meta_ads",
   "meta_campaigns",
+  ...META_CAMPAIGN_ACTION_PERMISSIONS,
+  ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
   "orders",
   "activity",
   "chats",

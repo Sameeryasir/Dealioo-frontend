@@ -19,6 +19,7 @@ import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
   CampaignFunnelCardSkeleton,
 } from "@/app/components/skeleton";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
@@ -117,11 +118,13 @@ function CampaignsFilterEmptyState({
   onCreate,
   onClearFilters,
   showClearFilters,
+  canCreate,
 }: {
   message: string;
   onCreate: () => void;
   onClearFilters?: () => void;
   showClearFilters?: boolean;
+  canCreate: boolean;
 }) {
   return (
     <div className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-[#dbeafe] bg-[#f8fbff] px-6 py-12 text-center">
@@ -138,7 +141,9 @@ function CampaignsFilterEmptyState({
         {message}
       </p>
       <p className="m-0 mt-2 max-w-md text-[0.8rem] font-medium leading-relaxed text-slate-500">
-        Try another filter, adjust your search, or create a new campaign.
+        {canCreate
+          ? "Try another filter, adjust your search, or create a new campaign."
+          : "Try another filter or adjust your search. You can view campaigns, but creating new ones needs create permission."}
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         {showClearFilters && onClearFilters ? (
@@ -153,7 +158,13 @@ function CampaignsFilterEmptyState({
         <button
           type="button"
           onClick={onCreate}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
+          disabled={!canCreate}
+          title={
+            canCreate
+              ? undefined
+              : "You need create permission to add a campaign"
+          }
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300"
         >
           Add campaign
           <ArrowUpRight className="size-3.5" strokeWidth={2.5} aria-hidden />
@@ -197,6 +208,8 @@ export function BusinessCampaignsPanel({
   });
 
   const { data: business } = useBusinessByIdQuery(businessId);
+  const { can } = useBusinessMembershipPermissions(businessId);
+  const canCreateCampaign = can("campaigns_create");
 
   const loading = isLoading || (isFetching && campaigns.length === 0);
 
@@ -243,6 +256,7 @@ export function BusinessCampaignsPanel({
   const emptyFilterMessage = getEmptyFilterMessage(statusFilter, searchQuery);
 
   function openCreateFlow() {
+    if (!canCreateCampaign) return;
     setCreateOpen(true);
     setShowCreateFlow(true);
     setSubmitError(null);
@@ -313,7 +327,13 @@ export function BusinessCampaignsPanel({
           <button
             type="button"
             onClick={openCreateFlow}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2 text-[0.75rem] font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5]"
+            disabled={!canCreateCampaign}
+            title={
+              canCreateCampaign
+                ? undefined
+                : "You need create permission to add a campaign"
+            }
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2 text-[0.75rem] font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300"
           >
             <Plus className="size-3.5" strokeWidth={2.5} aria-hidden />
             Add campaign
@@ -550,6 +570,7 @@ export function BusinessCampaignsPanel({
                 onCreate={openCreateFlow}
                 onClearFilters={clearFilters}
                 showClearFilters={hasActiveFilters}
+                canCreate={canCreateCampaign}
               />
             ) : null}
           </div>

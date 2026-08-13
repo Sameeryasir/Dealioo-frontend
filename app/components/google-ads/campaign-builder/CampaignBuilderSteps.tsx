@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  AlertCircle,
   Ban,
   BarChart3,
   Building2,
@@ -2845,7 +2846,7 @@ export function StepReviewPublish({
   publishProgress,
   publishPhase,
   publishStep,
-  publishError: _publishError,
+  publishError,
   publishSuccess,
   onChange,
 }: {
@@ -2901,21 +2902,77 @@ export function StepReviewPublish({
   );
   const activeStepIndex = resolveGooglePublishStepIndex(publishStep);
   const showProgress = publishing || publishSuccess || clampedProgress > 0;
+  const hasPublishFailure =
+    Boolean(publishError?.trim()) && !publishing && !publishSuccess;
   const publishStateLabel = publishSuccess
     ? "Published"
     : publishing
       ? "Publishing"
-      : "Ready to publish";
+      : hasPublishFailure
+        ? "Publish failed"
+        : "Ready to publish";
 
   return (
     <StepShell
       step={9}
       total={TOTAL_WIZARD_STEPS}
-      title="Ready to launch?"
-      description="Review your campaign summary, then publish. Dealioo handles the Google Ads setup for you."
+      title={hasPublishFailure ? "Publish did not finish" : "Ready to launch?"}
+      description={
+        hasPublishFailure
+          ? "Read why Google rejected this publish, fix the draft using Edit on any row below, then try again."
+          : "Review your campaign summary, then publish. Dealioo handles the Google Ads setup for you."
+      }
     >
       <div className="space-y-5 pb-2">
-        {/* Soft summary — not a loud billboard */}
+        {hasPublishFailure ? (
+          <section
+            className="rounded-2xl border border-red-200 bg-red-50/90 p-5 shadow-sm"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <AlertCircle className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-extrabold text-red-950">
+                  Why this campaign failed
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-red-900">
+                  {publishError}
+                </p>
+                <p className="mt-3 text-xs leading-relaxed text-red-800/90">
+                  Check the matching step in your draft (name, destination URL,
+                  ad copy, locations, etc.), make the fix, then click{" "}
+                  <span className="font-semibold">Try again</span> below.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onEditStep(2)}
+                    className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-950 transition hover:bg-red-50"
+                  >
+                    Edit setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEditStep(7)}
+                    className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-950 transition hover:bg-red-50"
+                  >
+                    Edit ad copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEditStep(4)}
+                    className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-950 transition hover:bg-red-50"
+                  >
+                    Edit locations
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.04)] sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">

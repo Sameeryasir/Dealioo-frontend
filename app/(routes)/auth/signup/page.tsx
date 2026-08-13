@@ -6,6 +6,7 @@ import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoad
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { setAuthTokens } from "@/app/lib/auth-session";
+import { resolveInviteAuthHrefs } from "@/app/lib/invite-auth-links";
 import {
   trackProductCompleteRegistration,
   trackProductLead,
@@ -18,17 +19,11 @@ import {
   registerWithInvitation,
   validateBusinessInvitation,
 } from "@/app/services/invitation/business-invitations";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
-function buildAuthHref(base: string, returnTo: string | null) {
-  if (returnTo != null && returnTo.trim() !== "") {
-    return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
-  }
-  return base;
-}
-
 function SignupPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { email, setCredentials } = useCredentialContext();
   const [submitting, setSubmitting] = useState(false);
@@ -43,19 +38,21 @@ function SignupPageInner() {
 
   const returnTo = searchParams.get("returnTo");
   const oauthError = searchParams.get("error");
-  const inviteToken = searchParams.get("inviteToken")?.trim() || "";
-  const loginHref = useMemo(() => {
-    if (inviteToken) {
-      return `/auth/login?returnTo=${encodeURIComponent(`/accept-invitation?token=${inviteToken}`)}`;
-    }
-    return buildAuthHref("/auth/login", returnTo);
-  }, [inviteToken, returnTo]);
-  const signupHref = useMemo(() => {
-    if (inviteToken) {
-      return `/auth/signup?inviteToken=${encodeURIComponent(inviteToken)}`;
-    }
-    return buildAuthHref("/auth/signup", returnTo);
-  }, [inviteToken, returnTo]);
+  const inviteTokenParam = searchParams.get("inviteToken");
+  const { inviteToken, loginHref, signupHref } = useMemo(
+    () =>
+      resolveInviteAuthHrefs({
+        inviteToken: inviteTokenParam,
+        returnTo,
+      }),
+    [inviteTokenParam, returnTo],
+  );
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    if (inviteTokenParam?.trim() === inviteToken) return;
+    router.replace(signupHref);
+  }, [inviteToken, inviteTokenParam, router, signupHref]);
 
   useEffect(() => {
     if (oauthError?.trim()) {
@@ -131,7 +128,6 @@ function SignupPageInner() {
             phone: values.phone,
           });
           setCredentials(values.email, values.password);
-          // Lead only after backend accepted a real invite signup action.
           if (inviteResult.isNewCustomer) {
             trackProductLead("signup_form_invite", {
               email: values.email,
@@ -149,7 +145,6 @@ function SignupPageInner() {
 
         const registerResult = await registerUser(values);
         setCredentials(values.email, values.password);
-        // Lead only when backend created a new account (not an existing user).
         if (registerResult.isNewCustomer) {
           trackProductLead("signup_form", {
             email: values.email,
@@ -181,7 +176,6 @@ function SignupPageInner() {
           email,
           otp,
         );
-        // CompleteRegistration only when backend says this is a new customer.
         trackProductCompleteRegistration({
           email: user.email || email,
           phone: user.phone || undefined,

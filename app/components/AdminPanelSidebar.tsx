@@ -55,7 +55,7 @@ type NavItem = {
   icon: NavIcon;
   brandIcon?: boolean;
   activeMatch: "exact" | "prefix";
-  permission?: BusinessMemberPermission | "owner";
+  permission?: BusinessMemberPermission | "owner" | "google_ads";
   adminOnly?: boolean;
 };
 
@@ -204,7 +204,7 @@ export default function AdminPanelSidebar() {
           icon: GoogleAdsLogo,
           brandIcon: true,
           activeMatch: "prefix",
-          permission: "campaigns",
+          permission: "google_ads",
         },
         {
           href: businessId
@@ -248,7 +248,10 @@ export default function AdminPanelSidebar() {
         if (!item.permission) return true;
         if (item.permission === "owner") return isOwnerLike;
         if (item.permission === "meta_ads") {
-          return can("meta_ads") || can("meta_campaigns");
+          return can("meta_ads");
+        }
+        if (item.permission === "google_ads") {
+          return can("google_ads");
         }
         return can(item.permission);
       });

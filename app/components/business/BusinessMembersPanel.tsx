@@ -2,16 +2,27 @@
 
 import {
   AlertCircle,
+  BarChart3,
+  Briefcase,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
   Eye,
   KeyRound,
   Loader2,
+  Megaphone,
+  MessageSquare,
   Plus,
+  ScanLine,
   Shield,
+  ShieldCheck,
+  ShoppingBag,
   Trash2,
   UserPlus,
   UserRound,
   Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,7 +70,6 @@ function memberInitials(member: BusinessMemberListItem): string {
 }
 
 function memberStatusBadge(status: BusinessMemberListItem["status"]) {
-  // Status column uses orange — keep badges in that family (not green like Access).
   if (status === "owner") {
     return "bg-[#fff4ed] text-[#c2410c] ring-[#fdba74]";
   }
@@ -92,8 +102,44 @@ function MemberAccessPills({
     return <span className="text-xs text-slate-400">No access set</span>;
   }
 
-  const visible = member.permissions.slice(0, 3);
-  const hiddenCount = member.permissions.length - visible.length;
+  const displayPermissions: string[] = [];
+  let hasCampaignChip = false;
+  let hasMetaChip = false;
+  let hasGoogleChip = false;
+  for (const permission of member.permissions) {
+    if (
+      permission === "campaigns" ||
+      permission.startsWith("campaigns_")
+    ) {
+      if (!hasCampaignChip) {
+        displayPermissions.push("campaigns");
+        hasCampaignChip = true;
+      }
+      continue;
+    }
+    if (
+      permission === "meta_ads" ||
+      permission === "meta_campaigns" ||
+      permission.startsWith("meta_campaigns_")
+    ) {
+      if (!hasMetaChip) {
+        displayPermissions.push("meta_campaigns");
+        hasMetaChip = true;
+      }
+      continue;
+    }
+    if (permission.startsWith("google_campaigns_")) {
+      if (!hasGoogleChip) {
+        displayPermissions.push("google_campaigns");
+        hasGoogleChip = true;
+      }
+      continue;
+    }
+    displayPermissions.push(permission);
+  }
+
+  const visible = displayPermissions.slice(0, 3);
+  const hiddenCount = displayPermissions.length - visible.length;
 
   return (
     <div className="flex max-w-[16rem] flex-wrap gap-1.5">
@@ -102,7 +148,13 @@ function MemberAccessPills({
           key={permission}
           className="inline-flex rounded-full bg-[#f4f8ff] px-2 py-0.5 text-[0.68rem] font-semibold text-[#1877f2] ring-1 ring-[#bfdbfe]"
         >
-          {getPermissionLabel(permission)}
+          {permission === "campaigns"
+            ? "Campaigns"
+            : permission === "meta_campaigns"
+              ? "Meta Campaigns"
+              : permission === "google_campaigns"
+                ? "Google Campaigns"
+                : getPermissionLabel(permission)}
         </span>
       ))}
       {hiddenCount > 0 ? (
@@ -141,6 +193,146 @@ function formatMemberDate(value?: string) {
   });
 }
 
+type MemberPermissionVisual = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+};
+
+function getMemberPermissionVisuals(
+  member: BusinessMemberListItem,
+): MemberPermissionVisual[] {
+  if (member.status === "owner") {
+    return [
+      {
+        key: "full_access",
+        label: "Full access",
+        icon: CheckCircle2,
+        iconBg: "bg-[#ecfdf5]",
+        iconColor: "text-emerald-600",
+      },
+    ];
+  }
+
+  const items: MemberPermissionVisual[] = [];
+  const campaignActionLabels: string[] = [];
+
+  for (const permission of member.permissions) {
+    if (permission === "campaigns" || permission.startsWith("campaigns_")) {
+      if (permission === "campaigns") {
+        campaignActionLabels.push("Full");
+      } else if (permission === "campaigns_view") {
+        campaignActionLabels.push("View");
+      } else if (permission === "campaigns_create") {
+        campaignActionLabels.push("Create");
+      } else if (permission === "campaigns_edit") {
+        campaignActionLabels.push("Edit");
+      } else if (permission === "campaigns_delete") {
+        campaignActionLabels.push("Delete");
+      }
+      continue;
+    }
+
+    if (
+      permission === "meta_ads" ||
+      permission === "meta_campaigns" ||
+      permission.startsWith("meta_campaigns_")
+    ) {
+      const isView =
+        permission === "meta_ads" || permission === "meta_campaigns_view";
+      const isCreate =
+        permission === "meta_campaigns" ||
+        permission === "meta_campaigns_create";
+      const isDelete = permission === "meta_campaigns_delete";
+      items.push({
+        key: permission,
+        label: getPermissionLabel(permission),
+        icon: isView ? Eye : isCreate ? Plus : isDelete ? Trash2 : Megaphone,
+        iconBg: "bg-[#f3e8ff]",
+        iconColor: "text-[#9333ea]",
+      });
+      continue;
+    }
+
+    if (permission.startsWith("google_campaigns_")) {
+      const isView = permission === "google_campaigns_view";
+      const isCreate = permission === "google_campaigns_create";
+      const isDelete = permission === "google_campaigns_delete";
+      items.push({
+        key: permission,
+        label: getPermissionLabel(permission),
+        icon: isView ? Eye : isCreate ? Plus : isDelete ? Trash2 : Megaphone,
+        iconBg: "bg-[#e8f2ff]",
+        iconColor: "text-[#2563eb]",
+      });
+      continue;
+    }
+
+    if (permission === "orders") {
+      items.push({
+        key: permission,
+        label: "Orders",
+        icon: ShoppingBag,
+        iconBg: "bg-[#ffedd5]",
+        iconColor: "text-[#ea580c]",
+      });
+      continue;
+    }
+    if (permission === "activity") {
+      items.push({
+        key: permission,
+        label: "Activity",
+        icon: BarChart3,
+        iconBg: "bg-[#dcfce7]",
+        iconColor: "text-[#16a34a]",
+      });
+      continue;
+    }
+    if (permission === "chats") {
+      items.push({
+        key: permission,
+        label: "Chats",
+        icon: MessageSquare,
+        iconBg: "bg-[#ccfbf1]",
+        iconColor: "text-[#0d9488]",
+      });
+      continue;
+    }
+    if (permission === "scanning") {
+      items.push({
+        key: permission,
+        label: "Scanning",
+        icon: ScanLine,
+        iconBg: "bg-[#ffe4e6]",
+        iconColor: "text-[#e11d48]",
+      });
+      continue;
+    }
+
+    items.push({
+      key: permission,
+      label: getPermissionLabel(permission),
+      icon: Shield,
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500",
+    });
+  }
+
+  if (campaignActionLabels.length > 0) {
+    items.push({
+      key: "campaigns_grouped",
+      label: campaignActionLabels.join(" · "),
+      icon: Megaphone,
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-500",
+    });
+  }
+
+  return items;
+}
+
 function MemberDetailsModal({
   member,
   open,
@@ -168,10 +360,12 @@ function MemberDetailsModal({
   const initials = memberInitials(member);
   const canRemove =
     member.status !== "owner" && member.id != null && member.id > 0;
-  const permissionLabels =
-    member.permissions.length > 0
-      ? member.permissions.map((permission) => getPermissionLabel(permission))
-      : [];
+  const permissionVisuals = getMemberPermissionVisuals(member);
+  const permissionCount =
+    member.status === "owner"
+      ? permissionVisuals.length
+      : member.permissions.length;
+  const showDates = Boolean(member.invitedAt || member.expiresAt);
 
   return (
     <AnimatePresence>
@@ -193,18 +387,18 @@ function MemberDetailsModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.2, ease: standardEase }}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_20px_48px_rgba(15,23,42,0.22)]"
+            className="relative flex max-h-[min(92vh,44rem)] w-full max-w-[40rem] flex-col overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_20px_48px_rgba(15,23,42,0.22)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-[#eef2f8] px-5 py-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+            <div className="flex shrink-0 items-start justify-between gap-3 px-6 pt-6 pb-4">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-base font-bold leading-none text-[#1877f2]">
                   {initials}
                 </span>
                 <div className="min-w-0">
                   <p
                     id="member-details-title"
-                    className="truncate text-base font-bold text-[#07111f]"
+                    className="truncate text-lg font-bold tracking-tight text-[#07111f]"
                   >
                     {member.name}
                   </p>
@@ -216,64 +410,167 @@ function MemberDetailsModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="inline-flex size-9 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close member details"
               >
                 <X className="size-4" strokeWidth={2.25} aria-hidden />
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-4">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <p className="text-slate-600">
-                  <span className="text-slate-400">Role</span>{" "}
-                  <span className="font-semibold text-[#07111f]">
-                    {member.role}
-                  </span>
-                </p>
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${memberStatusBadge(member.status)}`}
-                >
-                  {memberStatusLabel(member.status)}
-                </span>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <p className="text-[0.7rem] font-medium text-slate-400">
+                    Role
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#2563eb]">
+                      <Briefcase className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    </span>
+                    <span className="truncate text-sm font-bold text-[#07111f]">
+                      {member.role}
+                    </span>
+                  </div>
+                </div>
+                <div className="min-w-0 border-l border-[#e8edf5] pl-3">
+                  <p className="text-[0.7rem] font-medium text-slate-400">
+                    Status
+                  </p>
+                  <div className="mt-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${memberStatusBadge(member.status)}`}
+                    >
+                      {member.status === "pending" ? (
+                        <Clock3
+                          className="size-3"
+                          strokeWidth={2.5}
+                          aria-hidden
+                        />
+                      ) : member.status === "owner" ? (
+                        <Shield
+                          className="size-3"
+                          strokeWidth={2.5}
+                          aria-hidden
+                        />
+                      ) : (
+                        <CheckCircle2
+                          className="size-3"
+                          strokeWidth={2.5}
+                          aria-hidden
+                        />
+                      )}
+                      {memberStatusLabel(member.status)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {(member.invitedAt || member.expiresAt) && (
-                <div className="space-y-1 text-sm text-slate-600">
+              {showDates ? (
+                <div className="grid grid-cols-2 gap-2.5">
                   {member.invitedAt ? (
-                    <p>
-                      <span className="text-slate-400">Invited</span>{" "}
-                      {formatMemberDate(member.invitedAt)}
-                    </p>
-                  ) : null}
+                    <div className="rounded-xl border border-[#dbeafe] bg-[#eff6ff] px-3 py-2.5">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#dbeafe] text-[#2563eb]">
+                          <CalendarDays
+                            className="size-3.5"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[0.68rem] font-medium text-slate-400">
+                            Invited
+                          </p>
+                          <p className="mt-0.5 text-[0.78rem] font-semibold leading-snug text-[#07111f]">
+                            {formatMemberDate(member.invitedAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
                   {member.expiresAt ? (
-                    <p>
-                      <span className="text-slate-400">Expires</span>{" "}
-                      {formatMemberDate(member.expiresAt)}
-                    </p>
+                    <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2.5">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#dcfce7] text-[#16a34a]">
+                          <CalendarDays
+                            className="size-3.5"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[0.68rem] font-medium text-slate-400">
+                            Expires
+                          </p>
+                          <p className="mt-0.5 text-[0.78rem] font-semibold leading-snug text-[#07111f]">
+                            {formatMemberDate(member.expiresAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
-              )}
+              ) : null}
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Access
-                </p>
-                {permissionLabels.length > 0 ? (
-                  <p className="mt-1.5 text-sm leading-relaxed text-[#07111f]">
-                    {permissionLabels.join(" · ")}
-                  </p>
+              <div className="min-h-[11rem] rounded-xl border border-[#e9e2f8] bg-[#fcfbfe] px-4 py-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <ShieldCheck
+                      className="size-4 shrink-0 text-[#7c3aed]"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                    <p className="truncate text-[0.72rem] font-bold uppercase tracking-wide text-[#7c3aed]">
+                      Access &amp; permissions
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#f3e8ff] px-2.5 py-0.5 text-[0.68rem] font-semibold text-[#7c3aed] ring-1 ring-[#e9d5ff]">
+                    {permissionCount} permission
+                    {permissionCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                {permissionVisuals.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap items-center gap-x-1 gap-y-3">
+                    {permissionVisuals.map((item, index) => {
+                      const Icon = item.icon;
+                      return (
+                        <div key={item.key} className="flex items-center">
+                          {index > 0 ? (
+                            <span
+                              className="mx-1.5 hidden h-4 w-px bg-[#e2e8f0] sm:inline-block"
+                              aria-hidden
+                            />
+                          ) : null}
+                          <span className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-[#334155]">
+                            <span
+                              className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md ${item.iconBg} ${item.iconColor}`}
+                            >
+                              <Icon
+                                className="size-3.5"
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                            </span>
+                            {item.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <p className="mt-1.5 text-sm text-slate-500">No access set</p>
+                  <p className="mt-2.5 text-sm text-slate-500">No access set</p>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-2 border-t border-[#eef2f8] px-5 py-3.5 sm:flex-row sm:justify-end">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#eef2f8] px-6 py-4 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="h-10 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="h-11 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Close
               </button>
@@ -282,7 +579,7 @@ function MemberDetailsModal({
                   type="button"
                   onClick={onRemove}
                   disabled={isRemoving}
-                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isRemoving ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -311,7 +608,6 @@ export function BusinessMembersPanel({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [detailsMember, setDetailsMember] =
     useState<BusinessMemberListItem | null>(null);
-  // Ask before remove so owners do not revoke access by accident.
   const [memberToRemove, setMemberToRemove] =
     useState<BusinessMemberListItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);

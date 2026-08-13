@@ -59,6 +59,10 @@ export type GoogleCampaignDraftResumeResponse = {
   campaignName: string | null;
   goal: CampaignGoalId | null;
   draftData: Partial<GoogleCampaignBuilderDraft> | null;
+  publishStatus?: string | null;
+  publishStep?: string | null;
+  publishProgress?: number | null;
+  errorMessage?: string | null;
 };
 
 function draftsBase(businessId: number): string {
