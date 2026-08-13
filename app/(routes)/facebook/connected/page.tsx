@@ -1,12 +1,25 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Check } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  ChevronDown,
+  Megaphone,
+  Shield,
+  type LucideIcon,
+} from "lucide-react";
+import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { notifyFacebookOAuthAuthenticated } from "@/app/lib/facebook-oauth-popup";
-import { formatMetaScopeTitle } from "@/app/lib/meta-ads-permissions";
+import {
+  META_ADS_PERMISSION_OPTIONS,
+  formatMetaScopeTitle,
+  type MetaSelectableScopeId,
+} from "@/app/lib/meta-ads-permissions";
 
 function parseGrantedParam(raw: string | null): string[] {
   if (!raw?.trim()) return [];
@@ -20,21 +33,24 @@ function parseGrantedParam(raw: string | null): string[] {
   ];
 }
 
-function FacebookLogoMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden
-      className={className}
-    >
-      <path
-        fill="currentColor"
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-      />
-    </svg>
-  );
+const PERMISSION_VISUALS: Record<
+  MetaSelectableScopeId,
+  { Icon: LucideIcon; iconWrap: string; iconColor: string }
+> = {
+  ads_read: {
+    Icon: BarChart3,
+    iconWrap: "bg-[#e8f1ff]",
+    iconColor: "text-[#1877F2]",
+  },
+  ads_management: {
+    Icon: Megaphone,
+    iconWrap: "bg-[#eaf8ef]",
+    iconColor: "text-[#22c55e]",
+  },
+};
+
+function isSelectableScopeId(scopeId: string): scopeId is MetaSelectableScopeId {
+  return scopeId === "ads_read" || scopeId === "ads_management";
 }
 
 function FacebookConnectedInner() {
@@ -44,6 +60,7 @@ function FacebookConnectedInner() {
     () => parseGrantedParam(searchParams.get("granted")),
     [searchParams],
   );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Tell the opener Meta connect succeeded as soon as this page loads,
   // so closing the tab is not treated as "cancelled".
@@ -57,63 +74,136 @@ function FacebookConnectedInner() {
       ? `/facebook/select-ad-account?businessId=${businessId}`
       : "/dashboard";
 
+  const grantedOptions = useMemo(() => {
+    return granted.map((scopeId) => {
+      const option = META_ADS_PERMISSION_OPTIONS.find((opt) => opt.id === scopeId);
+      return {
+        id: scopeId,
+        title: option?.title ?? formatMetaScopeTitle(scopeId),
+        description:
+          option?.description ?? "Granted by Meta for this connection.",
+        tooltip: option?.tooltip ?? null,
+      };
+    });
+  }, [granted]);
+
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12">
-      <div className="w-full max-w-md overflow-hidden rounded-xl border border-[#ccd0d5] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
-        <div className="border-b border-[#e4e6eb] bg-[#1877F2] px-6 py-5 text-center text-white">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-white text-[#1877F2] shadow-sm">
-            <FacebookLogoMark className="size-7" />
-          </span>
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/85">
-            Connected with Facebook
-          </p>
-          <h1 className="mt-1 text-xl font-bold tracking-tight">
-            Meta Ads Connected Successfully
-          </h1>
-        </div>
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f5f6f8] px-4 py-12">
+      <div className="w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] sm:p-7">
+        <div className="space-y-3.5">
+          <div className="flex items-start gap-2.5">
+            <Shield
+              className="mt-0.5 size-[18px] shrink-0 text-[#1877F2]"
+              strokeWidth={2}
+              aria-hidden
+            />
+            <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] leading-snug text-[#1c1e21]">
+              <DealiooLogo
+                src="/black-logo.png"
+                className="inline-block h-[15px] w-auto"
+                width={562}
+                height={144}
+              />
+              <span>connected successfully. Meta granted these permissions:</span>
+            </p>
+          </div>
 
-        <div className="px-6 py-5">
-          <p className="text-center text-sm leading-relaxed text-[#65676b]">
-            Facebook granted the permissions below. Next, choose which ad
-            account Dealioo should use.
-          </p>
+          {grantedOptions.length > 0 ? (
+            <ul className="m-0 list-none space-y-2.5 p-0" role="list">
+              {grantedOptions.map((opt) => {
+                const expanded = expandedId === opt.id;
+                const visual = isSelectableScopeId(opt.id)
+                  ? PERMISSION_VISUALS[opt.id]
+                  : null;
+                const Icon = visual?.Icon ?? Check;
 
-          {granted.length > 0 ? (
-            <div className="mt-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#65676b]">
-                Granted permissions
-              </p>
-              <ul className="mt-2.5 divide-y divide-[#e4e6eb] overflow-hidden rounded-lg border border-[#e4e6eb] bg-[#f7f8fa]">
-                {granted.map((scopeId) => (
-                  <li
-                    key={scopeId}
-                    className="flex items-start gap-3 bg-white px-3.5 py-3"
-                  >
-                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877F2]">
-                      <Check className="size-3" strokeWidth={3} aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#050505]">
-                        {formatMetaScopeTitle(scopeId)}
-                      </p>
-                      <p className="mt-0.5 font-mono text-[11px] text-[#65676b]">
-                        {scopeId}
-                      </p>
+                return (
+                  <li key={opt.id}>
+                    <div className="rounded-xl border border-[#1877F2]/45 bg-white">
+                      <div className="flex items-start gap-3 px-3.5 py-3.5">
+                        <span
+                          className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${
+                            visual?.iconWrap ?? "bg-[#e8f1ff]"
+                          }`}
+                          aria-hidden
+                        >
+                          <Icon
+                            className={`size-5 ${visual?.iconColor ?? "text-[#1877F2]"}`}
+                            strokeWidth={2}
+                          />
+                        </span>
+
+                        <span
+                          className="mt-2.5 flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[#1877F2] bg-[#1877F2] text-white"
+                          aria-hidden
+                        >
+                          <Check className="size-2.5" strokeWidth={3.5} />
+                        </span>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-[15px] font-semibold leading-snug text-[#1c1e21]">
+                            {opt.title}
+                          </p>
+                          <p className="m-0 mt-0.5 text-[13px] leading-snug text-[#65676b]">
+                            {opt.description}
+                          </p>
+                        </div>
+
+                        {opt.tooltip ? (
+                          <button
+                            type="button"
+                            aria-expanded={expanded}
+                            aria-label={
+                              expanded
+                                ? `Hide details for ${opt.title}`
+                                : `Show details for ${opt.title}`
+                            }
+                            onClick={() =>
+                              setExpandedId((current) =>
+                                current === opt.id ? null : opt.id,
+                              )
+                            }
+                            className="mt-1.5 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#8a8d91] transition hover:bg-[#f0f2f5] hover:text-[#1c1e21]"
+                          >
+                            <ChevronDown
+                              className={`size-4 transition-transform ${
+                                expanded ? "rotate-180" : ""
+                              }`}
+                              aria-hidden
+                            />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {expanded && opt.tooltip ? (
+                        <div className="border-t border-[#e4e6eb] px-3.5 py-3 text-[13px] leading-relaxed text-[#65676b]">
+                          {opt.tooltip}
+                        </div>
+                      ) : null}
                     </div>
                   </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <Link
-            href={selectHref}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#1877F2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/50"
-          >
-            <FacebookLogoMark className="size-4" />
-            Select Meta Ad Account
-          </Link>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="m-0 text-[13px] leading-snug text-[#65676b]">
+              No permission details were returned. You can still choose an ad
+              account to continue.
+            </p>
+          )}
         </div>
+
+        <p className="mt-4 m-0 text-center text-[13px] leading-snug text-[#65676b]">
+          Next, choose which ad account Dealioo should use.
+        </p>
+
+        <Link
+          href={selectHref}
+          className="mt-5 flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[#1877F2] text-[16px] font-bold text-white no-underline transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40"
+        >
+          <MetaLogo className="size-5 text-white" monochrome />
+          Select Meta Ad Account
+        </Link>
       </div>
     </main>
   );
@@ -123,7 +213,7 @@ export default function FacebookConnectedPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5]">
+        <main className="flex min-h-dvh items-center justify-center bg-[#f5f6f8]">
           <p className="text-sm text-[#65676b]">Loading…</p>
         </main>
       }

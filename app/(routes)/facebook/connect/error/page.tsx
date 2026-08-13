@@ -10,7 +10,7 @@ function FacebookConnectErrorInner() {
   const cancelled = searchParams.get("cancelled") === "1";
   const reason =
     searchParams.get("reason")?.trim() ||
-    "Facebook connection failed. Please try again.";
+    "Meta connection failed. Please try again.";
 
   useEffect(() => {
     if (!cancelled) return;
@@ -36,7 +36,7 @@ function FacebookConnectErrorInner() {
       <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
         <AlertCircle className="mx-auto size-10 text-red-600" aria-hidden />
         <h1 className="mt-4 text-lg font-semibold text-zinc-900">
-          Facebook connect failed
+          Meta connect failed
         </h1>
         <p className="mt-2 text-sm text-red-700">{reason}</p>
         <button

@@ -20,7 +20,7 @@ export async function connectFacebook(
   scopes: string[],
 ): Promise<MetaConnectResponse> {
   if (!accessToken.trim()) {
-    throw new Error("You're signed out. Sign in again to connect Facebook.");
+    throw new Error("You're signed out. Sign in again to connect Meta.");
   }
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
@@ -40,14 +40,14 @@ export async function connectFacebook(
 
   if (!res.ok) {
     throw new Error(
-      await parseApiErrorMessage(res, "Could not start Facebook connection."),
+      await parseApiErrorMessage(res, "Could not start Meta connection."),
     );
   }
 
   const body = (await res.json().catch(() => null)) as unknown;
   const url = extractUrl(body);
   if (!url) {
-    throw new Error("Facebook connect URL was not returned by the server.");
+    throw new Error("Meta connect URL was not returned by the server.");
   }
 
   const scopesOut =

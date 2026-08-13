@@ -233,7 +233,7 @@ function IntegrationsOverview({
           }`}
         >
           <span className="size-1.5 rounded-full bg-[#1877f2]" aria-hidden />
-          Facebook
+          Meta
         </span>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ring-1 ${
@@ -385,7 +385,7 @@ export function BusinessSettingsPanel({
       setMetaOauthScopes(status.metaOauthScopes ?? []);
     } catch (e) {
       setMetaError(
-        e instanceof Error ? e.message : "Could not check Facebook connection.",
+        e instanceof Error ? e.message : "Could not check Meta connection.",
       );
     } finally {
       setMetaStatusLoading(false);
@@ -549,7 +549,7 @@ export function BusinessSettingsPanel({
     if (businessId == null) return;
 
     const confirmed = window.confirm(
-      "Remove this Facebook account from Dealioo? Your linked ad account and login will be cleared. You can connect again anytime.",
+      "Remove this Meta Ads account from Dealioo? Your linked ad account and login will be cleared. You can connect again anytime.",
     );
     if (!confirmed) return;
 
@@ -558,7 +558,7 @@ export function BusinessSettingsPanel({
     try {
       const token = getSetupAccessToken().trim();
       if (!token) {
-        throw new Error("You're signed out. Sign in again to remove Facebook.");
+        throw new Error("You're signed out. Sign in again to remove Meta Ads.");
       }
       await disconnectFacebook(token, businessId);
       setMetaConnected(false);
@@ -568,7 +568,7 @@ export function BusinessSettingsPanel({
     } catch (e) {
       setMetaDisconnectStatus("error");
       setMetaError(
-        e instanceof Error ? e.message : "Could not remove Facebook account.",
+        e instanceof Error ? e.message : "Could not remove Meta Ads account.",
       );
     }
   };
@@ -1001,7 +1001,7 @@ export function BusinessSettingsPanel({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold tracking-tight text-slate-900">
-                            Facebook
+                            Meta Ads
                           </p>
                           {metaStatusLoading ? (
                             <IntegrationLoadingBadge />
@@ -1075,7 +1075,7 @@ export function BusinessSettingsPanel({
                               strokeWidth={2}
                               aria-hidden
                             />
-                            Connect with Facebook
+                            Connect with Meta
                           </button>
                         </div>
                       )}

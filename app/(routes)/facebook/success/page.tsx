@@ -10,9 +10,9 @@ function FacebookConnectSuccessInner() {
   const searchParams = useSearchParams();
   const businessId = readBusinessIdFromSearchParams(searchParams);
 
-  const campaignsHref =
+  const metaAdsHref =
     businessId != null
-      ? `/business/${businessId}/dashboard/campaigns`
+      ? `/business/${businessId}/dashboard/meta`
       : "/dashboard";
 
   return (
@@ -22,17 +22,17 @@ function FacebookConnectSuccessInner() {
           <Check className="size-7" strokeWidth={2.5} aria-hidden />
         </span>
         <h1 className="mt-5 text-xl font-semibold text-zinc-900">
-          Facebook connected
+          Meta Ads connected
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Your Facebook account is linked to this business. You can run ads and
+          Your Meta account is linked to this business. You can run ads and
           use your funnel tracking link in Meta Ads Manager.
         </p>
         <Link
-          href={campaignsHref}
+          href={metaAdsHref}
           className="mt-6 inline-flex rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
         >
-          Back to campaigns
+          Go to Meta campaigns
         </Link>
       </div>
     </main>

@@ -71,7 +71,7 @@ export default function RegisterBusinessFacebookConnectStep({
     try {
       const token = getSetupAccessToken().trim();
       if (!token) {
-        throw new Error("You're signed out. Sign in again to connect Facebook.");
+        throw new Error("You're signed out. Sign in again to connect Meta.");
       }
 
       const result = await connectFacebookInPopup(
@@ -85,13 +85,13 @@ export default function RegisterBusinessFacebookConnectStep({
       }
 
       setErrorMessage(
-        "Facebook connect was cancelled. You can try again or skip for now.",
+        "Meta connect was cancelled. You can try again or skip for now.",
       );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Could not connect Facebook. Try again.",
+          : "Could not connect Meta. Try again.",
       );
     } finally {
       setConnecting(false);
@@ -116,10 +116,8 @@ export default function RegisterBusinessFacebookConnectStep({
               <span className="landing-hero-accent-blue">Meta Ads</span>
             </h2>
             <p className={styles.subtitle}>
-              Connecting your Meta Ads account lets Dealioo track campaign
-              metrics from your Facebook and Instagram ads. Choose only the
-              permissions you want to grant — Dealioo will request those from
-              Meta.
+              Connecting Meta Ads lets Dealioo read campaign performance and
+              manage ads on your behalf. Both permissions below are recommended.
             </p>
           </header>
 
@@ -154,7 +152,7 @@ export default function RegisterBusinessFacebookConnectStep({
             {connecting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Connecting…
+                Connecting Meta account…
               </>
             ) : (
               <>

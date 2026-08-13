@@ -2,7 +2,16 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Briefcase,
+  Check,
+  ChevronRight,
+  Loader2,
+  Lock,
+  Save,
+} from "lucide-react";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import {
   getFacebookAdAccounts,
   type FacebookAdAccount,
@@ -11,21 +20,26 @@ import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-ac
 import { notifyFacebookOAuthComplete } from "@/app/lib/facebook-oauth-popup";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
-function FacebookLogoMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden
-      className={className}
-    >
-      <path
-        fill="currentColor"
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-      />
-    </svg>
-  );
+const ACCOUNT_THEME = {
+  Icon: Briefcase,
+  iconWrap: "bg-[#e8f1ff]",
+  iconColor: "text-[#1877F2]",
+  currencyWrap: "bg-[#e8f1ff]",
+  currencyText: "text-[#1877F2]",
+} as const;
+
+function isActiveAccountStatus(status: number | null): boolean {
+  // Meta Marketing API: 1 = ACTIVE
+  return status == null || status === 1;
+}
+
+function accountStatusLabel(status: number | null): string {
+  if (status == null || status === 1) return "Active";
+  if (status === 2) return "Disabled";
+  if (status === 3) return "Unsettled";
+  if (status === 7) return "Pending review";
+  if (status === 101) return "Closed";
+  return "Unavailable";
 }
 
 function SelectAdAccountInner() {
@@ -39,9 +53,9 @@ function SelectAdAccountInner() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const campaignsHref =
+  const metaAdsHref =
     businessId != null
-      ? `/business/${businessId}/dashboard/campaigns`
+      ? `/business/${businessId}/dashboard/meta`
       : "/dashboard";
 
   const loadAccounts = useCallback(async () => {
@@ -69,9 +83,16 @@ function SelectAdAccountInner() {
 
   const handleSkip = () => {
     if (businessId != null && notifyFacebookOAuthComplete(businessId)) {
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.location.assign(metaAdsHref);
+        }
+      } catch {
+        /* cross-origin opener — ignore */
+      }
       return;
     }
-    router.push(campaignsHref);
+    router.push(metaAdsHref);
   };
 
   const handleSave = async () => {
@@ -81,9 +102,16 @@ function SelectAdAccountInner() {
     try {
       await setFacebookAdAccount(businessId, selectedId);
       if (notifyFacebookOAuthComplete(businessId)) {
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.location.assign(metaAdsHref);
+          }
+        } catch {
+          /* cross-origin opener — ignore */
+        }
         return;
       }
-      router.push(campaignsHref);
+      router.push(metaAdsHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save ad account.");
       setSaving(false);
@@ -92,7 +120,7 @@ function SelectAdAccountInner() {
 
   if (businessId == null) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5] px-4">
+      <main className="flex min-h-dvh items-center justify-center bg-[#f5f6f8] px-4">
         <p className="text-sm text-[#b32d2e]">
           Missing business. Go back and try again.
         </p>
@@ -101,41 +129,57 @@ function SelectAdAccountInner() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12">
-      <div className="w-full max-w-md overflow-hidden rounded-xl border border-[#ccd0d5] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
-        <div className="border-b border-[#e4e6eb] bg-[#1877F2] px-6 py-5 text-center text-white">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-white text-[#1877F2] shadow-sm">
-            <FacebookLogoMark className="size-7" />
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f5f6f8] px-4 py-10">
+      <div className="w-full max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(15,23,42,0.1)]">
+        <div
+          className="relative overflow-hidden px-6 pb-8 pt-9 text-center text-white"
+          style={{
+            background:
+              "linear-gradient(160deg, #1a73e8 0%, #1877F2 45%, #0d65d9 100%)",
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 opacity-30"
+            style={{
+              background:
+                "radial-gradient(120% 80% at 20% 120%, #0a4fb8 0%, transparent 55%), radial-gradient(100% 70% at 80% 130%, #063d91 0%, transparent 50%)",
+            }}
+            aria-hidden
+          />
+          <span className="relative mx-auto flex size-14 items-center justify-center rounded-full bg-white text-[#0081FB] shadow-sm">
+            <MetaLogo className="size-8" monochrome />
           </span>
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/85">
-            Facebook Ads
+          <p className="relative mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-white/90">
+            Meta Ads
           </p>
-          <h1 className="mt-1 text-xl font-bold tracking-tight">
+          <h1 className="relative mt-1 text-[22px] font-bold tracking-tight">
             Choose your ad account
           </h1>
         </div>
 
-        <div className="px-6 py-5">
-          <p className="text-center text-sm leading-relaxed text-[#65676b]">
-            Pick the Meta ad account for this business. Campaign stats will only
-            come from this account.
-          </p>
-
+        <div className="space-y-6 px-5 py-7 sm:px-7 sm:py-8">
           {loading ? (
-            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-[#65676b]">
-              <Loader2 className="size-4 animate-spin text-[#1877F2]" aria-hidden />
+            <p className="flex items-center justify-center gap-2 py-10 text-sm text-[#65676b]">
+              <Loader2
+                className="size-4 animate-spin text-[#1877F2]"
+                aria-hidden
+              />
               Loading ad accounts…
             </p>
           ) : null}
 
           {!loading && accounts.length > 0 ? (
             <ul
-              className="mt-5 max-h-64 space-y-2 overflow-y-auto"
+              className="m-0 max-h-[24rem] list-none space-y-3.5 overflow-y-auto p-0"
               role="radiogroup"
               aria-label="Meta ad accounts"
             >
               {accounts.map((account) => {
                 const selected = selectedId === account.id;
+                const { Icon } = ACCOUNT_THEME;
+                const active = isActiveAccountStatus(account.accountStatus);
+                const currency = account.currency?.trim() || null;
+
                 return (
                   <li key={account.id}>
                     <button
@@ -143,14 +187,14 @@ function SelectAdAccountInner() {
                       role="radio"
                       aria-checked={selected}
                       onClick={() => setSelectedId(account.id)}
-                      className={`flex w-full cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors ${
+                      className={`flex w-full cursor-pointer items-start gap-3.5 rounded-xl border px-4 py-4 text-left transition-colors ${
                         selected
-                          ? "border-[#1877F2] bg-[#e7f3ff]"
-                          : "border-[#ccd0d5] bg-white hover:bg-[#f7f8fa]"
+                          ? "border-[#1877F2] bg-[#f7fbff]"
+                          : "border-[#dadde1] bg-white hover:bg-[#f7f8fa]"
                       }`}
                     >
                       <span
-                        className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                        className={`mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
                           selected
                             ? "border-[#1877F2] bg-[#1877F2] text-white"
                             : "border-[#ccd0d5] bg-white"
@@ -161,15 +205,53 @@ function SelectAdAccountInner() {
                           <Check className="size-3" strokeWidth={3} />
                         ) : null}
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#050505]">
-                          {account.name?.trim() || "Unnamed account"}
-                        </p>
-                        <p className="mt-0.5 font-mono text-[11px] text-[#65676b]">
-                          {account.id}
-                          {account.currency ? ` · ${account.currency}` : ""}
-                        </p>
-                      </div>
+
+                      <span
+                        className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${ACCOUNT_THEME.iconWrap}`}
+                        aria-hidden
+                      >
+                        <Icon
+                          className={`size-5 ${ACCOUNT_THEME.iconColor}`}
+                          strokeWidth={2}
+                        />
+                      </span>
+
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="min-w-0">
+                            <span className="block truncate text-[15px] font-semibold leading-snug text-[#1c1e21]">
+                              {account.name?.trim() || "Unnamed account"}
+                            </span>
+                            <span className="mt-0.5 block truncate font-mono text-[11px] text-[#65676b]">
+                              {account.id}
+                              {currency ? ` · ${currency}` : ""}
+                            </span>
+                          </span>
+                          {currency ? (
+                            <span
+                              className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${ACCOUNT_THEME.currencyWrap} ${ACCOUNT_THEME.currencyText}`}
+                            >
+                              {currency}
+                            </span>
+                          ) : null}
+                        </span>
+
+                        <span
+                          className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            active
+                              ? "bg-[#eaf8ef] text-[#15803d]"
+                              : "bg-[#fef2f2] text-[#b91c1c]"
+                          }`}
+                        >
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              active ? "bg-[#22c55e]" : "bg-[#ef4444]"
+                            }`}
+                            aria-hidden
+                          />
+                          {accountStatusLabel(account.accountStatus)}
+                        </span>
+                      </span>
                     </button>
                   </li>
                 );
@@ -178,14 +260,14 @@ function SelectAdAccountInner() {
           ) : null}
 
           {!loading && accounts.length === 0 ? (
-            <p className="mt-6 text-center text-sm text-[#65676b]">
-              No ad accounts found for this Facebook login.
+            <p className="py-6 text-center text-sm text-[#65676b]">
+              No ad accounts found for this Meta login.
             </p>
           ) : null}
 
           {error ? (
             <p
-              className="mt-4 flex items-start gap-2 rounded-lg border border-[#fad2d2] bg-[#fff8f8] px-3 py-2.5 text-sm text-[#b32d2e]"
+              className="m-0 flex items-start gap-2 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
               role="alert"
             >
               <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -193,32 +275,41 @@ function SelectAdAccountInner() {
             </p>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={saving || !selectedId || loading}
-            className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1877F2] py-2.5 text-sm font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/50 disabled:cursor-not-allowed disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <FacebookLogoMark className="size-4" />
-                Save ad account
-              </>
-            )}
-          </button>
+          <div className="space-y-3.5 pt-4">
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving || !selectedId || loading}
+              className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877F2] text-[15px] font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40 disabled:cursor-not-allowed disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" aria-hidden />
+                  Save ad account
+                </>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="mt-3 block w-full cursor-pointer text-center text-sm font-semibold text-[#1877F2] hover:underline"
-          >
-            Skip for now
-          </button>
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="flex w-full cursor-pointer items-center justify-center gap-1 text-[14px] font-semibold text-[#1877F2] hover:underline"
+            >
+              Skip for now
+              <ChevronRight className="size-4" aria-hidden />
+            </button>
+
+            <p className="m-0 flex items-center justify-center gap-1.5 pt-2 text-[11px] text-[#8a8d91]">
+              <Lock className="size-3 shrink-0" aria-hidden />
+              Your information is secure and only used to connect your Meta
+              account.
+            </p>
+          </div>
         </div>
       </div>
     </main>
@@ -229,7 +320,7 @@ export default function SelectAdAccountPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5]">
+        <main className="flex min-h-dvh items-center justify-center bg-[#f5f6f8]">
           <p className="text-sm text-[#65676b]">Loading…</p>
         </main>
       }

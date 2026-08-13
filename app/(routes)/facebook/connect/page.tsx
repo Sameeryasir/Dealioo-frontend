@@ -3,8 +3,9 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
+import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import {
@@ -74,7 +75,7 @@ function FacebookConnectInner() {
       try {
         const token = getSetupAccessToken().trim();
         if (!token) {
-          throw new Error("You're signed out. Sign in again to connect Facebook.");
+          throw new Error("You're signed out. Sign in again to connect Meta.");
         }
         const status = await getFacebookConnectionStatus(token, businessId);
         if (!cancelled) setConnection(status);
@@ -84,7 +85,7 @@ function FacebookConnectInner() {
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Could not check Facebook connection.",
+              : "Could not check Meta connection.",
           );
         }
       } finally {
@@ -115,7 +116,7 @@ function FacebookConnectInner() {
     try {
       const token = getSetupAccessToken().trim();
       if (!token) {
-        throw new Error("You're signed out. Sign in again to connect Facebook.");
+        throw new Error("You're signed out. Sign in again to connect Meta.");
       }
 
       const result = await connectFacebookInPopup(
@@ -132,13 +133,13 @@ function FacebookConnectInner() {
       }
 
       setErrorMessage(
-        "Facebook connect was cancelled. You can try again or go back.",
+        "Meta connect was cancelled. You can try again or go back.",
       );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Could not connect Facebook. Try again.",
+          : "Could not connect Meta. Try again.",
       );
     } finally {
       setConnecting(false);
@@ -154,7 +155,7 @@ function FacebookConnectInner() {
             Business required
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Open Connect with Facebook from your business Integrations page.
+            Open Connect with Meta from your business Integrations page.
           </p>
           <Link
             href="/dashboard"
@@ -172,7 +173,7 @@ function FacebookConnectInner() {
       <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5]">
         <div className="flex items-center gap-2 text-sm text-[#65676b]">
           <Loader2 className="size-5 animate-spin text-[#1877F2]" aria-hidden />
-          Checking Facebook connection…
+          Checking Meta connection…
         </div>
       </main>
     );
@@ -184,82 +185,71 @@ function FacebookConnectInner() {
 
   if (isConnected) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12">
-        <div className="w-full max-w-lg overflow-hidden rounded-xl border border-[#ccd0d5] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
-          <div className="border-b border-[#e4e6eb] bg-[#1877F2] px-6 py-5 text-center text-white">
-            <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-white text-[#1877F2] shadow-sm">
-              <FacebookLogoMark className="size-7" />
+      <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12 font-[Helvetica,Arial,'Segoe_UI',sans-serif]">
+        <div className="w-full max-w-[400px] overflow-hidden rounded-xl bg-white shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]">
+          <div className="flex flex-col items-center px-6 pt-7 pb-2">
+            <span className="flex size-14 items-center justify-center rounded-full bg-[#1877F2] text-white">
+              <FacebookLogoMark className="size-8" />
             </span>
-            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/85">
-              Connected with Facebook
-            </p>
-            <h1 className="mt-1 text-xl font-bold tracking-tight">
-              Meta Ads is already connected
+            <h1 className="mt-4 text-center text-[20px] font-bold leading-tight text-[#1c1e21]">
+              Already connected to Meta
             </h1>
+            <p className="mt-2 text-center text-[15px] leading-snug text-[#65676b]">
+              Your Meta account is linked to Dealioo for Meta Ads.
+            </p>
           </div>
 
-          <div className="space-y-4 px-6 py-5">
-            <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-800">
-              <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <div className="space-y-3 px-6 pb-6 pt-4">
+            <div className="flex items-center gap-2 rounded-lg bg-[#e7f3ff] px-3 py-2.5 text-[13px] font-semibold text-[#1877F2]">
+              <span className="flex size-5 items-center justify-center rounded-full bg-[#1877F2] text-white">
                 <Check className="size-3" strokeWidth={3} aria-hidden />
               </span>
-              Account connected
+              Connected with Meta
             </div>
 
             {adAccountId ? (
-              <p className="m-0 text-center text-xs text-[#65676b]">
+              <p className="m-0 text-center text-[13px] text-[#65676b]">
                 Ad account{" "}
-                <span className="font-mono font-semibold text-slate-800">
+                <span className="font-mono font-semibold text-[#1c1e21]">
                   {adAccountId}
                 </span>
               </p>
             ) : (
-              <p className="m-0 text-center text-sm text-[#65676b]">
-                Facebook is linked. Next, choose which ad account Dealioo should
-                use.
+              <p className="m-0 text-center text-[15px] text-[#65676b]">
+                Next, choose which ad account Dealioo should use.
               </p>
             )}
 
             {grantedScopes.length > 0 ? (
-              <div>
-                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[#65676b]">
-                  Granted permissions
-                </p>
-                <ul className="mt-2.5 divide-y divide-[#e4e6eb] overflow-hidden rounded-lg border border-[#e4e6eb] bg-[#f7f8fa]">
-                  {grantedScopes.map((scopeId) => (
-                    <li
-                      key={scopeId}
-                      className="flex items-start gap-3 bg-white px-3.5 py-3"
-                    >
-                      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877F2]">
-                        <Check className="size-3" strokeWidth={3} aria-hidden />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="m-0 text-sm font-semibold text-[#050505]">
-                          {formatMetaScopeTitle(scopeId)}
-                        </p>
-                        <p className="m-0 mt-0.5 font-mono text-[11px] text-[#65676b]">
-                          {scopeId}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="m-0 divide-y divide-[#e4e6eb] overflow-hidden rounded-lg border border-[#dadde1] p-0">
+                {grantedScopes.map((scopeId) => (
+                  <li
+                    key={scopeId}
+                    className="flex items-center gap-3 px-3.5 py-3"
+                  >
+                    <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877F2]">
+                      <Check className="size-2.5" strokeWidth={3} aria-hidden />
+                    </span>
+                    <span className="text-[14px] font-semibold text-[#1c1e21]">
+                      {formatMetaScopeTitle(scopeId)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
             {!adAccountId ? (
               <Link
                 href={selectAdAccountHref}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#1877F2] text-sm font-semibold text-white no-underline"
+                className="flex h-11 w-full items-center justify-center rounded-lg bg-[#1877F2] text-[17px] font-bold text-white no-underline hover:bg-[#166fe5]"
               >
-                Select Meta Ad Account
+                Choose Ad Account
               </Link>
             ) : null}
 
             <Link
               href={integrationsHref}
-              className="flex h-11 w-full items-center justify-center rounded-lg border border-[#ccd0d5] bg-white text-sm font-semibold text-slate-800 no-underline"
+              className="flex h-10 w-full items-center justify-center text-[15px] font-semibold text-[#1877F2] no-underline hover:underline"
             >
               Back to Integrations
             </Link>
@@ -270,64 +260,50 @@ function FacebookConnectInner() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12">
-      <div className="w-full max-w-lg overflow-hidden rounded-xl border border-[#ccd0d5] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
-        <div className="border-b border-[#e4e6eb] bg-[#1877F2] px-6 py-5 text-center text-white">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-white text-[#1877F2] shadow-sm">
-            <FacebookLogoMark className="size-7" />
-          </span>
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/85">
-            Facebook / Meta Ads
-          </p>
-          <h1 className="mt-1 text-xl font-bold tracking-tight">
-            Connect Meta Ads
-          </h1>
-        </div>
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f5f6f8] px-4 py-12">
+      <div className="w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] sm:p-7">
+        <MetaAdsPermissionConsent
+          selectedScopes={selectedScopes}
+          onChange={setSelectedScopes}
+          disabled={connecting}
+        />
 
-        <div className="space-y-4 px-6 py-5">
-          <p className="m-0 text-center text-sm leading-relaxed text-[#65676b]">
-            Choose the permissions Dealioo needs, then connect with Facebook.
-          </p>
-
-          <MetaAdsPermissionConsent
-            selectedScopes={selectedScopes}
-            onChange={setSelectedScopes}
-            disabled={connecting}
-          />
-
-          {errorMessage ? (
-            <p
-              role="alert"
-              className="m-0 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
-            >
-              <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => void handleConnect()}
-            disabled={connecting}
-            className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1877F2] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        {errorMessage ? (
+          <p
+            role="alert"
+            className="mt-4 m-0 flex items-start gap-2 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
           >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => void handleConnect()}
+          disabled={connecting || selectedScopes.length === 0}
+          className="mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2.5 rounded-full bg-[#1877F2] text-[16px] font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40 disabled:cursor-not-allowed disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
+        >
             {connecting ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Connecting…
+                <Loader2 className="size-5 animate-spin" aria-hidden />
+                Connecting Meta account…
               </>
             ) : (
-              "Connect with Facebook"
+              <>
+                <MetaLogo className="size-5 text-white" monochrome />
+                Connect with Meta
+              </>
             )}
-          </button>
+        </button>
 
-          <Link
-            href={integrationsHref}
-            className="block text-center text-sm font-medium text-[#65676b] no-underline hover:text-[#1877F2]"
-          >
-            Back to Integrations
-          </Link>
-        </div>
+        <Link
+          href={integrationsHref}
+          className="mt-4 flex items-center justify-center gap-1.5 text-[14px] font-semibold text-[#1877F2] no-underline hover:underline"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          Back to Integrations
+        </Link>
       </div>
     </main>
   );

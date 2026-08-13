@@ -77,7 +77,7 @@ export default function CampaignGuestExperience({
       return status;
     } catch (e) {
       setMetaError(
-        e instanceof Error ? e.message : "Could not check Facebook connection.",
+        e instanceof Error ? e.message : "Could not check Meta connection.",
       );
     } finally {
       setMetaLoading(false);
@@ -279,14 +279,13 @@ export default function CampaignGuestExperience({
           </div>
           <div className="flex min-h-0 flex-1 flex-col justify-start gap-3">
             {metaLoading ? (
-              <p className="text-sm text-zinc-500">Checking Facebook…</p>
+              <p className="text-sm text-zinc-500">Checking Meta…</p>
             ) : null}
 
             {!metaLoading && !metaConnected ? (
               <div className="space-y-3">
                 <p className="text-sm text-zinc-600">
-                  Select permissions, then connect Meta Ads. Dealioo only
-                  requests what you check.
+                  Review the permissions below, then connect Meta Ads.
                 </p>
                 <MetaAdsPermissionConsent
                   selectedScopes={selectedScopes}
@@ -300,7 +299,7 @@ export default function CampaignGuestExperience({
               <>
                 <p className="flex items-center gap-2 text-sm font-medium text-emerald-800">
                   <Check className="size-4 shrink-0" aria-hidden />
-                  Facebook is linked
+                  Meta is linked
                 </p>
                 <p className="text-sm text-zinc-600">
                   Choose which Meta ad account belongs to this business.
@@ -318,7 +317,7 @@ export default function CampaignGuestExperience({
               <>
                 <p className="flex items-center gap-2 text-sm font-medium text-emerald-800">
                   <Check className="size-4 shrink-0" aria-hidden />
-                  Facebook is linked
+                  Meta is linked
                 </p>
 
                 {adStatsLoading ? (
@@ -421,7 +420,7 @@ export default function CampaignGuestExperience({
               {metaConnectLoading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Connecting…
+                  Connecting Meta account…
                 </>
               ) : (
                 <>

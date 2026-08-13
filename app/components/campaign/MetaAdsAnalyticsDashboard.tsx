@@ -65,8 +65,11 @@ type MetaAdsAnalyticsDashboardProps = {
   insightsLoading?: boolean;
   adsManagerUrl: string;
   onCreateCampaign: () => void;
+  canCreateCampaign?: boolean;
+  createCampaignBlockedReason?: string | null;
   onRefresh: () => void;
   onDeleteCampaign: (campaign: FacebookAdCampaign) => void;
+  canDeleteCampaign?: boolean;
   deletingCampaignId: string | null;
   errorMessage?: string | null;
   campaignSearch: string;
@@ -365,8 +368,11 @@ export function MetaAdsAnalyticsDashboard({
   insightsLoading,
   adsManagerUrl,
   onCreateCampaign,
+  canCreateCampaign = true,
+  createCampaignBlockedReason = null,
   onRefresh,
   onDeleteCampaign,
+  canDeleteCampaign = true,
   deletingCampaignId,
   errorMessage,
   campaignSearch,
@@ -647,7 +653,14 @@ export function MetaAdsAnalyticsDashboard({
           <button
             type="button"
             onClick={onCreateCampaign}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5]"
+            disabled={!canCreateCampaign}
+            title={
+              !canCreateCampaign
+                ? (createCampaignBlockedReason ??
+                  "ads_management permission is required to create campaigns")
+                : undefined
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-[#c3c7cd] disabled:hover:bg-[#c3c7cd]"
           >
             <Plus className="size-4" aria-hidden />
             Create campaign
@@ -693,6 +706,18 @@ export function MetaAdsAnalyticsDashboard({
           >
             Try again
           </button>
+        </div>
+      ) : null}
+
+      {!canCreateCampaign && createCampaignBlockedReason ? (
+        <div
+          className="rounded-2xl border border-amber-200/80 bg-amber-50 px-5 py-4"
+          role="status"
+        >
+          <p className="flex items-start gap-2 text-sm font-medium text-amber-900">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {createCampaignBlockedReason}
+          </p>
         </div>
       ) : null}
 
@@ -1004,13 +1029,22 @@ export function MetaAdsAnalyticsDashboard({
                           No campaigns yet
                         </p>
                         <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-                          Create a Meta campaign with the guided builder, or run
-                          ads in Ads Manager.
+                          {canCreateCampaign
+                            ? "Create a Meta campaign with the guided builder, or run ads in Ads Manager."
+                            : (createCampaignBlockedReason ??
+                              "Your Meta connection only has ads_read. Reconnect and grant Manage advertising campaigns to create ads.")}
                         </p>
                         <button
                           type="button"
                           onClick={onCreateCampaign}
-                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5]"
+                          disabled={!canCreateCampaign}
+                          title={
+                            !canCreateCampaign
+                              ? (createCampaignBlockedReason ??
+                                "ads_management permission is required to create campaigns")
+                              : undefined
+                          }
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-[#c3c7cd] disabled:hover:bg-[#c3c7cd]"
                         >
                           <Plus className="size-4" aria-hidden />
                           Create campaign
@@ -1112,7 +1146,8 @@ export function MetaAdsAnalyticsDashboard({
                       </td>
                       <td className="border-b border-[#f1f5f9] py-3">
                         <div className="flex items-center justify-end gap-1">
-                          {c.effectiveStatus?.toUpperCase() !== "ACTIVE" ? (
+                          {canDeleteCampaign &&
+                          c.effectiveStatus?.toUpperCase() !== "ACTIVE" ? (
                             <button
                               type="button"
                               title="Delete campaign"
@@ -1132,7 +1167,7 @@ export function MetaAdsAnalyticsDashboard({
                                 <Trash2 className="size-4" aria-hidden />
                               )}
                             </button>
-                          ) : (
+                          ) : canDeleteCampaign ? (
                             <button
                               type="button"
                               className="rounded-lg p-1.5 text-slate-400"
@@ -1141,7 +1176,7 @@ export function MetaAdsAnalyticsDashboard({
                             >
                               <MoreHorizontal className="size-4" aria-hidden />
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>

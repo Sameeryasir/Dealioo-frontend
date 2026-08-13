@@ -1,9 +1,4 @@
-export type MetaSelectableScopeId =
-  | "ads_read"
-  | "ads_management"
-  | "business_management"
-  | "pages_show_list"
-  | "pages_read_engagement";
+export type MetaSelectableScopeId = "ads_read" | "ads_management";
 
 export type MetaPermissionOption = {
   id: MetaSelectableScopeId;
@@ -32,33 +27,6 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
       "Used for creating and editing ads from Dealioo. Maps to ads_management.",
     defaultSelected: false,
   },
-  {
-    id: "business_management",
-    title: "Access business assets",
-    description:
-      "Access Business Manager assets like ad accounts linked to your Meta user.",
-    tooltip:
-      "Used to discover and select the correct Meta Ad Account. Maps to business_management.",
-    defaultSelected: false,
-  },
-  {
-    id: "pages_show_list",
-    title: "Access Facebook Pages",
-    description:
-      "List Facebook Pages you manage so you can select the correct Page for ad creatives.",
-    tooltip:
-      "Used to show and select your Facebook Page when building Meta ads. Maps to pages_show_list.",
-    defaultSelected: false,
-  },
-  {
-    id: "pages_read_engagement",
-    title: "Read Page engagement data",
-    description:
-      "Read Page association and engagement data needed to run and review ads linked to your Page.",
-    tooltip:
-      "Used for Page association with ads and engagement context. Maps to pages_read_engagement.",
-    defaultSelected: false,
-  },
 ];
 
 export const META_SCOPE_LABELS: Record<string, string> = Object.fromEntries(
@@ -69,6 +37,12 @@ export function getDefaultSelectedMetaScopes(): MetaSelectableScopeId[] {
   return META_ADS_PERMISSION_OPTIONS.filter((opt) => opt.defaultSelected).map(
     (opt) => opt.id,
   );
+}
+
+export function hasMetaAdsManagementScope(
+  scopes: string[] | null | undefined,
+): boolean {
+  return (scopes ?? []).includes("ads_management");
 }
 
 export function formatMetaScopeTitle(scopeId: string): string {

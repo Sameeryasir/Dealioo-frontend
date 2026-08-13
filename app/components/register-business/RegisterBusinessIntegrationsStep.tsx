@@ -44,7 +44,7 @@ const GUIDES = [
     why: "Use this if you advertise on Facebook or Instagram and want Dealioo to help with campaigns and reporting.",
     steps: [
       "Open Settings → Integrations.",
-      "Click Connect with Facebook.",
+      "Click Connect with Meta.",
       "Log in with the Facebook account that manages your ads.",
       "Allow the requested permissions, then pick the ad account you want to use.",
       "When you return, Facebook should show as Connected.",

@@ -51,7 +51,7 @@ async function fetchFacebookConnectionStatus(
     throw new Error(
       await parseApiErrorMessage(
         res,
-        "Could not load Facebook connection status.",
+        "Could not load Meta connection status.",
       ),
     );
   }

@@ -87,6 +87,7 @@ import type {
   MetaCampaignObjective,
 } from "@/app/lib/meta-campaign-builder-types";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { hasMetaAdsManagementScope } from "@/app/lib/meta-ads-permissions";
 import {
   getFacebookAdCampaignStats,
   META_CAMPAIGN_PAGE_SIZE,
@@ -120,6 +121,7 @@ export function CampaignAdsPanel({
 }: CampaignAdsPanelProps) {
   const [metaConnected, setMetaConnected] = useState(false);
   const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
+  const [metaOauthScopes, setMetaOauthScopes] = useState<string[]>([]);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -183,6 +185,13 @@ export function CampaignAdsPanel({
   );
 
   const openCreateOrResume = useCallback(async () => {
+    if (!hasMetaAdsManagementScope(metaOauthScopes)) {
+      setAdStatsError(
+        "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns.",
+      );
+      return;
+    }
+
     setResumeDraftLoading(true);
     try {
       const drafts = await listMetaCampaignDrafts(businessId);
@@ -216,7 +225,7 @@ export function CampaignAdsPanel({
     } finally {
       setResumeDraftLoading(false);
     }
-  }, [businessId, campaignName]);
+  }, [businessId, campaignName, metaOauthScopes]);
 
   const handleDraftPickerSelect = useCallback(
     (action: MetaDraftPickerAction) => {
@@ -258,6 +267,11 @@ export function CampaignAdsPanel({
       : !metaAdAccountId
         ? "needs_account"
         : "ready";
+
+  const canCreateMetaCampaign = hasMetaAdsManagementScope(metaOauthScopes);
+  const createCampaignBlockedReason = canCreateMetaCampaign
+    ? null
+    : "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns.";
 
   const handleConfirmDeleteCampaign = useCallback(async () => {
     if (!campaignPendingDelete) return;
@@ -356,11 +370,13 @@ export function CampaignAdsPanel({
       if (!token) {
         setMetaConnected(false);
         setMetaAdAccountId(null);
+        setMetaOauthScopes([]);
         return { connected: false, metaAdAccountId: null as string | null };
       }
       const status = await getFacebookConnectionStatus(token, businessId);
       setMetaConnected(status.connected);
       setMetaAdAccountId(status.metaAdAccountId);
+      setMetaOauthScopes(status.metaOauthScopes ?? []);
       return {
         connected: status.connected,
         metaAdAccountId: status.metaAdAccountId,
@@ -368,8 +384,9 @@ export function CampaignAdsPanel({
     } catch (e) {
       setMetaConnected(false);
       setMetaAdAccountId(null);
+      setMetaOauthScopes([]);
       setMetaError(
-        e instanceof Error ? e.message : "Could not check Facebook.",
+        e instanceof Error ? e.message : "Could not check Meta connection.",
       );
       return { connected: false, metaAdAccountId: null as string | null };
     } finally {
@@ -497,6 +514,8 @@ export function CampaignAdsPanel({
             campaignSearch={campaignSearchInput}
             onCampaignSearchChange={setCampaignSearchInput}
             onCampaignPageChange={setCampaignPage}
+            canCreateCampaign={canCreateMetaCampaign}
+            createCampaignBlockedReason={createCampaignBlockedReason}
             onCreateCampaign={() => {
               void openCreateOrResume();
             }}
@@ -504,6 +523,7 @@ export function CampaignAdsPanel({
               void loadStats({ refresh: true });
             }}
             onDeleteCampaign={(c) => setCampaignPendingDelete(c)}
+            canDeleteCampaign={canCreateMetaCampaign}
             deletingCampaignId={deletingCampaignId}
           />
         ) : (
@@ -514,14 +534,14 @@ export function CampaignAdsPanel({
                   <MetaLogo className="size-9 opacity-80" />
                 </span>
                 <p className="mt-5 text-lg font-bold text-zinc-900">
-                  Connect Facebook
+                  Connect Meta
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-600">
                   Open{" "}
                   <span className="font-semibold text-zinc-800">
                     Settings → Integrations
                   </span>{" "}
-                  and connect Facebook to unlock campaign analytics here.
+                  and connect Meta to unlock campaign analytics here.
                 </p>
               </div>
             ) : null}
@@ -534,7 +554,7 @@ export function CampaignAdsPanel({
                   </span>
                   <div>
                     <p className="font-bold text-zinc-900">
-                      Facebook linked, pick your ad account
+                      Meta linked, pick your ad account
                     </p>
                     <p className="mt-1 text-sm text-zinc-600">
                       Choose which Meta ad account powers this business.

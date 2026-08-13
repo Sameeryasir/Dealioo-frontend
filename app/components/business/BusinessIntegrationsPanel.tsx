@@ -170,7 +170,7 @@ export function BusinessIntegrationsPanel({
   };
 
   const handleDisconnectMeta = async () => {
-    if (!window.confirm("Remove Facebook from this business?")) return;
+    if (!window.confirm("Remove Meta Ads from this business?")) return;
     setMetaBusy("loading");
     setMetaError(null);
     try {
@@ -183,7 +183,7 @@ export function BusinessIntegrationsPanel({
     } catch (e) {
       setMetaBusy("error");
       setMetaError(
-        e instanceof Error ? e.message : "Could not remove Facebook.",
+        e instanceof Error ? e.message : "Could not remove Meta Ads.",
       );
     }
   };
@@ -287,7 +287,7 @@ export function BusinessIntegrationsPanel({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
-                  Facebook / Meta Ads
+                  Meta Ads
                 </p>
                 <StatusBadge loading={metaLoading} connected={metaConnected} />
               </div>
@@ -310,7 +310,7 @@ export function BusinessIntegrationsPanel({
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1877F2] px-3.5 text-xs font-semibold text-white no-underline"
               >
                 <ExternalLink className="size-3.5" strokeWidth={2} />
-                Connect with Facebook
+                Connect with Meta
               </a>
             )}
           </div>
