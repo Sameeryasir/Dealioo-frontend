@@ -112,7 +112,13 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
   const queryClient = useQueryClient();
   const signedIn = hasAuthSession();
 
-  const readQuery = useInfiniteQuery({
+  const readQuery = useInfiniteQuery<
+    AdminNotificationsResponse,
+    Error,
+    InfiniteData<AdminNotificationsResponse, number>,
+    ReturnType<typeof adminNotificationQueryKeys.list>,
+    number
+  >({
     queryKey: adminNotificationQueryKeys.list("read"),
     queryFn: ({ pageParam }) =>
       getAdminNotifications({
@@ -128,7 +134,13 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
     enabled: signedIn,
   });
 
-  const unreadQuery = useInfiniteQuery({
+  const unreadQuery = useInfiniteQuery<
+    AdminNotificationsResponse,
+    Error,
+    InfiniteData<AdminNotificationsResponse, number>,
+    ReturnType<typeof adminNotificationQueryKeys.list>,
+    number
+  >({
     queryKey: adminNotificationQueryKeys.list("unread"),
     queryFn: ({ pageParam }) =>
       getAdminNotifications({

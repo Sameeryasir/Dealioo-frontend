@@ -58,12 +58,8 @@ function normalizeDraft(
   const fallbackRadius =
     typeof parsed.radiusValue === "number" && parsed.radiusValue >= 1
       ? parsed.radiusValue
-      : typeof legacy.radiusValue === "number" && legacy.radiusValue >= 1
-        ? legacy.radiusValue
-        : 16;
-  const fallbackUnit = normalizeRadiusUnit(
-    parsed.radiusUnit ?? legacy.radiusUnit,
-  );
+      : 16;
+  const fallbackUnit = normalizeRadiusUnit(parsed.radiusUnit);
   const targetLocations = migrated.targetLocations.map((row) =>
     withDefaultLocationRadius(row, fallbackRadius, fallbackUnit),
   );
