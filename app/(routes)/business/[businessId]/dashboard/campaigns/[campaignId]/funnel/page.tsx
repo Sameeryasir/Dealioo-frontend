@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
-import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { LazyCrmTemplateEditor } from "@/app/components/crm-template-editor/LazyCrmTemplateEditor";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
@@ -25,7 +25,7 @@ export default function CampaignCrmTemplateEditorPage() {
 
   return (
     <div className="h-[100dvh] min-h-0 w-full overflow-hidden">
-      <CrmTemplateEditor
+      <LazyCrmTemplateEditor
         businessId={businessId}
         campaignId={campaignId}
         campaignName={campaign?.campaignName}

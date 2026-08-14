@@ -1,11 +1,11 @@
 "use client";
 
-import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { LazyCrmTemplateEditor } from "@/app/components/crm-template-editor/LazyCrmTemplateEditor";
 
 export default function Page() {
   return (
     <div className="h-dvh min-h-0 w-full">
-      <CrmTemplateEditor initialPageId="landing" interactivePreview />
+      <LazyCrmTemplateEditor initialPageId="landing" interactivePreview />
     </div>
   );
 }

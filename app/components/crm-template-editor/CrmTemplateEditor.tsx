@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
 import { CanvasWorkspace } from "@/app/components/crm-template-editor/CanvasWorkspace";
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
 import { EditorLeftSidebar } from "@/app/components/crm-template-editor/EditorLeftSidebar";
 import { EditorShell } from "@/app/components/crm-template-editor/EditorShell";
-import { FunnelAiAssistantSidebar } from "@/app/components/crm-template-editor/FunnelAiAssistantSidebar";
 import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPanel";
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
-import { FunnelPageTemplateGallery } from "@/app/components/crm-template-editor/FunnelPageTemplateGallery";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
 import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
@@ -56,6 +55,29 @@ import type {
   TemplatePagePatch,
   TemplatePagesState,
 } from "@/app/components/crm-template-editor/template-types";
+
+const FunnelAiAssistantSidebar = dynamic(
+  () =>
+    import("@/app/components/crm-template-editor/FunnelAiAssistantSidebar").then(
+      (mod) => mod.FunnelAiAssistantSidebar,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full min-h-[12rem] items-center justify-center bg-white text-sm text-slate-500">
+        Loading AI assistant…
+      </div>
+    ),
+  },
+);
+
+const FunnelPageTemplateGallery = dynamic(
+  () =>
+    import("@/app/components/crm-template-editor/FunnelPageTemplateGallery").then(
+      (mod) => mod.FunnelPageTemplateGallery,
+    ),
+  { ssr: false },
+);
 
 export type CrmTemplateEditorProps = {
   businessId?: number;

@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { LazyCrmTemplateEditor } from "@/app/components/crm-template-editor/LazyCrmTemplateEditor";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 
 function parsePositiveIntParam(raw: string | null): number | undefined {
@@ -26,7 +26,7 @@ function FunnelPaymentPreviewInner() {
 
   return (
     <div className="h-dvh min-h-0 w-full">
-      <CrmTemplateEditor
+      <LazyCrmTemplateEditor
         initialPageId="payment"
         interactivePreview
         businessId={businessId}

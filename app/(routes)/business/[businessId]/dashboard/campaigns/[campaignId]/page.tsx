@@ -5,7 +5,7 @@ import { CampaignAdsPanel } from "@/app/components/campaign/CampaignAdsPanel";
 import { FunnelOrdersPanel } from "@/app/components/campaign/FunnelOrdersPanel";
 import { CampaignGuestsPanel } from "@/app/components/campaign/CampaignGuestsPanel";
 import { FunnelOverviewPanel } from "@/app/components/campaign/FunnelOverviewPanel";
-import { CrmTemplateEditor } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { LazyCrmTemplateEditor } from "@/app/components/crm-template-editor/LazyCrmTemplateEditor";
 import CampaignHeader from "@/app/components/CampaignHeader";
 import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
@@ -107,7 +107,7 @@ export default function CampaignWelcomePage() {
           >
             {activeTabId === "funnel" ? (
               <div className="funnel-editor-host flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-                <CrmTemplateEditor
+                <LazyCrmTemplateEditor
                   embedded
                   businessId={businessId}
                   campaignId={campaignId}
