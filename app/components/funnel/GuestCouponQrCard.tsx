@@ -4,8 +4,7 @@ import { CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GuestPassUnavailableCard } from "@/app/components/pass/GuestPassUnavailableCard";
 import {
-  getGuestCouponByCustomerAndFunnel,
-  getGuestCouponByPayment,
+  getGuestCouponByAccessToken,
   type GuestCouponResponse,
 } from "@/app/services/redemption/scan-redemption";
 import {
@@ -14,11 +13,7 @@ import {
   resolveGuestPassUnavailableReason,
 } from "@/app/lib/guest-pass-state";
 
-type GuestCouponQrCardProps =
-  | { paymentId: number; customerId?: never; funnelId?: never }
-  | { paymentId?: never; customerId: number; funnelId: number };
-
-export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
+export function GuestCouponQrCard({ accessToken }: { accessToken: string }) {
   const [coupon, setCoupon] = useState<GuestCouponResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,17 +21,17 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
   useEffect(() => {
     let cancelled = false;
     let attempts = 0;
+    const token = accessToken.trim();
+    if (!token) {
+      setError("Your QR code is being prepared. Check back shortly.");
+      setLoading(false);
+      return;
+    }
 
     const load = async () => {
       attempts += 1;
       try {
-        const data =
-          props.paymentId != null
-            ? await getGuestCouponByPayment(props.paymentId)
-            : await getGuestCouponByCustomerAndFunnel(
-                props.customerId,
-                props.funnelId,
-              );
+        const data = await getGuestCouponByAccessToken(token);
         if (!cancelled) {
           setCoupon(data);
           setLoading(false);
@@ -56,7 +51,7 @@ export function GuestCouponQrCard(props: GuestCouponQrCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.paymentId, props.customerId, props.funnelId]);
+  }, [accessToken]);
 
   if (loading) {
     return (

@@ -14,6 +14,7 @@ import { parseCampaignPrice } from "@/app/lib/campaign-price";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
+import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
 export function FunnelConfirmationView({
   funnelId,
@@ -30,29 +31,27 @@ export function FunnelConfirmationView({
   const { session, ready } = useCheckoutContext();
 
   const isDesignPreview = searchParams.get("preview") === "1";
-  const campaignTypeParam = searchParams.get("campaignType")?.trim();
-  const campaignType: "prepaid" | "postpaid" | null =
-    campaignTypeParam === "postpaid" || campaignTypeParam === "prepaid"
-      ? campaignTypeParam
-      : null;
-  const isPostpaid = campaignType === "postpaid";
-
-  const paymentId = session?.funnelPaymentId ?? null;
-
-  const { isPaid, isFailed, isConfirming } = usePaymentStatusPoll({
-    paymentId,
-    enabled:
-      !isDesignPreview && ready && !isPostpaid && paymentId != null,
-  });
-
-  const confirmedByServer = !isDesignPreview && !isPostpaid && isPaid;
-  const celebrate = confirmedByServer;
 
   const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
     templateStorageKey,
     businessId,
     "confirmation",
   );
+
+  const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
+  const isPostpaid = campaignType === "postpaid";
+  const isPrepaid = campaignType === "prepaid";
+
+  const paymentId = session?.funnelPaymentId ?? null;
+
+  const { isPaid, isFailed, isConfirming } = usePaymentStatusPoll({
+    paymentId,
+    enabled:
+      !isDesignPreview && ready && isPrepaid && paymentId != null,
+  });
+
+  const confirmedByServer = !isDesignPreview && isPrepaid && isPaid;
+  const celebrate = confirmedByServer;
 
   useEffect(() => {
     if (isDesignPreview) return;
@@ -115,7 +114,7 @@ export function FunnelConfirmationView({
     searchParams,
   ]);
 
-  if (!ready || isLoading) {
+  if (!ready || isLoading || (!isDesignPreview && campaignType == null)) {
     return <FunnelPreviewSkeleton />;
   }
 

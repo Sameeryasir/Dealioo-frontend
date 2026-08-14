@@ -9,26 +9,25 @@ import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
 import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { buildFunnelPublicPath } from "@/app/lib/funnel-public-path";
+import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
 export function LandingFunnelPreview() {
   const searchParams = useSearchParams();
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
-  useFunnelStepGuard(funnelId, "landing");
 
   const isDesignPreview = searchParams.get("preview") === "1";
   const campaignPricing = useCampaignPricing(campaignId, businessId);
-  const campaignTypeParam = searchParams.get("campaignType")?.trim();
-  const campaignType =
-    campaignTypeParam === "postpaid" || campaignTypeParam === "prepaid"
-      ? campaignTypeParam
-      : undefined;
 
   const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
     funnelIdSegment,
     businessId,
     "landing",
   );
+
+  const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
+  useFunnelStepGuard(funnelId, "landing", { campaignType });
+
   const landing = pages.landing;
 
   const landingCtaHref =

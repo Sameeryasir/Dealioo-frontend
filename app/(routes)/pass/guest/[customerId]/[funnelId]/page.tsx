@@ -1,19 +1,13 @@
 "use client";
 
-import { GuestPassView } from "@/app/components/pass/GuestPassView";
-import { useParams } from "next/navigation";
+import { GuestPassUnavailableCard } from "@/app/components/pass/GuestPassUnavailableCard";
 
-export default function SignupGuestPassPage() {
-  const params = useParams<{ customerId: string; funnelId: string }>();
-  const customerId = Number(params.customerId);
-  const funnelId = Number(params.funnelId);
-
-  if (!Number.isFinite(customerId) || customerId < 1) {
-    return null;
-  }
-  if (!Number.isFinite(funnelId) || funnelId < 1) {
-    return null;
-  }
-
-  return <GuestPassView customerId={customerId} funnelId={funnelId} />;
+export default function LegacyGuestPassPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-white px-4 py-10">
+      <div className="w-full max-w-md">
+        <GuestPassUnavailableCard reason="loadFailed" />
+      </div>
+    </main>
+  );
 }

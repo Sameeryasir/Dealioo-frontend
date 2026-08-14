@@ -17,8 +17,8 @@ export function useFunnelGuestRoute() {
   const searchParams = useSearchParams();
 
   const funnelIdSegment = useMemo(
-    () => readRouteSegment(params.campaignId),
-    [params.campaignId],
+    () => readRouteSegment(params.funnelId),
+    [params.funnelId],
   );
 
   const funnelId = useMemo(

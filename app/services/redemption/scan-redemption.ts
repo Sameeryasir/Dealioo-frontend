@@ -349,32 +349,19 @@ export type GuestCouponResponse = {
   } | null;
 };
 
-export async function getGuestCouponByPayment(
-  funnelPaymentId: number,
+export async function getGuestCouponByAccessToken(
+  accessToken: string,
 ): Promise<GuestCouponResponse> {
-  const res = await fetch(
-    `${getApiBaseUrl()}/redemption/coupon/payment/${encodeURIComponent(String(funnelPaymentId))}`,
-    {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    },
-  );
-
-  if (!res.ok) {
-    throw new Error(
-      await parseApiErrorMessage(res, "Could not load your pass."),
-    );
+  const token = accessToken.trim();
+  if (!token) {
+    throw new Error("Pass access token is required.");
   }
 
-  return (await res.json()) as GuestCouponResponse;
-}
+  const params = new URLSearchParams();
+  params.set("accessToken", token);
 
-export async function getGuestCouponByCustomerAndFunnel(
-  customerId: number,
-  funnelId: number,
-): Promise<GuestCouponResponse> {
   const res = await fetch(
-    `${getApiBaseUrl()}/redemption/coupon/customer/${encodeURIComponent(String(customerId))}/funnel/${encodeURIComponent(String(funnelId))}`,
+    `${getApiBaseUrl()}/redemption/coupon/pass?${params.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

@@ -33,8 +33,12 @@ function stripPaymentSuccessParams(search: string): string {
 export function useFunnelStepGuard(
   funnelId: number | null | undefined,
   step: FunnelGuardStep,
+  options?: {
+    campaignType?: "prepaid" | "postpaid" | null;
+  },
 ): void {
   const router = useRouter();
+  const campaignType = options?.campaignType ?? null;
 
   useEffect(() => {
     if (funnelId == null || funnelId < 1) return;
@@ -57,8 +61,11 @@ export function useFunnelStepGuard(
       clearFunnelLockedStep(funnelId);
       forceFunnelLockedStep(funnelId, "signup");
 
-      const campaignType = params.get("campaignType")?.trim();
-      if (checkoutToken && !paymentSucceeded && campaignType !== "postpaid") {
+      if (
+        checkoutToken &&
+        !paymentSucceeded &&
+        campaignType === "prepaid"
+      ) {
         router.replace(
           buildFunnelStepPath(
             funnelId,
@@ -136,5 +143,5 @@ export function useFunnelStepGuard(
         window.removeEventListener("popstate", onPopState);
       };
     }
-  }, [funnelId, step, router]);
+  }, [funnelId, step, router, campaignType]);
 }

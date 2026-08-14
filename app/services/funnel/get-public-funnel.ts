@@ -8,15 +8,24 @@ export type PublicFunnelStep =
   | "payment"
   | "confirmation";
 
+export type PublicFunnelCampaignType = "prepaid" | "postpaid";
+
 export type PublicFunnelResponse = Pick<
   FunnelByCampaignResponse,
   "id" | "campaignId" | "pages"
 > & {
   businessId?: number | null;
+  campaignType?: PublicFunnelCampaignType | string | null;
   pixelId?: string | null;
   googleTagManagerId?: string | null;
   step?: PublicFunnelStep | string;
 };
+
+export function parsePublicCampaignType(
+  value: unknown,
+): PublicFunnelCampaignType | null {
+  return value === "prepaid" || value === "postpaid" ? value : null;
+}
 
 const publicFunnelInflight = new Map<
   string,

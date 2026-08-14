@@ -4,8 +4,7 @@ import { CheckCircle2, Loader2, QrCode, ScanLine } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GuestPassUnavailableCard } from "@/app/components/pass/GuestPassUnavailableCard";
 import {
-  getGuestCouponByCustomerAndFunnel,
-  getGuestCouponByPayment,
+  getGuestCouponByAccessToken,
   type GuestCouponResponse,
 } from "@/app/services/redemption/scan-redemption";
 import {
@@ -15,11 +14,7 @@ import {
 } from "@/app/lib/guest-pass-state";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 
-type GuestPassViewProps =
-  | { paymentId: number; customerId?: never; funnelId?: never }
-  | { paymentId?: never; customerId: number; funnelId: number };
-
-export function GuestPassView(props: GuestPassViewProps) {
+export function GuestPassView({ accessToken }: { accessToken: string }) {
   const [coupon, setCoupon] = useState<GuestCouponResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -27,17 +22,17 @@ export function GuestPassView(props: GuestPassViewProps) {
   useEffect(() => {
     let cancelled = false;
     let attempts = 0;
+    const token = accessToken.trim();
+    if (!token) {
+      setLoadFailed(true);
+      setLoading(false);
+      return;
+    }
 
     const load = async () => {
       attempts += 1;
       try {
-        const data =
-          props.paymentId != null
-            ? await getGuestCouponByPayment(props.paymentId)
-            : await getGuestCouponByCustomerAndFunnel(
-                props.customerId,
-                props.funnelId,
-              );
+        const data = await getGuestCouponByAccessToken(token);
         if (!cancelled) {
           setCoupon(data);
           setLoading(false);
@@ -58,7 +53,7 @@ export function GuestPassView(props: GuestPassViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.paymentId, props.customerId, props.funnelId]);
+  }, [accessToken]);
 
   const showUnavailable = isGuestPassUnavailable(coupon);
   const showQr = canShowGuestPassQr(coupon);

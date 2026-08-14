@@ -131,10 +131,10 @@ export default function CampaignHeader({
   }, [campaignId, funnelId, businessId, price, campaign?.campaignType]);
 
   const landingPreviewUrl = useMemo(() => {
-    const routeId = resolveFunnelRouteId(funnelId, campaignId);
+    const routeId = resolveFunnelRouteId(funnelId);
     if (routeId == null) return "";
     return buildFunnelDesignPreviewPath(routeId, "landing");
-  }, [funnelId, campaignId]);
+  }, [funnelId]);
 
   const handleGenerate = useCallback(() => {
     onGenerateTrackingLink?.();

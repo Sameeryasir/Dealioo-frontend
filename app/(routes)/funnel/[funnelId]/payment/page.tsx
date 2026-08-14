@@ -14,21 +14,32 @@ import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
+import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
 function FunnelCampaignPaymentPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
-  useFunnelStepGuard(funnelId, "payment");
   const { checkoutToken, session, ready, error: checkoutError } =
     useCheckoutContext();
 
   const isDesignPreview = searchParams.get("preview") === "1";
-  const isPostpaid = searchParams.get("campaignType")?.trim() === "postpaid";
+
+  const campaignPricing = useCampaignPricing(campaignId, businessId);
+
+  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
+    funnelIdSegment,
+    businessId,
+    "payment",
+  );
+
+  const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
+  const isPostpaid = campaignType === "postpaid";
+  useFunnelStepGuard(funnelId, "payment", { campaignType });
 
   useEffect(() => {
-    if (isDesignPreview || !isPostpaid || funnelId == null) return;
+    if (isDesignPreview || isLoading || !isPostpaid || funnelId == null) return;
     router.replace(
       buildFunnelPaymentConfirmationPath(
         funnelId,
@@ -42,6 +53,7 @@ function FunnelCampaignPaymentPageInner() {
     );
   }, [
     isDesignPreview,
+    isLoading,
     isPostpaid,
     funnelId,
     campaignId,
@@ -49,18 +61,10 @@ function FunnelCampaignPaymentPageInner() {
     router,
   ]);
 
-  const campaignPricing = useCampaignPricing(campaignId, businessId);
-
-  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
-    funnelIdSegment,
-    businessId,
-    "payment",
-  );
-  const payment = pages.payment;
-  const landing = pages.landing;
-
   useEffect(() => {
-    if (isDesignPreview || isPostpaid || isLoading) return;
+    if (isDesignPreview || isPostpaid || isLoading || campaignType == null) {
+      return;
+    }
     if (!publicFunnel?.pixelId) return;
 
     const currency =
@@ -81,6 +85,7 @@ function FunnelCampaignPaymentPageInner() {
     isDesignPreview,
     isPostpaid,
     isLoading,
+    campaignType,
     publicFunnel?.pixelId,
     publicFunnel?.businessId,
     businessId,
@@ -89,8 +94,11 @@ function FunnelCampaignPaymentPageInner() {
     searchParams,
   ]);
 
+  const payment = pages.payment;
+  const landing = pages.landing;
+
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
-    if (isDesignPreview || !session) return null;
+    if (isDesignPreview || !session || isPostpaid) return null;
     const email = session.customerEmail?.trim();
     if (!email || !checkoutToken || funnelId == null || businessId == null) {
       return null;
@@ -112,6 +120,7 @@ function FunnelCampaignPaymentPageInner() {
   }, [
     isDesignPreview,
     session,
+    isPostpaid,
     checkoutToken,
     funnelId,
     businessId,
@@ -132,6 +141,9 @@ function FunnelCampaignPaymentPageInner() {
     !ready &&
     session == null;
 
+  const awaitingCampaignType =
+    !isDesignPreview && (isLoading || campaignType == null);
+
   return (
     <>
       <FunnelMetaPixel
@@ -140,8 +152,8 @@ function FunnelCampaignPaymentPageInner() {
         funnelId={funnelId}
         stepKey="payment"
       />
-      {(!isDesignPreview && isPostpaid) ||
-      isLoading ||
+      {awaitingCampaignType ||
+      (!isDesignPreview && isPostpaid) ||
       awaitingInitialCheckoutSession ? (
         <FunnelPreviewSkeleton />
       ) : (

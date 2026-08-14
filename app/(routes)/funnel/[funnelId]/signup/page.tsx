@@ -14,39 +14,39 @@ import {
   buildFunnelPaymentConfirmationPath,
   buildFunnelPublicPath,
 } from "@/app/lib/funnel-public-path";
+import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
 function FunnelCampaignSignupInner() {
   const searchParams = useSearchParams();
   const { funnelIdSegment, funnelId, campaignId, businessId } =
     useFunnelGuestRoute();
-  useFunnelStepGuard(funnelId, "signup");
 
   const isDesignPreview = searchParams.get("preview") === "1";
-  const campaignTypeParam = searchParams.get("campaignType")?.trim();
-  const isPostpaid = campaignTypeParam === "postpaid";
-  const campaignType: "prepaid" | "postpaid" | undefined =
-    campaignTypeParam === "postpaid" || campaignTypeParam === "prepaid"
-      ? campaignTypeParam
-      : undefined;
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
-  const funnelLinkQuery = {
-    campaignId,
-    businessId,
-    price: campaignPricing.subtotal ?? undefined,
-    campaignType,
-  };
 
   const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
     funnelIdSegment,
     businessId,
     "signup",
   );
+
+  const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
+  const isPostpaid = campaignType === "postpaid";
+  useFunnelStepGuard(funnelId, "signup", { campaignType });
+
+  const funnelLinkQuery = {
+    campaignId,
+    businessId,
+    price: campaignPricing.subtotal ?? undefined,
+    campaignType: campaignType ?? undefined,
+  };
+
   const signup = pages.signup;
   const landing = pages.landing;
 
   const signupNextHref =
-    funnelId != null
+    funnelId != null && campaignType != null
       ? isPostpaid
         ? buildFunnelPaymentConfirmationPath(funnelId, funnelLinkQuery, {
             paymentConfirmed: true,
@@ -66,7 +66,7 @@ function FunnelCampaignSignupInner() {
         funnelId={funnelId}
         stepKey="signup"
       />
-      {isLoading ? (
+      {isLoading || (!isDesignPreview && campaignType == null) ? (
         <FunnelPreviewSkeleton />
       ) : (
         <TemplatePreview

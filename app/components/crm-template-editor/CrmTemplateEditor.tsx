@@ -212,8 +212,8 @@ export function CrmTemplateEditor({
     [campaignId],
   );
   const previewRouteId = useMemo(
-    () => resolveFunnelRouteId(funnelId, previewCampaignId),
-    [funnelId, previewCampaignId],
+    () => resolveFunnelRouteId(funnelId),
+    [funnelId],
   );
 
   const campaignPricing = useMemo((): CampaignPricing => {

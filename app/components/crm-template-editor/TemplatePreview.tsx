@@ -303,18 +303,18 @@ export function TemplatePreview({
             : {}),
         });
 
-        if (trackingFunnelId != null && trackingFunnelId >= 1) {
-          try {
-            await trackFunnelEvent({
-              eventType: "signup",
-              funnelId: trackingFunnelId,
-              customerId: customer.id,
-              visitorId: getOrCreateVisitorId(),
-            });
-          } catch (trackErr) {
-            console.warn("[Funnel] signup track failed", trackErr);
-          }
+        if (trackingFunnelId == null || trackingFunnelId < 1) {
+          throw new Error(
+            "This offer link is missing funnel details. Please open the original link and try again.",
+          );
         }
+
+        await trackFunnelEvent({
+          eventType: "signup",
+          funnelId: trackingFunnelId,
+          customerId: customer.id,
+          visitorId: getOrCreateVisitorId(),
+        });
 
         trackMetaPixelEvent("Lead", {
           pixelId: metaPixelId,
@@ -335,8 +335,7 @@ export function TemplatePreview({
           signupSubmitFlow &&
           !skipPaymentStep &&
           resolvedCheckoutBusinessId != null &&
-          resolvedCheckoutBusinessId >= 1 &&
-          trackingFunnelId != null
+          resolvedCheckoutBusinessId >= 1
         ) {
           const checkout = await createCheckoutSession({
             customerId: customer.id,

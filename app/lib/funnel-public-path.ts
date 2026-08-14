@@ -116,10 +116,8 @@ export function buildFunnelPaymentConfirmationPath(
 
 export function resolveFunnelRouteId(
   funnelId: number | null | undefined,
-  campaignId: number | null | undefined,
 ): number | null {
   if (isPositiveInt(funnelId)) return funnelId;
-  if (isPositiveInt(campaignId)) return campaignId;
   return null;
 }
 
@@ -139,7 +137,7 @@ export function buildFunnelLandingTrackingUrl(input: {
   price?: number | string | null;
   campaignType?: "prepaid" | "postpaid" | null;
 }): string {
-  const routeId = resolveFunnelRouteId(input.funnelId, input.campaignId);
+  const routeId = resolveFunnelRouteId(input.funnelId);
   const origin = getPublicAppUrl().replace(/\/$/, "");
   if (routeId == null) return origin;
 
