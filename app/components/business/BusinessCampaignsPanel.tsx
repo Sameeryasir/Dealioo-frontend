@@ -210,6 +210,7 @@ export function BusinessCampaignsPanel({
   const { data: business } = useBusinessByIdQuery(businessId);
   const { can } = useBusinessMembershipPermissions(businessId);
   const canCreateCampaign = can("campaigns_create");
+  const canDeleteCampaign = can("campaigns_delete");
 
   const loading = isLoading || (isFetching && campaigns.length === 0);
 
@@ -544,6 +545,7 @@ export function BusinessCampaignsPanel({
                       <CampaignFunnelCard
                         funnel={funnel}
                         businessId={businessId}
+                        canDelete={canDeleteCampaign}
                         onDeleteRequest={setCampaignPendingDelete}
                       />
                     </div>

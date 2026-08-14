@@ -26,6 +26,7 @@ import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import { StatusPill } from "@/app/components/StatusPill";
 import { useAutomationRouteContext } from "@/app/hooks/use-automation-route-context";
@@ -108,9 +109,11 @@ function AutomationsColumnHead({
 function AutomationsEmbeddedHeader({
   total,
   onCreate,
+  canCreate,
 }: {
   total: number;
   onCreate: () => void;
+  canCreate: boolean;
 }) {
   return (
     <div className="funnel-automations-hero-shell">
@@ -129,7 +132,10 @@ function AutomationsEmbeddedHeader({
         </div>
         <div className="funnel-automations-header__actions">
           <span className="funnel-automations-header__total">{total} total</span>
-          <CreateAutomationButton onClick={onCreate} />
+          <CreateAutomationButton
+            onClick={onCreate}
+            disabled={!canCreate}
+          />
         </div>
       </div>
     </div>
@@ -176,15 +182,23 @@ function AutomationStatusBadge({ status }: { status: AutomationStatus }) {
 function CreateAutomationButton({
   onClick,
   className = "",
+  disabled = false,
 }: {
   onClick: () => void;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`funnel-automations-create-btn inline-flex shrink-0 items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.98] ${className}`}
+      disabled={disabled}
+      title={
+        disabled
+          ? "You do not have permission to create automations"
+          : undefined
+      }
+      className={`funnel-automations-create-btn inline-flex shrink-0 items-center justify-center gap-1.5 transition hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 ${className}`}
     >
       <Plus className="size-4" aria-hidden />
       <span>Create Automation</span>
@@ -210,6 +224,9 @@ export function AutomationListPage({
   const businessId = route.businessId ?? businessIdProp;
   const campaignId = route.campaignId ?? campaignIdProp;
   const funnelId = funnelIdProp ?? route.funnelId;
+  const { can } = useBusinessMembershipPermissions(businessId ?? null);
+  const canCreateAutomation = can("campaigns_create");
+  const canDeleteAutomation = can("campaigns_delete");
 
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -287,13 +304,14 @@ export function AutomationListPage({
   };
 
   const openCreateModal = useCallback(() => {
+    if (!canCreateAutomation) return;
     const context = validateAutomationCreateContext(createContextInput);
     if (!context.ok) {
       toast.error(context.message);
       return;
     }
     setModalOpen(true);
-  }, [createContextInput]);
+  }, [canCreateAutomation, createContextInput]);
 
   const openBuilderAfterCreate = useCallback(
     (automationId: string, bootstrapping = false) => {
@@ -432,6 +450,7 @@ export function AutomationListPage({
         <AutomationsEmbeddedHeader
           total={filtered.length}
           onCreate={openCreateModal}
+          canCreate={canCreateAutomation}
         />
       ) : (
         <div className="funnel-automations-hero flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -454,7 +473,10 @@ export function AutomationListPage({
               </p>
             ) : null}
           </div>
-          <CreateAutomationButton onClick={openCreateModal} />
+          <CreateAutomationButton
+            onClick={openCreateModal}
+            disabled={!canCreateAutomation}
+          />
         </div>
       )}
 
@@ -481,6 +503,7 @@ export function AutomationListPage({
           {!embedded ? (
             <CreateAutomationButton
               onClick={openCreateModal}
+              disabled={!canCreateAutomation}
               className="funnel-automations-toolbar__create w-full sm:w-auto"
             />
           ) : null}
@@ -509,7 +532,11 @@ export function AutomationListPage({
             rows={filtered}
             builderHref={builderHref}
             onOpenBuilder={onOpenBuilder}
-            onDelete={(row) => setDeleteTarget(row)}
+            onDelete={
+              canDeleteAutomation
+                ? (row) => setDeleteTarget(row)
+                : undefined
+            }
           />
         </motion.div>
       ) : null}
@@ -575,7 +602,7 @@ function AutomationsTableSection({
   rows: AutomationListItem[];
   builderHref: (row: AutomationListItem) => string;
   onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
-  onDelete: (row: AutomationListItem) => void;
+  onDelete?: (row: AutomationListItem) => void;
 }) {
   return (
     <div className="funnel-automations-surface">
@@ -686,7 +713,9 @@ function AutomationsTableSection({
                     <AutomationRowMenu
                       href={href}
                       onOpenBuilder={() => onOpenBuilder?.(row.id)}
-                      onDelete={() => onDelete(row)}
+                      onDelete={
+                        onDelete ? () => onDelete(row) : undefined
+                      }
                     />
                   </td>
                 </tr>

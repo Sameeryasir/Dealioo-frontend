@@ -210,6 +210,8 @@ type GoogleAdsAnalyticsDashboardProps = {
   onDeleteCampaign: (campaign: GoogleAdsCampaign) => void;
   deletingCampaignId: string | null;
   errorMessage?: string | null;
+  canCreateCampaign?: boolean;
+  canDeleteCampaign?: boolean;
 };
 
 export function GoogleAdsAnalyticsDashboard({
@@ -221,6 +223,8 @@ export function GoogleAdsAnalyticsDashboard({
   onDeleteCampaign,
   deletingCampaignId,
   errorMessage,
+  canCreateCampaign = true,
+  canDeleteCampaign = true,
 }: GoogleAdsAnalyticsDashboardProps) {
   const [campaignSearch, setCampaignSearch] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
@@ -370,7 +374,13 @@ export function GoogleAdsAnalyticsDashboard({
           <button
             type="button"
             onClick={onCreateCampaign}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5]"
+            disabled={!canCreateCampaign}
+            title={
+              !canCreateCampaign
+                ? "You do not have permission to create Google campaigns"
+                : undefined
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           >
             <Plus className="size-4" aria-hidden />
             Create campaign
@@ -590,7 +600,13 @@ export function GoogleAdsAnalyticsDashboard({
                         <button
                           type="button"
                           onClick={onCreateCampaign}
-                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5]"
+                          disabled={!canCreateCampaign}
+                          title={
+                            !canCreateCampaign
+                              ? "You do not have permission to create Google campaigns"
+                              : undefined
+                          }
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
                         >
                           <Plus className="size-4" aria-hidden />
                           Create campaign
@@ -687,25 +703,27 @@ export function GoogleAdsAnalyticsDashboard({
                           </td>
                           <td className="sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white py-3 pl-2 group-hover:bg-[#f8fbff]">
                             <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                title="Delete campaign"
-                                disabled={deletingCampaignId === c.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteCampaign(c);
-                                }}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                              >
-                                {deletingCampaignId === c.id ? (
-                                  <Loader2
-                                    className="size-4 animate-spin"
-                                    aria-hidden
-                                  />
-                                ) : (
-                                  <Trash2 className="size-4" aria-hidden />
-                                )}
-                              </button>
+                              {canDeleteCampaign ? (
+                                <button
+                                  type="button"
+                                  title="Delete campaign"
+                                  disabled={deletingCampaignId === c.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteCampaign(c);
+                                  }}
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                >
+                                  {deletingCampaignId === c.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Trash2 className="size-4" aria-hidden />
+                                  )}
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>

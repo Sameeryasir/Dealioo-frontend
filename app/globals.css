@@ -15579,20 +15579,17 @@ body:has(.auth-select-plan-page) {
   width: 100%;
   overflow: hidden;
   border-radius: 1.35rem;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, #e2e8f0);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbfdff 55%, #f5f9ff 100%);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.04),
-    0 18px 40px rgba(15, 23, 42, 0.14),
-    0 32px 64px rgba(24, 119, 242, 0.12);
+    0 18px 40px rgba(15, 23, 42, 0.14);
   animation: rp-confirm-dialog-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .rp-confirm-dialog--warning .rp-confirm-dialog__panel {
-  border-color: color-mix(in srgb, var(--brand-primary) 18%, #e2e8f0);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbfdff 55%, #f5f9ff 100%);
+  border-color: #e2e8f0;
+  background: #ffffff;
 }
 
 .rp-confirm-dialog__accent {
@@ -15604,16 +15601,6 @@ body:has(.auth-select-plan-page) {
 
 .rp-confirm-dialog--warning .rp-confirm-dialog__accent {
   background: linear-gradient(90deg, #1877f2 0%, #0f5ed7 55%, #3b82f6 100%);
-}
-
-.rp-confirm-dialog__glow {
-  pointer-events: none;
-  position: absolute;
-  top: -40%;
-  left: 20%;
-  right: 20%;
-  height: 55%;
-  background: radial-gradient(ellipse at center, rgba(24, 119, 242, 0.1), transparent 70%);
 }
 
 .rp-confirm-dialog__header {
@@ -15651,11 +15638,7 @@ body:has(.auth-select-plan-page) {
   border-radius: 0.95rem;
   border: 1px solid #bfdbfe;
   color: #1877f2;
-  background:
-    linear-gradient(160deg, #eff6ff 0%, #e8f2ff 100%);
-  box-shadow:
-    0 8px 18px rgba(24, 119, 242, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  background: #eff6ff;
 }
 
 .rp-confirm-dialog__eyebrow {

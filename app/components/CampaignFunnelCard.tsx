@@ -10,6 +10,7 @@ type Props = {
   funnel: Funnel;
   businessId: number;
   onDeleteRequest?: (campaign: Funnel) => void;
+  canDelete?: boolean;
 };
 
 function formatPrice(amount: number): string {
@@ -43,6 +44,7 @@ export default function CampaignFunnelCard({
   funnel,
   businessId,
   onDeleteRequest,
+  canDelete = true,
 }: Props) {
   const imageSrc = useMemo(
     () => normalizeImgSrc(funnel.imageUrl?.trim() ?? ""),
@@ -103,14 +105,28 @@ export default function CampaignFunnelCard({
               {onDeleteRequest ? (
                 <button
                   type="button"
-                  aria-label={`Delete ${title}`}
-                  title="Delete campaign"
+                  aria-label={
+                    canDelete
+                      ? `Delete ${title}`
+                      : "You do not have permission to delete campaigns"
+                  }
+                  title={
+                    canDelete
+                      ? "Delete campaign"
+                      : "You do not have permission to delete campaigns"
+                  }
+                  disabled={!canDelete}
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (!canDelete) return;
                     onDeleteRequest(funnel);
                   }}
-                  className="pointer-events-auto inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/90 bg-white text-red-600 shadow-[0_4px_12px_rgba(15,23,42,0.18)] transition hover:bg-red-50 hover:text-red-700"
+                  className={`pointer-events-auto inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/90 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.18)] transition ${
+                    canDelete
+                      ? "cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700"
+                      : "cursor-not-allowed text-slate-300 opacity-60"
+                  }`}
                 >
                   <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
                 </button>

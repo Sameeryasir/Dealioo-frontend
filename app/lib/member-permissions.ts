@@ -40,14 +40,11 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
   BusinessMemberPermission[]
 > = {
   Manager: [
-    "campaigns_view",
     "campaigns_create",
     "campaigns_edit",
     "campaigns_delete",
-    "meta_campaigns_view",
     "meta_campaigns_create",
     "meta_campaigns_delete",
-    "google_campaigns_view",
     "google_campaigns_create",
     "google_campaigns_delete",
     "orders",
@@ -62,7 +59,6 @@ export const CAMPAIGN_ACTION_OPTIONS: {
   value: CampaignActionPermission;
   label: string;
 }[] = [
-  { value: "campaigns_view", label: "View" },
   { value: "campaigns_edit", label: "Edit" },
   { value: "campaigns_create", label: "Create" },
   { value: "campaigns_delete", label: "Delete" },
@@ -72,7 +68,6 @@ export const META_CAMPAIGN_ACTION_OPTIONS: {
   value: MetaCampaignActionPermission;
   label: string;
 }[] = [
-  { value: "meta_campaigns_view", label: "View" },
   { value: "meta_campaigns_create", label: "Create" },
   { value: "meta_campaigns_delete", label: "Delete" },
 ];
@@ -81,7 +76,6 @@ export const GOOGLE_CAMPAIGN_ACTION_OPTIONS: {
   value: GoogleCampaignActionPermission;
   label: string;
 }[] = [
-  { value: "google_campaigns_view", label: "View" },
   { value: "google_campaigns_create", label: "Create" },
   { value: "google_campaigns_delete", label: "Delete" },
 ];
@@ -331,7 +325,10 @@ export function getDefaultPermissionsForRole(
 export function hasAnyCampaignPermission(
   permissions: readonly string[],
 ): boolean {
-  if (permissions.includes("campaigns")) {
+  if (
+    permissions.includes("campaigns") ||
+    permissions.includes("campaigns_view")
+  ) {
     return true;
   }
   return CAMPAIGN_ACTION_PERMISSIONS.some((key) => permissions.includes(key));
@@ -342,7 +339,8 @@ export function hasAnyMetaCampaignPermission(
 ): boolean {
   if (
     permissions.includes("meta_ads") ||
-    permissions.includes("meta_campaigns")
+    permissions.includes("meta_campaigns") ||
+    permissions.includes("meta_campaigns_view")
   ) {
     return true;
   }
@@ -354,7 +352,10 @@ export function hasAnyMetaCampaignPermission(
 export function hasAnyGoogleCampaignPermission(
   permissions: readonly string[],
 ): boolean {
-  if (permissions.includes("campaigns")) {
+  if (
+    permissions.includes("campaigns") ||
+    permissions.includes("google_campaigns_view")
+  ) {
     return true;
   }
   return GOOGLE_CAMPAIGN_ACTION_PERMISSIONS.some((key) =>
@@ -378,13 +379,9 @@ export function getSelectedMetaCampaignActions(
     return [...META_CAMPAIGN_ACTION_PERMISSIONS];
   }
   if (permissions.includes("meta_ads")) {
-    const selected = new Set<MetaCampaignActionPermission>(
-      META_CAMPAIGN_ACTION_PERMISSIONS.filter((key) =>
-        permissions.includes(key),
-      ),
+    return META_CAMPAIGN_ACTION_PERMISSIONS.filter((key) =>
+      permissions.includes(key),
     );
-    selected.add("meta_campaigns_view");
-    return META_CAMPAIGN_ACTION_PERMISSIONS.filter((key) => selected.has(key));
   }
   return META_CAMPAIGN_ACTION_PERMISSIONS.filter((key) =>
     permissions.includes(key),

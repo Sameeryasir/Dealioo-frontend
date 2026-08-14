@@ -426,6 +426,7 @@ export function InviteMemberForm({
     setPermissions((current) => {
       const withoutCampaignKeys = stripLegacyCampaignFlags(current).filter(
         (item) =>
+          item !== "campaigns_view" &&
           !(CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(item),
       );
 
@@ -444,6 +445,7 @@ export function InviteMemberForm({
     setPermissions((current) => {
       const withoutMetaKeys = stripLegacyCampaignFlags(current).filter(
         (item) =>
+          item !== "meta_campaigns_view" &&
           !(META_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
             item,
           ),
@@ -473,6 +475,7 @@ export function InviteMemberForm({
 
       const withoutCampaignKeys = base.filter(
         (item) =>
+          item !== "campaigns_view" &&
           !(CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(item),
       );
 
@@ -496,6 +499,7 @@ export function InviteMemberForm({
 
       const withoutMetaKeys = base.filter(
         (item) =>
+          item !== "meta_campaigns_view" &&
           !(META_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
             item,
           ),
@@ -512,6 +516,7 @@ export function InviteMemberForm({
     setPermissions((current) => {
       const withoutGoogleKeys = stripLegacyCampaignFlags(current).filter(
         (item) =>
+          item !== "google_campaigns_view" &&
           !(GOOGLE_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
             item,
           ),
@@ -543,6 +548,7 @@ export function InviteMemberForm({
 
       const withoutGoogleKeys = base.filter(
         (item) =>
+          item !== "google_campaigns_view" &&
           !(GOOGLE_CAMPAIGN_ACTION_PERMISSIONS as readonly string[]).includes(
             item,
           ),

@@ -58,11 +58,19 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
         return hasAnyCampaignPermission(permissionList);
       }
 
+      if (permission === "campaigns_view") {
+        return hasAnyCampaignPermission(permissionList);
+      }
+
       if (permission === "meta_ads" || permission === "meta_campaigns") {
         return hasAnyMetaCampaignPermission(permissionList);
       }
 
-      if (permission === "google_ads") {
+      if (permission === "meta_campaigns_view") {
+        return hasAnyMetaCampaignPermission(permissionList);
+      }
+
+      if (permission === "google_ads" || permission === "google_campaigns_view") {
         return hasAnyGoogleCampaignPermission(permissionList);
       }
 
@@ -73,19 +81,9 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
       }
 
       if (META_ACTION_SET.has(permission)) {
-        if (permissionSet.has(permission)) {
-          return true;
-        }
-        if (permissionSet.has("meta_campaigns")) {
-          return true;
-        }
-        if (
-          permission === "meta_campaigns_view" &&
-          permissionSet.has("meta_ads")
-        ) {
-          return true;
-        }
-        return false;
+        return (
+          permissionSet.has(permission) || permissionSet.has("meta_campaigns")
+        );
       }
 
       if (GOOGLE_ACTION_SET.has(permission)) {

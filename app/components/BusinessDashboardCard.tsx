@@ -5,6 +5,7 @@ import { BusinessSetupPopover } from "@/app/components/business/BusinessSetupPop
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { getBusinessSetup } from "@/app/lib/business-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import {
   resolveUploadImageUrl,
   spacesImageLoadProps,
@@ -59,7 +60,12 @@ export default function BusinessDashboardCard({
   const logoSrc = resolveUploadImageUrl(logoUrl);
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;
-  const canDelete = businessId != null && !isScannerUser();
+  const { access, isFetched } = useBusinessMembershipPermissions(businessId);
+  const canDelete =
+    businessId != null &&
+    !isScannerUser() &&
+    isFetched &&
+    (access === "owner" || access === "super_admin");
   const dashboardHref =
     businessId != null
       ? isScannerUser()

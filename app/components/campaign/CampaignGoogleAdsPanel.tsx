@@ -11,6 +11,7 @@ import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirma
 import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
 import { Skeleton } from "@/app/components/skeleton";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
 import {
   getGoogleAdsCampaignStats,
@@ -122,6 +123,9 @@ export function CampaignGoogleAdsPanel({
   businessId: number;
   embedded?: boolean;
 }) {
+  const { can } = useBusinessMembershipPermissions(businessId);
+  const canCreateGoogleCampaign = can("google_campaigns_create");
+  const canDeleteGoogleCampaign = can("google_campaigns_delete");
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(true);
@@ -285,11 +289,19 @@ export function CampaignGoogleAdsPanel({
             insightsLoading={adStatsLoading}
             adsConsoleUrl={adsConsoleUrl}
             errorMessage={adStatsError ?? googleError}
-            onCreateCampaign={() => setCreateCampaignOpen(true)}
+            canCreateCampaign={canCreateGoogleCampaign}
+            canDeleteCampaign={canDeleteGoogleCampaign}
+            onCreateCampaign={() => {
+              if (!canCreateGoogleCampaign) return;
+              setCreateCampaignOpen(true);
+            }}
             onRefresh={() => {
               void loadStats();
             }}
-            onDeleteCampaign={(c) => setCampaignPendingDelete(c)}
+            onDeleteCampaign={(c) => {
+              if (!canDeleteGoogleCampaign) return;
+              setCampaignPendingDelete(c);
+            }}
             deletingCampaignId={deletingCampaignId}
           />
         ) : (

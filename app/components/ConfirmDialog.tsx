@@ -98,9 +98,6 @@ export function ConfirmDialog({
       />
 
       <div className={`rp-confirm-dialog__panel ${panelClassName}`}>
-        <div className="rp-confirm-dialog__accent" aria-hidden />
-        <div className="rp-confirm-dialog__glow" aria-hidden />
-
         <header className="rp-confirm-dialog__header">
           <div className="rp-confirm-dialog__heading">
             <span className="rp-confirm-dialog__icon" aria-hidden>

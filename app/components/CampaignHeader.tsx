@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
@@ -75,6 +76,8 @@ export default function CampaignHeader({
   onCampaignUpdated,
   embedded = false,
 }: CampaignHeaderProps) {
+  const { can } = useBusinessMembershipPermissions(businessId);
+  const canEditCampaign = can("campaigns_edit");
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
   const offerLine = offer?.trim() ?? "";
   const priceText = useMemo(() => {
@@ -297,8 +300,14 @@ export default function CampaignHeader({
               <button
                 type="button"
                 onClick={() => setEditCampaignOpen(true)}
-                disabled={campaignId == null || campaign == null}
-                title="Edit campaign"
+                disabled={
+                  !canEditCampaign || campaignId == null || campaign == null
+                }
+                title={
+                  !canEditCampaign
+                    ? "You do not have permission to edit campaigns"
+                    : "Edit campaign"
+                }
                 aria-label="Edit campaign"
                 className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
               >
@@ -352,11 +361,15 @@ export default function CampaignHeader({
           <button
             type="button"
             onClick={() => setEditCampaignOpen(true)}
-            disabled={campaignId == null || campaign == null}
+            disabled={
+              !canEditCampaign || campaignId == null || campaign == null
+            }
             title={
-              campaignId == null || campaign == null
-                ? "Campaign details not loaded yet"
-                : "Edit campaign"
+              !canEditCampaign
+                ? "You do not have permission to edit campaigns"
+                : campaignId == null || campaign == null
+                  ? "Campaign details not loaded yet"
+                  : "Edit campaign"
             }
             aria-label="Edit campaign"
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"

@@ -88,6 +88,7 @@ import type {
 } from "@/app/lib/meta-campaign-builder-types";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { hasMetaAdsManagementScope } from "@/app/lib/meta-ads-permissions";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import {
   getFacebookAdCampaignStats,
   META_CAMPAIGN_PAGE_SIZE,
@@ -125,6 +126,7 @@ export function CampaignAdsPanel({
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { can } = useBusinessMembershipPermissions(businessId);
   const [adStats, setAdStats] = useState<FacebookAdCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -191,6 +193,10 @@ export function CampaignAdsPanel({
       );
       return;
     }
+    if (!can("meta_campaigns_create")) {
+      setAdStatsError("You do not have permission to create Meta campaigns.");
+      return;
+    }
 
     setResumeDraftLoading(true);
     try {
@@ -225,7 +231,7 @@ export function CampaignAdsPanel({
     } finally {
       setResumeDraftLoading(false);
     }
-  }, [businessId, campaignName, metaOauthScopes]);
+  }, [businessId, campaignName, metaOauthScopes, can]);
 
   const handleDraftPickerSelect = useCallback(
     (action: MetaDraftPickerAction) => {
@@ -268,10 +274,17 @@ export function CampaignAdsPanel({
         ? "needs_account"
         : "ready";
 
-  const canCreateMetaCampaign = hasMetaAdsManagementScope(metaOauthScopes);
-  const createCampaignBlockedReason = canCreateMetaCampaign
-    ? null
-    : "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns.";
+  const canCreateMetaCampaign =
+    hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_create");
+  const canDeleteMetaCampaign =
+    hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_delete");
+  const createCampaignBlockedReason = !hasMetaAdsManagementScope(
+    metaOauthScopes,
+  )
+    ? "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns."
+    : !can("meta_campaigns_create")
+      ? "You do not have permission to create Meta campaigns."
+      : null;
 
   const handleConfirmDeleteCampaign = useCallback(async () => {
     if (!campaignPendingDelete) return;
@@ -523,7 +536,7 @@ export function CampaignAdsPanel({
               void loadStats({ refresh: true });
             }}
             onDeleteCampaign={(c) => setCampaignPendingDelete(c)}
-            canDeleteCampaign={canCreateMetaCampaign}
+            canDeleteCampaign={canDeleteMetaCampaign}
             deletingCampaignId={deletingCampaignId}
           />
         ) : (
