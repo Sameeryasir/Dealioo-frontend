@@ -621,7 +621,9 @@ export function InviteMemberForm({
               </h2>
               <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
                 Send a secure email invitation, choose a role, and decide exactly
-                what this teammate can access.
+                what this teammate can access. They stay Pending until they
+                finish signup or sign in — opening the link alone does not
+                accept the invite.
               </p>
             </div>
           </div>

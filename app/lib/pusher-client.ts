@@ -34,6 +34,12 @@ import {
   parseAdminNotificationPusherPayload,
   pusherAdminNotificationsChannel,
 } from "@/app/lib/pusher-admin-notifications";
+import {
+  PUSHER_MEMBERS_EVENT,
+  parseMemberJoinedPusherPayload,
+  pusherBusinessMembersChannel,
+  type MemberJoinedPusherPayload,
+} from "@/app/lib/pusher-members";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
@@ -469,6 +475,23 @@ export function subscribeAdminNotifications(
     onCreated,
     parseAdminNotificationPusherPayload,
     "admin-notifications",
+  );
+}
+
+export function subscribeBusinessMembers(
+  businessId: number,
+  onJoined: (payload: MemberJoinedPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessMembersChannel(businessId),
+    PUSHER_MEMBERS_EVENT.JOINED,
+    onJoined,
+    parseMemberJoinedPusherPayload,
+    `business-members-${businessId}`,
   );
 }
 
