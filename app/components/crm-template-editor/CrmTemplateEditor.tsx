@@ -105,6 +105,7 @@ export function CrmTemplateEditor({
     reset: resetPagesHistory,
     undo,
     redo,
+    canUndo,
   } = useUndoRedo<TemplatePagesState>(funnelLoader.pages);
 
   const [activeId, setActiveId] = useState<TemplatePageId>(initialPageId);
@@ -239,6 +240,45 @@ export function CrmTemplateEditor({
     },
     [commitPages, funnelId, pages],
   );
+
+  const handleLandingHeroUrlApplied = useCallback(
+    (imageUrl: string) => {
+      const nextUrl = imageUrl.trim();
+      const nextScale = nextUrl ? pages.landing.imageScale : 1;
+      const nextPages: TemplatePagesState = {
+        ...pages,
+        landing: {
+          ...pages.landing,
+          imageUrl: nextUrl,
+          imageScale: nextScale,
+        },
+        signup: {
+          ...pages.signup,
+          imageUrl: nextUrl,
+          imageScale: nextScale,
+        },
+        payment: {
+          ...pages.payment,
+          imageUrl: nextUrl,
+          imageScale: nextScale,
+        },
+      };
+      commitPages(nextPages);
+      setIsDirty(true);
+      setSaveStatus("idle");
+      setSaveError(null);
+    },
+    [commitPages, pages],
+  );
+
+  const handleAiUndo = useCallback((): boolean => {
+    if (!canUndo) return false;
+    undo();
+    setIsDirty(true);
+    setSaveStatus("idle");
+    setSaveError(null);
+    return true;
+  }, [canUndo, undo]);
 
   const funnelLinkQuery = useMemo(
     () => ({
@@ -542,6 +582,8 @@ export function CrmTemplateEditor({
               funnelId={funnelId}
               pagePayload={aiPagePayload}
               onSchemaApplied={handleAiSchemaApplied}
+              onLandingHeroUrlApplied={handleLandingHeroUrlApplied}
+              onUndoLastChange={handleAiUndo}
               onClose={() => setAiAssistantOpen(false)}
             />
           ) : undefined

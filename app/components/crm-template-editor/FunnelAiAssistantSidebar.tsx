@@ -37,6 +37,12 @@ import {
   upsertCachedAiConversation,
 } from "@/app/services/ai/ai-chats-indexed-db";
 import { editFunnelUiWithAi } from "@/app/services/ai/edit-funnel-ui";
+import { isAiRevertChatIntent } from "@/app/services/ai/ai-revert-intent";
+import {
+  clearLandingImageWithAi,
+  generateLandingImageWithAi,
+} from "@/app/services/ai/generate-landing-image";
+import { resolveLandingImageChatIntent } from "@/app/services/ai/landing-image-intent";
 import {
   pickAiEditableFields,
   pickAiFieldConstraints,
@@ -52,11 +58,28 @@ type ChatMessage = {
   createdAt: string;
 };
 
-const SUGGESTIONS = [
-  "Improve my landing headline",
-  "What should the signup form ask?",
-  "Tips for the payment step",
-] as const;
+const SUGGESTIONS_BY_PAGE: Record<TemplatePageId, readonly string[]> = {
+  landing: [
+    "Improve my landing headline",
+    "Generate a new hero image",
+    "Revert the last change",
+  ],
+  signup: [
+    "What should the signup form ask?",
+    "Improve the signup intro text",
+    "Revert the last change",
+  ],
+  payment: [
+    "Tips for the payment step",
+    "Improve the payment headline",
+    "Revert the last change",
+  ],
+  confirmation: [
+    "Improve the confirmation headline",
+    "Update the confirmation body copy",
+    "Revert the last change",
+  ],
+};
 
 function pageContextLabel(pageId: TemplatePageId): string {
   switch (pageId) {
@@ -77,7 +100,10 @@ function welcomeMessage(pageId: TemplatePageId): ChatMessage {
   return {
     id: "welcome",
     role: "assistant",
-    text: `Hi — I’m your AI funnel assistant for the ${pageContextLabel(pageId)} step. Ask how to improve copy, CTAs, or conversion.`,
+    text:
+      pageId === "landing"
+        ? `Hi — I’m your AI funnel assistant for the Landing step. Ask to improve copy, change colours/layout, generate a hero image, or say “revert” to undo the last change.`
+        : `Hi — I’m your AI funnel assistant for the ${pageContextLabel(pageId)} step. Ask how to improve copy, CTAs, or conversion — or say “revert” to undo the last change.`,
     createdAt: new Date().toISOString(),
   };
 }
@@ -123,6 +149,8 @@ export function FunnelAiAssistantSidebar({
   funnelId,
   pagePayload,
   onSchemaApplied,
+  onLandingHeroUrlApplied,
+  onUndoLastChange,
   onClose,
 }: {
   pageId: TemplatePageId;
@@ -131,6 +159,8 @@ export function FunnelAiAssistantSidebar({
   funnelId?: number | null;
   pagePayload?: Record<string, unknown>;
   onSchemaApplied?: (schema: Record<string, unknown>) => void;
+  onLandingHeroUrlApplied?: (imageUrl: string) => void;
+  onUndoLastChange?: () => boolean;
   onClose?: () => void;
 }) {
   const listId = useId();
@@ -572,39 +602,108 @@ export function FunnelAiAssistantSidebar({
         });
       }
 
-      const normalizedInstruction = normalizeLayoutUserInstruction(text);
-      const editableFields = pickAiEditableFields({
-        pageId,
-        pagePayload: pagePayload ?? {},
-        userInstruction: normalizedInstruction,
-      });
-      const fieldConstraints = pickAiFieldConstraints({ editableFields });
-
-      const result = await editFunnelUiWithAi({
-        businessId,
-        ...(campaignId != null ? { campaignId } : {}),
-        ...(funnelId != null && funnelId >= 1 ? { funnelId } : {}),
-        pageId,
-        userInstruction: normalizedInstruction,
-        ...(Object.keys(editableFields).length > 0
-          ? { editableFields }
-          : {}),
-        ...(fieldConstraints != null ? { fieldConstraints } : {}),
-      });
-
-      if (result.schema && onSchemaApplied) {
-        onSchemaApplied(result.schema);
-      }
-
       const alreadySaved = funnelId != null && funnelId >= 1;
-      const assistantText =
-        result.message?.trim() ||
-        (result.success
-          ? alreadySaved
-            ? "Done — I updated your funnel. Those changes are already saved."
-            : "Done — I updated your funnel based on that request. Review the preview, then save if you want to keep it."
-          : "I couldn’t complete that edit.");
+      let assistantText = "";
 
+      if (isAiRevertChatIntent(text)) {
+        const reverted = onUndoLastChange?.() === true;
+        assistantText = reverted
+          ? "Done — I reverted the last change in the editor."
+          : "There’s nothing to revert yet. Make a change first, then ask me to undo it.";
+      } else {
+      const imageIntent = resolveLandingImageChatIntent(pageId, text);
+
+      if (imageIntent === "generate") {
+        const result = await generateLandingImageWithAi({
+          prompt: text,
+          businessId,
+          ...(campaignId != null ? { campaignId } : {}),
+          ...(funnelId != null && funnelId >= 1 ? { funnelId } : {}),
+        });
+
+        if (result.schema && onSchemaApplied) {
+          onSchemaApplied(result.schema);
+        } else if (onLandingHeroUrlApplied) {
+          onLandingHeroUrlApplied(result.imageUrl);
+        } else if (onSchemaApplied) {
+          onSchemaApplied({
+            landing: {
+              ...(pagePayload ?? {}),
+              heroImageSrc: result.imageUrl,
+              imageUrl: result.imageUrl,
+            },
+          });
+        }
+
+        assistantText =
+          result.message?.trim() ||
+          (alreadySaved
+            ? "Done — I generated a new hero image and saved it to your funnel."
+            : "Done — I generated a new hero image. Review the preview, then save if you want to keep it.");
+      } else if (imageIntent === "remove") {
+        if (alreadySaved) {
+          const result = await clearLandingImageWithAi({
+            businessId,
+            ...(campaignId != null ? { campaignId } : {}),
+            funnelId: funnelId as number,
+          });
+          if (result.schema && onSchemaApplied) {
+            onSchemaApplied(result.schema);
+          } else if (onLandingHeroUrlApplied) {
+            onLandingHeroUrlApplied("");
+          }
+          assistantText =
+            result.message?.trim() ||
+            "Done — I removed the landing hero image.";
+        } else if (onLandingHeroUrlApplied) {
+          onLandingHeroUrlApplied("");
+          assistantText = "Done — I removed the landing hero image.";
+        } else if (onSchemaApplied) {
+          onSchemaApplied({
+            landing: {
+              ...(pagePayload ?? {}),
+              heroImageSrc: "",
+              imageUrl: "",
+            },
+          });
+          assistantText = "Done — I removed the landing hero image.";
+        } else {
+          assistantText = "I couldn’t remove the image in this editor state.";
+        }
+      } else {
+        const normalizedInstruction = normalizeLayoutUserInstruction(text);
+        const editableFields = pickAiEditableFields({
+          pageId,
+          pagePayload: pagePayload ?? {},
+          userInstruction: normalizedInstruction,
+        });
+        const fieldConstraints = pickAiFieldConstraints({ editableFields });
+
+        const result = await editFunnelUiWithAi({
+          businessId,
+          ...(campaignId != null ? { campaignId } : {}),
+          ...(funnelId != null && funnelId >= 1 ? { funnelId } : {}),
+          pageId,
+          userInstruction: normalizedInstruction,
+          ...(Object.keys(editableFields).length > 0
+            ? { editableFields }
+            : {}),
+          ...(fieldConstraints != null ? { fieldConstraints } : {}),
+        });
+
+        if (result.schema && onSchemaApplied) {
+          onSchemaApplied(result.schema);
+        }
+
+        assistantText =
+          result.message?.trim() ||
+          (result.success
+            ? alreadySaved
+              ? "Done — I updated your funnel. Those changes are already saved."
+              : "Done — I updated your funnel based on that request. Review the preview, then save if you want to keep it."
+            : "I couldn’t complete that edit.");
+      }
+      }
       if (conversationId) {
         const savedAssistant = await createAiMessage({
           conversationId,
@@ -912,7 +1011,7 @@ export function FunnelAiAssistantSidebar({
                 Try asking
               </p>
               <div className="flex flex-col gap-2">
-                {SUGGESTIONS.map((suggestion) => (
+                {SUGGESTIONS_BY_PAGE[pageId].map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
