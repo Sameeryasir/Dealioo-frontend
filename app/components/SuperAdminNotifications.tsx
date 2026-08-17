@@ -144,7 +144,9 @@ export function SuperAdminNotifications({
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"all" | "unread">("all");
-  const feed = useAdminNotificationsFeed(tab === "unread" ? "unread" : "read");
+  const feed = useAdminNotificationsFeed(tab === "unread" ? "unread" : "read", {
+    historyEnabled: open,
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadOlderRef = useRef(feed.loadMore);

@@ -18,6 +18,9 @@ export function ProductMetaPixel() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ?? "";
+  const skipAttributionSync =
+    Boolean(pathname?.startsWith("/business/")) ||
+    Boolean(pathname?.startsWith("/dashboard"));
 
   useEffect(() => {
     if (!hasAuthSession()) {
@@ -28,11 +31,15 @@ export function ProductMetaPixel() {
     const params = new URLSearchParams(search ? `?${search}` : window.location.search);
     if (params.get("fbclid")?.trim()) {
       captureFbclidFromUrl(search ? `?${search}` : undefined);
-      void syncProductMetaAttributionAfterAuth();
+      if (!skipAttributionSync) {
+        void syncProductMetaAttributionAfterAuth();
+      }
     }
-  }, [search]);
+  }, [search, skipAttributionSync]);
 
   useEffect(() => {
+    if (skipAttributionSync) return;
+
     const syncIfAuthed = () => {
       if (hasAuthSession()) {
         void syncProductMetaAttributionAfterAuth();
@@ -44,7 +51,7 @@ export function ProductMetaPixel() {
     return () => {
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, syncIfAuthed);
     };
-  }, [pathname]);
+  }, [pathname, skipAttributionSync]);
 
   useEffect(() => {
     if (pathname !== "/") {

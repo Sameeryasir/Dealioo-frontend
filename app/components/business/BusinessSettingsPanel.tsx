@@ -39,12 +39,17 @@ import RegisterBusinessStripeQuestionStep from "@/app/components/register-busine
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
-import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
+import {
+  getGoogleAdsConnectionStatus,
+  isGoogleAdsCustomerSelected,
+} from "@/app/services/google-ads/get-google-ads-connection-status";
 import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
 import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google-ads";
 import { GoogleAdsCampaignsDialog } from "@/app/components/google-ads/GoogleAdsCampaignsDialog";
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
+import { getStripeConnectionStatus } from "@/app/services/stripe/get-stripe-connection-status";
+import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
@@ -339,12 +344,17 @@ export function BusinessSettingsPanel({
   const [metaError, setMetaError] = useState<string | null>(null);
 
   const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
+  const [googleCustomerSelected, setGoogleCustomerSelected] = useState(false);
   const [googleStatusLoading, setGoogleStatusLoading] = useState(true);
   const [googleConnectStatus, setGoogleConnectStatus] = useState<ConnectStatus>("idle");
   const [googleDisconnectStatus, setGoogleDisconnectStatus] = useState<ConnectStatus>("idle");
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleCampaignsOpen, setGoogleCampaignsOpen] = useState(false);
+  const [auditRefreshKey, setAuditRefreshKey] = useState(0);
+  const bumpAuditLogs = useCallback(
+    () => setAuditRefreshKey((n) => n + 1),
+    [],
+  );
   const [businessName, setBusinessName] = useState("Your business");
   const [integrationSetup, setIntegrationSetup] =
     useState<IntegrationSetup | null>(null);
@@ -363,12 +373,8 @@ export function BusinessSettingsPanel({
         setStripeConnected(false);
         return;
       }
-      const business = await fetchBusinessById(token, businessId);
-      // Use the sanitized connection flag — an account id alone is not enough.
-      setStripeConnected(business.stripeConnected === true);
-      if (business.name?.trim()) {
-        setBusinessName(business.name.trim());
-      }
+      const status = await getStripeConnectionStatus(token, businessId);
+      setStripeConnected(Boolean(status.connected));
     } catch (e) {
       setStripeError(
         e instanceof Error ? e.message : "Could not check Stripe connection.",
@@ -408,6 +414,7 @@ export function BusinessSettingsPanel({
   const refreshGoogleStatus = useCallback(async () => {
     if (businessId == null) {
       setGoogleConnected(false);
+      setGoogleCustomerSelected(false);
       setGoogleStatusLoading(false);
       return;
     }
@@ -417,11 +424,12 @@ export function BusinessSettingsPanel({
       const token = getSetupAccessToken().trim();
       if (!token) {
         setGoogleConnected(false);
+        setGoogleCustomerSelected(false);
         return;
       }
       const status = await getGoogleAdsConnectionStatus(token, businessId);
       setGoogleConnected(status.connected);
-      setGoogleCustomerId(status.googleCustomerId);
+      setGoogleCustomerSelected(isGoogleAdsCustomerSelected(status.status));
     } catch (e) {
       setGoogleError(
         e instanceof Error ? e.message : "Could not check Google Ads connection.",
@@ -433,10 +441,17 @@ export function BusinessSettingsPanel({
 
   useEffect(() => {
     if (businessId == null) return;
+    if (
+      section === "general" ||
+      section === "members" ||
+      section === "integrations"
+    ) {
+      return;
+    }
     void refreshStripeStatus();
     void refreshMetaStatus();
     void refreshGoogleStatus();
-  }, [businessId, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
+  }, [businessId, section, refreshStripeStatus, refreshMetaStatus, refreshGoogleStatus]);
 
   useEffect(() => {
     if (section !== "scanning" || businessId == null) return;
@@ -462,6 +477,7 @@ export function BusinessSettingsPanel({
 
   useEffect(() => {
     if (businessId == null) return;
+    if (section === "integrations" || section === "members") return;
     void queryClient.prefetchQuery({
       queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
       queryFn: () => getBusinessTwilioPhoneNumbers(businessId),
@@ -472,7 +488,7 @@ export function BusinessSettingsPanel({
       queryFn: () => getAvailableTwilioPhoneNumbers(),
       staleTime: 5 * 60_000,
     });
-  }, [businessId, queryClient]);
+  }, [businessId, queryClient, section]);
 
   useEffect(() => {
     setIntegrationSetup(null);
@@ -494,6 +510,20 @@ export function BusinessSettingsPanel({
     [businessId],
   );
 
+  const loadBusinessName = useCallback(async () => {
+    if (businessId == null) return;
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) return;
+      const business = await fetchBusinessById(token, businessId);
+      if (business.name?.trim()) {
+        setBusinessName(business.name.trim());
+      }
+    } catch {
+      return;
+    }
+  }, [businessId]);
+
   const startMetaSetup = useCallback(() => {
     if (businessId == null) {
       setMetaError(
@@ -505,7 +535,8 @@ export function BusinessSettingsPanel({
     setMetaError(null);
     setMetaConnectStatus("idle");
     setIntegrationSetup({ provider: "meta", step: "question" });
-  }, [businessId]);
+    void loadBusinessName();
+  }, [businessId, loadBusinessName]);
 
   const startStripeSetup = useCallback(() => {
     if (businessId == null) {
@@ -518,7 +549,8 @@ export function BusinessSettingsPanel({
     setStripeError(null);
     setStripeStatus("idle");
     setIntegrationSetup({ provider: "stripe", step: "question" });
-  }, [businessId]);
+    void loadBusinessName();
+  }, [businessId, loadBusinessName]);
 
   const exitIntegrationSetup = useCallback(
     async (provider: "meta" | "stripe") => {
@@ -528,8 +560,9 @@ export function BusinessSettingsPanel({
       } else {
         await refreshStripeStatus();
       }
+      bumpAuditLogs();
     },
-    [refreshMetaStatus, refreshStripeStatus],
+    [refreshMetaStatus, refreshStripeStatus, bumpAuditLogs],
   );
 
   const handleDisconnectStripe = async () => {
@@ -550,6 +583,7 @@ export function BusinessSettingsPanel({
       await disconnectStripe(token, businessId);
       setStripeConnected(false);
       setStripeDisconnectStatus("idle");
+      bumpAuditLogs();
     } catch (e) {
       setStripeDisconnectStatus("error");
       setStripeError(
@@ -578,6 +612,7 @@ export function BusinessSettingsPanel({
       setMetaAdAccountId(null);
       setMetaOauthScopes([]);
       setMetaDisconnectStatus("idle");
+      bumpAuditLogs();
     } catch (e) {
       setMetaDisconnectStatus("error");
       setMetaError(
@@ -607,6 +642,7 @@ export function BusinessSettingsPanel({
         await refreshGoogleStatus();
       }
       setGoogleConnectStatus("idle");
+      bumpAuditLogs();
     } catch (e) {
       setGoogleConnectStatus("error");
       setGoogleError(
@@ -632,8 +668,9 @@ export function BusinessSettingsPanel({
       }
       await disconnectGoogleAds(token, businessId);
       setGoogleConnected(false);
-      setGoogleCustomerId(null);
+      setGoogleCustomerSelected(false);
       setGoogleDisconnectStatus("idle");
+      bumpAuditLogs();
     } catch (e) {
       setGoogleDisconnectStatus("error");
       setGoogleError(
@@ -1149,7 +1186,7 @@ export function BusinessSettingsPanel({
                         onClick={() => {
                           if (
                             googleConnected &&
-                            googleCustomerId &&
+                            googleCustomerSelected &&
                             businessId != null
                           ) {
                             setGoogleCampaignsOpen(true);
@@ -1157,11 +1194,11 @@ export function BusinessSettingsPanel({
                         }}
                         disabled={
                           !googleConnected ||
-                          !googleCustomerId ||
+                          !googleCustomerSelected ||
                           googleStatusLoading
                         }
                         title={
-                          googleConnected && googleCustomerId
+                          googleConnected && googleCustomerSelected
                             ? "View Google Ads campaigns"
                             : "Connect Google Ads first"
                         }
@@ -1185,13 +1222,6 @@ export function BusinessSettingsPanel({
                           Pull spend, impressions, clicks, and campaign stats
                           from Google Ads.
                         </p>
-                        {googleConnected && googleCustomerId ? (
-                          <IntegrationAccountChip
-                            label="Customer ID"
-                            value={googleCustomerId}
-                            chipClassName={integrationCardThemes.google.chip}
-                          />
-                        ) : null}
                       </div>
 
                       {googleStatusLoading ? null : googleConnected ? (
@@ -1201,7 +1231,7 @@ export function BusinessSettingsPanel({
                               href={`/google/select-customer?businessId=${businessId}`}
                               className={integrationCardThemes.google.secondaryBtn}
                             >
-                              {googleCustomerId ? "Change Ads account" : "Choose Ads account"}
+                              {googleCustomerSelected ? "Change Ads account" : "Choose Ads account"}
                             </a>
                           ) : null}
                           <button
@@ -1277,6 +1307,14 @@ export function BusinessSettingsPanel({
                     ) : null}
                   </IntegrationCardShell>
                 </ul>
+                {businessId != null ? (
+                  <div className="mt-5">
+                    <IntegrationAuditLogsCard
+                      businessId={businessId}
+                      refreshKey={auditRefreshKey}
+                    />
+                  </div>
+                ) : null}
                   </>
                 )}
               </div>
@@ -1294,7 +1332,7 @@ export function BusinessSettingsPanel({
           open={googleCampaignsOpen}
           onClose={() => setGoogleCampaignsOpen(false)}
           businessId={businessId}
-          customerId={googleCustomerId}
+          customerId={null}
         />
       ) : null}
     </section>

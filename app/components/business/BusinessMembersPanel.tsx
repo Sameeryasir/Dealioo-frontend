@@ -44,6 +44,7 @@ import {
 } from "@/app/services/member/business-members";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import {
+  FULL_ACCESS_PERMISSION,
   type BusinessMemberListItem,
   type BusinessMembersResponse,
 } from "@/app/services/member/types";
@@ -111,7 +112,10 @@ function memberStatusLabel(status: BusinessMemberListItem["status"]) {
 }
 
 function MemberAccessPills({ member }: { member: BusinessMemberListItem }) {
-  if (member.status === "owner") {
+  if (
+    member.status === "owner" ||
+    member.permissions.includes(FULL_ACCESS_PERMISSION)
+  ) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[0.72rem] font-semibold text-[#059669]">
         <Crown className="size-3" strokeWidth={2.25} aria-hidden />
@@ -223,7 +227,10 @@ type MemberPermissionVisual = {
 function getMemberPermissionVisuals(
   member: BusinessMemberListItem,
 ): MemberPermissionVisual[] {
-  if (member.status === "owner") {
+  if (
+    member.status === "owner" ||
+    member.permissions.includes(FULL_ACCESS_PERMISSION)
+  ) {
     return [
       {
         key: "full_access",
@@ -381,7 +388,8 @@ function MemberDetailsModal({
     member.status !== "owner" && member.id != null && member.id > 0;
   const permissionVisuals = getMemberPermissionVisuals(member);
   const permissionCount =
-    member.status === "owner"
+    member.status === "owner" ||
+    member.permissions.includes(FULL_ACCESS_PERMISSION)
       ? permissionVisuals.length
       : member.permissions.length;
   const showDates = Boolean(member.invitedAt || member.expiresAt);

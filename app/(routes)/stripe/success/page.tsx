@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-const STRIPE_CONNECT_COMPLETE_MESSAGE = "stripe-connect-complete" as const;
-const STRIPE_CONNECT_CANCELLED_MESSAGE = "stripe-connect-cancelled" as const;
+import { STRIPE_CONNECT_CANCELLED_MESSAGE, STRIPE_CONNECT_COMPLETE_MESSAGE } from "@/app/lib/stripe-oauth-popup";
 
 function StripeWordmark({ className }: { className?: string }) {
   return (
@@ -42,7 +41,7 @@ function StripeConnectSuccessInner() {
             ? STRIPE_CONNECT_CANCELLED_MESSAGE
             : STRIPE_CONNECT_COMPLETE_MESSAGE,
         },
-        "*",
+        window.location.origin,
       );
       opener.focus();
     } catch {

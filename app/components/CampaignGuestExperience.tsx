@@ -18,6 +18,7 @@ import {
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import {
   getDefaultSelectedMetaScopes,
   type MetaSelectableScopeId,
@@ -130,6 +131,8 @@ export default function CampaignGuestExperience({
         if (status?.connected && status.metaAdAccountId) {
           void loadAdCampaignStats();
         }
+      } else {
+        await abortFacebookConnect(businessId);
       }
     } catch (e) {
       setMetaError(

@@ -1,17 +1,14 @@
 "use client";
 
-/**
- * Super Admin notification feed.
- * What: infinite All / Unread lists with Load more (append), not page replace.
- * Why: a notification drawer should feel like an activity stream.
- * Related: GET /admin/notifications, PATCH read + read-all.
- */
-
 import { hasAuthSession } from "@/app/lib/auth-session";
-import { subscribeAdminNotifications } from "@/app/lib/pusher-client";
+import {
+  subscribeAdminNotifications,
+  subscribePusherReconnect,
+} from "@/app/lib/pusher-client";
 import { adminNotificationQueryKeys } from "@/app/services/admin/admin-notification-query-keys";
 import {
   getAdminNotifications,
+  getAdminUnreadCount,
   markAdminNotificationRead,
   markAllAdminNotificationsRead,
   type AdminNotificationItem,
@@ -21,12 +18,21 @@ import {
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 export const ADMIN_NOTIFICATION_PAGE_SIZE = 10;
+
+const LIVE_QUERY_OPTIONS = {
+  staleTime: Infinity,
+  gcTime: 30 * 60_000,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
 
 type NotificationInfiniteData = InfiniteData<
   AdminNotificationsResponse,
@@ -47,13 +53,6 @@ function flattenItems(
     }
   }
   return items;
-}
-
-function latestUnreadCount(
-  data: NotificationInfiniteData | undefined,
-): number {
-  if (!data?.pages.length) return 0;
-  return Number(data.pages[data.pages.length - 1]?.unreadCount) || 0;
 }
 
 function setUnreadOnPages(
@@ -108,9 +107,20 @@ function prependCreated(
   };
 }
 
-export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
+export function useAdminNotificationsFeed(
+  tab: AdminNotificationStatus,
+  options?: { historyEnabled?: boolean },
+) {
   const queryClient = useQueryClient();
   const signedIn = hasAuthSession();
+  const historyEnabled = Boolean(options?.historyEnabled);
+
+  const unreadCountQuery = useQuery({
+    queryKey: adminNotificationQueryKeys.unreadCount,
+    queryFn: getAdminUnreadCount,
+    enabled: signedIn,
+    ...LIVE_QUERY_OPTIONS,
+  });
 
   const readQuery = useInfiniteQuery<
     AdminNotificationsResponse,
@@ -131,7 +141,8 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
       lastPage.meta.page < lastPage.meta.totalPages
         ? lastPage.meta.page + 1
         : undefined,
-    enabled: signedIn,
+    enabled: signedIn && historyEnabled && tab === "read",
+    ...LIVE_QUERY_OPTIONS,
   });
 
   const unreadQuery = useInfiniteQuery<
@@ -153,36 +164,48 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
       lastPage.meta.page < lastPage.meta.totalPages
         ? lastPage.meta.page + 1
         : undefined,
-    enabled: signedIn,
+    enabled: signedIn && historyEnabled && tab === "unread",
+    ...LIVE_QUERY_OPTIONS,
   });
 
   const activeQuery = tab === "unread" ? unreadQuery : readQuery;
   const items = flattenItems(activeQuery.data);
-  const unreadCount = Math.max(
-    latestUnreadCount(readQuery.data),
-    latestUnreadCount(unreadQuery.data),
-  );
+  const unreadCount = unreadCountQuery.data ?? 0;
 
-  // --- Live inserts ---
-  // Why: new platform alerts should appear at the top without refetching every page.
   useEffect(() => {
-    return subscribeAdminNotifications((item) => {
-      // New alerts start unread, so they belong on the Unread tab only.
+    if (!signedIn) return;
+
+    const unsubscribeCreated = subscribeAdminNotifications((item) => {
       if (!item.isRead) {
+        queryClient.setQueryData(
+          adminNotificationQueryKeys.unreadCount,
+          (current: number | undefined) => (Number(current) || 0) + 1,
+        );
         queryClient.setQueryData(
           adminNotificationQueryKeys.list("unread"),
           (old: NotificationInfiniteData | undefined) =>
-            prependCreated(old, item),
+            old ? prependCreated(old, item) : old,
         );
-      } else {
-        queryClient.setQueryData(
-          adminNotificationQueryKeys.list("read"),
-          (old: NotificationInfiniteData | undefined) =>
-            prependCreated(old, item),
-        );
+        return;
       }
+      queryClient.setQueryData(
+        adminNotificationQueryKeys.list("read"),
+        (old: NotificationInfiniteData | undefined) =>
+          old ? prependCreated(old, item) : old,
+      );
     });
-  }, [queryClient]);
+
+    const unsubscribeReconnect = subscribePusherReconnect(() => {
+      void queryClient.invalidateQueries({
+        queryKey: adminNotificationQueryKeys.unreadCount,
+      });
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeReconnect();
+    };
+  }, [queryClient, signedIn]);
 
   const markOneMutation = useMutation({
     mutationFn: async (item: AdminNotificationItem) => {
@@ -191,6 +214,7 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
     },
     onSuccess: (result) => {
       const unread = result.unreadCount;
+      queryClient.setQueryData(adminNotificationQueryKeys.unreadCount, unread);
       queryClient.setQueryData(
         adminNotificationQueryKeys.list("read"),
         (old: NotificationInfiniteData | undefined) => {
@@ -220,7 +244,7 @@ export function useAdminNotificationsFeed(tab: AdminNotificationStatus) {
   const markAllMutation = useMutation({
     mutationFn: markAllAdminNotificationsRead,
     onSuccess: () => {
-      // Business rule: mark-all updates every unread row in the DB, not just loaded pages.
+      queryClient.setQueryData(adminNotificationQueryKeys.unreadCount, 0);
       void queryClient.invalidateQueries({
         queryKey: adminNotificationQueryKeys.list("read"),
       });

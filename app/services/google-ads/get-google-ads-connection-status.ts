@@ -6,11 +6,21 @@ export type GoogleAdsConnectionStatus = {
   status?: string | null;
   googleUserId: string | null;
   googleConnectedAt: string | null;
-  googleCustomerId: string | null;
   googleTokenExpiresAt?: string | null;
   googleOauthScopes?: string[];
   missingRequiredScopes?: string[];
 };
+
+export function isGoogleAdsCustomerSelected(
+  status?: string | null,
+): boolean {
+  const value = (status ?? "").toUpperCase();
+  return (
+    value === "CUSTOMER_SELECTED" ||
+    value === "ACTIVE" ||
+    value === "SYNCING"
+  );
+}
 
 const inflightByBusinessId = new Map<
   number,

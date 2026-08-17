@@ -6,17 +6,25 @@ import {
   GoogleAdsLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
+import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
+import { META_ADS_PERMISSION_OPTIONS } from "@/app/lib/meta-ads-permissions";
+import { connectStripeInPopup } from "@/app/lib/stripe-oauth-popup";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { fetchBusinessById } from "@/app/services/business/get-my-business";
 import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
 import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google-ads";
-import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
+import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
-import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import {
+  getIntegrationsStatus,
+  integrationsStatusQueryKey,
+} from "@/app/services/integration-audit/get-integrations-status";
+import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
+import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { AlertCircle, ExternalLink, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState, type ReactNode } from "react";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
@@ -65,106 +73,116 @@ function StatusBadge({
 export function BusinessIntegrationsPanel({
   businessId,
 }: BusinessIntegrationsPanelProps) {
-  const [stripeConnected, setStripeConnected] = useState(false);
-  const [stripeLoading, setStripeLoading] = useState(true);
-  const [stripeError, setStripeError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [stripeBusy, setStripeBusy] = useState<ConnectStatus>("idle");
-
-  const [metaConnected, setMetaConnected] = useState(false);
-  const [metaLoading, setMetaLoading] = useState(true);
-  const [metaScopes, setMetaScopes] = useState<string[]>([]);
-  const [metaError, setMetaError] = useState<string | null>(null);
+  const [stripeActionError, setStripeActionError] = useState<string | null>(null);
   const [metaBusy, setMetaBusy] = useState<ConnectStatus>("idle");
-
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(true);
-  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [metaActionError, setMetaActionError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
+  const [googleActionError, setGoogleActionError] = useState<string | null>(null);
+  const [auditRefreshKey, setAuditRefreshKey] = useState(0);
+  const bumpAuditLogs = useCallback(
+    () => setAuditRefreshKey((n) => n + 1),
+    [],
+  );
 
-  const refreshStripe = useCallback(async () => {
-    setStripeLoading(true);
-    setStripeError(null);
+  const statusQuery = useQuery({
+    queryKey: integrationsStatusQueryKey(businessId),
+    queryFn: () => getIntegrationsStatus(businessId),
+    enabled: businessId > 0,
+    staleTime: 30_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statusLoading = statusQuery.isPending;
+  const statusError =
+    statusQuery.error instanceof Error
+      ? statusQuery.error.message
+      : statusQuery.error
+        ? "Could not check integration connections."
+        : null;
+
+  const stripeConnected = Boolean(statusQuery.data?.stripe.connected);
+  const stripeError = stripeActionError ?? statusError;
+
+  const metaConnected = Boolean(statusQuery.data?.facebook.connected);
+  const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
+  const metaMissingScopes =
+    statusQuery.data?.facebook.missingRequiredScopes ?? [];
+  const metaError = metaActionError ?? statusError;
+
+  const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
+  const googleError = googleActionError ?? statusError;
+
+  const refreshStatus = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: integrationsStatusQueryKey(businessId),
+    });
+  }, [businessId, queryClient]);
+
+  const handleConnectStripe = async () => {
+    setStripeBusy("loading");
+    setStripeActionError(null);
     try {
       const token = getSetupAccessToken().trim();
-      if (!token) {
-        setStripeConnected(false);
-        return;
+      if (!token) throw new Error("You're signed out. Sign in again.");
+      const result = await connectStripeInPopup(token, businessId);
+      if (result.status === "connected") {
+        await refreshStatus();
+      } else {
+        await abortStripeConnect(businessId);
+        await refreshStatus();
       }
-      const business = await fetchBusinessById(token, businessId);
-      setStripeConnected(business.stripeConnected === true);
+      setStripeBusy("idle");
+      bumpAuditLogs();
     } catch (e) {
-      setStripeError(
-        e instanceof Error ? e.message : "Could not check Stripe connection.",
+      setStripeBusy("error");
+      setStripeActionError(
+        e instanceof Error ? e.message : "Could not connect Stripe.",
       );
-    } finally {
-      setStripeLoading(false);
     }
-  }, [businessId]);
-
-  const refreshMeta = useCallback(async () => {
-    setMetaLoading(true);
-    setMetaError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) {
-        setMetaConnected(false);
-        return;
-      }
-      const status = await getFacebookConnectionStatus(token, businessId);
-      setMetaConnected(Boolean(status.connected));
-      setMetaScopes(status.metaOauthScopes ?? []);
-    } catch (e) {
-      setMetaError(
-        e instanceof Error ? e.message : "Could not check Meta connection.",
-      );
-    } finally {
-      setMetaLoading(false);
-    }
-  }, [businessId]);
-
-  const refreshGoogle = useCallback(async () => {
-    setGoogleLoading(true);
-    setGoogleError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) {
-        setGoogleConnected(false);
-        setGoogleCustomerId(null);
-        return;
-      }
-      const status = await getGoogleAdsConnectionStatus(token, businessId);
-      setGoogleConnected(Boolean(status.connected));
-      setGoogleCustomerId(status.googleCustomerId ?? null);
-    } catch (e) {
-      setGoogleError(
-        e instanceof Error ? e.message : "Could not check Google Ads connection.",
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
-  }, [businessId]);
-
-  useEffect(() => {
-    void refreshStripe();
-    void refreshMeta();
-    void refreshGoogle();
-  }, [refreshStripe, refreshMeta, refreshGoogle]);
+  };
 
   const handleDisconnectStripe = async () => {
     if (!window.confirm("Remove Stripe from this business?")) return;
     setStripeBusy("loading");
-    setStripeError(null);
+    setStripeActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
       await disconnectStripe(token, businessId);
-      setStripeConnected(false);
+      await refreshStatus();
       setStripeBusy("idle");
+      bumpAuditLogs();
     } catch (e) {
       setStripeBusy("error");
-      setStripeError(
+      setStripeActionError(
         e instanceof Error ? e.message : "Could not remove Stripe.",
+      );
+    }
+  };
+
+  const handleConnectMeta = async () => {
+    setMetaBusy("loading");
+    setMetaActionError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) throw new Error("You're signed out. Sign in again.");
+      const scopes = META_ADS_PERMISSION_OPTIONS.map((opt) => opt.id);
+      const result = await connectFacebookInPopup(token, businessId, scopes);
+      if (result.status === "connected") {
+        await refreshStatus();
+      } else {
+        await abortFacebookConnect(businessId);
+        await refreshStatus();
+      }
+      setMetaBusy("idle");
+      bumpAuditLogs();
+    } catch (e) {
+      setMetaBusy("error");
+      setMetaActionError(
+        e instanceof Error ? e.message : "Could not connect Meta Ads.",
       );
     }
   };
@@ -172,17 +190,17 @@ export function BusinessIntegrationsPanel({
   const handleDisconnectMeta = async () => {
     if (!window.confirm("Remove Meta Ads from this business?")) return;
     setMetaBusy("loading");
-    setMetaError(null);
+    setMetaActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
       await disconnectFacebook(token, businessId);
-      setMetaConnected(false);
-      setMetaScopes([]);
+      await refreshStatus();
       setMetaBusy("idle");
+      bumpAuditLogs();
     } catch (e) {
       setMetaBusy("error");
-      setMetaError(
+      setMetaActionError(
         e instanceof Error ? e.message : "Could not remove Meta Ads.",
       );
     }
@@ -190,21 +208,22 @@ export function BusinessIntegrationsPanel({
 
   const handleConnectGoogle = async () => {
     setGoogleBusy("loading");
-    setGoogleError(null);
+    setGoogleActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
       const result = await connectGoogleAdsInPopup(token, businessId);
       if (result.status === "connected") {
-        await refreshGoogle();
+        await refreshStatus();
       } else {
         await abortGoogleAdsConnect(businessId);
-        await refreshGoogle();
+        await refreshStatus();
       }
       setGoogleBusy("idle");
+      bumpAuditLogs();
     } catch (e) {
       setGoogleBusy("error");
-      setGoogleError(
+      setGoogleActionError(
         e instanceof Error ? e.message : "Could not connect Google Ads.",
       );
     }
@@ -213,25 +232,25 @@ export function BusinessIntegrationsPanel({
   const handleDisconnectGoogle = async () => {
     if (!window.confirm("Remove Google Ads from this business?")) return;
     setGoogleBusy("loading");
-    setGoogleError(null);
+    setGoogleActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
       await disconnectGoogleAds(token, businessId);
-      setGoogleConnected(false);
-      setGoogleCustomerId(null);
+      await refreshStatus();
       setGoogleBusy("idle");
+      bumpAuditLogs();
     } catch (e) {
       setGoogleBusy("error");
-      setGoogleError(
+      setGoogleActionError(
         e instanceof Error ? e.message : "Could not remove Google Ads.",
       );
     }
   };
 
   return (
-    <div className="space-y-3.5">
-      <p className="m-0 text-sm text-slate-500">
+    <div className="flex flex-col gap-5">
+      <p className="m-0 text-sm leading-relaxed text-slate-500">
         Link payments and ad accounts to run campaigns and track performance.
       </p>
 
@@ -246,13 +265,13 @@ export function BusinessIntegrationsPanel({
               <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
                 Stripe
               </p>
-              <StatusBadge loading={stripeLoading} connected={stripeConnected} />
+              <StatusBadge loading={statusLoading} connected={stripeConnected} />
             </div>
             <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
               Accept payments from campaigns and funnels.
             </p>
           </div>
-          {stripeLoading ? null : stripeConnected ? (
+          {statusLoading ? null : stripeConnected ? (
             <button
               type="button"
               onClick={() => void handleDisconnectStripe()}
@@ -262,12 +281,14 @@ export function BusinessIntegrationsPanel({
               {stripeBusy === "loading" ? "Removing…" : "Remove account"}
             </button>
           ) : (
-            <a
-              href={`/stripe/connect?businessId=${businessId}`}
-              className="inline-flex h-9 items-center rounded-lg bg-[#635BFF] px-3.5 text-xs font-semibold text-white no-underline"
+            <button
+              type="button"
+              onClick={() => void handleConnectStripe()}
+              disabled={stripeBusy === "loading"}
+              className="inline-flex h-9 cursor-pointer items-center rounded-lg bg-[#635BFF] px-3.5 text-xs font-semibold text-white disabled:opacity-60"
             >
-              Connect Stripe
-            </a>
+              {stripeBusy === "loading" ? "Connecting…" : "Connect Stripe"}
+            </button>
           )}
         </div>
         {stripeError ? (
@@ -289,13 +310,13 @@ export function BusinessIntegrationsPanel({
                 <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
                   Meta Ads
                 </p>
-                <StatusBadge loading={metaLoading} connected={metaConnected} />
+                <StatusBadge loading={statusLoading} connected={metaConnected} />
               </div>
               <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
                 Run and track Meta ad campaigns.
               </p>
             </div>
-            {metaLoading ? null : metaConnected ? (
+            {statusLoading ? null : metaConnected ? (
               <button
                 type="button"
                 onClick={() => void handleDisconnectMeta()}
@@ -305,20 +326,21 @@ export function BusinessIntegrationsPanel({
                 {metaBusy === "loading" ? "Removing…" : "Remove account"}
               </button>
             ) : (
-              <a
-                href={`/facebook/connect?businessId=${businessId}`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1877F2] px-3.5 text-xs font-semibold text-white no-underline"
+              <button
+                type="button"
+                onClick={() => void handleConnectMeta()}
+                disabled={metaBusy === "loading"}
+                className="inline-flex h-9 cursor-pointer items-center rounded-lg bg-[#1877F2] px-3.5 text-xs font-semibold text-white disabled:opacity-60"
               >
-                <ExternalLink className="size-3.5" strokeWidth={2} />
-                Connect with Meta
-              </a>
+                {metaBusy === "loading" ? "Connecting…" : "Connect with Meta"}
+              </button>
             )}
           </div>
           <FacebookPermissionsPanel
             grantedScopes={metaScopes}
-            missingRequiredScopes={[]}
+            missingRequiredScopes={metaMissingScopes}
             connected={metaConnected}
-            loading={metaLoading}
+            loading={statusLoading}
           />
           {metaError ? (
             <p
@@ -344,20 +366,15 @@ export function BusinessIntegrationsPanel({
                 Google Ads
               </p>
               <StatusBadge
-                loading={googleLoading}
+                loading={statusLoading}
                 connected={googleConnected}
               />
             </div>
             <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
               Pull spend, clicks, and campaign stats from Google Ads.
             </p>
-            {googleConnected && googleCustomerId ? (
-              <p className="m-0 mt-1 font-mono text-[0.7rem] text-slate-500">
-                Customer ID {googleCustomerId}
-              </p>
-            ) : null}
           </div>
-          {googleLoading ? null : googleConnected ? (
+          {statusLoading ? null : googleConnected ? (
             <button
               type="button"
               onClick={() => void handleDisconnectGoogle()}
@@ -393,6 +410,11 @@ export function BusinessIntegrationsPanel({
           </p>
         ) : null}
       </div>
+
+      <IntegrationAuditLogsCard
+        businessId={businessId}
+        refreshKey={auditRefreshKey}
+      />
     </div>
   );
 }

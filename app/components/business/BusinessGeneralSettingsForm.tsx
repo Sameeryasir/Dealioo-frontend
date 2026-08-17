@@ -291,7 +291,9 @@ export function BusinessGeneralSettingsForm({
   const isProfileView = previewSection === "general";
   const previewMeta = PREVIEW_TITLES[previewSection];
 
-  const { data: business, isPending, error } = useBusinessByIdQuery(businessId);
+  const { data: business, isPending, error } = useBusinessByIdQuery(
+    previewSection === "general" ? businessId : null,
+  );
 
   const [form, setForm] = useState<FormSnapshot>({
     name: "",
@@ -720,11 +722,16 @@ export function BusinessGeneralSettingsForm({
         ) : null}
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem] xl:gap-3.5">
+      <div
+        className={`grid min-h-0 flex-1 gap-3 overflow-hidden xl:gap-3.5 ${
+          isProfileView ? "lg:grid-cols-[minmax(0,1fr)_17.5rem]" : ""
+        }`}
+      >
         <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
           {isProfileView ? profileMain : previewMain}
         </div>
 
+        {isProfileView ? (
         <aside className="flex min-h-0 flex-col gap-2.5 overflow-y-auto xl:gap-3">
           <section className="shrink-0 overflow-hidden rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
             <header className="border-b border-[#E8EDF5] px-3.5 py-2.5">
@@ -842,6 +849,7 @@ export function BusinessGeneralSettingsForm({
             </section>
           ) : null}
         </aside>
+        ) : null}
       </div>
     </div>
   );

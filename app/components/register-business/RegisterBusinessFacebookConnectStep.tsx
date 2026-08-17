@@ -7,6 +7,7 @@ import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermi
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import {
   getDefaultSelectedMetaScopes,
   type MetaSelectableScopeId,
@@ -84,6 +85,7 @@ export default function RegisterBusinessFacebookConnectStep({
         return;
       }
 
+      await abortFacebookConnect(businessId);
       setErrorMessage(
         "Meta connect was cancelled. You can try again or skip for now.",
       );

@@ -1,7 +1,7 @@
 import { isPusherConfigured } from "@/app/lib/pusher-execution";
 import type {
   BusinessMemberListItem,
-  BusinessMemberPermission,
+  ListedMemberPermission,
 } from "@/app/services/member/types";
 
 export { isPusherConfigured };
@@ -107,6 +107,6 @@ export function memberJoinedToListItem(
     email: payload.member.email,
     role: payload.member.role,
     status: "active",
-    permissions: payload.member.permissions as BusinessMemberPermission[],
+    permissions: payload.member.permissions as ListedMemberPermission[],
   };
 }

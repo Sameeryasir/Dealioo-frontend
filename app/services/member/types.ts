@@ -48,6 +48,12 @@ export const BUSINESS_MEMBER_PERMISSIONS = [
 export type BusinessMemberPermission =
   (typeof BUSINESS_MEMBER_PERMISSIONS)[number];
 
+export const FULL_ACCESS_PERMISSION = "full_access" as const;
+
+export type ListedMemberPermission =
+  | BusinessMemberPermission
+  | typeof FULL_ACCESS_PERMISSION;
+
 export type BusinessMemberStatus = "owner" | "active" | "pending";
 
 export type BusinessMemberListItem = {
@@ -57,7 +63,7 @@ export type BusinessMemberListItem = {
   email: string;
   role: string;
   status: BusinessMemberStatus;
-  permissions: BusinessMemberPermission[];
+  permissions: ListedMemberPermission[];
   invitedAt?: string;
   expiresAt?: string;
 };

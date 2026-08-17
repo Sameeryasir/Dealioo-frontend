@@ -18,7 +18,10 @@ import {
   type GoogleAdsCampaign,
   type GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
-import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
+import {
+  getGoogleAdsConnectionStatus,
+  isGoogleAdsCustomerSelected,
+} from "@/app/services/google-ads/get-google-ads-connection-status";
 
 function GoogleAdsPanelSkeleton() {
   return (
@@ -127,7 +130,7 @@ export function CampaignGoogleAdsPanel({
   const canCreateGoogleCampaign = can("google_campaigns_create");
   const canDeleteGoogleCampaign = can("google_campaigns_delete");
   const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleCustomerId, setGoogleCustomerId] = useState<string | null>(null);
+  const [googleCustomerSelected, setGoogleCustomerSelected] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(true);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [adStats, setAdStats] = useState<GoogleAdsCampaignStats | null>(null);
@@ -167,23 +170,24 @@ export function CampaignGoogleAdsPanel({
       const token = getSetupAccessToken();
       if (!token) {
         setGoogleConnected(false);
-        setGoogleCustomerId(null);
-        return { connected: false, googleCustomerId: null as string | null };
+        setGoogleCustomerSelected(false);
+        return { connected: false, customerSelected: false };
       }
       const status = await getGoogleAdsConnectionStatus(token, businessId);
+      const customerSelected = isGoogleAdsCustomerSelected(status.status);
       setGoogleConnected(status.connected);
-      setGoogleCustomerId(status.googleCustomerId);
+      setGoogleCustomerSelected(customerSelected);
       return {
         connected: status.connected,
-        googleCustomerId: status.googleCustomerId,
+        customerSelected,
       };
     } catch (e) {
       setGoogleConnected(false);
-      setGoogleCustomerId(null);
+      setGoogleCustomerSelected(false);
       setGoogleError(
         e instanceof Error ? e.message : "Could not check Google Ads.",
       );
-      return { connected: false, googleCustomerId: null as string | null };
+      return { connected: false, customerSelected: false };
     } finally {
       setGoogleLoading(false);
     }
@@ -199,11 +203,11 @@ export function CampaignGoogleAdsPanel({
       setAdStats(null);
       setAdStatsError(null);
 
-      const { connected, googleCustomerId: customerId } =
+      const { connected, customerSelected } =
         await refreshConnection();
       if (cancelled) return;
 
-      if (!connected || !customerId) {
+      if (!connected || !customerSelected) {
         setAdStatsLoading(false);
         return;
       }
@@ -242,18 +246,15 @@ export function CampaignGoogleAdsPanel({
     }
   }, [businessId, campaignPendingDelete]);
 
-  const adsConsoleUrl = googleCustomerId
-    ? `https://ads.google.com/aw/campaigns?ocid=${googleCustomerId}`
-    : "https://ads.google.com";
+  const adsConsoleUrl = "https://ads.google.com";
 
   const connectionReady =
-    !googleLoading && googleConnected && Boolean(googleCustomerId);
+    !googleLoading && googleConnected && googleCustomerSelected;
 
-  // Skeleton until connection check finishes, and until the first stats API responds.
   const showSkeleton =
     googleLoading ||
     (googleConnected &&
-      Boolean(googleCustomerId) &&
+      googleCustomerSelected &&
       adStats === null &&
       !adStatsError);
 
@@ -261,7 +262,7 @@ export function CampaignGoogleAdsPanel({
     connectionReady && (adStats !== null || adStatsError !== null);
 
   const emptyStats: GoogleAdsCampaignStats = {
-    customerId: googleCustomerId,
+    customerId: null,
     customerName: null,
     currency: null,
     datePreset: "LAST_30_DAYS",
@@ -338,7 +339,7 @@ export function CampaignGoogleAdsPanel({
               </div>
             ) : null}
 
-            {googleConnected && !googleCustomerId ? (
+            {googleConnected && !googleCustomerSelected ? (
               <div className="flex flex-col gap-5 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                 <div className="flex items-start gap-4">
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">

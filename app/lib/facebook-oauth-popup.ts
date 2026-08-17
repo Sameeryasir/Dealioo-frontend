@@ -14,22 +14,7 @@ export type FacebookOAuthResult =
   | { status: "cancelled" };
 
 function openFacebookConnectPopup(oauthUrl: string): Window | null {
-  const width = 560;
-  const height = 720;
-  const left = Math.max(
-    0,
-    window.screenX + (window.outerWidth - width) / 2,
-  );
-  const top = Math.max(
-    0,
-    window.screenY + (window.outerHeight - height) / 2,
-  );
-
-  return window.open(
-    oauthUrl,
-    "dealioo_facebook_oauth",
-    `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
-  );
+  return window.open(oauthUrl, "dealioo_facebook_oauth");
 }
 
 function readBusinessIdFromMessage(data: object): number | null {
@@ -177,7 +162,7 @@ export async function connectFacebookInPopup(
 
   if (!popup) {
     throw new Error(
-      "Pop-up was blocked. Allow pop-ups for Dealioo, then try again.",
+      "The new tab was blocked. Allow pop-ups for Dealioo, then try again.",
     );
   }
 

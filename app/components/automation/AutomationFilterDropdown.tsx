@@ -42,7 +42,7 @@ export function AutomationFilterDropdown<T extends string>({
         exit={{ opacity: 0, y: -6 }}
         transition={{ duration: 0.32, ease: automationEase }}
         style={menuStyle}
-        className="overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
+        className="max-h-64 overflow-y-auto overflow-hidden rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg ring-1 ring-zinc-950/[0.04]"
       >
         {options.map((option, index) => {
           const isSelected = value === option.id;

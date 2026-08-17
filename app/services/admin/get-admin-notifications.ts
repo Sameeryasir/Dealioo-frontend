@@ -61,6 +61,19 @@ export async function getAdminNotifications(params?: {
   }
 }
 
+export async function getAdminUnreadCount(): Promise<number> {
+  try {
+    const { data } = await authAxios.get<{ unreadCount?: number }>(
+      "/admin/notifications/unread-count",
+    );
+    return Number(data?.unreadCount) || 0;
+  } catch (error) {
+    throw new Error(
+      parseApiMessage(error, "Could not load unread notification count."),
+    );
+  }
+}
+
 export type MarkAdminNotificationReadResponse = {
   id: string;
   isRead: boolean;

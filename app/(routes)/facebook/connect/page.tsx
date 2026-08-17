@@ -8,6 +8,7 @@ import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermi
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import {
   formatMetaScopeTitle,
   getDefaultSelectedMetaScopes,
@@ -132,6 +133,7 @@ function FacebookConnectInner() {
         return;
       }
 
+      await abortFacebookConnect(businessId);
       setErrorMessage(
         "Meta connect was cancelled. You can try again or go back.",
       );

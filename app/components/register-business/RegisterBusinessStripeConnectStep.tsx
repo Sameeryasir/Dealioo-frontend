@@ -5,8 +5,13 @@ import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css
 import styles from "@/app/components/register-business/RegisterBusinessFacebookConnectStep.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
-import { connectStripe } from "@/app/services/stripe/connect-stripe";
+import {
+  connectStripeInPopup,
+  STRIPE_CONNECT_CANCELLED_MESSAGE,
+  STRIPE_CONNECT_COMPLETE_MESSAGE,
+} from "@/app/lib/stripe-oauth-popup";
 import { fetchBusinessById } from "@/app/services/business/get-my-business";
+import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -26,9 +31,6 @@ export type RegisterBusinessStripeConnectStepProps = {
   onBack?: () => void;
   embedded?: boolean;
 };
-
-const STRIPE_CONNECT_COMPLETE_MESSAGE = "stripe-connect-complete" as const;
-const STRIPE_CONNECT_CANCELLED_MESSAGE = "stripe-connect-cancelled" as const;
 
 const BENEFITS = [
   {
@@ -152,16 +154,16 @@ export default function RegisterBusinessStripeConnectStep({
         throw new Error("You're signed out. Sign in again to connect Stripe.");
       }
 
-      const { url } = await connectStripe(token, businessId);
-      const popup = window.open(url, "dealioo_stripe_connect");
-      stripePopupRef.current = popup;
-      if (!popup) {
-        throw new Error(
-          "Pop-up was blocked. Allow pop-ups for Dealioo, then try again.",
+      const result = await connectStripeInPopup(token, businessId);
+      if (result.status === "connected") {
+        setLinked(true);
+        stopWaiting();
+      } else {
+        await abortStripeConnect(businessId);
+        stopWaiting(
+          "Stripe connect was cancelled. You can try again or skip for now.",
         );
       }
-      setAwaitingStripe(true);
-      setConnecting(false);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -172,7 +174,7 @@ export default function RegisterBusinessStripeConnectStep({
       setAwaitingStripe(false);
       stripePopupRef.current = null;
     }
-  }, [businessId]);
+  }, [businessId, stopWaiting]);
 
   const content = (
     <div className={styles.layout}>

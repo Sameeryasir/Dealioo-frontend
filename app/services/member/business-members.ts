@@ -9,8 +9,12 @@ import type {
   BusinessMembersResponse,
   BusinessMemberPermission,
   BusinessMemberStatus,
+  ListedMemberPermission,
 } from "@/app/services/member/types";
-import { BUSINESS_MEMBER_PERMISSIONS } from "@/app/services/member/types";
+import {
+  BUSINESS_MEMBER_PERMISSIONS,
+  FULL_ACCESS_PERMISSION,
+} from "@/app/services/member/types";
 
 function readApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error) && error.response?.data?.message != null) {
@@ -29,12 +33,16 @@ function parseMemberStatus(value: unknown): BusinessMemberStatus {
   return "active";
 }
 
-function parseMemberPermissions(value: unknown): BusinessMemberPermission[] {
+function parseMemberPermissions(value: unknown): ListedMemberPermission[] {
   if (!Array.isArray(value)) return [];
+  const items = value.filter((item): item is string => typeof item === "string");
+  if (items.includes(FULL_ACCESS_PERMISSION)) {
+    return [FULL_ACCESS_PERMISSION];
+  }
   const allowed = new Set<string>(BUSINESS_MEMBER_PERMISSIONS);
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .filter((item): item is BusinessMemberPermission => allowed.has(item));
+  return items.filter((item): item is BusinessMemberPermission =>
+    allowed.has(item),
+  );
 }
 
 function parseMemberItem(raw: unknown): BusinessMemberListItem | null {

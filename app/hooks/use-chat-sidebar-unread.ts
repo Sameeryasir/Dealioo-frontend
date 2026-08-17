@@ -1,6 +1,5 @@
 "use client";
 
-import { getChatUnreadSummary } from "@/app/services/chat/get-chat-unread-summary";
 import { markRestaurantChatsRead } from "@/app/services/chat/mark-business-chats-read";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import {
@@ -42,10 +41,7 @@ export function useChatSidebarUnread(
   const onChatsPage = isOnChatsRoute(pathname, chatsPathPrefix);
 
   useEffect(() => {
-    const syncUserId = () => setUserId(resolveUserId());
-    syncUserId();
-    window.addEventListener("focus", syncUserId);
-    return () => window.removeEventListener("focus", syncUserId);
+    setUserId(resolveUserId());
   }, []);
 
   const persistUnread = useCallback(
@@ -54,18 +50,6 @@ export function useChatSidebarUnread(
       writeChatHasUnread(id, restaurant, unread);
     },
     [],
-  );
-
-  const refreshUnreadFromServer = useCallback(
-    async (restaurant: number, user: number) => {
-      if (!hasAuthSession()) return;
-
-      try {
-        const summary = await getChatUnreadSummary(restaurant);
-        persistUnread(user, restaurant, summary.hasUnread);
-      } catch {}
-    },
-    [persistUnread],
   );
 
   useEffect(() => {
@@ -86,51 +70,21 @@ export function useChatSidebarUnread(
       return;
     }
 
-    const cachedUnread = readChatHasUnread(userId, businessId);
-    if (cachedUnread) {
-      setHasUnread(true);
-    }
-
-    void refreshUnreadFromServer(businessId, userId);
-  }, [
-    businessId,
-    userId,
-    onChatsPage,
-    persistUnread,
-    refreshUnreadFromServer,
-  ]);
-
-  useEffect(() => {
-    if (
-      businessId == null ||
-      businessId < 1 ||
-      userId == null ||
-      onChatsPage ||
-      !hasAuthSession()
-    ) {
-      return;
-    }
-
-    const onFocus = () => {
-      void refreshUnreadFromServer(businessId, userId);
-    };
-
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [businessId, userId, onChatsPage, refreshUnreadFromServer]);
+    persistUnread(userId, businessId, readChatHasUnread(userId, businessId));
+  }, [businessId, userId, onChatsPage, persistUnread]);
 
   useBusinessConversationsPusher(businessId ?? 0, (payload) => {
     const business = businessIdRef.current;
     const user = userIdRef.current;
     if (business == null || business < 1 || user == null) return;
     if (payload.message.direction !== "inbound") return;
+    if (payload.businessId !== business) return;
 
     const prefix = chatsPrefixRef.current;
     const path = pathnameRef.current;
     if (isOnChatsRoute(path, prefix)) return;
 
     persistUnread(user, business, true);
-    void refreshUnreadFromServer(business, user);
   });
 
   return hasUnread && !onChatsPage;
