@@ -4,6 +4,7 @@ import {
   AlertCircle,
   BarChart3,
   Building2,
+  CreditCard,
   ExternalLink,
   Link2,
   Loader2,
@@ -72,6 +73,11 @@ type NavItem = {
 
 const accountNav: NavItem[] = [
   { id: "account", label: "Account", icon: User, tone: "blue" },
+  { id: "billing", label: "Subscription & Billing", icon: CreditCard, tone: "blue" },
+];
+
+const billingNav: NavItem[] = [
+  { id: "billing", label: "Subscription & Billing", icon: CreditCard, tone: "blue" },
 ];
 
 const organizationNav: NavItem[] = [
@@ -84,6 +90,7 @@ const organizationNav: NavItem[] = [
 
 const sectionTitles: Record<SectionId, string> = {
   account: "Account",
+  billing: "Subscription & Billing",
   general: "Business profile",
   members: "Members",
   integrations: "Integrations",
@@ -724,7 +731,14 @@ export function BusinessSettingsPanel({
                   </p>
                   <div className="flex flex-col gap-2">{accountNav.map(navLink)}</div>
                 </div>
-              ) : null}
+              ) : (
+                <div>
+                  <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Account
+                  </p>
+                  <div className="flex flex-col gap-2">{billingNav.map(navLink)}</div>
+                </div>
+              )}
               {businessId == null ? (
                 <div>
                   <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
@@ -741,7 +755,9 @@ export function BusinessSettingsPanel({
           <article className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
             <header className="shrink-0 border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7 sm:py-5">
               <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
-                {businessId != null ? "Organization" : "Account"}
+                {section === "billing" || businessId == null
+                  ? "Account"
+                  : "Organization"}
               </p>
               <h2 className="m-0 mt-1 text-[clamp(1.2rem,2vw,1.5rem)] font-extrabold tracking-tight text-slate-900">
                 {section === "integrations" && integrationSetup?.provider === "stripe"
@@ -757,10 +773,17 @@ export function BusinessSettingsPanel({
 
             {section === "members" && businessId != null ? (
               <BusinessMembersPanel businessId={businessId} embedded />
+            ) : section === "billing" ? (
+              <div className="max-w-5xl">
+                <OwnerSubscriptionSection
+                  variant="light"
+                  layout="page"
+                  showHeading={false}
+                />
+              </div>
             ) : section === "account" && businessId == null ? (
               <div className="flex max-w-3xl flex-col gap-8">
                 <OwnerProfileForm variant="light" layout="compact" />
-                <OwnerSubscriptionSection variant="light" layout="page" />
                 <div className="flex flex-col gap-3 border-t border-[#e8edf5] pt-6">
                 <button
                   type="button"

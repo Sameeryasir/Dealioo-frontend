@@ -1,5 +1,6 @@
 export type BusinessSettingsSection =
   | "account"
+  | "billing"
   | "general"
   | "members"
   | "integrations"
@@ -13,6 +14,7 @@ export const BUSINESS_SETTINGS_SECTIONS: BusinessSettingsSection[] = [
   "usage",
   "scanning",
   "account",
+  "billing",
 ];
 
 export function isBusinessSettingsSection(

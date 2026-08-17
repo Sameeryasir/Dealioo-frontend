@@ -61,6 +61,27 @@ html {
   text-size-adjust: 100%;
 }
 
+iframe[src*="js.stripe.com"][style*="position: fixed"][style*="bottom"],
+iframe[src*="js.stripe.com"][style*="position:fixed"][style*="bottom"],
+iframe[src*="stripecdn.com"][style*="position: fixed"][style*="bottom"],
+iframe[src*="m.stripe.network"][style*="position: fixed"],
+iframe[src*="m.stripe.network"][style*="position:fixed"],
+a[href="https://stripe.com"][style*="position: fixed"],
+a[href="https://stripe.com/"][style*="position: fixed"],
+a[href^="https://stripe.com?"][style*="position: fixed"],
+#stripe-badge,
+[id^="stripe-badge"],
+[class*="StripeBadge"],
+[class*="stripe-badge"],
+[data-dealioo-hidden-stripe-badge="true"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -3313,6 +3334,292 @@ body {
 
   .profile-section-copy {
     @apply mt-1 text-sm leading-relaxed text-brand-muted;
+  }
+
+  .dealioo-billing {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-card {
+    overflow: hidden;
+    border: 1px solid #eceff5;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+  }
+
+  .dealioo-billing-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.15rem 1.35rem 0;
+  }
+
+  .dealioo-billing-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-card-title-icon {
+    display: flex;
+    width: 1.35rem;
+    height: 1.35rem;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+  }
+
+  .dealioo-billing-card-body {
+    padding: 1rem 1.35rem 1.25rem;
+  }
+
+  .dealioo-billing-ghost-btn {
+    display: inline-flex;
+    height: 2.05rem;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: #334155;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .dealioo-billing-ghost-btn:hover {
+    border-color: #c7d2fe;
+    background: #f8faff;
+    color: #4338ca;
+  }
+
+  .dealioo-billing-renew-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    background: #f3e8ff;
+    padding: 0.38rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 650;
+    color: #6d28d9;
+  }
+
+  .dealioo-billing-plan-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .dealioo-billing-plan-grid {
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 1.5rem;
+    }
+  }
+
+  .dealioo-billing-metric {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+
+  .dealioo-billing-metric-icon {
+    display: flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    color: #fff;
+  }
+
+  .dealioo-billing-metric-icon--plan {
+    background: linear-gradient(145deg, #6366f1 0%, #2563eb 100%);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+  }
+
+  .dealioo-billing-metric-icon--price {
+    background: #ede9fe;
+    color: #7c3aed;
+  }
+
+  .dealioo-billing-metric-icon--date {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  .dealioo-billing-kicker {
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  .dealioo-billing-value {
+    margin: 0.2rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .dealioo-billing-hint--accent {
+    color: #2563eb;
+    font-weight: 650;
+  }
+
+  .dealioo-billing-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.45rem;
+  }
+
+  .dealioo-billing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.18rem 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  .dealioo-billing-pill--success {
+    background: #ecfdf5;
+    color: #15803d;
+  }
+
+  .dealioo-billing-pill--cycle {
+    background: #f3e8ff;
+    color: #7c3aed;
+  }
+
+  .dealioo-billing-pill--warn {
+    background: #fff7ed;
+    color: #c2410c;
+  }
+
+  .dealioo-billing-footer {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    border-top: 1px solid #eef2f8;
+    padding-top: 0.9rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #64748b;
+  }
+
+  .dealioo-billing-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+  }
+
+  @media (min-width: 960px) {
+    .dealioo-billing-split {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .dealioo-billing-card-mini {
+    display: flex;
+    width: 8.4rem;
+    height: 5.1rem;
+    flex-shrink: 0;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
+    padding: 0.7rem 0.8rem;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.28);
+  }
+
+  .dealioo-billing-ok {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.7rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: #15803d;
+  }
+
+  .dealioo-billing-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem 1.5rem;
+  }
+
+  @media (min-width: 520px) {
+    .dealioo-billing-info-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .dealioo-billing-table-wrap {
+    overflow-x: auto;
+  }
+
+  .dealioo-billing-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .dealioo-billing-table th {
+    padding: 0.35rem 0.6rem 0.7rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: left;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  .dealioo-billing-table td {
+    padding: 0.85rem 0.6rem;
+    border-top: 1px solid #eef2f8;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-table td:last-child,
+  .dealioo-billing-table th:last-child {
+    text-align: right;
+  }
+
+  .dealioo-billing-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
   }
 
   .org-dashboard-stats-layout {
