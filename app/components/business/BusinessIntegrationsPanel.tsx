@@ -2,8 +2,8 @@
 
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import {
-  FacebookLogo,
   GoogleAdsLogo,
+  MetaLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
@@ -21,8 +21,26 @@ import {
 } from "@/app/services/integration-audit/get-integrations-status";
 import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
+import { getStripeDashboardLink } from "@/app/services/stripe/get-stripe-dashboard-link";
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
-import { AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  CalendarDays,
+  Check,
+  ExternalLink,
+  FileText,
+  LineChart,
+  Loader2,
+  Megaphone,
+  MousePointerClick,
+  RefreshCw,
+  Shield,
+  Trash2,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState, type ReactNode } from "react";
 
@@ -33,18 +51,13 @@ type BusinessIntegrationsPanelProps = {
 };
 
 const cardShellClass =
-  "overflow-hidden rounded-[1.35rem] border border-[#E8EDF5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02] transition-shadow hover:shadow-[0_12px_32px_rgba(15,23,42,0.09)]";
+  "relative overflow-hidden rounded-xl border border-[#E8EDF5] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]";
 
-function BrandMark({ children }: { children: ReactNode }) {
-  return (
-    <span
-      aria-hidden
-      className="flex size-[3.35rem] shrink-0 items-center justify-center rounded-[1.05rem] bg-white ring-1 ring-black/[0.06]"
-    >
-      {children}
-    </span>
-  );
-}
+const cardRowClass =
+  "grid items-center gap-3 py-3 pl-4 pr-3.5 md:grid-cols-[auto_minmax(0,1.2fr)_minmax(9.5rem,0.75fr)_auto]";
+
+const cardStatusClass =
+  "flex min-w-0 items-center gap-2 border-t border-[#EEF2F7] pt-2 md:border-l md:border-t-0 md:pl-3.5 md:pt-0";
 
 function StatusBadge({
   loading,
@@ -55,18 +68,183 @@ function StatusBadge({
 }) {
   if (loading) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[0.65rem] font-medium text-slate-500 ring-1 ring-slate-200">
+      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[0.62rem] font-semibold text-slate-500">
         <Loader2 className="size-2.5 animate-spin" strokeWidth={2.5} />
         Checking
       </span>
     );
   }
-  if (!connected) return null;
+  if (connected) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-700">
+        <Check className="size-2.5" strokeWidth={2.75} />
+        Connected
+      </span>
+    );
+  }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-700 ring-1 ring-emerald-200">
-      <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-      Connected
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[0.62rem] font-semibold text-slate-500">
+      Not connected
     </span>
+  );
+}
+
+function FeatureRow({
+  items,
+  toneClass,
+}: {
+  items: Array<{ icon: LucideIcon; label: string }>;
+  toneClass: string;
+}) {
+  return (
+    <ul className={`mt-1.5 flex flex-wrap gap-x-3 gap-y-1 ${toneClass}`}>
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <li
+            key={item.label}
+            className="inline-flex items-center gap-1 text-[0.65rem] font-medium"
+          >
+            <Icon className="size-3 shrink-0" strokeWidth={2.1} />
+            {item.label}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ConnectedStatus({
+  iconClass,
+  icon: Icon,
+}: {
+  iconClass: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-full ${iconClass}`}
+      >
+        <Icon className="size-3.5" />
+      </span>
+      <div>
+        <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-400">
+          Connected
+        </p>
+        <p className="m-0 text-xs font-semibold text-slate-800">Account linked</p>
+      </div>
+    </div>
+  );
+}
+
+function PromptStatus({
+  iconClass,
+  borderClass,
+  icon: Icon,
+  text,
+}: {
+  iconClass: string;
+  borderClass: string;
+  icon: LucideIcon;
+  text: string;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed ${borderClass} ${iconClass}`}
+      >
+        <Icon className="size-3.5" />
+      </span>
+      <p className="m-0 text-xs leading-snug text-slate-500">{text}</p>
+    </div>
+  );
+}
+
+function GoogleGMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  );
+}
+
+function IntegrationCard({
+  accentColor,
+  logo,
+  title,
+  description,
+  features,
+  featureToneClass,
+  loading,
+  connected,
+  status,
+  actions,
+  error,
+}: {
+  accentColor: string;
+  logo: ReactNode;
+  title: string;
+  description: string;
+  features: Array<{ icon: LucideIcon; label: string }>;
+  featureToneClass: string;
+  loading: boolean;
+  connected: boolean;
+  status: ReactNode;
+  actions: ReactNode;
+  error?: string | null;
+}) {
+  return (
+    <article className={cardShellClass}>
+      <span
+        className={`absolute inset-y-0 left-0 w-1 ${accentColor}`}
+        aria-hidden
+      />
+      <div className={cardRowClass}>
+        <span
+          aria-hidden
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#F4F7FB] ring-1 ring-black/[0.04]"
+        >
+          {logo}
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="m-0 text-sm font-bold tracking-tight text-slate-900">
+              {title}
+            </h3>
+            <StatusBadge loading={loading} connected={connected} />
+          </div>
+          <p className="m-0 mt-0.5 text-xs text-slate-500">{description}</p>
+          <FeatureRow items={features} toneClass={featureToneClass} />
+        </div>
+        <div className={cardStatusClass}>{status}</div>
+        <div className="flex flex-col gap-1.5 md:min-w-[9.75rem]">{actions}</div>
+      </div>
+      {error ? (
+        <p
+          role="alert"
+          className="m-0 flex items-start gap-2 border-t border-red-100 bg-red-50 px-3.5 py-1.5 text-[0.7rem] text-red-700"
+        >
+          <AlertCircle className="mt-px size-3.5 shrink-0" />
+          {error}
+        </p>
+      ) : null}
+    </article>
   );
 }
 
@@ -78,6 +256,7 @@ export function BusinessIntegrationsPanel({
   const [stripeActionError, setStripeActionError] = useState<string | null>(null);
   const [metaBusy, setMetaBusy] = useState<ConnectStatus>("idle");
   const [metaActionError, setMetaActionError] = useState<string | null>(null);
+  const [showMetaPermissions, setShowMetaPermissions] = useState(false);
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
@@ -163,6 +342,23 @@ export function BusinessIntegrationsPanel({
     }
   };
 
+  const handleManageStripe = async () => {
+    setStripeBusy("loading");
+    setStripeActionError(null);
+    try {
+      const token = getSetupAccessToken().trim();
+      if (!token) throw new Error("You're signed out. Sign in again.");
+      const { url } = await getStripeDashboardLink(token, businessId);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setStripeBusy("idle");
+    } catch (e) {
+      setStripeBusy("error");
+      setStripeActionError(
+        e instanceof Error ? e.message : "Could not open Stripe billing.",
+      );
+    }
+  };
+
   const handleConnectMeta = async () => {
     setMetaBusy("loading");
     setMetaActionError(null);
@@ -196,6 +392,7 @@ export function BusinessIntegrationsPanel({
       if (!token) throw new Error("You're signed out. Sign in again.");
       await disconnectFacebook(token, businessId);
       await refreshStatus();
+      setShowMetaPermissions(false);
       setMetaBusy("idle");
       bumpAuditLogs();
     } catch (e) {
@@ -248,139 +445,192 @@ export function BusinessIntegrationsPanel({
     }
   };
 
-  return (
-    <div className="flex flex-col gap-5">
-      <p className="m-0 text-sm leading-relaxed text-slate-500">
-        Link payments and ad accounts to run campaigns and track performance.
-      </p>
+  const actionBtn =
+    "inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-lg px-3 text-xs font-semibold disabled:opacity-60";
 
-      <div className={cardShellClass}>
-        <div className="h-1.5 bg-[#635BFF]" aria-hidden />
-        <div className="flex flex-wrap items-center gap-4 px-4 py-4 sm:gap-5 sm:px-5">
-          <BrandMark>
-            <StripeLogo className="size-9" />
-          </BrandMark>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
-                Stripe
-              </p>
-              <StatusBadge loading={statusLoading} connected={stripeConnected} />
-            </div>
-            <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
-              Accept payments from campaigns and funnels.
-            </p>
-          </div>
-          {statusLoading ? null : stripeConnected ? (
-            <button
-              type="button"
-              onClick={() => void handleDisconnectStripe()}
-              disabled={stripeBusy === "loading"}
-              className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 disabled:opacity-60"
-            >
-              {stripeBusy === "loading" ? "Removing…" : "Remove account"}
-            </button>
+  return (
+    <div className="flex flex-col gap-2.5">
+      <IntegrationCard
+        accentColor="bg-[#635BFF]"
+        logo={<StripeLogo className="size-6" />}
+        title="Stripe"
+        description="Accept payments from campaigns and funnels."
+        featureToneClass="text-[#635BFF]"
+        features={[
+          { icon: Shield, label: "Secure payments" },
+          { icon: FileText, label: "Invoices & history" },
+          { icon: RefreshCw, label: "Automatic sync" },
+        ]}
+        loading={statusLoading}
+        connected={stripeConnected}
+        error={stripeError}
+        status={
+          stripeConnected ? (
+            <ConnectedStatus
+              icon={CalendarDays}
+              iconClass="bg-[#F3F0FF] text-[#635BFF]"
+            />
+          ) : (
+            <PromptStatus
+              icon={Shield}
+              iconClass="text-[#635BFF]"
+              borderClass="border-[#D9D4FF]"
+              text="Connect Stripe to accept payments from campaigns and funnels."
+            />
+          )
+        }
+        actions={
+          statusLoading ? null : stripeConnected ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleManageStripe()}
+                disabled={stripeBusy === "loading"}
+                className={`${actionBtn} border border-[#D9D4FF] bg-[#F4F1FF] text-[#635BFF]`}
+              >
+                <ExternalLink className="size-3" strokeWidth={2.25} />
+                {stripeBusy === "loading" ? "Opening…" : "Manage billing"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDisconnectStripe()}
+                disabled={stripeBusy === "loading"}
+                className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
+              >
+                <Trash2 className="size-3" strokeWidth={2.25} />
+                {stripeBusy === "loading" ? "Removing…" : "Remove account"}
+              </button>
+            </>
           ) : (
             <button
               type="button"
               onClick={() => void handleConnectStripe()}
               disabled={stripeBusy === "loading"}
-              className="inline-flex h-9 cursor-pointer items-center rounded-lg bg-[#635BFF] px-3.5 text-xs font-semibold text-white disabled:opacity-60"
+              className={`${actionBtn} bg-[#635BFF] text-white`}
             >
               {stripeBusy === "loading" ? "Connecting…" : "Connect Stripe"}
             </button>
-          )}
-        </div>
-        {stripeError ? (
-          <p className="m-0 border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">
-            {stripeError}
-          </p>
-        ) : null}
-      </div>
+          )
+        }
+      />
 
-      <div className={cardShellClass}>
-        <div className="h-1.5 bg-[#1877F2]" aria-hidden />
-        <div className="space-y-3 px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-            <BrandMark>
-              <FacebookLogo className="size-9" />
-            </BrandMark>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
-                  Meta Ads
-                </p>
-                <StatusBadge loading={statusLoading} connected={metaConnected} />
-              </div>
-              <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
-                Run and track Meta ad campaigns.
-              </p>
-            </div>
-            {statusLoading ? null : metaConnected ? (
+      <IntegrationCard
+        accentColor="bg-[#1877F2]"
+        logo={<MetaLogo className="size-6" />}
+        title="Meta Ads"
+        description="Run and track Meta ad campaigns."
+        featureToneClass="text-[#1877F2]"
+        features={[
+          { icon: BarChart3, label: "Ad performance" },
+          { icon: Users, label: "Audience insights" },
+          { icon: RefreshCw, label: "Campaign tracking" },
+        ]}
+        loading={statusLoading}
+        connected={metaConnected}
+        error={metaError}
+        status={
+          metaConnected ? (
+            <ConnectedStatus
+              icon={CalendarDays}
+              iconClass="bg-[#E8F1FF] text-[#1877F2]"
+            />
+          ) : (
+            <PromptStatus
+              icon={Megaphone}
+              iconClass="text-[#1877F2]"
+              borderClass="border-[#C5D8F6]"
+              text="Connect your Meta Ads account to start running and tracking campaigns."
+            />
+          )
+        }
+        actions={
+          statusLoading ? null : metaConnected ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowMetaPermissions((open) => !open)}
+                className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2]`}
+              >
+                <Shield className="size-3" strokeWidth={2.25} />
+                {showMetaPermissions ? "Hide permissions" : "Show permissions"}
+              </button>
               <button
                 type="button"
                 onClick={() => void handleDisconnectMeta()}
                 disabled={metaBusy === "loading"}
-                className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 disabled:opacity-60"
+                className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
               >
+                <Trash2 className="size-3" strokeWidth={2.25} />
                 {metaBusy === "loading" ? "Removing…" : "Remove account"}
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleConnectMeta()}
-                disabled={metaBusy === "loading"}
-                className="inline-flex h-9 cursor-pointer items-center rounded-lg bg-[#1877F2] px-3.5 text-xs font-semibold text-white disabled:opacity-60"
-              >
-                {metaBusy === "loading" ? "Connecting…" : "Connect with Meta"}
-              </button>
-            )}
-          </div>
-          <FacebookPermissionsPanel
-            grantedScopes={metaScopes}
-            missingRequiredScopes={metaMissingScopes}
-            connected={metaConnected}
-            loading={statusLoading}
-          />
-          {metaError ? (
-            <p
-              role="alert"
-              className="m-0 flex items-start gap-2 text-xs text-red-700"
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleConnectMeta()}
+              disabled={metaBusy === "loading"}
+              className={`${actionBtn} gap-1.5 bg-[#1877F2] text-white`}
             >
-              <AlertCircle className="mt-px size-3.5 shrink-0" />
-              {metaError}
-            </p>
-          ) : null}
-        </div>
-      </div>
+              {metaBusy === "loading" ? (
+                "Connecting…"
+              ) : (
+                <>
+                  <MetaLogo className="size-3.5 text-white" monochrome />
+                  Connect with Meta
+                </>
+              )}
+            </button>
+          )
+        }
+      />
 
-      <div className={cardShellClass}>
-        <div className="h-1.5 bg-[#34a853]" aria-hidden />
-        <div className="flex flex-wrap items-center gap-4 px-4 py-4 sm:gap-5 sm:px-5">
-          <BrandMark>
-            <GoogleAdsLogo className="size-8" />
-          </BrandMark>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
-                Google Ads
-              </p>
-              <StatusBadge
-                loading={statusLoading}
-                connected={googleConnected}
-              />
-            </div>
-            <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
-              Pull spend, clicks, and campaign stats from Google Ads.
-            </p>
-          </div>
-          {statusLoading ? null : googleConnected ? (
+      {showMetaPermissions ? (
+        <FacebookPermissionsPanel
+          grantedScopes={metaScopes}
+          missingRequiredScopes={metaMissingScopes}
+          connected={metaConnected}
+          loading={statusLoading}
+        />
+      ) : null}
+
+      <IntegrationCard
+        accentColor="bg-[#34A853]"
+        logo={<GoogleAdsLogo className="size-6" />}
+        title="Google Ads"
+        description="Pull spend, clicks, and campaign stats from Google Ads."
+        featureToneClass="text-[#188038]"
+        features={[
+          { icon: Wallet, label: "Spend insights" },
+          { icon: MousePointerClick, label: "Click tracking" },
+          { icon: LineChart, label: "Campaign stats" },
+        ]}
+        loading={statusLoading}
+        connected={googleConnected}
+        error={googleError}
+        status={
+          googleConnected ? (
+            <ConnectedStatus
+              icon={CalendarDays}
+              iconClass="bg-[#E8F5EE] text-[#188038]"
+            />
+          ) : (
+            <PromptStatus
+              icon={BarChart3}
+              iconClass="text-[#188038]"
+              borderClass="border-[#B7E0C4]"
+              text="Connect your Google Ads account to import data and monitor performance."
+            />
+          )
+        }
+        actions={
+          statusLoading ? null : googleConnected ? (
             <button
               type="button"
               onClick={() => void handleDisconnectGoogle()}
               disabled={googleBusy === "loading"}
-              className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 disabled:opacity-60"
+              className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
             >
+              <Trash2 className="size-3" strokeWidth={2.25} />
               {googleBusy === "loading" ? "Removing…" : "Remove account"}
             </button>
           ) : (
@@ -388,7 +638,7 @@ export function BusinessIntegrationsPanel({
               type="button"
               onClick={() => void handleConnectGoogle()}
               disabled={googleBusy === "loading"}
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#34a853] px-3.5 text-xs font-semibold text-white disabled:opacity-60"
+              className={`${actionBtn} gap-1.5 bg-[#34A853] text-white`}
             >
               {googleBusy === "loading" ? (
                 <>
@@ -397,19 +647,16 @@ export function BusinessIntegrationsPanel({
                 </>
               ) : (
                 <>
-                  <ExternalLink className="size-3.5" strokeWidth={2} />
+                  <span className="flex size-4 items-center justify-center rounded-full bg-white">
+                    <GoogleGMark className="size-2.5" />
+                  </span>
                   Connect with Google
                 </>
               )}
             </button>
-          )}
-        </div>
-        {googleError ? (
-          <p className="m-0 border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">
-            {googleError}
-          </p>
-        ) : null}
-      </div>
+          )
+        }
+      />
 
       <IntegrationAuditLogsCard
         businessId={businessId}

@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckCircle2, Shield } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  Megaphone,
+  Shield,
+  type LucideIcon,
+} from "lucide-react";
 import {
   formatFacebookScopeLabel,
   parseGrantedScopes,
@@ -16,70 +22,97 @@ type FacebookPermissionsPanelProps = {
   loading?: boolean;
 };
 
+const PREFERRED_SCOPE_ORDER = ["ads_management", "ads_read"] as const;
+
+const SCOPE_ICONS: Record<string, LucideIcon> = {
+  ads_management: Megaphone,
+  ads_read: BarChart3,
+};
+
 const panelShellClass =
-  "mt-4 rounded-[1.1rem] border border-[#e8edf5] bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)]";
+  "rounded-[0.95rem] border border-[#E8EDF5] bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:p-5";
+
+const HIDDEN_DISPLAY_SCOPES = new Set(["email"]);
+
+function orderedGrantedScopes(grantedScopes: string[]): string[] {
+  const granted = parseGrantedScopes(grantedScopes);
+  const preferred = PREFERRED_SCOPE_ORDER.filter((id) => granted.has(id));
+  const extra = [...granted].filter(
+    (id) =>
+      !PREFERRED_SCOPE_ORDER.includes(id as (typeof PREFERRED_SCOPE_ORDER)[number]) &&
+      !HIDDEN_DISPLAY_SCOPES.has(id),
+  );
+  return [...preferred, ...extra];
+}
 
 export function FacebookPermissionsPanel({
   grantedScopes,
   connected,
   loading = false,
 }: FacebookPermissionsPanelProps) {
-  const granted = [...parseGrantedScopes(grantedScopes)];
+  if (loading && !connected) {
+    return null;
+  }
 
   if (loading) {
     return (
       <div className={panelShellClass}>
-        <p className="text-xs text-slate-500">Loading Facebook permissions…</p>
+        <p className="m-0 text-xs text-slate-500">Loading Facebook permissions…</p>
       </div>
     );
   }
+
+  const granted = orderedGrantedScopes(grantedScopes);
 
   if (!connected || granted.length === 0) {
     return null;
   }
 
   return (
-    <div className={`${panelShellClass} space-y-3`}>
-      <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2]">
-          <Shield className="size-4" aria-hidden />
+    <section className={`${panelShellClass} space-y-4`}>
+      <div className="flex items-start gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#E8F1FF] text-[#1877F2]">
+          <Shield className="size-4" strokeWidth={2.1} aria-hidden />
         </span>
         <div>
-          <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
+          <h3 className="m-0 text-[0.95rem] font-bold tracking-tight text-slate-900">
             Permissions granted
-          </p>
+          </h3>
           <p className="m-0 mt-0.5 text-xs text-slate-500">
             What Dealioo can access from your Meta account.
           </p>
         </div>
       </div>
 
-      <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {granted.map((scopeId) => (
-          <li
-            key={scopeId}
-            className="rounded-[0.95rem] border border-emerald-200 bg-emerald-50/80 px-3 py-2.5"
-          >
-            <div className="flex items-start gap-2">
-              <CheckCircle2
-                className="mt-0.5 size-4 shrink-0 text-emerald-600"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-900">
+      <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
+        {granted.map((scopeId) => {
+          const Icon = SCOPE_ICONS[scopeId] ?? Shield;
+          return (
+            <li
+              key={scopeId}
+              className="flex items-center gap-3 rounded-[0.9rem] border border-emerald-200 bg-[#F4FBF6] px-3.5 py-3"
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <Check className="size-3.5" strokeWidth={3} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[0.82rem] font-semibold text-slate-900">
                   {formatFacebookScopeLabel(scopeId)}
                 </p>
-                <p className="mt-0.5 break-all text-[11px] leading-relaxed text-slate-500">
+                <p className="m-0 mt-0.5 font-mono text-[0.68rem] text-slate-400">
                   {scopeId}
                 </p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                <span className="mt-1.5 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-emerald-700">
                   Granted
-                </p>
+                </span>
               </div>
-            </div>
-          </li>
-        ))}
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <Icon className="size-4" strokeWidth={2} aria-hidden />
+              </span>
+            </li>
+          );
+        })}
       </ul>
-    </div>
+    </section>
   );
 }

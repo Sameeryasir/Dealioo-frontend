@@ -246,6 +246,76 @@ export async function getBillingInvoiceLinks(
   };
 }
 
+export async function downloadBillingInvoicePdf(
+  invoiceId: string,
+  invoiceNumber?: string | null,
+  mode: "download" | "preview" = "download",
+): Promise<void> {
+  const id = invoiceId.trim();
+  if (!id.startsWith("in_")) {
+    throw new Error("Invoice is not available.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/billing/invoices/${encodeURIComponent(id)}/pdf`,
+    {
+      method: "GET",
+      headers: { Accept: "application/pdf" },
+    },
+    60_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiMessageFromResponse(res, "Invoice is not available."),
+    );
+  }
+
+  const blob = await res.blob();
+  if (blob.size === 0) {
+    throw new Error("Invoice is not available.");
+  }
+
+  const numberedName = invoiceNumber?.trim()
+    ? `Invoice-${invoiceNumber.trim()}.pdf`
+    : null;
+  const filename =
+    filenameFromContentDisposition(res.headers.get("content-disposition")) ||
+    numberedName ||
+    "invoice.pdf";
+
+  const objectUrl = URL.createObjectURL(blob);
+  if (mode === "preview") {
+    const opened = window.open(objectUrl, "_blank");
+    if (opened) {
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      return;
+    }
+  }
+
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+}
+
+function filenameFromContentDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]).replace(/["']/g, "");
+    } catch {
+    }
+  }
+  const asciiMatch = /filename="([^"]+)"/i.exec(header);
+  return asciiMatch?.[1] ?? null;
+}
+
 export async function createBillingSetupIntent(): Promise<{ clientSecret: string }> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/billing/setup-intent`,

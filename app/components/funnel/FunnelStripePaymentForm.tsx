@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { type Stripe } from "@stripe/stripe-js";
+import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import { CheckoutElementsProvider } from "@stripe/react-stripe-js/checkout";
 import { Loader2 } from "lucide-react";
 import { CustomCardCheckoutForm } from "@/app/components/funnel/CustomCardCheckoutForm";
@@ -64,7 +65,7 @@ export function FunnelStripePaymentForm({
 
   const stripePromise = useMemo((): Promise<Stripe | null> | null => {
     if (!publishableKey || !stripeAccountId?.trim()) return null;
-    return loadStripe(publishableKey, {
+    return loadDealiooStripe(publishableKey, {
       stripeAccount: stripeAccountId.trim(),
     });
   }, [publishableKey, stripeAccountId]);

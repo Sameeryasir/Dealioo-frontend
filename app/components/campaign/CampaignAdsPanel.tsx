@@ -7,13 +7,13 @@ import {
   Check,
 } from "lucide-react";
 import { MetaAdsAnalyticsDashboard } from "@/app/components/campaign/MetaAdsAnalyticsDashboard";
+import { MetaAdsConnectEmptyState } from "@/app/components/campaign/MetaAdsConnectEmptyState";
 import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
 import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-builder/MetaCampaignObjectiveDialog";
 import {
   MetaDraftPicker,
   type MetaDraftPickerAction,
 } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
-import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { Skeleton } from "@/app/components/skeleton";
 
@@ -503,17 +503,29 @@ export function CampaignAdsPanel({
     },
   };
 
+  const showCenteredEmpty = !showSkeleton && !showAnalyticsDashboard;
+
   return (
     <div
       className={
         embedded
-          ? "relative box-border w-full min-w-0 shrink-0 overflow-visible bg-white px-3 pb-20 pt-5 sm:px-5 sm:pb-24 sm:pt-6"
-          : "relative box-border w-full min-w-0 shrink-0 overflow-visible bg-white px-4 py-8 pb-20 sm:px-8 sm:py-10 sm:pb-24"
+          ? `relative box-border flex w-full min-w-0 overflow-visible bg-white px-3 sm:px-5 ${
+              showCenteredEmpty
+                ? "min-h-0 flex-1 items-center justify-center py-6"
+                : "shrink-0 pb-20 pt-5 sm:pb-24 sm:pt-6"
+            }`
+          : `relative box-border flex w-full min-w-0 overflow-visible bg-white px-4 sm:px-8 ${
+              showCenteredEmpty
+                ? "min-h-[70vh] items-center justify-center py-8"
+                : "shrink-0 py-8 pb-20 sm:py-10 sm:pb-24"
+            }`
       }
     >
       <div
-        className={`relative mx-auto w-full min-w-0 space-y-6 ${
-          showSkeleton || showAnalyticsDashboard ? "max-w-[90rem]" : "max-w-3xl"
+        className={`relative mx-auto w-full min-w-0 ${
+          showSkeleton || showAnalyticsDashboard
+            ? "max-w-[90rem] space-y-6"
+            : "max-w-5xl"
         }`}
       >
         {showSkeleton ? (
@@ -540,52 +552,40 @@ export function CampaignAdsPanel({
             deletingCampaignId={deletingCampaignId}
           />
         ) : (
-          <div className="overflow-visible rounded-3xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]">
+          <div>
             {connectionPhase === "not_connected" ? (
-              <div className="px-6 py-10 text-center sm:px-10">
-                <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-zinc-50 ring-1 ring-zinc-200/80">
-                  <MetaLogo className="size-9 opacity-80" />
-                </span>
-                <p className="mt-5 text-lg font-bold text-zinc-900">
-                  Connect Meta
-                </p>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-600">
-                  Open{" "}
-                  <span className="font-semibold text-zinc-800">
-                    Settings → Integrations
-                  </span>{" "}
-                  and connect Meta to unlock campaign analytics here.
-                </p>
-              </div>
+              <MetaAdsConnectEmptyState businessId={businessId} />
             ) : null}
 
             {connectionPhase === "needs_account" ? (
-              <div className="flex flex-col gap-5 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-                <div className="flex items-start gap-4">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">
-                    <Check className="size-6" aria-hidden />
-                  </span>
-                  <div>
-                    <p className="font-bold text-zinc-900">
-                      Meta linked, pick your ad account
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      Choose which Meta ad account powers this business.
-                    </p>
+              <div className="overflow-visible rounded-3xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]">
+                <div className="flex flex-col gap-5 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+                  <div className="flex items-start gap-4">
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">
+                      <Check className="size-6" aria-hidden />
+                    </span>
+                    <div>
+                      <p className="font-bold text-zinc-900">
+                        Meta linked, pick your ad account
+                      </p>
+                      <p className="mt-1 text-sm text-zinc-600">
+                        Choose which Meta ad account powers this business.
+                      </p>
+                    </div>
                   </div>
+                  <Link
+                    href={`/facebook/select-ad-account?businessId=${businessId}`}
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1877f2] px-6 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#166fe0]"
+                  >
+                    Choose ad account
+                  </Link>
                 </div>
-                <Link
-                  href={`/facebook/select-ad-account?businessId=${businessId}`}
-                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1877f2] px-6 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#166fe0]"
-                >
-                  Choose ad account
-                </Link>
               </div>
             ) : null}
 
-            {metaError ? (
+            {metaError && connectionPhase !== "not_connected" ? (
               <p
-                className="mx-6 mb-6 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
                 role="alert"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />

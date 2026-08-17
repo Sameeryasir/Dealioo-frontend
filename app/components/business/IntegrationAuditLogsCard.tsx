@@ -527,20 +527,20 @@ export function IntegrationAuditLogsCard({
 
       {!error && rows.length > 0 ? (
         <>
-          <div className="hidden overflow-x-auto 2xl:block">
-            <table className="w-full border-collapse">
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
-                  <th className="px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500 first:pl-5">
+                  <th className="w-[34%] px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500 first:pl-5">
                     Event
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
+                  <th className="w-[28%] px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
                     Details
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
+                  <th className="w-[18%] px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
                     Platform / Account
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500 last:pr-5">
+                  <th className="w-[20%] px-4 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500 last:pr-5">
                     Time
                   </th>
                 </tr>
@@ -552,7 +552,7 @@ export function IntegrationAuditLogsCard({
               </tbody>
             </table>
           </div>
-          <ul className="m-0 list-none p-0 2xl:hidden">
+          <ul className="m-0 list-none p-0 md:hidden">
             {rows.map((item) => (
               <CompactLogRow key={item.id} item={item} />
             ))}

@@ -68,7 +68,7 @@ const PREVIEW_TITLES: Record<
   },
   integrations: {
     title: "Integrations",
-    subtitle: "Connect Stripe, Meta, and Google Ads for this business",
+    subtitle: "Connect Stripe, Meta, and Google Ads for this business.",
   },
 };
 
@@ -239,7 +239,6 @@ function BusinessLogoAvatar({
 }
 
 function ProfileCityscape({ className }: { className?: string }) {
-  // Soft skyline decoration for the page header (visual only).
   return (
     <svg
       viewBox="0 0 220 88"
@@ -710,17 +709,23 @@ export function BusinessGeneralSettingsForm({
         businessId={businessId}
         onClose={() => setEditOpen(false)}
       />
-      <header className="relative mb-3 shrink-0 pr-[7.5rem] sm:pr-[10rem]">
-        <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.7rem]">
-          {previewMeta.title}
-        </h1>
-        <p className="m-0 mt-1 text-[0.88rem] text-slate-500">
-          {previewMeta.subtitle}
-        </p>
-        {isProfileView ? (
-          <ProfileCityscape className="pointer-events-none absolute -right-1 top-0 h-[4.5rem] w-[9rem] opacity-90 sm:h-[5.25rem] sm:w-[11rem]" />
-        ) : null}
-      </header>
+      {previewSection === "integrations" ? null : (
+        <header
+          className={`relative mb-3 shrink-0 ${
+            isProfileView ? "pr-[8.5rem] sm:pr-[12.5rem]" : ""
+          }`}
+        >
+          <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#0F172A] xl:text-[1.7rem]">
+            {previewMeta.title}
+          </h1>
+          <p className="m-0 mt-1 text-[0.88rem] text-slate-500">
+            {previewMeta.subtitle}
+          </p>
+          {isProfileView ? (
+            <ProfileCityscape className="pointer-events-none absolute -right-1 top-0 h-[4.5rem] w-[9rem] opacity-90 sm:h-[5.25rem] sm:w-[11rem]" />
+          ) : null}
+        </header>
+      )}
 
       <div
         className={`grid min-h-0 flex-1 gap-3 overflow-hidden xl:gap-3.5 ${

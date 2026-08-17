@@ -5,7 +5,7 @@ import { OwnerBillingCardForm } from "@/app/components/profile/OwnerBillingCardF
 import { cancelUserSubscription } from "@/app/services/subscription/cancel-user-subscription";
 import {
   createBillingSetupIntent,
-  getBillingInvoiceLinks,
+  downloadBillingInvoicePdf,
   getBillingOverview,
   resumeUserSubscription,
   updateBillingDetails,
@@ -1129,16 +1129,14 @@ function InvoiceRow({
     if (opening) return;
     setOpening(kind);
     try {
-      const links = await getBillingInvoiceLinks(invoice.id);
-      const url =
-        kind === "pdf"
-          ? links.invoicePdfUrl || links.hostedInvoiceUrl
-          : links.hostedInvoiceUrl || links.invoicePdfUrl;
-      if (!url) {
-        toast.error("Invoice is not available.");
-        return;
+      await downloadBillingInvoicePdf(
+        invoice.id,
+        invoice.number,
+        kind === "invoice" ? "preview" : "download",
+      );
+      if (kind === "pdf") {
+        toast.success("Invoice PDF downloaded.");
       }
-      window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Invoice is not available.",

@@ -1,4 +1,5 @@
 import { AppToaster } from "@/app/components/AppToaster";
+import { HideStripeTestingAssistant } from "@/app/components/HideStripeTestingAssistant";
 import { ProductMetaPixel } from "@/app/components/ProductMetaPixel";
 import { AuthProvider } from "@/app/contexts/auth-context";
 import { CredentialProvider } from "@/app/contexts/credential-context";
@@ -98,6 +99,7 @@ export default function RootLayout({
                   </Suspense>
                 ) : null}
                 {children}
+                <HideStripeTestingAssistant />
                 <AppToaster />
               </CredentialProvider>
             </AuthProvider>

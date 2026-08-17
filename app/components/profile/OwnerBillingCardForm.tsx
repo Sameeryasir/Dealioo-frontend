@@ -6,9 +6,9 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
+import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import { confirmBillingPaymentMethod } from "@/app/services/subscription/billing";
 
 const publishableKey =
@@ -83,6 +83,12 @@ function CardSetupFields({
       <PaymentElement
         options={{
           layout: "tabs",
+          paymentMethodOrder: ["card"],
+          wallets: {
+            applePay: "never",
+            googlePay: "never",
+            link: "never",
+          },
         }}
       />
       {errorMessage ? (
@@ -118,7 +124,7 @@ export function OwnerBillingCardForm({
   onCancel,
 }: OwnerBillingCardFormProps) {
   const stripePromise = useMemo(
-    () => (publishableKey ? loadStripe(publishableKey) : null),
+    () => (publishableKey ? loadDealiooStripe(publishableKey) : null),
     [],
   );
 

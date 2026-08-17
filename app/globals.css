@@ -12148,7 +12148,9 @@ body:has(.auth-select-plan-page) {
 }
 
 .rd-main-scroll--google-ads > .rd-premium,
-.rd-main-scroll--google-ads > .rd-premium--fill {
+.rd-main-scroll--google-ads > .rd-premium--fill,
+.rd-main-scroll--meta-ads > .rd-premium,
+.rd-main-scroll--meta-ads > .rd-premium--fill {
   background: #ffffff;
   padding: 0;
   min-height: 100%;
@@ -16176,4 +16178,15 @@ body:has(.auth-select-plan-page) {
   .rp-confirm-dialog__confirm:hover:not(:disabled) {
     transform: none;
   }
+}
+
+iframe[title*="assistant" i],
+iframe[title*="easel" i],
+iframe[name*="assistant" i] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
 }
