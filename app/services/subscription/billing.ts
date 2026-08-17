@@ -30,8 +30,6 @@ export type BillingInvoice = {
   amountFormatted: string;
   currency: string;
   status: string;
-  hostedInvoiceUrl: string | null;
-  invoicePdfUrl: string | null;
 };
 
 export type BillingSubscriptionSummary = {
@@ -153,8 +151,6 @@ function normalizeInvoice(value: unknown): BillingInvoice | null {
     amountFormatted,
     currency: asString(row.currency) || "usd",
     status: asString(row.status) || "unknown",
-    hostedInvoiceUrl: asString(row.hostedInvoiceUrl),
-    invoicePdfUrl: asString(row.invoicePdfUrl),
   };
 }
 
@@ -218,6 +214,36 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     throw new Error("Could not load billing details.");
   }
   return overview;
+}
+
+export async function getBillingInvoiceLinks(
+  invoiceId: string,
+): Promise<{ hostedInvoiceUrl: string | null; invoicePdfUrl: string | null }> {
+  const id = invoiceId.trim();
+  if (!id.startsWith("in_")) {
+    throw new Error("Invoice is not available.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/billing/invoices/${encodeURIComponent(id)}/links`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+    60_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiMessageFromResponse(res, "Invoice is not available."),
+    );
+  }
+
+  const row = asRecord(await parseJson(res));
+  return {
+    hostedInvoiceUrl: asString(row?.hostedInvoiceUrl),
+    invoicePdfUrl: asString(row?.invoicePdfUrl),
+  };
 }
 
 export async function createBillingSetupIntent(): Promise<{ clientSecret: string }> {

@@ -61,27 +61,6 @@ html {
   text-size-adjust: 100%;
 }
 
-iframe[src*="js.stripe.com"][style*="position: fixed"][style*="bottom"],
-iframe[src*="js.stripe.com"][style*="position:fixed"][style*="bottom"],
-iframe[src*="stripecdn.com"][style*="position: fixed"][style*="bottom"],
-iframe[src*="m.stripe.network"][style*="position: fixed"],
-iframe[src*="m.stripe.network"][style*="position:fixed"],
-a[href="https://stripe.com"][style*="position: fixed"],
-a[href="https://stripe.com/"][style*="position: fixed"],
-a[href^="https://stripe.com?"][style*="position: fixed"],
-#stripe-badge,
-[id^="stripe-badge"],
-[class*="StripeBadge"],
-[class*="stripe-badge"],
-[data-dealioo-hidden-stripe-badge="true"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { clearSetupUser } from "@/app/lib/setup-user";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
 import {
   BusinessGeneralSettingsForm,
@@ -315,6 +316,11 @@ export function BusinessSettingsPanel({
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const settingsFocus = searchParams.get("focus")?.trim().toLowerCase() || "";
+  const canManageBilling = isAdminOrSuperAdminUser();
+  const visibleAccountNav = accountNav.filter(
+    (item) => item.id !== "billing" || canManageBilling,
+  );
+  const visibleBillingNav = canManageBilling ? billingNav : [];
 
   type ConnectStatus = "idle" | "loading" | "error";
   const [stripeConnected, setStripeConnected] = useState(false);
@@ -729,16 +735,16 @@ export function BusinessSettingsPanel({
                   <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                     Account
                   </p>
-                  <div className="flex flex-col gap-2">{accountNav.map(navLink)}</div>
+                  <div className="flex flex-col gap-2">{visibleAccountNav.map(navLink)}</div>
                 </div>
-              ) : (
+              ) : visibleBillingNav.length > 0 ? (
                 <div>
                   <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                     Account
                   </p>
-                  <div className="flex flex-col gap-2">{billingNav.map(navLink)}</div>
+                  <div className="flex flex-col gap-2">{visibleBillingNav.map(navLink)}</div>
                 </div>
-              )}
+              ) : null}
               {businessId == null ? (
                 <div>
                   <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
@@ -773,6 +779,15 @@ export function BusinessSettingsPanel({
 
             {section === "members" && businessId != null ? (
               <BusinessMembersPanel businessId={businessId} embedded />
+            ) : section === "billing" && !canManageBilling ? (
+              <div className="max-w-xl rounded-[1.2rem] border border-[#e8edf5] bg-white p-6">
+                <p className="m-0 text-sm font-semibold text-slate-900">
+                  Only the account owner can manage billing.
+                </p>
+                <p className="m-0 mt-2 text-sm text-slate-600">
+                  Ask the owner if you need invoices or card updates.
+                </p>
+              </div>
             ) : section === "billing" ? (
               <div className="max-w-5xl">
                 <OwnerSubscriptionSection

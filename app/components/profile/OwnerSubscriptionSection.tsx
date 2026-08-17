@@ -5,9 +5,11 @@ import { OwnerBillingCardForm } from "@/app/components/profile/OwnerBillingCardF
 import { cancelUserSubscription } from "@/app/services/subscription/cancel-user-subscription";
 import {
   createBillingSetupIntent,
+  getBillingInvoiceLinks,
   getBillingOverview,
   resumeUserSubscription,
   updateBillingDetails,
+  confirmBillingPaymentMethod,
   type BillingAddress,
   type BillingDetails,
   type BillingInvoice,
@@ -34,9 +36,8 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { useHideStripeWatermark } from "@/app/lib/hide-stripe-watermark";
 
 type OwnerSubscriptionSectionProps = {
   variant?: "light" | "dark";
@@ -223,7 +224,7 @@ export function OwnerSubscriptionSection({
   const paymentMethod = overview?.paymentMethod ?? null;
   const billingDetails = overview?.billingDetails ?? emptyBillingDetails;
   const invoices = overview?.invoices ?? [];
-  useHideStripeWatermark();
+  const processedCardReturnRef = useRef(false);
 
   const resetCancelForm = useCallback(() => {
     setCancelReason("");
@@ -250,6 +251,51 @@ export function OwnerSubscriptionSection({
 
   useEffect(() => {
     void loadOverview();
+  }, [loadOverview]);
+
+  useEffect(() => {
+    if (processedCardReturnRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const setupIntentId = params.get("setup_intent")?.trim() || "";
+    if (!setupIntentId.startsWith("seti_")) {
+      return;
+    }
+
+    processedCardReturnRef.current = true;
+    const redirectStatus = params.get("redirect_status")?.trim() || "";
+    params.delete("setup_intent");
+    params.delete("setup_intent_client_secret");
+    params.delete("redirect_status");
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+
+    if (redirectStatus && redirectStatus !== "succeeded") {
+      setCardError("Card verification was not completed. Please try again.");
+      setCardModalOpen(true);
+      return;
+    }
+
+    void (async () => {
+      try {
+        await confirmBillingPaymentMethod(setupIntentId);
+        toast.success("Payment method updated.");
+        await loadOverview();
+      } catch (error) {
+        setCardError(
+          error instanceof Error
+            ? error.message
+            : "Could not save your card. Please try again.",
+        );
+        setCardModalOpen(true);
+      }
+    })();
   }, [loadOverview]);
 
   const handleCancelSubscription = useCallback(async () => {
@@ -349,9 +395,6 @@ export function OwnerSubscriptionSection({
     try {
       const next = await updateBillingDetails({
         name: billingForm.name.trim(),
-        ...(billingForm.email.trim()
-          ? { email: billingForm.email.trim() }
-          : {}),
         address: {
           line1: billingForm.line1.trim(),
           line2: billingForm.line2.trim(),
@@ -844,7 +887,8 @@ export function OwnerSubscriptionSection({
                   Edit billing information
                 </h3>
                 <p className="mt-1 text-sm text-brand-muted">
-                  This updates the name, email, and address Stripe uses on invoices.
+                  This updates the name and address Stripe uses on invoices.
+                  Invoice email stays on your Dealioo account email.
                 </p>
               </div>
             </div>
@@ -867,14 +911,13 @@ export function OwnerSubscriptionSection({
                 <input
                   type="email"
                   value={billingForm.email}
-                  onChange={(event) =>
-                    setBillingForm((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                  className={inputClass}
+                  readOnly
+                  disabled
+                  className={`${inputClass} cursor-not-allowed bg-slate-50`}
                 />
+                <span className="text-xs text-brand-muted">
+                  Invoices are sent here. Change it in Account settings.
+                </span>
               </label>
               <label className="flex flex-col gap-1 text-sm sm:col-span-2">
                 <span className="font-semibold text-brand-navy">Address</span>
@@ -1079,9 +1122,31 @@ function InvoiceRow({
   planName: string;
   billingCycle: "monthly" | "annual";
 }) {
-  const invoiceUrl = invoice.hostedInvoiceUrl || invoice.invoicePdfUrl;
-  const pdfUrl = invoice.invoicePdfUrl || invoice.hostedInvoiceUrl;
+  const [opening, setOpening] = useState<"invoice" | "pdf" | null>(null);
   const invoiceId = invoice.number ? `#${invoice.number}` : invoice.id.slice(-6);
+
+  const openInvoice = async (kind: "invoice" | "pdf") => {
+    if (opening) return;
+    setOpening(kind);
+    try {
+      const links = await getBillingInvoiceLinks(invoice.id);
+      const url =
+        kind === "pdf"
+          ? links.invoicePdfUrl || links.hostedInvoiceUrl
+          : links.hostedInvoiceUrl || links.invoicePdfUrl;
+      if (!url) {
+        toast.error("Invoice is not available.");
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Invoice is not available.",
+      );
+    } finally {
+      setOpening(null);
+    }
+  };
 
   return (
     <tr>
@@ -1113,28 +1178,32 @@ function InvoiceRow({
       </td>
       <td>
         <div className="dealioo-billing-actions">
-          {invoiceUrl ? (
-            <a
-              href={invoiceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="dealioo-billing-ghost-btn"
-            >
+          <button
+            type="button"
+            disabled={opening != null}
+            onClick={() => void openInvoice("invoice")}
+            className="dealioo-billing-ghost-btn"
+          >
+            {opening === "invoice" ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
               <FileText className="size-3.5" aria-hidden />
-              Invoice
-            </a>
-          ) : null}
-          {pdfUrl ? (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="dealioo-billing-ghost-btn"
-            >
+            )}
+            Invoice
+          </button>
+          <button
+            type="button"
+            disabled={opening != null}
+            onClick={() => void openInvoice("pdf")}
+            className="dealioo-billing-ghost-btn"
+          >
+            {opening === "pdf" ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
               <Download className="size-3.5" aria-hidden />
-              PDF
-            </a>
-          ) : null}
+            )}
+            PDF
+          </button>
         </div>
       </td>
     </tr>

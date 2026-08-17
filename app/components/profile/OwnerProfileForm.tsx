@@ -4,6 +4,7 @@ import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscrip
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { userAvatarUrl } from "@/app/lib/user-initials";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { mergeSetupUser, setSetupUser } from "@/app/lib/setup-user";
 import {
   getMyProfile,
@@ -854,7 +855,9 @@ export function OwnerProfileForm({
                 {pageAccountDetails}
                 {pageEditForm}
               </div>
-              <OwnerSubscriptionSection variant={variant} layout="page" />
+              {isAdminOrSuperAdminUser() ? (
+                <OwnerSubscriptionSection variant={variant} layout="page" />
+              ) : null}
             </div>
           </div>
         </>

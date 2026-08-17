@@ -10,7 +10,6 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { confirmBillingPaymentMethod } from "@/app/services/subscription/billing";
-import { useHideStripeWatermark } from "@/app/lib/hide-stripe-watermark";
 
 const publishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
@@ -32,7 +31,6 @@ function CardSetupFields({
   const elements = useElements();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  useHideStripeWatermark();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
