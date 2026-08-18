@@ -25,6 +25,7 @@ import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubt
 import { ScanRewardSelectDialog } from "@/app/components/business/ScanRewardSelectDialog";
 import {
   previewRedemptionQr,
+  redeemExpectedOfferAmount,
   scanRedemptionQr,
   type ScanPreviewSuccess,
   type ScanRedemptionSuccess,
@@ -765,22 +766,7 @@ export function ScannerScanCodePanel({
             const selectedRewards = (
               previewResult.availableRewards ?? []
             ).filter((reward) => pendingCouponIds.includes(reward.couponId));
-            if (
-              selectedRewards.length > 0 &&
-              selectedRewards.every((reward) => reward.paymentLabel === "PREPAID")
-            ) {
-              return null;
-            }
-            if (selectedRewards.length === 0) return null;
-            let total = 0;
-            for (const reward of selectedRewards) {
-              const price = reward.campaignPrice;
-              if (price == null || !Number.isFinite(price) || price < 0) {
-                return null;
-              }
-              total += price;
-            }
-            return Math.round(total * 100) / 100;
+            return redeemExpectedOfferAmount(selectedRewards);
           })()}
           onBack={() => {
             setDialogStep("completeOrder");

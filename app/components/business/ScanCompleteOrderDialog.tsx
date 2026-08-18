@@ -12,8 +12,16 @@ type ScanCompleteOrderDialogProps = {
   onDismiss: () => void;
 };
 
+type DisplayPaymentLabel = "PREPAID" | "UNPAID" | "POSTPAID";
+
 function getOfferName(reward: RedeemableReward): string {
-  return reward.label.replace(/\s*\[(PREPAID|UNPAID)\]$/, "").trim();
+  return reward.label.replace(/\s*\[(PREPAID|UNPAID|POSTPAID)\]$/, "").trim();
+}
+
+function getDisplayPaymentLabel(reward: RedeemableReward): DisplayPaymentLabel {
+  if (reward.paymentLabel === "PREPAID") return "PREPAID";
+  if (reward.campaignType === "postpaid") return "POSTPAID";
+  return "UNPAID";
 }
 
 function guestInitials(name: string): string {
@@ -27,12 +35,17 @@ function guestInitials(name: string): string {
 function groupRewardsForInstructions(rewards: RedeemableReward[]) {
   const groups = new Map<
     string,
-    { offerName: string; paymentLabel: RedeemableReward["paymentLabel"]; count: number }
+    {
+      offerName: string;
+      displayLabel: DisplayPaymentLabel;
+      count: number;
+    }
   >();
 
   for (const reward of rewards) {
     const offerName = getOfferName(reward);
-    const key = `${offerName.toLowerCase()}::${reward.paymentLabel}`;
+    const displayLabel = getDisplayPaymentLabel(reward);
+    const key = `${offerName.toLowerCase()}::${displayLabel}`;
     const existing = groups.get(key);
     if (existing) {
       existing.count += 1;
@@ -40,7 +53,7 @@ function groupRewardsForInstructions(rewards: RedeemableReward[]) {
     }
     groups.set(key, {
       offerName,
-      paymentLabel: reward.paymentLabel,
+      displayLabel,
       count: 1,
     });
   }
@@ -112,13 +125,14 @@ export function ScanCompleteOrderDialog({
 
         <div className="mt-4 min-h-0 flex-1 space-y-5 overflow-y-auto">
           {instructionGroups.map((group, groupIndex) => {
-            const isPrepaid = group.paymentLabel === "PREPAID";
+            const isPrepaid = group.displayLabel === "PREPAID";
+            const isPostpaid = group.displayLabel === "POSTPAID";
             const stepBase = groupIndex * 2 + 1;
             const itemWord = group.count > 1 ? "the items" : "the item";
             const paidWord = group.count > 1 ? "them" : "it";
 
             return (
-              <div key={`${group.offerName}::${group.paymentLabel}`}>
+              <div key={`${group.offerName}::${group.displayLabel}`}>
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-[#f7f7f7] px-3.5 py-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e6f4ea] text-[#137333]">
                     <Gift className="size-4" aria-hidden />
@@ -139,7 +153,7 @@ export function ScanCompleteOrderDialog({
                         : "shrink-0 rounded-full bg-zinc-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                     }
                   >
-                    {group.paymentLabel}
+                    {group.displayLabel}
                   </span>
                 </div>
 
@@ -168,6 +182,12 @@ export function ScanCompleteOrderDialog({
                             Apply a{" "}
                             <span className="font-semibold">100% discount</span>{" "}
                             to {itemWord}. They have already paid for {paidWord}.
+                          </>
+                        ) : isPostpaid ? (
+                          <>
+                            Collect the{" "}
+                            <span className="font-semibold">offer amount</span>{" "}
+                            at checkout. They pay at the location.
                           </>
                         ) : (
                           <>

@@ -68,7 +68,6 @@ const EVENT_FILTERS: {
     | "totalMessagesSent";
 }[] = [
   { id: "all", label: "All", icon: LayoutGrid, countKey: "totalEvents" },
-  { id: "visited", label: "Visits", icon: MapPin, countKey: "totalVisited" },
   { id: "redeemed_reward", label: "Redemptions", icon: Gift, countKey: "totalRedeemed" },
   { id: "prepaid_for_offer", label: "Prepaid", icon: CircleDollarSign, countKey: "totalPrepaid" },
   { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },

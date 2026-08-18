@@ -6,7 +6,6 @@ type ScanOrderSubtotalDialogProps = {
   confirming: boolean;
   requirePositiveAmount?: boolean;
   expectedAmount?: number | null;
-  /** Prepaid redeem: optional extra items paid in-store today. */
   extraPurchaseMode?: boolean;
   onBack: () => void;
   onDone: (orderSubtotal: number) => void;
@@ -81,12 +80,14 @@ export function ScanOrderSubtotalDialog({
   const title = extraPurchaseMode
     ? "Anything else today?"
     : requirePositiveAmount
-      ? "Enter the amount the guest paid today (exclude tax & tip)"
+      ? "Enter the offer amount collected at the location"
       : "Enter the subtotal of their entire order (exclude tax & tip)";
 
   const fieldLabel = extraPurchaseMode
     ? "Extra items amount ($)"
-    : "Entire Order Subtotal ($)";
+    : requirePositiveAmount
+      ? "Offer amount ($)"
+      : "Entire Order Subtotal ($)";
 
   return (
     <div
@@ -112,6 +113,12 @@ export function ScanOrderSubtotalDialog({
           <p className="mt-3 text-sm font-medium text-slate-600">
             Enter what they paid for any other items today (exclude tax & tip),
             or leave blank / enter 0 if nothing else.
+          </p>
+        ) : null}
+
+        {!extraPurchaseMode && requirePositiveAmount && !hasExpectedAmount ? (
+          <p className="mt-3 text-sm font-medium text-slate-600">
+            Enter the amount you collected for this offer (exclude tax & tip).
           </p>
         ) : null}
 

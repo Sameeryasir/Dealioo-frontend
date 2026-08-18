@@ -52,6 +52,7 @@ import {
   getGuestProfile,
   getGuestPreviousRedemptions,
   GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
+  redeemExpectedOfferAmount,
   scanRedemptionQr,
   type GuestActiveDeal,
   type GuestPreviousRedemption,
@@ -285,9 +286,11 @@ function formatDealPrice(price: number | string | null): string | null {
 function DealPaymentBadge({
   label,
   badge,
+  campaignType,
 }: {
   label: "PREPAID" | "UNPAID";
   badge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
+  campaignType?: "prepaid" | "postpaid" | null;
 }) {
   const display =
     badge === "PAID_ONLINE"
@@ -295,10 +298,14 @@ function DealPaymentBadge({
       : badge === "PAID_AT_COUNTER"
         ? "Paid at Counter"
         : badge === "PENDING"
-          ? "Not paid"
+          ? campaignType === "postpaid"
+            ? "Pay later"
+            : "Not paid"
           : label === "PREPAID"
             ? "Paid"
-            : "Not paid";
+            : campaignType === "postpaid"
+              ? "Pay later"
+              : "Not paid";
   const isPaid =
     badge === "PAID_ONLINE" ||
     badge === "PAID_AT_COUNTER" ||
@@ -321,13 +328,11 @@ function BusinessDealCheckboxRow({
   deal,
   checked,
   disabled,
-  alreadyOnGuest,
   onToggle,
 }: {
   deal: RestaurantFunnelDeal;
   checked: boolean;
   disabled: boolean;
-  alreadyOnGuest?: boolean;
   onToggle: () => void;
 }) {
   const priceLabel = formatDealPrice(deal.price);
@@ -376,14 +381,14 @@ function BusinessDealCheckboxRow({
             {deal.campaignName}
           </span>
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {alreadyOnGuest ? (
-              <span className="inline-flex rounded-md bg-[#eef5ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#1877f2] ring-1 ring-[#dbeafe]">
-                On guest
-              </span>
-            ) : null}
             {priceLabel ? (
               <span className="inline-flex rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-emerald-700 ring-1 ring-emerald-100">
                 {priceLabel}
+              </span>
+            ) : null}
+            {deal.campaignType === "postpaid" ? (
+              <span className="inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
+                Pay later
               </span>
             ) : null}
           </span>
@@ -409,29 +414,19 @@ function normalizeDeal(deal: GuestActiveDeal): NormalizedGuestActiveDeal {
 }
 
 function toRedeemableReward(deal: NormalizedGuestActiveDeal): RedeemableReward {
+  const displayLabel =
+    deal.paymentLabel === "UNPAID" && deal.campaignType === "postpaid"
+      ? "POSTPAID"
+      : deal.paymentLabel;
   return {
     couponId: deal.couponId,
-    label: `${deal.offerName} [${deal.paymentLabel}]`,
+    label: `${deal.offerName} [${displayLabel}]`,
     paymentLabel: deal.paymentLabel,
+    campaignType: deal.campaignType ?? null,
     campaignPrice: deal.campaignPrice ?? null,
     isScannedCoupon: false,
     canSelect: deal.canSelect,
   };
-}
-
-function sumCampaignPrices(
-  deals: Array<{ campaignPrice?: number | null }>,
-): number | null {
-  if (deals.length === 0) return null;
-  let total = 0;
-  for (const deal of deals) {
-    const price = deal.campaignPrice;
-    if (price == null || !Number.isFinite(price) || price < 0) {
-      return null;
-    }
-    total += price;
-  }
-  return Math.round(total * 100) / 100;
 }
 
 function DealSelectRow({
@@ -497,6 +492,7 @@ function DealSelectRow({
             <DealPaymentBadge
               label={deal.paymentLabel}
               badge={deal.paymentBadge}
+              campaignType={deal.campaignType}
             />
           </div>
           {deal.expiresAt ? (
@@ -809,16 +805,42 @@ export function ScannerSearchGuestPanel({
     return ids;
   }, [activeDeals]);
 
+  const guestDealNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const deal of activeDeals) {
+      const name = deal.campaignName.trim().toLowerCase();
+      if (name) names.add(name);
+    }
+    return names;
+  }, [activeDeals]);
+
+  const availableBusinessDeals = useMemo(
+    () =>
+      businessDeals.filter((deal) => {
+        if (guestFunnelIds.has(deal.id)) return false;
+        const name = deal.campaignName.trim().toLowerCase();
+        return !name || !guestDealNames.has(name);
+      }),
+    [businessDeals, guestDealNames, guestFunnelIds],
+  );
+
   const selectedBusinessDeals = useMemo(
     () =>
-      businessDeals.filter((deal) => selectedFunnelIds.includes(deal.id)),
-    [businessDeals, selectedFunnelIds],
+      availableBusinessDeals.filter((deal) =>
+        selectedFunnelIds.includes(deal.id),
+      ),
+    [availableBusinessDeals, selectedFunnelIds],
   );
 
   const expectedPurchaseAmount = useMemo(() => {
-    if (selectedBusinessDeals.length === 0) return null;
+    const payableDeals = selectedBusinessDeals.filter(
+      (deal) => deal.campaignType !== "postpaid",
+    );
+    if (payableDeals.length === 0) {
+      return selectedBusinessDeals.length > 0 ? 0 : null;
+    }
     let total = 0;
-    for (const deal of selectedBusinessDeals) {
+    for (const deal of payableDeals) {
       if (deal.price == null || deal.price === "") return null;
       const price =
         typeof deal.price === "number"
@@ -830,22 +852,37 @@ export function ScannerSearchGuestPanel({
     return Math.round(total * 100) / 100;
   }, [selectedBusinessDeals]);
 
+  const attachingPostpaidOnly =
+    selectedBusinessDeals.length > 0 &&
+    selectedBusinessDeals.every((deal) => deal.campaignType === "postpaid");
+
   const toggleBusinessDealSelection = useCallback(
     (funnelId: number) => {
       if (purchasing || confirmingRedemption) return;
+      if (guestFunnelIds.has(funnelId)) return;
       setSelectedDealIds([]);
+
+      const deal = availableBusinessDeals.find((row) => row.id === funnelId);
+      if (deal && deal.campaignType !== "postpaid") {
+        setSelectedFunnelIds([funnelId]);
+        setPendingDealAmount(null);
+        setPurchaseStep("enterPrice");
+        return;
+      }
+
       setSelectedFunnelIds((current) =>
         current.includes(funnelId)
           ? current.filter((id) => id !== funnelId)
           : [...current, funnelId],
       );
     },
-    [confirmingRedemption, purchasing],
+    [availableBusinessDeals, confirmingRedemption, guestFunnelIds, purchasing],
   );
 
   const handlePurchaseDeals = useCallback(
     async (orderSubtotal: number, extraItemsAmount = 0) => {
-      if (!selectedProfile || selectedFunnelIds.length === 0) return;
+      const funnelIds = selectedBusinessDeals.map((deal) => deal.id);
+      if (!selectedProfile || funnelIds.length === 0) return;
 
       setPurchasing(true);
       setErrorMessage(null);
@@ -860,7 +897,7 @@ export function ScannerSearchGuestPanel({
         const purchased = await purchaseScannerDeals({
           businessId,
           customerId: selectedProfile.customerId,
-          funnelIds: selectedFunnelIds,
+          funnelIds,
           // Attach-deals from guest search is always an in-person counter purchase.
           purchaseMeans: "IN_PERSON",
           orderSubtotal,
@@ -890,7 +927,7 @@ export function ScannerSearchGuestPanel({
         setPurchasing(false);
       }
     },
-    [businessId, selectedFunnelIds, selectedProfile],
+    [businessId, selectedBusinessDeals, selectedProfile],
   );
 
   const handleConfirmRedeem = useCallback(
@@ -1011,18 +1048,33 @@ export function ScannerSearchGuestPanel({
               Are you sure you want to proceed?
             </h2>
             <p className="mt-3 text-sm font-medium text-slate-600">
-              You are about to charge this guest for the selected deal
-              {selectedBusinessDeals.length === 1 ? "" : "s"}. No payment is
-              created until you continue and complete the amount steps.
+              {attachingPostpaidOnly
+                ? `This will add the selected deal${selectedBusinessDeals.length === 1 ? "" : "s"} to the guest. They pay when they redeem.`
+                : `You are about to charge this guest for the selected deal${selectedBusinessDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
             </p>
             <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
               <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-slate-500">
-                Total amount to charge
+                {attachingPostpaidOnly
+                  ? "Offer amount"
+                  : "Total amount to charge"}
               </p>
               <p className="m-0 mt-1 text-[1.5rem] font-extrabold text-[#0e182b]">
-                {expectedPurchaseAmount != null
-                  ? formatDollars(expectedPurchaseAmount)
-                  : "—"}
+                {attachingPostpaidOnly
+                  ? formatDollars(
+                      selectedBusinessDeals.reduce((sum, deal) => {
+                        const price =
+                          typeof deal.price === "number"
+                            ? deal.price
+                            : Number.parseFloat(String(deal.price ?? ""));
+                        return (
+                          sum +
+                          (Number.isFinite(price) && price >= 0 ? price : 0)
+                        );
+                      }, 0),
+                    )
+                  : expectedPurchaseAmount != null
+                    ? formatDollars(expectedPurchaseAmount)
+                    : "—"}
               </p>
               <ul className="mt-3 space-y-1.5">
                 {selectedBusinessDeals.map((deal) => {
@@ -1053,11 +1105,21 @@ export function ScannerSearchGuestPanel({
               </button>
               <button
                 type="button"
-                disabled={expectedPurchaseAmount == null}
-                onClick={() => setPurchaseStep("enterPrice")}
+                disabled={expectedPurchaseAmount == null || purchasing}
+                onClick={() => {
+                  if (attachingPostpaidOnly) {
+                    void handlePurchaseDeals(0, 0);
+                    return;
+                  }
+                  setPurchaseStep("enterPrice");
+                }}
                 className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Confirm
+                {purchasing
+                  ? "Attaching…"
+                  : attachingPostpaidOnly
+                    ? "Attach"
+                    : "Confirm"}
               </button>
             </div>
           </div>
@@ -1070,7 +1132,7 @@ export function ScannerSearchGuestPanel({
           requirePositiveAmount
           expectedAmount={expectedPurchaseAmount}
           onBack={() => {
-            setPurchaseStep("confirm");
+            setPurchaseStep(null);
             setPendingDealAmount(null);
           }}
           onDone={(orderSubtotal) => {
@@ -1127,12 +1189,7 @@ export function ScannerSearchGuestPanel({
             selectedDeals.length > 0 &&
             selectedDeals.every((deal) => deal.paymentLabel === "PREPAID")
           }
-          expectedAmount={
-            selectedDeals.length > 0 &&
-            selectedDeals.every((deal) => deal.paymentLabel === "PREPAID")
-              ? null
-              : sumCampaignPrices(selectedDeals)
-          }
+          expectedAmount={redeemExpectedOfferAmount(selectedDeals)}
           onBack={() => {
             setRedeemStep("completeOrder");
             setPendingRedeemAmount(null);
@@ -1758,15 +1815,15 @@ export function ScannerSearchGuestPanel({
                           </div>
                         ) : null}
 
-                        {!loadingBusinessDeals && businessDeals.length > 0 ? (
+                        {!loadingBusinessDeals &&
+                        availableBusinessDeals.length > 0 ? (
                           <div className="flex min-h-0 flex-1 flex-col">
                             <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
-                              {businessDeals.map((deal) => (
+                              {availableBusinessDeals.map((deal) => (
                                 <BusinessDealCheckboxRow
                                   key={deal.id}
                                   deal={deal}
                                   checked={selectedFunnelIds.includes(deal.id)}
-                                  alreadyOnGuest={guestFunnelIds.has(deal.id)}
                                   disabled={purchasing || confirmingRedemption}
                                   onToggle={() =>
                                     toggleBusinessDealSelection(deal.id)
@@ -1776,11 +1833,11 @@ export function ScannerSearchGuestPanel({
                             </ul>
 
                             <p className="m-0 mt-3 text-center text-[0.72rem] font-medium text-slate-400">
-                              Showing {businessDeals.length} of{" "}
-                              {businessDeals.length} deals
+                              Showing {availableBusinessDeals.length} of{" "}
+                              {availableBusinessDeals.length} deals
                             </p>
 
-                            {selectedFunnelIds.length > 0 ? (
+                            {selectedBusinessDeals.length > 0 ? (
                               <div className="mt-3 flex justify-end border-t border-[#f1f5f9] pt-3">
                                 <button
                                   type="button"
@@ -1792,17 +1849,20 @@ export function ScannerSearchGuestPanel({
                                   onClick={() => setPurchaseStep("confirm")}
                                   className="cursor-pointer rounded-lg bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
                                 >
-                                  Confirm ({selectedFunnelIds.length})
+                                  Confirm ({selectedBusinessDeals.length})
                                 </button>
                               </div>
                             ) : null}
                           </div>
                         ) : null}
 
-                        {!loadingBusinessDeals && businessDeals.length === 0 ? (
+                        {!loadingBusinessDeals &&
+                        availableBusinessDeals.length === 0 ? (
                           <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
                             <p className="m-0 text-[0.84rem] font-semibold text-slate-600">
-                              No active deals for this business.
+                              {businessDeals.length === 0
+                                ? "No active deals for this business."
+                                : "All active deals are already on this guest."}
                             </p>
                           </div>
                         ) : null}

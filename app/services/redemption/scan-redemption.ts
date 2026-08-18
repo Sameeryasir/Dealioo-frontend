@@ -18,10 +18,37 @@ export type RedeemableReward = {
   couponId: number;
   label: string;
   paymentLabel: "PREPAID" | "UNPAID";
+  campaignType?: "prepaid" | "postpaid" | null;
   campaignPrice?: number | null;
   isScannedCoupon: boolean;
   canSelect: boolean;
 };
+
+export function redeemExpectedOfferAmount(
+  rewards: Array<{
+    paymentLabel: "PREPAID" | "UNPAID";
+    campaignType?: "prepaid" | "postpaid" | null;
+    campaignPrice?: number | null;
+  }>,
+): number | null {
+  if (rewards.length === 0) return null;
+  if (rewards.every((reward) => reward.paymentLabel === "PREPAID")) {
+    return null;
+  }
+  if (rewards.every((reward) => reward.campaignType === "postpaid")) {
+    return null;
+  }
+
+  let total = 0;
+  for (const reward of rewards) {
+    const price = reward.campaignPrice;
+    if (price == null || !Number.isFinite(price) || price < 0) {
+      return null;
+    }
+    total += price;
+  }
+  return Math.round(total * 100) / 100;
+}
 
 export type ScanPreviewSuccess = {
   success: true;
@@ -212,6 +239,7 @@ export type GuestActiveDeal = {
   campaignName: string;
   offerName: string;
   paymentLabel: "PREPAID" | "UNPAID";
+  campaignType?: "prepaid" | "postpaid" | null;
   paymentBadge?: "PAID_ONLINE" | "PAID_AT_COUNTER" | "PENDING";
   paymentStatus: string;
   campaignPrice?: number | null;

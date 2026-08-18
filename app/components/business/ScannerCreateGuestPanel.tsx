@@ -113,6 +113,11 @@ function DealCheckboxRow({
               {priceLabel}
             </span>
           ) : null}
+          {deal.campaignType === "postpaid" ? (
+            <span className="mt-2 ml-1.5 inline-flex rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[0.72rem] font-bold text-[#4b5563] ring-1 ring-[#e5e7eb]">
+              Pay later
+            </span>
+          ) : null}
         </span>
       </button>
     </li>
@@ -245,6 +250,13 @@ export function ScannerCreateGuestPanel({
 
   const toggleDealSelection = (funnelId: number) => {
     if (purchasing) return;
+    const deal = deals.find((row) => row.id === funnelId);
+    if (deal && deal.campaignType !== "postpaid") {
+      setSelectedFunnelIds([funnelId]);
+      setPendingDealAmount(null);
+      setPurchaseStep("enterPrice");
+      return;
+    }
     setSelectedFunnelIds((current) =>
       current.includes(funnelId)
         ? current.filter((id) => id !== funnelId)
@@ -328,9 +340,14 @@ export function ScannerCreateGuestPanel({
   );
 
   const expectedPurchaseAmount = (() => {
-    if (selectedDeals.length === 0) return null;
+    const payableDeals = selectedDeals.filter(
+      (deal) => deal.campaignType !== "postpaid",
+    );
+    if (payableDeals.length === 0) {
+      return selectedDeals.length > 0 ? 0 : null;
+    }
     let total = 0;
-    for (const deal of selectedDeals) {
+    for (const deal of payableDeals) {
       if (deal.price == null || deal.price === "") return null;
       const price =
         typeof deal.price === "number"
@@ -341,6 +358,10 @@ export function ScannerCreateGuestPanel({
     }
     return Math.round(total * 100) / 100;
   })();
+
+  const attachingPostpaidOnly =
+    selectedDeals.length > 0 &&
+    selectedDeals.every((deal) => deal.campaignType === "postpaid");
 
   return (
     <>
@@ -364,18 +385,31 @@ export function ScannerCreateGuestPanel({
               Are you sure you want to proceed?
             </h2>
             <p className="mt-3 text-sm font-medium text-slate-600">
-              You are about to charge this guest for the selected deal
-              {selectedDeals.length === 1 ? "" : "s"}. No payment is created
-              until you continue and complete the amount steps.
+              {attachingPostpaidOnly
+                ? `This will add the selected deal${selectedDeals.length === 1 ? "" : "s"} to the guest. They pay when they redeem.`
+                : `You are about to charge this guest for the selected deal${selectedDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
             </p>
             <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
               <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-slate-500">
-                Total amount to charge
+                {attachingPostpaidOnly ? "Offer amount" : "Total amount to charge"}
               </p>
               <p className="m-0 mt-1 text-[1.5rem] font-extrabold text-[#0e182b]">
-                {expectedPurchaseAmount != null
-                  ? formatDollars(expectedPurchaseAmount)
-                  : "—"}
+                {attachingPostpaidOnly
+                  ? formatDollars(
+                      selectedDeals.reduce((sum, deal) => {
+                        const price =
+                          typeof deal.price === "number"
+                            ? deal.price
+                            : Number.parseFloat(String(deal.price ?? ""));
+                        return (
+                          sum +
+                          (Number.isFinite(price) && price >= 0 ? price : 0)
+                        );
+                      }, 0),
+                    )
+                  : expectedPurchaseAmount != null
+                    ? formatDollars(expectedPurchaseAmount)
+                    : "—"}
               </p>
               <ul className="mt-3 space-y-1.5">
                 {selectedDeals.map((deal) => {
@@ -406,11 +440,21 @@ export function ScannerCreateGuestPanel({
               </button>
               <button
                 type="button"
-                disabled={expectedPurchaseAmount == null}
-                onClick={() => setPurchaseStep("enterPrice")}
+                disabled={expectedPurchaseAmount == null || purchasing}
+                onClick={() => {
+                  if (attachingPostpaidOnly) {
+                    void handlePurchase(0, 0);
+                    return;
+                  }
+                  setPurchaseStep("enterPrice");
+                }}
                 className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Confirm
+                {purchasing
+                  ? "Attaching…"
+                  : attachingPostpaidOnly
+                    ? "Attach"
+                    : "Confirm"}
               </button>
             </div>
           </div>
@@ -423,7 +467,7 @@ export function ScannerCreateGuestPanel({
           requirePositiveAmount
           expectedAmount={expectedPurchaseAmount}
           onBack={() => {
-            setPurchaseStep("confirm");
+            setPurchaseStep(null);
             setPendingDealAmount(null);
           }}
           onDone={(orderSubtotal) => {

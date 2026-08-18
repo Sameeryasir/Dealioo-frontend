@@ -6,6 +6,7 @@ export type RestaurantFunnelDeal = {
   campaignName: string;
   price: number | string | null;
   imageUrl: string | null;
+  campaignType: "prepaid" | "postpaid" | null;
 };
 
 type FunnelApiRow = {
@@ -13,6 +14,7 @@ type FunnelApiRow = {
   campaignName?: string;
   price?: number | string | null;
   imageUrl?: string | null;
+  campaignType?: "prepaid" | "postpaid" | string | null;
 };
 
 function mapFunnelRow(row: FunnelApiRow): RestaurantFunnelDeal | null {
@@ -31,6 +33,10 @@ function mapFunnelRow(row: FunnelApiRow): RestaurantFunnelDeal | null {
     campaignName: name,
     price: row.price ?? null,
     imageUrl,
+    campaignType:
+      row.campaignType === "prepaid" || row.campaignType === "postpaid"
+        ? row.campaignType
+        : null,
   };
 }
 
