@@ -115,7 +115,7 @@ function DealCheckboxRow({
           ) : null}
           {deal.campaignType === "postpaid" ? (
             <span className="mt-2 ml-1.5 inline-flex rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[0.72rem] font-bold text-[#4b5563] ring-1 ring-[#e5e7eb]">
-              Pay later
+              Postpaid
             </span>
           ) : null}
         </span>
@@ -313,7 +313,6 @@ export function ScannerCreateGuestPanel({
         businessId,
         customerId: createdGuestId,
         funnelIds: selectedFunnelIds,
-        // Create-guest attach deals is always an in-person counter purchase.
         purchaseMeans: "IN_PERSON",
         orderSubtotal,
         extraItemsAmount,
@@ -339,29 +338,40 @@ export function ScannerCreateGuestPanel({
     selectedFunnelIds.includes(deal.id),
   );
 
+  const attachingPostpaidOnly =
+    selectedDeals.length > 0 &&
+    selectedDeals.every((deal) => deal.campaignType === "postpaid");
+
   const expectedPurchaseAmount = (() => {
-    const payableDeals = selectedDeals.filter(
-      (deal) => deal.campaignType !== "postpaid",
-    );
-    if (payableDeals.length === 0) {
-      return selectedDeals.length > 0 ? 0 : null;
-    }
+    if (selectedDeals.length === 0) return null;
+
     let total = 0;
-    for (const deal of payableDeals) {
-      if (deal.price == null || deal.price === "") return null;
+    let pricedCount = 0;
+
+    for (const deal of selectedDeals) {
+      if (deal.price == null || deal.price === "") {
+        if (deal.campaignType === "postpaid") continue;
+        return null;
+      }
       const price =
         typeof deal.price === "number"
           ? deal.price
           : Number.parseFloat(String(deal.price));
-      if (!Number.isFinite(price) || price < 0) return null;
+      if (!Number.isFinite(price) || price < 0) {
+        if (deal.campaignType === "postpaid") continue;
+        return null;
+      }
+      pricedCount += 1;
       total += price;
     }
+
+    if (pricedCount === 0) return null;
     return Math.round(total * 100) / 100;
   })();
 
-  const attachingPostpaidOnly =
+  const canConfirmDeals =
     selectedDeals.length > 0 &&
-    selectedDeals.every((deal) => deal.campaignType === "postpaid");
+    (expectedPurchaseAmount != null || attachingPostpaidOnly);
 
   return (
     <>
@@ -385,31 +395,16 @@ export function ScannerCreateGuestPanel({
               Are you sure you want to proceed?
             </h2>
             <p className="mt-3 text-sm font-medium text-slate-600">
-              {attachingPostpaidOnly
-                ? `This will add the selected deal${selectedDeals.length === 1 ? "" : "s"} to the guest. They pay when they redeem.`
-                : `You are about to charge this guest for the selected deal${selectedDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
+              {`You are about to charge this guest for the selected deal${selectedDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
             </p>
             <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
               <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-slate-500">
-                {attachingPostpaidOnly ? "Offer amount" : "Total amount to charge"}
+                Total amount to charge
               </p>
               <p className="m-0 mt-1 text-[1.5rem] font-extrabold text-[#0e182b]">
-                {attachingPostpaidOnly
-                  ? formatDollars(
-                      selectedDeals.reduce((sum, deal) => {
-                        const price =
-                          typeof deal.price === "number"
-                            ? deal.price
-                            : Number.parseFloat(String(deal.price ?? ""));
-                        return (
-                          sum +
-                          (Number.isFinite(price) && price >= 0 ? price : 0)
-                        );
-                      }, 0),
-                    )
-                  : expectedPurchaseAmount != null
-                    ? formatDollars(expectedPurchaseAmount)
-                    : "—"}
+                {expectedPurchaseAmount != null
+                  ? formatDollars(expectedPurchaseAmount)
+                  : "—"}
               </p>
               <ul className="mt-3 space-y-1.5">
                 {selectedDeals.map((deal) => {
@@ -423,7 +418,8 @@ export function ScannerCreateGuestPanel({
                         {deal.campaignName}
                       </span>
                       <span className="font-bold text-emerald-700">
-                        {priceLabel ?? "—"}
+                        {priceLabel ??
+                          (deal.campaignType === "postpaid" ? "Postpaid" : "—")}
                       </span>
                     </li>
                   );
@@ -440,21 +436,11 @@ export function ScannerCreateGuestPanel({
               </button>
               <button
                 type="button"
-                disabled={expectedPurchaseAmount == null || purchasing}
-                onClick={() => {
-                  if (attachingPostpaidOnly) {
-                    void handlePurchase(0, 0);
-                    return;
-                  }
-                  setPurchaseStep("enterPrice");
-                }}
+                disabled={!canConfirmDeals || purchasing}
+                onClick={() => setPurchaseStep("enterPrice")}
                 className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {purchasing
-                  ? "Attaching…"
-                  : attachingPostpaidOnly
-                    ? "Attach"
-                    : "Confirm"}
+                Confirm
               </button>
             </div>
           </div>
@@ -694,12 +680,15 @@ export function ScannerCreateGuestPanel({
                   </button>
                   <button
                     type="button"
-                    disabled={
-                      purchasing ||
-                      selectedFunnelIds.length === 0 ||
-                      expectedPurchaseAmount == null
-                    }
-                    onClick={() => setPurchaseStep("confirm")}
+                    disabled={purchasing || !canConfirmDeals}
+                    onClick={() => {
+                      setPendingDealAmount(null);
+                      if (attachingPostpaidOnly) {
+                        setPurchaseStep("enterPrice");
+                        return;
+                      }
+                      setPurchaseStep("confirm");
+                    }}
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Continue

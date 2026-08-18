@@ -388,7 +388,7 @@ function BusinessDealCheckboxRow({
             ) : null}
             {deal.campaignType === "postpaid" ? (
               <span className="inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
-                Pay later
+                Postpaid
               </span>
             ) : null}
           </span>
@@ -832,29 +832,41 @@ export function ScannerSearchGuestPanel({
     [availableBusinessDeals, selectedFunnelIds],
   );
 
+  const attachingPostpaidOnly =
+    selectedBusinessDeals.length > 0 &&
+    selectedBusinessDeals.every((deal) => deal.campaignType === "postpaid");
+
   const expectedPurchaseAmount = useMemo(() => {
-    const payableDeals = selectedBusinessDeals.filter(
-      (deal) => deal.campaignType !== "postpaid",
-    );
-    if (payableDeals.length === 0) {
-      return selectedBusinessDeals.length > 0 ? 0 : null;
-    }
+    if (selectedBusinessDeals.length === 0) return null;
+
     let total = 0;
-    for (const deal of payableDeals) {
-      if (deal.price == null || deal.price === "") return null;
+    let pricedCount = 0;
+
+    for (const deal of selectedBusinessDeals) {
+      if (deal.price == null || deal.price === "") {
+        if (deal.campaignType === "postpaid") continue;
+        return null;
+      }
       const price =
         typeof deal.price === "number"
           ? deal.price
           : Number.parseFloat(String(deal.price));
-      if (!Number.isFinite(price) || price < 0) return null;
+      if (!Number.isFinite(price) || price < 0) {
+        if (deal.campaignType === "postpaid") continue;
+        return null;
+      }
+      pricedCount += 1;
       total += price;
     }
+
+    if (pricedCount === 0) return null;
+
     return Math.round(total * 100) / 100;
   }, [selectedBusinessDeals]);
 
-  const attachingPostpaidOnly =
+  const canConfirmBusinessDeals =
     selectedBusinessDeals.length > 0 &&
-    selectedBusinessDeals.every((deal) => deal.campaignType === "postpaid");
+    (expectedPurchaseAmount != null || attachingPostpaidOnly);
 
   const toggleBusinessDealSelection = useCallback(
     (funnelId: number) => {
@@ -898,7 +910,6 @@ export function ScannerSearchGuestPanel({
           businessId,
           customerId: selectedProfile.customerId,
           funnelIds,
-          // Attach-deals from guest search is always an in-person counter purchase.
           purchaseMeans: "IN_PERSON",
           orderSubtotal,
           extraItemsAmount,
@@ -1048,33 +1059,16 @@ export function ScannerSearchGuestPanel({
               Are you sure you want to proceed?
             </h2>
             <p className="mt-3 text-sm font-medium text-slate-600">
-              {attachingPostpaidOnly
-                ? `This will add the selected deal${selectedBusinessDeals.length === 1 ? "" : "s"} to the guest. They pay when they redeem.`
-                : `You are about to charge this guest for the selected deal${selectedBusinessDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
+              {`You are about to charge this guest for the selected deal${selectedBusinessDeals.length === 1 ? "" : "s"}. No payment is created until you continue and complete the amount steps.`}
             </p>
             <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4">
               <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-slate-500">
-                {attachingPostpaidOnly
-                  ? "Offer amount"
-                  : "Total amount to charge"}
+                Total amount to charge
               </p>
               <p className="m-0 mt-1 text-[1.5rem] font-extrabold text-[#0e182b]">
-                {attachingPostpaidOnly
-                  ? formatDollars(
-                      selectedBusinessDeals.reduce((sum, deal) => {
-                        const price =
-                          typeof deal.price === "number"
-                            ? deal.price
-                            : Number.parseFloat(String(deal.price ?? ""));
-                        return (
-                          sum +
-                          (Number.isFinite(price) && price >= 0 ? price : 0)
-                        );
-                      }, 0),
-                    )
-                  : expectedPurchaseAmount != null
-                    ? formatDollars(expectedPurchaseAmount)
-                    : "—"}
+                {expectedPurchaseAmount != null
+                  ? formatDollars(expectedPurchaseAmount)
+                  : "—"}
               </p>
               <ul className="mt-3 space-y-1.5">
                 {selectedBusinessDeals.map((deal) => {
@@ -1088,7 +1082,8 @@ export function ScannerSearchGuestPanel({
                         {deal.campaignName}
                       </span>
                       <span className="font-bold text-emerald-700">
-                        {priceLabel ?? "—"}
+                        {priceLabel ??
+                          (deal.campaignType === "postpaid" ? "Postpaid" : "—")}
                       </span>
                     </li>
                   );
@@ -1105,21 +1100,11 @@ export function ScannerSearchGuestPanel({
               </button>
               <button
                 type="button"
-                disabled={expectedPurchaseAmount == null || purchasing}
-                onClick={() => {
-                  if (attachingPostpaidOnly) {
-                    void handlePurchaseDeals(0, 0);
-                    return;
-                  }
-                  setPurchaseStep("enterPrice");
-                }}
+                disabled={!canConfirmBusinessDeals || purchasing}
+                onClick={() => setPurchaseStep("enterPrice")}
                 className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {purchasing
-                  ? "Attaching…"
-                  : attachingPostpaidOnly
-                    ? "Attach"
-                    : "Confirm"}
+                Confirm
               </button>
             </div>
           </div>
@@ -1844,9 +1829,16 @@ export function ScannerSearchGuestPanel({
                                   disabled={
                                     purchasing ||
                                     confirmingRedemption ||
-                                    expectedPurchaseAmount == null
+                                    !canConfirmBusinessDeals
                                   }
-                                  onClick={() => setPurchaseStep("confirm")}
+                                  onClick={() => {
+                                    setPendingDealAmount(null);
+                                    if (attachingPostpaidOnly) {
+                                      setPurchaseStep("enterPrice");
+                                      return;
+                                    }
+                                    setPurchaseStep("confirm");
+                                  }}
                                   className="cursor-pointer rounded-lg bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
                                 >
                                   Confirm ({selectedBusinessDeals.length})

@@ -28,6 +28,7 @@ export type BusinessFunnelEvent = {
   funnelId: number;
   campaignId: number;
   campaignName: string;
+  campaignType?: "prepaid" | "postpaid" | null;
   campaignImageUrl?: string | null;
   customer: {
     id: number;

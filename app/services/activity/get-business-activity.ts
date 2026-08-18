@@ -27,9 +27,8 @@ export type RestaurantActivityEvent = {
   customerName: string | null;
   customerEmail: string | null;
   description: string;
-  /** online = funnel Stripe prepaid; in_store = counter / physical pay */
   paymentChannel?: "online" | "in_store" | null;
-  /** scanned = QR redeem visit */
+  campaignType?: "prepaid" | "postpaid" | null;
   visitChannel?: "scanned" | "in_store" | null;
 };
 

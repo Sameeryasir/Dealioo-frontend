@@ -11,8 +11,7 @@ export type ActivityEventFilter = "all" | ActivityEventType | "in_person";
 
 const EVENT_TYPE_OPTIONS: { id: ActivityEventFilter; label: string }[] = [
   { id: "all", label: "All types" },
-  { id: "redeemed_reward", label: "Redeemed reward" },
-  { id: "prepaid_for_offer", label: "Prepaid for offer" },
+  { id: "redeemed_reward", label: "Redeemed" },
   { id: "in_person", label: "In person" },
   { id: "message_sent", label: "Text sent" },
 ];

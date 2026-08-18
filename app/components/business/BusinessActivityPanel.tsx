@@ -7,7 +7,6 @@ import {
   Activity,
   ArrowUpRight,
   Calendar,
-  CircleDollarSign,
   Gift,
   Layers,
   LayoutGrid,
@@ -63,13 +62,11 @@ const EVENT_FILTERS: {
     | "totalEvents"
     | "totalVisited"
     | "totalRedeemed"
-    | "totalPrepaid"
     | "totalInPerson"
     | "totalMessagesSent";
 }[] = [
   { id: "all", label: "All", icon: LayoutGrid, countKey: "totalEvents" },
   { id: "redeemed_reward", label: "Redemptions", icon: Gift, countKey: "totalRedeemed" },
-  { id: "prepaid_for_offer", label: "Prepaid", icon: CircleDollarSign, countKey: "totalPrepaid" },
   { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },
   { id: "message_sent", label: "Texts", icon: MessageSquare, countKey: "totalMessagesSent" },
 ];
@@ -145,7 +142,7 @@ function eventTypeLabel(
     case "redeemed_reward":
       return "Redeemed";
     case "prepaid_for_offer":
-      return paymentChannel === "in_store" ? "In-person" : "Prepaid";
+      return "In person";
     case "message_sent":
       return "Text sent";
     default:
@@ -194,18 +191,10 @@ function EventTypeBadge({
         </span>
       );
     case "prepaid_for_offer":
-      if (paymentChannel === "in_store") {
-        return (
-          <span className={DASHBOARD_EVENT_BADGE.inStore}>
-            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
-            In-person
-          </span>
-        );
-      }
       return (
-        <span className={DASHBOARD_EVENT_BADGE.prepaid}>
-          <span className={DASHBOARD_EVENT_BADGE.prepaidDot} aria-hidden />
-          Prepaid
+        <span className={DASHBOARD_EVENT_BADGE.inStore}>
+          <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
+          In person
         </span>
       );
     case "message_sent":

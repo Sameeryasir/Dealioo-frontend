@@ -1,7 +1,6 @@
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
 
-/** How staff recorded the deal — must match backend ScannerPurchaseMeans. */
 export type ScannerPurchaseMeans = "IN_PERSON" | "REDEEMED" | "SCANNED";
 
 export type ScannerPurchasedDeal = {
@@ -11,17 +10,11 @@ export type ScannerPurchasedDeal = {
   purchaseMeans: ScannerPurchaseMeans;
 };
 
-/**
- * Changed: send purchaseMeans in the purchase-deals payload.
- * Why: API requires whether the deal was in-person, redeemed, or scanned.
- */
 export async function purchaseScannerDeals(params: {
   businessId: number;
-  /** @deprecated Use businessId */
   restaurantId?: number;
   customerId: number;
   funnelIds: number[];
-  /** IN_PERSON = paid at counter; REDEEMED = pass redeemed; SCANNED = QR/code scan */
   purchaseMeans: ScannerPurchaseMeans;
   orderSubtotal?: number;
   extraItemsAmount?: number;

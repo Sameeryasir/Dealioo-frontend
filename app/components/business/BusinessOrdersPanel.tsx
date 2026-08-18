@@ -94,6 +94,28 @@ function avatarTone(index: number): string {
   return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
 }
 
+function CampaignTypeBadge({
+  campaignType,
+}: {
+  campaignType?: "prepaid" | "postpaid" | null;
+}) {
+  if (campaignType === "postpaid") {
+    return (
+      <span className="inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
+        Postpaid
+      </span>
+    );
+  }
+  if (campaignType === "prepaid") {
+    return (
+      <span className="inline-flex rounded-md bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#1877f2] ring-1 ring-[#dbeafe]">
+        Prepaid
+      </span>
+    );
+  }
+  return <span className="text-slate-400">—</span>;
+}
+
 function OrdersTableBodySkeleton() {
   return (
     <>
@@ -559,7 +581,7 @@ function OrderDetailRow({
         <OrderDetailIcon icon={Icon} />
         {label}
       </dt>
-      <dd className="m-0 flex min-w-0 max-w-[58%] items-center justify-end gap-1 text-right text-[0.92rem] font-bold text-[#1a1c3d]">
+      <dd className="m-0 flex min-w-0 max-w-[58%] items-center justify-end gap-1 text-right text-[0.92rem] font-medium text-[#1a1c3d]">
         {children}
         {copyValue ? <CopyValueButton value={copyValue} /> : null}
       </dd>
@@ -571,7 +593,7 @@ function HeaderStatusBadge({ status }: { status: DisplayPaymentStatus }) {
   const label = orderStatusLabel(status);
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#fdba74] bg-[#fff7ed] px-2.5 py-1 text-[0.7rem] font-semibold text-[#c2410c]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#fdba74] bg-[#fff7ed] px-2.5 py-1 text-[0.7rem] font-medium text-[#c2410c]">
         <CreditCard className="size-3.5" strokeWidth={2.2} aria-hidden />
         {label}
       </span>
@@ -579,7 +601,7 @@ function HeaderStatusBadge({ status }: { status: DisplayPaymentStatus }) {
   }
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${orderStatusBadgeClass(status)}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${orderStatusBadgeClass(status)}`}
     >
       <span
         className={`size-2 shrink-0 rounded-full ${orderStatusDotClass(status)}`}
@@ -656,7 +678,7 @@ function OrderEventDetailDialog({
                   className="size-[3.35rem] rounded-full object-cover ring-[3px] ring-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
                 />
               ) : (
-                <span className="flex size-[3.35rem] items-center justify-center rounded-full bg-[#1877f2] text-[0.95rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                <span className="flex size-[3.35rem] items-center justify-center rounded-full bg-[#1877f2] text-[0.95rem] font-medium text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
                   {campaignInitial}
                 </span>
               )}
@@ -668,7 +690,7 @@ function OrderEventDetailDialog({
             <div className="min-w-0">
               <h2
                 id="order-detail-title"
-                className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#1a1c3d]"
+                className="m-0 truncate text-[1.2rem] font-medium tracking-tight text-[#1a1c3d]"
               >
                 {campaignLabel || "Campaign"}
               </h2>
@@ -676,7 +698,7 @@ function OrderEventDetailDialog({
                 <HeaderStatusBadge status={status} />
                 {paymentMedium ? (
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
                       paymentMedium === "In store"
                         ? "border border-[#fdba74] bg-[#fff7ed] text-[#c2410c]"
                         : "bg-[#ecfdf5] text-[#047857]"
@@ -737,14 +759,14 @@ function OrderEventDetailDialog({
               <Megaphone className="size-5" strokeWidth={2.2} aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[0.98rem] font-extrabold text-[#1a1c3d]">
+              <p className="m-0 text-[0.98rem] font-medium text-[#1a1c3d]">
                 Campaign Overview
               </p>
               <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
                 Here are the details of this campaign.
               </p>
             </div>
-            <span className="inline-flex max-w-[44%] shrink-0 items-center gap-1.5 rounded-full bg-[#fce7f3] px-3 py-1.5 text-[0.74rem] font-semibold text-[#be185d]">
+            <span className="inline-flex max-w-[44%] shrink-0 items-center gap-1.5 rounded-full bg-[#fce7f3] px-3 py-1.5 text-[0.74rem] font-medium text-[#be185d]">
               <UserRound className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
               <span className="truncate">{name}</span>
             </span>
@@ -755,7 +777,7 @@ function OrderEventDetailDialog({
             <OrderDetailRow icon={Layers} label="Medium">
               {paymentMedium ? (
                 <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-semibold ${
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-medium ${
                     paymentMedium === "In store"
                       ? "bg-[#fff7ed] text-[#c2410c]"
                       : "bg-[#ecfdf5] text-[#047857]"
@@ -781,7 +803,7 @@ function OrderEventDetailDialog({
             </OrderDetailRow>
 
             <OrderDetailRow icon={Calendar} label="Date">
-              <span className="inline-flex items-center gap-1.5 font-semibold text-[#1a1c3d]">
+              <span className="inline-flex items-center gap-1.5 font-medium text-[#1a1c3d]">
                 <Calendar className="size-3.5 shrink-0 text-slate-400" aria-hidden />
                 {formatOrderDetailDate(eventPaymentDate(event))}
               </span>
@@ -1151,6 +1173,14 @@ export function BusinessOrdersPanel({
                           </th>
                           <th className={thClass}>
                             <TableColumnHeader
+                              icon={Layers}
+                              label="Type"
+                              iconClassName={TABLE_HEAD_ICON_CLASS}
+                              labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            />
+                          </th>
+                          <th className={thClass}>
+                            <TableColumnHeader
                               icon={CircleDollarSign}
                               label="Offer amount"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
@@ -1229,6 +1259,11 @@ export function BusinessOrdersPanel({
                                     {event.campaignName}
                                   </span>
                                 </span>
+                              </td>
+                              <td className={`${tdClass} whitespace-nowrap`}>
+                                <CampaignTypeBadge
+                                  campaignType={event.campaignType}
+                                />
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap tabular-nums`}
