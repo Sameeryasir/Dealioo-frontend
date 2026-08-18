@@ -231,7 +231,6 @@ function OrderPaidAt({ payment }: { payment: FunnelPayment }) {
 
 function orderStatusBadgeClass(status: string): string {
   const normalized = status.trim().toLowerCase();
-  // Match Members table: Status column stays in the orange family.
   if (normalized === "paid" || normalized === "succeeded") {
     return "bg-[#ecfdf5] text-emerald-700 ring-1 ring-emerald-200";
   }
@@ -260,7 +259,6 @@ function OrderStatusBadge({ status }: { status: string }) {
     normalized === "processing" ||
     normalized === "open";
 
-  // Paid / Pending: pill + solid icon circle (check / clock), matching product tags.
   if (isPaid) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-emerald-700 ring-1 ring-emerald-200">

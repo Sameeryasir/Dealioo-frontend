@@ -15,7 +15,6 @@ import {
   ScanLine,
   Search,
   ShieldCheck,
-  Trash2,
   UserCheck,
   UserRound,
   Users,
@@ -41,7 +40,6 @@ import {
   searchCustomers,
   type CustomerSearchResult,
 } from "@/app/services/customer/search-customers";
-import { deleteCustomer } from "@/app/services/customer/delete-customer";
 import {
   fetchFunnelsByRestaurant,
   type RestaurantFunnelDeal,
@@ -550,7 +548,6 @@ export function ScannerSearchGuestPanel({
   const [selectedProfile, setSelectedProfile] = useState<GuestProfile | null>(
     null,
   );
-  const [deleting, setDeleting] = useState(false);
   const [previousRedemptions, setPreviousRedemptions] = useState<
     GuestPreviousRedemption[]
   >([]);
@@ -758,32 +755,6 @@ export function ScannerSearchGuestPanel({
       cancelled = true;
     };
   }, [businessId, selectedProfile?.customerId]);
-
-  const handleDeleteGuest = useCallback(async () => {
-    if (!selectedProfile) return;
-
-    const confirmed = window.confirm(
-      `Delete ${selectedProfile.customerName}? This cannot be undone.`,
-    );
-    if (!confirmed) return;
-
-    setDeleting(true);
-    setErrorMessage(null);
-
-    try {
-      await deleteCustomer(selectedProfile.customerId);
-      setSelectedProfile(null);
-      if (activeQuery) {
-        await runSearch(activeQuery, page);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Could not delete this guest.",
-      );
-    } finally {
-      setDeleting(false);
-    }
-  }, [activeQuery, page, runSearch, selectedProfile]);
 
   const activeDeals = useMemo(
     () => (selectedProfile?.activeDeals ?? []).map(normalizeDeal),
@@ -1453,15 +1424,6 @@ export function ScannerSearchGuestPanel({
                     >
                       <ArrowLeft className="size-3.5" aria-hidden />
                       Back to results
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deleting}
-                      onClick={() => void handleDeleteGuest()}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-2 text-[0.72rem] font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                      {deleting ? "Deleting…" : "Delete"}
                     </button>
                   </div>
                 </div>

@@ -21,14 +21,12 @@ import {
 } from "@/app/services/integration-audit/get-integrations-status";
 import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
-import { getStripeDashboardLink } from "@/app/services/stripe/get-stripe-dashboard-link";
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import {
   AlertCircle,
   BarChart3,
   CalendarDays,
   Check,
-  ExternalLink,
   FileText,
   LineChart,
   Loader2,
@@ -342,23 +340,6 @@ export function BusinessIntegrationsPanel({
     }
   };
 
-  const handleManageStripe = async () => {
-    setStripeBusy("loading");
-    setStripeActionError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) throw new Error("You're signed out. Sign in again.");
-      const { url } = await getStripeDashboardLink(token, businessId);
-      window.open(url, "_blank", "noopener,noreferrer");
-      setStripeBusy("idle");
-    } catch (e) {
-      setStripeBusy("error");
-      setStripeActionError(
-        e instanceof Error ? e.message : "Could not open Stripe billing.",
-      );
-    }
-  };
-
   const handleConnectMeta = async () => {
     setMetaBusy("loading");
     setMetaActionError(null);
@@ -481,26 +462,15 @@ export function BusinessIntegrationsPanel({
         }
         actions={
           statusLoading ? null : stripeConnected ? (
-            <>
-              <button
-                type="button"
-                onClick={() => void handleManageStripe()}
-                disabled={stripeBusy === "loading"}
-                className={`${actionBtn} border border-[#D9D4FF] bg-[#F4F1FF] text-[#635BFF]`}
-              >
-                <ExternalLink className="size-3" strokeWidth={2.25} />
-                {stripeBusy === "loading" ? "Opening…" : "Manage billing"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDisconnectStripe()}
-                disabled={stripeBusy === "loading"}
-                className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
-              >
-                <Trash2 className="size-3" strokeWidth={2.25} />
-                {stripeBusy === "loading" ? "Removing…" : "Remove account"}
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => void handleDisconnectStripe()}
+              disabled={stripeBusy === "loading"}
+              className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
+            >
+              <Trash2 className="size-3" strokeWidth={2.25} />
+              {stripeBusy === "loading" ? "Removing…" : "Remove account"}
+            </button>
           ) : (
             <button
               type="button"

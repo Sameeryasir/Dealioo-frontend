@@ -747,17 +747,11 @@ export function BusinessGeneralSettingsForm({
             <ul className="m-0 list-none divide-y divide-[#F1F5F9] p-0">
               {quickActions.map((action) => {
                 const Icon = action.icon;
-                const selected = previewSection === action.id;
                 return (
                   <li key={action.href}>
                     <Link
                       href={action.href}
-                      className={`flex items-center gap-2.5 px-3.5 py-2.5 text-[0.8rem] font-semibold no-underline transition ${
-                        selected
-                          ? "bg-[#F8FAFC] text-[#0F172A]"
-                          : "text-slate-700 hover:bg-[#F8FAFC]"
-                      }`}
-                      aria-current={selected ? "page" : undefined}
+                      className="flex items-center gap-2.5 px-3.5 py-2.5 text-[0.8rem] font-semibold text-slate-700 no-underline transition hover:bg-[#F8FAFC]"
                     >
                       <ToneIcon icon={Icon} tone={action.tone} size="sm" />
                       <span className="min-w-0 flex-1 truncate">

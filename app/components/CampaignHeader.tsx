@@ -16,6 +16,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
@@ -26,6 +27,11 @@ import {
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
 import { automationEase } from "@/app/lib/motion";
+import {
+  CAMPAIGN_DASHBOARD_TABS,
+  campaignDashboardHref,
+  campaignDashboardTabFromPathname,
+} from "@/app/lib/campaign-dashboard-tab";
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;
@@ -46,21 +52,10 @@ export type CampaignHeaderProps = {
   offer?: string;
   price?: number | string;
   campaign?: Funnel | null;
-  defaultTabId?: string;
-  activeTabId?: string;
-  onTabChange?: (tabId: string) => void;
   onGenerateTrackingLink?: () => void;
   onCampaignUpdated?: () => void | Promise<void>;
   embedded?: boolean;
 };
-
-const TABS: { id: string; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "guests", label: "Guests" },
-  { id: "orders", label: "Orders" },
-  { id: "funnel", label: "Funnel" },
-  { id: "automations", label: "Automations" },
-];
 
 export default function CampaignHeader({
   businessId,
@@ -69,13 +64,11 @@ export default function CampaignHeader({
   offer,
   price,
   campaign,
-  defaultTabId = "overview",
-  activeTabId: activeTabIdProp,
-  onTabChange,
   onGenerateTrackingLink,
   onCampaignUpdated,
   embedded = false,
 }: CampaignHeaderProps) {
+  const pathname = usePathname();
   const { can } = useBusinessMembershipPermissions(businessId);
   const canEditCampaign = can("campaigns_edit");
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
@@ -94,25 +87,17 @@ export default function CampaignHeader({
   const campaignTitle =
     campaign?.campaignName?.trim() || offerPriceLine || "Campaign";
 
-  const [internalTabId, setInternalTabId] = useState(defaultTabId);
-  const isControlled =
-    activeTabIdProp !== undefined && onTabChange !== undefined;
-  const activeTabId = isControlled ? activeTabIdProp : internalTabId;
-
-  const selectTab = useCallback(
-    (id: string) => {
-      if (isControlled) onTabChange(id);
-      else setInternalTabId(id);
-    },
-    [isControlled, onTabChange],
-  );
+  const activeTabId =
+    campaignId != null
+      ? campaignDashboardTabFromPathname(pathname, businessId, campaignId)
+      : "overview";
 
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [editCampaignOpen, setEditCampaignOpen] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  const tabButtonRefs = useRef<Partial<Record<string, HTMLButtonElement>>>({});
+  const tabButtonRefs = useRef<Partial<Record<string, HTMLAnchorElement>>>({});
   const { expanded: sidebarExpanded, toggle: toggleSidebar } =
     useSidebarExpand();
 
@@ -184,7 +169,7 @@ export default function CampaignHeader({
   const isFunnelTab = activeTabId === "funnel";
   const immersiveChrome = embedded;
 
-  const tabButtons = TABS.map(({ id, label }) => {
+  const tabButtons = CAMPAIGN_DASHBOARD_TABS.map(({ id, label }) => {
     const active = id === activeTabId;
     const immersiveTabActive =
       "border-b-2 border-[#1877f2] text-slate-900";
@@ -194,19 +179,22 @@ export default function CampaignHeader({
       "bg-[#1877f2] text-white shadow-sm";
     const lightTabIdle =
       "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800";
+    const href =
+      campaignId != null
+        ? campaignDashboardHref(businessId, campaignId, id)
+        : campaignsHref;
 
     return (
-      <button
+      <Link
         key={id}
+        href={href}
         ref={(node) => {
           if (node) tabButtonRefs.current[id] = node;
           else delete tabButtonRefs.current[id];
         }}
-        type="button"
         role="tab"
         aria-selected={active}
-        onClick={() => selectTab(id)}
-        className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
+        className={`relative z-[1] flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/40 ${
           immersiveChrome
             ? `rounded-none px-2 py-1.5 text-[0.7rem] sm:px-2.5 sm:py-2 sm:text-[0.75rem] md:px-3 md:text-[0.78rem] ${
                 active ? immersiveTabActive : immersiveTabIdle
@@ -217,7 +205,7 @@ export default function CampaignHeader({
         }`}
       >
         {label}
-      </button>
+      </Link>
     );
   });
 

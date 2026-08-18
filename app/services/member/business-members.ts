@@ -45,6 +45,17 @@ function parseMemberPermissions(value: unknown): ListedMemberPermission[] {
   );
 }
 
+function parseMyPermissions(value: unknown): BusinessMemberPermission[] {
+  const listed = parseMemberPermissions(value);
+  if (listed.includes(FULL_ACCESS_PERMISSION)) {
+    return [...BUSINESS_MEMBER_PERMISSIONS];
+  }
+  return listed.filter(
+    (item): item is BusinessMemberPermission =>
+      item !== FULL_ACCESS_PERMISSION,
+  );
+}
+
 function parseMemberItem(raw: unknown): BusinessMemberListItem | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
@@ -182,7 +193,7 @@ export async function getMyBusinessMembershipAccess(
         : businessId,
     access,
     role: typeof data.role === "string" ? data.role : "Staff",
-    permissions: parseMemberPermissions(data.permissions),
+    permissions: parseMyPermissions(data.permissions),
   };
 }
 
