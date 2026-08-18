@@ -1,21 +1,26 @@
 "use client";
 
 import {
+  Activity,
   ArrowUpRight,
   Calendar,
   Check,
   CircleDollarSign,
   Copy,
+  CreditCard,
   Eye,
   Layers,
+  LayoutGrid,
   Mail,
   Megaphone,
   MoreHorizontal,
   Phone,
+  Plus,
   Search,
   TrendingUp,
   UserRound,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -41,7 +46,7 @@ import {
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
-import { startTransition, useCallback, useDeferredValue, useEffect, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 
@@ -63,17 +68,31 @@ type StatusFilter = "all" | "paid" | "not_paid";
 type DateFilter = "all" | "today" | "week" | "month";
 type DisplayPaymentStatus = "paid" | "pending" | "failed" | "refunded";
 
-const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "paid", label: "Paid" },
-  { id: "not_paid", label: "Not Paid" },
+const STATUS_FILTERS: { id: StatusFilter; label: string; icon: LucideIcon }[] = [
+  { id: "all", label: "All", icon: LayoutGrid },
+  { id: "paid", label: "Paid", icon: CircleDollarSign },
+  { id: "not_paid", label: "Not Paid", icon: X },
 ];
 
-const DATE_FILTERS: { id: Exclude<DateFilter, "all">; label: string }[] = [
-  { id: "today", label: "Today" },
-  { id: "week", label: "This Week" },
-  { id: "month", label: "This Month" },
+const DATE_FILTERS: { id: Exclude<DateFilter, "all">; label: string; icon: LucideIcon }[] = [
+  { id: "today", label: "Today", icon: Calendar },
+  { id: "week", label: "This Week", icon: Calendar },
+  { id: "month", label: "This Month", icon: Calendar },
 ];
+
+const AVATAR_TONES = [
+  "bg-[#7c3aed] text-white",
+  "bg-[#16a34a] text-white",
+  "bg-[#2563eb] text-white",
+  "bg-[#db2777] text-white",
+  "bg-[#0f766e] text-white",
+  "bg-[#d97706] text-white",
+  "bg-[#e11d48] text-white",
+];
+
+function avatarTone(index: number): string {
+  return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
+}
 
 function OrdersTableBodySkeleton() {
   return (
@@ -268,26 +287,32 @@ function guestInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
-function FilterPill({
+function FilterTab({
   active,
   label,
+  icon: Icon,
   onClick,
 }: {
   active: boolean;
   label: string;
+  icon: LucideIcon;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 cursor-pointer rounded-full px-2 py-1.5 text-[0.75rem] font-bold transition ${
+      className={`relative inline-flex shrink-0 cursor-pointer items-center gap-1.5 px-3 py-2.5 text-sm font-semibold ${
         active
-          ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
-          : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+          ? "text-[#1877f2]"
+          : "text-slate-500 hover:text-slate-700"
       }`}
     >
+      <Icon className="size-3.5" strokeWidth={2.2} aria-hidden />
       {label}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#1877f2]" />
+      ) : null}
     </button>
   );
 }
@@ -295,11 +320,13 @@ function FilterPill({
 function OrderEventMobileCard({
   event,
   rowNumber,
+  index,
   baseHref,
   onView,
 }: {
   event: BusinessFunnelEvent;
   rowNumber: number;
+  index: number;
   baseHref: string;
   onView: () => void;
 }) {
@@ -322,7 +349,7 @@ function OrderEventMobileCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
+          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold ${avatarTone(index)}`}>
             {initial}
           </span>
           <div className="min-w-0">
@@ -454,6 +481,26 @@ function resolvePaymentMedium(
   return null;
 }
 
+function formatOrderDetailDate(iso: string | null | undefined): string {
+  if (!iso) return "N/A";
+  try {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    const day = date.getDate();
+    const month = date.toLocaleString("en-GB", { month: "short" });
+    const time = date
+      .toLocaleString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .toLowerCase();
+    return `${day} ${month}, ${time}`;
+  } catch {
+    return "N/A";
+  }
+}
+
 function CopyValueButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -471,13 +518,13 @@ function CopyValueButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="ml-1.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+      className="ml-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#eaf2ff] text-[#3b82f6] transition hover:bg-[#dbeafe]"
       aria-label={copied ? "Copied" : "Copy"}
     >
       {copied ? (
         <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} aria-hidden />
       ) : (
-        <Copy className="size-3.5" strokeWidth={2.25} aria-hidden />
+        <Copy className="size-3.5" strokeWidth={2.1} aria-hidden />
       )}
     </button>
   );
@@ -486,11 +533,11 @@ function CopyValueButton({ value }: { value: string }) {
 function OrderDetailIcon({
   icon: Icon,
 }: {
-  icon: typeof Megaphone;
+  icon: LucideIcon;
 }) {
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
-      <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[#4f6bed]">
+      <Icon className="size-[0.95rem]" strokeWidth={1.9} aria-hidden />
     </span>
   );
 }
@@ -500,27 +547,46 @@ function OrderDetailRow({
   label,
   children,
   copyValue,
-  className = "",
 }: {
-  icon: typeof Megaphone;
+  icon: LucideIcon;
   label: string;
   children: ReactNode;
   copyValue?: string | null;
-  className?: string;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between gap-3 border-b border-[#eef2f7] py-3 last:border-b-0 ${className}`}
-    >
-      <dt className="flex min-w-0 shrink-0 items-center gap-2.5 text-[0.84rem] font-bold text-slate-500">
+    <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-4 py-[0.95rem] last:border-b-0">
+      <dt className="flex min-w-0 shrink-0 items-center gap-2.5 text-[0.92rem] font-medium text-[#1a1c3d]">
         <OrderDetailIcon icon={Icon} />
         {label}
       </dt>
-      <dd className="m-0 flex min-w-0 max-w-[62%] items-center justify-end gap-0.5 text-right text-[0.88rem] font-bold text-black">
+      <dd className="m-0 flex min-w-0 max-w-[58%] items-center justify-end gap-1 text-right text-[0.92rem] font-bold text-[#1a1c3d]">
         {children}
         {copyValue ? <CopyValueButton value={copyValue} /> : null}
       </dd>
     </div>
+  );
+}
+
+function HeaderStatusBadge({ status }: { status: DisplayPaymentStatus }) {
+  const label = orderStatusLabel(status);
+  if (status === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#fdba74] bg-[#fff7ed] px-2.5 py-1 text-[0.7rem] font-semibold text-[#c2410c]">
+        <CreditCard className="size-3.5" strokeWidth={2.2} aria-hidden />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${orderStatusBadgeClass(status)}`}
+    >
+      <span
+        className={`size-2 shrink-0 rounded-full ${orderStatusDotClass(status)}`}
+        aria-hidden
+      />
+      {label}
+    </span>
   );
 }
 
@@ -575,99 +641,121 @@ function OrderEventDetailDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_24px_48px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.02]"
+        className="w-full max-w-[27.5rem] rounded-[1.85rem] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-[#e8edf5] px-4 py-3.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative size-[3.35rem] shrink-0">
               {campaignImageSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={campaignImageSrc}
                   alt=""
                   {...spacesImageLoadProps}
-                  className="size-11 shrink-0 rounded-full object-cover shadow-[0_4px_12px_rgba(24,119,242,0.18)] ring-1 ring-[#dbeafe]"
+                  className="size-[3.35rem] rounded-full object-cover ring-[3px] ring-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
                 />
               ) : (
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.9rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                <span className="flex size-[3.35rem] items-center justify-center rounded-full bg-[#1877f2] text-[0.95rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
                   {campaignInitial}
                 </span>
               )}
-              <div className="min-w-0">
-                <h2
-                  id="order-detail-title"
-                  className="m-0 truncate text-[1.05rem] font-extrabold tracking-tight text-black"
-                >
-                  {campaignLabel || "Campaign"}
-                </h2>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span
+                className="absolute right-0.5 bottom-0.5 size-3.5 rounded-full border-[2.5px] border-white bg-[#22c55e]"
+                aria-hidden
+              />
+            </div>
+            <div className="min-w-0">
+              <h2
+                id="order-detail-title"
+                className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#1a1c3d]"
+              >
+                {campaignLabel || "Campaign"}
+              </h2>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <HeaderStatusBadge status={status} />
+                {paymentMedium ? (
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${orderStatusBadgeClass(status)}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${
+                      paymentMedium === "In store"
+                        ? "border border-[#fdba74] bg-[#fff7ed] text-[#c2410c]"
+                        : "bg-[#ecfdf5] text-[#047857]"
+                    }`}
                   >
                     <span
-                      className={`size-1.5 shrink-0 rounded-full ${orderStatusDotClass(status)}`}
+                      className={`size-2 shrink-0 rounded-full ${
+                        paymentMedium === "In store"
+                          ? "bg-[#ea580c]"
+                          : "bg-[#22c55e]"
+                      }`}
                       aria-hidden
                     />
-                    {orderStatusLabel(status)}
+                    {paymentMedium}
                   </span>
-                  {paymentMedium ? (
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-bold ${
-                        paymentMedium === "In store"
-                          ? "bg-[#fff7ed] text-[#c2410c]"
-                          : "bg-[#ecfdf5] text-[#047857]"
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 shrink-0 rounded-full ${
-                          paymentMedium === "In store"
-                            ? "bg-[#ea580c]"
-                            : "bg-[#059669]"
-                        }`}
-                        aria-hidden
-                      />
-                      {paymentMedium}
-                    </span>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 transition hover:bg-[#f4f7fb] hover:text-black"
-              aria-label="Close"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-slate-400 shadow-[0_2px_10px_rgba(15,23,42,0.08)] ring-1 ring-[#eef2f7] transition hover:text-[#1a1c3d]"
+            aria-label="Close"
+          >
+            <X className="size-4" strokeWidth={2.25} aria-hidden />
+          </button>
         </div>
 
-        <div className="grid gap-3 px-4 py-3.5">
-          <div className="flex items-center gap-3 rounded-[1rem] bg-[#edf4ff] px-3 py-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.28)]">
-              <Megaphone className="size-4" strokeWidth={2.25} aria-hidden />
+        <div className="relative mt-5 overflow-hidden rounded-[1.25rem] bg-[linear-gradient(118deg,#dce9ff_0%,#e7ecff_48%,#efe8ff_100%)] px-4 py-[1.15rem]">
+          <span
+            className="pointer-events-none absolute -top-10 right-10 size-28 rounded-full bg-[#c7d9ff]/70 blur-md"
+            aria-hidden
+          />
+          <span
+            className="pointer-events-none absolute -right-6 -bottom-12 size-32 rotate-[18deg] rounded-[2rem] bg-[#d9c8ff]/55 blur-[2px]"
+            aria-hidden
+          />
+          <span
+            className="pointer-events-none absolute right-[4.5rem] top-2 size-11 rounded-full bg-white/55"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute top-3 right-8 flex items-end gap-1 opacity-45"
+            aria-hidden
+          >
+            <span className="h-5 w-2.5 rounded-t-md bg-[#8eb4ff]" />
+            <span className="h-9 w-2.5 rounded-t-md bg-[#6f9dff]" />
+            <span className="h-7 w-2.5 rounded-t-md bg-[#a9c4ff]" />
+          </div>
+          <Megaphone
+            className="pointer-events-none absolute right-1 -bottom-1 size-[4.25rem] rotate-[18deg] text-[#9bb6ff]/55"
+            strokeWidth={1.4}
+            aria-hidden
+          />
+          <div className="relative z-[1] flex items-center gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-[0.95rem] bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.38)]">
+              <Megaphone className="size-5" strokeWidth={2.2} aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[0.9rem] font-extrabold text-[#07111f]">
+              <p className="m-0 text-[0.98rem] font-extrabold text-[#1a1c3d]">
                 Campaign Overview
               </p>
-              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
+              <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
                 Here are the details of this campaign.
               </p>
             </div>
-            <span className="inline-flex max-w-[40%] shrink-0 items-center gap-1.5 rounded-full border border-[#f9a8d4] bg-[#fff1f7] px-2.5 py-1 text-[0.72rem] font-bold text-[#db2777]">
+            <span className="inline-flex max-w-[44%] shrink-0 items-center gap-1.5 rounded-full bg-[#fce7f3] px-3 py-1.5 text-[0.74rem] font-semibold text-[#be185d]">
               <UserRound className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
               <span className="truncate">{name}</span>
             </span>
           </div>
+        </div>
 
-          <dl className="m-0 flex flex-col px-0.5">
+        <dl className="m-0 mt-4 overflow-hidden rounded-[1.15rem] border border-[#eef2f7]">
             <OrderDetailRow icon={Layers} label="Medium">
               {paymentMedium ? (
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.72rem] font-bold ${
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-semibold ${
                     paymentMedium === "In store"
                       ? "bg-[#fff7ed] text-[#c2410c]"
                       : "bg-[#ecfdf5] text-[#047857]"
@@ -676,42 +764,41 @@ function OrderEventDetailDialog({
                   {paymentMedium}
                 </span>
               ) : (
-                <span className="text-slate-400">—</span>
+                <span className="font-medium text-slate-400">—</span>
               )}
             </OrderDetailRow>
 
             <OrderDetailRow icon={CircleDollarSign} label="Offer amount">
-              <span className={amountDisplay.muted ? "text-slate-400" : "text-black"}>
+              <span className={amountDisplay.muted ? "font-medium text-slate-400" : "text-[#1a1c3d]"}>
                 {amountDisplay.text}
               </span>
             </OrderDetailRow>
 
-            <OrderDetailRow icon={CircleDollarSign} label="Counter extras">
-              <span className={netAmountText === "—" ? "text-slate-400" : "text-black"}>
+            <OrderDetailRow icon={Plus} label="Counter extras">
+              <span className={netAmountText === "—" ? "font-medium text-slate-400" : "text-[#1a1c3d]"}>
                 {netAmountText}
               </span>
             </OrderDetailRow>
 
             <OrderDetailRow icon={Calendar} label="Date">
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[#1a1c3d]">
                 <Calendar className="size-3.5 shrink-0 text-slate-400" aria-hidden />
-                {formatDateTimeShort(eventPaymentDate(event))}
+                {formatOrderDetailDate(eventPaymentDate(event))}
               </span>
             </OrderDetailRow>
 
             <OrderDetailRow icon={Mail} label="Email" copyValue={email}>
-              <span className={`truncate ${email ? "text-black" : "text-slate-400"}`}>
+              <span className={`truncate ${email ? "text-[#1a1c3d]" : "font-medium text-slate-400"}`}>
                 {email ?? "None"}
               </span>
             </OrderDetailRow>
 
             <OrderDetailRow icon={Phone} label="Phone" copyValue={phone}>
-              <span className={phone ? "text-black" : "text-slate-400"}>
+              <span className={phone ? "text-[#1a1c3d]" : "font-medium text-slate-400"}>
                 {phone ?? "None"}
               </span>
             </OrderDetailRow>
           </dl>
-        </div>
       </div>
     </div>
   );
@@ -803,6 +890,7 @@ export function BusinessOrdersPanel({
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] =
     useState<BusinessFunnelEvent | null>(null);
@@ -871,6 +959,35 @@ export function BusinessOrdersPanel({
   const showNoFilterResults =
     !loading && !error && hasActiveFilters && totalEvents === 0;
   const showTable = !loading && !error && events.length > 0;
+  const allCount = allEventsTotal;
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const ordersHeader = (
+    <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
+      <div>
+        <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
+          Orders &amp; Payments
+        </h2>
+        <p className="m-0 mt-1 text-sm text-slate-500">
+          Track signups, payments, and customer funnel activity
+        </p>
+      </div>
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
+        <Activity className="size-3.5 text-slate-400" aria-hidden />
+        {allCount} {allCount === 1 ? "order" : "orders"}
+      </span>
+    </header>
+  );
 
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Orders">
@@ -890,17 +1007,9 @@ export function BusinessOrdersPanel({
       />
 
       <div className="rd-premium-page">
-        <header className="shrink-0 px-0.5">
-          <h1 className="m-0 text-[clamp(1.15rem,2vw,1.45rem)] font-extrabold tracking-tight text-[#07111f]">
-            Orders &amp; Payments
-          </h1>
-          <p className="m-0 mt-1 max-w-[42ch] text-[0.8rem] font-medium leading-snug text-slate-500">
-            Track signups, payments and customer funnel activity.
-          </p>
-        </header>
-
         {showEmpty ? (
           <article className={`${ordersCardClass} rd-premium-panel`}>
+            {ordersHeader}
             <div className="rd-premium-panel__body rd-premium-panel__body--center">
               <OrdersEmptyState
                 campaignsHref={`${baseHref}/campaigns`}
@@ -910,81 +1019,58 @@ export function BusinessOrdersPanel({
           </article>
         ) : (
           <article className={`${ordersCardClass} rd-premium-panel`}>
+            {ordersHeader}
             <div
-              className="flex shrink-0 flex-col gap-3 px-2.5 py-3.5 sm:px-3"
+              className="flex shrink-0 flex-col"
               aria-label="Order filters"
             >
-              <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {STATUS_FILTERS.map((filter) => (
-                    <FilterPill
-                      key={filter.id}
-                      label={filter.label}
-                      active={statusFilter === filter.id}
-                      onClick={() => {
-                        startTransition(() => {
-                          setPage(1);
-                          setStatusFilter(filter.id);
-                        });
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <span
-                  className="hidden h-5 w-px shrink-0 bg-[#e8edf5] sm:block"
-                  aria-hidden
-                />
-
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {DATE_FILTERS.map((filter) => (
-                    <FilterPill
-                      key={filter.id}
-                      label={filter.label}
-                      active={dateFilter === filter.id}
-                      onClick={() => {
-                        startTransition(() => {
-                          setPage(1);
-                          setDateFilter((prev) =>
-                            prev === filter.id ? "all" : filter.id,
-                          );
-                        });
-                      }}
-                    />
-                  ))}
-                </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
+                <label className="relative w-full max-w-[20rem]">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    ref={searchRef}
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search customer or campaign..."
+                    className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
+                  />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
+                    ⌘ K
+                  </span>
+                </label>
               </div>
-
-              <div className="relative min-w-0">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
-                  aria-hidden
-                />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search customer or campaign..."
-                  className="w-full rounded-full border border-[#e8edf5] bg-[#f8fafc] py-2 pr-4 pl-9 text-[0.82rem] font-medium text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-[#07111f]">
-                    Activity
-                  </h2>
-                  <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                    {hasActiveFilters
-                      ? `${totalEvents} matching events`
-                      : "Latest signups and payments"}
-                  </p>
-                </div>
-                <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                  {hasActiveFilters
-                    ? `${totalEvents} shown`
-                    : `${totalEvents} total`}
-                </span>
+              <div className="mt-3 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
+                {STATUS_FILTERS.map((filter) => (
+                  <FilterTab
+                    key={filter.id}
+                    label={filter.label}
+                    icon={filter.icon}
+                    active={statusFilter === filter.id}
+                    onClick={() => {
+                      startTransition(() => {
+                        setPage(1);
+                        setStatusFilter(filter.id);
+                      });
+                    }}
+                  />
+                ))}
+                {DATE_FILTERS.map((filter) => (
+                  <FilterTab
+                    key={filter.id}
+                    label={filter.label}
+                    icon={filter.icon}
+                    active={dateFilter === filter.id}
+                    onClick={() => {
+                      startTransition(() => {
+                        setPage(1);
+                        setDateFilter((prev) =>
+                          prev === filter.id ? "all" : filter.id,
+                        );
+                      });
+                    }}
+                  />
+                ))}
               </div>
             </div>
 
@@ -1123,7 +1209,7 @@ export function BusinessOrdersPanel({
                               </td>
                               <td className={tdClass}>
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold ${avatarTone(index)}`}>
                                     {initial}
                                   </span>
                                   <span className="truncate font-semibold text-[#07111f]">
@@ -1190,6 +1276,7 @@ export function BusinessOrdersPanel({
                         key={event.rowKey ?? `event:${event.id}`}
                         event={event}
                         rowNumber={rowOffset + index + 1}
+                        index={index}
                         baseHref={baseHref}
                         onView={() => setSelectedEvent(event)}
                       />

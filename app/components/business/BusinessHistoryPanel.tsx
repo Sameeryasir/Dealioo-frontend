@@ -1,94 +1,84 @@
 "use client";
 
+import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import {
-  DASHBOARD_EVENT_BADGE,
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
 } from "@/app/lib/dashboard-brand-tones";
-import { formatDateTimeShort } from "@/app/lib/datetime";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
+import { standardEase } from "@/app/lib/motion";
 import {
   BUSINESS_HISTORY_PAGE_SIZE,
+  businessHistoryQueryKey,
   getBusinessHistory,
   type BusinessHistoryEvent,
   type BusinessHistoryEventType,
+  type HistoryCategory,
 } from "@/app/services/business-history/get-business-history";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
+  Activity,
+  ArrowDownToLine,
+  Bot,
   Calendar,
+  CreditCard,
+  Filter,
   History,
-  Layers,
+  LayoutGrid,
+  Megaphone,
   MessageSquare,
+  Search,
   UserRound,
+  type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { standardEase } from "@/app/lib/motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const historyCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
-const thClass =
-  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
-const tdClass =
-  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
+const EVENT_TYPE_OPTIONS: { id: string; label: string }[] = [
+  { id: "", label: "Event type" },
+  { id: "funnel_updated", label: "Funnel updated" },
+  { id: "funnel_deleted", label: "Funnel deleted" },
+  { id: "automation_activated", label: "Automation activated" },
+  { id: "automation_deactivated", label: "Automation deactivated" },
+  { id: "automation_updated", label: "Automation updated" },
+  { id: "automation_deleted", label: "Automation deleted" },
+  { id: "campaign_created", label: "Campaign created" },
+  { id: "campaign_updated", label: "Campaign updated" },
+  { id: "campaign_deleted", label: "Campaign deleted" },
+  { id: "scanner_payment", label: "Payment" },
+  { id: "scanner_purchase", label: "Purchase" },
+  { id: "scanner_redeemed", label: "Redeemed" },
+  { id: "business_created", label: "Business created" },
+  { id: "business_updated", label: "Business updated" },
+];
 
-const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease: standardEase },
-  },
-};
+const TABS: {
+  id: HistoryCategory;
+  label: string;
+  icon: LucideIcon;
+}[] = [
+  { id: "all", label: "All Activity", icon: LayoutGrid },
+  { id: "funnels", label: "Funnels", icon: Filter },
+  { id: "automations", label: "Automations", icon: Bot },
+  { id: "campaigns", label: "Campaigns", icon: Megaphone },
+  { id: "payments", label: "Payments", icon: CreditCard },
+];
 
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.32, ease: standardEase },
-  },
-};
-
-const tableBodyStagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
-  },
-};
-
-function HistoryTableBodySkeleton() {
-  return (
-    <>
-      <div className="border-b border-[#e8edf5] px-5 py-3">
-        <div className="flex gap-8">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} funnel className="h-3 w-12" />
-          ))}
-        </div>
-      </div>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-3.5 last:border-0"
-        >
-          <Skeleton funnel className="h-3 w-4" />
-          <Skeleton funnel className="h-6 w-24 rounded-full" />
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <Skeleton funnel className="size-8 shrink-0 rounded-full" />
-            <Skeleton funnel className="h-4 w-28" />
-          </div>
-          <Skeleton funnel className="h-4 w-40" />
-          <Skeleton funnel className="h-4 w-24" />
-        </div>
-      ))}
-    </>
-  );
-}
+const AVATAR_TONES = [
+  "bg-[#7c3aed] text-white",
+  "bg-[#16a34a] text-white",
+  "bg-[#2563eb] text-white",
+  "bg-[#db2777] text-white",
+  "bg-[#0f766e] text-white",
+  "bg-[#d97706] text-white",
+  "bg-[#e11d48] text-white",
+];
 
 function eventTypeLabel(type: BusinessHistoryEventType): string {
   switch (type) {
@@ -117,65 +107,77 @@ function eventTypeLabel(type: BusinessHistoryEventType): string {
     case "funnel_deleted":
       return "Funnel deleted";
     case "scanner_redeemed":
-      return "Scanner redeemed";
+      return "Reward redeemed";
     case "scanner_payment":
-      return "Scanner payment";
+      return "Payment collected";
     case "scanner_purchase":
-      return "Scanner purchase";
+      return "Purchase completed";
     default:
       return "History";
   }
 }
 
-function EventTypeBadge({ type }: { type: BusinessHistoryEventType }) {
-  const label = eventTypeLabel(type);
-
-  switch (type) {
-    case "campaign_created":
-    case "business_created":
-    case "scanner_redeemed":
-    case "scanner_payment":
-    case "scanner_purchase":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.campaignCreated}>
-          <span
-            className={DASHBOARD_EVENT_BADGE.campaignCreatedDot}
-            aria-hidden
-          />
-          {label}
-        </span>
-      );
-    case "campaign_updated":
-    case "business_updated":
-    case "automation_updated":
-    case "automation_activated":
-    case "funnel_updated":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.campaignUpdated}>
-          <span
-            className={DASHBOARD_EVENT_BADGE.campaignUpdatedDot}
-            aria-hidden
-          />
-          {label}
-        </span>
-      );
-    case "campaign_deleted":
-    case "business_deleted":
-    case "automation_deactivated":
-    case "automation_deleted":
-    case "funnel_deleted":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.campaignDeleted}>
-          <span
-            className={DASHBOARD_EVENT_BADGE.campaignDeletedDot}
-            aria-hidden
-          />
-          {label}
-        </span>
-      );
-    default:
-      return <span className={DASHBOARD_EVENT_BADGE.default}>{label}</span>;
+function eventVisual(type: BusinessHistoryEventType): {
+  dot: string;
+  title: string;
+  iconWrap: string;
+  icon: LucideIcon;
+} {
+  if (type.startsWith("funnel_")) {
+    const deleted = type.endsWith("_deleted");
+    return {
+      dot: deleted ? "bg-red-500" : "bg-blue-500",
+      title: deleted ? "text-red-600" : "text-blue-600",
+      iconWrap: deleted
+        ? "bg-red-50 text-red-600"
+        : "bg-blue-50 text-blue-600",
+      icon: Filter,
+    };
   }
+  if (type.startsWith("automation_")) {
+    const negative =
+      type.includes("deactivated") || type.includes("deleted");
+    const activated = type.includes("activated") && !negative;
+    return {
+      dot: negative ? "bg-red-500" : activated ? "bg-emerald-500" : "bg-blue-500",
+      title: negative
+        ? "text-red-600"
+        : activated
+          ? "text-emerald-600"
+          : "text-blue-600",
+      iconWrap: negative
+        ? "bg-red-50 text-red-600"
+        : activated
+          ? "bg-emerald-50 text-emerald-600"
+          : "bg-blue-50 text-blue-600",
+      icon: Bot,
+    };
+  }
+  if (type.startsWith("campaign_")) {
+    const deleted = type.includes("deleted");
+    return {
+      dot: deleted ? "bg-red-500" : "bg-blue-500",
+      title: deleted ? "text-red-600" : "text-blue-600",
+      iconWrap: deleted
+        ? "bg-red-50 text-red-600"
+        : "bg-blue-50 text-blue-600",
+      icon: Megaphone,
+    };
+  }
+  if (type.startsWith("scanner_")) {
+    return {
+      dot: "bg-emerald-500",
+      title: "text-emerald-600",
+      iconWrap: "bg-emerald-50 text-emerald-600",
+      icon: CreditCard,
+    };
+  }
+  return {
+    dot: "bg-blue-500",
+    title: "text-blue-600",
+    iconWrap: "bg-blue-50 text-blue-600",
+    icon: History,
+  };
 }
 
 function actorInitial(name: string): string {
@@ -184,48 +186,128 @@ function actorInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
-function HistoryRow({
-  event,
-  rowNumber,
-}: {
-  event: BusinessHistoryEvent;
-  rowNumber: number;
-}) {
-  const actor = event.actorName?.trim() || "Team";
+function avatarTone(index: number): string {
+  return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
+}
+
+function formatDateParts(iso: string): { date: string; time: string } {
+  try {
+    const d = new Date(iso);
+    return {
+      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      time: d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+    };
+  } catch {
+    return { date: "—", time: "" };
+  }
+}
+
+function roleLabel(event: BusinessHistoryEvent): string {
+  if (!event.actorName?.trim()) return "System";
+  const role = event.actorRole?.trim();
+  if (!role) return "Admin";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function exportRowsCsv(rows: BusinessHistoryEvent[]) {
+  const header = ["Activity", "Description", "Performed by", "Date"];
+  const lines = rows.map((event) => {
+    const when = formatDateParts(event.occurredAt);
+    return [
+      eventTypeLabel(event.eventType),
+      event.description,
+      event.actorName?.trim() || "Team",
+      `${when.date} ${when.time}`,
+    ]
+      .map((value) => `"${value.replaceAll('"', '""')}"`)
+      .join(",");
+  });
+  const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "history-activity.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function ActivityCell({ event }: { event: BusinessHistoryEvent }) {
+  const visual = eventVisual(event.eventType);
+  const Icon = visual.icon;
 
   return (
-    <motion.tr
-      variants={tableRowReveal}
-      className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
-    >
-      <td className={tdClass}>
-        <span className="text-xs font-semibold tabular-nums text-slate-400">
-          {rowNumber}
-        </span>
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span
+        className={`size-1.5 shrink-0 rounded-full ${visual.dot}`}
+        aria-hidden
+      />
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${visual.iconWrap}`}
+      >
+        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+      </span>
+      <p className={`m-0 min-w-0 text-[0.88rem] font-semibold leading-snug ${visual.title}`}>
+        {eventTypeLabel(event.eventType)}
+      </p>
+    </div>
+  );
+}
+
+function DescriptionCell({ event }: { event: BusinessHistoryEvent }) {
+  const description = event.description?.trim() || "No details";
+  return (
+    <p className="m-0 max-w-[22rem] text-[0.82rem] leading-snug text-slate-500">
+      {description}
+    </p>
+  );
+}
+
+function HistoryRow({
+  event,
+  index,
+}: {
+  event: BusinessHistoryEvent;
+  index: number;
+}) {
+  const actor = event.actorName?.trim() || "Team";
+  const when = formatDateParts(event.occurredAt);
+
+  return (
+    <tr className="border-b border-[#f1f5f9] last:border-0 hover:bg-[#f8fafc]">
+      <td className="px-4 py-3.5 align-middle first:pl-5">
+        <ActivityCell event={event} />
       </td>
-      <td className={`${tdClass} whitespace-nowrap`}>
-        <EventTypeBadge type={event.eventType} />
+      <td className="px-4 py-3.5 align-middle">
+        <DescriptionCell event={event} />
       </td>
-      <td className={tdClass}>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.72rem] font-bold text-white">
+      <td className="px-4 py-3.5 align-middle">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${avatarTone(index)}`}
+          >
             {actorInitial(actor)}
           </span>
-          <span className="block truncate font-bold text-[#07111f]">
-            {actor}
-          </span>
+          <div className="min-w-0">
+            <p className="m-0 truncate text-sm font-semibold text-slate-900">
+              {actor}
+            </p>
+            <p className="m-0 text-[0.72rem] text-slate-400">
+              {roleLabel(event)}
+            </p>
+          </div>
         </div>
       </td>
-      <td className={`${tdClass} max-w-[18rem]`}>
-        <span className="line-clamp-2 text-slate-600">{event.description}</span>
+      <td className="px-4 py-3.5 align-middle last:pr-5">
+        <p className="m-0 text-sm font-semibold text-slate-800">{when.date}</p>
+        <p className="m-0 text-[0.72rem] text-slate-400">{when.time}</p>
       </td>
-      <td className={`${tdClass} whitespace-nowrap text-slate-600`}>
-        <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm">
-          <Calendar className="size-3.5 shrink-0 text-slate-400" aria-hidden />
-          {formatDateTimeShort(event.occurredAt)}
-        </span>
-      </td>
-    </motion.tr>
+    </tr>
   );
 }
 
@@ -235,11 +317,48 @@ export function BusinessHistoryPanel({
   businessId: number;
 }) {
   const [page, setPage] = useState(1);
+  const [category, setCategory] = useState<HistoryCategory>("all");
+  const [eventType, setEventType] = useState("");
+  const [actorUserId, setActorUserId] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [businessId, category, eventType, actorUserId, debouncedSearch]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const filters = useMemo(
+    () => ({
+      page,
+      category,
+      eventType: eventType || undefined,
+      actorUserId: actorUserId ? Number(actorUserId) : undefined,
+      q: debouncedSearch || undefined,
+    }),
+    [page, category, eventType, actorUserId, debouncedSearch],
+  );
 
   const historyQuery = useQuery({
-    queryKey: ["business-history", businessId, page],
-    queryFn: () => getBusinessHistory(businessId, { page }),
+    queryKey: businessHistoryQueryKey(businessId, filters),
+    queryFn: () => getBusinessHistory(businessId, filters),
     enabled: businessId > 0,
     staleTime: 0,
     gcTime: 0,
@@ -250,6 +369,8 @@ export function BusinessHistoryPanel({
 
   const events = historyQuery.data?.data ?? [];
   const meta = historyQuery.data?.meta ?? null;
+  const counts = historyQuery.data?.counts;
+  const actors = historyQuery.data?.actors ?? [];
   const loading = historyQuery.isLoading || historyQuery.isFetching;
   const error = historyQuery.error
     ? getApiErrorMessage(historyQuery.error, "Could not load history.")
@@ -258,7 +379,16 @@ export function BusinessHistoryPanel({
   const total = meta?.total ?? 0;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
   const rowOffset = meta ? (meta.page - 1) * meta.limit : 0;
-  const showTable = !loading && !error && events.length > 0;
+  const showTable = !error && events.length > 0;
+  const allCount = counts?.all ?? total;
+
+  const userOptions = useMemo(
+    () => [
+      { id: "", label: "User" },
+      ...actors.map((actor) => ({ id: String(actor.id), label: actor.name })),
+    ],
+    [actors],
+  );
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -277,31 +407,114 @@ export function BusinessHistoryPanel({
       />
 
       <div className="rd-premium-page">
-
         <article className={`${historyCardClass} rd-premium-panel`}>
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-2.5 py-3.5 sm:px-3">
+          <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
             <div>
-              <h2 className="m-0 text-[1.1rem] font-extrabold tracking-tight text-[#07111f]">
-                History Log
+              <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
+                History & Activity
               </h2>
-              <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
-                Records every business, campaign, funnel, and automation event.
+              <p className="m-0 mt-1 text-sm text-slate-500">
+                Track changes and actions across your workspace
               </p>
             </div>
-            <span className="rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/15">
-              {total} total
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
+                <Activity className="size-3.5 text-slate-400" aria-hidden />
+                {allCount} {allCount === 1 ? "activity" : "activities"}
+              </span>
+              <button
+                type="button"
+                onClick={() => exportRowsCsv(events)}
+                disabled={events.length === 0}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
+              >
+                <ArrowDownToLine className="size-3.5" strokeWidth={2.25} />
+                Export
+              </button>
+            </div>
+          </header>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
+            <label className="relative min-w-[14rem] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search activities, users, or events..."
+                className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
+              />
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
+                ⌘ K
+              </span>
+            </label>
+            <AutomationFilterDropdown
+              className="w-[11.5rem] shrink-0"
+              ariaLabel="Filter by event type"
+              value={eventType}
+              options={EVENT_TYPE_OPTIONS}
+              onChange={setEventType}
+            />
+            <AutomationFilterDropdown
+              className="w-[10.5rem] shrink-0"
+              ariaLabel="Filter by user"
+              value={actorUserId}
+              options={userOptions}
+              onChange={setActorUserId}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const selected = category === tab.id;
+              const count = counts?.[tab.id] ?? 0;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCategory(tab.id)}
+                  className={`relative inline-flex shrink-0 cursor-pointer items-center gap-1.5 px-3 py-2.5 text-sm font-semibold ${
+                    selected
+                      ? "text-[#1877f2]"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Icon className="size-3.5" strokeWidth={2.2} aria-hidden />
+                  {tab.label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[0.65rem] font-bold ${
+                      selected
+                        ? "bg-[#e8f2ff] text-[#1877f2]"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                  {selected ? (
+                    <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#1877f2]" />
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
           <div className="rd-premium-panel__body">
             {loading && events.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: standardEase }}
-              >
-                <HistoryTableBodySkeleton />
-              </motion.div>
+              <div className="space-y-0">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-4 last:border-0"
+                  >
+                    <Skeleton funnel className="size-8 shrink-0 rounded-lg" />
+                    <Skeleton funnel className="h-4 w-72" />
+                    <Skeleton funnel className="ml-auto size-8 rounded-full" />
+                    <Skeleton funnel className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
             ) : null}
 
             {!loading && !error && total === 0 ? (
@@ -323,45 +536,20 @@ export function BusinessHistoryPanel({
             ) : null}
 
             {showTable ? (
-              <motion.div
-                key={`history-page-${page}`}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: standardEase }}
-              >
-                <div className="hidden overflow-x-auto overscroll-x-contain md:block">
+              <>
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[44rem] border-collapse">
                     <thead>
-                      <motion.tr
-                        variants={tableHeaderReveal}
-                        initial="hidden"
-                        animate="show"
-                        className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-                      >
-                        <th className={`${thClass} w-12`}>
+                      <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/80">
+                        <th className="px-4 py-3 text-left first:pl-5">
                           <TableColumnHeader
-                            label="#"
+                            icon={Activity}
+                            label="Activity"
                             iconClassName={TABLE_HEAD_ICON_CLASS}
                             labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                        <th className={`${thClass} whitespace-nowrap`}>
-                          <TableColumnHeader
-                            icon={Layers}
-                            label="Type"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
-                          />
-                        </th>
-                        <th className={thClass}>
-                          <TableColumnHeader
-                            icon={UserRound}
-                            label="By"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
-                          />
-                        </th>
-                        <th className={thClass}>
+                        <th className="px-4 py-3 text-left">
                           <TableColumnHeader
                             icon={MessageSquare}
                             label="Description"
@@ -369,7 +557,15 @@ export function BusinessHistoryPanel({
                             labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                        <th className={thClass}>
+                        <th className="px-4 py-3 text-left">
+                          <TableColumnHeader
+                            icon={UserRound}
+                            label="Performed by"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
+                        </th>
+                        <th className="px-4 py-3 text-left last:pr-5">
                           <TableColumnHeader
                             icon={Calendar}
                             label="Date"
@@ -377,73 +573,57 @@ export function BusinessHistoryPanel({
                             labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                      </motion.tr>
+                      </tr>
                     </thead>
-                    <motion.tbody
-                      variants={tableBodyStagger}
-                      initial="hidden"
-                      animate="show"
-                    >
+                    <tbody>
                       {events.map((event, index) => (
-                        <HistoryRow
-                          key={event.id}
-                          event={event}
-                          rowNumber={rowOffset + index + 1}
-                        />
+                        <HistoryRow key={event.id} event={event} index={index} />
                       ))}
-                    </motion.tbody>
+                    </tbody>
                   </table>
                 </div>
-
-                <motion.div
-                  variants={tableBodyStagger}
-                  initial="hidden"
-                  animate="show"
-                  className="flex flex-col gap-2.5 p-3.5 md:hidden"
-                >
+                <ul className="m-0 list-none p-0 md:hidden">
                   {events.map((event, index) => {
                     const actor = event.actorName?.trim() || "Team";
+                    const when = formatDateParts(event.occurredAt);
                     return (
-                      <motion.div
+                      <li
                         key={event.id}
-                        variants={tableRowReveal}
-                        className="rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
+                        className="border-b border-[#f1f5f9] px-4 py-3.5 last:border-0"
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <EventTypeBadge type={event.eventType} />
-                          <span className="text-[0.72rem] font-medium text-slate-500">
-                            {formatDateTimeShort(event.occurredAt)}
-                          </span>
-                        </div>
-                        <p className="m-0 mt-2.5 text-sm font-bold text-[#07111f]">
-                          {event.description}
+                        <ActivityCell event={event} />
+                        <p className="m-0 mt-2 pl-8 text-[0.82rem] leading-snug text-slate-500">
+                          {event.description?.trim() || "No details"}
                         </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.68rem] font-bold text-white">
-                            {actorInitial(actor)}
-                          </span>
-                          <span className="text-xs font-semibold text-slate-600">
-                            {actor}
-                          </span>
-                          <span className="ml-auto text-[0.7rem] font-semibold tabular-nums text-slate-400">
-                            #{rowOffset + index + 1}
-                          </span>
+                        <div className="mt-2 flex items-center justify-between gap-3 pl-8">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[0.62rem] font-bold ${avatarTone(index)}`}
+                            >
+                              {actorInitial(actor)}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-700">
+                              {actor}
+                            </span>
+                          </div>
+                          <p className="m-0 text-xs text-slate-400">
+                            {when.date} · {when.time}
+                          </p>
                         </div>
-                      </motion.div>
+                      </li>
                     );
                   })}
-                </motion.div>
-              </motion.div>
+                </ul>
+              </>
             ) : null}
           </div>
 
           {showTable && meta && meta.total > 0 ? (
-            <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
+            <div className="shrink-0 border-t border-[#e8edf5] px-5 py-3 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="m-0 text-xs text-slate-500">
                   Showing {meta.total === 0 ? 0 : rowOffset + 1} to{" "}
-                  {Math.min(rowOffset + meta.limit, meta.total)} of {meta.total}{" "}
-                  events
+                  {Math.min(rowOffset + meta.limit, meta.total)} of {meta.total}
                   {meta.limit > 0
                     ? ` · ${meta.limit || BUSINESS_HISTORY_PAGE_SIZE} per page`
                     : ""}
@@ -453,7 +633,7 @@ export function BusinessHistoryPanel({
                     type="button"
                     disabled={loading || page <= 1}
                     onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -466,7 +646,7 @@ export function BusinessHistoryPanel({
                     onClick={() =>
                       setPage((prev) => Math.min(totalPages, prev + 1))
                     }
-                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>

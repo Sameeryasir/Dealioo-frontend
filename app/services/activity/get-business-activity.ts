@@ -30,7 +30,7 @@ export type RestaurantActivityEvent = {
   /** online = funnel Stripe prepaid; in_store = counter / physical pay */
   paymentChannel?: "online" | "in_store" | null;
   /** scanned = QR redeem visit */
-  visitChannel?: "scanned" | null;
+  visitChannel?: "scanned" | "in_store" | null;
 };
 
 export type ActivitySummary = {
@@ -38,6 +38,7 @@ export type ActivitySummary = {
   totalVisited: number;
   totalRedeemed: number;
   totalPrepaid: number;
+  totalInPerson: number;
   totalMessagesSent: number;
   from?: string;
   to?: string;

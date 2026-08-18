@@ -147,18 +147,11 @@ function eventCopy(
   );
 }
 
-function EventGlyph({
-  eventType,
-}: {
-  eventType: string;
-}) {
+function EventGlyph({ eventType }: { eventType: string }) {
   if (eventType === "oauth_failed") {
     return <EventIconWrap className="bg-[#fee2e2] text-[#dc2626]" icon={CircleAlert} />;
   }
-  if (
-    eventType.endsWith("_disconnected") ||
-    eventType === "oauth_aborted"
-  ) {
+  if (eventType.endsWith("_disconnected") || eventType === "oauth_aborted") {
     return <EventIconWrap className="bg-slate-100 text-slate-500" icon={Unlink} />;
   }
   if (
@@ -167,9 +160,6 @@ function EventGlyph({
     eventType === "google_ads_connected"
   ) {
     return <EventIconWrap className="bg-[#dcfce7] text-[#16a34a]" icon={Check} />;
-  }
-  if (eventType === "oauth_started") {
-    return <EventIconWrap className="bg-[#dbeafe] text-[#1d4ed8]" icon={Clock} />;
   }
   return <EventIconWrap className="bg-[#dbeafe] text-[#1d4ed8]" icon={Clock} />;
 }
@@ -237,7 +227,6 @@ function detailEntries(metadata: Record<string, string>) {
         key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()),
       hint: field?.hint ?? "",
       value: field?.format ? field.format(raw) : raw,
-      isError: key.toLowerCase().includes("error"),
     };
   });
 }
@@ -508,9 +497,7 @@ export function IntegrationAuditLogsCard({
         </button>
       </div>
 
-      {loading && rows.length === 0 ? (
-        <TableSkeleton />
-      ) : null}
+      {loading && rows.length === 0 ? <TableSkeleton /> : null}
 
       {!loading && error ? (
         <p role="alert" className="m-0 px-4 py-6 text-sm text-red-700 sm:px-5">

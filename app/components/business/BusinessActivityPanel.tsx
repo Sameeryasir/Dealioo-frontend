@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -10,10 +10,13 @@ import {
   CircleDollarSign,
   Gift,
   Layers,
+  LayoutGrid,
   MapPin,
   MessageSquare,
-  TrendingUp,
+  Search,
+  Store,
   UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
@@ -22,7 +25,6 @@ import { Skeleton } from "@/app/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import {
   DASHBOARD_EVENT_BADGE,
-  DASHBOARD_KPI_ICON,
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
 } from "@/app/lib/dashboard-brand-tones";
@@ -53,13 +55,24 @@ const tdClass =
 
 type EventFilter = "all" | ActivityEventType | "in_person";
 
-const EVENT_FILTERS: { id: EventFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "visited", label: "Visits" },
-  { id: "redeemed_reward", label: "Redemptions" },
-  { id: "prepaid_for_offer", label: "Prepaid" },
-  { id: "in_person", label: "In person" },
-  { id: "message_sent", label: "Texts" },
+const EVENT_FILTERS: {
+  id: EventFilter;
+  label: string;
+  icon: LucideIcon;
+  countKey?:
+    | "totalEvents"
+    | "totalVisited"
+    | "totalRedeemed"
+    | "totalPrepaid"
+    | "totalInPerson"
+    | "totalMessagesSent";
+}[] = [
+  { id: "all", label: "All", icon: LayoutGrid, countKey: "totalEvents" },
+  { id: "visited", label: "Visits", icon: MapPin, countKey: "totalVisited" },
+  { id: "redeemed_reward", label: "Redemptions", icon: Gift, countKey: "totalRedeemed" },
+  { id: "prepaid_for_offer", label: "Prepaid", icon: CircleDollarSign, countKey: "totalPrepaid" },
+  { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },
+  { id: "message_sent", label: "Texts", icon: MessageSquare, countKey: "totalMessagesSent" },
 ];
 
 const tableHeaderReveal = {
@@ -106,14 +119,30 @@ function guestInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
+const AVATAR_TONES = [
+  "bg-[#7c3aed] text-white",
+  "bg-[#16a34a] text-white",
+  "bg-[#2563eb] text-white",
+  "bg-[#db2777] text-white",
+  "bg-[#0f766e] text-white",
+  "bg-[#d97706] text-white",
+  "bg-[#e11d48] text-white",
+];
+
+function avatarTone(index: number): string {
+  return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
+}
+
 function eventTypeLabel(
   type: ActivityEventType,
   paymentChannel?: "online" | "in_store" | null,
-  visitChannel?: "scanned" | null,
+  visitChannel?: "scanned" | "in_store" | null,
 ): string {
   switch (type) {
     case "visited":
-      return visitChannel === "scanned" ? "Scanned" : "Visited";
+      if (visitChannel === "scanned") return "Scanned";
+      if (visitChannel === "in_store") return "In-person";
+      return "Visited";
     case "redeemed_reward":
       return "Redeemed";
     case "prepaid_for_offer":
@@ -132,7 +161,7 @@ function EventTypeBadge({
 }: {
   type: ActivityEventType;
   paymentChannel?: "online" | "in_store" | null;
-  visitChannel?: "scanned" | null;
+  visitChannel?: "scanned" | "in_store" | null;
 }) {
   switch (type) {
     case "visited":
@@ -141,6 +170,14 @@ function EventTypeBadge({
           <span className={DASHBOARD_EVENT_BADGE.scanned}>
             <span className={DASHBOARD_EVENT_BADGE.scannedDot} aria-hidden />
             Scanned
+          </span>
+        );
+      }
+      if (visitChannel === "in_store") {
+        return (
+          <span className={DASHBOARD_EVENT_BADGE.inStore}>
+            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
+            In-person
           </span>
         );
       }
@@ -188,69 +225,45 @@ function EventTypeBadge({
   }
 }
 
-function FilterPill({
+function FilterTab({
   active,
   label,
+  icon: Icon,
+  count,
   onClick,
 }: {
   active: boolean;
   label: string;
+  icon: LucideIcon;
+  count?: number;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 cursor-pointer rounded-full px-2 py-1.5 text-[0.75rem] font-bold transition ${
+      className={`relative inline-flex shrink-0 cursor-pointer items-center gap-1.5 px-3 py-2.5 text-sm font-semibold ${
         active
-          ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
-          : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+          ? "text-[#1877f2]"
+          : "text-slate-500 hover:text-slate-700"
       }`}
     >
+      <Icon className="size-3.5" strokeWidth={2.2} aria-hidden />
       {label}
-    </button>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  hint,
-  hintTone,
-  icon: Icon,
-  iconBg,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  hintTone: string;
-  icon: typeof TrendingUp;
-  iconBg: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full cursor-pointer items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3 text-left shadow-[0_6px_18px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-[2px] hover:border-[#1877f2]/35 hover:shadow-[0_12px_28px_rgba(24,119,242,0.12)] active:border-[#1877f2]/45 active:shadow-[0_12px_28px_rgba(24,119,242,0.14)]"
-    >
-      <span
-        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
-      >
-        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="m-0 truncate text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-800">
-          {label}
-        </p>
-        <p className="mt-0.5 mb-0 truncate text-[1.1rem] font-extrabold tracking-tight text-black">
-          {value}
-        </p>
-        <p className={`mt-0.5 mb-0 truncate text-[0.72rem] font-medium ${hintTone}`}>
-          {hint}
-        </p>
-      </div>
+      {count != null ? (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[0.65rem] font-bold ${
+            active
+              ? "bg-[#e8f2ff] text-[#1877f2]"
+              : "bg-slate-100 text-slate-500"
+          }`}
+        >
+          {count}
+        </span>
+      ) : null}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#1877f2]" />
+      ) : null}
     </button>
   );
 }
@@ -348,9 +361,11 @@ function ActivityEmptyState({
 function ActivityEventMobileCard({
   event,
   rowNumber,
+  index,
 }: {
   event: RestaurantActivityEvent;
   rowNumber: number;
+  index: number;
 }) {
   const name = guestName(event);
 
@@ -358,7 +373,7 @@ function ActivityEventMobileCard({
     <article className="rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
+          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold ${avatarTone(index)}`}>
             {guestInitial(name)}
           </span>
           <div className="min-w-0">
@@ -393,22 +408,37 @@ export function BusinessActivityPanel({
   const [page, setPage] = useState(1);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
   const [monthFilter, setMonthFilter] = useState(ACTIVITY_ALL_MONTHS_ID);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
-  const selectedMonthOption = useMemo(
-    () =>
-      monthOptions.find((option) => option.id === monthFilter) ??
-      monthOptions[0],
-    [monthFilter, monthOptions],
-  );
   const range = useMemo(
     () => resolveActivityMonthRange(monthFilter, monthOptions),
     [monthFilter, monthOptions],
   );
 
   const hasActiveFilters =
-    eventFilter !== "all" || monthFilter !== ACTIVITY_ALL_MONTHS_ID;
+    eventFilter !== "all" ||
+    monthFilter !== ACTIVITY_ALL_MONTHS_ID ||
+    Boolean(debouncedSearch);
 
   const eventsQuery = useQuery({
     queryKey: [
@@ -419,6 +449,7 @@ export function BusinessActivityPanel({
       monthFilter,
       range.from,
       range.to,
+      debouncedSearch,
     ],
     queryFn: () =>
       getRestaurantActivityEvents(businessId, {
@@ -427,6 +458,7 @@ export function BusinessActivityPanel({
         eventType: eventFilter,
         from: range.from,
         to: range.to,
+        search: debouncedSearch || undefined,
       }),
     enabled: businessId > 0,
     placeholderData: (previousData) => previousData,
@@ -465,7 +497,7 @@ export function BusinessActivityPanel({
 
   useEffect(() => {
     setPage(1);
-  }, [eventFilter, monthFilter]);
+  }, [eventFilter, monthFilter, debouncedSearch]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -482,23 +514,24 @@ export function BusinessActivityPanel({
   const showFilteredEmpty =
     !loading && !error && hasActiveFilters && totalEvents === 0;
   const showTable = !loading && !error && events.length > 0;
+  const allCount = summary?.totalEvents ?? allEventsTotal;
 
-  const applyAllFilter = () => {
-    setEventFilter("all");
-    setMonthFilter(ACTIVITY_ALL_MONTHS_ID);
-  };
-
-  const applyVisitedFilter = () => {
-    setEventFilter("visited");
-  };
-
-  const applyRedeemedFilter = () => {
-    setEventFilter("redeemed_reward");
-  };
-
-  const applyPrepaidFilter = () => {
-    setEventFilter("prepaid_for_offer");
-  };
+  const activityHeader = (
+    <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
+            <div>
+              <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
+                Activity Log
+              </h2>
+              <p className="m-0 mt-1 text-sm text-slate-500">
+                Track visits, payments, redemptions, and messages from your guests
+              </p>
+            </div>
+      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
+        <Activity className="size-3.5 text-slate-400" aria-hidden />
+        {allCount} {allCount === 1 ? "activity" : "activities"}
+      </span>
+    </header>
+  );
 
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Activity">
@@ -509,102 +542,56 @@ export function BusinessActivityPanel({
       />
 
       <div className="rd-premium-page">
-        <header className="shrink-0 px-0.5">
-          <h1 className="m-0 text-[clamp(1.15rem,2vw,1.45rem)] font-extrabold tracking-tight text-[#07111f]">
-            Activity Log
-          </h1>
-        </header>
-
-        {!loading && !error && summary && (summary.totalEvents ?? 0) > 0 ? (
-          <section
-            className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5"
-            aria-label="Activity summary"
-          >
-            <KpiCard
-              label="Total Events"
-              value={String(summary.totalEvents)}
-              hint={selectedMonthOption?.label ?? "Last 6 months"}
-              hintTone="text-slate-400"
-              icon={TrendingUp}
-              iconBg={DASHBOARD_KPI_ICON.blue}
-              onClick={applyAllFilter}
-            />
-            <KpiCard
-              label="Visits"
-              value={String(summary.totalVisited)}
-              hint={
-                summary.totalVisited > 0
-                  ? "Guests checked in"
-                  : "No visits yet"
-              }
-              hintTone="text-slate-400"
-              icon={MapPin}
-              iconBg={DASHBOARD_KPI_ICON.green}
-              onClick={applyVisitedFilter}
-            />
-            <KpiCard
-              label="Redemptions"
-              value={String(summary.totalRedeemed)}
-              hint={
-                summary.totalRedeemed > 0
-                  ? "Rewards claimed"
-                  : "No redemptions yet"
-              }
-              hintTone="text-slate-400"
-              icon={Gift}
-              iconBg={DASHBOARD_KPI_ICON.orange}
-              onClick={applyRedeemedFilter}
-            />
-            <KpiCard
-              label="Prepaid Offers"
-              value={String(summary.totalPrepaid)}
-              hint={
-                summary.totalPrepaid > 0
-                  ? "Offers paid online"
-                  : "No prepaid offers yet"
-              }
-              hintTone="text-slate-400"
-              icon={CircleDollarSign}
-              iconBg={DASHBOARD_KPI_ICON.blue}
-              onClick={applyPrepaidFilter}
-            />
-          </section>
-        ) : null}
-
         {showEmpty ? (
           <article className={`${activityCardClass} rd-premium-panel`}>
+            {activityHeader}
             <div className="rd-premium-panel__body rd-premium-panel__body--center">
               <ActivityEmptyState baseHref={baseHref} embedded />
             </div>
           </article>
         ) : (
           <article className={`${activityCardClass} rd-premium-panel`}>
+            {activityHeader}
             <div
-              className="flex shrink-0 flex-col gap-3 px-2.5 py-3.5 sm:px-3"
+              className="flex shrink-0 flex-col"
               aria-label="Activity filters"
             >
-              <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {EVENT_FILTERS.map((filter) => (
-                    <FilterPill
-                      key={filter.id}
-                      label={filter.label}
-                      active={eventFilter === filter.id}
-                      onClick={() => setEventFilter(filter.id)}
-                    />
-                  ))}
-                </div>
-
-                <span
-                  className="hidden h-5 w-px shrink-0 bg-[#e8edf5] sm:block"
-                  aria-hidden
-                />
-
+              <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
+                <label className="relative min-w-[14rem] flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    ref={searchRef}
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search guests, emails, or details..."
+                    className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
+                  />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
+                    ⌘ K
+                  </span>
+                </label>
                 <ActivityMonthCalendarPicker
                   value={monthFilter}
                   onChange={setMonthFilter}
                   compact
                 />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
+                {EVENT_FILTERS.map((filter) => (
+                  <FilterTab
+                    key={filter.id}
+                    label={filter.label}
+                    icon={filter.icon}
+                    count={
+                      filter.countKey != null
+                        ? (summary?.[filter.countKey] ?? 0)
+                        : undefined
+                    }
+                    active={eventFilter === filter.id}
+                    onClick={() => setEventFilter(filter.id)}
+                  />
+                ))}
               </div>
             </div>
 
@@ -625,13 +612,14 @@ export function BusinessActivityPanel({
                     No matching events
                   </p>
                   <p className="m-0 mt-1 max-w-sm text-[0.8rem] font-medium text-slate-500">
-                    Try a different filter or month.
+                    Try a different search, filter, or month.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
                       setEventFilter("all");
                       setMonthFilter(ACTIVITY_ALL_MONTHS_ID);
+                      setSearch("");
                     }}
                     className="mt-4 cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
                   >
@@ -642,7 +630,7 @@ export function BusinessActivityPanel({
 
               {showTable ? (
                 <motion.div
-                  key={`activity-page-${page}-${eventFilter}-${monthFilter}`}
+                  key={`activity-page-${page}-${eventFilter}-${monthFilter}-${debouncedSearch}`}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: standardEase }}
@@ -726,7 +714,7 @@ export function BusinessActivityPanel({
                               </td>
                               <td className={tdClass}>
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.72rem] font-bold text-white">
+                                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${avatarTone(index)}`}>
                                     {guestInitial(name)}
                                   </span>
                                   <div className="min-w-0">
@@ -770,6 +758,7 @@ export function BusinessActivityPanel({
                         key={event.id}
                         event={event}
                         rowNumber={rowOffset + index + 1}
+                        index={index}
                       />
                     ))}
                   </div>
