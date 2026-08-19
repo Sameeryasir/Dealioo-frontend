@@ -11,6 +11,7 @@ import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { sanitizeChatMessageBody } from "@/app/lib/strip-email-signoff-for-chat";
 import {
   appendConversationMessage,
+  getMaxMessageId,
   patchConversationFromPusher,
 } from "@/app/services/chat/chat-query-cache";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
@@ -24,7 +25,7 @@ const MESSAGE_STORE = "messages";
 const MESSAGE_DB_VERSION = 1;
 const THREAD_KEY = "thread";
 
-export const CHAT_MESSAGE_PAGE_SIZE = 10;
+export const CHAT_MESSAGE_PAGE_SIZE = 25;
 
 /** Prefix used so clear tools can find every conversation DB. */
 export const DEALIOO_CHAT_DB_PREFIX = "dealioo-chat-";
@@ -118,8 +119,15 @@ function buildMessagePage(
     startIndex,
     totalMessages: entry.messages.length,
     hasOlder: startIndex > 0,
-    lastMessageId: entry.messages.at(-1)?.id ?? null,
+    lastMessageId: getMaxMessageId(entry.messages),
   };
+}
+
+function buildLatestMessagePage(
+  entry: ConversationMessageCacheEntry,
+): StoredChatMessagePage {
+  const startIndex = Math.max(0, entry.messages.length - CHAT_MESSAGE_PAGE_SIZE);
+  return buildMessagePage(entry, startIndex);
 }
 
 function deleteLegacySharedChatDatabases(): void {
@@ -271,7 +279,7 @@ export function peekStoredChatMessagesLatestPage(
     return null;
   }
 
-  return buildMessagePage(entry, 0);
+  return buildLatestMessagePage(entry);
 }
 
 /**
@@ -340,7 +348,7 @@ export async function getStoredChatMessagesLatestPage(
       return null;
     }
 
-    return buildMessagePage(entry, 0);
+    return buildLatestMessagePage(entry);
   } catch {
     return null;
   }

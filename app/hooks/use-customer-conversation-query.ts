@@ -8,11 +8,13 @@ import {
   getLatestMessageWindow,
 } from "@/app/components/business/guest-chats/guest-chats-utils";
 import {
-  getLatestMessageId,
+  getMaxMessageId,
   insertMessageIfAbsent,
   mergeConversationAfterSync,
   messageExistsById,
+  sortConversationMessages,
 } from "@/app/services/chat/chat-query-cache";
+import { CHAT_MESSAGE_SYNC_PAGE_SIZE } from "@/app/services/chat/chat-sync.constants";
 import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
 import {
   getStoredChatConversation,
@@ -26,12 +28,29 @@ import {
 import type {
   ConversationMessage,
   CustomerConversationDetail,
+  CustomerConversationMessages,
 } from "@/app/services/chat/get-business-conversation";
 import {
   getCustomerConversation,
   syncCustomerConversationMessages,
 } from "@/app/services/chat/get-business-conversation";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
+
+function yieldToNextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
+function syncBatchHasMore(delta: CustomerConversationMessages): boolean {
+  if (delta.hasMore === true) {
+    return true;
+  }
+  if (delta.hasMore === false) {
+    return false;
+  }
+  return delta.messages.length >= CHAT_MESSAGE_SYNC_PAGE_SIZE;
+}
 
 function isConversationBehindSidebar(
   messages: ConversationMessage[],
@@ -97,6 +116,7 @@ export function useCustomerConversationQuery(
   const sidebarHintRef = useRef(sidebarHint);
   sidebarHintRef.current = sidebarHint;
   const sidebarSyncTargetRef = useRef<string | null>(null);
+  const syncInFlightRef = useRef<Promise<void> | null>(null);
 
   const mergeVisibleMessages = useCallback(
     (
@@ -182,42 +202,86 @@ export function useCustomerConversationQuery(
 
   const syncConversationFromApi = useCallback(
     async (cachedLastMessageId: number | null) => {
-      if (cachedLastMessageId) {
-        const delta = await syncCustomerConversationMessages(
-          businessId,
-          customerId,
-          cachedLastMessageId,
-        );
+      if (syncInFlightRef.current) {
+        return syncInFlightRef.current;
+      }
 
-        if (delta.messages.length === 0) {
-          messagesLoadedRef.current = true;
+      const run = (async () => {
+        let cursor = cachedLastMessageId ?? 0;
+        let merged: CustomerConversationDetail | null = null;
+
+        if (cachedLastMessageId && CHAT_USE_INDEXED_DB) {
+          merged = await getStoredChatConversation(businessId, customerId);
+        } else if (cachedLastMessageId && fullMessagesRef.current.length > 0) {
+          merged = {
+            customerId,
+            customerName: null,
+            customerEmail: null,
+            messages: fullMessagesRef.current,
+          };
+        }
+
+        while (true) {
+          const delta = await syncCustomerConversationMessages(
+            businessId,
+            customerId,
+            cursor,
+          );
+
+          if (delta.messages.length === 0) {
+            break;
+          }
+
+          const pageMessages = sortConversationMessages(delta.messages);
+
+          for (const message of pageMessages) {
+            if (merged && messageExistsById(merged.messages, message.id)) {
+              continue;
+            }
+
+            merged = mergeConversationAfterSync(merged, {
+              conversationId: delta.conversationId,
+              customerId: delta.customerId,
+              messages: [message],
+            });
+            fullMessagesRef.current = merged.messages;
+            applyLatestWindow(merged);
+            await yieldToNextFrame();
+          }
+
+          if (!syncBatchHasMore(delta)) {
+            break;
+          }
+
+          const batchLastId = getMaxMessageId(pageMessages);
+          if (batchLastId == null || batchLastId <= cursor) {
+            break;
+          }
+          cursor = batchLastId;
+        }
+
+        messagesLoadedRef.current = true;
+
+        if (merged) {
+          if (CHAT_USE_INDEXED_DB) {
+            await saveChatConversation(businessId, customerId, merged);
+          }
           return;
         }
 
-        const cached = CHAT_USE_INDEXED_DB
-          ? await getStoredChatConversation(businessId, customerId)
-          : fullMessagesRef.current.length > 0
-            ? {
-                customerId,
-                customerName: null,
-                customerEmail: null,
-                messages: fullMessagesRef.current,
-              }
-            : null;
-        const merged = mergeConversationAfterSync(cached, {
-          conversationId: delta.conversationId,
-          customerId: delta.customerId,
-          messages: delta.messages,
-        });
-        applyLatestWindow(merged);
-        messagesLoadedRef.current = true;
-        if (CHAT_USE_INDEXED_DB) {
-          await saveChatConversation(businessId, customerId, merged);
+        if (!cachedLastMessageId) {
+          await fetchAndStoreConversation();
         }
-        return;
-      }
+      })();
 
-      await fetchAndStoreConversation();
+      syncInFlightRef.current = run;
+      try {
+        await run;
+      } finally {
+        if (syncInFlightRef.current === run) {
+          syncInFlightRef.current = null;
+        }
+      }
     },
     [applyLatestWindow, customerId, businessId, fetchAndStoreConversation],
   );
@@ -306,13 +370,17 @@ export function useCustomerConversationQuery(
 
         setSyncing(true);
         try {
-          const lastMessageId = getLatestMessageId(page.messages);
-          if (lastMessageId) {
+          const lastMessageId =
+            page.lastMessageId ?? getMaxMessageId(page.messages);
+          if (lastMessageId != null && lastMessageId > 0) {
             await syncConversationRef.current(lastMessageId);
           } else {
-            await fetchAndStoreRef.current();
+            await syncConversationRef.current(0);
           }
-        } catch {
+        } catch (syncError) {
+          if (!cancelled) {
+            console.warn("[Chat sync] Background catch-up failed", syncError);
+          }
         } finally {
           if (!cancelled) {
             messagesLoadedRef.current = true;
@@ -326,7 +394,7 @@ export function useCustomerConversationQuery(
       setLoading(true);
       setSyncing(true);
       try {
-        await fetchAndStoreRef.current();
+        await syncConversationRef.current(0);
       } catch (syncError) {
         if (!cancelled) {
           setConversation(null);
@@ -421,13 +489,14 @@ export function useCustomerConversationQuery(
 
       try {
         const cached = await getStoredChatConversation(businessId, customerId);
-        const lastMessageId =
-          cached != null ? getLatestMessageId(cached.messages) : null;
+        const lastMessageId = cached
+          ? getMaxMessageId(cached.messages)
+          : getMaxMessageId(memoryPage?.messages ?? []);
 
-        if (lastMessageId) {
+        if (lastMessageId != null && lastMessageId > 0) {
           await syncConversationRef.current(lastMessageId);
         } else {
-          await fetchAndStoreRef.current();
+          await syncConversationRef.current(0);
         }
 
         if (!cancelled) {
@@ -474,7 +543,7 @@ export function useCustomerConversationQuery(
           return false;
         }
 
-        const nextStart = Math.max(0, startIndex - 10);
+        const nextStart = Math.max(0, startIndex - CHAT_MESSAGE_SYNC_PAGE_SIZE);
         const all = fullMessagesRef.current;
         applyMessagePage({
           customerId,
@@ -521,7 +590,19 @@ export function useCustomerConversationQuery(
     setRefreshing(true);
 
     try {
-      await fetchAndStoreConversation();
+      const cached = CHAT_USE_INDEXED_DB
+        ? await getStoredChatConversation(businessId, customerId)
+        : null;
+      const lastMessageId =
+        getMaxMessageId(cached?.messages ?? []) ??
+        getMaxMessageId(conversation?.messages ?? []);
+
+      if (lastMessageId != null && lastMessageId > 0) {
+        await syncConversationFromApi(lastMessageId);
+      } else {
+        await syncConversationFromApi(0);
+      }
+      setError(null);
     } catch (refetchError) {
       setError(
         getApiErrorMessage(refetchError, "Could not load this conversation."),
@@ -529,7 +610,7 @@ export function useCustomerConversationQuery(
     } finally {
       setRefreshing(false);
     }
-  }, [customerId, fetchAndStoreConversation, businessId]);
+  }, [customerId, syncConversationFromApi, businessId, conversation?.messages]);
 
   const applyPusherMessage = useCallback(
     (payload: ChatMessagePusherPayload) => {

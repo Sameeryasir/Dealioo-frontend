@@ -10,7 +10,7 @@ import type {
   ConversationMessageParticipant,
 } from "@/app/services/chat/get-business-conversation";
 
-export const CHAT_MESSAGE_PAGE_SIZE = 10;
+export const CHAT_MESSAGE_PAGE_SIZE = 25;
 
 export type GuestChatBubbleStackPosition = "single" | "first" | "middle" | "last";
 
@@ -46,12 +46,18 @@ export function getMessageStackPositions(
 
 export function getLatestMessageWindow(
   messages: ConversationMessage[],
+  pageSize = CHAT_MESSAGE_PAGE_SIZE,
 ): {
   window: ConversationMessage[];
   startIndex: number;
   hasOlder: boolean;
 } {
-  return { window: messages, startIndex: 0, hasOlder: false };
+  const startIndex = Math.max(0, messages.length - pageSize);
+  return {
+    window: messages.slice(startIndex),
+    startIndex,
+    hasOlder: startIndex > 0,
+  };
 }
 
 export function getOlderMessageWindow(

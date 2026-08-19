@@ -2,6 +2,7 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { CHAT_MESSAGE_SYNC_PAGE_SIZE } from "@/app/services/chat/chat-sync.constants";
 import type { AutomationExecutionStatus } from "@/app/services/automation/types";
 
 export type ConversationMessageKind =
@@ -68,6 +69,7 @@ export type CustomerConversationMessages = {
   conversationId: number;
   customerId: number;
   messages: ConversationMessage[];
+  hasMore?: boolean;
 };
 
 export type CustomerConversationDetail = {
@@ -191,6 +193,7 @@ export async function syncCustomerConversationMessages(
   restaurantId: number,
   customerId: number,
   afterMessageId: number,
+  limit: number = CHAT_MESSAGE_SYNC_PAGE_SIZE,
 ): Promise<CustomerConversationMessages> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -201,12 +204,13 @@ export async function syncCustomerConversationMessages(
   if (!isPositiveInt(customerId)) {
     throw new Error("Valid customer id is required.");
   }
-  if (!isPositiveInt(afterMessageId)) {
+  if (!Number.isFinite(afterMessageId) || afterMessageId < 0) {
     throw new Error("Valid after message id is required.");
   }
 
   const query = new URLSearchParams({
     afterMessageId: String(afterMessageId),
+    limit: String(Math.max(1, Math.min(limit, CHAT_MESSAGE_SYNC_PAGE_SIZE))),
   });
 
   const res = await authenticatedFetch(

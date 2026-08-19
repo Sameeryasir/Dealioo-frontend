@@ -30,14 +30,46 @@ export function insertMessageIfAbsent(
   return [...messages, message];
 }
 
-export function getLatestMessageId(
+export function compareConversationMessagesChronologically(
+  left: ConversationMessage,
+  right: ConversationMessage,
+): number {
+  const timeDelta =
+    new Date(left.sentAt).getTime() - new Date(right.sentAt).getTime();
+  if (timeDelta !== 0) {
+    return timeDelta;
+  }
+  return left.id - right.id;
+}
+
+export function sortConversationMessages(
+  messages: ConversationMessage[],
+): ConversationMessage[] {
+  return [...messages].sort(compareConversationMessagesChronologically);
+}
+
+export function getMaxMessageId(
   messages: ConversationMessage[],
 ): number | null {
   if (messages.length === 0) {
     return null;
   }
 
-  return messages[messages.length - 1]!.id;
+  let maxId = messages[0]!.id;
+  for (let index = 1; index < messages.length; index += 1) {
+    const id = messages[index]!.id;
+    if (id > maxId) {
+      maxId = id;
+    }
+  }
+
+  return maxId;
+}
+
+export function getLatestMessageId(
+  messages: ConversationMessage[],
+): number | null {
+  return getMaxMessageId(messages);
 }
 
 function sanitizeStoredMessage(message: ConversationMessage): ConversationMessage {
@@ -343,7 +375,7 @@ export function mergeConversationAfterSync(
       customerId: incoming.customerId,
       customerName: incoming.customerName ?? null,
       customerEmail: incoming.customerEmail ?? null,
-      messages: sanitizedIncomingMessages,
+      messages: sortConversationMessages(sanitizedIncomingMessages),
     };
   }
 
@@ -366,7 +398,10 @@ export function mergeConversationAfterSync(
     customerId: incoming.customerId,
     customerName: incoming.customerName ?? sanitizedPrevious.customerName,
     customerEmail: incoming.customerEmail ?? sanitizedPrevious.customerEmail,
-    messages: [...sanitizedPrevious.messages, ...newMessages],
+    messages: sortConversationMessages([
+      ...sanitizedPrevious.messages,
+      ...newMessages,
+    ]),
   };
 }
 
