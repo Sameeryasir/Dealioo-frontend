@@ -7,6 +7,7 @@ import {
   Activity,
   ArrowUpRight,
   Calendar,
+  CircleDollarSign,
   Gift,
   Layers,
   LayoutGrid,
@@ -14,6 +15,7 @@ import {
   MessageSquare,
   Search,
   Store,
+  UserPlus,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -62,11 +64,15 @@ const EVENT_FILTERS: {
     | "totalEvents"
     | "totalVisited"
     | "totalRedeemed"
+    | "totalPrepaid"
     | "totalInPerson"
+    | "totalSignedUp"
     | "totalMessagesSent";
 }[] = [
   { id: "all", label: "All", icon: LayoutGrid, countKey: "totalEvents" },
+  { id: "signed_up", label: "Signups", icon: UserPlus, countKey: "totalSignedUp" },
   { id: "redeemed_reward", label: "Redemptions", icon: Gift, countKey: "totalRedeemed" },
+  { id: "prepaid_for_offer", label: "Prepaid", icon: CircleDollarSign, countKey: "totalPrepaid" },
   { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },
   { id: "message_sent", label: "Texts", icon: MessageSquare, countKey: "totalMessagesSent" },
 ];
@@ -141,8 +147,10 @@ function eventTypeLabel(
       return "Visited";
     case "redeemed_reward":
       return "Redeemed";
+    case "signed_up":
+      return "Signed up";
     case "prepaid_for_offer":
-      return "In person";
+      return paymentChannel === "in_store" ? "In person" : "Prepaid";
     case "message_sent":
       return "Text sent";
     default:
@@ -190,11 +198,26 @@ function EventTypeBadge({
           Redeemed
         </span>
       );
-    case "prepaid_for_offer":
+    case "signed_up":
       return (
-        <span className={DASHBOARD_EVENT_BADGE.inStore}>
-          <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
-          In person
+        <span className={DASHBOARD_EVENT_BADGE.signedUp}>
+          <span className={DASHBOARD_EVENT_BADGE.signedUpDot} aria-hidden />
+          Signed up
+        </span>
+      );
+    case "prepaid_for_offer":
+      if (paymentChannel === "in_store") {
+        return (
+          <span className={DASHBOARD_EVENT_BADGE.inStore}>
+            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
+            In person
+          </span>
+        );
+      }
+      return (
+        <span className={DASHBOARD_EVENT_BADGE.prepaid}>
+          <span className={DASHBOARD_EVENT_BADGE.prepaidDot} aria-hidden />
+          Prepaid
         </span>
       );
     case "message_sent":

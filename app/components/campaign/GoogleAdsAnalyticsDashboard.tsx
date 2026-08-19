@@ -34,6 +34,7 @@ import type {
   GoogleAdsCampaign,
   GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
+import { isAdminUser } from "@/app/lib/is-admin-user";
 
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -226,6 +227,7 @@ export function GoogleAdsAnalyticsDashboard({
   canCreateCampaign = true,
   canDeleteCampaign = true,
 }: GoogleAdsAnalyticsDashboardProps) {
+  const canOpenAdsConsole = isAdminUser();
   const [campaignSearch, setCampaignSearch] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
@@ -397,15 +399,17 @@ export function GoogleAdsAnalyticsDashboard({
             />
             Sync Campaigns
           </button>
-          <a
-            href={adsConsoleUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
-          >
-            Open Google Ads
-            <ExternalLink className="size-4" aria-hidden />
-          </a>
+          {canOpenAdsConsole ? (
+            <a
+              href={adsConsoleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
+            >
+              Open Google Ads
+              <ExternalLink className="size-4" aria-hidden />
+            </a>
+          ) : null}
         </div>
       </div>
 

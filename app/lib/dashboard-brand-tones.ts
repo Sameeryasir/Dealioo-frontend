@@ -24,6 +24,9 @@ export const DASHBOARD_EVENT_BADGE = {
   prepaid:
     "inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]/80",
   prepaidDot: "size-2 rounded-full bg-[#1877f2]",
+  signedUp:
+    "inline-flex items-center gap-1.5 rounded-full bg-[#eef2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#4338ca] ring-1 ring-[#c7d2fe]/80",
+  signedUpDot: "size-2 rounded-full bg-[#6366f1]",
   inStore:
     "inline-flex items-center gap-1.5 rounded-full bg-[#f0fdfa] px-2.5 py-1 text-[0.72rem] font-bold text-[#0f766e] ring-1 ring-[#99f6e4]/80",
   inStoreDot: "size-2 rounded-full bg-[#14b8a6]",

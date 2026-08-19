@@ -38,6 +38,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { isAdminUser } from "@/app/lib/is-admin-user";
 import {
   FacebookLogo,
   InstagramLogo,
@@ -379,6 +380,7 @@ export function MetaAdsAnalyticsDashboard({
   onCampaignSearchChange,
   onCampaignPageChange,
 }: MetaAdsAnalyticsDashboardProps) {
+  const canOpenAdsManager = isAdminUser();
   const campaigns = stats.campaigns;
   const currency = stats.currency;
   const summary = stats.summary;
@@ -677,15 +679,17 @@ export function MetaAdsAnalyticsDashboard({
             />
             Sync Campaigns
           </button>
-          <a
-            href={adsManagerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
-          >
-            Open Ads Manager
-            <ExternalLink className="size-4" aria-hidden />
-          </a>
+          {canOpenAdsManager ? (
+            <a
+              href={adsManagerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
+            >
+              Open Ads Manager
+              <ExternalLink className="size-4" aria-hidden />
+            </a>
+          ) : null}
         </div>
       </div>
 

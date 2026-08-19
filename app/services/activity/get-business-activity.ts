@@ -9,7 +9,8 @@ export type ActivityEventType =
   | "visited"
   | "redeemed_reward"
   | "prepaid_for_offer"
-  | "message_sent";
+  | "message_sent"
+  | "signed_up";
 
 export type ActivityEventFilter = "all" | ActivityEventType | "in_person";
 
@@ -38,6 +39,7 @@ export type ActivitySummary = {
   totalRedeemed: number;
   totalPrepaid: number;
   totalInPerson: number;
+  totalSignedUp?: number;
   totalMessagesSent: number;
   from?: string;
   to?: string;
