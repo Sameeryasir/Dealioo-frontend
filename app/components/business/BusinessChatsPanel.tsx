@@ -15,7 +15,7 @@ import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
 import { matchesSearch } from "./guest-chats/guest-chats-utils";
 
 // One-shot: wipe chat IndexedDB after fake-message cleanup so UI matches server.
-const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v5";
+const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v7";
 
 export function BusinessChatsPanel({ businessId }: { businessId: number }) {
   const [search, setSearch] = useState("");

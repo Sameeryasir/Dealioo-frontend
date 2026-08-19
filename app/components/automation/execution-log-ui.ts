@@ -220,10 +220,16 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
     });
   }
 
-  if (type === "trigger" || /trigger fired/i.test(message)) {
+  if (
+    type === "trigger" ||
+    /trigger fired|cron fired|cron trigger fired/i.test(message)
+  ) {
+    const unpaidMatch = message.match(/(\d+)\s+unpaid guest/i);
     return makeLogDisplay({
       heading: nodeName,
-      summary: "Started this automation",
+      summary: unpaidMatch
+        ? `Schedule matched — ${unpaidMatch[1]} unpaid guest${unpaidMatch[1] === "1" ? "" : "s"}`
+        : "Schedule matched — starting this run",
       tone: "success",
       status: "passed",
       nodeId,

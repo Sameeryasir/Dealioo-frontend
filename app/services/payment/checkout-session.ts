@@ -9,6 +9,7 @@ export type CheckoutSessionDetails = {
   businessId: number;
   campaignId: number | null;
   funnelPaymentId: number | null;
+  paymentStatus?: string | null;
 };
 
 export type CreateCheckoutSessionResponse = {

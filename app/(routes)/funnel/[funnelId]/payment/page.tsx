@@ -13,6 +13,7 @@ import { useFunnelGuestRoute } from "@/app/hooks/use-funnel-guest-route";
 import { useFunnelStepGuard } from "@/app/hooks/use-funnel-step-guard";
 import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
+import { markFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
 import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
@@ -36,7 +37,34 @@ function FunnelCampaignPaymentPageInner() {
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   const isPostpaid = campaignType === "postpaid";
+  const alreadyPaidThisOffer =
+    !isDesignPreview && session?.paymentStatus === "paid";
   useFunnelStepGuard(funnelId, "payment", { campaignType });
+
+  useEffect(() => {
+    if (!alreadyPaidThisOffer || funnelId == null) return;
+    markFunnelLockedStep(funnelId, "confirmation");
+    router.replace(
+      buildFunnelPaymentConfirmationPath(
+        funnelId,
+        {
+          campaignId,
+          businessId,
+          checkoutToken,
+          campaignType: campaignType ?? undefined,
+        },
+        { paymentConfirmed: true, redirectStatus: "succeeded" },
+      ),
+    );
+  }, [
+    alreadyPaidThisOffer,
+    funnelId,
+    campaignId,
+    businessId,
+    checkoutToken,
+    campaignType,
+    router,
+  ]);
 
   useEffect(() => {
     if (isDesignPreview || isLoading || !isPostpaid || funnelId == null) return;
@@ -98,7 +126,9 @@ function FunnelCampaignPaymentPageInner() {
   const landing = pages.landing;
 
   const paymentStripeCheckout = useMemo((): FunnelStripePaymentContext | null => {
-    if (isDesignPreview || !session || isPostpaid) return null;
+    if (isDesignPreview || isPostpaid || alreadyPaidThisOffer || !session) {
+      return null;
+    }
     const email = session.customerEmail?.trim();
     if (!email || !checkoutToken || funnelId == null || businessId == null) {
       return null;
@@ -121,6 +151,7 @@ function FunnelCampaignPaymentPageInner() {
     isDesignPreview,
     session,
     isPostpaid,
+    alreadyPaidThisOffer,
     checkoutToken,
     funnelId,
     businessId,
@@ -154,6 +185,7 @@ function FunnelCampaignPaymentPageInner() {
       />
       {awaitingCampaignType ||
       (!isDesignPreview && isPostpaid) ||
+      alreadyPaidThisOffer ||
       awaitingInitialCheckoutSession ? (
         <FunnelPreviewSkeleton />
       ) : (
