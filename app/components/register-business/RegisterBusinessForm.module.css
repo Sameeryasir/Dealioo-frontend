@@ -362,10 +362,38 @@
     0 24px 56px rgba(0, 0, 0, 0.28);
 }
 
-@media (min-width: 900px) {
+.basicsZone,
+.basicsSheet,
+.basicsForm,
+.locationSheet,
+.locationForm {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
   .basicsSheet {
     grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.9fr);
   }
+}
+
+/* About step has fewer fields — keep the card shorter than essentials. */
+.basicsSheetAbout {
+  min-height: clamp(20rem, 48dvh, 26rem);
+}
+
+.basicsSheetAbout .basicsForm {
+  gap: 0.9rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.15rem;
+}
+
+.basicsSheetAbout .basicsTextarea {
+  min-height: 5rem;
+}
+
+.basicsSheetAbout .basicsNext {
+  margin-top: 0.35rem;
 }
 
 .basicsForm {
@@ -379,7 +407,19 @@
 
 @media (min-width: 640px) {
   .basicsForm {
+    padding: 1.75rem 1.65rem 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .basicsForm {
     padding: 2rem 2rem 1.65rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .basicsForm {
+    padding: 2.15rem 2.15rem 1.75rem;
   }
 }
 
@@ -923,7 +963,7 @@
   color: #ffffff;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1024px) {
   .basicsAside {
     display: flex;
   }
@@ -1027,7 +1067,19 @@
 
 @media (min-width: 640px) {
   .locationForm {
+    padding: 1.75rem 1.65rem 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .locationForm {
     padding: 2rem 2rem 1.65rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .locationForm {
+    padding: 2.15rem 2.15rem 1.75rem;
   }
 }
 
@@ -1175,7 +1227,7 @@
   margin-top: 0.15rem;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .locationGrid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1355,3 +1407,63 @@
   box-shadow: none;
   filter: drop-shadow(0 16px 28px rgba(15, 23, 42, 0.28));
 }
+
+@media (max-width: 639px) {
+  .basicsForm,
+  .locationForm {
+    padding: 1.15rem 1rem 1.1rem;
+  }
+
+  .locationHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .logoDropRow {
+    align-items: stretch;
+  }
+
+  .logoDropRowBtn,
+  .logoDropRowActions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .logoDropRowActionBtn {
+    flex: 1 1 auto;
+  }
+
+  .basicsActions {
+    flex-direction: column;
+  }
+
+  .basicsBack,
+  .basicsActions .basicsNext,
+  .basicsNext {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .locationMap {
+    min-height: 14rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .logoDropRowBtn {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .basicsZone {
+    max-width: 64rem;
+  }
+
+  .locationMap {
+    min-height: 18rem;
+  }
+}
+

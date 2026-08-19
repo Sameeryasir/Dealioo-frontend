@@ -3,6 +3,7 @@
 import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep.module.css";
+import "@/app/components/register-business/register-business-responsive.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { motion, useReducedMotion } from "framer-motion";
 import {

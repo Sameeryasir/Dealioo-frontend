@@ -4,6 +4,7 @@ import Navbar from "@/app/components/Navbar";
 import { InviteMemberForm } from "@/app/components/business/InviteMemberModal";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import inviteStyles from "@/app/components/register-business/RegisterBusinessInviteStep.module.css";
+import "@/app/components/register-business/register-business-responsive.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getBusinessMembers } from "@/app/services/member/business-members";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";

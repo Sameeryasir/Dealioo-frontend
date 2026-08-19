@@ -11,6 +11,7 @@ import {
   REGISTER_BUSINESS_STEP_UI,
   type RegisterBusinessStepId,
 } from "@/app/components/register-business/register-business-ui";
+import "@/app/components/register-business/register-business-responsive.css";
 import logoStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { validateBusinessLocation } from "@/app/lib/business-location";
@@ -1446,7 +1447,11 @@ export default function RegisterBusinessForm({
                   </div>
                 </div>
               ) : currentStep.id === "basics" || currentStep.id === "about" ? (
-                <div className={logoStyles.basicsSheet}>
+                <div
+                  className={`${logoStyles.basicsSheet}${
+                    currentStep.id === "about" ? ` ${logoStyles.basicsSheetAbout}` : ""
+                  }`}
+                >
                   <div className={logoStyles.basicsForm}>
                     <span className={logoStyles.basicsBadge} aria-hidden>
                       {currentStep.number}

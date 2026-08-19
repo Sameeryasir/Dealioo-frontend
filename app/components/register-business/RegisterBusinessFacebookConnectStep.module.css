@@ -14,7 +14,15 @@
   width: 100%;
 }
 
-@media (min-width: 980px) {
+.zone,
+.layout,
+.column,
+.card {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
   .layout {
     grid-template-columns: minmax(0, 1fr) 16.75rem;
     gap: 1.75rem;
@@ -250,7 +258,7 @@
   display: none;
 }
 
-@media (min-width: 980px) {
+@media (min-width: 1024px) {
   .sidebar {
     display: block;
     position: sticky;
@@ -395,6 +403,30 @@
   background: linear-gradient(165deg, #ffffff 0%, #f3f0ff 100%);
 }
 
-.zoneEmbeddedStripe .sidebarEyebrow {
-  color: #635bff;
+@media (max-width: 639px) {
+  .card {
+    padding: 1.05rem 0.95rem 1.05rem;
+  }
+
+  .footerLinks {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: 1.35rem 1.35rem 1.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .main {
+    max-width: 68rem !important;
+  }
+
+  .zone,
+  .zoneEmbedded {
+    max-width: 68rem;
+  }
 }

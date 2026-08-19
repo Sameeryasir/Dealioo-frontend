@@ -3,6 +3,7 @@
 import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessFacebookConnectStep.module.css";
+import "@/app/components/register-business/register-business-responsive.css";
 import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";

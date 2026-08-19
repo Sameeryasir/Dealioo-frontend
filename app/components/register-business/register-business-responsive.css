@@ -1,0 +1,48 @@
+/* Layout only: keep register-business on-screen from phone through xl. */
+[data-register-business-page] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+[data-register-business-page] main {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 639px) {
+  [data-register-business-page] main {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}
+
+@media (min-width: 640px) {
+  [data-register-business-page] main {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  [data-register-business-page] main {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-register-business-page] main {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-register-business-page] main {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
