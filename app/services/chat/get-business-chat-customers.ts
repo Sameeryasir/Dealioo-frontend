@@ -2,6 +2,7 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { CHAT_CONVERSATION_SYNC_PAGE_SIZE } from "@/app/services/chat/chat-sync.constants";
 import type { ConversationMessageKind, ConversationMessage } from "@/app/services/chat/get-business-conversation";
 
 export const RESTAURANT_CHAT_PAGE_SIZE = 20;
@@ -31,6 +32,7 @@ export type PaginatedChatCustomersResponse = {
 
 export type SyncChatCustomersResponse = {
   data: ChatCustomer[];
+  hasMore?: boolean;
 };
 
 export type SyncChatMessagesThread = {
@@ -82,6 +84,7 @@ export async function getRestaurantChatCustomers(
 export async function syncRestaurantChatCustomers(
   restaurantId: number,
   afterConversationId: number,
+  limit: number = CHAT_CONVERSATION_SYNC_PAGE_SIZE,
 ): Promise<SyncChatCustomersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -95,6 +98,9 @@ export async function syncRestaurantChatCustomers(
 
   const q = new URLSearchParams({
     afterConversationId: String(afterConversationId),
+    limit: String(
+      Math.max(1, Math.min(limit, CHAT_CONVERSATION_SYNC_PAGE_SIZE)),
+    ),
   });
 
   const res = await authenticatedFetch(

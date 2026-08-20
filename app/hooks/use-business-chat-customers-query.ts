@@ -46,7 +46,7 @@ export function useBusinessChatCustomersQuery(businessId: number) {
 
   const syncCustomersFromApi = useCallback(
     async (current: PaginatedChatCustomersResponse) => {
-      const afterConversationId = getLatestConversationIdByCreatedAt(current);
+      let afterConversationId = getLatestConversationIdByCreatedAt(current);
       if (!afterConversationId) {
         const fresh = await fetchPage(1);
         setData((prev) => mergePageOneIntoLoadedCustomers(prev, fresh));
@@ -55,17 +55,32 @@ export function useBusinessChatCustomersQuery(businessId: number) {
         return;
       }
 
-      const delta = await syncRestaurantChatCustomers(
-        businessId,
-        afterConversationId,
-      );
+      let merged = current;
+      while (afterConversationId) {
+        const delta = await syncRestaurantChatCustomers(
+          businessId,
+          afterConversationId,
+        );
 
-      if (delta.data.length === 0) {
-        return;
+        if (delta.data.length === 0) {
+          break;
+        }
+
+        merged = mergeCustomersAfterSync(merged, delta.data);
+        setData((prev) => mergePageOneIntoLoadedCustomers(prev, merged));
+
+        if (!delta.hasMore) {
+          break;
+        }
+
+        const last = delta.data[delta.data.length - 1];
+        const nextCursor = last?.conversationId ?? null;
+        if (!nextCursor || nextCursor === afterConversationId) {
+          break;
+        }
+        afterConversationId = nextCursor;
       }
 
-      const merged = mergeCustomersAfterSync(current, delta.data);
-      setData((prev) => mergePageOneIntoLoadedCustomers(prev, merged));
       setError(null);
     },
     [businessId, fetchPage],
