@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useConversationMessagesPusher } from "@/app/hooks/use-business-chat-pusher";
+import {
+  useBusinessConversationsPusher,
+  useConversationMessagesPusher,
+} from "@/app/hooks/use-business-chat-pusher";
 import type { ChatMessagePusherPayload } from "@/app/lib/pusher-chat";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -112,6 +115,10 @@ export function useCustomerConversationQuery(
   const [error, setError] = useState<string | null>(null);
   const messageStartIndexRef = useRef(initialMemoryPage?.startIndex ?? 0);
   const fullMessagesRef = useRef<ConversationMessage[]>([]);
+  const guestNameRef = useRef<string | null>(initialMemoryPage?.customerName ?? null);
+  const guestEmailRef = useRef<string | null>(
+    initialMemoryPage?.customerEmail ?? null,
+  );
   const messagesLoadedRef = useRef(false);
   const sidebarHintRef = useRef(sidebarHint);
   sidebarHintRef.current = sidebarHint;
@@ -152,10 +159,16 @@ export function useCustomerConversationQuery(
   }) => {
     messageStartIndexRef.current = page.startIndex;
     setHasOlderMessages(page.hasOlder);
+    if (page.customerName != null) {
+      guestNameRef.current = page.customerName;
+    }
+    if (page.customerEmail != null) {
+      guestEmailRef.current = page.customerEmail;
+    }
     setConversation({
       customerId: page.customerId,
-      customerName: page.customerName,
-      customerEmail: page.customerEmail,
+      customerName: page.customerName ?? guestNameRef.current,
+      customerEmail: page.customerEmail ?? guestEmailRef.current,
       messages: page.messages,
     });
   }, []);
@@ -174,6 +187,27 @@ export function useCustomerConversationQuery(
       });
     },
     [applyMessagePage],
+  );
+
+  // Keep live Pusher rows when sync pages overwrite fullMessagesRef mid-flight.
+  const reconcileWithLiveMessages = useCallback(
+    (detail: CustomerConversationDetail): CustomerConversationDetail => {
+      const live = fullMessagesRef.current;
+      if (live.length === 0) {
+        return detail;
+      }
+
+      let messages = detail.messages;
+      for (const message of live) {
+        messages = insertMessageIfAbsent(messages, message);
+      }
+
+      return {
+        ...detail,
+        messages: sortConversationMessages(messages),
+      };
+    },
+    [],
   );
 
   const fetchAndStoreConversation = useCallback(async () => {
@@ -244,7 +278,7 @@ export function useCustomerConversationQuery(
               customerId: delta.customerId,
               messages: [message],
             });
-            fullMessagesRef.current = merged.messages;
+            merged = reconcileWithLiveMessages(merged);
             applyLatestWindow(merged);
             await yieldToNextFrame();
           }
@@ -263,6 +297,8 @@ export function useCustomerConversationQuery(
         messagesLoadedRef.current = true;
 
         if (merged) {
+          merged = reconcileWithLiveMessages(merged);
+          applyLatestWindow(merged);
           if (CHAT_USE_INDEXED_DB) {
             await saveChatConversation(businessId, customerId, merged);
           }
@@ -283,7 +319,13 @@ export function useCustomerConversationQuery(
         }
       }
     },
-    [applyLatestWindow, customerId, businessId, fetchAndStoreConversation],
+    [
+      applyLatestWindow,
+      customerId,
+      businessId,
+      fetchAndStoreConversation,
+      reconcileWithLiveMessages,
+    ],
   );
 
   const fetchAndStoreRef = useRef(fetchAndStoreConversation);
@@ -321,6 +363,8 @@ export function useCustomerConversationQuery(
       setHasOlderMessages(false);
       messageStartIndexRef.current = 0;
       fullMessagesRef.current = [];
+      guestNameRef.current = null;
+      guestEmailRef.current = null;
       messagesLoadedRef.current = false;
       setLoading(false);
       setAwaitingCache(false);
@@ -430,10 +474,33 @@ export function useCustomerConversationQuery(
         return;
       }
 
+      // Prefer full store + any live rows already shown (Pusher can beat IndexedDB).
+      let allMessages = data.messages;
+      for (const message of fullMessagesRef.current) {
+        allMessages = insertMessageIfAbsent(allMessages, message);
+      }
+      allMessages = sortConversationMessages(allMessages);
+      fullMessagesRef.current = allMessages;
+
+      const latestPage = getLatestMessageWindow(allMessages);
       const startIndex = messageStartIndexRef.current;
+      const viewingLatest = startIndex >= latestPage.startIndex;
+
+      if (viewingLatest) {
+        applyMessagePage({
+          customerId: data.customerId,
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          messages: latestPage.window,
+          startIndex: latestPage.startIndex,
+          hasOlder: latestPage.hasOlder,
+        });
+        return;
+      }
+
       setConversation((prev) => {
         const visible = mergeVisibleMessages(
-          data.messages,
+          allMessages,
           prev?.customerId === customerId ? prev.messages : undefined,
           startIndex,
         );
@@ -447,7 +514,7 @@ export function useCustomerConversationQuery(
       });
       setHasOlderMessages(startIndex > 0);
     });
-  }, [customerId, businessId, mergeVisibleMessages]);
+  }, [applyMessagePage, customerId, businessId, mergeVisibleMessages]);
 
   useEffect(() => {
     if (!CHAT_USE_INDEXED_DB) {
@@ -623,57 +690,45 @@ export function useCustomerConversationQuery(
       }
 
       try {
-        setConversation((prev) => {
-          if (!prev) {
-            return {
-              customerId,
-              customerName: payload.customerName,
-              customerEmail: payload.customerEmail,
-              messages: [payload.message],
-            };
-          }
+        const existing = fullMessagesRef.current;
+        const hadMessage = messageExistsById(existing, payload.message.id);
+        let nextMessages = existing;
 
-          if (messageExistsById(prev.messages, payload.message.id)) {
-            return {
-              ...prev,
-              customerName: payload.customerName ?? prev.customerName,
-              customerEmail: payload.customerEmail ?? prev.customerEmail,
-              messages: prev.messages.map((message) =>
-                message.id === payload.message.id
-                  ? {
-                      ...message,
-                      automationName:
-                        message.automationName ??
-                        payload.message.automationName ??
-                        null,
-                      campaignName:
-                        message.campaignName ??
-                        payload.message.campaignName ??
-                        null,
-                      funnelName:
-                        message.funnelName ??
-                        payload.message.funnelName ??
-                        null,
-                      funnelId:
-                        message.funnelId ?? payload.message.funnelId ?? null,
-                    }
-                  : message,
-              ),
-            };
-          }
+        if (hadMessage) {
+          nextMessages = existing.map((message) =>
+            message.id === payload.message.id
+              ? {
+                  ...message,
+                  automationName:
+                    message.automationName ??
+                    payload.message.automationName ??
+                    null,
+                  campaignName:
+                    message.campaignName ??
+                    payload.message.campaignName ??
+                    null,
+                  funnelName:
+                    message.funnelName ??
+                    payload.message.funnelName ??
+                    null,
+                  funnelId:
+                    message.funnelId ?? payload.message.funnelId ?? null,
+                }
+              : message,
+          );
+        } else {
+          nextMessages = sortConversationMessages(
+            insertMessageIfAbsent(existing, payload.message),
+          );
+        }
 
-          return {
-            customerId: prev.customerId,
-            customerName: payload.customerName ?? prev.customerName,
-            customerEmail: payload.customerEmail ?? prev.customerEmail,
-            messages: insertMessageIfAbsent(prev.messages, payload.message),
-          };
+        applyLatestWindow({
+          customerId,
+          customerName: payload.customerName ?? guestNameRef.current,
+          customerEmail: payload.customerEmail ?? guestEmailRef.current,
+          messages: nextMessages,
         });
-
-        fullMessagesRef.current = insertMessageIfAbsent(
-          fullMessagesRef.current,
-          payload.message,
-        );
+        messagesLoadedRef.current = true;
       } catch (error) {
         console.warn("[Chat Pusher] Failed to apply open-thread message", {
           businessId,
@@ -684,7 +739,7 @@ export function useCustomerConversationQuery(
         return;
       }
 
-      if (CHAT_USE_INDEXED_DB && messagesLoadedRef.current) {
+      if (CHAT_USE_INDEXED_DB) {
         void patchChatConversationFromPusher(
           businessId,
           customerId,
@@ -699,9 +754,12 @@ export function useCustomerConversationQuery(
         });
       }
     },
-    [customerId, conversationId, businessId],
+    [applyLatestWindow, customerId, conversationId, businessId],
   );
 
+  // Business list channel is always subscribed while chats are open; also apply
+  // here so the open thread updates even if the per-conversation channel is late.
+  useBusinessConversationsPusher(businessId, applyPusherMessage);
   useConversationMessagesPusher(
     businessId,
     conversationId,

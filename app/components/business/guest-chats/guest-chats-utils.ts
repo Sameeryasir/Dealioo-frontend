@@ -215,7 +215,8 @@ export function participantLabel(
   fallback: string,
 ): string {
   if (!participant) return fallback;
-  if (participant.type === "restaurant") {
+  // Backend sends "business"; older cached rows may still say "restaurant".
+  if (participant.type === "restaurant" || participant.type === "business") {
     return participant.name?.trim() || `Business #${participant.id}`;
   }
   return participant.name?.trim() || participant.email?.trim() || `Guest #${participant.id}`;

@@ -416,16 +416,23 @@ export function patchConversationFromPusher(
 
   const existingMessages = prev?.messages ?? [];
   if (messageExistsById(existingMessages, payload.message.id)) {
-    return prev;
+    return {
+      customerId,
+      customerName: payload.customerName ?? prev?.customerName ?? null,
+      customerEmail: payload.customerEmail ?? prev?.customerEmail ?? null,
+      messages: existingMessages,
+    };
   }
 
   return {
     customerId,
     customerName: payload.customerName ?? prev?.customerName ?? null,
     customerEmail: payload.customerEmail ?? prev?.customerEmail ?? null,
-    messages: insertMessageIfAbsent(
-      existingMessages,
-      sanitizeStoredMessage(payload.message),
+    messages: sortConversationMessages(
+      insertMessageIfAbsent(
+        existingMessages,
+        sanitizeStoredMessage(payload.message),
+      ),
     ),
   };
 }

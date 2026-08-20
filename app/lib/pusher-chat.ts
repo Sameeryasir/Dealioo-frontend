@@ -42,7 +42,14 @@ function parseParticipant(value: unknown) {
   const row = value as Record<string, unknown>;
   const type = row.type;
   const id = Number(row.id);
-  if ((type !== "restaurant" && type !== "customer") || !Number.isFinite(id)) {
+  if (
+    type !== "restaurant" &&
+    type !== "business" &&
+    type !== "customer"
+  ) {
+    return null;
+  }
+  if (!Number.isFinite(id)) {
     return null;
   }
 

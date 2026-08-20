@@ -1,18 +1,16 @@
 "use client";
 
-import { Check, Globe, Layers, Link2 } from "lucide-react";
+import { useEffect } from "react";
+import { Check, Layers, Link2 } from "lucide-react";
 import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import {
-  applyExternalWebsiteDestination,
   applyFunnelDestination,
   isFunnelPublished,
   withSyncedAdFinalUrl,
 } from "@/app/components/google-ads/campaign-builder/destination";
 import {
-  Field,
   Panel,
   SelectableCard,
-  inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import type { GoogleCampaignBuilderDraft } from "@/app/components/google-ads/campaign-builder/types";
 
@@ -40,11 +38,25 @@ export function DestinationPicker({
 
   const publishedFunnels = funnels.filter(isFunnelPublished);
   const isFunnel = draft.destinationType === "dealioo_funnel";
-  const isWebsite = draft.destinationType === "external_website";
 
   const patch = (next: Partial<GoogleCampaignBuilderDraft>) => {
     onChange(withSyncedAdFinalUrl(draft, next));
   };
+
+  // Only Dealioo funnel is allowed — clear any old "My Website" selection
+  useEffect(() => {
+    if (draft.destinationType !== "external_website") return;
+    const first = publishedFunnels[0];
+    if (first) {
+      patch(applyFunnelDestination(first, businessId));
+      return;
+    }
+    patch({
+      destinationType: "dealioo_funnel",
+      selectedFunnelId: null,
+      selectedFunnelName: "",
+    });
+  }, [businessId, draft.destinationType, publishedFunnels.length]);
 
   if (mode !== "landing") return null;
 
@@ -57,50 +69,32 @@ export function DestinationPicker({
         <div className="min-w-0 pt-0.5">
           <p className="text-sm font-bold text-[#07111f]">{title}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-            Prefer a Dealioo funnel when you have one published — we connect the
-            URL for you.
+            We’ll send people to a published Dealioo funnel and connect the URL
+            for you.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SelectableCard
-          selectionMode="radio"
-          selected={isFunnel}
-          title="Dealioo Funnel"
-          description="Use one of your published Dealioo funnels."
-          badge="Recommended"
-          icon={<Layers className="size-5" aria-hidden />}
-          onClick={() => {
-            const first = publishedFunnels[0];
-            if (first) {
-              patch(applyFunnelDestination(first, businessId));
-            } else {
-              patch({
-                destinationType: "dealioo_funnel",
-                selectedFunnelId: null,
-                selectedFunnelName: "",
-              });
-            }
-          }}
-        />
-        <SelectableCard
-          selectionMode="radio"
-          selected={isWebsite}
-          title="My Website / Online Store"
-          description="Send people to your own website URL."
-          icon={<Globe className="size-5" aria-hidden />}
-          onClick={() =>
-            patch(
-              applyExternalWebsiteDestination(
-                draft.websiteUrl && draft.destinationType !== "dealioo_funnel"
-                  ? draft.websiteUrl
-                  : "",
-              ),
-            )
+      <SelectableCard
+        selectionMode="radio"
+        selected={isFunnel}
+        title="Dealioo Funnel"
+        description="Use one of your published Dealioo funnels."
+        badge="Recommended"
+        icon={<Layers className="size-5" aria-hidden />}
+        onClick={() => {
+          const first = publishedFunnels[0];
+          if (first) {
+            patch(applyFunnelDestination(first, businessId));
+          } else {
+            patch({
+              destinationType: "dealioo_funnel",
+              selectedFunnelId: null,
+              selectedFunnelName: "",
+            });
           }
-        />
-      </div>
+        }}
+      />
 
       {isFunnel ? (
         <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
@@ -109,8 +103,7 @@ export function DestinationPicker({
             <p className="text-sm text-slate-500">Loading funnels…</p>
           ) : publishedFunnels.length === 0 ? (
             <p className="text-sm text-slate-500">
-              No published funnels yet. Publish a Dealioo funnel, or choose My
-              Website instead.
+              No published funnels yet. Publish a Dealioo funnel to continue.
             </p>
           ) : (
             <div className="grid gap-2">
@@ -157,24 +150,6 @@ export function DestinationPicker({
             </p>
           ) : null}
         </div>
-      ) : null}
-
-      {isWebsite ? (
-        <Field
-          label="Website URL"
-          required
-          hint="Where customers should land after clicking your ad."
-          error={errors.websiteUrl || errors.landingPageUrl}
-        >
-          <input
-            className={inputClass(errors.websiteUrl || errors.landingPageUrl)}
-            value={draft.websiteUrl}
-            onChange={(e) =>
-              patch(applyExternalWebsiteDestination(e.target.value))
-            }
-            placeholder="https://…"
-          />
-        </Field>
       ) : null}
     </Panel>
   );

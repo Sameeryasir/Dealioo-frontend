@@ -69,15 +69,9 @@ function validateGoalDetailsFields(
     if (!channel) {
       errors.salesChannel = "Choose how customers complete a purchase.";
     } else if (channel === "WEBSITE") {
-      if (
-        draft.destinationType !== "dealioo_funnel" &&
-        draft.destinationType !== "external_website"
-      ) {
-        errors.destinationType = "Choose where customers should go.";
-      } else if (
-        draft.destinationType === "dealioo_funnel" &&
-        !draft.selectedFunnelId
-      ) {
+      if (draft.destinationType !== "dealioo_funnel") {
+        errors.destinationType = "Choose a Dealioo funnel.";
+      } else if (!draft.selectedFunnelId) {
         errors.destinationType = "Select a published Dealioo funnel.";
       } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
         errors.websiteUrl = "Enter a valid destination URL.";
@@ -110,15 +104,9 @@ function validateGoalDetailsFields(
       errors.leadContactMethods = "Choose how you would like to receive leads.";
     }
     if (primaryLeadMethod === "CONTACT_FORM") {
-      if (
-        draft.destinationType !== "dealioo_funnel" &&
-        draft.destinationType !== "external_website"
-      ) {
-        errors.destinationType = "Choose where customers should go.";
-      } else if (
-        draft.destinationType === "dealioo_funnel" &&
-        !draft.selectedFunnelId
-      ) {
+      if (draft.destinationType !== "dealioo_funnel") {
+        errors.destinationType = "Choose a Dealioo funnel.";
+      } else if (!draft.selectedFunnelId) {
         errors.destinationType = "Select a published Dealioo funnel.";
       } else if (
         !isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)
@@ -175,15 +163,9 @@ function validateGoalDetailsFields(
   }
 
   if (draft.goal === "WEBSITE_TRAFFIC") {
-    if (
-      draft.destinationType !== "dealioo_funnel" &&
-      draft.destinationType !== "external_website"
-    ) {
-      errors.destinationType = "Choose where we should send visitors.";
-    } else if (
-      draft.destinationType === "dealioo_funnel" &&
-      !draft.selectedFunnelId
-    ) {
+    if (draft.destinationType !== "dealioo_funnel") {
+      errors.destinationType = "Choose a Dealioo funnel.";
+    } else if (!draft.selectedFunnelId) {
       errors.destinationType = "Select a published Dealioo funnel.";
     } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
       errors.websiteUrl = "Enter a valid website URL.";

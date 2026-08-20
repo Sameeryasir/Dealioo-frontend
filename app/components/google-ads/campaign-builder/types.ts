@@ -195,6 +195,12 @@ export type GoogleCampaignBuilderDraft = {
   ipExclusions: string;
   urlTrackingParams: string;
   conversionGoals: string;
+  selectedConversionGoals: Array<{
+    category: string;
+    origin: string;
+    accountDefault?: boolean;
+    name?: string;
+  }>;
   brandExclusions: string;
   frequencyCapping: string;
   contentExclusions: string;
@@ -329,6 +335,7 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     ipExclusions: "",
     urlTrackingParams: "",
     conversionGoals: "",
+    selectedConversionGoals: [],
     brandExclusions: "",
     frequencyCapping: "",
     contentExclusions: "",
@@ -359,11 +366,6 @@ export const GOAL_OPTIONS: {
     id: "WEBSITE_TRAFFIC",
     title: "Website Traffic",
     description: "Send more potential customers to your funnel or website.",
-  },
-  {
-    id: "AWARENESS",
-    title: "Brand Awareness",
-    description: "Reach more people and increase awareness of your business.",
   },
   {
     id: "LOCAL_VISITS",

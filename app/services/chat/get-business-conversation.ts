@@ -15,7 +15,7 @@ export type ConversationMessageKind =
 export type ConversationMessageDirection = "outbound" | "inbound" | "system";
 
 export type ConversationMessageParticipant = {
-  type: "restaurant" | "customer";
+  type: "business" | "restaurant" | "customer";
   id: number;
   name: string | null;
   email: string | null;

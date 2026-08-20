@@ -62,6 +62,7 @@ import {
   saveGoogleLocationsStep,
   updateGoogleDraftProgress,
 } from "@/app/services/google-ads/google-campaign-draft";
+import { getGoogleAdsConversionGoals } from "@/app/services/google-ads/get-google-ads-conversion-goals";
 
 type CampaignBuilderWizardProps = {
   open: boolean;
@@ -484,6 +485,42 @@ export function CampaignBuilderWizard({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!open || businessId < 1) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await getGoogleAdsConversionGoals(businessId);
+        if (cancelled) {
+          return;
+        }
+
+        const goals = Array.isArray(response.goals) ? response.goals : [];
+        const defaults = goals.filter((goal) => goal.accountDefault);
+        const chosen = defaults.length > 0 ? defaults : goals;
+
+        patchDraft({
+          selectedConversionGoals: chosen.map((goal) => ({
+            category: goal.category,
+            origin: goal.origin,
+            accountDefault: goal.accountDefault,
+            name: goal.name,
+          })),
+          conversionGoals: chosen.map((goal) => goal.name).join(", "),
+        });
+      } catch {
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, businessId, patchDraft]);
 
   const goToStep = (nextStep: number) => {
     const clamped = Math.min(TOTAL_WIZARD_STEPS, Math.max(1, nextStep));

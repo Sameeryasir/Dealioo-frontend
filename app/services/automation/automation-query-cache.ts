@@ -26,6 +26,31 @@ function flagsFromStatus(status: AutomationStatusResponse["status"]): {
   return { isActive: false, published: false };
 }
 
+export function invalidateAutomationQueries(
+  queryClient: QueryClient,
+  options: { automationId?: number; businessId?: number } = {},
+): void {
+  if (isPositiveInt(options.automationId)) {
+    void queryClient.invalidateQueries({
+      queryKey: automationQueryKeys.detail(options.automationId),
+    });
+  } else {
+    void queryClient.invalidateQueries({
+      queryKey: automationQueryKeys.details(),
+    });
+  }
+
+  if (isPositiveInt(options.businessId)) {
+    void queryClient.invalidateQueries({
+      queryKey: automationQueryKeys.list(options.businessId),
+    });
+  } else {
+    void queryClient.invalidateQueries({
+      queryKey: automationQueryKeys.lists(),
+    });
+  }
+}
+
 export function syncAutomationStatusQueryCache(
   queryClient: QueryClient,
   response: AutomationStatusResponse,
@@ -75,6 +100,8 @@ export function syncAutomationStatusQueryCache(
       return next;
     },
   );
+
+  invalidateAutomationQueries(queryClient, { automationId: response.id });
 }
 
 export function syncAutomationQueryCache(
@@ -96,27 +123,30 @@ export function syncAutomationQueryCache(
   );
 
   const scopeBusinessId = automation.businessId ?? automation.restaurantId;
-  if (!isPositiveInt(scopeBusinessId)) {
-    return;
+  if (isPositiveInt(scopeBusinessId)) {
+    const listItem = mapAutomationToListItem(automation);
+
+    queryClient.setQueryData<AutomationListItem[]>(
+      automationQueryKeys.list(scopeBusinessId),
+      (prev) => {
+        if (!prev?.length) {
+          return prev;
+        }
+
+        const index = prev.findIndex((row) => row.numericId === automation.id);
+        if (index === -1) {
+          return prev;
+        }
+
+        const next = [...prev];
+        next[index] = listItem;
+        return next;
+      },
+    );
   }
 
-  const listItem = mapAutomationToListItem(automation);
-
-  queryClient.setQueryData<AutomationListItem[]>(
-    automationQueryKeys.list(scopeBusinessId),
-    (prev) => {
-      if (!prev?.length) {
-        return prev;
-      }
-
-      const index = prev.findIndex((row) => row.numericId === automation.id);
-      if (index === -1) {
-        return prev;
-      }
-
-      const next = [...prev];
-      next[index] = listItem;
-      return next;
-    },
-  );
+  invalidateAutomationQueries(queryClient, {
+    automationId: automation.id,
+    businessId: isPositiveInt(scopeBusinessId) ? scopeBusinessId : undefined,
+  });
 }

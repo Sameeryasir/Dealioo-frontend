@@ -26,7 +26,7 @@ import {
   mapAutomationToListItem,
   updateAutomation,
 } from "@/app/services/automation/automation-api";
-import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
+import { syncAutomationQueryCache, invalidateAutomationQueries } from "@/app/services/automation/automation-query-cache";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { useAutomationQuery } from "@/app/hooks/use-automation-query";
 import { BuilderShell } from "@/app/components/builder/BuilderShell";
@@ -414,6 +414,7 @@ export function AutomationBuilderPage({
       }
       setIsFlowDirty(false);
       setHasUnsavedStepSettings(false);
+      await refetchAutomation();
       toast.success("Automation activated.");
       return true;
     } catch (err) {
@@ -427,6 +428,7 @@ export function AutomationBuilderPage({
     isFlowDirty,
     nodes,
     queryClient,
+    refetchAutomation,
     remoteAutomation?.purpose,
     syncDirtyNodesToServer,
   ]);
@@ -461,13 +463,14 @@ export function AutomationBuilderPage({
       setAutomationPublished(false);
       setNavPromptOpen(false);
       setPendingNav(null);
+      await refetchAutomation();
       toast.success("Automation deactivated.");
     } catch (err) {
       toastApiError(err, "Could not deactivate automation.");
     } finally {
       setActivating(false);
     }
-  }, [automationNumericId, queryClient]);
+  }, [automationNumericId, queryClient, refetchAutomation]);
 
   const handleDeactivateFromPrompt = useCallback(async () => {
     await handleDeactivate();
@@ -612,6 +615,11 @@ export function AutomationBuilderPage({
           await updateAutomationNode(numericId, {
             config,
           });
+          invalidateAutomationQueries(queryClient, {
+            automationId: automationNumericId ?? undefined,
+            businessId:
+              remoteAutomation?.businessId ?? remoteAutomation?.restaurantId,
+          });
         }
 
         setNodes((prev) =>
@@ -629,7 +637,16 @@ export function AutomationBuilderPage({
         setSavingNode(false);
       }
     },
-    [guardEdit, nodes, remoteAutomation?.purpose, selectedNode],
+    [
+      automationNumericId,
+      guardEdit,
+      nodes,
+      queryClient,
+      remoteAutomation?.businessId,
+      remoteAutomation?.purpose,
+      remoteAutomation?.restaurantId,
+      selectedNode,
+    ],
   );
 
   const onDeleteNode = useCallback(async () => {

@@ -23,6 +23,7 @@ export function useAutomationsQuery(businessId: number | null | undefined) {
       return list.map((automation) => mapAutomationToListItem(automation));
     },
     enabled: businessId != null,
+    staleTime: 0,
   });
 
   return {

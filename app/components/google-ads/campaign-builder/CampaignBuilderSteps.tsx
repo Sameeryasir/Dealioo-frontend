@@ -14,10 +14,8 @@ import {
   Eye,
   FileText,
   Flag,
-  FolderKanban,
   Globe,
   ImageIcon,
-  ImagePlus,
   Info,
   Languages,
   Link2,
@@ -59,8 +57,8 @@ import {
   toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
 import { generateGoogleKeywordsWithAi } from "@/app/services/google-ads/generate-google-keywords";
+import { getGoogleAdsBusinessProfile } from "@/app/services/google-ads/get-google-ads-business-profile";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
-import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { toast } from "sonner";
 import {
   BudgetSlider,
@@ -76,6 +74,8 @@ import {
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
 import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-builder/BusinessLocationPicker";
+import { AccountConversionGoalsPanel } from "@/app/components/google-ads/campaign-builder/SalesConversionGoalsPanel";
+import { LocalVisitsCampaignTypePanel } from "@/app/components/google-ads/campaign-builder/LocalVisitsCampaignTypePanel";
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
@@ -100,7 +100,6 @@ const GoogleAdsLocationsMap = dynamic(
   },
 );
 import {
-  BUSINESS_CATEGORY_OPTIONS,
   GOAL_OPTIONS,
   GOOGLE_LEAD_FORM_CTA_OPTIONS,
   GOOGLE_LEAD_FORM_FIELD_OPTIONS,
@@ -293,7 +292,10 @@ function SetupFieldIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-export function StepGoal({ draft, errors, onChange }: StepProps) {
+export function StepGoal({ businessId, draft, errors, onChange }: StepProps) {
+  const selectedGoalLabel =
+    GOAL_OPTIONS.find((goal) => goal.id === draft.goal)?.title ?? null;
+
   return (
     <StepShell
       step={1}
@@ -317,13 +319,34 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
               title={goal.title}
               description={goal.description}
               icon={<Icon className="size-5" aria-hidden />}
-              onClick={() => onChange({ goal: goal.id })}
+              onClick={() =>
+                onChange(
+                  goal.id === "LOCAL_VISITS"
+                    ? { goal: goal.id, campaignType: "PERFORMANCE_MAX" }
+                    : { goal: goal.id },
+                )
+              }
             />
           );
         })}
       </div>
       {errors.goal ? (
         <p className="text-sm font-medium text-red-500">{errors.goal}</p>
+      ) : null}
+
+      {draft.goal === "LOCAL_VISITS" ? (
+        <LocalVisitsCampaignTypePanel
+          businessId={businessId}
+          campaignType={draft.campaignType}
+          onChange={onChange}
+        />
+      ) : draft.goal && selectedGoalLabel ? (
+        <AccountConversionGoalsPanel
+          businessId={businessId}
+          campaignGoal={draft.goal}
+          objectiveLabel={selectedGoalLabel}
+          onChange={onChange}
+        />
       ) : null}
 
       <div className="flex flex-col gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -354,41 +377,6 @@ export function StepGoal({ draft, errors, onChange }: StepProps) {
   );
 }
 
-async function fileToLogoDataUrl(file: File): Promise<string> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Could not read that image."));
-      el.src = objectUrl;
-    });
-
-    const maxEdge = 512;
-    const scale = Math.min(
-      1,
-      maxEdge / Math.max(image.naturalWidth, image.naturalHeight, 1),
-    );
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not process that image.");
-    ctx.drawImage(image, 0, 0, width, height);
-
-    const keepPng =
-      file.type === "image/png" ||
-      file.name.toLowerCase().endsWith(".png") ||
-      file.name.toLowerCase().endsWith(".webp");
-    return keepPng
-      ? canvas.toDataURL("image/png")
-      : canvas.toDataURL("image/jpeg", 0.9);
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
 
 export function StepCampaignDetails({
   businessId,
@@ -396,13 +384,12 @@ export function StepCampaignDetails({
   errors,
   onChange,
 }: StepProps) {
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const didPrefillFromBusiness = useRef(false);
+  const didPrefillContactFromBusiness = useRef(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   const { data: businessProfile } = useBusinessByIdQuery(businessId);
-  const [logoProcessing, setLogoProcessing] = useState(false);
-  const [logoBroken, setLogoBroken] = useState(false);
-  const logoSrc = resolveUploadImageUrl(draft.logoPreviewUrl);
-  const hasLogo = Boolean(logoSrc) && !logoBroken;
 
   const isSalesGoal = draft.goal === "SALES";
   const isLeadsGoal = draft.goal === "LEADS";
@@ -412,13 +399,40 @@ export function StepCampaignDetails({
       ? "WEBSITE"
       : draft.salesChannel;
 
+  // Prefill business name from connected Google Ads when this step mounts
   useEffect(() => {
-    setLogoBroken(false);
-  }, [draft.logoPreviewUrl]);
+    if (!businessId) return;
+    let cancelled = false;
 
+    void getGoogleAdsBusinessProfile(businessId, { force: true })
+      .then((adsProfile) => {
+        if (cancelled) return;
+
+        const current = draftRef.current;
+        const patch: Partial<GoogleCampaignBuilderDraft> = {};
+
+        if (adsProfile.businessName?.trim()) {
+          const name = adsProfile.businessName.trim();
+          patch.businessName = name;
+          if (!current.extensionBusinessName.trim()) {
+            patch.extensionBusinessName = name;
+          }
+        }
+        if (Object.keys(patch).length > 0) onChangeRef.current(patch);
+      })
+      .catch(() => {
+        // Leave fields as-is if Ads lookup fails; user can still type manually.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
+
+  // Contact / location still come from Dealioo when Ads does not provide them
   useEffect(() => {
-    if (!businessProfile || didPrefillFromBusiness.current) return;
-    didPrefillFromBusiness.current = true;
+    if (!businessProfile || didPrefillContactFromBusiness.current) return;
+    didPrefillContactFromBusiness.current = true;
 
     const addressLine = formatBusinessAddressLine({
       city: businessProfile.city,
@@ -428,21 +442,12 @@ export function StepCampaignDetails({
     });
 
     const patch: Partial<GoogleCampaignBuilderDraft> = {};
-    if (!draft.businessName.trim() && businessProfile.name?.trim()) {
-      patch.businessName = businessProfile.name.trim();
-      patch.extensionBusinessName =
-        draft.extensionBusinessName || businessProfile.name.trim();
-    }
     if (!draft.websiteUrl.trim() && businessProfile.websiteUrl?.trim()) {
       patch.websiteUrl = businessProfile.websiteUrl.trim();
     }
     if (!draft.businessPhone.trim() && businessProfile.phoneNumber?.trim()) {
       patch.businessPhone = businessProfile.phoneNumber.trim();
       patch.phoneNumber = businessProfile.phoneNumber.trim();
-    }
-    if (!draft.logoPreviewUrl.trim() && businessProfile.logoUrl?.trim()) {
-      patch.logoPreviewUrl = resolveUploadImageUrl(businessProfile.logoUrl);
-      patch.logoFileName = draft.logoFileName || "Business logo";
     }
     if (!draft.businessAddress.trim() && addressLine) {
       patch.businessAddress = addressLine;
@@ -455,48 +460,11 @@ export function StepCampaignDetails({
     businessProfile,
     draft.businessAddress,
     draft.businessLocation,
-    draft.businessName,
     draft.businessPhone,
-    draft.extensionBusinessName,
-    draft.logoFileName,
-    draft.logoPreviewUrl,
     draft.websiteUrl,
     onChange,
   ]);
 
-  const clearLogo = () => {
-    if (draft.logoPreviewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(draft.logoPreviewUrl);
-    }
-    onChange({ logoPreviewUrl: "", logoFileName: "" });
-    if (logoInputRef.current) logoInputRef.current.value = "";
-  };
-
-  const onLogoSelected = (file: File | undefined) => {
-    if (!file) {
-      clearLogo();
-      return;
-    }
-    if (draft.logoPreviewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(draft.logoPreviewUrl);
-    }
-    setLogoProcessing(true);
-    void fileToLogoDataUrl(file)
-      .then((dataUrl) => {
-        onChange({
-          logoPreviewUrl: dataUrl,
-          logoFileName: file.name,
-        });
-      })
-      .catch(() => {
-        onChange({ logoPreviewUrl: "", logoFileName: "" });
-        toast.error("Could not load that logo. Try a PNG or JPG under 5 MB.");
-      })
-      .finally(() => {
-        setLogoProcessing(false);
-        if (logoInputRef.current) logoInputRef.current.value = "";
-      });
-  };
 
   const selectPrimaryLeadMethod = (id: LeadContactMethodId) => {
     if (id === "CONTACT_FORM") {
@@ -611,94 +579,7 @@ export function StepCampaignDetails({
             </Field>
           </div>
         </div>
-        <div className="flex items-start gap-3">
-          <SetupFieldIcon icon={FolderKanban} />
-          <div className="min-w-0 flex-1">
-            <SearchableSelect
-              label="Business category"
-              options={BUSINESS_CATEGORY_OPTIONS}
-              value={draft.businessCategory}
-              onChange={(businessCategory) => onChange({ businessCategory })}
-              error={errors.businessCategory}
-              placeholder="Search categories"
-            />
-          </div>
-        </div>
 
-        <div className="flex items-start gap-3">
-          <SetupFieldIcon icon={ImageIcon} />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <p className="text-sm font-bold text-[#07111f]">Business logo</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Loaded from your business profile when available.
-              </p>
-            </div>
-
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={(e) => onLogoSelected(e.target.files?.[0])}
-            />
-
-            {hasLogo ? (
-              <div className="relative overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-4">
-                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-                  <div className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafc] p-3 ring-1 ring-[#e8edf5]">
-                    <img
-                      src={logoSrc}
-                      alt={draft.logoFileName || "Logo preview"}
-                      className="max-h-full max-w-full object-contain"
-                      onError={() => setLogoBroken(true)}
-                    />
-                  </div>
-
-                  <div className="min-w-0 flex-1 text-center sm:text-left">
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
-                      Logo preview
-                    </p>
-                    <p className="mt-1 truncate text-base font-extrabold text-[#07111f]">
-                      {draft.businessName.trim() || "Your business"}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-slate-500">
-                      {draft.logoFileName || "Business logo"}
-                    </p>
-                    <button
-                      type="button"
-                      disabled={logoProcessing}
-                      onClick={clearLogo}
-                      className="mt-3 text-sm font-semibold text-slate-500 transition hover:text-red-600 disabled:opacity-60"
-                    >
-                      Remove logo
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled={logoProcessing}
-                onClick={() => logoInputRef.current?.click()}
-                className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#dbeafe] bg-[#f8fbff] px-4 py-8 text-sm font-semibold text-[#07111f] transition hover:border-[#4285F4]/40 hover:bg-[#f4f8ff] disabled:opacity-60"
-              >
-                {logoProcessing ? (
-                  <Loader2
-                    className="size-5 animate-spin text-[#4285F4]"
-                    aria-hidden
-                  />
-                ) : (
-                  <ImagePlus className="size-5 text-[#4285F4]" aria-hidden />
-                )}
-                {logoProcessing ? "Uploading…" : "Upload logo"}
-                <span className="text-xs font-medium text-slate-400">
-                  PNG, JPG, or WebP up to 5 MB
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
       </Panel>
 
       {isSalesGoal ? (

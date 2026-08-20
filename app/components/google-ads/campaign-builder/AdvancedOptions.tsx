@@ -2,15 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import {
-  Ban,
   ChevronDown,
   Clock,
   DollarSign,
-  EyeOff,
-  Filter,
   Flag,
   Globe2,
-  Link2,
   Megaphone,
   MonitorSmartphone,
   ShieldOff,
@@ -307,76 +303,16 @@ export function AdvancedOptions({
             />
           </AdvField>
 
-          <div className={pairGrid}>
-            <AdvField
-              icon={Link2}
-              label="URL tracking parameters"
-              hint="Optional. Appended to your final URL."
-            >
-              <input
-                className={googleBuilderInputClass}
-                value={draft.urlTrackingParams}
-                onChange={(e) =>
-                  onChange({ urlTrackingParams: e.target.value })
-                }
-                placeholder="utm_source=google&utm_medium=cpc"
-              />
-            </AdvField>
-            <AdvField
-              icon={Flag}
-              label="Conversion goals"
-              hint="Optional notes for your team."
-            >
-              <input
-                className={googleBuilderInputClass}
-                value={draft.conversionGoals}
-                onChange={(e) =>
-                  onChange({ conversionGoals: e.target.value })
-                }
-                placeholder="Purchases, form fills, calls"
-              />
-            </AdvField>
-          </div>
-
-          <div className={pairGrid}>
-            <AdvField
-              icon={Ban}
-              label="Brand exclusions"
-              hint="Optional. Competitor brands to avoid."
-            >
-              <input
-                className={googleBuilderInputClass}
-                value={draft.brandExclusions}
-                onChange={(e) => onChange({ brandExclusions: e.target.value })}
-                placeholder="Competitor brands to avoid"
-              />
-            </AdvField>
-            <AdvField
-              icon={EyeOff}
-              label="Frequency capping (Display)"
-              hint="Optional. How often someone can see your ad."
-            >
-              <input
-                className={googleBuilderInputClass}
-                value={draft.frequencyCapping}
-                onChange={(e) =>
-                  onChange({ frequencyCapping: e.target.value })
-                }
-                placeholder="e.g. 3 impressions / day"
-              />
-            </AdvField>
-          </div>
-
           <AdvField
-            icon={Filter}
-            label="Content exclusions"
-            hint="Optional. Topics or categories to avoid."
+            icon={Flag}
+            label="Conversion goals"
+            hint="Optional notes for your team."
           >
             <input
               className={googleBuilderInputClass}
-              value={draft.contentExclusions}
-              onChange={(e) => onChange({ contentExclusions: e.target.value })}
-              placeholder="Topics or categories to avoid"
+              value={draft.conversionGoals}
+              onChange={(e) => onChange({ conversionGoals: e.target.value })}
+              placeholder="Purchases, form fills, calls"
             />
           </AdvField>
 

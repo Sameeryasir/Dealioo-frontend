@@ -221,6 +221,7 @@ export function SearchableSelect({
   placeholder = "Search…",
   error,
   required,
+  hint,
 }: {
   label: string;
   options: string[];
@@ -229,6 +230,7 @@ export function SearchableSelect({
   placeholder?: string;
   error?: string;
   required?: boolean;
+  hint?: string;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -277,10 +279,15 @@ export function SearchableSelect({
 
   return (
     <div ref={rootRef} className="relative space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-bold text-[#07111f]">
-        {label}
-        {required ? <span className="text-red-500"> *</span> : null}
-      </label>
+      <div>
+        <label htmlFor={id} className="block text-sm font-bold text-[#07111f]">
+          {label}
+          {required ? <span className="text-red-500"> *</span> : null}
+        </label>
+        {hint ? (
+          <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+        ) : null}
+      </div>
       <button
         id={id}
         type="button"

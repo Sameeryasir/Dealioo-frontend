@@ -27,6 +27,7 @@ export function useAutomationQuery(automationId: number | null | undefined) {
       return getAutomationById(automationId);
     },
     enabled: isPositiveInt(automationId),
+    staleTime: 0,
   });
 
   useEffect(() => {
