@@ -128,7 +128,9 @@ export type AutomationExecutionStatus =
   | "waiting"
   | "paused"
   | "completed"
-  | "failed";
+  | "failed"
+  | "cancelled"
+  | "timed_out";
 
 export interface AutomationExecutionStatusDto {
   executionId: number;

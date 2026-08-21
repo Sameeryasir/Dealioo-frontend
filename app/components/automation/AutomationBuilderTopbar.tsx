@@ -66,41 +66,50 @@ export function AutomationBuilderActivateButton({
   onActivate,
   onDeactivate,
 }: {
-  automationActive: boolean;
+  automationActive: boolean | null;
   activating: boolean;
   onActivate: () => void;
   onDeactivate: () => void;
 }) {
+  const statusKnown = automationActive !== null;
+  const isActive = automationActive === true;
+
   return (
     <button
       type="button"
-      onClick={() => void (automationActive ? onDeactivate() : onActivate())}
-      disabled={activating}
+      onClick={() => void (isActive ? onDeactivate() : onActivate())}
+      disabled={activating || !statusKnown}
       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.7rem] font-semibold shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xs ${
-        automationActive
-          ? "border border-brand-primary/30 bg-white text-brand-primary hover:bg-[#e8f2ff]"
-          : "bg-brand-primary text-white hover:bg-brand-primary-hover"
+        !statusKnown
+          ? "border border-zinc-200 bg-white text-zinc-500"
+          : isActive
+            ? "border border-brand-primary/30 bg-white text-brand-primary hover:bg-[#e8f2ff]"
+            : "bg-brand-primary text-white hover:bg-brand-primary-hover"
       }`}
     >
-      {activating ? (
+      {activating || !statusKnown ? (
         <Loader2
-          className={`size-3.5 animate-spin ${automationActive ? "text-brand-primary" : "text-white"}`}
+          className={`size-3.5 animate-spin ${
+            isActive ? "text-brand-primary" : "text-zinc-400"
+          }`}
           aria-hidden
         />
       ) : (
         <Zap
-          className={`size-3.5 ${automationActive ? "text-brand-primary" : "text-white"}`}
+          className={`size-3.5 ${isActive ? "text-brand-primary" : "text-white"}`}
           aria-hidden
         />
       )}
       <span className="automation-builder-topbar__activate-label whitespace-nowrap">
-        {activating
-          ? automationActive
-            ? "Deactivating…"
-            : "Activating…"
-          : automationActive
-            ? "Deactivate"
-            : "Activate"}
+        {!statusKnown
+          ? "Loading…"
+          : activating
+            ? isActive
+              ? "Deactivating…"
+              : "Activating…"
+            : isActive
+              ? "Deactivate"
+              : "Activate"}
       </span>
     </button>
   );

@@ -31,6 +31,10 @@ export function executionStatusBadgeClass(
       return "bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200";
     case "failed":
       return "bg-red-100 text-red-900 ring-1 ring-red-200";
+    case "cancelled":
+      return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+    case "timed_out":
+      return "bg-orange-100 text-orange-900 ring-1 ring-orange-200";
     default:
       return "bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200";
   }

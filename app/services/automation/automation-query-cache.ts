@@ -54,6 +54,7 @@ export function invalidateAutomationQueries(
 export function syncAutomationStatusQueryCache(
   queryClient: QueryClient,
   response: AutomationStatusResponse,
+  options: { invalidate?: boolean } = {},
 ): void {
   if (!isPositiveInt(response.id)) {
     return;
@@ -101,15 +102,18 @@ export function syncAutomationStatusQueryCache(
     },
   );
 
-  invalidateAutomationQueries(queryClient, { automationId: response.id });
+  if (options.invalidate !== false) {
+    invalidateAutomationQueries(queryClient, { automationId: response.id });
+  }
 }
 
 export function syncAutomationQueryCache(
   queryClient: QueryClient,
   automation: UpdateAutomationResponse,
+  options: { invalidate?: boolean } = {},
 ): void {
   if (isAutomationStatusResponse(automation)) {
-    syncAutomationStatusQueryCache(queryClient, automation);
+    syncAutomationStatusQueryCache(queryClient, automation, options);
     return;
   }
 
@@ -145,8 +149,10 @@ export function syncAutomationQueryCache(
     );
   }
 
-  invalidateAutomationQueries(queryClient, {
-    automationId: automation.id,
-    businessId: isPositiveInt(scopeBusinessId) ? scopeBusinessId : undefined,
-  });
+  if (options.invalidate !== false) {
+    invalidateAutomationQueries(queryClient, {
+      automationId: automation.id,
+      businessId: isPositiveInt(scopeBusinessId) ? scopeBusinessId : undefined,
+    });
+  }
 }

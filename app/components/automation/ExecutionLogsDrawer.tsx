@@ -106,7 +106,7 @@ function ActivityCard({
                 key={line}
                 className="rounded-lg bg-zinc-50 px-2.5 py-1.5 text-[13px] leading-relaxed text-zinc-600"
               >
-                {line.replace(/^Sent to /i, "")}
+                {line}
               </li>
             ))}
           </ul>

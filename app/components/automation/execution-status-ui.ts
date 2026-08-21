@@ -37,6 +37,8 @@ export function executionStepLabel(
 ): string {
   if (status === "completed") return "Completed";
   if (status === "failed") return "Failed";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "timed_out") return "Timed out";
   return formatExecutionStepType(stepType);
 }
 

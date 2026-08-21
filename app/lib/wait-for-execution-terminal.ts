@@ -17,7 +17,9 @@ function isTerminalStatus(
   return (
     status.isTerminal ||
     status.status === "completed" ||
-    status.status === "failed"
+    status.status === "failed" ||
+    status.status === "cancelled" ||
+    status.status === "timed_out"
   );
 }
 

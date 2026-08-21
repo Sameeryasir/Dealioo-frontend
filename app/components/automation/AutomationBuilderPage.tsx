@@ -194,7 +194,7 @@ export function AutomationBuilderPage({
     const mapped = mapAutomationToListItem(remoteAutomation);
     setAutomation(mapped);
     setStatus(remoteStatus);
-    setAutomationPublished(automationIsPublished);
+    setAutomationPublished(automationIsPublished === true);
     const list = mapAutomationGraphToWorkflowNodes(
       remoteAutomation.nodes ?? [],
       remoteAutomation.connections ?? [],
@@ -224,7 +224,7 @@ export function AutomationBuilderPage({
   const automationsListHref =
     listHref ?? `/business/${businessId}/dashboard/automations`;
 
-  const automationActive = automationIsActive;
+  const automationActive = automationIsActive === true;
 
   const showDeactivatePrompt = useCallback(() => {
     setDeactivatePromptOpen(true);
@@ -733,7 +733,7 @@ export function AutomationBuilderPage({
     topbarActionsHost != null && tab === "builder"
       ? createPortal(
           <AutomationBuilderActivateButton
-            automationActive={automationActive}
+            automationActive={automationIsActive}
             activating={activating}
             onActivate={handleActivate}
             onDeactivate={handleDeactivate}

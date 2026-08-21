@@ -93,11 +93,20 @@ export function useStartAutomationRun(
           );
         } else if (final.status === "failed") {
           toast.error(final.lastError ?? "Run failed.");
+        } else if (final.status === "cancelled") {
+          toast.message("Run cancelled.");
+        } else if (final.status === "timed_out") {
+          toast.error(final.lastError ?? "Run timed out.");
         }
 
         onFinished?.(final);
 
-        if (final.status === "completed" || final.status === "failed") {
+        if (
+          final.status === "completed" ||
+          final.status === "failed" ||
+          final.status === "cancelled" ||
+          final.status === "timed_out"
+        ) {
           await delay(TERMINAL_BANNER_MS);
         }
       } catch (err) {

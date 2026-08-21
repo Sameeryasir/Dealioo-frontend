@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
+  Ban,
   CalendarClock,
   CheckCircle2,
   CircleDot,
@@ -10,6 +11,7 @@ import {
   Loader2,
   PauseCircle,
   RefreshCw,
+  TimerOff,
   Trash2,
   Users,
   Workflow,
@@ -35,7 +37,6 @@ import { reportTableShellClass } from "@/app/lib/panel-styles";
 import { RunProgressBanner } from "@/app/components/automation/RunProgressBanner";
 import {
   executionRunCustomersLine,
-  executionRunDisplayName,
   isExecutionInProgress,
 } from "@/app/components/automation/execution-status-ui";
 import { Skeleton } from "@/app/components/skeleton";
@@ -80,6 +81,8 @@ const STATUS_FILTERS: { id: "all" | AutomationExecutionStatus; label: string }[]
     { id: "paused", label: "Paused" },
     { id: "completed", label: "Completed" },
     { id: "failed", label: "Failed" },
+    { id: "cancelled", label: "Cancelled" },
+    { id: "timed_out", label: "Timed out" },
   ];
 
 function statusIcon(status: AutomationExecutionStatus): LucideIcon {
@@ -96,6 +99,10 @@ function statusIcon(status: AutomationExecutionStatus): LucideIcon {
       return CheckCircle2;
     case "failed":
       return XCircle;
+    case "cancelled":
+      return Ban;
+    case "timed_out":
+      return TimerOff;
     default:
       return PauseCircle;
   }
@@ -114,6 +121,10 @@ function rowAccentClass(status: AutomationExecutionStatus): string {
     case "running":
     case "queued":
       return "border-l-blue-500";
+    case "cancelled":
+      return "border-l-slate-400";
+    case "timed_out":
+      return "border-l-orange-500";
     default:
       return "border-l-transparent";
   }
@@ -191,7 +202,7 @@ function RunRow({
 }) {
   const StatusIcon = statusIcon(row.status);
   const customersText = executionRunCustomersLine(row);
-  const runSummary = executionRunDisplayName(row);
+  const runLabel = `Run #${row.id}`;
 
   const inProgress = isExecutionInProgress(row.status);
   const recipientCount =
@@ -220,10 +231,10 @@ function RunRow({
     >
       <div className={`${RUNS_CELL} flex items-center gap-2`}>
         <p
-          className="min-w-0 truncate font-semibold text-zinc-900"
-          title={runSummary}
+          className="min-w-0 truncate font-semibold tabular-nums text-zinc-900"
+          title={runLabel}
         >
-          {runSummary}
+          {runLabel}
         </p>
         {recipientCount > 0 ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-emerald-800 ring-1 ring-emerald-200/80">
@@ -367,6 +378,10 @@ export function AutomationExecutionsPanel({
         );
       } else if (payload.status === "failed") {
         toast.error(payload.lastError ?? "Scheduled run failed.");
+      } else if (payload.status === "cancelled") {
+        toast.message("Scheduled run cancelled.");
+      } else if (payload.status === "timed_out") {
+        toast.error(payload.lastError ?? "Scheduled run timed out.");
       }
 
       window.setTimeout(() => {
@@ -413,10 +428,8 @@ export function AutomationExecutionsPanel({
 
   const deleteTargetName = useMemo(() => {
     if (deleteTargetId == null) return "this run";
-    const row = executions.find((e) => e.id === deleteTargetId);
-    if (!row) return `Run #${deleteTargetId}`;
-    return executionRunDisplayName(row);
-  }, [deleteTargetId, executions]);
+    return `Run #${deleteTargetId}`;
+  }, [deleteTargetId]);
 
   const confirmDeleteRun = useCallback(async () => {
     const executionId = deleteTargetId;
@@ -444,7 +457,7 @@ export function AutomationExecutionsPanel({
     setLogsDrawer({
       executionId: row.id,
       runStartedAt: row.createdAt,
-      runTitle: executionRunDisplayName(row),
+      runTitle: `Run #${row.id}`,
     });
   }, []);
 

@@ -70,7 +70,7 @@ const nextConfig: NextConfig = {
       {
         source: "/sms/twilio/:path*",
         destination: `${apiBase}/sms/twilio/:path*`,
-      },
+      }
     ];
   },
 };

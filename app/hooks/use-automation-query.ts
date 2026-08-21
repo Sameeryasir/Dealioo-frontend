@@ -34,7 +34,7 @@ export function useAutomationQuery(automationId: number | null | undefined) {
     if (!query.data) {
       return;
     }
-    syncAutomationQueryCache(queryClient, query.data);
+    syncAutomationQueryCache(queryClient, query.data, { invalidate: false });
   }, [query.data, queryClient]);
 
   const status: AutomationStatus = query.data
@@ -43,8 +43,8 @@ export function useAutomationQuery(automationId: number | null | undefined) {
 
   return {
     data: query.data ?? null,
-    isActive: query.data?.isActive === true,
-    isPublished: query.data?.published === true,
+    isActive: query.data ? query.data.isActive === true : null,
+    isPublished: query.data ? query.data.published === true : null,
     status,
     isLoading: query.isLoading,
     isFetching: query.isFetching,

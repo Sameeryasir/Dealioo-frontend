@@ -61,6 +61,21 @@ function emailsDeliveredSummary(count: number): string {
   return `${count} email${count === 1 ? "" : "s"} delivered`;
 }
 
+function extractBulkEmailSendCount(message: string): number | null {
+  const match = message.match(/actions sent\s+(\d+)\s+email/i);
+  if (!match) return null;
+  const count = Number.parseInt(match[1]!, 10);
+  return Number.isFinite(count) && count > 0 ? count : null;
+}
+
+function redactEmailAddresses(text: string): string {
+  return text
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .trim();
+}
+
 function isPrepOnlyMessage(message: string): boolean {
   return (
     /email node:.*loaded/i.test(message) ||
@@ -130,13 +145,22 @@ function conditionSummary(message: string, config: Record<string, unknown>): str
 }
 
 function emailSummary(message: string, config: Record<string, unknown>): string {
-  const subject = configString(config, "subject");
-  if (/email sent to/i.test(message) || /reward email sent/i.test(message)) {
-    return subject ? `Sent: ${subject}` : "Email sent";
+  const bulkCount = extractBulkEmailSendCount(message);
+  if (bulkCount != null) {
+    return emailsDeliveredSummary(bulkCount);
+  }
+  if (
+    /email sent to|reward email sent|qr pass email sent|action email sent|payment reminder email sent/i.test(
+      message,
+    )
+  ) {
+    return emailsDeliveredSummary(1);
   }
   if (/email failed|send failed|skipped/i.test(message)) {
-    return subject ? `Email: ${subject}` : message.trim();
+    const subject = configString(config, "subject");
+    return subject ? `Email: ${subject}` : redactEmailAddresses(message) || "Email failed";
   }
+  const subject = configString(config, "subject");
   return subject ? `Email: ${subject}` : "Send email";
 }
 
@@ -171,7 +195,7 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
   if (log.error || /node execution failed|bulk .* send failed|all send attempts failed/i.test(message)) {
     return makeLogDisplay({
       heading: nodeName,
-      summary: (log.error ?? message).trim(),
+      summary: redactEmailAddresses((log.error ?? message).trim()),
       tone: "error",
       status: "failed",
       nodeId,
@@ -200,7 +224,7 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (isPrepOnlyMessage(message)) return null;
 
-  if (/email sent to|reward email sent|qr pass email sent|payment reminder text sent|actions sent/i.test(message)) {
+  if (/email sent to|reward email sent|qr pass email sent|payment reminder email sent|action email sent|payment reminder text sent|actions sent/i.test(message)) {
     return makeLogDisplay({
       heading: type === "email" || !type ? "Send Email" : nodeName,
       summary: emailSummary(message, config),
@@ -319,7 +343,7 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 }
 
 function isEmailDeliveryMessage(message: string): boolean {
-  return /email sent to|reward email sent|qr pass email sent|actions sent \d+ email/i.test(
+  return /email sent to|reward email sent|qr pass email sent|action email sent|payment reminder email sent|actions sent \d+ email/i.test(
     message,
   );
 }
@@ -329,18 +353,12 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
   const byNode = new Map<number, LogDisplay>();
   let pendingEmailSends = 0;
   let pendingEmailNodeId: number | null = null;
-  let pendingEmailSubject: string | null = null;
 
   const flushEmailBatch = () => {
     if (pendingEmailSends === 0) return;
-    const heading = "Send Email";
-    const summary =
-      pendingEmailSends === 1 && pendingEmailSubject
-        ? `Sent: ${pendingEmailSubject}`
-        : emailsDeliveredSummary(pendingEmailSends);
     const display = makeLogDisplay({
-      heading,
-      summary,
+      heading: "Send Email",
+      summary: emailsDeliveredSummary(pendingEmailSends),
       tone: "success",
       status: "passed",
       nodeId: pendingEmailNodeId,
@@ -360,7 +378,6 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
     }
     pendingEmailSends = 0;
     pendingEmailNodeId = null;
-    pendingEmailSubject = null;
   };
 
   for (const log of logs) {
@@ -369,10 +386,9 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
     }
 
     if (!log.error && isEmailDeliveryMessage(log.message)) {
-      pendingEmailSends += 1;
+      const bulkCount = extractBulkEmailSendCount(log.message);
+      pendingEmailSends += bulkCount ?? 1;
       pendingEmailNodeId = log.nodeId ?? log.node?.id ?? pendingEmailNodeId;
-      pendingEmailSubject =
-        configString(log.node?.config ?? {}, "subject") ?? pendingEmailSubject;
       continue;
     }
 
@@ -380,6 +396,11 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
 
     const display = logDisplayForUser(log);
     if (!display) continue;
+
+    display.summary = redactEmailAddresses(display.summary);
+    display.details = display.details
+      .map((line) => redactEmailAddresses(line))
+      .filter((line) => line.length > 0);
 
     const nodeId = display.nodeId;
     if (nodeId != null) {
