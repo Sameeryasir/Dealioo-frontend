@@ -127,7 +127,7 @@ export function SimpleSelect({
   "aria-label": ariaLabel,
 }: {
   value: string;
-  options: Array<{ id: string; label: string }>;
+  options: Array<{ id: string; label: string; group?: string }>;
   onChange: (value: string) => void;
   placeholder?: string;
   error?: string;
@@ -137,6 +137,22 @@ export function SimpleSelect({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.id === value) ?? null;
+  const groupedOptions = useMemo(() => {
+    const groups: Array<{
+      label: string | null;
+      options: Array<{ id: string; label: string; group?: string }>;
+    }> = [];
+    for (const option of options) {
+      const label = option.group?.trim() || null;
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) {
+        last.options.push(option);
+      } else {
+        groups.push({ label, options: [option] });
+      }
+    }
+    return groups;
+  }, [options]);
 
   useEffect(() => {
     if (!open) return;
@@ -181,32 +197,43 @@ export function SimpleSelect({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1.5 max-h-56 w-full overflow-y-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.14)]"
+          className="absolute z-30 mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.14)]"
         >
-          {options.map((option) => {
-            const isSelected = option.id === value;
-            return (
-              <li key={option.id} role="option" aria-selected={isSelected}>
-                <button
-                  type="button"
-                  className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-medium transition ${
-                    isSelected
-                      ? "bg-[#f4f8ff] text-[#4285F4]"
-                      : "text-[#07111f] hover:bg-[#f8fafc]"
-                  }`}
-                  onClick={() => {
-                    onChange(option.id);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="truncate">{option.label}</span>
-                  {isSelected ? (
-                    <Check className="size-4 shrink-0" aria-hidden />
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
+          {groupedOptions.map((group) => (
+            <li key={group.label ?? "__ungrouped"}>
+              {group.label ? (
+                <p className="px-3.5 pb-1 pt-2 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#4285F4]">
+                  {group.label}
+                </p>
+              ) : null}
+              <ul>
+                {group.options.map((option) => {
+                  const isSelected = option.id === value;
+                  return (
+                    <li key={option.id} role="option" aria-selected={isSelected}>
+                      <button
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-medium transition ${
+                          isSelected
+                            ? "bg-[#f4f8ff] text-[#4285F4]"
+                            : "text-[#07111f] hover:bg-[#f8fafc]"
+                        }`}
+                        onClick={() => {
+                          onChange(option.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <span className="truncate">{option.label}</span>
+                        {isSelected ? (
+                          <Check className="size-4 shrink-0" aria-hidden />
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
         </ul>
       ) : null}
     </div>
@@ -375,14 +402,40 @@ export function SearchableMultiSelect({
   icon?: LucideIcon;
   description?: string;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return options.filter(
-      (o) =>
-        (!q || o.toLowerCase().includes(q)) && !values.includes(o),
-    );
+    if (!q) return [];
+    return options
+      .filter(
+        (o) => o.toLowerCase().includes(q) && !values.includes(o),
+      )
+      .slice(0, 8);
   }, [options, query, values]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const showResults = open && query.trim().length > 0;
 
   return (
     <div className="flex gap-3">
@@ -391,65 +444,109 @@ export function SearchableMultiSelect({
           <Icon className="size-5" aria-hidden />
         </span>
       ) : null}
-      <div className="min-w-0 flex-1 space-y-2">
-      <div>
-        <p className="text-sm font-bold text-[#07111f]">
-          {label}
-          {required ? <span className="text-red-500"> *</span> : null}
-        </p>
-        {description ? (
-          <p className="mt-0.5 text-xs text-slate-500">{description}</p>
-        ) : null}
-      </div>
-      {values.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {values.map((value) => (
-            <span
-              key={value}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1 text-xs font-semibold text-[#4285F4]"
-            >
-              {value}
-              <button
-                type="button"
-                aria-label={`Remove ${value}`}
-                onClick={() => onChange(values.filter((v) => v !== value))}
-              >
-                <X className="size-3" aria-hidden />
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : null}
-      <div className="rounded-xl border border-[#e8edf5] bg-[#f8fafc]">
-        <div className="flex items-center gap-2 border-b border-[#e8edf5] px-3 py-2">
-          <Search className="size-4 text-slate-400" aria-hidden />
-          <input
-            className="w-full bg-transparent text-sm outline-none"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={placeholder}
-          />
-        </div>
-        <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto p-3">
-          {filtered.slice(0, 40).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => {
-                onChange([...values, option]);
-                setQuery("");
-              }}
-              className="rounded-full border border-[#e8edf5] bg-white px-3 py-1 text-xs font-semibold text-[#07111f] transition hover:border-[#4285F4] hover:text-[#4285F4]"
-            >
-              + {option}
-            </button>
-          ))}
-          {filtered.length === 0 ? (
-            <p className="text-xs text-slate-400">No more options</p>
+      <div className="min-w-0 flex-1 space-y-3">
+        <div>
+          <p className="text-sm font-bold text-[#07111f]">
+            {label}
+            {required ? <span className="text-red-500"> *</span> : null}
+          </p>
+          {description ? (
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+              {description}
+            </p>
           ) : null}
         </div>
-      </div>
-      {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+
+        <div ref={rootRef} className="space-y-2">
+          <div
+            className={`rounded-xl border bg-white px-3 py-2.5 transition ${
+              error
+                ? builderInputErrorClass
+                : open
+                  ? "border-[#4285F4] ring-2 ring-[#4285F4]/15"
+                  : "border-[#e8edf5]"
+            }`}
+            onClick={() => inputRef.current?.focus()}
+          >
+            {values.length > 0 ? (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {values.map((value) => (
+                  <span
+                    key={value}
+                    className="inline-flex items-center gap-1 rounded-md bg-[#e8f0fe] px-2 py-1 text-xs font-semibold text-[#4285F4]"
+                  >
+                    {value}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${value}`}
+                      className="rounded p-0.5 transition hover:bg-[#d2e3fc]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChange(values.filter((v) => v !== value));
+                      }}
+                    >
+                      <X className="size-3" aria-hidden />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Search className="size-4 shrink-0 text-slate-400" aria-hidden />
+              <input
+                ref={inputRef}
+                className="w-full bg-transparent text-sm text-[#07111f] outline-none placeholder:text-slate-400"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setOpen(true);
+                }}
+                onFocus={() => setOpen(true)}
+                placeholder={placeholder}
+                aria-expanded={showResults}
+                aria-autocomplete="list"
+              />
+            </div>
+          </div>
+
+          {showResults ? (
+            <ul
+              role="listbox"
+              className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+            >
+              {filtered.length === 0 ? (
+                <li className="px-3.5 py-3 text-sm text-slate-400">
+                  No matching languages
+                </li>
+              ) : (
+                filtered.map((option) => (
+                  <li key={option} role="option">
+                    <button
+                      type="button"
+                      className="flex w-full items-center px-3.5 py-2.5 text-left text-sm font-medium text-[#07111f] transition hover:bg-[#f4f8ff] hover:text-[#4285F4]"
+                      onClick={() => {
+                        onChange([...values, option]);
+                        setQuery("");
+                        setOpen(false);
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      {option}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          ) : open && !query.trim() ? (
+            <p className="px-1 text-xs text-slate-400">
+              Start typing to find a language
+            </p>
+          ) : null}
+        </div>
+
+        {error ? (
+          <p className="text-xs font-medium text-red-500">{error}</p>
+        ) : null}
       </div>
     </div>
   );

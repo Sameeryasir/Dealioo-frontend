@@ -32,12 +32,12 @@ import {
 } from "@/app/components/google-ads/campaign-builder/step-snapshots";
 import {
   beCompletedToUiCompleted,
-  beStepToUiStep,
+  resolveRemoteUiStep,
   uiStepToBeProgressStep,
 } from "@/app/components/google-ads/campaign-builder/step-mapping";
 import {
-  generateAudienceFromIdealCustomers,
-  inferBusinessTypeFromProducts,
+  enabledKeywords,
+  toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
 import {
   validateAllRequiredSteps,
@@ -51,7 +51,6 @@ import {
   pollGooglePublishUntilDone,
   publishGoogleCampaignDraft,
   saveGoogleAdsStep,
-  saveGoogleAudienceStep,
   saveGoogleBudgetStep,
   saveGoogleCampaignInfoStep,
   saveGoogleExtrasStep,
@@ -265,7 +264,7 @@ export function CampaignBuilderWizard({
             ...localDraft,
             currentStep: uiStep,
             onboardingDone: true,
-            wizardVersion: 2,
+            wizardVersion: 4,
           },
           uiStep,
         );
@@ -300,8 +299,13 @@ export function CampaignBuilderWizard({
             updatedAt: remote.lastSavedAt,
           });
 
-          const remoteUiStep = beStepToUiStep(
+          const remoteWizardVersion =
+            typeof remote.draftData?.wizardVersion === "number"
+              ? remote.draftData.wizardVersion
+              : 3;
+          const remoteUiStep = resolveRemoteUiStep(
             remote.currentStep || remote.draftData?.currentStep || 1,
+            remoteWizardVersion,
           );
           const merged = mergeGoogleDraftWithLocalRecovery({
             remote: {
@@ -368,7 +372,7 @@ export function CampaignBuilderWizard({
               ...localDraft,
               currentStep: uiStep,
               onboardingDone: true,
-              wizardVersion: 2,
+              wizardVersion: 4,
             };
             applyWorkingCopy(normalized, uiStep);
             savedStepSnapshotsRef.current = seedSavedStepSnapshots(
@@ -401,7 +405,7 @@ export function CampaignBuilderWizard({
         ...localDraft,
         currentStep: uiStep,
         onboardingDone: true,
-        wizardVersion: 2,
+        wizardVersion: 4,
       };
       applyWorkingCopy(normalized, uiStep);
       savedStepSnapshotsRef.current = seedSavedStepSnapshots(
@@ -660,7 +664,9 @@ export function CampaignBuilderWizard({
             draft.salesChannel === "ONLINE_STORE" ||
             draft.salesChannel === "MULTIPLE"
               ? "WEBSITE"
-              : draft.salesChannel,
+              : draft.salesChannel === "PHONE_ORDERS"
+                ? null
+                : draft.salesChannel,
           websiteUrl: draft.websiteUrl,
           businessLocation: draft.businessLocation,
           businessLocationLat: draft.businessLocationLat,
@@ -712,6 +718,9 @@ export function CampaignBuilderWizard({
           extensionBusinessName:
             draft.extensionBusinessName || draft.businessName,
           businessDescription: draft.businessDescription,
+          networkSelection: draft.networkSelection.length
+            ? draft.networkSelection
+            : ["Google Search"],
         });
         rememberServerVersion(info.version, info.id);
 
@@ -723,6 +732,9 @@ export function CampaignBuilderWizard({
           businessCategory: info.businessCategory || draft.businessCategory,
           logoFileName: info.logoFileName || draft.logoFileName,
           logoPreviewUrl: info.logoPreviewUrl || draft.logoPreviewUrl,
+          networkSelection: draft.networkSelection.length
+            ? draft.networkSelection
+            : ["Google Search"],
           currentStep: 3,
           savedAt: new Date().toISOString(),
         };
@@ -744,7 +756,7 @@ export function CampaignBuilderWizard({
       return;
     }
 
-    if (step >= 3 && step <= 8) {
+    if (step >= 3 && step <= 7) {
       if (!serverDraftId) {
         setGoalSaveError("Complete earlier steps first.");
         return;
@@ -792,79 +804,13 @@ export function CampaignBuilderWizard({
             draftId: locations.id,
             expectedVersion: locations.version,
             languages: draft.languages,
+            containsEuPoliticalAdvertising:
+              draft.containsEuPoliticalAdvertising === true,
           });
           rememberServerVersion(languages.version, languages.id);
           version = languages.version;
           draftId = languages.id;
         } else if (step === 5) {
-          const audience = generateAudienceFromIdealCustomers(
-            draft.idealCustomers,
-          );
-          const saved = await saveGoogleAudienceStep(businessId, {
-            draftId,
-            expectedVersion: version,
-            ageRanges: audience.ageRanges,
-            gender: audience.gender,
-            householdIncome: audience.householdIncome,
-            interests: audience.interests,
-            idealCustomers: draft.idealCustomers,
-          });
-          rememberServerVersion(saved.version, saved.id);
-          version = saved.version;
-          draftId = saved.id;
-          const withAudience: GoogleCampaignBuilderDraft = {
-            ...draft,
-            ...audience,
-            currentStep: nextUiStep,
-            savedAt: new Date().toISOString(),
-          };
-          markStepSaved(5, withAudience);
-          applyWorkingCopy(withAudience, nextUiStep);
-          saveGoogleCampaignDraft(businessId, withAudience);
-          flashSaved();
-          setErrors({});
-          return;
-        } else if (step === 6) {
-          const businessType = inferBusinessTypeFromProducts(
-            draft.productsServices,
-            draft.businessType || draft.businessCategory || "Local Business",
-          );
-          const saved = await saveGoogleKeywordsStep(businessId, {
-            draftId,
-            expectedVersion: version,
-            businessType,
-            suggestedKeywords: draft.suggestedKeywords,
-            customKeywords: draft.customKeywords,
-            negativeKeywords: draft.negativeKeywords,
-            keywordMatchType: draft.keywordMatchType,
-            productsServices: draft.productsServices,
-          });
-          rememberServerVersion(saved.version, saved.id);
-          version = saved.version;
-          draftId = saved.id;
-          const withKeywords: GoogleCampaignBuilderDraft = {
-            ...draft,
-            businessType,
-            currentStep: nextUiStep,
-            savedAt: new Date().toISOString(),
-          };
-          markStepSaved(6, withKeywords);
-          applyWorkingCopy(withKeywords, nextUiStep);
-          saveGoogleCampaignDraft(businessId, withKeywords);
-          flashSaved();
-          setErrors({});
-          return;
-        } else if (step === 7) {
-          const saved = await saveGoogleAdsStep(businessId, {
-            draftId,
-            expectedVersion: version,
-            ads: draft.ads,
-            adsGenerated: draft.adsGenerated,
-          });
-          rememberServerVersion(saved.version, saved.id);
-          version = saved.version;
-          draftId = saved.id;
-        } else {
           const saved = await saveGoogleExtrasStep(businessId, {
             draftId,
             expectedVersion: version,
@@ -883,6 +829,79 @@ export function CampaignBuilderWizard({
           rememberServerVersion(saved.version, saved.id);
           version = saved.version;
           draftId = saved.id;
+        } else if (step === 6) {
+          const businessType =
+            draft.businessType ||
+            draft.businessCategory ||
+            "Local Business";
+          const hasKeywords = enabledKeywords(draft).length > 0;
+          const suggestedKeywords = hasKeywords
+            ? draft.suggestedKeywords
+            : toSuggestedKeywords([
+                draft.businessName.trim() ||
+                  draft.campaignName.trim() ||
+                  "local business",
+              ]);
+          const saved = await saveGoogleKeywordsStep(businessId, {
+            draftId,
+            expectedVersion: version,
+            businessType,
+            suggestedKeywords,
+            customKeywords: hasKeywords ? draft.customKeywords : [],
+            negativeKeywords: draft.negativeKeywords,
+            keywordMatchType: draft.keywordMatchType,
+            productsServices: draft.productsServices,
+          });
+          rememberServerVersion(saved.version, saved.id);
+          version = saved.version;
+          draftId = saved.id;
+          const withKeywords: GoogleCampaignBuilderDraft = {
+            ...draft,
+            businessType,
+            suggestedKeywords,
+            customKeywords: hasKeywords ? draft.customKeywords : [],
+            currentStep: nextUiStep,
+            savedAt: new Date().toISOString(),
+          };
+          markStepSaved(6, withKeywords);
+          applyWorkingCopy(withKeywords, nextUiStep);
+          saveGoogleCampaignDraft(businessId, withKeywords);
+          flashSaved();
+          setErrors({});
+          return;
+        } else if (step === 7) {
+          const adsSaved = await saveGoogleAdsStep(businessId, {
+            draftId,
+            expectedVersion: version,
+            ads: draft.ads,
+            adsGenerated: draft.adsGenerated,
+          });
+          rememberServerVersion(adsSaved.version, adsSaved.id);
+          const businessType =
+            draft.businessType ||
+            draft.businessCategory ||
+            "Local Business";
+          const hasKeywords = enabledKeywords(draft).length > 0;
+          const suggestedKeywords = hasKeywords
+            ? draft.suggestedKeywords
+            : toSuggestedKeywords([
+                draft.businessName.trim() ||
+                  draft.campaignName.trim() ||
+                  "local business",
+              ]);
+          const keywordsSaved = await saveGoogleKeywordsStep(businessId, {
+            draftId: adsSaved.id,
+            expectedVersion: adsSaved.version,
+            businessType,
+            suggestedKeywords,
+            customKeywords: draft.customKeywords,
+            negativeKeywords: draft.negativeKeywords,
+            keywordMatchType: draft.keywordMatchType,
+            productsServices: draft.productsServices,
+          });
+          rememberServerVersion(keywordsSaved.version, keywordsSaved.id);
+          version = keywordsSaved.version;
+          draftId = keywordsSaved.id;
         }
 
         void draftId;
@@ -990,6 +1009,26 @@ export function CampaignBuilderWizard({
 
       let publishDraftId = serverDraftId;
       let publishVersion = serverVersion;
+      const infoSync = await saveGoogleCampaignInfoStep(businessId, {
+        draftId: publishDraftId,
+        expectedVersion: publishVersion,
+        campaignName: draft.campaignName,
+        businessName: draft.businessName,
+        websiteUrl: draft.websiteUrl,
+        businessCategory: draft.businessCategory,
+        logoFileName: draft.logoFileName,
+        logoPreviewUrl: draft.logoPreviewUrl,
+        extensionBusinessName:
+          draft.extensionBusinessName || draft.businessName,
+        businessDescription: draft.businessDescription,
+        networkSelection: draft.networkSelection.length
+          ? draft.networkSelection
+          : ["Google Search"],
+      });
+      rememberServerVersion(infoSync.version, infoSync.id);
+      publishDraftId = infoSync.id;
+      publishVersion = infoSync.version;
+
       const locationsSync = await saveGoogleLocationsStep(businessId, {
         draftId: publishDraftId,
         expectedVersion: publishVersion,
@@ -1011,6 +1050,17 @@ export function CampaignBuilderWizard({
       rememberServerVersion(locationsSync.version, locationsSync.id);
       publishDraftId = locationsSync.id;
       publishVersion = locationsSync.version;
+
+      const languagesSync = await saveGoogleLanguagesStep(businessId, {
+        draftId: publishDraftId,
+        expectedVersion: publishVersion,
+        languages: draft.languages,
+        containsEuPoliticalAdvertising:
+          draft.containsEuPoliticalAdvertising === true,
+      });
+      rememberServerVersion(languagesSync.version, languagesSync.id);
+      publishDraftId = languagesSync.id;
+      publishVersion = languagesSync.version;
 
       const result = await publishGoogleCampaignDraft(businessId, {
         draftId: publishDraftId,

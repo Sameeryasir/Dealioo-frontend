@@ -82,6 +82,7 @@ function stepPayload(
           : draft.logoPreviewUrl,
         extensionBusinessName: draft.extensionBusinessName,
         businessDescription: draft.businessDescription,
+        networkSelection: draft.networkSelection,
       };
     case 3:
       return {
@@ -108,14 +109,20 @@ function stepPayload(
         radiusUnit: draft.radiusUnit,
         radiusTargeting: draft.radiusTargeting,
         languages: draft.languages,
+        containsEuPoliticalAdvertising: draft.containsEuPoliticalAdvertising,
       };
     case 5:
       return {
-        idealCustomers: draft.idealCustomers,
-        ageRanges: draft.ageRanges,
-        gender: draft.gender,
-        householdIncome: draft.householdIncome,
-        interests: draft.interests,
+        extensionBusinessName: draft.extensionBusinessName,
+        phoneNumber: draft.phoneNumber,
+        businessAddress: draft.businessAddress,
+        businessHours: draft.businessHours,
+        callouts: draft.callouts,
+        structuredSnippetHeader: draft.structuredSnippetHeader,
+        structuredSnippetValues: draft.structuredSnippetValues,
+        useLocationExtension: draft.useLocationExtension,
+        sitelinks: draft.sitelinks,
+        assetsGenerated: draft.assetsGenerated,
       };
     case 6:
       return {
@@ -130,19 +137,10 @@ function stepPayload(
       return {
         ads: draft.ads,
         adsGenerated: draft.adsGenerated,
-      };
-    case 8:
-      return {
-        extensionBusinessName: draft.extensionBusinessName,
-        phoneNumber: draft.phoneNumber,
-        businessAddress: draft.businessAddress,
-        businessHours: draft.businessHours,
-        callouts: draft.callouts,
-        structuredSnippetHeader: draft.structuredSnippetHeader,
-        structuredSnippetValues: draft.structuredSnippetValues,
-        useLocationExtension: draft.useLocationExtension,
-        sitelinks: draft.sitelinks,
-        assetsGenerated: draft.assetsGenerated,
+        suggestedKeywords: draft.suggestedKeywords,
+        customKeywords: draft.customKeywords,
+        negativeKeywords: draft.negativeKeywords,
+        keywordMatchType: draft.keywordMatchType,
       };
     default:
       return { currentStep: draft.currentStep };
@@ -162,7 +160,7 @@ export function seedSavedStepSnapshots(
 ): Record<number, string> {
   const snapshots: Record<number, string> = {};
   for (const step of completedUiSteps) {
-    if (step >= 1 && step <= 8) {
+    if (step >= 1 && step <= 7) {
       snapshots[step] = getGoogleStepSnapshot(step, draft);
     }
   }

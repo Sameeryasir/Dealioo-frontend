@@ -50,15 +50,20 @@ import {
   estimateMetrics,
   generateAdSuggestions,
   generateCallouts,
+  generateKeywordsFromBusinessAndLanding,
   generateNegativesFromProducts,
   generateSnippetValues,
   inferBusinessTypeFromProducts,
   prefillFromBusinessDescription,
   toSuggestedKeywords,
 } from "@/app/components/google-ads/campaign-builder/auto-generate";
-import { generateGoogleKeywordsWithAi } from "@/app/services/google-ads/generate-google-keywords";
 import { getGoogleAdsBusinessProfile } from "@/app/services/google-ads/get-google-ads-business-profile";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
+import { getSetupAccessToken } from "@/app/lib/auth-session";
+import {
+  clearStoredFunnelEtag,
+  fetchFunnelByCampaignId,
+} from "@/app/services/funnel/get-funnel-by-campaign";
 import { toast } from "sonner";
 import {
   BudgetSlider,
@@ -72,7 +77,6 @@ import {
   StepShell,
   inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
-import { AdvancedOptions } from "@/app/components/google-ads/campaign-builder/AdvancedOptions";
 import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-builder/BusinessLocationPicker";
 import { AccountConversionGoalsPanel } from "@/app/components/google-ads/campaign-builder/SalesConversionGoalsPanel";
 import { LocalVisitsCampaignTypePanel } from "@/app/components/google-ads/campaign-builder/LocalVisitsCampaignTypePanel";
@@ -128,10 +132,6 @@ import {
   resolveCampaignDestinationUrl,
   withSyncedAdFinalUrl,
 } from "@/app/components/google-ads/campaign-builder/destination";
-import {
-  mergeIdealCustomerOptions,
-  suggestIdealCustomers,
-} from "@/app/components/google-ads/campaign-builder/ideal-customer-suggestions";
 
 function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
   const unitLabel = unit === "MILES" ? "miles" : "km";
@@ -157,12 +157,11 @@ const GOAL_ICONS: Record<
 };
 
 const SALES_CHANNEL_ICONS: Record<
-  Extract<SalesChannelId, "WEBSITE" | "PHONE_ORDERS" | "PHYSICAL_STORE">,
+  Extract<SalesChannelId, "WEBSITE" | "PHYSICAL_STORE">,
   LucideIcon
 > = {
   WEBSITE: Globe,
   PHYSICAL_STORE: Store,
-  PHONE_ORDERS: Phone,
 };
 
 function CharCount({ value, max }: { value: string; max: number }) {
@@ -397,7 +396,9 @@ export function StepCampaignDetails({
   const salesChannel: SalesChannelId | null =
     draft.salesChannel === "ONLINE_STORE" || draft.salesChannel === "MULTIPLE"
       ? "WEBSITE"
-      : draft.salesChannel;
+      : draft.salesChannel === "PHONE_ORDERS"
+        ? null
+        : draft.salesChannel;
 
   // Prefill business name from connected Google Ads when this step mounts
   useEffect(() => {
@@ -500,7 +501,9 @@ export function StepCampaignDetails({
       LEAD_CONTACT_OPTIONS.some((option) => option.id === id),
     ) ?? null;
 
-  const selectSalesChannel = (id: SalesChannelId) => {
+  const selectSalesChannel = (
+    id: Extract<SalesChannelId, "WEBSITE" | "PHYSICAL_STORE">,
+  ) => {
     if (id === "WEBSITE") {
       onChange({
         salesChannel: id,
@@ -509,13 +512,6 @@ export function StepCampaignDetails({
           draft.destinationType === "external_website"
             ? draft.destinationType
             : null,
-      });
-      return;
-    }
-    if (id === "PHONE_ORDERS") {
-      onChange({
-        salesChannel: id,
-        ...applyNonUrlDestination("phone"),
       });
       return;
     }
@@ -590,7 +586,7 @@ export function StepCampaignDetails({
               title="How do customers complete a purchase?"
               description="Choose the main way people buy from you."
             />
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {SALES_CHANNEL_OPTIONS.map((option) => {
                 const Icon = SALES_CHANNEL_ICONS[option.id];
                 return (
@@ -638,46 +634,6 @@ export function StepCampaignDetails({
                   })
                 }
               />
-            </Panel>
-          ) : null}
-
-          {salesChannel === "PHONE_ORDERS" ? (
-            <Panel>
-              <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <Field label="Country code" required>
-                  <select
-                    className={inputClass()}
-                    value={draft.phoneCountryCode}
-                    onChange={(e) =>
-                      onChange({ phoneCountryCode: e.target.value })
-                    }
-                  >
-                    {LEAD_PHONE_COUNTRY_CODES.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field
-                  label="Phone number"
-                  required
-                  error={errors.businessPhone}
-                >
-                  <input
-                    className={inputClass(errors.businessPhone)}
-                    value={draft.businessPhone}
-                    onChange={(e) =>
-                      onChange({
-                        businessPhone: e.target.value,
-                        phoneNumber: e.target.value,
-                        ...applyNonUrlDestination("phone"),
-                      })
-                    }
-                    placeholder="555 0100"
-                  />
-                </Field>
-              </div>
             </Panel>
           ) : null}
         </>
@@ -1140,6 +1096,72 @@ export function StepCampaignDetails({
           </Field>
         </Panel>
       ) : null}
+
+      <Panel className="space-y-4">
+        <div>
+          <p className="text-sm font-bold text-[#07111f]">Networks</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Ads always show on Google Search. Choose extra networks below.
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 transition hover:border-[#d2e3fc]">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 shrink-0 rounded border-slate-300 text-[#4285F4] focus:ring-[#4285F4]"
+            checked={draft.networkSelection.includes("Search partners")}
+            onChange={(e) => {
+              const next = new Set(
+                draft.networkSelection.length
+                  ? draft.networkSelection
+                  : ["Google Search"],
+              );
+              next.add("Google Search");
+              if (e.target.checked) next.add("Search partners");
+              else next.delete("Search partners");
+              onChange({ networkSelection: Array.from(next) });
+            }}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[#07111f]">
+              Google Search Partners Network{" "}
+              <span className="font-medium text-slate-400">(recommended)</span>
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+              Ads can appear near Google Search results and on other Google
+              Search Partner websites when people search for terms relevant to
+              your keywords.
+            </span>
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4 transition hover:border-[#d2e3fc]">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 shrink-0 rounded border-slate-300 text-[#4285F4] focus:ring-[#4285F4]"
+            checked={draft.networkSelection.includes("Display Network")}
+            onChange={(e) => {
+              const next = new Set(
+                draft.networkSelection.length
+                  ? draft.networkSelection
+                  : ["Google Search"],
+              );
+              next.add("Google Search");
+              if (e.target.checked) next.add("Display Network");
+              else next.delete("Display Network");
+              onChange({ networkSelection: Array.from(next) });
+            }}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[#07111f]">
+              Google Display Network{" "}
+              <span className="font-medium text-slate-400">(recommended)</span>
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+              Ads can appear on relevant sites, videos, and apps across Google
+              (like YouTube) and the Internet when you have leftover budget.
+            </span>
+          </span>
+        </label>
+      </Panel>
     </StepShell>
   );
 }
@@ -1150,7 +1172,7 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
       step={3}
       total={TOTAL_WIZARD_STEPS}
       title="Set up your budget"
-      description="Set a daily budget you're comfortable with. Advanced Google settings stay hidden unless you need them."
+      description="Set a daily budget you're comfortable with."
     >
       <div className="space-y-4">
         <BudgetSlider
@@ -1197,8 +1219,6 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
           </div>
         </Field>
       </Panel>
-
-      <AdvancedOptions draft={draft} onChange={onChange} />
     </StepShell>
   );
 }
@@ -1543,145 +1563,84 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
           placeholder="Search any language…"
         />
       </Panel>
-    </StepShell>
-  );
-}
 
-export function StepTargetCustomers({
-  businessId,
-  draft,
-  errors,
-  onChange,
-}: StepProps) {
-  const [customText, setCustomText] = useState("");
-  const { data: businessProfile } = useBusinessByIdQuery(businessId);
-
-  const suggestionResult = useMemo(
-    () =>
-      suggestIdealCustomers({
-        businessName: draft.businessName || businessProfile?.name || "",
-        businessCategory: draft.businessCategory,
-        businessType: draft.businessType,
-        businessDescription:
-          draft.businessDescription || businessProfile?.description || "",
-        productsServices: draft.productsServices,
-        goal: draft.goal,
-      }),
-    [
-      businessProfile?.description,
-      businessProfile?.name,
-      draft.businessCategory,
-      draft.businessDescription,
-      draft.businessName,
-      draft.businessType,
-      draft.goal,
-      draft.productsServices,
-    ],
-  );
-
-  const displayOptions = useMemo(
-    () =>
-      mergeIdealCustomerOptions(
-        suggestionResult.suggestions,
-        draft.idealCustomers,
-      ),
-    [draft.idealCustomers, suggestionResult.suggestions],
-  );
-
-  const applyIdealCustomers = (idealCustomers: string[]) => {
-    onChange({ idealCustomers });
-  };
-
-  const addCustom = () => {
-    const value = customText.trim().replace(/\s+/g, " ");
-    if (!value) return;
-    const exists = draft.idealCustomers.some(
-      (item) => item.toLowerCase() === value.toLowerCase(),
-    );
-    if (exists) {
-      setCustomText("");
-      return;
-    }
-    applyIdealCustomers([...draft.idealCustomers, value]);
-    setCustomText("");
-  };
-
-  const suggestionHeading = suggestionResult.isFallback
-    ? "Suggested for your business"
-    : `Suggested for ${suggestionResult.label}`;
-
-  return (
-    <StepShell
-      step={5}
-      total={TOTAL_WIZARD_STEPS}
-      title="Who are you trying to reach?"
-      description="Tell us about your ideal customers. Dealioo will use this to improve your campaign recommendations."
-    >
-      <Panel className="space-y-5">
-        {/* Suggested audiences — soft blue icon matches Budget / Locations fields */}
-        <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <Users className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-3">
-            <p className="text-sm font-bold text-[#07111f]">{suggestionHeading}</p>
-            <ChipToggleGroup
-              options={displayOptions}
-              values={draft.idealCustomers}
-              onChange={applyIdealCustomers}
-            />
-            {errors.idealCustomers ? (
-              <p className="text-sm font-medium text-red-500">
-                {errors.idealCustomers}
+      <Panel className="space-y-4">
+        <div>
+          <p className="text-sm font-bold text-[#07111f]">EU political ads</p>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <div>
+            <p className="text-sm text-[#07111f]">
+              Does your campaign have European Union political ads?
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Required</p>
+            <fieldset className="mt-4 space-y-3">
+              <legend className="sr-only">EU political ads</legend>
+              {(
+                [
+                  {
+                    id: true as const,
+                    label: "Yes, this campaign has EU political ads",
+                  },
+                  {
+                    id: false as const,
+                    label: "No, this campaign doesn't have EU political ads",
+                  },
+                ] as const
+              ).map((option) => {
+                const selected =
+                  draft.containsEuPoliticalAdvertising === option.id;
+                return (
+                  <label
+                    key={String(option.id)}
+                    className="flex cursor-pointer items-center gap-3"
+                  >
+                    <span className="relative flex size-4 shrink-0 items-center justify-center">
+                      <input
+                        type="radio"
+                        name="eu-political-ads"
+                        checked={selected}
+                        onChange={() =>
+                          onChange({
+                            containsEuPoliticalAdvertising: option.id,
+                          })
+                        }
+                        className="sr-only"
+                      />
+                      <span
+                        className={`size-4 rounded-full border-2 ${
+                          selected ? "border-[#4285F4]" : "border-slate-400"
+                        }`}
+                      />
+                      {selected ? (
+                        <span className="absolute size-2 rounded-full bg-[#4285F4]" />
+                      ) : null}
+                    </span>
+                    <span className="text-sm text-[#07111f]">{option.label}</span>
+                  </label>
+                );
+              })}
+            </fieldset>
+            {errors.containsEuPoliticalAdvertising ? (
+              <p className="mt-3 text-sm font-medium text-red-500">
+                {errors.containsEuPoliticalAdvertising}
               </p>
             ) : null}
           </div>
-        </div>
-
-        {/* Custom customer type — same icon + input + Add row as the mockup */}
-        <div className="flex gap-3 border-t border-[#e8edf5] pt-5">
-          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <Plus className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="text-sm font-bold text-[#07111f]">
-              + Add custom customer type
-            </p>
-            <div className="flex gap-2">
-              <input
-                className={inputClass()}
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                placeholder="e.g. First-time home buyers"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addCustom();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={addCustom}
-                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
-              >
-                <Plus className="size-3.5" aria-hidden />
-                Add
-              </button>
-            </div>
-          </div>
+          <p className="border-t border-[#e8edf5] pt-4 text-sm leading-relaxed text-slate-500 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            EU regulation requires Google to ask this question.{" "}
+            <a
+              href="https://support.google.com/google-ads/answer/14118769"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[#4285F4] hover:underline"
+            >
+              Learn how an EU political ad is defined
+            </a>
+            .
+          </p>
         </div>
       </Panel>
-
-      <div className="flex gap-3 rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4]">
-          <Info className="size-4" aria-hidden />
-        </span>
-        <p className="text-sm leading-relaxed text-slate-500">
-          Dealioo will use your selections to improve keywords, ad content, and
-          audience recommendations.
-        </p>
-      </div>
     </StepShell>
   );
 }
@@ -1692,45 +1651,101 @@ export function StepProductsServices({
   errors,
   onChange,
 }: StepProps) {
-  const [text, setText] = useState("");
+  const { data: businessProfile } = useBusinessByIdQuery(businessId);
   const [generating, setGenerating] = useState(false);
+  const didAutoGenerate = useRef(false);
 
-  const addProducts = (raw: string) => {
-    const parts = raw
-      .split(/[,|\n]+/)
-      .map((part) => part.trim().replace(/\s+/g, " "))
-      .filter(Boolean);
-    if (parts.length === 0) return;
+  const businessDescription =
+    draft.businessDescription.trim() ||
+    businessProfile?.description?.trim() ||
+    "";
 
-    const next = [...draft.productsServices];
-    for (const part of parts) {
-      const exists = next.some(
-        (item) => item.toLowerCase() === part.toLowerCase(),
-      );
-      if (!exists) next.push(part);
+  const loadLandingCopy = async (): Promise<{
+    headline: string;
+    subheadline: string;
+    body: string;
+  }> => {
+    const campaignId = draft.selectedFunnelId;
+    if (
+      draft.destinationType !== "dealioo_funnel" ||
+      !campaignId ||
+      campaignId < 1
+    ) {
+      return { headline: "", subheadline: "", body: "" };
     }
-    if (next.length === draft.productsServices.length) {
-      setText("");
+
+    let remote = await fetchFunnelByCampaignId(
+      getSetupAccessToken(),
+      campaignId,
+    );
+    if (remote === "not-modified") {
+      clearStoredFunnelEtag(campaignId);
+      remote = await fetchFunnelByCampaignId(
+        getSetupAccessToken(),
+        campaignId,
+      );
+    }
+    if (!remote || remote === "not-modified") {
+      return { headline: "", subheadline: "", body: "" };
+    }
+    const landing = remote.pages?.landing;
+    return {
+      headline: landing?.headline?.trim() || "",
+      subheadline: landing?.subheadline?.trim() || "",
+      body: landing?.body?.trim() || "",
+    };
+  };
+
+  const runGenerate = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const landing = await loadLandingCopy();
+      const keywords = generateKeywordsFromBusinessAndLanding({
+        businessDescription,
+        landingHeadline: landing.headline,
+        landingSubheadline: landing.subheadline,
+        landingBody: landing.body,
+        businessName: draft.businessName || draft.extensionBusinessName,
+      });
+      onChange({
+        businessDescription:
+          draft.businessDescription.trim() || businessDescription,
+        businessType:
+          draft.businessType ||
+          draft.businessCategory ||
+          inferBusinessTypeFromProducts(
+            draft.productsServices,
+            "Local Business",
+          ),
+        suggestedKeywords: keywords,
+        negativeKeywords:
+          draft.negativeKeywords.length > 0
+            ? draft.negativeKeywords
+            : generateNegativesFromProducts([]),
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not generate keywords. Please try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (didAutoGenerate.current) return;
+    if (draft.suggestedKeywords.length > 0) {
+      didAutoGenerate.current = true;
       return;
     }
-
-    onChange({
-      productsServices: next,
-      businessType: inferBusinessTypeFromProducts(next, draft.businessType),
-    });
-    setText("");
-  };
-
-  const removeProduct = (value: string) => {
-    const next = draft.productsServices.filter((item) => item !== value);
-    onChange({
-      productsServices: next,
-      businessType: inferBusinessTypeFromProducts(next, draft.businessType),
-      ...(next.length === 0
-        ? { suggestedKeywords: [], negativeKeywords: [] }
-        : {}),
-    });
-  };
+    didAutoGenerate.current = true;
+    void runGenerate();
+    // Auto-generate once when the step opens with no keywords yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const removeNegative = (value: string) => {
     onChange({
@@ -1738,117 +1753,13 @@ export function StepProductsServices({
     });
   };
 
-  const runGenerate = async () => {
-    if (draft.productsServices.length === 0 || generating) return;
-    setGenerating(true);
-    try {
-      const result = await generateGoogleKeywordsWithAi(businessId, {
-        productsServices: draft.productsServices,
-        businessName: draft.businessName || draft.extensionBusinessName,
-        businessCategory: draft.businessCategory,
-        goal: draft.goal,
-        goalLabel:
-          GOAL_OPTIONS.find((option) => option.id === draft.goal)?.title ??
-          draft.goal ??
-          undefined,
-        idealCustomers: draft.idealCustomers,
-        ageRanges: draft.ageRanges,
-        gender: draft.gender,
-        interests: draft.interests,
-      });
-      const keywords = toSuggestedKeywords(result.keywords).slice(0, 7);
-      if (keywords.length === 0) {
-        toast.error("AI returned no keywords. Try again.");
-        return;
-      }
-      onChange({
-        businessType: inferBusinessTypeFromProducts(
-          draft.productsServices,
-          draft.businessType,
-        ),
-        suggestedKeywords: keywords,
-        negativeKeywords:
-          result.negativeKeywords.length > 0
-            ? result.negativeKeywords
-            : generateNegativesFromProducts(draft.productsServices),
-      });
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Could not generate keywords with AI. Please try again.",
-      );
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   return (
     <StepShell
       step={6}
       total={TOTAL_WIZARD_STEPS}
-      title="What products or services would you like to promote?"
-      description="Add what you sell — then generate keywords Dealioo can use for your ads."
+      title="Choose your keywords"
+      description="Keywords are generated from your business description and funnel landing page."
     >
-      <Panel className="space-y-4">
-        {/* Products / services — soft blue icon matches other builder steps */}
-        <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <ShoppingBag className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <div>
-              <p className="text-sm font-bold text-[#07111f]">
-                Products or services
-                <span className="text-red-500"> *</span>
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Add one or many. Multi-word names are fine (e.g. Air Conditioning
-                Installation). Separate several with commas.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <input
-                className={inputClass(errors.productsServices)}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="e.g. Catering, Private dining"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addProducts(text);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => addProducts(text)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
-              >
-                <Plus className="size-3.5" aria-hidden />
-                Add
-              </button>
-            </div>
-            {errors.productsServices ? (
-              <p className="text-xs font-medium text-red-500">
-                {errors.productsServices}
-              </p>
-            ) : null}
-            {draft.productsServices.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {draft.productsServices.map((item) => (
-                  <RemovableChip
-                    key={item}
-                    label={item}
-                    onRemove={() => removeProduct(item)}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </Panel>
-
       <Panel className="space-y-4">
         <div className="flex gap-3">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
@@ -1866,7 +1777,7 @@ export function StepProductsServices({
               </div>
               <button
                 type="button"
-                disabled={draft.productsServices.length === 0 || generating}
+                disabled={generating}
                 onClick={() => void runGenerate()}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
@@ -1941,7 +1852,9 @@ export function StepProductsServices({
               <Tag className="size-4" aria-hidden />
             </span>
             <p className="text-sm text-slate-500">
-              Add a product or service above, then generate suggestions.
+              {generating
+                ? "Generating keywords from your business description and landing page…"
+                : "No keywords yet. Click Generate Keywords to create suggestions."}
             </p>
           </div>
         )}
@@ -1995,7 +1908,8 @@ function padAdSlots(values: string[], min: number, max: number): string[] {
 }
 
 export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
-  const [changingDestination, setChangingDestination] = useState(false);
+  const [keywordDraft, setKeywordDraft] = useState("");
+  const didMergeCustomKeywords = useRef(false);
 
   useEffect(() => {
     if (!draft.adsGenerated) {
@@ -2066,8 +1980,25 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
   const isFunnelDestination = draft.destinationType === "dealioo_funnel";
   const isExternalDestination = draft.destinationType === "external_website";
   const usesLandingUrl = isFunnelDestination || isExternalDestination;
-  const showLandingEditor =
-    changingDestination || (!isFunnelDestination && usesLandingUrl);
+
+  const displayLandingUrl = (() => {
+    const raw = (destinationUrl || ad.finalUrl || "").trim();
+    if (!raw) return "";
+    try {
+      const parsed = new URL(raw);
+      const host = parsed.hostname.replace(/^www\./, "");
+      const path =
+        parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/$/, "");
+      const short = `${host}${path}`;
+      return short.length > 48 ? `${short.slice(0, 45)}…` : short;
+    } catch {
+      const stripped = raw
+        .replace(/^https?:\/\//i, "")
+        .replace(/^www\./i, "")
+        .split("?")[0];
+      return stripped.length > 48 ? `${stripped.slice(0, 45)}…` : stripped;
+    }
+  })();
 
   const regenerate = () => {
     const next = generateAdSuggestions(draft);
@@ -2085,12 +2016,63 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
     });
   };
 
+  const addCustomKeywords = (raw: string) => {
+    const parts = raw
+      .split(/[,|\n]+/)
+      .map((part) => part.trim().replace(/\s+/g, " "))
+      .filter(Boolean);
+    if (parts.length === 0) return;
+
+    const existing = new Set(
+      draft.suggestedKeywords.map((row) => row.text.toLowerCase()),
+    );
+    const toAdd = parts.filter((part) => !existing.has(part.toLowerCase()));
+    if (toAdd.length === 0) {
+      setKeywordDraft("");
+      return;
+    }
+
+    onChange({
+      suggestedKeywords: [
+        ...draft.suggestedKeywords,
+        ...toSuggestedKeywords(toAdd),
+      ],
+      customKeywords: draft.customKeywords.filter(
+        (word) =>
+          !toAdd.some((part) => part.toLowerCase() === word.toLowerCase()),
+      ),
+    });
+    setKeywordDraft("");
+  };
+
+  useEffect(() => {
+    if (didMergeCustomKeywords.current) return;
+    if (draft.customKeywords.length === 0) {
+      didMergeCustomKeywords.current = true;
+      return;
+    }
+    didMergeCustomKeywords.current = true;
+    const existing = new Set(
+      draft.suggestedKeywords.map((row) => row.text.toLowerCase()),
+    );
+    const toMerge = draft.customKeywords.filter(
+      (word) => word.trim() && !existing.has(word.trim().toLowerCase()),
+    );
+    onChange({
+      suggestedKeywords:
+        toMerge.length > 0
+          ? [...draft.suggestedKeywords, ...toSuggestedKeywords(toMerge)]
+          : draft.suggestedKeywords,
+      customKeywords: [],
+    });
+  }, [draft.customKeywords, draft.suggestedKeywords, onChange]);
+
   return (
     <StepShell
       step={7}
       total={TOTAL_WIZARD_STEPS}
       title="Let's create your ad"
-      description="We suggested headlines and descriptions from your earlier answers. Edit anything before publishing."
+      description="We suggested headlines, descriptions, and keywords from your earlier answers. Edit anything before publishing."
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Panel className="space-y-5">
@@ -2101,88 +2083,40 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
                   <Link2 className="size-5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-[#07111f]">
-                        Landing page
+                  <p className="text-sm font-bold text-[#07111f]">
+                    Landing page
+                  </p>
+                  {isFunnelDestination ? (
+                    <>
+                      <p className="mt-1 truncate text-sm font-semibold text-[#07111f]">
+                        {draft.selectedFunnelName || "Dealioo Funnel"}
                       </p>
-                      {isFunnelDestination ? (
-                        <>
-                          <p className="mt-1 text-sm font-semibold text-[#07111f]">
-                            {draft.selectedFunnelName || "Dealioo Funnel"}
-                          </p>
-                          <p className="mt-0.5 break-all text-xs text-slate-500">
-                            {destinationUrl || ad.finalUrl}
-                          </p>
-                          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
-                            <Check className="size-3" aria-hidden />
-                            Connected
-                          </p>
-                        </>
-                      ) : (
-                        <p className="mt-1 break-all text-xs text-slate-500">
-                          {destinationUrl || ad.finalUrl || "Add a website URL"}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setChangingDestination((v) => !v)}
-                      className="text-xs font-bold text-[#4285F4] hover:underline"
+                      <p
+                        className="mt-0.5 truncate text-xs text-slate-500"
+                        title={destinationUrl || ad.finalUrl}
+                      >
+                        {displayLandingUrl || "Funnel connected"}
+                      </p>
+                      <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+                        <Check className="size-3" aria-hidden />
+                        Connected
+                      </p>
+                    </>
+                  ) : (
+                    <p
+                      className="mt-1 truncate text-xs text-slate-500"
+                      title={destinationUrl || ad.finalUrl}
                     >
-                      {changingDestination ? "Done" : "Change destination"}
-                    </button>
-                  </div>
+                      {displayLandingUrl || "Add a website URL"}
+                    </p>
+                  )}
+                  {errors.finalUrl ? (
+                    <p className="mt-2 text-sm font-medium text-red-500">
+                      {errors.finalUrl}
+                    </p>
+                  ) : null}
                 </div>
               </div>
-
-              {showLandingEditor ? (
-                isFunnelDestination ? (
-                  <DestinationPicker
-                    businessId={businessId}
-                    draft={draft}
-                    errors={errors}
-                    onChange={(patch) => {
-                      onChange(withSyncedAdFinalUrl(draft, patch));
-                    }}
-                  />
-                ) : (
-                  <div className="flex gap-3">
-                    <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-                      <Globe className="size-5" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <Field
-                        label="Website URL"
-                        required
-                        error={errors.finalUrl}
-                      >
-                        <input
-                          className={inputClass(errors.finalUrl)}
-                          value={ad.finalUrl || draft.websiteUrl}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            onChange(
-                              withSyncedAdFinalUrl(draft, {
-                                destinationType: "external_website",
-                                websiteUrl: value,
-                                landingPageUrl: value,
-                                ads: [{ ...ad, finalUrl: value }],
-                              }),
-                            );
-                          }}
-                          placeholder="https://…"
-                        />
-                      </Field>
-                    </div>
-                  </div>
-                )
-              ) : null}
-              {errors.finalUrl && !showLandingEditor ? (
-                <p className="text-sm font-medium text-red-500">
-                  {errors.finalUrl}
-                </p>
-              ) : null}
             </div>
           ) : (
             <div className="space-y-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4">
@@ -2222,6 +2156,118 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
               </div>
             </div>
           )}
+
+          <div className="space-y-4 border-t border-[#e8edf5] pt-5">
+            <div className="flex gap-3">
+              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
+                <Tag className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-[#07111f]">Keywords</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Suggested from your business description and landing page.
+                  Toggle any off, or add your own.
+                </p>
+              </div>
+            </div>
+
+            {draft.suggestedKeywords.length > 0 ? (
+              <div className="space-y-2">
+                {draft.suggestedKeywords.map((keyword) => (
+                  <div
+                    key={keyword.id}
+                    className="flex items-center gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5"
+                  >
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={keyword.enabled}
+                      onClick={() =>
+                        onChange({
+                          suggestedKeywords: draft.suggestedKeywords.map((k) =>
+                            k.id === keyword.id
+                              ? { ...k, enabled: !k.enabled }
+                              : k,
+                          ),
+                        })
+                      }
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                        keyword.enabled ? "bg-[#4285F4]" : "bg-slate-200"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition ${
+                          keyword.enabled ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span
+                      className={`min-w-0 flex-1 text-sm font-semibold ${
+                        keyword.enabled
+                          ? "text-[#07111f]"
+                          : "text-slate-400 line-through"
+                      }`}
+                    >
+                      {keyword.text}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Remove keyword"
+                      onClick={() =>
+                        onChange({
+                          suggestedKeywords: draft.suggestedKeywords.filter(
+                            (k) => k.id !== keyword.id,
+                          ),
+                        })
+                      }
+                      className="text-slate-400 transition hover:text-red-500"
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-3">
+                <p className="text-sm text-slate-500">
+                  No suggested keywords yet. Add your own below, or go back to
+                  the Keywords step to generate them.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                className={inputClass(errors.keywords)}
+                value={keywordDraft}
+                onChange={(e) => setKeywordDraft(e.target.value)}
+                placeholder="Add your own keyword"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomKeywords(keywordDraft);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => addCustomKeywords(keywordDraft)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add
+              </button>
+            </div>
+            {errors.keywords ? (
+              <p className="text-xs font-medium text-red-500">
+                {errors.keywords}
+              </p>
+            ) : null}
+            <p className="text-xs text-slate-500">
+              {enabledKeywords(draft).length} keyword
+              {enabledKeywords(draft).length === 1 ? "" : "s"} selected
+            </p>
+          </div>
 
           {/* Headlines */}
           <div className="space-y-4 border-t border-[#e8edf5] pt-5">
@@ -2416,9 +2462,30 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepBusinessDetails({ draft, onChange }: StepProps) {
-  const [editingBusinessInfo, setEditingBusinessInfo] = useState(false);
-  const [calloutDraft, setCalloutDraft] = useState("");
+export function StepBusinessDetails({
+  businessId,
+  draft,
+  onChange,
+}: StepProps) {
+  const { data: businessProfile } = useBusinessByIdQuery(businessId);
+  const [landingLoading, setLandingLoading] = useState(false);
+  const [landingError, setLandingError] = useState<string | null>(null);
+  const [landingContent, setLandingContent] = useState<{
+    headline: string;
+    subheadline: string;
+    body: string;
+  } | null>(null);
+
+  const businessDescription =
+    draft.businessDescription.trim() ||
+    businessProfile?.description?.trim() ||
+    "";
+
+  const funnelUrl = (
+    draft.landingPageUrl ||
+    draft.websiteUrl ||
+    ""
+  ).trim();
 
   useEffect(() => {
     if (draft.assetsGenerated) return;
@@ -2437,232 +2504,182 @@ export function StepBusinessDetails({ draft, onChange }: StepProps) {
     });
   }, [draft, draft.assetsGenerated, onChange]);
 
-  const phoneReady = Boolean(draft.phoneNumber.trim() || draft.businessPhone.trim());
-  const addressReady = Boolean(draft.businessAddress.trim());
-  const hoursReady = Boolean(draft.businessHours.trim());
+  useEffect(() => {
+    const profileDescription = businessProfile?.description?.trim() || "";
+    if (!profileDescription) return;
+    if (draft.businessDescription.trim()) return;
+    onChange({ businessDescription: profileDescription });
+  }, [
+    businessProfile?.description,
+    draft.businessDescription,
+    onChange,
+  ]);
 
-  const addCallout = () => {
-    const next = calloutDraft.trim().slice(0, 25);
-    if (!next || draft.callouts.includes(next)) return;
-    onChange({ callouts: [...draft.callouts, next] });
-    setCalloutDraft("");
-  };
+  useEffect(() => {
+    const campaignId = draft.selectedFunnelId;
+    if (
+      draft.destinationType !== "dealioo_funnel" ||
+      !campaignId ||
+      campaignId < 1
+    ) {
+      setLandingContent(null);
+      setLandingError(null);
+      setLandingLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLandingLoading(true);
+    setLandingError(null);
+
+    void (async () => {
+      try {
+        let remote = await fetchFunnelByCampaignId(
+          getSetupAccessToken(),
+          campaignId,
+        );
+        if (remote === "not-modified") {
+          clearStoredFunnelEtag(campaignId);
+          remote = await fetchFunnelByCampaignId(
+            getSetupAccessToken(),
+            campaignId,
+          );
+        }
+        if (cancelled) return;
+        if (!remote || remote === "not-modified") {
+          setLandingContent(null);
+          setLandingError(
+            "No funnel landing page found for this destination.",
+          );
+          return;
+        }
+        const landing = remote.pages?.landing;
+        setLandingContent({
+          headline: landing?.headline?.trim() || "",
+          subheadline: landing?.subheadline?.trim() || "",
+          body: landing?.body?.trim() || "",
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setLandingContent(null);
+        setLandingError(
+          error instanceof Error
+            ? error.message
+            : "Could not load funnel landing page content.",
+        );
+      } finally {
+        if (!cancelled) setLandingLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.destinationType, draft.selectedFunnelId]);
 
   return (
     <StepShell
-      step={8}
+      step={5}
       total={TOTAL_WIZARD_STEPS}
       title="Enhance your ad"
-      description="Add short benefits that can appear with your ad. Business details are loaded from your profile."
+      description="Keywords will be generated on the basis of this information."
     >
       <Panel className="space-y-4">
         <div className="flex gap-3">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <Building2 className="size-5" aria-hidden />
+            <FileText className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-[#07111f]">
-                  Business information
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Used for call extensions and location details.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingBusinessInfo((v) => !v)}
-                className="shrink-0 text-xs font-bold text-[#4285F4] hover:underline"
-              >
-                {editingBusinessInfo ? "Done" : "Edit"}
-              </button>
-            </div>
+            <p className="text-sm font-bold text-[#07111f]">
+              Business description
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Loaded from your business profile.
+            </p>
+            <p className="mt-3 whitespace-pre-wrap text-sm font-normal leading-relaxed text-[#334155]">
+              {businessDescription || "No business description set yet."}
+            </p>
           </div>
         </div>
-
-        {!editingBusinessInfo ? (
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {(
-              [
-                {
-                  label: "Phone",
-                  value:
-                    draft.phoneNumber || draft.businessPhone || "Not set",
-                  ready: phoneReady,
-                  Icon: Phone,
-                  iconWrap: "bg-[#ecfdf5]",
-                  iconColor: "text-emerald-600",
-                },
-                {
-                  label: "Address",
-                  value: draft.businessAddress || "Not set",
-                  ready: addressReady,
-                  Icon: MapPin,
-                  iconWrap: "bg-[#eff6ff]",
-                  iconColor: "text-[#4285F4]",
-                },
-                {
-                  label: "Business Hours",
-                  value: draft.businessHours || "Not set",
-                  ready: hoursReady,
-                  Icon: Clock,
-                  iconWrap: "bg-[#fff7ed]",
-                  iconColor: "text-orange-500",
-                },
-              ] as const
-            ).map(({ label, value, ready, Icon, iconWrap, iconColor }) => (
-              <div
-                key={label}
-                className="flex gap-3 rounded-2xl border border-[#e8edf5] bg-white px-4 py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.03)]"
-              >
-                <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconWrap} ${iconColor}`}
-                >
-                  <Icon className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-                    {label}
-                    {ready ? (
-                      <Check className="size-3 text-emerald-600" aria-hidden />
-                    ) : null}
-                  </p>
-                  <p
-                    className={`mt-1 break-words text-sm font-semibold leading-snug ${
-                      ready ? "text-[#07111f]" : "text-slate-400"
-                    }`}
-                  >
-                    {value}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4 border-t border-[#e8edf5] pt-4">
-            <div className="flex gap-3">
-              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-emerald-600">
-                <Phone className="size-5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <Field label="Phone number">
-                  <input
-                    className={inputClass()}
-                    value={draft.phoneNumber}
-                    onChange={(e) =>
-                      onChange({
-                        phoneNumber: e.target.value,
-                        businessPhone: e.target.value,
-                      })
-                    }
-                    placeholder="+1 555 0100"
-                  />
-                </Field>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] text-[#4285F4]">
-                <MapPin className="size-5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <Field label="Business address">
-                  <input
-                    className={inputClass()}
-                    value={draft.businessAddress}
-                    onChange={(e) =>
-                      onChange({ businessAddress: e.target.value })
-                    }
-                    placeholder="123 Main Street"
-                  />
-                </Field>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#fff7ed] text-orange-500">
-                <Clock className="size-5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <SearchableSelect
-                  label="Business hours"
-                  options={[
-                    "Open 24/7",
-                    "Mon–Fri 9am–5pm",
-                    "Mon–Sat 10am–8pm",
-                    "Weekends only",
-                    "By appointment",
-                  ]}
-                  value={draft.businessHours}
-                  onChange={(businessHours) => onChange({ businessHours })}
-                  placeholder="Select hours"
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </Panel>
 
       <Panel className="space-y-4">
         <div className="flex gap-3">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <Megaphone className="size-5" aria-hidden />
+            <Link2 className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1 space-y-3">
             <div>
-              <p className="text-sm font-bold text-[#07111f]">Callouts</p>
+              <p className="text-sm font-bold text-[#07111f]">
+                Funnel landing page
+              </p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Add short benefits that can appear with your ad.
+                Content from the funnel URL used for this campaign.
               </p>
             </div>
-            <ChipToggleGroup
-              options={draft.callouts}
-              values={draft.callouts}
-              onChange={(callouts) => onChange({ callouts })}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex min-w-[220px] flex-1 gap-2">
-                <input
-                  className={inputClass()}
-                  value={calloutDraft}
-                  maxLength={25}
-                  onChange={(e) => setCalloutDraft(e.target.value)}
-                  placeholder="e.g. Free Consultation"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCallout();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={addCallout}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8]"
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                  Add
-                </button>
+
+            {funnelUrl ? (
+              <p className="truncate text-xs font-normal text-[#4285F4]">
+                {funnelUrl.replace(/^https?:\/\//i, "").replace(/^www\./i, "")}
+              </p>
+            ) : (
+              <p className="text-xs font-normal text-slate-400">
+                No funnel URL selected yet. Choose a funnel in Campaign Setup.
+              </p>
+            )}
+
+            {landingLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Loading landing page content…
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  onChange({
-                    callouts: generateCallouts(
-                      draft.businessType ||
-                        inferBusinessTypeFromProducts(
-                          draft.productsServices,
-                          "Local Business",
-                        ),
-                    ),
-                  })
-                }
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4285F4] transition hover:text-[#1a73e8]"
-              >
-                <Sparkles className="size-4" aria-hidden />
-                Refresh suggestions
-              </button>
-            </div>
+            ) : landingError ? (
+              <p className="text-sm font-normal text-red-500">{landingError}</p>
+            ) : landingContent ? (
+              <div className="space-y-3 rounded-2xl border border-[#e8edf5] bg-[#f8fbff] px-4 py-4">
+                {landingContent.headline ? (
+                  <div>
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Headline
+                    </p>
+                    <p className="mt-1 text-base font-normal text-[#07111f]">
+                      {landingContent.headline}
+                    </p>
+                  </div>
+                ) : null}
+                {landingContent.subheadline ? (
+                  <div>
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Subheadline
+                    </p>
+                    <p className="mt-1 text-sm font-normal text-[#334155]">
+                      {landingContent.subheadline}
+                    </p>
+                  </div>
+                ) : null}
+                {landingContent.body ? (
+                  <div>
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Description
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm font-normal leading-relaxed text-[#334155]">
+                      {landingContent.body}
+                    </p>
+                  </div>
+                ) : null}
+                {!landingContent.headline &&
+                !landingContent.subheadline &&
+                !landingContent.body ? (
+                  <p className="text-sm font-normal text-slate-400">
+                    Landing page content is empty.
+                  </p>
+                ) : null}
+              </div>
+            ) : draft.destinationType !== "dealioo_funnel" ? (
+              <p className="text-sm font-normal text-slate-400">
+                Select a Dealioo funnel to preview its landing page content.
+              </p>
+            ) : null}
           </div>
         </div>
       </Panel>
@@ -2729,7 +2746,6 @@ export function StepReviewPublish({
   publishStep,
   publishError,
   publishSuccess,
-  onChange,
 }: {
   draft: GoogleCampaignBuilderDraft;
   onEditStep: (step: number) => void;
@@ -2739,7 +2755,6 @@ export function StepReviewPublish({
   publishStep: string | null;
   publishError: string | null;
   publishSuccess: boolean;
-  onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
 }) {
   const goalTitle =
     GOAL_OPTIONS.find((g) => g.id === draft.goal)?.title ?? "Not set";
@@ -2795,7 +2810,7 @@ export function StepReviewPublish({
 
   return (
     <StepShell
-      step={9}
+      step={8}
       total={TOTAL_WIZARD_STEPS}
       title={hasPublishFailure ? "Publish did not finish" : "Ready to launch?"}
       description={
@@ -3022,18 +3037,27 @@ export function StepReviewPublish({
                 onEdit={() => onEditStep(4)}
               />
               <ReviewRow
-                icon={Users}
-                label="Customers"
-                value={draft.idealCustomers.join(", ") || "Not set"}
+                icon={FileText}
+                label="Business & landing"
+                value={
+                  draft.businessDescription.trim() ||
+                  "No business description yet"
+                }
+                detail={
+                  draft.selectedFunnelName.trim() ||
+                  draft.landingPageUrl.trim() ||
+                  undefined
+                }
                 onEdit={() => onEditStep(5)}
               />
               <ReviewRow
-                icon={ShoppingBag}
-                label="Products & keywords"
+                icon={Tag}
+                label="Keywords"
                 value={
-                  draft.productsServices.join(", ") || "No products added"
+                  keywords.length > 0
+                    ? `${keywords.length} keyword${keywords.length === 1 ? "" : "s"} selected`
+                    : "No keywords selected"
                 }
-                detail={`${keywords.length} keyword${keywords.length === 1 ? "" : "s"} selected`}
                 onEdit={() => onEditStep(6)}
               >
                 {keywords.length > 0 ? (
@@ -3059,22 +3083,6 @@ export function StepReviewPublish({
                 label="Ad copy"
                 value={`${headlineCount} headline${headlineCount === 1 ? "" : "s"} · ${descriptionCount} description${descriptionCount === 1 ? "" : "s"}`}
                 onEdit={() => onEditStep(7)}
-              />
-              <ReviewRow
-                icon={Phone}
-                label="Enhancements"
-                value={
-                  [
-                    draft.phoneNumber || draft.businessPhone || null,
-                    draft.callouts.length
-                      ? `${draft.callouts.length} callouts`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "No extras yet"
-                }
-                detail={draft.businessAddress || undefined}
-                onEdit={() => onEditStep(8)}
               />
             </div>
           </Panel>
@@ -3123,9 +3131,6 @@ export function StepReviewPublish({
             </Panel>
           </aside>
         </div>
-
-        {/* Full-width below checklist + preview — avoids cramped sidebar 2-col fields */}
-        <AdvancedOptions draft={draft} onChange={onChange} />
       </div>
     </StepShell>
   );
@@ -3220,18 +3225,15 @@ export function renderCampaignBuilderStep(
     case 4:
       return <StepLocationsLanguages {...props} />;
     case 5:
-      return <StepTargetCustomers {...props} />;
+      return <StepBusinessDetails {...props} />;
     case 6:
       return <StepProductsServices {...props} />;
     case 7:
       return <StepAds {...props} />;
     case 8:
-      return <StepBusinessDetails {...props} />;
-    case 9:
       return (
         <StepReviewPublish
           draft={props.draft}
-          onChange={props.onChange}
           onEditStep={props.onEditStep}
           publishing={props.publishing}
           publishProgress={props.publishProgress}

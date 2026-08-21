@@ -9,7 +9,10 @@ import {
   migrateLegacyLocations,
   withDefaultLocationRadius,
 } from "@/app/components/google-ads/campaign-builder/location-targeting";
-import { beStepToUiStep } from "@/app/components/google-ads/campaign-builder/step-mapping";
+import {
+  beStepToUiStep,
+  remapWizardUiStepV3ToV4,
+} from "@/app/components/google-ads/campaign-builder/step-mapping";
 
 const META_PREFIX = "rp_google_campaign_draft_meta_v1";
 const RECOVERY_PREFIX = "rp_google_campaign_draft_recovery_v1";
@@ -50,10 +53,20 @@ function normalizeDraft(
   const wizardVersion =
     typeof parsed.wizardVersion === "number" ? parsed.wizardVersion : 1;
   const rawStep = parsed.currentStep ?? 1;
-  const currentStep =
+  let currentStep =
     wizardVersion >= 2
-      ? Math.min(TOTAL_WIZARD_STEPS, Math.max(1, rawStep))
+      ? Math.min(9, Math.max(1, rawStep))
       : beStepToUiStep(rawStep);
+  if (wizardVersion < 3 && currentStep >= 5) {
+    currentStep = Math.min(
+      TOTAL_WIZARD_STEPS,
+      currentStep === 5 ? 5 : currentStep - 1,
+    );
+  }
+  if (wizardVersion < 4) {
+    currentStep = remapWizardUiStepV3ToV4(currentStep);
+  }
+  currentStep = Math.min(TOTAL_WIZARD_STEPS, Math.max(1, currentStep));
 
   const fallbackRadius =
     typeof parsed.radiusValue === "number" && parsed.radiusValue >= 1
@@ -73,9 +86,8 @@ function normalizeDraft(
   const legacyNormalized = deriveLegacyLocationFields(targetLocations);
   const destinationType =
     parsed.destinationType ??
-    (parsed.salesChannel === "PHONE_ORDERS" ||
     (Array.isArray(parsed.leadContactMethods) &&
-      parsed.leadContactMethods.includes("PHONE_CALLS"))
+    parsed.leadContactMethods.includes("PHONE_CALLS")
       ? "phone"
       : parsed.salesChannel === "PHYSICAL_STORE"
         ? "physical_location"
@@ -130,6 +142,22 @@ function normalizeDraft(
     destinationType,
     websiteUrl,
     landingPageUrl,
+    salesChannel:
+      parsed.salesChannel === "ONLINE_STORE" ||
+      parsed.salesChannel === "MULTIPLE"
+        ? "WEBSITE"
+        : parsed.salesChannel === "PHONE_ORDERS"
+          ? null
+          : (parsed.salesChannel ?? null),
+    containsEuPoliticalAdvertising:
+      parsed.containsEuPoliticalAdvertising === true
+        ? true
+        : parsed.containsEuPoliticalAdvertising === false
+          ? false
+          : false,
+    networkSelection: Array.isArray(parsed.networkSelection)
+      ? parsed.networkSelection
+      : createDefaultDraft().networkSelection,
     ads: ads ?? createDefaultDraft().ads,
     selectedFunnelId:
       typeof parsed.selectedFunnelId === "number"
@@ -140,7 +168,7 @@ function normalizeDraft(
         ? parsed.selectedFunnelName
         : "",
     currentStep,
-    wizardVersion: 2,
+    wizardVersion: 4,
   };
 }
 
@@ -183,7 +211,7 @@ export function mergeGoogleDraftWithLocalRecovery(options: {
     businessDescription: options.remote.draftData?.businessDescription ?? "",
     onboardingDone: true,
     currentStep: options.remoteUiStep,
-    wizardVersion: 2,
+    wizardVersion: 4,
     savedAt: options.remote.lastSavedAt ?? new Date().toISOString(),
   });
 
@@ -194,7 +222,7 @@ export function mergeGoogleDraftWithLocalRecovery(options: {
   const local = normalizeDraft({
     ...options.localDraft,
     onboardingDone: true,
-    wizardVersion: 2,
+    wizardVersion: 4,
   });
   const preferLocal = shouldOfferLocalRestore({
     localUpdatedAt: local.savedAt ?? options.localMeta.updatedAt,
@@ -228,6 +256,10 @@ export function mergeGoogleDraftWithLocalRecovery(options: {
     primary.suggestedKeywords,
     secondary.suggestedKeywords,
   );
+  const networkSelection = pickNonEmptyArray(
+    primary.networkSelection,
+    secondary.networkSelection,
+  );
 
   return normalizeDraft({
     ...secondary,
@@ -256,9 +288,16 @@ export function mergeGoogleDraftWithLocalRecovery(options: {
     productsServices,
     languages,
     suggestedKeywords,
+    networkSelection,
+    containsEuPoliticalAdvertising:
+      typeof primary.containsEuPoliticalAdvertising === "boolean"
+        ? primary.containsEuPoliticalAdvertising
+        : typeof secondary.containsEuPoliticalAdvertising === "boolean"
+          ? secondary.containsEuPoliticalAdvertising
+          : false,
     currentStep: Math.max(local.currentStep ?? 1, remoteBase.currentStep ?? 1),
     onboardingDone: true,
-    wizardVersion: 2,
+    wizardVersion: 4,
     savedAt: new Date().toISOString(),
   });
 }

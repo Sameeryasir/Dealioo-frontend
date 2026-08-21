@@ -10,11 +10,17 @@ type AdLivePreviewProps = {
   businessName?: string;
 };
 
-function displayHost(url: string): string {
+function displayDestinationUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "Add a destination URL";
   try {
-    return new URL(url.trim()).hostname.replace(/^www\./, "");
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const path = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/$/, "");
+    const search = parsed.search || "";
+    return `${host}${path}${search}`;
   } catch {
-    return "yourwebsite.com";
+    return trimmed.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
   }
 }
 
@@ -25,11 +31,9 @@ export function AdLivePreview({ ad, businessName }: AdLivePreviewProps) {
     headlines.slice(0, 3).join(" | ") || "Your headline will appear here";
   const description =
     descriptions[0] || "Your description will appear here as customers see it.";
-  const pathParts = [ad.path1.trim(), ad.path2.trim()].filter(Boolean);
-  const path = pathParts.length > 0 ? `/${pathParts.join("/")}` : "/offer";
   const cta =
     CTA_OPTIONS.find((c) => c.id === ad.callToAction)?.label ?? "Learn More";
-  const host = displayHost(ad.finalUrl);
+  const destinationDisplay = displayDestinationUrl(ad.finalUrl);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.06)]">
@@ -52,8 +56,7 @@ export function AdLivePreview({ ad, businessName }: AdLivePreviewProps) {
               {businessName?.trim() || "Your business"}
             </p>
             <p className="truncate text-xs text-slate-500">
-              {host}
-              {path}
+              {destinationDisplay}
             </p>
           </div>
         </div>

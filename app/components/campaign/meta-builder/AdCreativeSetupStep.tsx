@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ExternalLink, ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ImagePlus, Loader2, Plus, Trash2, Video } from "lucide-react";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import {
   CTA_OPTIONS,
@@ -24,9 +24,9 @@ import {
   validateMetaImageUrl,
 } from "@/app/lib/resolve-meta-image-url";
 import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
+import { MetaDestinationFunnelPicker } from "@/app/components/campaign/meta-builder/MetaDestinationFunnelPicker";
 import {
   BuilderCard,
-  BuilderCollapsible,
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
@@ -140,6 +140,7 @@ export function AdCreativeSetupStep({
   const [destinationUrl, setDestinationUrl] = useState(
     initialData?.destinationUrl ?? "",
   );
+  const [selectedFunnelId, setSelectedFunnelId] = useState<number | null>(null);
   const [urlParameters, setUrlParameters] = useState(initialData?.urlParameters ?? "");
   const [callToAction, setCallToAction] = useState<MetaCallToAction>(initialData?.callToAction ?? "GET_OFFER");
   const [pixelId, setPixelId] = useState(initialData?.pixelId ?? "");
@@ -154,6 +155,50 @@ export function AdCreativeSetupStep({
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const applyDestinationFromFunnel = useCallback(
+    (payload: {
+      funnelId: number;
+      funnelName: string;
+      destinationUrl: string;
+    }) => {
+      const nextUrl = payload.destinationUrl.trim();
+      setSelectedFunnelId(payload.funnelId);
+      setDestinationUrl(nextUrl);
+      setDisplayLink((prev) => {
+        if (prev.trim()) return prev;
+        return payload.funnelName.trim() || prev;
+      });
+      setCarouselCards((prev) =>
+        prev.map((card) => ({
+          ...card,
+          destinationUrl: nextUrl || card.destinationUrl,
+        })),
+      );
+      setFieldErrors((prev) => {
+        if (!prev.destinationUrl && !Object.keys(prev).some((k) => k.includes("_destination"))) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next.destinationUrl;
+        for (const key of Object.keys(next)) {
+          if (key.endsWith("_destination")) delete next[key];
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (creativeFormat !== "CAROUSEL") return;
+    const url = destinationUrl.trim();
+    if (!url) return;
+    setCarouselCards((prev) => {
+      if (prev.every((card) => card.destinationUrl.trim() === url)) return prev;
+      return prev.map((card) => ({ ...card, destinationUrl: url }));
+    });
+  }, [creativeFormat, destinationUrl]);
 
   const previewImage =
     creativeFormat === "SINGLE_IMAGE" && imageUrl.trim()
@@ -865,28 +910,6 @@ export function AdCreativeSetupStep({
                 <BuilderField label="Description">
                   <input value={card.description ?? ""} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, description: e.target.value } : c))} className={inputClass} />
                 </BuilderField>
-                <BuilderField
-                  label="Website URL"
-                  required
-                  error={fieldErrors[`carousel_${index}_destination`]}
-                  hint="Must start with https:// — paste your funnel link here."
-                >
-                  <input
-                    type="url"
-                    value={card.destinationUrl}
-                    onChange={(e) =>
-                      setCarouselCards((prev) =>
-                        prev.map((c, i) =>
-                          i === index
-                            ? { ...c, destinationUrl: e.target.value }
-                            : c,
-                        ),
-                      )
-                    }
-                    placeholder="https://"
-                    className={`${inputClass} ${fieldErrors[`carousel_${index}_destination`] ? builderInputErrorClass : ""}`}
-                  />
-                </BuilderField>
                 <BuilderField label="Call-to-action">
                   <select value={card.callToAction} onChange={(e) => setCarouselCards((prev) => prev.map((c, i) => i === index ? { ...c, callToAction: e.target.value as MetaCallToAction } : c))} className={inputClass}>
                     {CTA_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -894,7 +917,7 @@ export function AdCreativeSetupStep({
                 </BuilderField>
               </div>
             ))}
-            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard("")])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2] hover:underline">
+            <button type="button" onClick={() => setCarouselCards((prev) => [...prev, emptyCarouselCard(destinationUrl.trim())])} className="flex items-center gap-2 text-sm font-semibold text-[#1877F2] hover:underline">
               <Plus className="size-4" /> Add card
             </button>
           </div>
@@ -935,72 +958,34 @@ export function AdCreativeSetupStep({
 
       <BuilderCard
         title="Destination"
-        description="Paste the HTTPS website URL people should open after tapping your ad."
+        description="Pick a published Dealioo campaign. We fill the destination link automatically."
       >
-        {creativeFormat === "CAROUSEL" ? (
-          <p className="rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/80 px-4 py-3 text-sm text-slate-500">
-            Carousel ads use a Website URL on each card in the Media section above.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            <BuilderField
-              label="Website URL"
-              required
-              error={fieldErrors.destinationUrl}
-              hint="Must start with https:// — paste your funnel link here."
-            >
-              <div className="flex gap-2">
-                <input
-                  required
-                  type="url"
-                  value={destinationUrl}
-                  onChange={(e) => setDestinationUrl(e.target.value)}
-                  className={`${inputClass} ${fieldErrors.destinationUrl ? builderInputErrorClass : ""}`}
-                  placeholder="https://"
-                />
-                {destinationUrl.trim() ? (
-                  <a
-                    href={destinationUrl.trim()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white px-3 text-slate-500 shadow-sm hover:bg-[#f4f8ff]"
-                    aria-label="Open website URL"
-                  >
-                    <ExternalLink className="size-4" />
-                  </a>
-                ) : null}
-              </div>
-            </BuilderField>
+        <div className="space-y-4">
+          <MetaDestinationFunnelPicker
+            businessId={businessId}
+            selectedFunnelId={selectedFunnelId}
+            destinationUrl={destinationUrl}
+            error={
+              fieldErrors.destinationUrl ||
+              Object.entries(fieldErrors).find(([key]) =>
+                key.endsWith("_destination"),
+              )?.[1]
+            }
+            onSelect={applyDestinationFromFunnel}
+          />
 
-            <BuilderField
-              label="Display link"
-              hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
-            >
-              <input
-                value={displayLink}
-                onChange={(e) => setDisplayLink(e.target.value)}
-                placeholder="yourbusiness.com"
-                className={inputClass}
-              />
-            </BuilderField>
-          </div>
-        )}
-      </BuilderCard>
-
-      <BuilderCard title="Advanced tracking" description="Optional UTM tags and Meta pixel settings.">
-        <BuilderCollapsible title="Tracking & pixel" description="Only needed if you use Meta Pixel or custom UTM tags.">
-          <div className="space-y-4">
-            <BuilderField label="URL parameters (UTM)" hint="Appended to your website URL for analytics.">
-              <input value={urlParameters} onChange={(e) => setUrlParameters(e.target.value)} placeholder="utm_source=facebook&utm_medium=paid" className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Meta Pixel ID" hint="Only needed if you track conversions with Meta Pixel.">
-              <input value={pixelId} onChange={(e) => setPixelId(e.target.value)} className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Conversion event" hint="e.g. Purchase, Lead, matches your pixel setup.">
-              <input value={conversionEvent} onChange={(e) => setConversionEvent(e.target.value)} className={inputClass} />
-            </BuilderField>
-          </div>
-        </BuilderCollapsible>
+          <BuilderField
+            label="Display link"
+            hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
+          >
+            <input
+              value={displayLink}
+              onChange={(e) => setDisplayLink(e.target.value)}
+              placeholder="yourbusiness.com"
+              className={inputClass}
+            />
+          </BuilderField>
+        </div>
       </BuilderCard>
 
       <BuilderCard title="Placement preview" description="See how your ad may look across Facebook and Instagram.">

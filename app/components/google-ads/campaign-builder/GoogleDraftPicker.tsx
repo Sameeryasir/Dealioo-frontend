@@ -7,32 +7,32 @@ import {
   ExternalLink,
   FileEdit,
   Loader2,
-  Megaphone,
   Plus,
   RefreshCw,
   Rocket,
+  Target,
   X,
 } from "lucide-react";
-import type { MetaCampaignDraft } from "@/app/lib/meta-campaign-builder-types";
 import {
-  BUILDER_STEPS,
-  buildMetaAdsManagerUrl,
-} from "@/app/lib/meta-campaign-builder-types";
-import { resolveMetaImageUrl } from "@/app/lib/resolve-meta-image-url";
-import { useMetaCampaignDraftsQuery } from "@/app/hooks/use-meta-campaign-drafts-query";
+  STEP_TITLES,
+  TOTAL_WIZARD_STEPS,
+} from "@/app/components/google-ads/campaign-builder/types";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import { useGoogleCampaignDraftsQuery } from "@/app/hooks/use-google-campaign-drafts-query";
+import type { GoogleCampaignDraftListItem } from "@/app/services/google-ads/google-campaign-draft";
 
-export type MetaDraftPickerAction =
+export type GoogleDraftPickerAction =
   | { type: "create" }
-  | { type: "continue"; draft: MetaCampaignDraft }
-  | { type: "retry"; draft: MetaCampaignDraft }
-  | { type: "progress"; draft: MetaCampaignDraft };
+  | { type: "continue"; draft: GoogleCampaignDraftListItem }
+  | { type: "retry"; draft: GoogleCampaignDraftListItem }
+  | { type: "progress"; draft: GoogleCampaignDraftListItem };
 
-type MetaDraftPickerProps = {
+type GoogleDraftPickerProps = {
   open: boolean;
   businessId: number;
-  metaAdAccountId?: string | null;
+  adsConsoleUrl?: string | null;
   onClose: () => void;
-  onSelect: (action: MetaDraftPickerAction) => void;
+  onSelect: (action: GoogleDraftPickerAction) => void;
 };
 
 type DraftBucket = "draft" | "publishing" | "failed" | "published";
@@ -51,62 +51,61 @@ const BUCKET_TITLE: Record<DraftBucket, string> = {
   published: "Published",
 };
 
-function draftBucket(draft: MetaCampaignDraft): DraftBucket {
-  const status = (draft.status ?? "").toLowerCase();
+function draftBucket(draft: GoogleCampaignDraftListItem): DraftBucket {
+  const status = (draft.status ?? "").toUpperCase();
   const publishStatus = (draft.publishStatus ?? "").toUpperCase();
 
-  if (status === "published" || publishStatus === "PUBLISHED") {
+  if (status === "PUBLISHED" || publishStatus === "PUBLISHED") {
     return "published";
   }
   if (
-    status === "publishing" ||
+    status === "PUBLISHING" ||
+    status === "VALIDATING" ||
     publishStatus === "QUEUED" ||
-    publishStatus === "PUBLISHING" ||
-    publishStatus === "RUNNING"
+    publishStatus === "PUBLISHING"
   ) {
     return "publishing";
   }
-  if (status === "failed" || publishStatus === "FAILED") {
+  if (status === "FAILED" || publishStatus === "FAILED") {
     return "failed";
   }
   return "draft";
 }
 
-function draftDisplayName(draft: MetaCampaignDraft): string {
-  const name = draft.campaignData?.name?.trim();
-  return name || "Untitled campaign";
+function draftDisplayName(draft: GoogleCampaignDraftListItem): string {
+  return draft.campaignName?.trim() || "Untitled campaign";
 }
 
-function stepLabel(draft: MetaCampaignDraft): string {
-  const step = Math.min(Math.max(draft.currentStep || 1, 1), 4);
-  const label = BUILDER_STEPS.find((s) => s.id === step)?.label ?? "Campaign";
-  return `Step ${step} of 4 · ${label}`;
+function stepLabel(draft: GoogleCampaignDraftListItem): string {
+  const step = Math.min(
+    Math.max(draft.currentStep || 1, 1),
+    TOTAL_WIZARD_STEPS,
+  );
+  const title = STEP_TITLES[step - 1] ?? "Campaign";
+  return `Step ${step} of ${TOTAL_WIZARD_STEPS} · ${title}`;
 }
 
-function stepProgress(draft: MetaCampaignDraft): number {
-  const step = Math.min(Math.max(draft.currentStep || 1, 1), 4);
-  return (step / 4) * 100;
+function stepProgress(draft: GoogleCampaignDraftListItem): number {
+  const step = Math.min(
+    Math.max(draft.currentStep || 1, 1),
+    TOTAL_WIZARD_STEPS,
+  );
+  return (step / TOTAL_WIZARD_STEPS) * 100;
 }
 
-function objectiveLabel(draft: MetaCampaignDraft): string | null {
-  const raw = draft.campaignData?.objective?.trim();
+function goalLabel(draft: GoogleCampaignDraftListItem): string | null {
+  const raw = draft.goal?.trim();
   if (!raw) return null;
   return raw
-    .replace(/^OUTCOME_/, "")
     .split("_")
     .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
     .join(" ");
 }
 
-function draftThumb(draft: MetaCampaignDraft): string | null {
-  const creative = draft.adCreativeData;
-  const raw =
-    creative?.imageUrl?.trim() ||
-    creative?.thumbnailUrl?.trim() ||
-    creative?.carouselCards?.[0]?.imageUrl?.trim() ||
-    "";
+function draftThumb(draft: GoogleCampaignDraftListItem): string | null {
+  const raw = draft.logoPreviewUrl?.trim() || "";
   if (!raw) return null;
-  return resolveMetaImageUrl(raw) || raw;
+  return resolveUploadImageUrl(raw) || raw;
 }
 
 function relativeTime(iso: string | null | undefined): string {
@@ -139,24 +138,24 @@ function BucketIcon({ bucket }: { bucket: DraftBucket }) {
 
 function badgeClass(bucket: DraftBucket): string {
   if (bucket === "published") return "bg-emerald-50 text-emerald-700";
-  if (bucket === "publishing") return "bg-[#e8f2ff] text-[#1877f2]";
+  if (bucket === "publishing") return "bg-[#e8f0fe] text-[#1a73e8]";
   if (bucket === "failed") return "bg-red-50 text-red-700";
   return "bg-slate-100 text-slate-600";
 }
 
-export function MetaDraftPicker({
+export function GoogleDraftPicker({
   open,
   businessId,
-  metaAdAccountId,
+  adsConsoleUrl,
   onClose,
   onSelect,
-}: MetaDraftPickerProps) {
+}: GoogleDraftPickerProps) {
   const { data: drafts, isLoading, error, refetch, isFetching } =
-    useMetaCampaignDraftsQuery(businessId, { enabled: open });
+    useGoogleCampaignDraftsQuery(businessId, { enabled: true });
   const [filter, setFilter] = useState<DraftBucket | "all">("all");
 
   const grouped = useMemo(() => {
-    const map: Record<DraftBucket, MetaCampaignDraft[]> = {
+    const map: Record<DraftBucket, GoogleCampaignDraftListItem[]> = {
       draft: [],
       publishing: [],
       failed: [],
@@ -183,9 +182,8 @@ export function MetaDraftPicker({
     return [filter];
   }, [filter]);
 
-  const adsManagerUrl = metaAdAccountId
-    ? buildMetaAdsManagerUrl(metaAdAccountId)
-    : "https://www.facebook.com/adsmanager";
+  const consoleUrl =
+    adsConsoleUrl?.trim() || "https://ads.google.com/aw/campaigns";
 
   if (!open) return null;
 
@@ -201,19 +199,19 @@ export function MetaDraftPicker({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="meta-draft-picker-title"
+        aria-labelledby="google-draft-picker-title"
         className="relative z-10 flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-[#e8edf5] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] px-5 py-4">
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-              Meta Ads
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1a73e8]">
+              Google Ads
             </p>
             <h2
-              id="meta-draft-picker-title"
+              id="google-draft-picker-title"
               className="mt-0.5 text-lg font-extrabold tracking-tight text-[#07111f]"
             >
-              Your Meta campaigns
+              Your Google campaigns
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Create new, continue a draft, or open published campaigns.
@@ -222,7 +220,7 @@ export function MetaDraftPicker({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#e8edf5] bg-white p-2 text-slate-500 transition hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+            className="rounded-xl border border-[#e8edf5] bg-white p-2 text-slate-500 transition hover:bg-[#f8fbff] hover:text-[#1a73e8]"
             aria-label="Close"
           >
             <X className="size-4" />
@@ -233,7 +231,7 @@ export function MetaDraftPicker({
           <button
             type="button"
             onClick={() => onSelect({ type: "create" })}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#166fe5]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a73e8] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#1765cc]"
           >
             <Plus className="size-4" aria-hidden />
             Create new campaign
@@ -267,7 +265,7 @@ export function MetaDraftPicker({
                 onClick={() => setFilter(tab.key)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                   filter === tab.key
-                    ? "bg-[#e8f2ff] text-[#1877f2]"
+                    ? "bg-[#e8f0fe] text-[#1a73e8]"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -288,7 +286,7 @@ export function MetaDraftPicker({
             type="button"
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1877f2] hover:underline disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:underline disabled:opacity-60"
           >
             <RefreshCw
               className={`size-3.5 ${isFetching ? "animate-spin" : ""}`}
@@ -301,7 +299,7 @@ export function MetaDraftPicker({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
-              <Loader2 className="size-4 animate-spin text-[#1877f2]" />
+              <Loader2 className="size-4 animate-spin text-[#1a73e8]" />
               Loading campaigns…
             </div>
           ) : null}
@@ -327,11 +325,11 @@ export function MetaDraftPicker({
 
           {!isLoading && !error && drafts.length === 0 ? (
             <div className="py-10 text-center">
-              <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#1877f2]">
-                <Megaphone className="size-5" aria-hidden />
+              <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#f8fbff] text-[#1a73e8]">
+                <Target className="size-5" aria-hidden />
               </div>
               <p className="mt-3 text-sm font-semibold text-[#07111f]">
-                No Meta campaigns yet
+                No Google campaigns yet
               </p>
               <p className="mt-1 text-sm text-slate-500">
                 Create a new campaign to get started.
@@ -354,7 +352,7 @@ export function MetaDraftPicker({
                     <ul className="space-y-2">
                       {items.map((draft) => {
                         const thumb = draftThumb(draft);
-                        const objective = objectiveLabel(draft);
+                        const goal = goalLabel(draft);
                         const updated = relativeTime(
                           draft.updatedAt || draft.lastSavedAt,
                         );
@@ -364,7 +362,7 @@ export function MetaDraftPicker({
                             className="rounded-xl border border-[#e8edf5] bg-white p-3.5 transition hover:border-[#c9d8f0]"
                           >
                             <div className="flex gap-3">
-                              <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f4f8ff] text-[#1877f2]">
+                              <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f8fbff] text-[#1a73e8]">
                                 {thumb ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -391,7 +389,10 @@ export function MetaDraftPicker({
 
                                 <p className="mt-1 text-xs text-slate-500">
                                   {stepLabel(draft)}
-                                  {objective ? ` · ${objective}` : ""}
+                                  {goal ? ` · ${goal}` : ""}
+                                  {draft.selectedFunnelName?.trim()
+                                    ? ` · ${draft.selectedFunnelName.trim()}`
+                                    : ""}
                                   {updated ? ` · ${updated}` : ""}
                                 </p>
 
@@ -405,7 +406,7 @@ export function MetaDraftPicker({
                                       className={`h-full rounded-full ${
                                         bucket === "failed"
                                           ? "bg-red-400"
-                                          : "bg-[#1877f2]"
+                                          : "bg-[#1a73e8]"
                                       }`}
                                       style={{
                                         width: `${
@@ -440,7 +441,7 @@ export function MetaDraftPicker({
                                       onClick={() =>
                                         onSelect({ type: "continue", draft })
                                       }
-                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
                                     >
                                       Continue editing
                                     </button>
@@ -453,7 +454,7 @@ export function MetaDraftPicker({
                                         onClick={() =>
                                           onSelect({ type: "retry", draft })
                                         }
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#1877f2] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#166fe5]"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a73e8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1765cc]"
                                       >
                                         <Rocket
                                           className="size-3.5"
@@ -466,7 +467,7 @@ export function MetaDraftPicker({
                                         onClick={() =>
                                           onSelect({ type: "continue", draft })
                                         }
-                                        className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-[#f4f8ff]"
+                                        className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fbff]"
                                       >
                                         Continue editing
                                       </button>
@@ -479,7 +480,7 @@ export function MetaDraftPicker({
                                       onClick={() =>
                                         onSelect({ type: "progress", draft })
                                       }
-                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
                                     >
                                       View progress
                                     </button>
@@ -487,12 +488,12 @@ export function MetaDraftPicker({
 
                                   {bucket === "published" ? (
                                     <a
-                                      href={adsManagerUrl}
+                                      href={consoleUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
                                     >
-                                      Open in Meta Ads Manager
+                                      Open in Google Ads
                                       <ExternalLink
                                         className="size-3.5"
                                         aria-hidden

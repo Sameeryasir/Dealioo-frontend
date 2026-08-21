@@ -197,7 +197,7 @@ function DetailField({
 }
 
 const fieldInputClass =
-  "w-full border-0 bg-transparent p-0 text-[0.9rem] font-bold text-[#0F172A] outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
+  "w-full border-0 bg-transparent p-0 text-[0.9rem] font-normal text-[#334155] outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0";
 
 function BusinessLogoAvatar({
   previewUrl,
@@ -637,10 +637,11 @@ export function BusinessGeneralSettingsForm({
                 htmlFor="business-settings-description"
                 icon={FileText}
                 tone="yellow"
+                className="sm:col-span-2"
               >
                 <p
                   id="business-settings-description"
-                  className={`${fieldInputClass} m-0 leading-relaxed`}
+                  className={`${fieldInputClass} m-0 max-w-3xl whitespace-pre-wrap leading-relaxed`}
                 >
                   {displayOrDash(form.description)}
                 </p>

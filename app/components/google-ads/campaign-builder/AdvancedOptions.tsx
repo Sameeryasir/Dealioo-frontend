@@ -6,7 +6,6 @@ import {
   Clock,
   DollarSign,
   Flag,
-  Globe2,
   Megaphone,
   MonitorSmartphone,
   ShieldOff,
@@ -35,16 +34,28 @@ const CAMPAIGN_TYPES: { id: CampaignTypeId; label: string }[] = [
   { id: "PERFORMANCE_MAX", label: "Performance Max" },
 ];
 
-const BID_STRATEGIES: { id: BidStrategyId; label: string }[] = [
-  { id: "MAXIMIZE_CLICKS", label: "Get the most clicks" },
-  { id: "MAXIMIZE_CONVERSIONS", label: "Get the most conversions" },
-  { id: "MANUAL_CPC", label: "Set my own click bids" },
-  { id: "TARGET_CPA", label: "Target cost per conversion" },
-  { id: "TARGET_ROAS", label: "Target return on ad spend" },
+const BID_STRATEGIES: {
+  id: BidStrategyId;
+  label: string;
+  group?: string;
+}[] = [
+  { id: "MAXIMIZE_CONVERSIONS", label: "Maximize conversions", group: "Recommended" },
+  { id: "TARGET_CPA", label: "Target CPA", group: "Recommended" },
+  {
+    id: "MAXIMIZE_CONVERSION_VALUE",
+    label: "Maximize conversion value",
+    group: "Recommended",
+  },
+  { id: "TARGET_ROAS", label: "Target ROAS", group: "Recommended" },
+  { id: "MAXIMIZE_CLICKS", label: "Clicks", group: "Other optimization options" },
+  {
+    id: "TARGET_IMPRESSION_SHARE",
+    label: "Impression share",
+    group: "Other optimization options",
+  },
 ];
 
 const DEVICE_OPTIONS = ["Mobile", "Desktop", "Tablet"];
-const NETWORK_OPTIONS = ["Google Search", "Search partners", "Display Network"];
 
 function toggleInList(list: string[], value: string): string[] {
   return list.includes(value)
@@ -185,7 +196,18 @@ export function AdvancedOptions({
               <SimpleSelect
                 aria-label="Bidding focus"
                 value={draft.bidStrategy}
-                options={BID_STRATEGIES}
+                options={
+                  draft.bidStrategy === "MANUAL_CPC"
+                    ? [
+                        ...BID_STRATEGIES,
+                        {
+                          id: "MANUAL_CPC" as BidStrategyId,
+                          label: "Set my own click bids",
+                          group: "Other optimization options",
+                        },
+                      ]
+                    : BID_STRATEGIES
+                }
                 onChange={(value) =>
                   onChange({ bidStrategy: value as BidStrategyId })
                 }
@@ -241,54 +263,29 @@ export function AdvancedOptions({
             />
           </AdvField>
 
-          <div className={pairGrid}>
-            <AdvField
-              icon={MonitorSmartphone}
-              label="Devices"
-              hint="Pick where people can see your ads."
-            >
-              <div className="flex flex-wrap gap-2">
-                {DEVICE_OPTIONS.map((device) => (
-                  <ChipButton
-                    key={device}
-                    label={device}
-                    selected={draft.deviceTargeting.includes(device)}
-                    onClick={() =>
-                      onChange({
-                        deviceTargeting: toggleInList(
-                          draft.deviceTargeting,
-                          device,
-                        ),
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </AdvField>
-            <AdvField
-              icon={Globe2}
-              label="Where ads can show"
-              hint="Search is recommended for text ads."
-            >
-              <div className="flex flex-wrap gap-2">
-                {NETWORK_OPTIONS.map((network) => (
-                  <ChipButton
-                    key={network}
-                    label={network}
-                    selected={draft.networkSelection.includes(network)}
-                    onClick={() =>
-                      onChange({
-                        networkSelection: toggleInList(
-                          draft.networkSelection,
-                          network,
-                        ),
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </AdvField>
-          </div>
+          <AdvField
+            icon={MonitorSmartphone}
+            label="Devices"
+            hint="Pick where people can see your ads."
+          >
+            <div className="flex flex-wrap gap-2">
+              {DEVICE_OPTIONS.map((device) => (
+                <ChipButton
+                  key={device}
+                  label={device}
+                  selected={draft.deviceTargeting.includes(device)}
+                  onClick={() =>
+                    onChange({
+                      deviceTargeting: toggleInList(
+                        draft.deviceTargeting,
+                        device,
+                      ),
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </AdvField>
 
           <AdvField
             icon={ShieldOff}

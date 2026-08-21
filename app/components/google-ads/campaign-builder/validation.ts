@@ -5,7 +5,7 @@ export const HEADLINE_MAX = 30;
 export const DESCRIPTION_MAX = 90;
 export const PATH_MAX = 15;
 export const GOOGLE_REQUIRED_PUBLISH_STEPS = [
-  1, 2, 3, 4, 5, 6, 7,
+  1, 2, 3, 4, 7,
 ] as const;
 
 export function isValidHttpUrl(value: string): boolean {
@@ -81,9 +81,7 @@ function validateGoalDetailsFields(
         errors.businessLocation = "Add your business location.";
       }
     } else if (channel === "PHONE_ORDERS") {
-      if (!draft.businessPhone.trim()) {
-        errors.businessPhone = "Add a phone number.";
-      }
+      errors.salesChannel = "Choose how customers complete a purchase.";
     }
   }
 
@@ -244,6 +242,13 @@ export function validateStep(
     if (draft.languages.length === 0) {
       errors.languages = "Select at least one language.";
     }
+    if (
+      draft.containsEuPoliticalAdvertising !== true &&
+      draft.containsEuPoliticalAdvertising !== false
+    ) {
+      errors.containsEuPoliticalAdvertising =
+        "Confirm if your campaign has EU political ads.";
+    }
 
     const pinWithoutRadius = draft.targetLocations.find((row) => {
       if (row.type === "country") return false;
@@ -258,18 +263,6 @@ export function validateStep(
       if (forPublish) {
         errors.radiusCenter = `Click ${pinWithoutRadius.name} and set its radius on the map before publishing.`;
       }
-    }
-  }
-
-  if (step === 5 && draft.idealCustomers.length === 0) {
-    errors.idealCustomers = "Tell us who you are trying to reach.";
-  }
-
-  if (step === 6) {
-    if (draft.productsServices.length === 0) {
-      errors.productsServices = "Add at least one product or service.";
-    } else if (enabledKeywords(draft).length === 0) {
-      errors.keywords = "Keep or generate at least one keyword.";
     }
   }
 
@@ -342,7 +335,7 @@ export function validateStep(
     }
   }
 
-  if (step === 8 && forPublish) {
+  if (step === 5 && forPublish) {
     if (draft.sitelinks.length > 8) {
       errors.sitelinks = "You can add up to 8 sitelinks.";
     }
@@ -370,6 +363,6 @@ export function validateAllRequiredSteps(
   for (const step of GOOGLE_REQUIRED_PUBLISH_STEPS) {
     Object.assign(all, validateStep(step, draft, { forPublish: true }));
   }
-  Object.assign(all, validateStep(8, draft, { forPublish: true }));
+  Object.assign(all, validateStep(5, draft, { forPublish: true }));
   return all;
 }

@@ -206,6 +206,7 @@ export async function saveGoogleCampaignInfoStep(
     logoPreviewUrl?: string;
     extensionBusinessName?: string;
     businessDescription?: string;
+    networkSelection?: string[];
   },
 ) {
   return postDraftStep(
@@ -274,6 +275,7 @@ export function saveGoogleLanguagesStep(
     draftId: string;
     expectedVersion: number;
     languages: string[];
+    containsEuPoliticalAdvertising?: boolean | null;
   },
 ) {
   return postDraftStep(
@@ -372,6 +374,36 @@ export async function getGoogleCampaignDraft(
   );
   await throwIfNotOk(res, "Could not load campaign draft.");
   return res.json() as Promise<GoogleCampaignDraftResumeResponse>;
+}
+
+export type GoogleCampaignDraftListItem = {
+  id: string;
+  businessId: number;
+  status: string;
+  currentStep: number;
+  completedSteps: number[];
+  version: number;
+  lastSavedAt: string | null;
+  campaignName: string | null;
+  goal: CampaignGoalId | null;
+  publishStatus: string | null;
+  publishStep: string | null;
+  publishProgress: number | null;
+  errorMessage: string | null;
+  updatedAt: string;
+  logoPreviewUrl: string | null;
+  selectedFunnelName: string | null;
+};
+
+export async function listGoogleCampaignDrafts(
+  businessId: number,
+): Promise<GoogleCampaignDraftListItem[]> {
+  const res = await authenticatedFetch(draftsBase(businessId), {
+    method: "GET",
+  });
+  await throwIfNotOk(res, "Could not load Google campaign drafts.");
+  const data = (await res.json()) as unknown;
+  return Array.isArray(data) ? (data as GoogleCampaignDraftListItem[]) : [];
 }
 
 export async function updateGoogleDraftProgress(

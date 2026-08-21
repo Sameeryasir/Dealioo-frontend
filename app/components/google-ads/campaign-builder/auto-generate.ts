@@ -435,6 +435,165 @@ export function generateKeywordsFromProducts(
   return toSuggestedKeywords(texts);
 }
 
+const KEYWORD_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "by",
+  "for",
+  "from",
+  "in",
+  "is",
+  "it",
+  "of",
+  "on",
+  "or",
+  "our",
+  "that",
+  "the",
+  "this",
+  "to",
+  "we",
+  "with",
+  "you",
+  "your",
+  "will",
+  "can",
+  "into",
+  "made",
+  "every",
+  "day",
+  "use",
+  "using",
+  "about",
+  "their",
+  "them",
+  "they",
+  "who",
+  "want",
+  "have",
+  "has",
+  "was",
+  "were",
+  "been",
+  "being",
+  "also",
+  "just",
+  "more",
+  "most",
+  "than",
+  "then",
+  "when",
+  "where",
+  "which",
+  "while",
+  "without",
+  "through",
+  "throughout",
+  "whether",
+  "enough",
+  "first",
+  "leave",
+  "leaves",
+  "feeling",
+  "helps",
+  "help",
+  "claim",
+  "special",
+  "offer",
+  "gives",
+  "give",
+  "deserve",
+  "deserves",
+]);
+
+function normalizeKeywordPhrase(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractKeywordPhrases(...chunks: Array<string | null | undefined>): string[] {
+  const phrases: string[] = [];
+  const push = (value: string) => {
+    const cleaned = normalizeKeywordPhrase(value);
+    if (cleaned.length < 3 || cleaned.length > 48) return;
+    if (KEYWORD_STOP_WORDS.has(cleaned)) return;
+    phrases.push(cleaned);
+  };
+
+  for (const chunk of chunks) {
+    const text = chunk?.trim();
+    if (!text) continue;
+
+    for (const sentence of text.split(/[.!?\n|;]+/)) {
+      const cleanedSentence = normalizeKeywordPhrase(sentence);
+      if (!cleanedSentence) continue;
+
+      const words = cleanedSentence
+        .split(" ")
+        .map((word) => word.trim())
+        .filter((word) => word.length > 1 && !KEYWORD_STOP_WORDS.has(word));
+
+      for (let i = 0; i < words.length; i += 1) {
+        push(words[i]);
+        if (i + 1 < words.length) push(`${words[i]} ${words[i + 1]}`);
+        if (i + 2 < words.length) {
+          push(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
+        }
+      }
+    }
+  }
+
+  return phrases;
+}
+
+export function generateKeywordsFromBusinessAndLanding(input: {
+  businessDescription?: string | null;
+  landingHeadline?: string | null;
+  landingSubheadline?: string | null;
+  landingBody?: string | null;
+  businessName?: string | null;
+}): SuggestedKeyword[] {
+  const seeds = extractKeywordPhrases(
+    input.landingHeadline,
+    input.landingSubheadline,
+    input.landingBody,
+    input.businessDescription,
+  );
+
+  const texts: string[] = [];
+  for (const seed of seeds) {
+    texts.push(seed);
+    if (!seed.includes(" ")) {
+      texts.push(`best ${seed}`);
+      texts.push(`${seed} near me`);
+      texts.push(`buy ${seed}`);
+    } else {
+      texts.push(`best ${seed}`);
+      texts.push(`${seed} near me`);
+    }
+  }
+
+  const businessName = input.businessName?.trim();
+  if (businessName) {
+    texts.push(businessName.toLowerCase());
+  }
+
+  const keywords = toSuggestedKeywords(texts).slice(0, 12);
+  if (keywords.length > 0) return keywords;
+
+  return toSuggestedKeywords([
+    businessName?.toLowerCase() || "local business",
+  ]);
+}
+
 export function generateNegativesFromProducts(
   productsServices: string[],
 ): string[] {

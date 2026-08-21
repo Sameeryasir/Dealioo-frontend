@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   Check,
@@ -9,10 +10,20 @@ import {
 import { GoogleAdsAnalyticsDashboard } from "@/app/components/campaign/GoogleAdsAnalyticsDashboard";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
+import {
+  GoogleDraftPicker,
+  type GoogleDraftPickerAction,
+} from "@/app/components/google-ads/campaign-builder/GoogleDraftPicker";
+import {
+  clearGoogleCampaignDraft,
+  saveGoogleCampaignServerDraftId,
+  saveGoogleDraftLocalMeta,
+} from "@/app/components/google-ads/campaign-builder/draft-storage";
 import { GoogleAdsConnectEmptyState } from "@/app/components/google-ads/GoogleAdsConnectEmptyState";
 import { Skeleton } from "@/app/components/skeleton";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { googleCampaignDraftQueryKeys } from "@/app/hooks/use-google-campaign-drafts-query";
 import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
 import {
   getGoogleAdsCampaignStats,
@@ -23,6 +34,7 @@ import {
   getGoogleAdsConnectionStatus,
   isGoogleAdsCustomerSelected,
 } from "@/app/services/google-ads/get-google-ads-connection-status";
+import { listGoogleCampaignDrafts } from "@/app/services/google-ads/google-campaign-draft";
 
 function GoogleAdsPanelSkeleton() {
   return (
@@ -105,6 +117,7 @@ export function CampaignGoogleAdsPanel({
   embedded?: boolean;
 }) {
   const { can } = useBusinessMembershipPermissions(businessId);
+  const queryClient = useQueryClient();
   const canCreateGoogleCampaign = can("google_campaigns_create");
   const canDeleteGoogleCampaign = can("google_campaigns_delete");
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -114,12 +127,77 @@ export function CampaignGoogleAdsPanel({
   const [adStats, setAdStats] = useState<GoogleAdsCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
   const [adStatsError, setAdStatsError] = useState<string | null>(null);
+  const [draftPickerOpen, setDraftPickerOpen] = useState(false);
   const [createCampaignOpen, setCreateCampaignOpen] = useState(false);
   const [campaignPendingDelete, setCampaignPendingDelete] =
     useState<GoogleAdsCampaign | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
     null,
   );
+
+  const openCreatePicker = useCallback(() => {
+    if (!canCreateGoogleCampaign) return;
+    setDraftPickerOpen(true);
+  }, [canCreateGoogleCampaign]);
+
+  const openBuilderFresh = useCallback(() => {
+    clearGoogleCampaignDraft(businessId);
+    saveGoogleCampaignServerDraftId(businessId, null);
+    saveGoogleDraftLocalMeta(businessId, {
+      draftId: null,
+      serverVersion: null,
+      updatedAt: new Date().toISOString(),
+    });
+    setCreateCampaignOpen(true);
+  }, [businessId]);
+
+  const openBuilderWithDraft = useCallback(
+    (draftId: string) => {
+      clearGoogleCampaignDraft(businessId);
+      saveGoogleCampaignServerDraftId(businessId, draftId);
+      saveGoogleDraftLocalMeta(businessId, {
+        draftId,
+        serverVersion: null,
+        updatedAt: new Date().toISOString(),
+      });
+      setCreateCampaignOpen(true);
+    },
+    [businessId],
+  );
+
+  const handleDraftPickerSelect = useCallback(
+    (action: GoogleDraftPickerAction) => {
+      setDraftPickerOpen(false);
+      if (action.type === "create") {
+        openBuilderFresh();
+        return;
+      }
+      openBuilderWithDraft(action.draft.id);
+    },
+    [openBuilderFresh, openBuilderWithDraft],
+  );
+
+  const invalidateGoogleDrafts = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: googleCampaignDraftQueryKeys.byBusiness(businessId),
+    });
+  }, [businessId, queryClient]);
+
+  useEffect(() => {
+    if (!googleConnected || !googleCustomerSelected) return;
+    if (!canCreateGoogleCampaign) return;
+    void queryClient.prefetchQuery({
+      queryKey: googleCampaignDraftQueryKeys.byBusiness(businessId),
+      queryFn: () => listGoogleCampaignDrafts(businessId),
+      staleTime: 30_000,
+    });
+  }, [
+    businessId,
+    canCreateGoogleCampaign,
+    googleConnected,
+    googleCustomerSelected,
+    queryClient,
+  ]);
 
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
@@ -280,10 +358,7 @@ export function CampaignGoogleAdsPanel({
             errorMessage={adStatsError ?? googleError}
             canCreateCampaign={canCreateGoogleCampaign}
             canDeleteCampaign={canDeleteGoogleCampaign}
-            onCreateCampaign={() => {
-              if (!canCreateGoogleCampaign) return;
-              setCreateCampaignOpen(true);
-            }}
+            onCreateCampaign={openCreatePicker}
             onRefresh={() => {
               void loadStats();
             }}
@@ -383,10 +458,21 @@ export function CampaignGoogleAdsPanel({
         }}
       />
 
+      <GoogleDraftPicker
+        open={draftPickerOpen}
+        businessId={businessId}
+        adsConsoleUrl={adsConsoleUrl}
+        onClose={() => setDraftPickerOpen(false)}
+        onSelect={handleDraftPickerSelect}
+      />
+
       {createCampaignOpen ? (
         <GoogleAdsCreateCampaignFlow
           open={createCampaignOpen}
-          onClose={() => setCreateCampaignOpen(false)}
+          onClose={() => {
+            setCreateCampaignOpen(false);
+            invalidateGoogleDrafts();
+          }}
           businessId={businessId}
           adsConsoleUrl={adsConsoleUrl}
         />

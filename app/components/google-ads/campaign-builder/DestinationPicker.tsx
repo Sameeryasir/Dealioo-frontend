@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Check, Layers, Link2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, ImageIcon, Layers, Link2 } from "lucide-react";
 import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import {
   applyFunnelDestination,
@@ -13,6 +13,8 @@ import {
   SelectableCard,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
 import type { GoogleCampaignBuilderDraft } from "@/app/components/google-ads/campaign-builder/types";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 
 type DestinationPickerProps = {
   businessId: number;
@@ -22,6 +24,33 @@ type DestinationPickerProps = {
   title?: string;
   mode?: "landing";
 };
+
+function FunnelOptionImage({ funnel }: { funnel: Funnel }) {
+  const src = resolveUploadImageUrl(funnel.imageUrl?.trim() ?? "");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [funnel.id, src]);
+
+  if (!src || failed) {
+    return (
+      <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#eef3fb] text-[#4285F4]">
+        <ImageIcon className="size-5" aria-hidden />
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      className="size-14 shrink-0 rounded-xl object-cover ring-1 ring-[#e8edf5]"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function DestinationPicker({
   businessId,
@@ -43,7 +72,6 @@ export function DestinationPicker({
     onChange(withSyncedAdFinalUrl(draft, next));
   };
 
-  // Only Dealioo funnel is allowed — clear any old "My Website" selection
   useEffect(() => {
     if (draft.destinationType !== "external_website") return;
     const first = publishedFunnels[0];
@@ -116,18 +144,21 @@ export function DestinationPicker({
                     onClick={() =>
                       patch(applyFunnelDestination(funnel, businessId))
                     }
-                    className={`flex w-full items-start justify-between gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                       selected
                         ? "border-[#4285F4] bg-white ring-1 ring-[#4285F4]"
                         : "border-[#e8edf5] bg-white hover:border-[#4285F4]/50"
                     }`}
                   >
-                    <div className="min-w-0">
+                    <FunnelOptionImage funnel={funnel} />
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-[#07111f]">
                         {funnel.campaignName}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        Sales Funnel · Published
+                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                        {funnel.offer?.trim()
+                          ? funnel.offer.trim()
+                          : "Sales Funnel · Published"}
                       </p>
                     </div>
                     {selected ? (

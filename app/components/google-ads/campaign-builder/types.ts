@@ -53,9 +53,11 @@ export type KeywordMatchType = "BROAD" | "PHRASE" | "EXACT";
 export type BidStrategyId =
   | "MAXIMIZE_CLICKS"
   | "MAXIMIZE_CONVERSIONS"
+  | "MAXIMIZE_CONVERSION_VALUE"
   | "MANUAL_CPC"
   | "TARGET_CPA"
-  | "TARGET_ROAS";
+  | "TARGET_ROAS"
+  | "TARGET_IMPRESSION_SHARE";
 
 export type CampaignTypeId = "SEARCH" | "DISPLAY" | "PERFORMANCE_MAX";
 
@@ -192,6 +194,7 @@ export type GoogleCampaignBuilderDraft = {
   adSchedule: string;
   deviceTargeting: string[];
   networkSelection: string[];
+  containsEuPoliticalAdvertising: boolean | null;
   ipExclusions: string;
   urlTrackingParams: string;
   conversionGoals: string;
@@ -331,7 +334,8 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     targetRoas: "",
     adSchedule: "",
     deviceTargeting: ["Mobile", "Desktop", "Tablet"],
-    networkSelection: ["Google Search"],
+    networkSelection: ["Google Search", "Search partners", "Display Network"],
+    containsEuPoliticalAdvertising: false,
     ipExclusions: "",
     urlTrackingParams: "",
     conversionGoals: "",
@@ -342,7 +346,7 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
     audienceExpansion: false,
     savedAt: null,
     currentStep: 1,
-    wizardVersion: 2,
+    wizardVersion: 4,
   };
 }
 
@@ -376,7 +380,7 @@ export const GOAL_OPTIONS: {
 ];
 
 export const SALES_CHANNEL_OPTIONS: {
-  id: Extract<SalesChannelId, "WEBSITE" | "PHONE_ORDERS" | "PHYSICAL_STORE">;
+  id: Extract<SalesChannelId, "WEBSITE" | "PHYSICAL_STORE">;
   title: string;
   description: string;
 }[] = [
@@ -384,11 +388,6 @@ export const SALES_CHANNEL_OPTIONS: {
     id: "WEBSITE",
     title: "Online",
     description: "Customers buy on your funnel or website.",
-  },
-  {
-    id: "PHONE_ORDERS",
-    title: "By Phone",
-    description: "Customers call to buy or book.",
   },
   {
     id: "PHYSICAL_STORE",
@@ -607,16 +606,15 @@ export const HOUSEHOLD_INCOME_OPTIONS = [
   "Lower 50%",
 ];
 
-export const TOTAL_WIZARD_STEPS = 9;
+export const TOTAL_WIZARD_STEPS = 8;
 
 export const STEP_TITLES = [
   "Campaign Goal",
   "Campaign Setup",
   "Budget",
   "Locations & Languages",
-  "Target Customers",
-  "Products & Services",
-  "Create Ad",
   "Ad Enhancements",
+  "Keywords",
+  "Create Ad",
   "Review & Publish",
 ] as const;
