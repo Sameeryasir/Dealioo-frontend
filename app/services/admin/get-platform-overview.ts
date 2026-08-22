@@ -33,6 +33,7 @@ export type PlatformAdminBusiness = {
   createdAt: string;
   ownerName: string | null;
   ownerEmail: string | null;
+  ownerAvatar: string | null;
   planName: string | null;
   planSlug: string | null;
 };

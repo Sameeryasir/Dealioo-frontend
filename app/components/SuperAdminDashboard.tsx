@@ -70,9 +70,27 @@ import {
 
 const TABLE_PAGE_SIZE = 8;
 const BRAND_BLUE = "#1877f2";
-const BRAND_PURPLE = "#7c3aed";
+const BRAND_PURPLE = "#833aba";
 
-const PLAN_COLORS = ["#7c3aed", "#1877f2", "#0f766e", "#d97706", "#94a3b8"];
+const CHART_PLAN_COLORS = ["#f472b6", "#a78bda", "#6bbf8a", "#e0a06a", "#94a3b8"];
+const DARK_CHART_TOOLTIP = {
+  contentStyle: {
+    background: "#0a1628",
+    border: "1px solid rgba(255,255,255,0.14)",
+    borderRadius: 10,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    color: "#ffffff",
+  },
+  labelStyle: {
+    color: "rgba(255,255,255,0.92)",
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  itemStyle: {
+    color: "rgba(255,255,255,0.78)",
+    fontWeight: 600,
+  },
+} as const;
 
 function greetingForNow(): string {
   const h = new Date().getHours();
@@ -84,6 +102,30 @@ function greetingForNow(): string {
 function firstName(fullName: string): string {
   const part = fullName.trim().split(/\s+/)[0] || "there";
   return part.charAt(0).toUpperCase() + part.slice(1);
+}
+
+function titleCaseWords(value: string): string {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function humanizeLabel(value: string | null | undefined): string {
+  if (!value?.trim()) return "";
+  return value
+    .trim()
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => {
+      if (/^\d/.test(part)) return part.toLowerCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
 }
 
 function formatMoney(cents: number, currency = "USD"): string {
@@ -524,8 +566,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.businessesChangePct}
                 hint="vs prior 30 days"
                 icon={Building2}
-                accent="#7c3aed"
-                soft="#f3e8ff"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="Active Businesses"
@@ -533,8 +575,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.activeBusinessesChangePct}
                 hint="Onboarding completed"
                 icon={ShieldCheck}
-                accent="#059669"
-                soft="#ecfdf5"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="Total Users"
@@ -542,8 +584,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.usersChangePct}
                 hint="vs prior 30 days"
                 icon={Users}
-                accent="#2563eb"
-                soft="#dbeafe"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="New Users Today"
@@ -551,8 +593,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.newUsersChangePct}
                 hint="vs yesterday"
                 icon={UserPlus}
-                accent="#ea580c"
-                soft="#ffedd5"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="Orders Today"
@@ -560,8 +602,8 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.ordersChangePct}
                 hint="Paid orders"
                 icon={ShoppingBag}
-                accent="#db2777"
-                soft="#fce7f3"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="Revenue Today"
@@ -569,23 +611,23 @@ export function SuperAdminDashboard() {
                 changePct={kpis?.revenueChangePct}
                 hint="vs yesterday"
                 icon={Wallet}
-                accent="#059669"
-                soft="#d1fae5"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
               <KpiCard
                 label="Platform Health"
                 value="99.9%"
                 hint="All systems operational"
                 icon={Activity}
-                accent="#2563eb"
-                soft="#dbeafe"
+                accent={BRAND_BLUE}
+                soft="#e8f2ff"
               />
             </>
           )}
         </div>
 
         <div className={styles.chartGrid}>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.chartCard}`}>
             <div className={styles.cardHead}>
               <div>
                 <h2 className={styles.cardTitle}>Revenue Overview</h2>
@@ -596,7 +638,7 @@ export function SuperAdminDashboard() {
             <div className={styles.cardBody}>
               {loading && !overview ? (
                 <div className={styles.loadingBox}>
-                  <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
+                  <Loader2 className="size-6 animate-spin" style={{ color: "#93c5fd" }} />
                 </div>
               ) : (
                 <div className={styles.chartPlot}>
@@ -604,25 +646,26 @@ export function SuperAdminDashboard() {
                     <AreaChart data={revenueChart}>
                       <defs>
                         <linearGradient id="saRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={BRAND_PURPLE} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={BRAND_PURPLE} stopOpacity={0} />
+                          <stop offset="0%" stopColor={BRAND_BLUE} stopOpacity={0.45} />
+                          <stop offset="100%" stopColor={BRAND_BLUE} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid stroke="#eef2f7" vertical={false} />
+                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
                         axisLine={false}
                         tickLine={false}
                         minTickGap={28}
                       />
                       <YAxis
-                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
                         axisLine={false}
                         tickLine={false}
                         width={40}
                       />
                       <Tooltip
+                        {...DARK_CHART_TOOLTIP}
                         formatter={(value) => [
                           formatMoney(Math.round(Number(value) * 100)),
                           "Revenue",
@@ -631,7 +674,7 @@ export function SuperAdminDashboard() {
                       <Area
                         type="monotone"
                         dataKey="value"
-                        stroke={BRAND_PURPLE}
+                        stroke={BRAND_BLUE}
                         strokeWidth={2.5}
                         fill="url(#saRevenue)"
                       />
@@ -642,7 +685,7 @@ export function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.chartCard}`}>
             <div className={styles.cardHead}>
               <div>
                 <h2 className={styles.cardTitle}>New Businesses</h2>
@@ -653,33 +696,44 @@ export function SuperAdminDashboard() {
             <div className={styles.cardBody}>
               {loading && !overview ? (
                 <div className={styles.loadingBox}>
-                  <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
+                  <Loader2 className="size-6 animate-spin" style={{ color: "#93c5fd" }} />
                 </div>
               ) : (
                 <div className={styles.chartPlot}>
                   <ResponsiveContainer width="100%" height={220} minWidth={0}>
                     <BarChart data={businessChart}>
-                      <CartesianGrid stroke="#eef2f7" vertical={false} />
+                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
                         axisLine={false}
                         tickLine={false}
                         minTickGap={28}
                       />
                       <YAxis
                         allowDecimals={false}
-                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
                         axisLine={false}
                         tickLine={false}
                         width={28}
                       />
-                      <Tooltip />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      <Tooltip
+                        {...DARK_CHART_TOOLTIP}
+                        cursor={{ fill: "rgba(255,255,255,0.06)" }}
+                        formatter={(value) => [
+                          Number(value),
+                          "Registrations",
+                        ]}
+                      />
+                      <Bar
+                        dataKey="count"
+                        name="Registrations"
+                        radius={[6, 6, 0, 0]}
+                      >
                         {businessChart.map((_, index) => (
                           <Cell
                             key={`biz-bar-${index}`}
-                            fill={index % 2 === 0 ? BRAND_BLUE : BRAND_PURPLE}
+                            fill={index % 2 === 0 ? "#6b9fd4" : "#93c5fd"}
                           />
                         ))}
                       </Bar>
@@ -690,7 +744,7 @@ export function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.chartCard}`}>
             <div className={styles.cardHead}>
               <div>
                 <h2 className={styles.cardTitle}>Subscription Overview</h2>
@@ -714,13 +768,16 @@ export function SuperAdminDashboard() {
                           key={entry.slug}
                           fill={
                             entry.slug === "empty"
-                              ? "#e2e8f0"
-                              : PLAN_COLORS[i % PLAN_COLORS.length]
+                              ? "rgba(255,255,255,0.12)"
+                              : CHART_PLAN_COLORS[i % CHART_PLAN_COLORS.length]
                           }
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      {...DARK_CHART_TOOLTIP}
+                      formatter={(value, name) => [Number(value), String(name)]}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -735,7 +792,9 @@ export function SuperAdminDashboard() {
                       <span className={styles.legendLeft}>
                         <span
                           className={styles.swatch}
-                          style={{ background: PLAN_COLORS[i % PLAN_COLORS.length] }}
+                          style={{
+                            background: CHART_PLAN_COLORS[i % CHART_PLAN_COLORS.length],
+                          }}
                         />
                         {row.planName}
                       </span>
@@ -830,9 +889,18 @@ export function SuperAdminDashboard() {
                         <td>
                           <div className={styles.bizCell}>
                             <div
-                              className={`${styles.ownerAvatar} ${ownerAvatarTone(ownerLabel)}`}
+                              className={`${styles.ownerAvatar} ${
+                                b.ownerAvatar
+                                  ? styles.ownerAvatarPhoto
+                                  : ownerAvatarTone(ownerLabel)
+                              }`}
                             >
-                              {initialsFromName(ownerLabel)}
+                              {b.ownerAvatar ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={b.ownerAvatar} alt="" />
+                              ) : (
+                                initialsFromName(ownerLabel)
+                              )}
                             </div>
                             <div>
                               <div className={styles.bizName}>
@@ -1092,17 +1160,24 @@ export function SuperAdminDashboard() {
                 </div>
                 <ul className={styles.meetingsList}>
                   {pagedMeetings.map((m) => {
-                    const fullName = `${m.firstName} ${m.lastName}`.trim();
+                    const fullName = titleCaseWords(
+                      `${m.firstName} ${m.lastName}`.trim(),
+                    );
                     const committed = m.meetingCommitment === "yes";
                     const commitmentLabel = committed
                       ? "Committed"
                       : m.meetingCommitment === "not_sure"
                         ? "Not sure"
-                        : m.meetingCommitment || "—";
-                    const businessSub = [m.businessCategory, m.monthlyRevenue]
+                        : humanizeLabel(m.meetingCommitment) || "—";
+                    const businessSub = [
+                      humanizeLabel(m.businessCategory),
+                      humanizeLabel(m.monthlyRevenue),
+                    ]
                       .filter(Boolean)
                       .join(" · ");
-                    const roleLabel = (m.businessRole || "—").replaceAll("_", " ");
+                    const roleLabel = humanizeLabel(m.businessRole) || "—";
+                    const locationLabel = humanizeLabel(m.cityLocation) || "—";
+                    const timelineLabel = humanizeLabel(m.startTimeline) || "—";
                     return (
                       <li key={m.id} className={styles.meetingItem}>
                         <div className={styles.meetingRow}>
@@ -1115,7 +1190,10 @@ export function SuperAdminDashboard() {
                               {initialsFromName(fullName || m.email)}
                             </span>
                             <div className={styles.meetingIdentityText}>
-                              <div className={styles.meetingPersonName}>
+                              <div
+                                className={styles.meetingPersonName}
+                                title={fullName || undefined}
+                              >
                                 {fullName || "—"}
                               </div>
                               <span
@@ -1131,40 +1209,70 @@ export function SuperAdminDashboard() {
                             </div>
                           </div>
                           <div className={styles.meetingsContact}>
-                            <span className={styles.meetingsContactLine}>
-                              <Mail className="size-4" aria-hidden />
-                              {m.email}
+                            <span
+                              className={styles.meetingsContactLine}
+                              title={m.email}
+                            >
+                              <Mail className="size-3.5" aria-hidden />
+                              <span className={styles.meetingsContactText}>
+                                {m.email}
+                              </span>
                             </span>
-                            <span className={styles.meetingsContactLine}>
-                              <Phone className="size-4" aria-hidden />
-                              {m.phone}
+                            <span
+                              className={styles.meetingsContactLine}
+                              title={m.phone}
+                            >
+                              <Phone className="size-3.5" aria-hidden />
+                              <span className={styles.meetingsContactText}>
+                                {m.phone}
+                              </span>
                             </span>
                           </div>
                           <div className={styles.meetingsBizCell}>
                             <span className={styles.meetingsBizIcon} aria-hidden>
                               <Briefcase className="size-4" strokeWidth={2.25} />
                             </span>
-                            <div>
-                              <div className={styles.meetingPersonName}>
+                            <div className={styles.meetingsBizText}>
+                              <div
+                                className={styles.meetingPersonName}
+                                title={m.businessName || undefined}
+                              >
                                 {m.businessName || "—"}
                               </div>
                               {businessSub ? (
-                                <div className={styles.bizMeta}>{businessSub}</div>
+                                <div className={styles.bizMeta} title={businessSub}>
+                                  {businessSub}
+                                </div>
                               ) : null}
                             </div>
                           </div>
-                          <span className={styles.meetingsRolePill}>{roleLabel}</span>
-                          <span className={styles.meetingsContactLine}>
-                            <MapPin className="size-4" aria-hidden />
-                            {m.cityLocation || "—"}
+                          <span
+                            className={styles.meetingsRolePill}
+                            title={roleLabel}
+                          >
+                            {roleLabel}
                           </span>
-                          <span className={styles.meetingsTimeline}>
-                            <CalendarDays className="size-4" aria-hidden />
-                            {m.startTimeline || "—"}
+                          <span
+                            className={styles.meetingsContactLine}
+                            title={locationLabel}
+                          >
+                            <MapPin className="size-3.5" aria-hidden />
+                            <span className={styles.meetingsContactText}>
+                              {locationLabel}
+                            </span>
+                          </span>
+                          <span
+                            className={styles.meetingsTimeline}
+                            title={timelineLabel}
+                          >
+                            <CalendarDays className="size-3.5" aria-hidden />
+                            <span className={styles.meetingsContactText}>
+                              {timelineLabel}
+                            </span>
                           </span>
                           <div className={styles.meetingsRequested}>
                             <span className={styles.meetingsRequestedTop}>
-                              <Clock3 className="size-4" aria-hidden />
+                              <Clock3 className="size-3.5" aria-hidden />
                               {formatRelative(m.createdAt)}
                             </span>
                             <span className={styles.createdSub}>
