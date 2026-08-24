@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
+import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { PaymentConfirmedSprinkles } from "@/app/components/funnel/PaymentConfirmedSprinkles";
 import { usePaymentStatusPoll } from "@/app/hooks/use-payment-status-poll";
@@ -13,6 +14,9 @@ import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { parseCampaignPrice } from "@/app/lib/campaign-price";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
+import { trackMetaPixelPurchaseSuccess } from "@/app/lib/meta-pixel-funnel-conversions";
+import { trackGoogleAdsPurchaseSuccess } from "@/app/lib/google-ads-tag";
+import { readGoogleAdsFunnelTracking } from "@/app/lib/google-ads-funnel-tracking";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
@@ -27,6 +31,8 @@ export function FunnelConfirmationView({
 }) {
   const trackedRef = useRef(false);
   const metaPurchaseTrackedRef = useRef(false);
+  const metaPostpaidTrackedRef = useRef(false);
+  const googlePurchaseTrackedRef = useRef(false);
   const searchParams = useSearchParams();
   const { session, ready } = useCheckoutContext();
 
@@ -51,6 +57,10 @@ export function FunnelConfirmationView({
   });
 
   const confirmedByServer = !isDesignPreview && isPrepaid && isPaid;
+  const postpaidConfirmed =
+    !isDesignPreview &&
+    isPostpaid &&
+    searchParams.get("paymentConfirmed") === "true";
   const celebrate = confirmedByServer;
 
   useEffect(() => {
@@ -88,6 +98,7 @@ export function FunnelConfirmationView({
     if (isDesignPreview || !confirmedByServer) return;
     if (metaPurchaseTrackedRef.current) return;
     if (!publicFunnel?.pixelId) return;
+    if (paymentId == null) return;
 
     metaPurchaseTrackedRef.current = true;
 
@@ -95,14 +106,18 @@ export function FunnelConfirmationView({
       searchParams.get("currency")?.trim().toUpperCase() || "USD";
     const value = parseCampaignPrice(searchParams.get("price"));
 
-    trackMetaPixelEvent("Purchase", {
-      params: {
-        ...(value != null ? { value, currency } : { currency }),
-      },
+    void trackMetaPixelPurchaseSuccess({
       pixelId: publicFunnel.pixelId,
       businessId: businessId ?? publicFunnel.businessId ?? null,
       funnelId,
-      dedupeKey: `Purchase|${publicFunnel.pixelId}|${businessId ?? publicFunnel.businessId ?? ""}|${funnelId ?? ""}`,
+      paymentId,
+      customerId: session?.customerId ?? null,
+      value,
+      currency,
+      dedupeKey: `Purchase|${publicFunnel.pixelId}|${businessId ?? publicFunnel.businessId ?? ""}|${funnelId ?? ""}|${paymentId}`,
+    }).catch((err) => {
+      metaPurchaseTrackedRef.current = false;
+      console.warn("[Funnel Meta] Purchase track failed", err);
     });
   }, [
     isDesignPreview,
@@ -111,6 +126,79 @@ export function FunnelConfirmationView({
     publicFunnel?.businessId,
     businessId,
     funnelId,
+    paymentId,
+    session?.customerId,
+    searchParams,
+  ]);
+
+  useEffect(() => {
+    if (isDesignPreview || !postpaidConfirmed) return;
+    if (metaPostpaidTrackedRef.current) return;
+    if (!publicFunnel?.pixelId) return;
+
+    metaPostpaidTrackedRef.current = true;
+
+    const currency =
+      searchParams.get("currency")?.trim().toUpperCase() || "USD";
+    const value = parseCampaignPrice(searchParams.get("price"));
+
+    trackMetaPixelEvent("Subscribe", {
+      params: {
+        ...(value != null ? { value, currency } : { currency }),
+        funnel_step: "confirmation",
+      },
+      pixelId: publicFunnel.pixelId,
+      businessId: businessId ?? publicFunnel.businessId ?? null,
+      funnelId,
+      dedupeKey: `Subscribe|${publicFunnel.pixelId}|${businessId ?? publicFunnel.businessId ?? ""}|${funnelId ?? ""}`,
+    });
+  }, [
+    isDesignPreview,
+    postpaidConfirmed,
+    publicFunnel?.pixelId,
+    publicFunnel?.businessId,
+    businessId,
+    funnelId,
+    searchParams,
+  ]);
+
+  const googleAdsTracking = readGoogleAdsFunnelTracking(publicFunnel);
+
+  useEffect(() => {
+    if (isDesignPreview || !confirmedByServer) return;
+    if (googlePurchaseTrackedRef.current) return;
+    if (!googleAdsTracking.tagId) return;
+    if (paymentId == null) return;
+
+    googlePurchaseTrackedRef.current = true;
+
+    const currency =
+      searchParams.get("currency")?.trim().toUpperCase() || "USD";
+    const value = parseCampaignPrice(searchParams.get("price"));
+    const transactionId =
+      paymentId != null ? String(paymentId) : undefined;
+    const resolvedBusinessId = businessId ?? publicFunnel?.businessId ?? null;
+
+    void trackGoogleAdsPurchaseSuccess({
+      googleAdsId: googleAdsTracking.tagId,
+      businessId: resolvedBusinessId,
+      funnelId,
+      ...(value != null ? { value, currency } : { currency }),
+      ...(transactionId ? { transactionId } : {}),
+      purchaseConversionLabel: googleAdsTracking.purchaseConversionLabel,
+      dedupeKey: `purchase|${googleAdsTracking.tagId}|${resolvedBusinessId ?? ""}|${funnelId ?? ""}|${transactionId ?? ""}`,
+    }).catch(() => {
+      googlePurchaseTrackedRef.current = false;
+    });
+  }, [
+    isDesignPreview,
+    confirmedByServer,
+    googleAdsTracking.tagId,
+    googleAdsTracking.purchaseConversionLabel,
+    publicFunnel?.businessId,
+    businessId,
+    funnelId,
+    paymentId,
     searchParams,
   ]);
 
@@ -122,6 +210,14 @@ export function FunnelConfirmationView({
     <div className="relative flex min-h-full w-full flex-1 flex-col">
       <FunnelMetaPixel
         pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="confirmation"
+      />
+      <FunnelGoogleAdsTracking
+        googleAdsId={
+          isDesignPreview ? null : publicFunnel?.googleTagManagerId
+        }
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="confirmation"

@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
+import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
@@ -52,6 +53,14 @@ export function LandingFunnelPreview() {
         funnelId={funnelId}
         stepKey="landing"
       />
+      <FunnelGoogleAdsTracking
+        googleAdsId={
+          isDesignPreview ? null : publicFunnel?.googleTagManagerId
+        }
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="landing"
+      />
       {isLoading ? (
         <FunnelPreviewSkeleton />
       ) : (
@@ -67,6 +76,12 @@ export function LandingFunnelPreview() {
             isDesignPreview
               ? null
               : (businessId ?? publicFunnel?.businessId)
+          }
+          googleAdsTagId={
+            isDesignPreview ? null : publicFunnel?.googleTagManagerId
+          }
+          googleAdsBusinessId={
+            isDesignPreview ? null : (businessId ?? publicFunnel?.businessId)
           }
         />
       )}

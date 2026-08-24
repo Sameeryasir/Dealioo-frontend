@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
+import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
@@ -15,6 +16,7 @@ import {
   buildFunnelPublicPath,
 } from "@/app/lib/funnel-public-path";
 import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
+import { readGoogleAdsFunnelTracking } from "@/app/lib/google-ads-funnel-tracking";
 
 function FunnelCampaignSignupInner() {
   const searchParams = useSearchParams();
@@ -58,10 +60,20 @@ function FunnelCampaignSignupInner() {
           })
       : undefined;
 
+  const googleAdsTracking = readGoogleAdsFunnelTracking(publicFunnel);
+
   return (
     <>
       <FunnelMetaPixel
         pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="signup"
+      />
+      <FunnelGoogleAdsTracking
+        googleAdsId={
+          isDesignPreview ? null : publicFunnel?.googleTagManagerId
+        }
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="signup"
@@ -86,6 +98,16 @@ function FunnelCampaignSignupInner() {
             isDesignPreview
               ? null
               : (businessId ?? publicFunnel?.businessId)
+          }
+          googleAdsTagId={isDesignPreview ? null : googleAdsTracking.tagId}
+          googleAdsSignupConversionLabel={
+            isDesignPreview ? null : googleAdsTracking.signupConversionLabel
+          }
+          googleAdsLeadConversionLabel={
+            isDesignPreview ? null : googleAdsTracking.leadConversionLabel
+          }
+          googleAdsBusinessId={
+            isDesignPreview ? null : (businessId ?? publicFunnel?.businessId)
           }
         />
       )}

@@ -6,6 +6,9 @@ export type BusinessTracking = {
   businessId: number;
   pixelId: string | null;
   googleTagManagerId: string | null;
+  googleAdsSignupConversionLabel: string | null;
+  googleAdsPurchaseConversionLabel: string | null;
+  googleAdsLeadConversionLabel: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -15,6 +18,9 @@ export type BusinessTracking = {
 export type UpsertBusinessTrackingInput = {
   pixelId?: string;
   googleTagManagerId?: string;
+  googleAdsSignupConversionLabel?: string;
+  googleAdsPurchaseConversionLabel?: string;
+  googleAdsLeadConversionLabel?: string;
   isActive?: boolean;
   accessToken?: string;
 };

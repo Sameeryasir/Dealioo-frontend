@@ -57,6 +57,7 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
       style={{ colorScheme: "light" }}
+      suppressHydrationWarning
     >
       <head>
         {spacesCdnOrigin ? (
@@ -74,7 +75,10 @@ export default function RootLayout({
           </noscript>
         ) : null}
       </head>
-      <body className={`${poppins.className} min-h-full flex flex-col antialiased`}>
+      <body
+        className={`${poppins.className} min-h-full flex flex-col antialiased`}
+        suppressHydrationWarning
+      >
         {productMetaPixelId ? (
           <Script id="rp-product-meta-pixel" strategy="beforeInteractive">
             {`

@@ -157,6 +157,7 @@ export function trackMetaPixelEvent(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
+    Boolean(attribution.fbclid?.trim()) &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -195,10 +196,26 @@ export function trackMetaPixelEvent(
 
 export function trackMetaPixelPageView(
   pixelId: string | null | undefined,
-  options: Omit<FunnelMetaTrackOptions, "pixelId" | "params"> = {},
+  options: Omit<FunnelMetaTrackOptions, "pixelId"> = {},
 ): string | null {
   return trackMetaPixelEvent("PageView", {
     ...options,
     pixelId,
   });
+}
+
+export function claimFunnelMetaEventKey(dedupeKey: string): boolean {
+  if (sentFunnelMetaKeys.has(dedupeKey)) {
+    return false;
+  }
+  sentFunnelMetaKeys.add(dedupeKey);
+  return true;
+}
+
+export function releaseFunnelMetaEventKey(dedupeKey: string): void {
+  sentFunnelMetaKeys.delete(dedupeKey);
+}
+
+export function createFunnelMetaEventId(): string {
+  return newEventId();
 }

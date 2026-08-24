@@ -41,17 +41,26 @@ type AdsTrackingPanelProps = {
 type TrackingFormSnapshot = {
   pixelId: string;
   gtmId: string;
+  signupConversionLabel: string;
+  purchaseConversionLabel: string;
+  leadConversionLabel: string;
   isActive: boolean;
 };
 
 function normalizeTrackingForm(
   pixelId: string,
   gtmId: string,
+  signupConversionLabel: string,
+  purchaseConversionLabel: string,
+  leadConversionLabel: string,
   isActive: boolean,
 ): TrackingFormSnapshot {
   return {
     pixelId: pixelId.trim(),
     gtmId: gtmId.trim(),
+    signupConversionLabel: signupConversionLabel.trim(),
+    purchaseConversionLabel: purchaseConversionLabel.trim(),
+    leadConversionLabel: leadConversionLabel.trim(),
     isActive,
   };
 }
@@ -63,6 +72,9 @@ function isSameTrackingForm(
   return (
     a.pixelId === b.pixelId &&
     a.gtmId === b.gtmId &&
+    a.signupConversionLabel === b.signupConversionLabel &&
+    a.purchaseConversionLabel === b.purchaseConversionLabel &&
+    a.leadConversionLabel === b.leadConversionLabel &&
     a.isActive === b.isActive
   );
 }
@@ -107,9 +119,12 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [pixelId, setPixelId] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [gtmId, setGtmId] = useState("");
+  const [signupConversionLabel, setSignupConversionLabel] = useState("");
+  const [purchaseConversionLabel, setPurchaseConversionLabel] = useState("");
+  const [leadConversionLabel, setLeadConversionLabel] = useState("");
 
   const [savedForm, setSavedForm] = useState<TrackingFormSnapshot>(() =>
-    normalizeTrackingForm("", "", true),
+    normalizeTrackingForm("", "", "", "", "", true),
   );
   const [hasLoadedSaved, setHasLoadedSaved] = useState(false);
 
@@ -219,6 +234,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
       let savedGtmId = "";
       let nextPixelId = "";
       let nextGtmId = "";
+      let nextSignupConversionLabel = "";
+      let nextPurchaseConversionLabel = "";
+      let nextLeadConversionLabel = "";
       let nextIsActive = true;
 
       try {
@@ -233,6 +251,16 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           savedGtmId = saved.googleTagManagerId.trim();
           nextGtmId = savedGtmId;
         }
+        if (saved?.googleAdsSignupConversionLabel?.trim()) {
+          nextSignupConversionLabel = saved.googleAdsSignupConversionLabel.trim();
+        }
+        if (saved?.googleAdsPurchaseConversionLabel?.trim()) {
+          nextPurchaseConversionLabel =
+            saved.googleAdsPurchaseConversionLabel.trim();
+        }
+        if (saved?.googleAdsLeadConversionLabel?.trim()) {
+          nextLeadConversionLabel = saved.googleAdsLeadConversionLabel.trim();
+        }
         if (saved) {
           nextIsActive = saved.isActive;
         }
@@ -244,9 +272,19 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
       setPixelId(nextPixelId);
       setGtmId(nextGtmId);
+      setSignupConversionLabel(nextSignupConversionLabel);
+      setPurchaseConversionLabel(nextPurchaseConversionLabel);
+      setLeadConversionLabel(nextLeadConversionLabel);
       setIsActive(nextIsActive);
       setSavedForm(
-        normalizeTrackingForm(nextPixelId, nextGtmId, nextIsActive),
+        normalizeTrackingForm(
+          nextPixelId,
+          nextGtmId,
+          nextSignupConversionLabel,
+          nextPurchaseConversionLabel,
+          nextLeadConversionLabel,
+          nextIsActive,
+        ),
       );
       setHasLoadedSaved(true);
 
@@ -286,8 +324,23 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   }, [gtmContainers]);
 
   const currentForm = useMemo(
-    () => normalizeTrackingForm(pixelId, gtmId, isActive),
-    [pixelId, gtmId, isActive],
+    () =>
+      normalizeTrackingForm(
+        pixelId,
+        gtmId,
+        signupConversionLabel,
+        purchaseConversionLabel,
+        leadConversionLabel,
+        isActive,
+      ),
+    [
+      pixelId,
+      gtmId,
+      signupConversionLabel,
+      purchaseConversionLabel,
+      leadConversionLabel,
+      isActive,
+    ],
   );
   const hasUnsavedChanges =
     hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
@@ -305,7 +358,14 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const handleSave = async () => {
     if (!hasUnsavedChanges || saving) return;
 
-    const payload = normalizeTrackingForm(pixelId, gtmId, isActive);
+    const payload = normalizeTrackingForm(
+      pixelId,
+      gtmId,
+      signupConversionLabel,
+      purchaseConversionLabel,
+      leadConversionLabel,
+      isActive,
+    );
 
     setSaving(true);
     setSaveError(null);
@@ -314,6 +374,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
       await saveBusinessTracking(businessId, {
         pixelId: payload.pixelId,
         googleTagManagerId: payload.gtmId,
+        googleAdsSignupConversionLabel: payload.signupConversionLabel,
+        googleAdsPurchaseConversionLabel: payload.purchaseConversionLabel,
+        googleAdsLeadConversionLabel: payload.leadConversionLabel,
         isActive: payload.isActive,
       });
       setSavedForm(payload);
@@ -508,9 +571,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
               <GoogleAdsLogo className="size-6 shrink-0" />
-              <h3 className="text-base font-bold text-[#07111f]">
-                Google Tag Manager
-              </h3>
+              <h3 className="text-base font-bold text-[#07111f]">Google Ads</h3>
               <ConnectionBadge connected={gtmConnected} />
             </div>
             <button
@@ -581,18 +642,60 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           ) : null}
 
           <label className="block text-sm font-semibold text-[#07111f]">
-            Google Tag Manager ID (optional)
+            Google Ads tag ID
             <input
               value={gtmId}
               onChange={(e) => setGtmId(e.target.value)}
-              placeholder="GTM-XXXXXXX"
+              placeholder="AW-XXXXXXXXX"
               className={fieldClass}
             />
           </label>
           <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-            Filled automatically from Google when available. You can edit or
-            type a different ID manually. Leave empty if not used.
+            Your Google Ads tag ID (for example AW-18263528050). Loaded from
+            Google when available, or enter manually.
           </p>
+
+          <div className="mt-5 space-y-4 border-t border-[#eef2f7] pt-4">
+            <p className="text-sm font-semibold text-[#07111f]">
+              Conversion labels
+            </p>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Copy each label from Google Ads when you create a conversion
+              action. Dealioo stores events in{" "}
+              <span className="font-medium">google_funnel_events</span> and
+              sends them to Google with send_to = tag ID + label.
+            </p>
+
+            <label className="block text-sm font-medium text-[#07111f]">
+              Signup conversion label
+              <input
+                value={signupConversionLabel}
+                onChange={(e) => setSignupConversionLabel(e.target.value)}
+                placeholder="Signup label from Google Ads"
+                className={fieldClass}
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-[#07111f]">
+              Purchase conversion label
+              <input
+                value={purchaseConversionLabel}
+                onChange={(e) => setPurchaseConversionLabel(e.target.value)}
+                placeholder="Purchase label from Google Ads"
+                className={fieldClass}
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-[#07111f]">
+              Lead conversion label
+              <input
+                value={leadConversionLabel}
+                onChange={(e) => setLeadConversionLabel(e.target.value)}
+                placeholder="Lead label from Google Ads"
+                className={fieldClass}
+              />
+            </label>
+          </div>
         </TrackingCard>
 
         {saveError ? (

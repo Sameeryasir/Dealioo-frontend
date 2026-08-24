@@ -139,7 +139,6 @@ export function SignupPagePreview({
       disabled={signupSubmitting}
       className={primaryClass}
       style={primaryStyle}
-      onClick={() => onButtonClick?.(signupPage.navNextLabel)}
     >
       {signupPage.navNextLabel}
     </button>

@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
+import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
@@ -15,6 +16,7 @@ import { useCheckoutContext } from "@/app/contexts/checkout-context";
 import { buildFunnelPaymentConfirmationPath } from "@/app/lib/funnel-public-path";
 import { markFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
+import { trackGoogleAdsBeginCheckout } from "@/app/lib/google-ads-tag";
 import { parsePublicCampaignType } from "@/app/services/funnel/get-public-funnel";
 
 function FunnelCampaignPaymentPageInner() {
@@ -40,6 +42,8 @@ function FunnelCampaignPaymentPageInner() {
   const alreadyPaidThisOffer =
     !isDesignPreview && session?.paymentStatus === "paid";
   useFunnelStepGuard(funnelId, "payment", { campaignType });
+
+  const checkoutTrackingRef = useRef(false);
 
   useEffect(() => {
     if (!alreadyPaidThisOffer || funnelId == null) return;
@@ -93,29 +97,48 @@ function FunnelCampaignPaymentPageInner() {
     if (isDesignPreview || isPostpaid || isLoading || campaignType == null) {
       return;
     }
-    if (!publicFunnel?.pixelId) return;
+    if (checkoutTrackingRef.current) return;
+    if (!publicFunnel) return;
+
+    const pixelId = publicFunnel.pixelId?.trim();
+    const googleAdsId = publicFunnel.googleTagManagerId?.trim();
+    if (!pixelId && !googleAdsId) return;
+
+    checkoutTrackingRef.current = true;
 
     const currency =
       searchParams.get("currency")?.trim().toUpperCase() || "USD";
     const value = campaignPricing.subtotal;
     const resolvedBusinessId = businessId ?? publicFunnel.businessId ?? null;
 
-    trackMetaPixelEvent("InitiateCheckout", {
-      params: {
+    if (pixelId) {
+      trackMetaPixelEvent("InitiateCheckout", {
+        params: {
+          ...(value != null ? { value, currency } : { currency }),
+          funnel_step: "payment",
+        },
+        pixelId,
+        businessId: resolvedBusinessId,
+        funnelId,
+        dedupeKey: `InitiateCheckout|${pixelId}|${resolvedBusinessId ?? ""}|${funnelId ?? ""}`,
+      });
+    }
+
+    if (googleAdsId && resolvedBusinessId != null) {
+      trackGoogleAdsBeginCheckout({
+        googleAdsId,
+        businessId: resolvedBusinessId,
+        funnelId,
         ...(value != null ? { value, currency } : { currency }),
-      },
-      pixelId: publicFunnel.pixelId,
-      businessId: resolvedBusinessId,
-      funnelId,
-      dedupeKey: `InitiateCheckout|${publicFunnel.pixelId}|${resolvedBusinessId ?? ""}|${funnelId ?? ""}`,
-    });
+        dedupeKey: `begin_checkout|${googleAdsId}|${resolvedBusinessId}|${funnelId ?? ""}`,
+      });
+    }
   }, [
     isDesignPreview,
     isPostpaid,
     isLoading,
     campaignType,
-    publicFunnel?.pixelId,
-    publicFunnel?.businessId,
+    publicFunnel,
     businessId,
     funnelId,
     campaignPricing.subtotal,
@@ -179,6 +202,14 @@ function FunnelCampaignPaymentPageInner() {
     <>
       <FunnelMetaPixel
         pixelId={isDesignPreview ? null : publicFunnel?.pixelId}
+        businessId={businessId ?? publicFunnel?.businessId}
+        funnelId={funnelId}
+        stepKey="payment"
+      />
+      <FunnelGoogleAdsTracking
+        googleAdsId={
+          isDesignPreview ? null : publicFunnel?.googleTagManagerId
+        }
         businessId={businessId ?? publicFunnel?.businessId}
         funnelId={funnelId}
         stepKey="payment"

@@ -30,7 +30,15 @@ import {
   createCheckoutSession,
 } from "@/app/services/payment/checkout-session";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
+import {
+  trackMetaPixelCompleteRegistration,
+} from "@/app/lib/meta-pixel-funnel-conversions";
 import { trackMetaPixelEvent } from "@/app/lib/meta-pixel";
+import {
+  trackGoogleAdsConversion,
+  trackGoogleAdsButtonClick,
+  trackGoogleAdsSignupSuccess,
+} from "@/app/lib/google-ads-tag";
 import { clearFunnelLockedStep, forceFunnelLockedStep } from "@/app/lib/funnel-step-lock";
 import { trackFunnelEvent } from "@/app/services/funnel/track-funnel-event";
 import { useFunnelAnalyticsTracking } from "@/app/hooks/use-funnel-analytics-tracking";
@@ -151,6 +159,10 @@ export function TemplatePreview({
   campaignType = null,
   metaPixelId = null,
   metaBusinessId = null,
+  googleAdsTagId = null,
+  googleAdsSignupConversionLabel = null,
+  googleAdsLeadConversionLabel = null,
+  googleAdsBusinessId = null,
 }: {
   page: TemplatePage;
   landingPage: TemplatePage;
@@ -171,6 +183,10 @@ export function TemplatePreview({
   campaignType?: "prepaid" | "postpaid" | null;
   metaPixelId?: string | null;
   metaBusinessId?: number | null;
+  googleAdsTagId?: string | null;
+  googleAdsSignupConversionLabel?: string | null;
+  googleAdsLeadConversionLabel?: string | null;
+  googleAdsBusinessId?: number | null;
 }) {
   const resolvedCheckoutBusinessId =
     checkoutBusinessId ?? checkoutRestaurantId;
@@ -200,6 +216,18 @@ export function TemplatePreview({
           buttonText: elementName,
           section,
           content_name: elementName,
+          funnel_step: page.id,
+        },
+      });
+      trackGoogleAdsButtonClick({
+        googleAdsId: googleAdsTagId,
+        businessId: googleAdsBusinessId ?? metaBusinessId ?? resolvedCheckoutBusinessId,
+        funnelId: trackingFunnelId,
+        params: {
+          buttonText: elementName,
+          section,
+          content_name: elementName,
+          funnel_step: page.id,
         },
       });
     },
@@ -211,6 +239,8 @@ export function TemplatePreview({
       metaBusinessId,
       resolvedCheckoutBusinessId,
       trackingFunnelId,
+      googleAdsTagId,
+      googleAdsBusinessId,
     ],
   );
 
@@ -316,20 +346,47 @@ export function TemplatePreview({
           visitorId: getOrCreateVisitorId(),
         });
 
-        trackMetaPixelEvent("Lead", {
+        await trackMetaPixelCompleteRegistration({
           pixelId: metaPixelId,
           businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
           funnelId: trackingFunnelId,
           email,
           phone,
+          customerId: customer.id,
         });
-        trackMetaPixelEvent("CompleteRegistration", {
-          pixelId: metaPixelId,
-          businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
-          funnelId: trackingFunnelId,
-          email,
-          phone,
-        });
+
+        const resolvedGoogleBusinessId =
+          googleAdsBusinessId ?? metaBusinessId ?? resolvedCheckoutBusinessId;
+
+        if (googleAdsTagId?.trim() && resolvedGoogleBusinessId != null) {
+          await trackGoogleAdsSignupSuccess({
+            googleAdsId: googleAdsTagId,
+            businessId: resolvedGoogleBusinessId,
+            funnelId: trackingFunnelId,
+            customerId: customer.id,
+            email,
+            phone,
+          });
+
+          if (googleAdsLeadConversionLabel?.trim()) {
+            trackGoogleAdsConversion({
+              googleAdsId: googleAdsTagId,
+              conversionLabel: googleAdsLeadConversionLabel,
+              businessId: resolvedGoogleBusinessId,
+              funnelId: trackingFunnelId,
+              dedupeKey: `lead|${googleAdsTagId}|${googleAdsLeadConversionLabel}|${trackingFunnelId}|${customer.id}`,
+            });
+          }
+          if (googleAdsSignupConversionLabel?.trim()) {
+            trackGoogleAdsConversion({
+              googleAdsId: googleAdsTagId,
+              conversionLabel: googleAdsSignupConversionLabel,
+              businessId: resolvedGoogleBusinessId,
+              funnelId: trackingFunnelId,
+              dedupeKey: `signup|${googleAdsTagId}|${googleAdsSignupConversionLabel}|${trackingFunnelId}|${customer.id}`,
+            });
+          }
+        }
 
         if (
           signupSubmitFlow &&
@@ -392,6 +449,10 @@ export function TemplatePreview({
       skipPaymentStep,
       metaPixelId,
       metaBusinessId,
+      googleAdsTagId,
+      googleAdsSignupConversionLabel,
+      googleAdsLeadConversionLabel,
+      googleAdsBusinessId,
     ],
   );
 
@@ -575,7 +636,6 @@ export function TemplatePreview({
                 type="submit"
                 disabled={signupSubmitting}
                 className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={() => trackButtonClick(signup.navNextLabel)}
               >
                 {signup.navNextLabel}
               </button>

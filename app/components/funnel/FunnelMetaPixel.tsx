@@ -25,11 +25,14 @@ export function FunnelMetaPixel({
     }
 
     captureFunnelFbclidFromUrl();
+
+    const step = stepKey?.trim() || "unknown";
     trackMetaPixelPageView(id, {
       businessId,
       funnelId,
-      dedupeKey: `PageView|${id}|${funnelId ?? ""}|${stepKey ?? ""}`,
+      dedupeKey: `PageView|${id}|${funnelId ?? ""}|${step}`,
       eventSourceUrl: window.location.href,
+      params: { funnel_step: step },
     });
   }, [pixelId, businessId, funnelId, stepKey]);
 
