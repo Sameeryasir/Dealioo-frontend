@@ -7,7 +7,8 @@ export type OptimizationGoalOption = {
   value: MetaOptimizationGoal;
   label: string;
   description?: string;
-  group?: "primary" | "other" | "video";
+  group?: "primary" | "conversion" | "other" | "video";
+  recommended?: boolean;
 };
 
 export const OPTIMIZATION_GOALS_BY_OBJECTIVE: Record<
@@ -53,9 +54,9 @@ export const OPTIMIZATION_GOALS_BY_OBJECTIVE: Record<
   OUTCOME_LEADS: [
     {
       value: "OFFSITE_CONVERSIONS",
-      label: "Maximise number of conversions",
+      label: "Maximise number of leads",
       description:
-        "We'll try to show your ads to the people most likely to take a specific action on your website.",
+        "We'll try to show your ads to the people most likely to become a lead on your website.",
       group: "primary",
     },
     {
@@ -91,8 +92,36 @@ export const OPTIMIZATION_GOALS_BY_OBJECTIVE: Record<
       value: "OFFSITE_CONVERSIONS",
       label: "Maximise number of conversions",
       description:
-        "We'll try to show your ads to people most likely to take a valuable action on your website.",
-      group: "primary",
+        "We'll try to show your ads to the people most likely to take a specific action on your website.",
+      group: "conversion",
+      recommended: true,
+    },
+    {
+      value: "LANDING_PAGE_VIEWS",
+      label: "Maximise number of landing page views",
+      description:
+        "We'll try to show your ads to the people most likely to view the website linked in your ad.",
+      group: "other",
+    },
+    {
+      value: "LINK_CLICKS",
+      label: "Maximise number of link clicks",
+      description:
+        "We'll try to show your ads to the people most likely to click on them.",
+      group: "other",
+    },
+    {
+      value: "REACH",
+      label: "Maximise daily unique reach",
+      description: "We'll try to show your ads to as many people as possible.",
+      group: "other",
+    },
+    {
+      value: "IMPRESSIONS",
+      label: "Maximise number of impressions",
+      description:
+        "We'll try to show your ads to people as many times as possible.",
+      group: "other",
     },
   ],
   OUTCOME_ENGAGEMENT: [
@@ -241,11 +270,25 @@ export function joinCsv(items?: string[]): string {
 export function defaultEndDateIso(): string {
   const date = new Date();
   date.setDate(date.getDate() + 7);
-  return date.toISOString().slice(0, 10);
+  return localIsoDateFromDate(date);
+}
+
+export function localIsoDateFromDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function defaultStartDateIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localIsoDateFromDate(new Date());
+}
+
+export function defaultStartTimeLocal(): string {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 export function detectTimezone(): string {

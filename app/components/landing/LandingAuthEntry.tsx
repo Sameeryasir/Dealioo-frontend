@@ -6,13 +6,9 @@ import { trackProductButtonClick, trackProductLead } from "@/app/lib/product-met
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-type LandingAuthEntryProps = {
-  returnTo?: string | null;
-};
-
-export function LandingAuthEntry({ returnTo }: LandingAuthEntryProps) {
-  const signupHref = landingAuthHref("/auth/signup", returnTo);
-  const loginHref = landingAuthHref("/auth/login", returnTo);
+export function LandingAuthEntry() {
+  const signupHref = landingAuthHref("/auth/signup");
+  const loginHref = landingAuthHref("/auth/login");
 
   return (
     <motion.div

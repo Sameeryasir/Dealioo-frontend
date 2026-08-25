@@ -6,7 +6,6 @@ import {
   Database,
   Lock,
   Megaphone,
-  Unplug,
   UserCheck,
 } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
@@ -67,6 +66,62 @@ const META_DATA_COLLECTED = [
   },
 ] as const;
 
+const GOOGLE_PERMISSIONS = [
+  {
+    permission: "https://www.googleapis.com/auth/adwords",
+    purpose:
+      "Create, update, publish, and manage Google Ads campaigns, ad groups, keywords, and ads on your behalf through the Google Ads API.",
+  },
+  {
+    permission: "https://www.googleapis.com/auth/tagmanager.readonly",
+    purpose:
+      "Read your Google Tag Manager container list so you can optionally pick containers when configuring Ads tracking in Dealioo.",
+  },
+  {
+    permission: "openid, email, profile",
+    purpose:
+      "Identify the Google account connecting Google Ads to Dealioo and show which account is linked.",
+  },
+] as const;
+
+const GOOGLE_DATA_COLLECTED = [
+  {
+    category: "Account & connection",
+    items: [
+      "Google user ID and email (from the Google account that authorized the connection)",
+      "OAuth access and refresh tokens (stored encrypted; used only to call Google on your behalf)",
+      "Granted OAuth scopes and token expiration time",
+      "Connection status and connection timestamp",
+      "Selected Google Ads customer ID and manager (login) customer ID when applicable",
+    ],
+  },
+  {
+    category: "Advertising assets",
+    items: [
+      "Google Ads customer accounts available to your Google login",
+      "Campaign builder drafts you save in Dealioo (goals, budget, locations, keywords, ad copy, media)",
+      "Campaign, ad group, ad, budget, and keyword IDs created or referenced after publish",
+      "Publish job status and error messages when sync or publish fails",
+    ],
+  },
+  {
+    category: "Performance & diagnostics",
+    items: [
+      "Campaign metrics returned by Google Ads (e.g. spend, impressions, clicks)",
+      "Conversion goal metadata from your linked Google Ads account",
+      "Integration audit events (connection, disconnect, publish steps; tokens are never logged)",
+    ],
+  },
+  {
+    category: "Funnel conversion tracking (optional)",
+    items: [
+      "Google Ads tag ID (AW-…) and conversion labels you enter in Ads Tracking settings",
+      "When guests arrive from Google Ads (gclid in the URL), funnel events such as page views, signups, and purchases may be stored in our database for reporting",
+      "Browser conversion tags (gtag) may also fire on your public funnel pages when Ads Tracking is active",
+    ],
+  },
+] as const;
+
 function PrivacyBlock({
   icon: Icon,
   accent,
@@ -107,26 +162,7 @@ export function MetaPrivacyPolicyContent() {
       <AuthLandingNav />
 
       <main>
-        <section className="bg-white pt-[4.5rem] pb-6 sm:pt-20 sm:pb-8">
-          <div className="brand-landing-section">
-            <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 text-center sm:gap-4">
-              <DealiooLogo
-                src={LANDING_LOGO_SRC}
-                width={LANDING_LOGO_WIDTH}
-                height={LANDING_LOGO_HEIGHT}
-                variant="light"
-                className="h-9 w-auto sm:h-11"
-                priority
-              />
-              <h1 className="brand-landing-display text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-                Privacy{" "}
-                <span className="landing-hero-accent-pink">Policy</span>
-              </h1>
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-story-section bg-white py-2 sm:py-4">
+        <section className="landing-story-section bg-white pb-2 pt-[4.5rem] sm:pb-4 sm:pt-20">
           <div className="brand-landing-section mx-auto max-w-3xl">
             <PrivacyBlock
               icon={Megaphone}
@@ -136,12 +172,18 @@ export function MetaPrivacyPolicyContent() {
               <p>
                 Dealioo is a business marketing platform. We help you run
                 promotional campaigns, build signup funnels, track guests, and
-                measure results. When you connect Meta, we act as your
-                authorized tool to manage advertising through the{" "}
+                measure results. When you connect advertising platforms, we act
+                as your authorized tool to manage ads and measure conversions.
+              </p>
+              <h3 className="pt-2 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Meta (Facebook & Instagram Ads)
+              </h3>
+              <p>
+                When you connect Meta, we use the{" "}
                 <strong className="font-semibold text-[var(--landing-text)]">
                   Meta Marketing API
                 </strong>{" "}
-                (Facebook Graph API v24.0).
+                (Facebook Graph API v24.0) to:
               </p>
               <ul className="space-y-2">
                 {[
@@ -160,12 +202,40 @@ export function MetaPrivacyPolicyContent() {
                   </li>
                 ))}
               </ul>
+              <h3 className="pt-4 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Google Ads
+              </h3>
+              <p>
+                When you connect Google Ads, we use the{" "}
+                <strong className="font-semibold text-[var(--landing-text)]">
+                  Google Ads API
+                </strong>{" "}
+                and related Google OAuth services to:
+              </p>
+              <ul className="space-y-2">
+                {[
+                  "Connect your Google account via secure OAuth login",
+                  "Let you pick a Google Ads customer account",
+                  "Build campaign drafts in our Google campaign builder and publish campaigns, ad groups, keywords, and responsive search ads to Google Ads",
+                  "Display campaign performance (spend, impressions, clicks) in your Dealioo dashboard",
+                  "Optionally configure a Google Ads conversion tag (AW-…) on your funnel and store ad-attributed funnel events when guests click your Google ads",
+                ].map((item) => (
+                  <li key={item} className="flex gap-2.5">
+                    <span
+                      className="mt-2 size-1.5 shrink-0 rounded-full"
+                      style={{ background: BRAND_COLORS.green }}
+                      aria-hidden
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </PrivacyBlock>
 
             <PrivacyBlock
               icon={Database}
               accent={BRAND_COLORS.green}
-              title="Data we receive from Meta"
+              title="Data we receive from Meta & Google"
             >
               <p>
                 We only request data needed to connect advertising and show
@@ -173,14 +243,43 @@ export function MetaPrivacyPolicyContent() {
                 <strong className="font-semibold text-[var(--landing-text)]">
                   not
                 </strong>{" "}
-                sell your Meta data to third parties.
+                sell your Meta or Google data to third parties.
               </p>
+              <h3 className="pt-2 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Meta
+              </h3>
               <div className="space-y-6 pt-1">
                 {META_DATA_COLLECTED.map((group) => (
-                  <div key={group.category}>
-                    <h3 className="text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                  <div key={`meta-${group.category}`}>
+                    <h4 className="text-sm font-semibold text-[var(--landing-text)]">
                       {group.category}
-                    </h3>
+                    </h4>
+                    <ul className="mt-2 space-y-1.5">
+                      {group.items.map((item) => (
+                        <li key={item} className="flex gap-2.5">
+                          <span
+                            className="mt-1.5 shrink-0 text-sm font-bold"
+                            style={{ color: BRAND_COLORS.green }}
+                            aria-hidden
+                          >
+                            ✓
+                          </span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <h3 className="pt-6 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Google Ads
+              </h3>
+              <div className="space-y-6 pt-1">
+                {GOOGLE_DATA_COLLECTED.map((group) => (
+                  <div key={`google-${group.category}`}>
+                    <h4 className="text-sm font-semibold text-[var(--landing-text)]">
+                      {group.category}
+                    </h4>
                     <ul className="mt-2 space-y-1.5">
                       {group.items.map((item) => (
                         <li key={item} className="flex gap-2.5">
@@ -206,12 +305,15 @@ export function MetaPrivacyPolicyContent() {
               title="Permissions we request"
             >
               <p>
-                When you click Connect Facebook, Meta shows you these
-                permissions. You can revoke them anytime by disconnecting in
-                Dealioo or in your Facebook settings.
+                When you connect an ad platform, you see a consent screen from
+                that provider. You can revoke access anytime by disconnecting in
+                Dealioo or in your Meta / Google account settings.
               </p>
+              <h3 className="pt-2 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Meta permissions
+              </h3>
               <div
-                className="mt-4 overflow-hidden rounded-[1.25rem] border bg-[var(--landing-bg-subtle)]"
+                className="mt-3 overflow-hidden rounded-[1.25rem] border bg-[var(--landing-bg-subtle)]"
                 style={{ borderColor: "var(--landing-border)" }}
               >
                 <table className="w-full text-left text-sm">
@@ -242,6 +344,41 @@ export function MetaPrivacyPolicyContent() {
                   </tbody>
                 </table>
               </div>
+              <h3 className="pt-6 text-sm font-semibold text-[var(--landing-text)] sm:text-base">
+                Google OAuth scopes
+              </h3>
+              <div
+                className="mt-3 overflow-hidden rounded-[1.25rem] border bg-[var(--landing-bg-subtle)]"
+                style={{ borderColor: "var(--landing-border)" }}
+              >
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr
+                      className="text-xs font-bold uppercase tracking-[0.14em]"
+                      style={{ color: BRAND_COLORS.green }}
+                    >
+                      <th className="px-4 py-3 sm:px-5">Scope</th>
+                      <th className="px-4 py-3 sm:px-5">Why we need it</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GOOGLE_PERMISSIONS.map((row) => (
+                      <tr
+                        key={row.permission}
+                        className="border-t bg-white"
+                        style={{ borderColor: "var(--landing-border)" }}
+                      >
+                        <td className="px-4 py-3.5 align-top font-mono text-xs font-semibold text-[var(--landing-text)] sm:px-5">
+                          {row.permission}
+                        </td>
+                        <td className="px-4 py-3.5 text-[#334155] sm:px-5">
+                          {row.purpose}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </PrivacyBlock>
 
             <PrivacyBlock
@@ -251,9 +388,10 @@ export function MetaPrivacyPolicyContent() {
             >
               <ul className="space-y-2.5">
                 {[
-                  ["Operate the integration", "authenticate API calls, refresh tokens, and keep your connection healthy."],
-                  ["Publish your ads", "send campaign, ad set, creative, and ad payloads you configure in our builder to Meta."],
-                  ["Show performance", "display spend, delivery, and status in your Dealioo dashboard."],
+                  ["Operate the integration", "authenticate API calls, refresh OAuth tokens, and keep your Meta or Google connection healthy."],
+                  ["Publish your ads", "send campaign setup you configure in our builders to Meta or Google Ads (campaigns, ad sets, creatives, keywords, and ads)."],
+                  ["Show performance", "display spend, delivery, clicks, and status in your Dealioo dashboard."],
+                  ["Measure funnel conversions", "when Ads Tracking is enabled, record ad-attributed funnel events and load conversion tags on your public funnel pages."],
                   ["Support & troubleshooting", "diagnose publish failures and integration errors (without logging access tokens)."],
                   ["Security & compliance", "audit connection events and protect against unauthorized access."],
                 ].map(([label, rest]) => (
@@ -266,9 +404,9 @@ export function MetaPrivacyPolicyContent() {
                 ))}
               </ul>
               <p>
-                We do not use Meta data for unrelated advertising, profiling, or
-                resale. Campaign content is used only to deliver the ads you
-                explicitly configure.
+                We do not use Meta or Google data for unrelated advertising,
+                profiling, or resale. Campaign content is used only to deliver the
+                ads you explicitly configure.
               </p>
             </PrivacyBlock>
 
@@ -278,50 +416,20 @@ export function MetaPrivacyPolicyContent() {
               title="Security & storage"
             >
               <ul className="space-y-2">
-                <li>Meta access tokens are encrypted at rest in our database.</li>
                 <li>
-                  Tokens are transmitted only over HTTPS to Meta&apos;s Graph
-                  API.
+                  Meta and Google OAuth tokens are encrypted at rest in our
+                  database.
+                </li>
+                <li>
+                  Tokens are transmitted only over HTTPS to Meta&apos;s Graph API
+                  or Google&apos;s OAuth and Google Ads APIs.
                 </li>
                 <li>Audit logs exclude secrets, tokens, and passwords.</li>
                 <li>
                   Only authorized business admins can connect or disconnect Meta
-                  for their account.
+                  or Google Ads for their account.
                 </li>
               </ul>
-            </PrivacyBlock>
-
-            <PrivacyBlock
-              icon={Unplug}
-              accent={BRAND_COLORS.pink}
-              title="Disconnect & delete your data"
-            >
-              <p>
-                You can disconnect Meta at any time from{" "}
-                <strong className="font-semibold text-[var(--landing-text)]">
-                  Settings → Integrations
-                </strong>{" "}
-                in Dealioo. When you disconnect:
-              </p>
-              <ul className="space-y-2">
-                <li>
-                  We remove your stored access token and clear the ad account
-                  selection.
-                </li>
-                <li>We stop making Marketing API calls on your behalf.</li>
-                <li>
-                  Existing campaigns in Meta Ads Manager remain in Meta; we do
-                  not delete live ads unless you delete them in Meta.
-                </li>
-              </ul>
-              <p>
-                You can also remove Dealioo from your Facebook account under{" "}
-                <strong className="font-semibold text-[var(--landing-text)]">
-                  Facebook → Settings → Business integrations
-                </strong>
-                . For data deletion requests, contact us through Dealioo
-                support.
-              </p>
             </PrivacyBlock>
           </div>
         </section>

@@ -1,9 +1,4 @@
-export function buildAuthHref(base: string, returnTo: string | null): string {
-  if (returnTo != null && returnTo.trim() !== "") {
-    return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
-  }
-  return base;
-}
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 
 export function inviteTokenFromReturnTo(returnTo: string | null): string {
   if (!returnTo?.trim()) return "";
@@ -23,8 +18,7 @@ export function inviteSignupHref(inviteToken: string): string {
 }
 
 export function inviteLoginHref(inviteToken: string): string {
-  const returnTo = `/accept-invitation?token=${inviteToken.trim()}`;
-  return `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
+  return `/auth/login?inviteToken=${encodeURIComponent(inviteToken.trim())}`;
 }
 
 export function resolveInviteAuthHrefs(options: {
@@ -45,7 +39,18 @@ export function resolveInviteAuthHrefs(options: {
 
   return {
     inviteToken: "",
-    loginHref: buildAuthHref("/auth/login", options.returnTo ?? null),
-    signupHref: buildAuthHref("/auth/signup", options.returnTo ?? null),
+    loginHref: "/auth/login",
+    signupHref: "/auth/signup",
   };
+}
+
+export async function resolvePostAuthDestination(
+  inviteToken?: string | null,
+): Promise<string> {
+  const token = inviteToken?.trim();
+  if (token) {
+    return `/accept-invitation?token=${encodeURIComponent(token)}`;
+  }
+
+  return fetchAuthenticatedOnboardingDestination();
 }

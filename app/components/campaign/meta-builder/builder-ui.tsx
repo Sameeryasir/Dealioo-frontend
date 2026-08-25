@@ -557,7 +557,8 @@ export function BuilderPerformanceGoalSelect<T extends string>({
     value: T;
     label: string;
     description?: string;
-    group?: "primary" | "other" | "video";
+    group?: "primary" | "conversion" | "other" | "video";
+    recommended?: boolean;
   }>;
   onChange: (value: T) => void;
   disabled?: boolean;
@@ -574,6 +575,7 @@ export function BuilderPerformanceGoalSelect<T extends string>({
   const menuRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const selected = options.find((opt) => opt.value === value) ?? options[0];
+  const conversionOptions = options.filter((opt) => opt.group === "conversion");
   const primaryOptions = options.filter(
     (opt) => !opt.group || opt.group === "primary",
   );
@@ -656,11 +658,16 @@ export function BuilderPerformanceGoalSelect<T extends string>({
         </span>
         <span className="min-w-0">
           <span
-            className={`block text-sm font-semibold ${
+            className={`flex flex-wrap items-center gap-2 ${
               isSelected ? "text-[#1877f2]" : "text-[#07111f]"
             }`}
           >
-            {opt.label}
+            <span className="block text-sm font-semibold">{opt.label}</span>
+            {opt.recommended ? (
+              <span className="inline-flex items-center rounded-md bg-[#d1fae5] px-2 py-0.5 text-[11px] font-semibold text-[#047857]">
+                Recommended
+              </span>
+            ) : null}
           </span>
           {opt.description ? (
             <span className="mt-1 block text-xs leading-relaxed text-slate-500">
@@ -690,6 +697,14 @@ export function BuilderPerformanceGoalSelect<T extends string>({
             }}
             className="z-[80] max-h-[28rem] overflow-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_16px_40px_rgba(15,23,42,0.16)] ring-1 ring-black/[0.04]"
           >
+            {conversionOptions.length ? (
+              <>
+                <div className="px-3.5 pb-1 pt-2 text-xs font-bold text-slate-700">
+                  Conversion goals
+                </div>
+                {conversionOptions.map(renderOption)}
+              </>
+            ) : null}
             {primaryOptions.map(renderOption)}
             {otherOptions.length ? (
               <>

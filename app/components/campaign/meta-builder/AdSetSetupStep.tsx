@@ -15,6 +15,7 @@ import {
   buildTimezoneSelectOptions,
   defaultEndDateIso,
   defaultStartDateIso,
+  defaultStartTimeLocal,
   detectTimezone,
   END_DATE_DURATION_OPTIONS,
   formatTimezoneOptionLabel,
@@ -146,7 +147,9 @@ export function AdSetSetupStep({
   const initialStart = initialData?.startDate ?? defaultStartDateIso();
   const initialEnd = initialData?.endDate ?? addDaysToIsoDate(initialStart, 14);
   const [startDate, setStartDate] = useState(initialStart);
-  const [startTime, setStartTime] = useState(initialData?.startTime ?? "09:00");
+  const [startTime, setStartTime] = useState(
+    initialData?.startTime ?? defaultStartTimeLocal(),
+  );
   const [hasEndDate, setHasEndDate] = useState(() => {
     if (!initialData) return true;
     return Boolean(initialData.endDate?.trim() && initialData.endTime?.trim());
@@ -235,7 +238,8 @@ export function AdSetSetupStep({
     }
   }, [goalOptions, optimizationGoal]);
 
-  const needsPromotedObject = optimizationGoal === "OFFSITE_CONVERSIONS";
+  const needsPromotedObject =
+    optimizationGoal === "OFFSITE_CONVERSIONS" || optimizationGoal === "VALUE";
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
@@ -522,8 +526,9 @@ export function AdSetSetupStep({
           label="Performance goal"
           hint={
             <>
-              Set your goal, such as maximising conversions or conversion
-              value.{" "}
+              {campaignData.objective === "OUTCOME_LEADS"
+                ? "Set your goal, such as maximising leads. "
+                : "Set your goal, such as maximising conversions or conversion value. "}
               <a
                 href="https://www.facebook.com/business/help/410857036421635"
                 target="_blank"

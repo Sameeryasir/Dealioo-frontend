@@ -48,10 +48,7 @@ function AcceptInvitationInner() {
         }
 
         if (!hasAuthSession()) {
-          const returnTo = encodeURIComponent(
-            `/accept-invitation?token=${token}`,
-          );
-          router.replace(`/auth/login?returnTo=${returnTo}`);
+          router.replace(`/auth/login?inviteToken=${encodeURIComponent(token)}`);
           return;
         }
 

@@ -8,37 +8,13 @@ function isPaidSubscriptionStatus(status: string | null | undefined): boolean {
   return normalized === "active" || normalized === "trialing";
 }
 
-function isSafeReturnPath(path: string): boolean {
-  if (!path.startsWith("/")) return false;
-  if (path.startsWith("//")) return false;
-  if (path.startsWith("/auth/login")) return false;
-  if (path.startsWith("/auth/signup")) return false;
-  if (path.startsWith("/auth/select-plan")) return false;
-  if (path.startsWith("/business/register")) return false;
-  return true;
-}
-
-function invitedTeamDashboardPath(returnTo?: string | null): string {
-  if (returnTo && isSafeReturnPath(returnTo)) {
-    return returnTo;
-  }
-  return "/dashboard";
-}
-
-export function resolvePostLoginPath(
-  status: OnboardingStatus,
-  returnTo?: string | null,
-): string {
+export function resolvePostLoginPath(status: OnboardingStatus): string {
   if (isInvitedTeamUser()) {
-    return invitedTeamDashboardPath(returnTo);
+    return "/dashboard";
   }
 
   const fullyIn =
     status.onboardingCompleted || status.businessCreated;
-
-  if (fullyIn && returnTo && isSafeReturnPath(returnTo)) {
-    return returnTo;
-  }
 
   if (fullyIn) {
     if (
@@ -54,16 +30,13 @@ export function resolvePostLoginPath(
   return status.redirectPath;
 }
 
-export function resolvePostAuthPath(
-  status: OnboardingStatus,
-  returnTo?: string | null,
-): string {
+export function resolvePostAuthPath(status: OnboardingStatus): string {
   if (isInvitedTeamUser()) {
-    return invitedTeamDashboardPath(returnTo);
+    return "/dashboard";
   }
 
   if (status.businessCreated || status.onboardingCompleted) {
-    return resolvePostLoginPath(status, returnTo);
+    return resolvePostLoginPath(status);
   }
 
   if (status.redirectPath) {
@@ -81,14 +54,12 @@ export function resolvePostAuthPath(
     return "/business/register";
   }
 
-  return resolvePostLoginPath(status, returnTo);
+  return resolvePostLoginPath(status);
 }
 
-export async function fetchAuthenticatedOnboardingDestination(
-  returnTo?: string | null,
-): Promise<string> {
+export async function fetchAuthenticatedOnboardingDestination(): Promise<string> {
   if (isInvitedTeamUser()) {
-    return invitedTeamDashboardPath(returnTo);
+    return "/dashboard";
   }
 
   try {
@@ -100,13 +71,13 @@ export async function fetchAuthenticatedOnboardingDestination(
       status.subscriptionCompleted ||
       status.subscriptionSelected
     ) {
-      return resolvePostAuthPath(status, returnTo);
+      return resolvePostAuthPath(status);
     }
   } catch {
   }
 
   if (isInvitedTeamUser()) {
-    return invitedTeamDashboardPath(returnTo);
+    return "/dashboard";
   }
 
   try {
@@ -118,7 +89,7 @@ export async function fetchAuthenticatedOnboardingDestination(
   }
 
   if (isInvitedTeamUser()) {
-    return invitedTeamDashboardPath(returnTo);
+    return "/dashboard";
   }
 
   return "/auth/select-plan";

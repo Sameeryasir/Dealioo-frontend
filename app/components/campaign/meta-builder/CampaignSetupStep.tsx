@@ -109,9 +109,6 @@ export function CampaignSetupStep({
       initialData?.campaignBidStrategy ?? "LOWEST_COST_WITHOUT_CAP",
     );
   const [showAdvancedBudget, setShowAdvancedBudget] = useState(false);
-  const [campaignSpendLimit, setCampaignSpendLimit] = useState(
-    initialData?.campaignSpendLimit?.toString() ?? "",
-  );
   const [status, setStatus] = useState<MetaCampaignStatus>(
     initialData?.status ?? "PAUSED",
   );
@@ -140,9 +137,6 @@ export function CampaignSetupStep({
     if (!onWorkingChange) return;
 
     const amount = Number.parseFloat(campaignBudgetAmount);
-    const spend = campaignSpendLimit.trim()
-      ? Number.parseFloat(campaignSpendLimit)
-      : undefined;
 
     onWorkingChange({
       name: name.trim() || defaultName || "Untitled campaign",
@@ -166,8 +160,6 @@ export function CampaignSetupStep({
           : undefined,
       campaignBidStrategy,
       budgetScheduling: "none",
-      campaignSpendLimit:
-        spend != null && Number.isFinite(spend) ? spend : undefined,
       status,
     });
   }, [
@@ -175,7 +167,6 @@ export function CampaignSetupStep({
     campaignBidStrategy,
     campaignBudgetAmount,
     campaignBudgetType,
-    campaignSpendLimit,
     cboEnabled,
     defaultName,
     name,
@@ -224,15 +215,6 @@ export function CampaignSetupStep({
       }
     }
 
-    let spendLimit: number | undefined;
-    if (campaignSpendLimit.trim()) {
-      spendLimit = Number.parseFloat(campaignSpendLimit);
-      if (!Number.isFinite(spendLimit) || spendLimit < 1) {
-        setLocalError("Campaign spend limit must be at least 1.");
-        return;
-      }
-    }
-
     await onSave({
       name: trimmedName,
       buyingType: "AUCTION",
@@ -245,7 +227,6 @@ export function CampaignSetupStep({
       campaignLifetimeBudget: lifetime,
       campaignBidStrategy,
       budgetScheduling: "none",
-      campaignSpendLimit: spendLimit,
       status,
     });
   };
@@ -390,7 +371,7 @@ export function CampaignSetupStep({
           ) : (
             <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-xs text-slate-500">
               Budget amounts will be set per ad set on Step 2. You can still set
-              campaign-level bid and spend options below.
+              campaign-level bid strategy below.
             </p>
           )}
 
@@ -426,31 +407,6 @@ export function CampaignSetupStep({
                   <option value="COST_CAP">Cost cap</option>
                 </select>
               </label>
-              <div className="text-sm">
-                <span className="font-medium text-[#07111f]">
-                  Budget scheduling
-                </span>
-                <p className="mt-1 text-slate-500">None selected</p>
-              </div>
-                <label className="block text-sm">
-                  <span className="font-medium text-[#07111f]">
-                    Campaign spend limit (optional)
-                  </span>
-                  <div className="relative mt-1">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
-                      {currencyCode}
-                    </span>
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={campaignSpendLimit}
-                      onChange={(e) => setCampaignSpendLimit(e.target.value)}
-                      className={`${inputClass} mt-0 pl-14`}
-                      placeholder="Optional cap"
-                    />
-                  </div>
-                </label>
             </div>
           ) : null}
         </div>

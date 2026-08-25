@@ -9,10 +9,7 @@ import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 export function redirectToLogin(): void {
   if (typeof window === "undefined") return;
   clearAuthSession();
-  const returnTo = encodeURIComponent(
-    `${window.location.pathname}${window.location.search}`,
-  );
-  window.location.href = `/?returnTo=${returnTo}`;
+  window.location.href = "/auth/login";
 }
 
 export async function authenticatedFetch(

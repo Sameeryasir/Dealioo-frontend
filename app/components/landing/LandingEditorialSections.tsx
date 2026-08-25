@@ -277,9 +277,9 @@ export function LandingSpotlightBand() {
   );
 }
 
-export function LandingFinalCtaBand({ returnTo }: { returnTo?: string | null }) {
+export function LandingFinalCtaBand() {
   const reduced = useReducedMotion();
-  const signupHref = landingSignupHref(returnTo);
+  const signupHref = landingSignupHref();
 
   return (
     <section
@@ -522,13 +522,13 @@ export function LandingQuoteStat() {
   return null;
 }
 
-export function LandingPricing({ returnTo }: { returnTo?: string | null }) {
+export function LandingPricing() {
   const reduced = useReducedMotion();
   const { plans, loading } = useSubscriptionPlans();
   const [billing, setBilling] = useState<BillingCycle>("annual");
   const signupHref = useMemo(
-    () => appendBillingQuery(landingSignupHref(returnTo), billing),
-    [billing, returnTo],
+    () => appendBillingQuery(landingSignupHref(), billing),
+    [billing],
   );
 
   const footerNote = useMemo(

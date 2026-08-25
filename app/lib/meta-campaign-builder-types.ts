@@ -28,6 +28,7 @@ export type MetaOptimizationGoal =
   | "LANDING_PAGE_VIEWS"
   | "LEAD_GENERATION"
   | "OFFSITE_CONVERSIONS"
+  | "VALUE"
   | "POST_ENGAGEMENT"
   | "REACH"
   | "IMPRESSIONS"

@@ -3,9 +3,7 @@
 import OtpForm from "@/app/components/OtpForm";
 import AuthPageShell, { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { useCredentialContext } from "@/app/contexts/credential-context";
-import {
-  fetchAuthenticatedOnboardingDestination,
-} from "@/app/lib/onboarding-redirect";
+import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { sendOtp } from "@/app/services/auth/send-otp";
@@ -17,18 +15,22 @@ function VerifyOtpPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { email } = useCredentialContext();
-  const returnTo = searchParams.get("returnTo");
   const isSignupFlow = searchParams.get("flow") === "signup";
+  const legacyReturnTo = searchParams.get("returnTo");
 
   useEffect(() => {
     if (isSignupFlow) {
-      router.replace(
-        returnTo
-          ? `/auth/signup?returnTo=${encodeURIComponent(returnTo)}`
-          : "/auth/signup",
-      );
+      router.replace("/auth/signup");
     }
-  }, [isSignupFlow, returnTo, router]);
+  }, [isSignupFlow, router]);
+
+  useEffect(() => {
+    if (!legacyReturnTo?.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("returnTo");
+    const qs = params.toString();
+    router.replace(qs ? `/auth/verify-otp?${qs}` : "/auth/verify-otp");
+  }, [legacyReturnTo, router, searchParams]);
 
   const onVerifyOtp = useCallback(
     async (otp: number) => {
@@ -36,11 +38,10 @@ function VerifyOtpPageInner() {
       setAuthTokens(token, refreshToken);
       setSetupUser(user);
 
-      const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
-
+      const destination = await fetchAuthenticatedOnboardingDestination();
       router.push(destination);
     },
-    [email, returnTo, router],
+    [email, router],
   );
 
   const onResendOtp = useCallback(async () => {

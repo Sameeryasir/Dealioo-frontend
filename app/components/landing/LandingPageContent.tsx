@@ -30,17 +30,25 @@ const LANDING_LOGO_HEIGHT = 144;
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function LandingPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo");
   const entryKey = useLandingPageEntry();
-  const signupHref = landingSignupHref(returnTo);
-  const loginHref = landingLoginHref(returnTo);
+  const signupHref = landingSignupHref();
+  const loginHref = landingLoginHref();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!searchParams.get("returnTo")?.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("returnTo");
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/");
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -63,14 +71,6 @@ export function LandingPageContent() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    if (returnTo == null || returnTo.trim() === "") return;
-    const timer = window.setTimeout(() => {
-      document.getElementById("account")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [returnTo]);
-
   const navLinks = [
     ["How it works", "#how-it-works"],
     ["Pricing", "#pricing"],
@@ -85,19 +85,6 @@ export function LandingPageContent() {
       }`}
     >
       <ScrollProgress />
-
-      <AnimatePresence>
-        {returnTo ? (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            className="relative z-50 border-b border-brand-border bg-brand-soft px-4 py-2.5 text-center text-sm font-medium text-brand-navy"
-          >
-            Please log in to continue to your dashboard.
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
 
       <header
         className={`brand-landing-nav transition-all duration-300 ${
@@ -244,7 +231,7 @@ export function LandingPageContent() {
 
         <LandingBuiltForGrowth />
 
-        <LandingPricing returnTo={returnTo} />
+        <LandingPricing />
 
         <LandingWhyDealioo />
 
@@ -256,7 +243,7 @@ export function LandingPageContent() {
           aria-label="Create your account"
         >
           <Reveal className="brand-landing-section relative z-10">
-            <LandingAuthEntry returnTo={returnTo} />
+            <LandingAuthEntry />
           </Reveal>
         </section>
       </main>

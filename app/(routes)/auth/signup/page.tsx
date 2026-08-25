@@ -36,17 +36,25 @@ function SignupPageInner() {
     role: string;
   } | null>(null);
 
-  const returnTo = searchParams.get("returnTo");
+  const legacyReturnTo = searchParams.get("returnTo");
   const oauthError = searchParams.get("error");
   const inviteTokenParam = searchParams.get("inviteToken");
   const { inviteToken, loginHref, signupHref } = useMemo(
     () =>
       resolveInviteAuthHrefs({
         inviteToken: inviteTokenParam,
-        returnTo,
+        returnTo: legacyReturnTo,
       }),
-    [inviteTokenParam, returnTo],
+    [inviteTokenParam, legacyReturnTo],
   );
+
+  useEffect(() => {
+    if (!legacyReturnTo?.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("returnTo");
+    const qs = params.toString();
+    router.replace(qs ? `/auth/signup?${qs}` : "/auth/signup");
+  }, [legacyReturnTo, router, searchParams]);
 
   useEffect(() => {
     if (!inviteToken) return;

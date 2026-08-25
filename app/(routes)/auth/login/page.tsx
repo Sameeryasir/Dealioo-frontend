@@ -5,10 +5,10 @@ import LoginForm from "@/app/components/LoginForm";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
-import { resolveInviteAuthHrefs } from "@/app/lib/invite-auth-links";
 import {
-  fetchAuthenticatedOnboardingDestination,
-} from "@/app/lib/onboarding-redirect";
+  resolveInviteAuthHrefs,
+  resolvePostAuthDestination,
+} from "@/app/lib/invite-auth-links";
 import { setAuthTokens } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { login } from "@/app/services/auth/login";
@@ -26,17 +26,25 @@ function LoginPageInner() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recoveryEmailRef = useRef("");
 
-  const returnTo = searchParams.get("returnTo");
   const oauthError = searchParams.get("error");
   const inviteTokenParam = searchParams.get("inviteToken");
-  const { loginHref, signupHref } = useMemo(
+  const legacyReturnTo = searchParams.get("returnTo");
+  const { inviteToken, loginHref, signupHref } = useMemo(
     () =>
       resolveInviteAuthHrefs({
         inviteToken: inviteTokenParam,
-        returnTo,
+        returnTo: legacyReturnTo,
       }),
-    [inviteTokenParam, returnTo],
+    [inviteTokenParam, legacyReturnTo],
   );
+
+  useEffect(() => {
+    if (!legacyReturnTo?.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("returnTo");
+    const qs = params.toString();
+    router.replace(qs ? `/auth/login?${qs}` : "/auth/login");
+  }, [legacyReturnTo, router, searchParams]);
 
   useEffect(() => {
     if (oauthError?.trim()) {
@@ -54,8 +62,7 @@ function LoginPageInner() {
         setSetupUser(user);
         rememberCredentials(email, password);
 
-        const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
-
+        const destination = await resolvePostAuthDestination(inviteToken);
         router.push(destination);
       } catch (error) {
         const message =
@@ -65,7 +72,7 @@ function LoginPageInner() {
         setSubmitting(false);
       }
     },
-    [rememberCredentials, returnTo, router],
+    [inviteToken, rememberCredentials, router],
   );
 
   const onForgotPassword = useCallback(
@@ -97,8 +104,7 @@ function LoginPageInner() {
         setSetupUser(user);
         rememberCredentials(email, password);
 
-        const destination = await fetchAuthenticatedOnboardingDestination(returnTo);
-
+        const destination = await resolvePostAuthDestination(inviteToken);
         router.push(destination);
       } catch (error) {
         const message =
@@ -109,7 +115,7 @@ function LoginPageInner() {
         setSubmitting(false);
       }
     },
-    [rememberCredentials, returnTo, router],
+    [inviteToken, rememberCredentials, router],
   );
 
   const onResendOtp = useCallback(async () => {

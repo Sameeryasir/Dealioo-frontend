@@ -38,10 +38,7 @@ authAxios.interceptors.response.use(
     if (!newToken) {
       clearAuthSession();
       if (typeof window !== "undefined") {
-        const returnTo = encodeURIComponent(
-          `${window.location.pathname}${window.location.search}`,
-        );
-        window.location.href = `/?returnTo=${returnTo}`;
+        window.location.href = "/auth/login";
       }
       return Promise.reject(error);
     }

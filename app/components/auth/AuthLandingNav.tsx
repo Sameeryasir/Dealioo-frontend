@@ -38,8 +38,8 @@ export function AuthLandingNav({
   showGetStarted = true,
   showNavLinks = true,
 }: AuthLandingNavProps) {
-  const signupHref = signupHrefProp ?? landingSignupHref(null);
-  const loginHref = loginHrefProp ?? landingLoginHref(null);
+  const signupHref = signupHrefProp ?? landingSignupHref();
+  const loginHref = loginHrefProp ?? landingLoginHref();
   const navLinks = showNavLinks
     ? ([...NAV_LINKS, ["Login", loginHref] as const] as const)
     : [];

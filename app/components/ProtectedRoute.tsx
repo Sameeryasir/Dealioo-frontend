@@ -5,17 +5,14 @@ import {
   hasAuthSession,
 } from "@/app/lib/auth-session";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
-import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
+import {
+  inviteTokenFromReturnTo,
+  resolvePostAuthDestination,
+} from "@/app/lib/invite-auth-links";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-function currentReturnTo(pathname: string): string {
-  if (typeof window === "undefined") return pathname;
-  return `${pathname}${window.location.search || ""}`;
-}
-
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
@@ -24,9 +21,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       const authed = hasAuthSession();
       setIsAuthenticated(authed);
       if (!authed) {
-        window.location.assign(
-          `/auth/login?returnTo=${encodeURIComponent(currentReturnTo(pathname))}`,
-        );
+        window.location.assign("/auth/login");
       }
     };
 
@@ -37,7 +32,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
-  }, [pathname, router]);
+  }, [pathname]);
 
   if (isAuthenticated !== true) {
     return <OnboardingPageLoading />;
@@ -66,11 +61,12 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
         setAllowed(false);
       }
 
-      const returnTo = searchParams.get("returnTo");
+      const inviteToken =
+        searchParams.get("inviteToken")?.trim() ||
+        inviteTokenFromReturnTo(searchParams.get("returnTo"));
+
       try {
-        const destination = await fetchAuthenticatedOnboardingDestination(
-          returnTo,
-        );
+        const destination = await resolvePostAuthDestination(inviteToken);
         if (!cancelled) {
           router.replace(destination);
         }

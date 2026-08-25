@@ -25,8 +25,8 @@ export type BookMeetingNavProps = {
 };
 
 export function BookMeetingNav({ onMenuOpenChange }: BookMeetingNavProps) {
-  const signupHref = landingSignupHref(null);
-  const loginHref = landingLoginHref(null);
+  const signupHref = landingSignupHref();
+  const loginHref = landingLoginHref();
   const navLinks = [...NAV_LINKS, ["Login", loginHref] as const] as const;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
