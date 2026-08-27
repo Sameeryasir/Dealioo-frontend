@@ -7,8 +7,9 @@ import {
   FLOW_BRANCH_WALLET_REMINDER,
   FLOW_BRANCH_FOLLOW_UP,
   FLOW_BRANCH_OFFER_EXPIRY,
+  FLOW_BRANCH_OFFER_EXPIRY_3D,
+  FLOW_BRANCH_OFFER_EXPIRY_TOMORROW,
   FLOW_BRANCH_WEEKEND_PASS,
-  FLOW_BRANCH_EXTEND_OFFER,
   FLOW_BRANCH_WHY_DIDNT_COME,
 } from "@/app/components/automation/builder/flow-layout";
 import { PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
@@ -48,14 +49,23 @@ const PAYMENT_REMINDER_EMAIL_CONFIG = {
 
 const PAYMENT_REMINDER_SMS_CONFIG = {
   message:
-    "Hi [First Name] — thank you for signing up!\n\nYour offer is almost ready. Complete your payment here: [Payment Link]\n\nPrefer to pay when you visit?\n• Save your pass to Google Wallet: [Pass Link]\n• Come by the business — we'll scan your pass at checkout.\n\nWe look forward to seeing you!",
+    "Hi [First Name] — thank you for signing up!\n\nYour offer is almost ready. Use the button below to complete your payment.\n\nPrefer to pay when you visit? Save your pass to Google Wallet or come by the business — we'll scan your pass at checkout.\n\nWe look forward to seeing you!",
   linkLabel: "View Your Pass",
 } as const;
 
-const SIGNUP_FOLLOW_UP_HOURS_SMS = {
+const SIGNUP_FOLLOW_UP_MESSAGE = {
   message:
-    "Hi! This is Union Restaurant and Gameyard reaching out - thank you for signing up for our $4 Pretzel Bites offer yesterday 😄\n\nWe're open\nMonday-4pm-10pm\nTuesday-4pm-10pm\nWednesday-4pm-10pm\nThursday-4pm-10pm\nFriday-11am-11pm\nSaturday-11am-11pm\nSunday 11am-9pm\n\n*** Our kitchen closes at 9pm daily***\n\nGoogle Maps:\nhttps://maps.app.goo.gl/fjpQnUWj5DeUHi9r5\n\nMenu: https://uniongameyard.com/jeffersonville-union-pub-and-social-food-menu\n\nText us back if you have ideas, feedback, or wanna chat! This is your direct line to our team :)",
-  linkLabel: "Google Maps",
+    "Hi [First Name]! Thank you for signing up for our offer yesterday 😄\n\nWe'd love to see you soon. Text us back if you have questions or feedback — this is your direct line to our team :)",
+} as const;
+
+const SIGNUP_SECONDARY_FOLLOW_UP_MESSAGE = {
+  message: "Text us back if you need anything — we're happy to help :)",
+} as const;
+
+const WALLET_PASS_REMINDER_SMS = {
+  message:
+    "Hi [First Name], we noticed that you haven't added your offer to your digital wallet.\n\nJust in case you were planning to stop by to redeem it, you'll need to add it to your wallet first.",
+  linkLabel: "Pass Link",
 } as const;
 
 export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
@@ -171,9 +181,8 @@ export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
       summary: "Pass reminder with wallet link.",
       config: {
         flowBranch: FLOW_BRANCH_PASS,
-        message:
-          "Hi [First Name], we noticed that you haven't added your offer to your wallet yet. Get your pass: [Pass Link]",
-        linkLabel: "Pass Link",
+        message: WALLET_PASS_REMINDER_SMS.message,
+        linkLabel: WALLET_PASS_REMINDER_SMS.linkLabel,
       },
     },
     {
@@ -488,7 +497,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       summary: "Complete signup — Pass Link.",
       config: {
         message:
-          "Complete your signup — add your pass to your wallet: [Pass Link]",
+          "Complete your signup — add your pass to your wallet.",
         linkLabel: "Pass Link",
       },
     },
@@ -557,9 +566,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       summary: "Reminder to add the pass to wallet.",
       config: {
         flowBranch: FLOW_BRANCH_WALLET_REMINDER,
-        message:
-          "Hi [First Name] , we noticed that you haven't added your offer to your digital wallet.\n\nJust in case you were planning to stop by to redeem it, you'll need to add it to your wallet first.\n\nGet your pass: [Pass Link]",
-        linkLabel: "Pass Link",
+        message: WALLET_PASS_REMINDER_SMS.message,
+        linkLabel: WALLET_PASS_REMINDER_SMS.linkLabel,
       },
     },
     {
@@ -592,11 +600,10 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       key: "sms_follow_up",
       kind: "send_sms",
       label: "Send Text",
-      summary: "Follow-up with hours, menu, and Google Maps.",
+      summary: "Follow-up thank-you after signup.",
       config: {
         flowBranch: FLOW_BRANCH_FOLLOW_UP,
-        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
-        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
+        message: SIGNUP_FOLLOW_UP_MESSAGE.message,
       },
     },
 
@@ -659,19 +666,18 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         message:
-          "Hey! This is a friendly reminder that your $4 Pretzel Bites offer expires this Sunday.\n\nText us back if you need a link to your offer or our location. Both should be available if you scroll up :)",
+          "Hey! This is a friendly reminder that your offer expires this Sunday.\n\nText us back if you need a link to your offer.",
       },
     },
     {
       key: "sms_offer_expiry_hours",
       kind: "send_sms",
       label: "Send Text",
-      summary: "Follow-up with hours, menu, and Google Maps.",
+      summary: "Short follow-up after expiry reminder.",
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
-        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
+        message: SIGNUP_SECONDARY_FOLLOW_UP_MESSAGE.message,
       },
     },
 
@@ -681,8 +687,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       label: "Wait until",
       summary: "11:12 AM",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_3D,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         flowSectionTitle: "Reminder: Offer Expires in 3 Days",
         waitMode: "until_time",
         untilTime: "11:12 am",
@@ -696,8 +702,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       label: "Filters",
       summary: "Offer expires in less than 3 days",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_3D,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         conditions: [
           { value: "Offer expires in less than 3 days", amount: 3, unit: "days" },
         ],
@@ -709,10 +715,10 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       label: "Send Text",
       summary: "Expiry reminder — less than 3 days left.",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_3D,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         message:
-          "Hey! Quick reminder — your $4 Pretzel Bites offer expires in less than 3 days. Don't miss out!\n\nText us back if you need a link to your offer or our location :)",
+          "Hey! Quick reminder — your offer expires in less than 3 days. Don't miss out!\n\nText us back if you need a link to your offer.",
       },
     },
 
@@ -722,8 +728,8 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       label: "Wait until",
       summary: "Saturday at 10:36 AM",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_TOMORROW,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         flowSectionTitle: "Reminder: Offer Expires Tomorrow",
         waitMode: "until_day_of_week",
         dayOfWeek: "saturday",
@@ -736,12 +742,12 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       key: "filter_offer_expiry_tomorrow",
       kind: "condition",
       label: "Filters",
-      summary: "Less than a day until $4 Pretzel Bites will expire",
+      summary: "Less than a day until your offer will expire",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_TOMORROW,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         conditions: [
-          { value: "Less than a day until $4 Pretzel Bites will expire" },
+          { value: "Offer expires in less than 1 days", amount: 1, unit: "days" },
         ],
       },
     },
@@ -751,10 +757,10 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       label: "Send Text",
       summary: "Expiry reminder — offer expires tomorrow night.",
       config: {
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
+        flowBranch: FLOW_BRANCH_OFFER_EXPIRY_TOMORROW,
+        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         message:
-          "Hey! This is a no pressure reminder that your $4 Pretzel Bites offer expires tomorrow night.",
+          "Hey! This is a no pressure reminder that your offer expires tomorrow night.",
       },
     },
 
@@ -777,11 +783,13 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       key: "filter_offer_expiry_today",
       kind: "condition",
       label: "Filters",
-      summary: "$4 Pretzel Bites expired today",
+      summary: "Offer expires in less than 1 day",
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        conditions: [{ value: "$4 Pretzel Bites expired today" }],
+        conditions: [
+          { value: "Offer expires in less than 1 days", amount: 1, unit: "days" },
+        ],
       },
     },
     {
@@ -793,8 +801,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         message:
-          "Hey [First Name], This is your last reminder that your $4 Pretzel Bites offer expires tonight @ Union Restaurant and Gameyard.\n\nIn case you forgot, here's your offer link: [Pass Link]\n\nAnd here's our location: google.com/maps/search/?api=1&query=Union%20Pub%20and%20Social&query_place_id=ChIJrcU0pDxzaYgRFvecsOP6gbA\n\nSee you soon 😊",
-        linkLabel: "Pass Link",
+          "Hey [First Name], this is your last reminder that your offer expires tonight.\n\nSee you soon 😊",
       },
     },
 
@@ -818,85 +825,23 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       key: "filter_offer_expired",
       kind: "condition",
       label: "Filters",
-      summary: "$4 Pretzel Bites expired",
+      summary: "Offer has expired",
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        conditions: [{ value: "$4 Pretzel Bites expired" }],
+        conditions: [{ value: "Offer expired" }],
       },
     },
     {
       key: "sms_offer_expired",
       kind: "send_sms",
       label: "Send Text",
-      summary: "Offer expired — text EXTEND for 2 more weeks.",
+      summary: "Offer expired notice.",
       config: {
         flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
         message:
-          "Oh no! Your $4 Pretzel Bites offer has expired. Not able to make it? No problem. Text EXTEND and we'll extend your offer another 2 weeks :)",
-      },
-    },
-
-    {
-      key: "parallel_split_after_expired",
-      kind: "wait",
-      label: "Parallel Split",
-      summary: "Extend offer expiration + Why didn't you come by?",
-      config: {
-        isParallelSplit: true,
-        delay: 0,
-        unit: "minutes",
-        flowBranch: FLOW_BRANCH_OFFER_EXPIRY,
-        branches: [
-          {
-            id: FLOW_BRANCH_EXTEND_OFFER,
-            title: "Extend offer expiration",
-          },
-          {
-            id: FLOW_BRANCH_WHY_DIDNT_COME,
-            title: "Why didn't you come by?",
-          },
-        ],
-      },
-    },
-
-    {
-      key: "wait_extend_offer",
-      kind: "wait",
-      label: "Wait until",
-      summary: "No delay",
-      config: {
-        flowBranch: FLOW_BRANCH_EXTEND_OFFER,
-        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
-        delay: 0,
-        unit: "minutes",
-      },
-    },
-    {
-      key: "sms_extend_offer",
-      kind: "send_sms",
-      label: "Send Text",
-      summary: "Offer extended 2 weeks confirmation.",
-      config: {
-        flowBranch: FLOW_BRANCH_EXTEND_OFFER,
-        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
-        message:
-          "Yay! Your offer has been pushed back 2 weeks from now. You'll receive the same reminder texts as well.\n\nPlease let us know if we can help with anything else.",
-      },
-    },
-    {
-      key: "extend_reward_expiration",
-      kind: "tag_customer",
-      label: "Extend Reward Expiration",
-      summary: "Extend offer: $4 Pretzel Bites by 2 weeks",
-      config: {
-        flowBranch: FLOW_BRANCH_EXTEND_OFFER,
-        flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
-        tag: "extend_reward_expiration",
-        rewardName: "$4 Pretzel Bites",
-        expiration: "2 weeks",
-        expirationNote: "Extend offer: $4 Pretzel Bites by 2 weeks",
+          "Oh no! Your offer has expired. We hope to see you next time!",
       },
     },
 
@@ -918,13 +863,11 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       key: "filter_why_didnt_come",
       kind: "condition",
       label: "Filters",
-      summary: "Over 3 days since $4 Pretzel Bites expired",
+      summary: "Over 3 days since offer expired",
       config: {
         flowBranch: FLOW_BRANCH_WHY_DIDNT_COME,
         flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
-        conditions: [
-          { value: "Over 3 days since $4 Pretzel Bites expired" },
-        ],
+        conditions: [{ value: "Over 3 days since offer expired" }],
       },
     },
     {
@@ -936,7 +879,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
         flowBranch: FLOW_BRANCH_WHY_DIDNT_COME,
         flowBranchParent: FLOW_BRANCH_OFFER_EXPIRY,
         message:
-          "Hi- I was wondering what stopped you from coming by to redeem your offer for $4 Pretzel Bites @ Union Restaurant and Gameyard?\n\nNot trying to bother at all. Just trying to learn so we can make our guest experience better :)\n\n- Team Union",
+          "Hi [First Name], I was wondering what stopped you from coming by to redeem your offer?\n\nNot trying to bother at all. Just trying to learn so we can make our guest experience better :)",
       },
     },
 
@@ -960,7 +903,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       kind: "condition",
       label: "Filters",
       summary:
-        "Pass NOT added AND less than a week since signup AND Pretzel Bites NOT redeemed",
+        "Pass NOT added AND less than a week since signup AND reward NOT redeemed",
       config: {
         flowBranch: FLOW_BRANCH_WEEKEND_PASS,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
@@ -972,7 +915,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
             unit: "days",
             comparator: "lt",
           },
-          { negated: true, value: "$4 Pretzel Bites was redeemed" },
+          { negated: true, value: "Reward was redeemed" },
         ],
       },
     },
@@ -984,21 +927,19 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       config: {
         flowBranch: FLOW_BRANCH_WEEKEND_PASS,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        message:
-          "Noticed that you haven't added your $4 Pretzel Bites offer to your digital wallet.\n\nThis is a friendly reminder to add it in case you were planning on coming by this weekend :)\n\nHere's the link: [Pass Link]",
-        linkLabel: "Pass Link",
+        message: WALLET_PASS_REMINDER_SMS.message,
+        linkLabel: WALLET_PASS_REMINDER_SMS.linkLabel,
       },
     },
     {
       key: "sms_weekend_pass_hours",
       kind: "send_sms",
       label: "Send Text",
-      summary: "Follow-up with hours, menu, and Google Maps.",
+      summary: "Short follow-up after weekend pass reminder.",
       config: {
         flowBranch: FLOW_BRANCH_WEEKEND_PASS,
         flowBranchParent: FLOW_BRANCH_FOLLOW_UP,
-        message: SIGNUP_FOLLOW_UP_HOURS_SMS.message,
-        linkLabel: SIGNUP_FOLLOW_UP_HOURS_SMS.linkLabel,
+        message: SIGNUP_SECONDARY_FOLLOW_UP_MESSAGE.message,
       },
     },
   ],
@@ -1046,20 +987,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     { sourceKey: "sms_offer_expiry_today", targetKey: "wait_offer_expired" },
     { sourceKey: "wait_offer_expired", targetKey: "filter_offer_expired" },
     { sourceKey: "filter_offer_expired", targetKey: "sms_offer_expired" },
-    {
-      sourceKey: "sms_offer_expired",
-      targetKey: "parallel_split_after_expired",
-    },
-    {
-      sourceKey: "parallel_split_after_expired",
-      targetKey: "wait_extend_offer",
-    },
-    {
-      sourceKey: "parallel_split_after_expired",
-      targetKey: "wait_why_didnt_come",
-    },
-    { sourceKey: "wait_extend_offer", targetKey: "sms_extend_offer" },
-    { sourceKey: "sms_extend_offer", targetKey: "extend_reward_expiration" },
+    { sourceKey: "sms_offer_expired", targetKey: "wait_why_didnt_come" },
     { sourceKey: "wait_why_didnt_come", targetKey: "filter_why_didnt_come" },
     { sourceKey: "filter_why_didnt_come", targetKey: "sms_why_didnt_come" },
     { sourceKey: "wait_weekend_pass", targetKey: "filter_weekend_pass" },

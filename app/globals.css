@@ -2989,6 +2989,24 @@ body {
     @apply relative z-[1] flex items-center gap-4 sm:gap-5;
   }
 
+  @media (min-width: 768px) {
+    .profile-hero-identity {
+      gap: 1.35rem;
+    }
+  }
+
+  .profile-hero-email {
+    @apply flex items-center gap-2 text-white/78;
+  }
+
+  .profile-hero-email-icon {
+    @apply size-4 shrink-0 opacity-80;
+  }
+
+  .profile-hero-features {
+    @apply mt-1;
+  }
+
   .profile-hero-identity-copy {
     @apply min-w-0 flex-1;
   }
@@ -3117,14 +3135,26 @@ body {
 
   .profile-page-panel {
     @apply relative z-[2] overflow-hidden;
+    margin-top: -1.75rem;
+    border-radius: 1.5rem 1.5rem 0 0;
+    box-shadow:
+      0 -12px 40px rgba(15, 23, 42, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
     background:
       radial-gradient(ellipse 55% 40% at 100% 0%, rgba(24, 119, 242, 0.06) 0%, transparent 55%),
       radial-gradient(ellipse 45% 35% at 0% 100%, rgba(225, 48, 108, 0.05) 0%, transparent 50%),
       linear-gradient(180deg, #f7faff 0%, #ffffff 38%, #ffffff 100%);
   }
 
+  @media (min-width: 640px) {
+    .profile-page-panel {
+      margin-top: -2.25rem;
+      border-radius: 1.75rem 1.75rem 0 0;
+    }
+  }
+
   .profile-page-toolbar {
-    @apply relative;
+    @apply relative border-b border-[#eef2f8]/90;
   }
 
   .profile-page-toolbar-copy {
@@ -3270,12 +3300,32 @@ body {
   }
 
   .profile-contact-view-row {
-    @apply flex flex-col gap-1 border-b border-[#eef2f8] px-4 py-3.5 last:border-b-0 sm:px-4;
+    @apply flex items-start gap-3.5 border-b border-[#eef2f8] px-4 py-4 last:border-b-0 sm:px-5;
     transition: background-color 0.15s ease;
   }
 
   .profile-contact-view-row:hover {
     background: #f8faff;
+  }
+
+  .profile-contact-view-icon {
+    @apply mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .profile-contact-view-icon--blue {
+    color: #1877f2;
+    background: linear-gradient(145deg, rgba(24, 119, 242, 0.14) 0%, rgba(24, 119, 242, 0.05) 100%);
+  }
+
+  .profile-contact-view-icon--pink {
+    color: #e1306c;
+    background: linear-gradient(145deg, rgba(225, 48, 108, 0.14) 0%, rgba(225, 48, 108, 0.05) 100%);
+  }
+
+  .profile-contact-view-icon--teal {
+    color: #0f9f6e;
+    background: linear-gradient(145deg, rgba(52, 168, 83, 0.14) 0%, rgba(52, 168, 83, 0.05) 100%);
   }
 
   .profile-contact-view-label {
@@ -3301,6 +3351,25 @@ body {
 
   .profile-edit-card .brand-input:focus-visible {
     box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+  }
+
+  .profile-subscription-panel {
+    @apply overflow-hidden rounded-[1.35rem] border border-[#e2eaf5] bg-white;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 18px 40px rgba(15, 23, 42, 0.06);
+  }
+
+  .profile-subscription-panel-body {
+    @apply px-4 pb-5 pt-1 sm:px-5 sm:pb-6;
+  }
+
+  .profile-subscription-panel .dealioo-billing {
+    gap: 1rem;
+  }
+
+  .profile-page-skeleton .profile-edit-card::before {
+    display: none;
   }
 
   .profile-section-heading {
@@ -3599,6 +3668,272 @@ body {
     display: flex;
     justify-content: flex-end;
     gap: 0.45rem;
+  }
+
+  .dealioo-billing-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .dealioo-billing-modal {
+      align-items: center;
+    }
+  }
+
+  .dealioo-billing-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+  }
+
+  .dealioo-billing-modal-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: min(100%, 32rem);
+    max-height: min(92dvh, 44rem);
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #dfe8f5;
+    border-radius: 1.35rem;
+    background:
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgba(225, 48, 108, 0.05) 0%, transparent 50%),
+      linear-gradient(180deg, #f5f8ff 0%, #ffffff 24%);
+    box-shadow:
+      0 24px 60px rgba(15, 23, 42, 0.22),
+      0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  }
+
+  .dealioo-billing-modal-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1877f2 0%, #833aba 45%, #e1306c 100%);
+  }
+
+  .dealioo-billing-modal-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.35rem 1.35rem 0.75rem;
+  }
+
+  .dealioo-billing-modal-icon {
+    display: flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: #fff;
+    background: linear-gradient(145deg, #1877f2 0%, #0f5ed7 100%);
+    box-shadow: 0 10px 24px rgba(24, 119, 242, 0.28);
+  }
+
+  .dealioo-billing-modal-eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .dealioo-billing-modal-title {
+    margin: 0.2rem 0 0;
+    font-family: var(--font-poppins), system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-modal-close {
+    margin-left: auto;
+    display: inline-flex;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #64748b;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .dealioo-billing-modal-close:hover {
+    border-color: #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+  }
+
+  .dealioo-billing-modal-close:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .dealioo-billing-modal-body {
+    overflow: auto;
+    padding: 0 1.35rem 1.35rem;
+  }
+
+  .dealioo-billing-modal-lead {
+    margin: 0 0 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: #64748b;
+  }
+
+  .dealioo-billing-modal-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .dealioo-billing-modal-trust-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0.35rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 650;
+    color: #334155;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .dealioo-billing-modal-trust-chip svg {
+    color: #1877f2;
+  }
+
+  .dealioo-billing-modal-stripe-shell {
+    overflow: hidden;
+    border: 1px solid #e2eaf5;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 1rem 1rem 0.85rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+
+  .dealioo-billing-modal-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 0.35rem 0 0.15rem;
+  }
+
+  .dealioo-billing-modal-loading-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+
+  .dealioo-billing-modal-skeleton {
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+    background-size: 200% 100%;
+    animation: dealioo-billing-modal-shimmer 1.2s ease-in-out infinite;
+  }
+
+  .dealioo-billing-modal-skeleton--tall {
+    height: 5.5rem;
+  }
+
+  @keyframes dealioo-billing-modal-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .dealioo-billing-modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eef2f8;
+  }
+
+  .dealioo-billing-modal-btn {
+    display: inline-flex;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 9999px;
+    padding: 0 1.15rem;
+    font-size: 0.875rem;
+    font-weight: 650;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .dealioo-billing-modal-btn--ghost {
+    border: 1px solid #d8e3f2;
+    background: #fff;
+    color: #334155;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .dealioo-billing-modal-btn--ghost:hover {
+    border-color: #c5d4ea;
+    background: #f8faff;
+  }
+
+  .dealioo-billing-modal-btn--primary {
+    border: 1px solid transparent;
+    background: #1877f2;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(24, 119, 242, 0.28);
+  }
+
+  .dealioo-billing-modal-btn--primary:hover {
+    background: #0f5ed7;
+  }
+
+  .dealioo-billing-modal-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .dealioo-billing-modal-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+    border: 1px solid #fecaca;
+    border-radius: 0.85rem;
+    background: #fef2f2;
+    padding: 0.75rem 0.85rem;
+    font-size: 0.875rem;
+    color: #b91c1c;
   }
 
   .org-dashboard-stats-layout {

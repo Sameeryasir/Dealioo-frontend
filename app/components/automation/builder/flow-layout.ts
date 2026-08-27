@@ -11,6 +11,8 @@ export const FLOW_BRANCH_WALLET_REMINDER = "wallet_reminder";
 export const FLOW_BRANCH_FOLLOW_UP = "follow_up";
 
 export const FLOW_BRANCH_OFFER_EXPIRY = "offer_expiry";
+export const FLOW_BRANCH_OFFER_EXPIRY_3D = "offer_expiry_3d";
+export const FLOW_BRANCH_OFFER_EXPIRY_TOMORROW = "offer_expiry_tomorrow";
 export const FLOW_BRANCH_WEEKEND_PASS = "weekend_pass";
 
 export const FLOW_BRANCH_EXTEND_OFFER = "extend_offer";
@@ -24,6 +26,8 @@ export type FlowBranchId =
   | typeof FLOW_BRANCH_WALLET_REMINDER
   | typeof FLOW_BRANCH_FOLLOW_UP
   | typeof FLOW_BRANCH_OFFER_EXPIRY
+  | typeof FLOW_BRANCH_OFFER_EXPIRY_3D
+  | typeof FLOW_BRANCH_OFFER_EXPIRY_TOMORROW
   | typeof FLOW_BRANCH_WEEKEND_PASS
   | typeof FLOW_BRANCH_EXTEND_OFFER
   | typeof FLOW_BRANCH_WHY_DIDNT_COME;
@@ -103,6 +107,8 @@ function getFlowBranch(node: WorkflowNode): FlowBranchId | null {
     branch === FLOW_BRANCH_WALLET_REMINDER ||
     branch === FLOW_BRANCH_FOLLOW_UP ||
     branch === FLOW_BRANCH_OFFER_EXPIRY ||
+    branch === FLOW_BRANCH_OFFER_EXPIRY_3D ||
+    branch === FLOW_BRANCH_OFFER_EXPIRY_TOMORROW ||
     branch === FLOW_BRANCH_WEEKEND_PASS ||
     branch === FLOW_BRANCH_EXTEND_OFFER ||
     branch === FLOW_BRANCH_WHY_DIDNT_COME
@@ -320,6 +326,8 @@ export function parseSplitFlowLayout(
     [FLOW_BRANCH_WALLET_REMINDER]: [],
     [FLOW_BRANCH_FOLLOW_UP]: [],
     [FLOW_BRANCH_OFFER_EXPIRY]: [],
+    [FLOW_BRANCH_OFFER_EXPIRY_3D]: [],
+    [FLOW_BRANCH_OFFER_EXPIRY_TOMORROW]: [],
     [FLOW_BRANCH_WEEKEND_PASS]: [],
     [FLOW_BRANCH_EXTEND_OFFER]: [],
     [FLOW_BRANCH_WHY_DIDNT_COME]: [],

@@ -12,12 +12,14 @@ import {
   updateMyProfile,
 } from "@/app/services/user/profile";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
+import { Skeleton } from "@/app/components/skeleton";
 import {
   AlertCircle,
   BadgeCheck,
   Building2,
   CalendarDays,
   Clock3,
+  KeyRound,
   Loader2,
   Mail,
   Pencil,
@@ -90,26 +92,105 @@ function ProfileDetailBoardCell({
   );
 }
 
-function BannerStatCard({
+function ProfileContactViewRow({
   label,
   value,
   icon: Icon,
-  tone,
+  tone = "blue",
+  isDark,
 }: {
   label: string;
   value: string;
   icon: typeof UserRound;
-  tone: "blue" | "teal" | "pink";
+  tone?: "blue" | "pink" | "teal";
+  isDark: boolean;
 }) {
+  const viewValueClass = isDark
+    ? "text-sm font-medium text-white"
+    : "text-sm font-semibold text-brand-navy";
+  const viewLabelClass = isDark
+    ? "text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-zinc-500"
+    : "profile-contact-view-label";
+
   return (
-    <div className={`org-dashboard-stat org-dashboard-stat--${tone}`}>
-      <span className="org-dashboard-stat-icon">
-        <Icon className="org-dashboard-stat-icon-svg" strokeWidth={2.25} aria-hidden />
+    <div className="profile-contact-view-row">
+      <span className={`profile-contact-view-icon profile-contact-view-icon--${tone}`}>
+        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
-      <span className="org-dashboard-stat-body">
-        <span className="org-dashboard-stat-value">{value}</span>
-        <span className="org-dashboard-stat-label">{label}</span>
-      </span>
+      <div className="min-w-0 flex-1">
+        <span className={viewLabelClass}>{label}</span>
+        <span className={`${viewValueClass} mt-0.5 block break-words`}>{value}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProfilePageSkeleton() {
+  return (
+    <div className="profile-page-skeleton" aria-busy="true" aria-label="Loading profile">
+      <div className="org-dashboard-stats-banner">
+        <div className="org-dashboard-stats-inner">
+          <div className="org-dashboard-stats-layout org-dashboard-stats-layout--profile">
+            <div className="org-dashboard-stats-main">
+              <div className="profile-hero-identity">
+                <Skeleton className="size-20 shrink-0 rounded-full bg-white/20" />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <Skeleton className="h-6 w-28 rounded-full bg-white/15" />
+                  <Skeleton className="h-9 w-56 max-w-full rounded-lg bg-white/20" />
+                  <Skeleton className="h-4 w-44 max-w-full rounded-md bg-white/10" />
+                </div>
+              </div>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Skeleton className="h-8 w-28 rounded-full bg-white/12" />
+                <Skeleton className="h-8 w-32 rounded-full bg-white/12" />
+                <Skeleton className="h-8 w-36 rounded-full bg-white/12" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="org-dashboard-panel profile-page-panel">
+        <div className="org-dashboard-panel-toolbar profile-page-toolbar">
+          <Skeleton className="h-8 w-48 max-w-full rounded-lg bg-slate-100" />
+          <Skeleton className="mt-2 h-4 w-72 max-w-full rounded-md bg-slate-100" />
+        </div>
+        <div className="org-dashboard-panel-body profile-page-body">
+          <div className="profile-page-grid">
+            <div className="profile-details-panel">
+              <div className="profile-details-panel-head">
+                <Skeleton className="size-11 shrink-0 rounded-full bg-slate-100" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-5 w-36 rounded-md bg-slate-100" />
+                  <Skeleton className="h-4 w-full max-w-sm rounded-md bg-slate-100" />
+                </div>
+              </div>
+              <div className="profile-details-board">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <Skeleton
+                    key={index}
+                    className="h-[4.75rem] w-full rounded-2xl bg-slate-50"
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="profile-edit-card">
+              <div className="profile-edit-card-head">
+                <Skeleton className="size-11 shrink-0 rounded-full bg-slate-100" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-5 w-40 rounded-md bg-slate-100" />
+                  <Skeleton className="h-4 w-full max-w-xs rounded-md bg-slate-100" />
+                </div>
+              </div>
+              <div className="profile-edit-card-body space-y-3">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <Skeleton key={index} className="h-16 w-full rounded-2xl bg-slate-50" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -173,14 +254,6 @@ function ProfileContactSection({
     ? "border-t border-zinc-800 pt-4"
     : "border-t border-[#e8edf5] pt-4";
 
-  const viewValueClass = isDark
-    ? "text-sm font-medium text-white"
-    : "text-sm font-semibold text-brand-navy";
-
-  const viewLabelClass = isDark
-    ? "text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-zinc-500"
-    : "profile-contact-view-label";
-
   const errorAlertClass = isDark
     ? "flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200"
     : "flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800";
@@ -189,7 +262,11 @@ function ProfileContactSection({
 
   const body = isEditing ? (
     <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
-      <div className={`grid grid-cols-1 ${isPage ? "gap-4" : "gap-5"}`}>
+      <div
+        className={`grid grid-cols-1 ${
+          isPage ? "gap-4 sm:grid-cols-2" : "gap-5"
+        }`}
+      >
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${fieldIdPrefix}-name`} className={labelClass}>
             Full name
@@ -220,7 +297,7 @@ function ProfileContactSection({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className={`flex flex-col gap-1.5 ${isPage ? "sm:col-span-2" : ""}`}>
           <label htmlFor={`${fieldIdPrefix}-phone`} className={labelClass}>
             Phone
           </label>
@@ -272,18 +349,27 @@ function ProfileContactSection({
   ) : (
     <div className="flex flex-col gap-5">
       <div className={`profile-contact-view ${isDark ? "profile-contact-view--dark" : ""}`}>
-        <div className="profile-contact-view-row">
-          <span className={viewLabelClass}>Full name</span>
-          <span className={viewValueClass}>{displayValue(name)}</span>
-        </div>
-        <div className="profile-contact-view-row">
-          <span className={viewLabelClass}>Email</span>
-          <span className={viewValueClass}>{displayValue(email)}</span>
-        </div>
-        <div className="profile-contact-view-row">
-          <span className={viewLabelClass}>Phone</span>
-          <span className={viewValueClass}>{displayValue(phone, "Not set")}</span>
-        </div>
+        <ProfileContactViewRow
+          isDark={isDark}
+          icon={UserRound}
+          label="Full name"
+          value={displayValue(name)}
+          tone="blue"
+        />
+        <ProfileContactViewRow
+          isDark={isDark}
+          icon={Mail}
+          label="Email"
+          value={displayValue(email)}
+          tone="pink"
+        />
+        <ProfileContactViewRow
+          isDark={isDark}
+          icon={Phone}
+          label="Phone"
+          value={displayValue(phone, "Not set")}
+          tone="teal"
+        />
       </div>
 
       {successMessage ? (
@@ -468,12 +554,6 @@ export function OwnerProfileForm({
   const isDark = variant === "dark";
   const isPageLayout = layout === "page" && !isDark;
 
-  const memberSinceShort = useMemo(() => {
-    const date = new Date(profile?.createdAt ?? "");
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  }, [profile?.createdAt]);
-
   const loadProfile = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -494,11 +574,6 @@ export function OwnerProfileForm({
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
-
-  const businessCountValue = useMemo(() => {
-    if (businessesLoading) return "…";
-    return String(businessesMeta.total);
-  }, [businessesLoading, businessesMeta.total]);
 
   const businessCountLabel = useMemo(() => {
     if (businessesLoading) return "Loading…";
@@ -555,7 +630,7 @@ export function OwnerProfileForm({
   };
 
   if (loading) {
-    return (
+    return isPageLayout ? <ProfilePageSkeleton /> : (
       <div className="flex items-center gap-2 text-sm text-zinc-500">
         <Loader2 className="size-4 animate-spin" aria-hidden />
         Loading profile…
@@ -611,7 +686,7 @@ export function OwnerProfileForm({
         </div>
       </div>
 
-      <div className="profile-details-board mt-5">
+      <div className="profile-details-board">
         <ProfileDetailBoardCell
           icon={Shield}
           label="Role"
@@ -766,24 +841,21 @@ export function OwnerProfileForm({
                             {profile.name.split(" ")[0]}
                           </span>
                         </h2>
-                        <p className="org-dashboard-stats-intro">{profile.email}</p>
+                        <p className="org-dashboard-stats-intro profile-hero-email">
+                          <Mail
+                            className="profile-hero-email-icon"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                          <span className="truncate">{profile.email}</span>
+                        </p>
                       </div>
                     </div>
 
                     <ul
-                      className="org-dashboard-stats-features"
+                      className="org-dashboard-stats-features profile-hero-features"
                       aria-label="Account status"
                     >
-                      <li>
-                        <span className="org-dashboard-stats-feature org-dashboard-stats-feature--blue">
-                          <Shield
-                            className="org-dashboard-stats-feature-icon"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          {profile.role.name}
-                        </span>
-                      </li>
                       <li>
                         <span
                           className={`org-dashboard-stats-feature org-dashboard-stats-feature--${
@@ -812,25 +884,17 @@ export function OwnerProfileForm({
                           {profile.emailVerified ? "Email verified" : "Email not verified"}
                         </span>
                       </li>
+                      <li>
+                        <span className="org-dashboard-stats-feature org-dashboard-stats-feature--blue">
+                          <KeyRound
+                            className="org-dashboard-stats-feature-icon"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                          {signInMethodLabel(profile.provider)}
+                        </span>
+                      </li>
                     </ul>
-
-                    <div
-                      className="org-dashboard-stats-grid"
-                      aria-label="Account highlights"
-                    >
-                      <BannerStatCard
-                        tone="blue"
-                        icon={Building2}
-                        label="Businesses"
-                        value={businessCountValue}
-                      />
-                      <BannerStatCard
-                        tone="teal"
-                        icon={CalendarDays}
-                        label="Member since"
-                        value={memberSinceShort}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>

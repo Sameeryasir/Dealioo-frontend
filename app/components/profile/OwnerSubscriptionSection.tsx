@@ -26,6 +26,7 @@ import {
   FileText,
   Globe,
   Loader2,
+  Lock,
   MapPin,
   Pencil,
   RefreshCw,
@@ -34,6 +35,7 @@ import {
   Tag,
   TrendingUp,
   UserRound,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -252,6 +254,24 @@ export function OwnerSubscriptionSection({
   useEffect(() => {
     void loadOverview();
   }, [loadOverview]);
+
+  const closeCardModal = useCallback(() => {
+    if (cardLoading) return;
+    setCardModalOpen(false);
+    setCardClientSecret(null);
+    setCardError(null);
+  }, [cardLoading]);
+
+  useEffect(() => {
+    if (!cardModalOpen || cardLoading) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeCardModal();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [cardModalOpen, cardLoading, closeCardModal]);
 
   useEffect(() => {
     if (processedCardReturnRef.current || typeof window === "undefined") {
@@ -775,26 +795,22 @@ export function OwnerSubscriptionSection({
   );
 
   const section = isPage ? (
-    <div
-      className={
-        showHeading
-          ? "profile-subscription-section mt-8 border-t border-[#e8edf5] pt-8"
-          : ""
-      }
-    >
+    <div className={`profile-subscription-panel ${showHeading ? "mt-8" : ""}`}>
       {showHeading ? (
-        <div className="flex items-start gap-3.5">
-          <span className="profile-edit-card-icon">
-            <CreditCard className="size-5" strokeWidth={2.25} aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className={headingClass}>Subscription & Billing</h3>
-            <p className={copyClass}>
-              Your Dealioo plan, payment method, invoices, and billing details.
-            </p>
-            <div className="mt-4">{body}</div>
+        <>
+          <div className="profile-details-panel-head">
+            <span className="profile-details-panel-badge" aria-hidden>
+              <CreditCard className="size-4" strokeWidth={2.25} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className={headingClass}>Subscription & Billing</h3>
+              <p className={copyClass}>
+                Your Dealioo plan, payment method, invoices, and billing details.
+              </p>
+            </div>
           </div>
-        </div>
+          <div className="profile-subscription-panel-body">{body}</div>
+        </>
       ) : (
         body
       )}
@@ -818,52 +834,106 @@ export function OwnerSubscriptionSection({
       {section}
 
       {cardModalOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/40 p-4 sm:items-center">
+        <div className="dealioo-billing-modal" role="presentation">
+          <button
+            type="button"
+            className="dealioo-billing-modal-backdrop"
+            aria-label="Close update card dialog"
+            disabled={cardLoading}
+            onClick={closeCardModal}
+          />
+
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="update-card-title"
-            className="w-full max-w-lg rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-2xl sm:p-6"
+            className="dealioo-billing-modal-panel"
           >
-            <h3
-              id="update-card-title"
-              className="text-lg font-semibold text-brand-navy"
-            >
-              {paymentMethod ? "Update card" : "Add card"}
-            </h3>
-            <p className="mt-1 text-sm text-brand-muted">
-              Card details are entered securely with Stripe. Dealioo never stores
-              the full card number.
-            </p>
-            <div className="mt-4">
-              {cardLoading ? (
-                <div className="flex items-center gap-2 text-sm text-brand-muted">
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Preparing secure card form…
-                </div>
-              ) : cardError ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium text-red-700" role="alert">
-                    {cardError}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setCardModalOpen(false)}
-                    className={secondaryBtnClass}
-                  >
-                    Close
-                  </button>
-                </div>
-              ) : cardClientSecret ? (
-                <OwnerBillingCardForm
-                  clientSecret={cardClientSecret}
-                  onSuccess={() => void handleCardSaved()}
-                  onCancel={() => {
-                    setCardModalOpen(false);
-                    setCardClientSecret(null);
-                  }}
-                />
-              ) : null}
+            <span className="dealioo-billing-modal-accent" aria-hidden />
+
+            <header className="dealioo-billing-modal-head">
+              <span className="dealioo-billing-modal-icon" aria-hidden>
+                <CreditCard className="size-5" strokeWidth={2.25} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="dealioo-billing-modal-eyebrow">Subscription billing</p>
+                <h3 id="update-card-title" className="dealioo-billing-modal-title">
+                  {paymentMethod ? "Update payment card" : "Add payment card"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="dealioo-billing-modal-close"
+                aria-label="Close"
+                disabled={cardLoading}
+                onClick={closeCardModal}
+              >
+                <X className="size-4" strokeWidth={2.25} aria-hidden />
+              </button>
+            </header>
+
+            <div className="dealioo-billing-modal-body">
+              <p className="dealioo-billing-modal-lead">
+                This card is used for your Dealioo plan renewals. Enter your details
+                below to {paymentMethod ? "replace" : "save"} the card on file.
+              </p>
+
+              <div className="dealioo-billing-modal-trust" aria-label="Security notes">
+                <span className="dealioo-billing-modal-trust-chip">
+                  <Shield className="size-3.5" strokeWidth={2.25} aria-hidden />
+                  Secured by Stripe
+                </span>
+                <span className="dealioo-billing-modal-trust-chip">
+                  <Lock className="size-3.5" strokeWidth={2.25} aria-hidden />
+                  Dealioo never stores full card numbers
+                </span>
+              </div>
+
+              <div className="dealioo-billing-modal-stripe-shell">
+                {cardLoading ? (
+                  <div className="dealioo-billing-modal-loading" aria-busy="true">
+                    <div className="dealioo-billing-modal-loading-row">
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Preparing secure card form…
+                    </div>
+                    <div className="dealioo-billing-modal-skeleton" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="dealioo-billing-modal-skeleton" />
+                      <div className="dealioo-billing-modal-skeleton" />
+                    </div>
+                    <div className="dealioo-billing-modal-skeleton dealioo-billing-modal-skeleton--tall" />
+                  </div>
+                ) : cardError ? (
+                  <>
+                    <div className="dealioo-billing-modal-error" role="alert">
+                      <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                      <span>{cardError}</span>
+                    </div>
+                    <div className="dealioo-billing-modal-actions !mt-0 !border-t-0 !pt-0">
+                      <button
+                        type="button"
+                        onClick={closeCardModal}
+                        className="dealioo-billing-modal-btn dealioo-billing-modal-btn--ghost"
+                      >
+                        Close
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenCardModal()}
+                        className="dealioo-billing-modal-btn dealioo-billing-modal-btn--primary"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  </>
+                ) : cardClientSecret ? (
+                  <OwnerBillingCardForm
+                    clientSecret={cardClientSecret}
+                    onSuccess={() => void handleCardSaved()}
+                    onCancel={closeCardModal}
+                  />
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

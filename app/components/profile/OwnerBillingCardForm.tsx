@@ -14,6 +14,45 @@ import { confirmBillingPaymentMethod } from "@/app/services/subscription/billing
 const publishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
 
+const stripeAppearance = {
+  theme: "stripe" as const,
+  variables: {
+    colorPrimary: "#1877f2",
+    colorBackground: "#ffffff",
+    colorText: "#0f172a",
+    colorDanger: "#dc2626",
+    colorTextSecondary: "#64748b",
+    colorTextPlaceholder: "#94a3b8",
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    spacingUnit: "4px",
+    borderRadius: "12px",
+  },
+  rules: {
+    ".Input": {
+      border: "1px solid #d8e3f2",
+      boxShadow: "none",
+      padding: "12px 14px",
+    },
+    ".Input:focus": {
+      border: "1px solid #1877f2",
+      boxShadow: "0 0 0 3px rgba(24, 119, 242, 0.12)",
+    },
+    ".Label": {
+      fontWeight: "600",
+      fontSize: "0.8125rem",
+      marginBottom: "6px",
+    },
+    ".Tab": {
+      border: "1px solid #e2e8f0",
+      boxShadow: "none",
+    },
+    ".Tab--selected": {
+      borderColor: "#1877f2",
+      boxShadow: "0 0 0 1px #1877f2",
+    },
+  },
+};
+
 type OwnerBillingCardFormProps = {
   clientSecret: string;
   onSuccess: () => void;
@@ -78,11 +117,14 @@ function CardSetupFields({
     <form
       data-dealioo-stripe-form="true"
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex flex-col gap-4"
+      className="flex flex-col"
     >
       <PaymentElement
         options={{
-          layout: "tabs",
+          layout: {
+            type: "accordion",
+            defaultCollapsed: false,
+          },
           paymentMethodOrder: ["card"],
           wallets: {
             applePay: "never",
@@ -91,24 +133,26 @@ function CardSetupFields({
           },
         }}
       />
+
       {errorMessage ? (
-        <p className="text-sm font-medium text-red-700" role="alert">
-          {errorMessage}
-        </p>
+        <div className="dealioo-billing-modal-error mt-4" role="alert">
+          <span>{errorMessage}</span>
+        </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+
+      <div className="dealioo-billing-modal-actions">
         <button
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="inline-flex h-10 items-center justify-center rounded-full border border-[#d8e3f2] bg-white px-5 text-sm font-semibold text-brand-navy shadow-sm transition-colors hover:border-[#c5d4ea] hover:bg-[#f8faff] disabled:opacity-60"
+          className="dealioo-billing-modal-btn dealioo-billing-modal-btn--ghost"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!stripe || !elements || busy}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-brand-primary px-5 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-colors hover:bg-brand-primary-hover disabled:opacity-60"
+          className="dealioo-billing-modal-btn dealioo-billing-modal-btn--primary"
         >
           {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
           {busy ? "Saving…" : "Save card"}
@@ -130,9 +174,9 @@ export function OwnerBillingCardForm({
 
   if (!publishableKey || !stripePromise) {
     return (
-      <p className="text-sm text-red-700" role="alert">
+      <div className="dealioo-billing-modal-error" role="alert">
         Card updates are not configured yet. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.
-      </p>
+      </div>
     );
   }
 
@@ -141,13 +185,7 @@ export function OwnerBillingCardForm({
       stripe={stripePromise}
       options={{
         clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            colorPrimary: "#1877f2",
-            borderRadius: "12px",
-          },
-        },
+        appearance: stripeAppearance,
       }}
     >
       <CardSetupFields onSuccess={onSuccess} onCancel={onCancel} />
