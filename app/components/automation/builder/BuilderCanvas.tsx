@@ -29,10 +29,12 @@ import {
   FlowStepCard,
   PrepaidLoopBackCard,
 } from "@/app/components/automation/builder/flow-step-cards";
+import { isPaymentReminderFlow } from "@/app/components/automation/builder/bundled-actions";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import {
   buildSegmentsForIndexedNodes,
   parallelTreeHasNestedSplit,
+  parsePaymentReminderSplitLayout,
   parsePrepaidVisitSplitLayout,
   parseSplitFlowLayout,
   type IndexedWorkflowNode,
@@ -356,21 +358,30 @@ export function BuilderCanvas({
 
   const { trigger, flowNodes, flowStartIndex } = splitTriggerAndFlow(nodes);
   const prepaidVisitSplit = parsePrepaidVisitSplitLayout(flowNodes, flowStartIndex);
+  const paymentReminderSplit = parsePaymentReminderSplitLayout(
+    flowNodes,
+    flowStartIndex,
+  );
   const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
   const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
+  const usePaymentReminderSections =
+    isPaymentReminderFlow(flowNodes) && !splitLayout.hasSplit;
   const headSegments = usePrepaidVisitSplit
     ? buildSegmentsForIndexedNodes(prepaidVisitSplit.head)
-    : splitLayout.hasSplit
-      ? buildSegmentsForIndexedNodes(splitLayout.head)
-      : buildFlowSegments(flowNodes, flowStartIndex);
+    : usePaymentReminderSections
+      ? buildSegmentsForIndexedNodes(paymentReminderSplit.head)
+      : splitLayout.hasSplit
+        ? buildSegmentsForIndexedNodes(splitLayout.head)
+        : buildFlowSegments(flowNodes, flowStartIndex);
   const visitedYesSegments = buildSegmentsForIndexedNodes(
     prepaidVisitSplit.visitedYes,
   );
   const branchColumns = splitLayout.branchColumns;
   const parallelTree = splitLayout.tree;
-  const flowSegments = usePrepaidVisitSplit || splitLayout.hasSplit
-    ? headSegments
-    : buildFlowSegments(flowNodes, flowStartIndex);
+  const flowSegments =
+    usePrepaidVisitSplit || usePaymentReminderSections || splitLayout.hasSplit
+      ? headSegments
+      : buildFlowSegments(flowNodes, flowStartIndex);
 
   const zoomPercent = useMemo(() => Math.round(zoom * 100), [zoom]);
   const zoomOut = useCallback(() => {
@@ -711,6 +722,36 @@ export function BuilderCanvas({
     );
   };
 
+  const renderPaymentReminderTrunk = () => {
+    const sections = splitBranchSections(
+      paymentReminderSplit.head,
+      "Payment reminder journey",
+    );
+
+    return (
+      <div className="flex w-full flex-col items-center gap-3">
+        {sections.map((section, sectionIndex, all) => (
+          <div
+            key={`payment-reminder-section-${sectionIndex}`}
+            className="flex w-full flex-col items-center"
+          >
+            {renderBranchSectionBox(
+              section.title,
+              section.entries,
+              sectionIndex,
+              `payment-reminder-section-${sectionIndex}`,
+            )}
+            {sectionIndex < all.length - 1 ? (
+              <div className="flex w-full justify-center py-1.5">
+                <WorkflowConnector />
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderPrepaidVisitBranches = () => (
     <div className="flex w-max max-w-none flex-col items-center">
       <PrepaidVisitSplitConnector wide />
@@ -882,7 +923,9 @@ export function BuilderCanvas({
                             Live
                           </span>
                           <div className="mt-10 flex flex-col gap-3 sm:mt-11 sm:gap-4">
-                            {renderSegmentList(flowSegments)}
+                            {usePaymentReminderSections
+                              ? renderPaymentReminderTrunk()
+                              : renderSegmentList(flowSegments)}
                           </div>
                         </div>
                       </>

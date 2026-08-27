@@ -3,7 +3,6 @@
 import { useEffect, useId, useState } from "react";
 import {
   Check,
-  Download,
   Filter,
   Footprints,
   Heart,
@@ -18,19 +17,16 @@ import {
   Tag,
   ThumbsUp,
   User,
-  Users,
   Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
 import type { MetaCampaignObjective } from "@/app/lib/meta-campaign-builder-types";
 
-export type MetaObjectivePickerValue = MetaCampaignObjective | "OUTCOME_APP_PROMOTION";
-
 export type MetaBuyingType = "AUCTION";
 
 type ObjectiveOption = {
-  id: MetaObjectivePickerValue;
+  id: MetaCampaignObjective;
   label: string;
   description: string;
   aboutLabel?: string;
@@ -98,17 +94,6 @@ const OBJECTIVES: ObjectiveOption[] = [
     supported: true,
   },
   {
-    id: "OUTCOME_APP_PROMOTION",
-    label: "App promotion",
-    description: "Find new people to install your app and continue using it.",
-    aboutLabel: "About app promotion",
-    aboutHref:
-      "https://www.facebook.com/business/help/282168172274159",
-    icon: Users,
-    goodFor: ["App installs", "App events"],
-    supported: false,
-  },
-  {
     id: "OUTCOME_SALES",
     label: "Sales",
     description: "Find people who are likely to purchase your product or service.",
@@ -125,7 +110,7 @@ const OBJECTIVES: ObjectiveOption[] = [
 
 type MetaCampaignObjectiveDialogProps = {
   open: boolean;
-  initialObjective?: MetaObjectivePickerValue | null;
+  initialObjective?: MetaCampaignObjective | null;
   campaignLabel?: string | null;
   onClose: () => void;
   onContinue: (objective: MetaCampaignObjective) => void;
@@ -175,34 +160,6 @@ function ObjectiveDetailArt({
         <span className="absolute bottom-8 right-12 z-[1] flex size-11 items-center justify-center rounded-xl bg-[#2d6a4f] text-white shadow-md ring-4 ring-white">
           <ShoppingCart className="size-5" strokeWidth={2} />
         </span>
-      </div>
-    );
-  }
-
-  if (option.id === "OUTCOME_APP_PROMOTION") {
-    return (
-      <div
-        className="relative mx-auto mb-6 flex h-44 w-full max-w-[280px] items-center justify-center"
-        aria-hidden
-      >
-        <div className="absolute left-10 top-4 h-36 w-[100px] rounded-[1.35rem] bg-gradient-to-b from-[#6c5ce7] to-[#3b5998] p-2 shadow-lg">
-          <div className="flex h-full flex-col rounded-[1.1rem] bg-[#f0f2f5] p-2.5">
-            <div className="mb-2 h-1.5 w-8 self-center rounded-full bg-[#bcc0c4]" />
-            <div className="mb-2 flex size-8 items-center justify-center rounded-lg bg-[#1877f2] text-white">
-              <Users className="size-4" strokeWidth={2} />
-            </div>
-            <div className="space-y-1.5">
-              <div className="h-1.5 w-12 rounded bg-[#bcc0c4]" />
-              <div className="h-1.5 w-16 rounded bg-[#d8dde3]" />
-              <div className="mt-2 h-6 w-full rounded-md bg-[#1877f2]/20" />
-            </div>
-          </div>
-        </div>
-        <div className="absolute right-6 top-10 flex size-28 items-center justify-center rounded-2xl border-2 border-dashed border-[#8a8d91]/70 bg-white/90 shadow-md">
-          <span className="flex size-14 items-center justify-center rounded-xl bg-[#e7f3ff] text-[#1877f2]">
-            <Download className="size-7" strokeWidth={2} />
-          </span>
-        </div>
       </div>
     );
   }
@@ -344,7 +301,7 @@ export function MetaCampaignObjectiveDialog({
   onContinue,
 }: MetaCampaignObjectiveDialogProps) {
   const titleId = useId();
-  const [selected, setSelected] = useState<MetaObjectivePickerValue>(
+  const [selected, setSelected] = useState<MetaCampaignObjective>(
     initialObjective ?? "OUTCOME_AWARENESS",
   );
 
@@ -379,9 +336,6 @@ export function MetaCampaignObjectiveDialog({
 
   const handleContinue = () => {
     if (!canContinue || selectedOption == null || !selectedOption.supported) {
-      return;
-    }
-    if (selectedOption.id === "OUTCOME_APP_PROMOTION") {
       return;
     }
     onContinue(selectedOption.id);

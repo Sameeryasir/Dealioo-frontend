@@ -3,6 +3,8 @@ import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation
 export const PREPAID_PAYMENT_ACTIONS_KIND = "prepaid_payment_actions";
 export const PREPAID_VISIT_REMINDER_LOOP_KIND = "prepaid_visit_reminder";
 export const PREPAID_VISIT_REMINDER_WAIT_LOOP_KIND = "prepaid_visit_reminder_wait";
+export const PAYMENT_REMINDER_EMAIL_KIND = "payment_reminder_email";
+export const PAYMENT_REMINDER_WAIT_KIND = "payment_reminder_wait";
 
 export const PREPAID_FIRST_EMAIL_DEFAULTS = {
   subject: "Your prepaid offer is ready — visit us with your pass",
@@ -141,6 +143,53 @@ export function isPrepaidVisitReminderLoopNode(node: WorkflowNode): boolean {
     node.kind === "send_email" &&
     String(node.config.workflowKind ?? "").trim() ===
       PREPAID_VISIT_REMINDER_LOOP_KIND
+  );
+}
+
+export function isPaymentReminderEmailNode(node: WorkflowNode): boolean {
+  return (
+    node.kind === "send_email" &&
+    String(node.config.workflowKind ?? "").trim() === PAYMENT_REMINDER_EMAIL_KIND
+  );
+}
+
+export function isPaymentReminderLoopFilterNode(node: WorkflowNode): boolean {
+  if (node.kind !== "condition") {
+    return false;
+  }
+  return (
+    String(node.config.onFalseLoopWorkflowKind ?? "").trim() ===
+    PAYMENT_REMINDER_EMAIL_KIND
+  );
+}
+
+export function isPaymentReminderStatusSplitFilterNode(
+  node: WorkflowNode,
+): boolean {
+  return (
+    node.kind === "condition" &&
+    node.config.isPaymentReminderStatusSplit === true
+  );
+}
+
+export function isPaymentReminderFlow(nodes: WorkflowNode[]): boolean {
+  return nodes.some(isPaymentReminderEmailNode);
+}
+
+export function resolvePaymentReminderLoopTargetNode(
+  flowNodes: WorkflowNode[],
+): WorkflowNode | null {
+  const loopFilter = flowNodes.find(isPaymentReminderLoopFilterNode);
+  if (!loopFilter) {
+    return null;
+  }
+  const loopKind = String(
+    loopFilter.config.onFalseLoopWorkflowKind ?? PAYMENT_REMINDER_EMAIL_KIND,
+  ).trim();
+  return (
+    flowNodes.find(
+      (node) => String(node.config?.workflowKind ?? "").trim() === loopKind,
+    ) ?? flowNodes.find(isPaymentReminderEmailNode) ?? null
   );
 }
 

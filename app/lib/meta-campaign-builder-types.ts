@@ -39,6 +39,7 @@ export type MetaOptimizationGoal =
 
 export type MetaDestinationType =
   | "WEBSITE"
+  | "FACEBOOK_PAGE"
   | "MESSENGER"
   | "WHATSAPP"
   | "INSTAGRAM_DIRECT";

@@ -35,7 +35,7 @@ import {
   isSmsMergeTag,
   splitSmsPreviewParts,
 } from "@/app/components/automation/builder/workflow-node-display";
-import { expandBundledActionsForDisplay, isBundledActionsNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
+import { expandBundledActionsForDisplay, isBundledActionsNode, isPaymentReminderLoopFilterNode, isPaymentReminderStatusSplitFilterNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
 import { isCustomerVisitedFilterNode, isParallelSplitNode } from "@/app/components/automation/builder/flow-layout";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
@@ -246,6 +246,52 @@ export function FlowFilterCard({
             </p>
           </div>
         </div>
+      ) : isPaymentReminderLoopFilterNode(node) ? (
+        <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
+              Still unpaid
+            </p>
+            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
+              {String(
+                node.config.branchLabelFalse ??
+                  "Send payment + pass reminders again",
+              )}
+            </p>
+          </div>
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
+              Guest paid
+            </p>
+            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
+              {String(node.config.branchLabelTrue ?? "Stop reminders")}
+            </p>
+          </div>
+        </div>
+      ) : isPaymentReminderStatusSplitFilterNode(node) ? (
+        <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
+              If paid → left branch
+            </p>
+            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
+              {String(
+                node.config.branchLabelTrue ?? "Guest paid — stop reminders",
+              )}
+            </p>
+          </div>
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
+              If unpaid → right branch
+            </p>
+            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
+              {String(
+                node.config.branchLabelFalse ??
+                  "Still unpaid — send reminders",
+              )}
+            </p>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -302,6 +348,71 @@ export function PrepaidLoopBackCard({
         ) : null}
         <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
           {previewMessage || "Visit reminder — your offer is ready"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function PaymentReminderLoopBackCard({
+  loopTarget,
+}: {
+  loopTarget: WorkflowNode | null;
+}) {
+  const previewSubject = String(loopTarget?.config?.subject ?? "").trim();
+  const previewMessage = String(loopTarget?.config?.message ?? "").trim();
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-amber-100 bg-amber-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+          <RotateCcw className="size-4" aria-hidden />
+        </span>
+        <div>
+          <p className="text-xs font-bold tracking-tight text-zinc-900">
+            Loop back
+          </p>
+          <p className="text-[0.65rem] font-medium text-amber-800">
+            Still unpaid → restart payment reminder cycle
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-4">
+        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
+          Send Email
+        </p>
+        {previewSubject ? (
+          <p className="mt-1 text-[0.65rem] font-semibold text-zinc-800">
+            {previewSubject}
+          </p>
+        ) : null}
+        <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
+          {previewMessage || "Complete your payment — your offer is waiting"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function PaymentReminderPaidStopCard() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-emerald-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-emerald-100 bg-emerald-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <GitBranch className="size-4" aria-hidden />
+        </span>
+        <div>
+          <p className="text-xs font-bold tracking-tight text-zinc-900">
+            Guest paid
+          </p>
+          <p className="text-[0.65rem] font-medium text-emerald-800">
+            Stop reminders for this guest
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-4">
+        <p className="text-xs leading-relaxed text-zinc-700">
+          When payment is completed, this guest exits the payment reminder cycle.
         </p>
       </div>
     </div>

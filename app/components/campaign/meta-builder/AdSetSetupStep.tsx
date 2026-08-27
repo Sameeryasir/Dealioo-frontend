@@ -7,20 +7,27 @@ import type {
   MetaAdSetBudgetType,
   MetaBillingEvent,
   MetaCampaignStatus,
+  MetaDestinationType,
   MetaGender,
   MetaOptimizationGoal,
 } from "@/app/lib/meta-campaign-builder-types";
 import {
   addDaysToIsoDate,
   buildTimezoneSelectOptions,
-  defaultEndDateIso,
+  DEFAULT_END_DURATION_DAYS,
+  DEFAULT_END_TIME_LOCAL,
+  defaultEndScheduleAfterStart,
+  defaultOptimizationGoalForObjective,
   defaultStartDateIso,
   defaultStartTimeLocal,
   detectTimezone,
   END_DATE_DURATION_OPTIONS,
+  ensureEndScheduleAfterStart,
   formatTimezoneOptionLabel,
+  isEndScheduleAfterStart,
   joinCsv,
   OPTIMIZATION_GOALS_BY_OBJECTIVE,
+  resolveOptimizationGoalForObjective,
   splitCsv,
   timezoneAbbreviation,
   timezoneGmtOffset,
@@ -49,10 +56,15 @@ import {
   type FacebookAdPixel,
 } from "@/app/services/facebook/get-facebook-ad-pixels";
 import {
+  getFacebookPages,
+  type FacebookPage,
+} from "@/app/services/facebook/get-facebook-pages";
+import {
   DEFAULT_META_ACCOUNT_CURRENCY,
   formatMetaAccountMoney,
   normalizeMetaCurrencyCode,
 } from "@/app/lib/meta-account-currency";
+import { formatObjective } from "@/app/lib/meta-review-helpers";
 
 const CONVERSION_EVENT_OPTIONS = [
   { value: "PURCHASE", label: "Purchase" },
@@ -67,9 +79,10 @@ const CONVERSION_EVENT_OPTIONS = [
   { value: "SUBSCRIBE", label: "Subscribe" },
 ] as const;
 
-const CONVERSION_LOCATION_OPTIONS = [
-  { value: "WEBSITE", label: "Website" },
-] as const;
+const WEBSITE_CONVERSION_LOCATION_OPTIONS: {
+  value: MetaDestinationType;
+  label: string;
+}[] = [{ value: "WEBSITE", label: "Website" }];
 
 const DEFAULT_PLACEMENTS: AdSetStepData["placements"] = {
   advantagePlusPlacements: false,
@@ -102,6 +115,7 @@ type AdSetSetupStepProps = {
   campaignData: CampaignStepData;
   initialData?: AdSetStepData | null;
   accountCurrency?: string;
+  accountTimezone?: string;
   saving: boolean;
   error: string | null;
   onBack: () => void;
@@ -115,6 +129,7 @@ export function AdSetSetupStep({
   campaignData,
   initialData,
   accountCurrency = DEFAULT_META_ACCOUNT_CURRENCY,
+  accountTimezone,
   saving,
   error,
   onBack,
@@ -145,50 +160,75 @@ export function AdSetSetupStep({
   const billingEvent: MetaBillingEvent =
     initialData?.billingEvent ?? "IMPRESSIONS";
   const initialStart = initialData?.startDate ?? defaultStartDateIso();
-  const initialEnd = initialData?.endDate ?? addDaysToIsoDate(initialStart, 14);
+  const hasSavedEndSchedule =
+    Boolean(initialData?.endDate?.trim()) &&
+    Boolean(initialData?.endTime?.trim());
+  const initialEnd =
+    initialData?.endDate?.trim() ??
+    addDaysToIsoDate(initialStart, DEFAULT_END_DURATION_DAYS);
   const [startDate, setStartDate] = useState(initialStart);
   const [startTime, setStartTime] = useState(
     initialData?.startTime ?? defaultStartTimeLocal(),
   );
-  const [hasEndDate, setHasEndDate] = useState(() => {
-    if (!initialData) return true;
-    return Boolean(initialData.endDate?.trim() && initialData.endTime?.trim());
-  });
+  // Default: no end date until the user turns on "Set an end date".
+  const [hasEndDate, setHasEndDate] = useState(hasSavedEndSchedule);
   const [endDurationDays, setEndDurationDays] = useState<number | "custom">(
     () => {
-      if (!initialData?.endDate) return 14;
+      if (!hasSavedEndSchedule) return DEFAULT_END_DURATION_DAYS;
       const matched = END_DATE_DURATION_OPTIONS.find(
-        (option) => addDaysToIsoDate(initialStart, option.days) === initialEnd,
+        (option) =>
+          addDaysToIsoDate(initialStart, option.days) === initialEnd,
       );
       return matched?.days ?? "custom";
     },
   );
   const [endDate, setEndDate] = useState(initialEnd);
-  const [endTime, setEndTime] = useState(initialData?.endTime ?? "23:59");
+  const [endTime, setEndTime] = useState(
+    initialData?.endTime?.trim() ?? DEFAULT_END_TIME_LOCAL,
+  );
+  const timezoneCustomizedRef = useRef(Boolean(initialData?.timezone?.trim()));
   const [timezone, setTimezone] = useState(
-    initialData?.timezone ?? detectTimezone(),
+    initialData?.timezone?.trim() ||
+      accountTimezone?.trim() ||
+      detectTimezone(),
   );
   const [optimizationGoal, setOptimizationGoal] = useState<MetaOptimizationGoal>(
-    () => {
-      const fromDraft = initialData?.optimizationGoal;
-      if (fromDraft && goalOptions.some((opt) => opt.value === fromDraft)) {
-        return fromDraft;
-      }
-      return goalOptions[0]?.value ?? "LINK_CLICKS";
-    },
+    () => defaultOptimizationGoalForObjective(campaignData.objective),
   );
-  const destinationType = "WEBSITE" as const;
+  const isAwarenessObjective = campaignData.objective === "OUTCOME_AWARENESS";
+  const destinationType: MetaDestinationType = isAwarenessObjective
+    ? "FACEBOOK_PAGE"
+    : "WEBSITE";
+  const [facebookPageId, setFacebookPageId] = useState(
+    initialData?.promotedObject?.pageId ?? "",
+  );
+  const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]);
+  const [facebookPagesLoading, setFacebookPagesLoading] = useState(false);
+  const [facebookPagesError, setFacebookPagesError] = useState<string | null>(
+    null,
+  );
   const [pixelId, setPixelId] = useState(initialData?.promotedObject?.pixelId ?? "");
   const [pixels, setPixels] = useState<FacebookAdPixel[]>([]);
   const [pixelsLoading, setPixelsLoading] = useState(false);
   const [pixelsError, setPixelsError] = useState<string | null>(null);
   const [customEventType, setCustomEventType] = useState(
-    initialData?.promotedObject?.customEventType ?? "PURCHASE",
+    initialData?.promotedObject?.customEventType ?? "",
   );
-  const pageId = initialData?.promotedObject?.pageId ?? "";
-  const [locations, setLocations] = useState<AdSetLocationTarget[]>(() =>
-    buildLocationsFromAudience(initialData?.audience),
-  );
+  const [locations, setLocations] = useState<AdSetLocationTarget[]>(() => {
+    const audience = initialData?.audience;
+    if (audience?.locations?.length) {
+      return audience.locations;
+    }
+    if (
+      audience?.country?.trim() ||
+      audience?.city?.trim() ||
+      audience?.latitude != null ||
+      audience?.longitude != null
+    ) {
+      return buildLocationsFromAudience(audience);
+    }
+    return [];
+  });
   const [ageMin, setAgeMin] = useState(
     initialData?.audience.ageMin?.toString() ?? "18",
   );
@@ -233,16 +273,72 @@ export function AdSetSetupStep({
   }, [timezone]);
 
   useEffect(() => {
-    if (!goalOptions.some((opt) => opt.value === optimizationGoal)) {
-      setOptimizationGoal(goalOptions[0]?.value ?? "LINK_CLICKS");
+    if (timezoneCustomizedRef.current) return;
+    if (initialData?.timezone?.trim()) return;
+    const connectedTimezone = accountTimezone?.trim();
+    if (connectedTimezone) {
+      setTimezone(connectedTimezone);
     }
-  }, [goalOptions, optimizationGoal]);
+  }, [accountTimezone, initialData?.timezone]);
+
+  useEffect(() => {
+    setOptimizationGoal(
+      resolveOptimizationGoalForObjective(
+        campaignData.objective,
+        initialData?.optimizationGoal,
+      ),
+    );
+  }, [campaignData.objective, initialData?.optimizationGoal]);
 
   const needsPromotedObject =
     optimizationGoal === "OFFSITE_CONVERSIONS" || optimizationGoal === "VALUE";
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
+
+  const savedFacebookPageIdRef = useRef(
+    initialData?.promotedObject?.pageId?.trim() ?? "",
+  );
+  savedFacebookPageIdRef.current =
+    initialData?.promotedObject?.pageId?.trim() ?? "";
+
+  useEffect(() => {
+    if (!isAwarenessObjective) return;
+
+    let cancelled = false;
+    setFacebookPagesLoading(true);
+    setFacebookPagesError(null);
+
+    void getFacebookPages(businessId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setFacebookPages(loaded);
+        if (loaded.length > 0) {
+          setFacebookPageId((prev) => {
+            if (prev.trim()) return prev;
+            const saved = savedFacebookPageIdRef.current;
+            if (saved && loaded.some((page) => page.id === saved)) return saved;
+            return loaded[0]!.id;
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFacebookPages([]);
+        setFacebookPagesError(
+          err instanceof Error
+            ? err.message
+            : "Could not load Facebook pages.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setFacebookPagesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, isAwarenessObjective]);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,6 +373,23 @@ export function AdSetSetupStep({
       cancelled = true;
     };
   }, [businessId]);
+
+  const facebookPageSelectOptions = useMemo(() => {
+    const fromMeta = facebookPages.map((page) => ({
+      value: page.id,
+      label: page.name?.trim() || page.id,
+    }));
+    if (
+      facebookPageId.trim() &&
+      !fromMeta.some((option) => option.value === facebookPageId)
+    ) {
+      return [
+        { value: facebookPageId, label: `${facebookPageId} (saved)` },
+        ...fromMeta,
+      ];
+    }
+    return fromMeta;
+  }, [facebookPageId, facebookPages]);
 
   const pixelSelectOptions = useMemo(() => {
     const fromMeta = pixels.map((pixel) => ({
@@ -373,6 +486,14 @@ export function AdSetSetupStep({
       }
     }
 
+    if (isAwarenessObjective && !facebookPageId.trim()) {
+      setFieldErrors({
+        facebookPageId: "Select the Facebook Page for this ad set.",
+      });
+      setLocalError("Select a Facebook Page before continuing.");
+      return;
+    }
+
     const addressWithoutRadius = locations.find(
       (loc) =>
         loc.type === "address" &&
@@ -415,6 +536,10 @@ export function AdSetSetupStep({
         setLocalError("End date and time are required when Set an end date is on.");
         return;
       }
+      if (!isEndScheduleAfterStart(startDate, startTime, endDate, endTime)) {
+        setLocalError("End date and time must be after the start date and time.");
+        return;
+      }
     }
 
     let parsedRadius: number | undefined;
@@ -449,10 +574,12 @@ export function AdSetSetupStep({
       promotedObject: needsPromotedObject
         ? {
             pixelId: pixelId.trim(),
-            customEventType: customEventType.trim() || "PURCHASE",
-            pageId: pageId.trim() || undefined,
+            customEventType: customEventType.trim(),
+            pageId: facebookPageId.trim() || undefined,
           }
-        : undefined,
+        : isAwarenessObjective && facebookPageId.trim()
+          ? { pageId: facebookPageId.trim() }
+          : undefined,
       audience: {
         country: legacyLocation.country,
         city,
@@ -509,17 +636,54 @@ export function AdSetSetupStep({
         </BuilderField>
       </BuilderCard>
 
-      <BuilderCard title="Conversion">
+      <BuilderCard title={formatObjective(campaignData.objective)}>
         <BuilderField
           label="Conversion location"
           hint="Where you want to drive the conversion."
+          error={fieldErrors.facebookPageId ?? facebookPagesError ?? undefined}
         >
-          <BuilderSelect
-            aria-label="Conversion location"
-            value={destinationType}
-            options={[...CONVERSION_LOCATION_OPTIONS]}
-            onChange={(_value) => {}}
-          />
+          {isAwarenessObjective ? (
+            facebookPagesLoading ? (
+              <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+                Loading Facebook pages from Meta…
+              </p>
+            ) : facebookPageSelectOptions.length > 0 ? (
+              <BuilderSelect
+                aria-label="Conversion location"
+                value={
+                  facebookPageSelectOptions.some(
+                    (option) => option.value === facebookPageId,
+                  )
+                    ? facebookPageId
+                    : facebookPageSelectOptions[0]!.value
+                }
+                options={facebookPageSelectOptions}
+                onChange={setFacebookPageId}
+              />
+            ) : (
+              <div className="space-y-2">
+                {!facebookPagesError ? (
+                  <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
+                    No Facebook Page was found on this account. Connect a page
+                    in Meta Business Settings, or paste the Page ID below.
+                  </p>
+                ) : null}
+                <input
+                  value={facebookPageId}
+                  onChange={(e) => setFacebookPageId(e.target.value)}
+                  className={inputClass}
+                  placeholder="Enter Facebook Page ID"
+                />
+              </div>
+            )
+          ) : (
+            <BuilderSelect
+              aria-label="Conversion location"
+              value={destinationType}
+              options={WEBSITE_CONVERSION_LOCATION_OPTIONS}
+              onChange={(_value) => {}}
+            />
+          )}
         </BuilderField>
 
         <BuilderField
@@ -528,7 +692,9 @@ export function AdSetSetupStep({
             <>
               {campaignData.objective === "OUTCOME_LEADS"
                 ? "Set your goal, such as maximising leads. "
-                : "Set your goal, such as maximising conversions or conversion value. "}
+                : campaignData.objective === "OUTCOME_ENGAGEMENT"
+                  ? "How you measure success for your ads. "
+                  : "Set your goal, such as maximising conversions or conversion value. "}
               <a
                 href="https://www.facebook.com/business/help/410857036421635"
                 target="_blank"
@@ -588,38 +754,40 @@ export function AdSetSetupStep({
           )}
         </BuilderField>
 
-        <BuilderField
-          label="Conversion event"
-          required={needsPromotedObject}
-          hint={
-            <>
-              The action that you want people to take when they see your
-              ads.{" "}
-              <a
-                href="https://www.facebook.com/business/help/244599159112157"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[#1877f2] no-underline hover:underline"
-              >
-                About conversion events
-              </a>
-            </>
-          }
-          error={fieldErrors.customEventType}
-        >
-          <BuilderSelect
-            aria-label="Conversion event"
-            value={
-              CONVERSION_EVENT_OPTIONS.some(
-                (opt) => opt.value === customEventType,
-              )
-                ? customEventType
-                : "PURCHASE"
+        {!isAwarenessObjective ? (
+          <BuilderField
+            label="Conversion event"
+            required={needsPromotedObject}
+            hint={
+              <>
+                The action that you want people to take when they see your
+                ads.{" "}
+                <a
+                  href="https://www.facebook.com/business/help/244599159112157"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-[#1877f2] no-underline hover:underline"
+                >
+                  About conversion events
+                </a>
+              </>
             }
-            options={[...CONVERSION_EVENT_OPTIONS]}
-            onChange={setCustomEventType}
-          />
-        </BuilderField>
+            error={fieldErrors.customEventType}
+          >
+            <BuilderSelect
+              aria-label="Conversion event"
+              value={
+                CONVERSION_EVENT_OPTIONS.some(
+                  (opt) => opt.value === customEventType,
+                )
+                  ? customEventType
+                  : ""
+              }
+              options={[...CONVERSION_EVENT_OPTIONS]}
+              onChange={setCustomEventType}
+            />
+          </BuilderField>
+        ) : null}
       </BuilderCard>
 
       <BuilderCard
@@ -697,8 +865,24 @@ export function AdSetSetupStep({
               onChange={(e) => {
                 const nextStart = e.target.value;
                 setStartDate(nextStart);
-                if (hasEndDate && endDurationDays !== "custom") {
-                  setEndDate(addDaysToIsoDate(nextStart, endDurationDays));
+                if (!hasEndDate) return;
+                if (endDurationDays !== "custom") {
+                  const next = defaultEndScheduleAfterStart(
+                    nextStart,
+                    startTime,
+                    endDurationDays,
+                  );
+                  setEndDate(next.endDate);
+                  setEndTime(next.endTime);
+                } else {
+                  const next = ensureEndScheduleAfterStart(
+                    nextStart,
+                    startTime,
+                    endDate,
+                    endTime,
+                  );
+                  setEndDate(next.endDate);
+                  setEndTime(next.endTime);
                 }
               }}
               className={inputClass}
@@ -706,7 +890,25 @@ export function AdSetSetupStep({
           </label>
           <label className="block text-sm">
             <span className="font-medium text-[#07111f]">Start time</span>
-            <input required type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
+            <input
+              required
+              type="time"
+              value={startTime}
+              onChange={(e) => {
+                const nextStartTime = e.target.value;
+                setStartTime(nextStartTime);
+                if (!hasEndDate) return;
+                const next = ensureEndScheduleAfterStart(
+                  startDate,
+                  nextStartTime,
+                  endDate,
+                  endTime,
+                );
+                setEndDate(next.endDate);
+                setEndTime(next.endTime);
+              }}
+              className={inputClass}
+            />
           </label>
         </div>
 
@@ -719,8 +921,18 @@ export function AdSetSetupStep({
               onChange={(e) => {
                 const checked = e.target.checked;
                 setHasEndDate(checked);
-                if (checked && endDurationDays !== "custom") {
-                  setEndDate(addDaysToIsoDate(startDate, endDurationDays));
+                if (checked) {
+                  const durationDays =
+                    endDurationDays === "custom"
+                      ? DEFAULT_END_DURATION_DAYS
+                      : endDurationDays;
+                  const next = defaultEndScheduleAfterStart(
+                    startDate,
+                    startTime,
+                    durationDays,
+                  );
+                  setEndDate(next.endDate);
+                  setEndTime(next.endTime);
                 }
               }}
               className="size-4 rounded border-[#c5d0e0] text-[#1877f2] focus:ring-[#1877f2]/30"
@@ -740,7 +952,13 @@ export function AdSetSetupStep({
                   }
                   const days = Number.parseInt(value, 10);
                   setEndDurationDays(days);
-                  setEndDate(addDaysToIsoDate(startDate, days));
+                  const next = defaultEndScheduleAfterStart(
+                    startDate,
+                    startTime,
+                    days,
+                  );
+                  setEndDate(next.endDate);
+                  setEndTime(next.endTime);
                 }}
                 className="rounded-lg border border-[#e8edf5] bg-white px-3 py-2.5 text-sm font-medium text-[#07111f]"
               >
@@ -759,7 +977,15 @@ export function AdSetSetupStep({
                   value={endDate}
                   onChange={(e) => {
                     setEndDurationDays("custom");
-                    setEndDate(e.target.value);
+                    const nextDate = e.target.value;
+                    const next = ensureEndScheduleAfterStart(
+                      startDate,
+                      startTime,
+                      nextDate,
+                      endTime,
+                    );
+                    setEndDate(next.endDate);
+                    setEndTime(next.endTime);
                   }}
                   className={inputClass}
                 />
@@ -793,26 +1019,35 @@ export function AdSetSetupStep({
           )}
         </div>
 
-        <label className="block text-sm">
-          <span className="font-medium text-[#07111f]">Timezone</span>
+        <BuilderField
+          label="Timezone"
+          hint="Defaults to your connected Meta ad account timezone. You can change it if needed."
+        >
           <div className="mt-1">
             <BuilderSearchableSelect
               aria-label="Timezone"
               value={timezone}
               options={timezoneOptions}
-              onChange={setTimezone}
+              onChange={(value) => {
+                timezoneCustomizedRef.current = true;
+                setTimezone(value);
+              }}
               placeholder="Search timezones or GMT…"
               emptyMessage="No timezones match your search."
             />
           </div>
-        </label>
+        </BuilderField>
       </BuilderCard>
 
       <BuilderCard
         title="Audience"
         description="Choose who should see your ads. At least one included location is required."
       >
-        <AdSetLocationsBox locations={locations} onChange={setLocations} />
+        <AdSetLocationsBox
+          locations={locations}
+          onChange={setLocations}
+          accountTimezone={accountTimezone}
+        />
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">
             <span className="font-medium text-[#07111f]">Age min</span>

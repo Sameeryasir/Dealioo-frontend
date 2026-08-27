@@ -18,6 +18,10 @@ export const FLOW_BRANCH_WEEKEND_PASS = "weekend_pass";
 export const FLOW_BRANCH_EXTEND_OFFER = "extend_offer";
 export const FLOW_BRANCH_WHY_DIDNT_COME = "why_didnt_come";
 
+export const FLOW_BRANCH_PAYMENT_REMINDER = "payment_reminder";
+export const FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION = "payment_reminder_escalation";
+export const FLOW_BRANCH_QR_PASS_GUIDE = "qr_pass_guide";
+
 export type FlowBranchId =
   | typeof FLOW_BRANCH_PASS
   | typeof FLOW_BRANCH_PAYMENT
@@ -30,7 +34,10 @@ export type FlowBranchId =
   | typeof FLOW_BRANCH_OFFER_EXPIRY_TOMORROW
   | typeof FLOW_BRANCH_WEEKEND_PASS
   | typeof FLOW_BRANCH_EXTEND_OFFER
-  | typeof FLOW_BRANCH_WHY_DIDNT_COME;
+  | typeof FLOW_BRANCH_WHY_DIDNT_COME
+  | typeof FLOW_BRANCH_PAYMENT_REMINDER
+  | typeof FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION
+  | typeof FLOW_BRANCH_QR_PASS_GUIDE;
 
 export type IndexedWorkflowNode = {
   node: WorkflowNode;
@@ -111,7 +118,10 @@ function getFlowBranch(node: WorkflowNode): FlowBranchId | null {
     branch === FLOW_BRANCH_OFFER_EXPIRY_TOMORROW ||
     branch === FLOW_BRANCH_WEEKEND_PASS ||
     branch === FLOW_BRANCH_EXTEND_OFFER ||
-    branch === FLOW_BRANCH_WHY_DIDNT_COME
+    branch === FLOW_BRANCH_WHY_DIDNT_COME ||
+    branch === FLOW_BRANCH_PAYMENT_REMINDER ||
+    branch === FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION ||
+    branch === FLOW_BRANCH_QR_PASS_GUIDE
   ) {
     return branch;
   }
@@ -198,6 +208,26 @@ export function parsePrepaidVisitSplitLayout(
     visitFilterIndex >= 0 && visitedYes.length > 0 && loopTarget != null;
 
   return { head, visitedYes, loopTarget, hasSplit };
+}
+
+export function parsePaymentReminderSplitLayout(
+  flowNodes: WorkflowNode[],
+  startIndex: number,
+): {
+  head: IndexedWorkflowNode[];
+  loopTarget: IndexedWorkflowNode | null;
+  hasSplit: boolean;
+} {
+  const head: IndexedWorkflowNode[] = flowNodes.map((node, offset) => ({
+    node,
+    index: startIndex + offset,
+  }));
+
+  return {
+    head,
+    loopTarget: null,
+    hasSplit: false,
+  };
 }
 
 export function parseParallelFlowTree(
@@ -331,6 +361,9 @@ export function parseSplitFlowLayout(
     [FLOW_BRANCH_WEEKEND_PASS]: [],
     [FLOW_BRANCH_EXTEND_OFFER]: [],
     [FLOW_BRANCH_WHY_DIDNT_COME]: [],
+    [FLOW_BRANCH_PAYMENT_REMINDER]: [],
+    [FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION]: [],
+    [FLOW_BRANCH_QR_PASS_GUIDE]: [],
   };
 
   let topSplit: IndexedWorkflowNode | null = null;

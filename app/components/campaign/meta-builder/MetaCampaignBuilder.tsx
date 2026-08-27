@@ -25,6 +25,7 @@ import {
   DEFAULT_META_ACCOUNT_CURRENCY,
   normalizeMetaCurrencyCode,
 } from "@/app/lib/meta-account-currency";
+import { defaultOptimizationGoalForObjective } from "@/app/lib/meta-adset-builder-helpers";
 import { getFacebookAdAccounts } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { AdCreativeSetupStep } from "@/app/components/campaign/meta-builder/AdCreativeSetupStep";
@@ -166,6 +167,7 @@ export function MetaCampaignBuilder({
   const [accountCurrency, setAccountCurrency] = useState(
     DEFAULT_META_ACCOUNT_CURRENCY,
   );
+  const [accountTimezone, setAccountTimezone] = useState<string | undefined>();
 
   const publishStartedRef = useRef(false);
   const resumeHandledRef = useRef(false);
@@ -228,9 +230,11 @@ export function MetaCampaignBuilder({
         setAccountCurrency(
           normalizeMetaCurrencyCode(match?.currency ?? DEFAULT_META_ACCOUNT_CURRENCY),
         );
+        setAccountTimezone(match?.timezoneName?.trim() || undefined);
       } catch {
         if (!cancelled) {
           setAccountCurrency(DEFAULT_META_ACCOUNT_CURRENCY);
+          setAccountTimezone(undefined);
         }
       }
     })();
@@ -238,7 +242,7 @@ export function MetaCampaignBuilder({
     return () => {
       cancelled = true;
     };
-  }, [open, businessId]);
+  }, [open, businessId, currentStep]);
 
   const applyDraftState = useCallback((draft: MetaCampaignDraft) => {
     setDraftId(draft.id);
@@ -424,7 +428,21 @@ export function MetaCampaignBuilder({
   }, [applyPublishProgress, businessId, draftId, open]);
 
   const handleCampaignWorkingChange = useCallback((data: CampaignStepData) => {
-    setCampaignData(data);
+    setCampaignData((prev) => {
+      if (prev?.objective && prev.objective !== data.objective) {
+        setAdSetData((adSet) =>
+          adSet
+            ? {
+                ...adSet,
+                optimizationGoal: defaultOptimizationGoalForObjective(
+                  data.objective,
+                ),
+              }
+            : adSet,
+        );
+      }
+      return data;
+    });
   }, []);
 
   const handleAdCreativeWorkingChange = useCallback((data: AdCreativeStepData) => {
@@ -445,6 +463,7 @@ export function MetaCampaignBuilder({
 
   const handleSaveCampaignStep = useCallback(
     async (data: CampaignStepData) => {
+      const previousObjective = campaignData?.objective;
       setSaving(true);
       setError(null);
       try {
@@ -452,10 +471,22 @@ export function MetaCampaignBuilder({
           ...data,
           draftId: draftId ?? undefined,
         });
-        
+
         autosaveSkipRef.current = true;
         lastAutosavePayloadRef.current = "";
         applyDraftState(draft);
+        if (previousObjective && previousObjective !== data.objective) {
+          setAdSetData((adSet) =>
+            adSet
+              ? {
+                  ...adSet,
+                  optimizationGoal: defaultOptimizationGoalForObjective(
+                    data.objective,
+                  ),
+                }
+              : adSet,
+          );
+        }
         setCurrentStep(2);
         setAutosaveState("saved");
         onDraftSaved?.(draft);
@@ -1034,11 +1065,13 @@ export function MetaCampaignBuilder({
 
           {currentStep === 2 && draftId && campaignData ? (
             <AdSetSetupStep
+              key={`ad-set-${draftId}-${campaignData.objective}`}
               businessId={businessId}
               draftId={draftId}
               campaignData={campaignData}
               initialData={adSetData}
               accountCurrency={accountCurrency}
+              accountTimezone={accountTimezone}
               saving={saving}
               error={error}
               onBack={onClose}

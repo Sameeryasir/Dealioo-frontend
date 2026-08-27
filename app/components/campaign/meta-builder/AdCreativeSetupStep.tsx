@@ -101,21 +101,9 @@ export function AdCreativeSetupStep({
 
   const [name, setName] = useState(initialData?.name ?? `${campaignData.name} Ad`);
   const [facebookPageId, setFacebookPageId] = useState(initialData?.facebookPageId ?? "");
-  const [instagramProfileMode, setInstagramProfileMode] = useState<
-    "facebook_page" | "custom"
-  >(initialData?.instagramActorId?.trim() ? "custom" : "facebook_page");
-  const [instagramActorId, setInstagramActorId] = useState(
-    initialData?.instagramActorId ?? "",
+  const [status, setStatus] = useState<MetaCampaignStatus>(
+    initialData?.status ?? "ACTIVE",
   );
-  const [showInstagramConnect, setShowInstagramConnect] = useState(
-    Boolean(initialData?.instagramActorId?.trim()),
-  );
-  const [brandingEnabled, setBrandingEnabled] = useState(
-    initialData?.brandingEnabled ?? false,
-  );
-  const [brandName, setBrandName] = useState(initialData?.brandName ?? "");
-  const [brandLogoUrl, setBrandLogoUrl] = useState(initialData?.brandLogoUrl ?? "");
-  const [status, setStatus] = useState<MetaCampaignStatus>(initialData?.status ?? "PAUSED");
   const [creativeFormat, setCreativeFormat] = useState<MetaCreativeFormat>(
     initialData?.creativeFormat ?? "SINGLE_IMAGE",
   );
@@ -134,6 +122,12 @@ export function AdCreativeSetupStep({
     ],
   );
   const [primaryText, setPrimaryText] = useState(initialData?.primaryText ?? "");
+  const isAwarenessObjective = campaignData.objective === "OUTCOME_AWARENESS";
+  const [addDestination, setAddDestination] = useState(() => {
+    if (!isAwarenessObjective) return true;
+    return Boolean(initialData?.destinationUrl?.trim());
+  });
+  const requiresDestination = !isAwarenessObjective || addDestination;
   const [headline, setHeadline] = useState(initialData?.headline ?? campaignData.name);
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [displayLink, setDisplayLink] = useState(initialData?.displayLink ?? "");
@@ -242,6 +236,9 @@ export function AdCreativeSetupStep({
     if (initialData.displayLink != null) setDisplayLink(initialData.displayLink);
     if (initialData.destinationUrl != null) {
       setDestinationUrl(initialData.destinationUrl);
+      if (isAwarenessObjective) {
+        setAddDestination(Boolean(initialData.destinationUrl.trim()));
+      }
     }
     if (initialData.callToAction) setCallToAction(initialData.callToAction);
     if (initialData.status) setStatus(initialData.status);
@@ -251,16 +248,6 @@ export function AdCreativeSetupStep({
     if (initialData.conversionEvent != null) {
       setConversionEvent(initialData.conversionEvent);
     }
-    if (initialData.instagramActorId?.trim()) {
-      setInstagramActorId(initialData.instagramActorId);
-      setInstagramProfileMode("custom");
-      setShowInstagramConnect(true);
-    }
-    if (initialData.brandingEnabled != null) {
-      setBrandingEnabled(initialData.brandingEnabled);
-    }
-    if (initialData.brandName != null) setBrandName(initialData.brandName);
-    if (initialData.brandLogoUrl != null) setBrandLogoUrl(initialData.brandLogoUrl);
 
     const nextImage = mediaUrlFromDraft(initialData.imageUrl);
     if (nextImage) setImageUrl(nextImage);
@@ -355,20 +342,6 @@ export function AdCreativeSetupStep({
     }
   };
 
-  const buildCreativeExtras = () => ({
-    instagramActorId:
-      instagramProfileMode === "custom" && instagramActorId.trim()
-        ? instagramActorId.trim()
-        : undefined,
-    ...(brandingEnabled
-      ? {
-          brandingEnabled: true,
-          brandName: brandName.trim() || undefined,
-          brandLogoUrl: brandLogoUrl.trim() || undefined,
-        }
-      : {}),
-  });
-
   const buildWorkingSnapshot = (
     overrides?: Partial<AdCreativeStepData>,
   ): AdCreativeStepData => ({
@@ -386,12 +359,13 @@ export function AdCreativeSetupStep({
     headline: headline.trim() || undefined,
     description: description.trim() || undefined,
     displayLink: displayLink.trim() || undefined,
-    destinationUrl: destinationUrl.trim() || undefined,
+    destinationUrl: requiresDestination
+      ? destinationUrl.trim() || undefined
+      : undefined,
     urlParameters: urlParameters.trim() || undefined,
     callToAction,
     pixelId: pixelId.trim() || undefined,
     conversionEvent: conversionEvent.trim() || undefined,
-    ...buildCreativeExtras(),
     ...overrides,
   });
 
@@ -492,14 +466,13 @@ export function AdCreativeSetupStep({
       headline,
       description,
       displayLink,
-      destinationUrl,
+      destinationUrl: requiresDestination ? destinationUrl : "",
       urlParameters,
       imageUrl,
       imageAltText,
       videoUrl,
       pixelId,
       conversionEvent,
-      brandName,
       creativeFormat,
       carouselCards: carouselCards.map((card) => ({
         headline: card.headline,
@@ -510,6 +483,12 @@ export function AdCreativeSetupStep({
 
     if (!typed.success) {
       const ui = zodToUiErrors(typed.error);
+      if (!requiresDestination) {
+        delete ui.fieldErrors.destinationUrl;
+        for (const key of Object.keys(ui.fieldErrors)) {
+          if (key.endsWith("_destination")) delete ui.fieldErrors[key];
+        }
+      }
       Object.assign(errors, ui.fieldErrors);
       if (ui.formError) setLocalError(ui.formError);
     }
@@ -562,12 +541,11 @@ export function AdCreativeSetupStep({
         headline: headline.trim(),
         description: description.trim() || undefined,
         displayLink: displayLink.trim() || undefined,
-        destinationUrl: destinationUrl.trim(),
+        destinationUrl: requiresDestination ? destinationUrl.trim() : undefined,
         urlParameters: urlParameters.trim() || undefined,
         callToAction,
         pixelId: pixelId.trim() || undefined,
         conversionEvent: conversionEvent.trim() || undefined,
-        ...buildCreativeExtras(),
       });
       return;
     }
@@ -585,12 +563,11 @@ export function AdCreativeSetupStep({
         headline: headline.trim(),
         description: description.trim() || undefined,
         displayLink: displayLink.trim() || undefined,
-        destinationUrl: destinationUrl.trim(),
+        destinationUrl: requiresDestination ? destinationUrl.trim() : undefined,
         urlParameters: urlParameters.trim() || undefined,
         callToAction,
         pixelId: pixelId.trim() || undefined,
         conversionEvent: conversionEvent.trim() || undefined,
-        ...buildCreativeExtras(),
       });
       return;
     }
@@ -606,7 +583,6 @@ export function AdCreativeSetupStep({
       urlParameters: urlParameters.trim() || undefined,
       pixelId: pixelId.trim() || undefined,
       conversionEvent: conversionEvent.trim() || undefined,
-      ...buildCreativeExtras(),
     });
   };
 
@@ -621,7 +597,7 @@ export function AdCreativeSetupStep({
 
       <BuilderCard
         title="Account & identity"
-        description="Choose the Meta ad account, page, and how your ad appears on Instagram."
+        description="Choose the Meta ad account and Facebook Page for this ad."
       >
         <BuilderField
           label="Ad account"
@@ -691,81 +667,6 @@ export function AdCreativeSetupStep({
               ))
             )}
           </select>
-        </BuilderField>
-
-        <BuilderField
-          label="Instagram profile"
-          hint="By default, Instagram uses the linked Facebook Page. Use a custom account only if you manage a separate Instagram business profile."
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={instagramProfileMode}
-              onChange={(e) => {
-                const mode = e.target.value as "facebook_page" | "custom";
-                setInstagramProfileMode(mode);
-                if (mode === "facebook_page") {
-                  setShowInstagramConnect(false);
-                  setInstagramActorId("");
-                }
-              }}
-              className={inputClass}
-            >
-              <option value="facebook_page">Use Facebook Page</option>
-              <option value="custom">Custom Instagram account</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                setInstagramProfileMode("custom");
-                setShowInstagramConnect(true);
-              }}
-              className="rounded-xl border border-[#e8edf5] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] shadow-sm hover:bg-[#f4f8ff]"
-            >
-              Connect profile
-            </button>
-          </div>
-          {showInstagramConnect || instagramProfileMode === "custom" ? (
-            <input
-              value={instagramActorId}
-              onChange={(e) => setInstagramActorId(e.target.value)}
-              placeholder="Instagram account ID from Meta Business Suite"
-              className={`${inputClass} mt-2`}
-            />
-          ) : null}
-        </BuilderField>
-
-        <BuilderField
-          label="Branding"
-          hint="Optional business name and logo stored on this draft."
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e8edf5] bg-[#f4f8ff]/60 px-4 py-3">
-            <span className="text-sm font-medium text-slate-500">
-              {brandingEnabled ? "Active" : "Inactive"}
-            </span>
-            <button
-              type="button"
-              onClick={() => setBrandingEnabled((prev) => !prev)}
-              className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#07111f] hover:bg-[#f4f8ff]"
-            >
-              {brandingEnabled ? "Remove" : "Add branding"}
-            </button>
-          </div>
-          {brandingEnabled ? (
-            <div className="mt-3 space-y-3 rounded-xl border border-[#e8edf5] p-4">
-              <input
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                placeholder="Business name"
-                className={inputClass}
-              />
-              <input
-                value={brandLogoUrl}
-                onChange={(e) => setBrandLogoUrl(e.target.value)}
-                placeholder="Logo URL (https://…)"
-                className={inputClass}
-              />
-            </div>
-          ) : null}
         </BuilderField>
 
         <BuilderField label="Ad status" hint="Paused is recommended until you review in Ads Manager.">
@@ -934,6 +835,69 @@ export function AdCreativeSetupStep({
             className={`${inputClass} ${fieldErrors.primaryText ? builderInputErrorClass : ""}`}
           />
         </BuilderField>
+        {isAwarenessObjective ? (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3">
+            <input
+              type="checkbox"
+              checked={addDestination}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setAddDestination(checked);
+                if (!checked) {
+                  setDestinationUrl("");
+                  setSelectedFunnelId(null);
+                  setDisplayLink("");
+                }
+              }}
+              className="mt-0.5 size-4 rounded border-[#c5d0e0] text-[#1877f2] focus:ring-[#1877f2]/30"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-[#07111f]">
+                Add a destination
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                If you add a destination, you can send people immediately after
+                they&apos;ve tapped or clicked your ad to a website, a
+                full-screen experience or a call. If you don&apos;t, they&apos;ll
+                be sent to your Facebook Page or Instagram profile.
+              </span>
+            </span>
+          </label>
+        ) : null}
+        {isAwarenessObjective && addDestination ? (
+          <div className="space-y-4 rounded-xl border border-[#e8edf5] bg-white p-4">
+            <div>
+              <h4 className="text-sm font-bold text-[#07111f]">Destination</h4>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Pick a published Dealioo campaign. We fill the destination link
+                automatically.
+              </p>
+            </div>
+            <MetaDestinationFunnelPicker
+              businessId={businessId}
+              selectedFunnelId={selectedFunnelId}
+              destinationUrl={destinationUrl}
+              error={
+                fieldErrors.destinationUrl ||
+                Object.entries(fieldErrors).find(([key]) =>
+                  key.endsWith("_destination"),
+                )?.[1]
+              }
+              onSelect={applyDestinationFromFunnel}
+            />
+            <BuilderField
+              label="Display link"
+              hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
+            >
+              <input
+                value={displayLink}
+                onChange={(e) => setDisplayLink(e.target.value)}
+                placeholder="yourbusiness.com"
+                className={inputClass}
+              />
+            </BuilderField>
+          </div>
+        ) : null}
         {creativeFormat !== "CAROUSEL" ? (
           <>
             <BuilderField label="Headline" required error={fieldErrors.headline}>
@@ -956,37 +920,39 @@ export function AdCreativeSetupStep({
         ) : null}
       </BuilderCard>
 
-      <BuilderCard
-        title="Destination"
-        description="Pick a published Dealioo campaign. We fill the destination link automatically."
-      >
-        <div className="space-y-4">
-          <MetaDestinationFunnelPicker
-            businessId={businessId}
-            selectedFunnelId={selectedFunnelId}
-            destinationUrl={destinationUrl}
-            error={
-              fieldErrors.destinationUrl ||
-              Object.entries(fieldErrors).find(([key]) =>
-                key.endsWith("_destination"),
-              )?.[1]
-            }
-            onSelect={applyDestinationFromFunnel}
-          />
-
-          <BuilderField
-            label="Display link"
-            hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
-          >
-            <input
-              value={displayLink}
-              onChange={(e) => setDisplayLink(e.target.value)}
-              placeholder="yourbusiness.com"
-              className={inputClass}
+      {!isAwarenessObjective ? (
+        <BuilderCard
+          title="Destination"
+          description="Pick a published Dealioo campaign. We fill the destination link automatically."
+        >
+          <div className="space-y-4">
+            <MetaDestinationFunnelPicker
+              businessId={businessId}
+              selectedFunnelId={selectedFunnelId}
+              destinationUrl={destinationUrl}
+              error={
+                fieldErrors.destinationUrl ||
+                Object.entries(fieldErrors).find(([key]) =>
+                  key.endsWith("_destination"),
+                )?.[1]
+              }
+              onSelect={applyDestinationFromFunnel}
             />
-          </BuilderField>
-        </div>
-      </BuilderCard>
+
+            <BuilderField
+              label="Display link"
+              hint="Optional short link text shown in the ad (e.g. yourbusiness.com)."
+            >
+              <input
+                value={displayLink}
+                onChange={(e) => setDisplayLink(e.target.value)}
+                placeholder="yourbusiness.com"
+                className={inputClass}
+              />
+            </BuilderField>
+          </div>
+        </BuilderCard>
+      ) : null}
 
       <BuilderCard title="Placement preview" description="See how your ad may look across Facebook and Instagram.">
         {showPreviews ? (

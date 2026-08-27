@@ -7,6 +7,7 @@ export type FacebookAdAccount = {
   name: string | null;
   accountStatus: number | null;
   currency: string | null;
+  timezoneName: string | null;
 };
 
 const inflightByBusinessId = new Map<number, Promise<FacebookAdAccount[]>>();

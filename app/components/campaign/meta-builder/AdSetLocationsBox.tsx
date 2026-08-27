@@ -33,21 +33,17 @@ const AdSetLocationsMap = dynamic(
 
 const RADIUS_PRESETS_KM = [1, 5, 10, 16, 25, 50, 80] as const;
 
-const EXAMPLE_QUERIES = [
-  "Pakistan",
-  "Islamabad",
-  "Rawalpindi",
-  "New York",
-  "California",
-  "Sydney",
-];
-
 type AdSetLocationsBoxProps = {
   locations: AdSetLocationTarget[];
   onChange: (locations: AdSetLocationTarget[]) => void;
+  accountTimezone?: string;
 };
 
-export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProps) {
+export function AdSetLocationsBox({
+  locations,
+  onChange,
+  accountTimezone,
+}: AdSetLocationsBoxProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -66,13 +62,10 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
   const searchRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   const locationsRef = useRef(locations);
-  const didAutoDetectRef = useRef(false);
   onChangeRef.current = onChange;
   locationsRef.current = locations;
 
   useEffect(() => {
-    if (didAutoDetectRef.current) return;
-
     const starting = locationsRef.current;
     const shouldDetect =
       starting.length === 0 ||
@@ -81,19 +74,15 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
         starting[0]?.mode === "include" &&
         starting[0]?.type === "country");
 
-    if (!shouldDetect) {
-      didAutoDetectRef.current = true;
-      return;
-    }
+    if (!shouldDetect) return;
 
     let cancelled = false;
-    didAutoDetectRef.current = true;
     setDetectingLocation(true);
     const startingSnapshot = starting
       .map((loc) => `${loc.mode}:${loc.type}:${loc.countryCode}:${loc.label}`)
       .join("|");
 
-    void detectUserLocationTarget()
+    void detectUserLocationTarget(accountTimezone)
       .then((detected) => {
         if (cancelled || !detected) return;
         const latest = locationsRef.current;
@@ -119,7 +108,7 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accountTimezone]);
 
   const included = useMemo(
     () => locations.filter((loc) => loc.mode === "include"),
@@ -349,8 +338,8 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
       <div>
         <h4 className="text-sm font-bold text-[#07111f]">Target locations</h4>
         <p className="mt-0.5 text-xs text-slate-500">
-          Search and select countries, cities, or places. The map stays hidden
-          unless you need radius or drop-pin targeting.
+          Your location is picked automatically. Search below only if you need to
+          change it, or use advanced options for radius and exclusions.
         </p>
         {detectingLocation ? (
           <p className="mt-1 text-xs font-medium text-[#1877f2]">
@@ -376,21 +365,6 @@ export function AdSetLocationsBox({ locations, onChange }: AdSetLocationsBoxProp
             aria-label="Search locations"
           />
         </div>
-
-        {!searchQuery.trim() ? (
-          <div className="flex flex-wrap gap-1.5">
-            {EXAMPLE_QUERIES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => setSearchQuery(example)}
-                className="rounded-full border border-[#e8edf5] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         {searching ? (
           <p className="text-xs text-slate-500">Searching…</p>

@@ -11,6 +11,8 @@ import {
   FLOW_BRANCH_OFFER_EXPIRY_TOMORROW,
   FLOW_BRANCH_WEEKEND_PASS,
   FLOW_BRANCH_WHY_DIDNT_COME,
+  FLOW_BRANCH_PAYMENT_REMINDER,
+  FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
 } from "@/app/components/automation/builder/flow-layout";
 import { PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
 
@@ -44,6 +46,24 @@ const PAYMENT_REMINDER_EMAIL_CONFIG = {
   message:
     "Hi — thank you for signing up! Your offer is almost ready. Please complete your payment to unlock it. If you already paid, you can ignore this email.",
   headline: "Complete your payment",
+  ctaLabel: "Complete payment",
+} as const;
+
+const PAYMENT_REMINDER_EMAIL_FOLLOW_UP_CONFIG = {
+  subject: "Friendly reminder — complete your payment",
+  template: "Payment reminder",
+  message:
+    "Hi — just checking in! Your offer is still waiting. Please complete your payment when you have a moment so we can get everything ready for you.",
+  headline: "Your offer is waiting",
+  ctaLabel: "Complete payment",
+} as const;
+
+const PAYMENT_REMINDER_EMAIL_FINAL_CONFIG = {
+  subject: "Don't miss out — complete your payment today",
+  template: "Payment reminder",
+  message:
+    "Hi — we don't want you to miss this offer. Please complete your payment soon to secure it. If you already paid, you can ignore this email.",
+  headline: "Complete your payment today",
   ctaLabel: "Complete payment",
 } as const;
 
@@ -252,7 +272,7 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
   name: "Payment Reminder",
   category: "Revenue Recovery",
   description:
-    "Follow up with guests who signed up but have not paid. Sends a payment reminder, waits, then sends QR pass instructions for Wallet and in-store scanner.",
+    "Follow up with guests who signed up but have not paid. Sends escalating payment reminders on each cron run.",
   trigger: "Cron Job",
   purpose: "funnel_signup_payment_reminder",
   nodes: [
@@ -272,24 +292,38 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
       key: "filter",
       kind: "condition",
       label: "Filters",
-      summary: "Status not paid",
+      summary: "Route by payment status",
       config: {
         conditionType: "Has not completed payment",
-        conditions: [{ negated: true, value: "Status not paid" }],
+        conditions: [{ value: "Status not paid" }],
+        isPaymentReminderStatusSplit: true,
+        branchLabelTrue: "Guest paid — stop reminders (left branch)",
+        branchLabelFalse: "Still unpaid — send reminders (right branch)",
       },
     },
     {
-      key: "email_payment",
-      kind: "send_email",
-      label: "Send Email",
-      summary: "Payment reminder with link to complete checkout.",
+      key: "parallel_split_payment_reminder",
+      kind: "wait",
+      label: "Parallel Split",
+      summary: "Split into initial reminder and escalation reminders.",
       config: {
-        ...PAYMENT_REMINDER_EMAIL_CONFIG,
-        workflowKind: "payment_reminder_email",
+        isParallelSplit: true,
+        delay: 0,
+        unit: "minutes",
+        branches: [
+          {
+            id: FLOW_BRANCH_PAYMENT_REMINDER,
+            title: "Payment Reminder",
+          },
+          {
+            id: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+            title: "Escalation Reminders",
+          },
+        ],
       },
     },
     {
-      key: "wait_pass",
+      key: "wait_reminder_1",
       kind: "wait",
       label: "Wait until",
       summary: "2 minutes elapsed",
@@ -297,34 +331,105 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
         delay: 2,
         unit: "minutes",
         workflowKind: "payment_reminder_wait",
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER,
       },
     },
     {
-      key: "email_pass",
+      key: "email_payment",
       kind: "send_email",
       label: "Send Email",
-      summary: "QR pass — add to Wallet and use at scanner.",
-      config: QR_PASS_EMAIL_CONFIG,
+      summary: "First payment reminder with link to complete checkout.",
+      config: {
+        ...PAYMENT_REMINDER_EMAIL_CONFIG,
+        workflowKind: "payment_reminder_email",
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER,
+        flowSectionTitle: "Payment Reminder",
+      },
     },
     {
-      key: "filter_loop",
+      key: "wait_reminder_2",
+      kind: "wait",
+      label: "Wait until",
+      summary: "2 minutes elapsed",
+      config: {
+        delay: 2,
+        unit: "minutes",
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+      },
+    },
+    {
+      key: "email_payment_2",
+      kind: "send_email",
+      label: "Send Email",
+      summary: "Follow-up payment reminder.",
+      config: {
+        ...PAYMENT_REMINDER_EMAIL_FOLLOW_UP_CONFIG,
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+        flowSectionTitle: "Payment Reminder — Follow-up",
+      },
+    },
+    {
+      key: "filter_google_wallet",
       kind: "condition",
       label: "Filters",
-      summary: "Still unpaid — loop reminders until paid",
+      summary: "Google Wallet pass NOT added",
       config: {
-        conditionType: "Has not completed payment",
-        onFalseLoopWorkflowKind: "payment_reminder_email",
-        branchLabelTrue: "Guest paid — stop",
-        branchLabelFalse: "Still unpaid — send reminders again",
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+        conditionType: "Pass not added",
+        conditions: [{ value: "NOT Pass was added" }],
+      },
+    },
+    {
+      key: "email_qr_pass",
+      kind: "send_email",
+      label: "Send Email",
+      summary: "QR pass guide — view pass and add to Google Wallet.",
+      config: {
+        ...QR_PASS_EMAIL_CONFIG,
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+        flowSectionTitle: "QR Pass & Google Wallet",
+      },
+    },
+    {
+      key: "wait_reminder_3",
+      kind: "wait",
+      label: "Wait until",
+      summary: "2 minutes elapsed",
+      config: {
+        delay: 2,
+        unit: "minutes",
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+      },
+    },
+    {
+      key: "email_payment_3",
+      kind: "send_email",
+      label: "Send Email",
+      summary: "Final payment reminder with stronger urgency.",
+      config: {
+        ...PAYMENT_REMINDER_EMAIL_FINAL_CONFIG,
+        flowBranch: FLOW_BRANCH_PAYMENT_REMINDER_ESCALATION,
+        flowSectionTitle: "Payment Reminder — Final notice",
       },
     },
   ],
   connections: [
     { sourceKey: "trigger", targetKey: "filter" },
-    { sourceKey: "filter", targetKey: "email_payment" },
-    { sourceKey: "email_payment", targetKey: "wait_pass" },
-    { sourceKey: "wait_pass", targetKey: "email_pass" },
-    { sourceKey: "email_pass", targetKey: "filter_loop" },
+    { sourceKey: "filter", targetKey: "parallel_split_payment_reminder" },
+    {
+      sourceKey: "parallel_split_payment_reminder",
+      targetKey: "wait_reminder_1",
+    },
+    {
+      sourceKey: "parallel_split_payment_reminder",
+      targetKey: "wait_reminder_2",
+    },
+    { sourceKey: "wait_reminder_1", targetKey: "email_payment" },
+    { sourceKey: "wait_reminder_2", targetKey: "email_payment_2" },
+    { sourceKey: "email_payment_2", targetKey: "filter_google_wallet" },
+    { sourceKey: "filter_google_wallet", targetKey: "email_qr_pass" },
+    { sourceKey: "email_qr_pass", targetKey: "wait_reminder_3" },
+    { sourceKey: "wait_reminder_3", targetKey: "email_payment_3" },
   ],
 };
 

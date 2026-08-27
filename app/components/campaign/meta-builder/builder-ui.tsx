@@ -183,7 +183,7 @@ export function BuilderSelect<T extends string>({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
   const listId = useId();
-  const selected = options.find((opt) => opt.value === value) ?? options[0];
+  const selected = options.find((opt) => opt.value === value);
 
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) {
@@ -557,7 +557,7 @@ export function BuilderPerformanceGoalSelect<T extends string>({
     value: T;
     label: string;
     description?: string;
-    group?: "primary" | "conversion" | "other" | "video";
+    group?: "primary" | "conversion" | "other" | "video" | "engagement";
     recommended?: boolean;
   }>;
   onChange: (value: T) => void;
@@ -576,6 +576,7 @@ export function BuilderPerformanceGoalSelect<T extends string>({
   const listId = useId();
   const selected = options.find((opt) => opt.value === value) ?? options[0];
   const conversionOptions = options.filter((opt) => opt.group === "conversion");
+  const engagementOptions = options.filter((opt) => opt.group === "engagement");
   const primaryOptions = options.filter(
     (opt) => !opt.group || opt.group === "primary",
   );
@@ -703,6 +704,14 @@ export function BuilderPerformanceGoalSelect<T extends string>({
                   Conversion goals
                 </div>
                 {conversionOptions.map(renderOption)}
+              </>
+            ) : null}
+            {engagementOptions.length ? (
+              <>
+                <div className="px-3.5 pb-1 pt-2 text-xs font-bold text-slate-700">
+                  Engagement goals
+                </div>
+                {engagementOptions.map(renderOption)}
               </>
             ) : null}
             {primaryOptions.map(renderOption)}

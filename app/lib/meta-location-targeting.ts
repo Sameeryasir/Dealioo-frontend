@@ -354,7 +354,9 @@ export function isDefaultUnitedStatesOnly(
   );
 }
 
-export async function detectUserLocationTarget(): Promise<AdSetLocationTarget | null> {
+export async function detectUserLocationTarget(
+  preferredTimezone?: string,
+): Promise<AdSetLocationTarget | null> {
   const coords = await readBrowserPosition();
   if (coords) {
     const fromGeo = await reverseGeocodeLocation(
@@ -363,6 +365,12 @@ export async function detectUserLocationTarget(): Promise<AdSetLocationTarget | 
     );
     if (fromGeo) return fromGeo;
   }
+
+  const timezoneGuess = guessCountryFromTimezone(
+    preferredTimezone?.trim() ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
+  if (timezoneGuess) return timezoneGuess;
 
   return guessCountryFromTimezone();
 }
