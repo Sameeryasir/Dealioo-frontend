@@ -13,6 +13,7 @@ import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateTo
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
+import { normalizePaymentReminderWorkflowNodes } from "@/app/components/automation/builder/bundled-actions";
 import { NodeSettingsPanel } from "@/app/components/automation/builder/NodeSettingsPanel";
 import { automationEase } from "@/app/lib/motion";
 import { AUTOMATION_BLOCKS } from "@/app/components/automation/mock-data";
@@ -195,9 +196,12 @@ export function AutomationBuilderPage({
     setAutomation(mapped);
     setStatus(remoteStatus);
     setAutomationPublished(automationIsPublished === true);
-    const list = mapAutomationGraphToWorkflowNodes(
-      remoteAutomation.nodes ?? [],
-      remoteAutomation.connections ?? [],
+    const list = normalizePaymentReminderWorkflowNodes(
+      mapAutomationGraphToWorkflowNodes(
+        remoteAutomation.nodes ?? [],
+        remoteAutomation.connections ?? [],
+      ),
+      remoteAutomation.purpose,
     );
     setNodes(list);
     setConnections(remoteAutomation.connections ?? []);

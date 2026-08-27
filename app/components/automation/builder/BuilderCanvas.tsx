@@ -29,7 +29,6 @@ import {
   FlowStepCard,
   PrepaidLoopBackCard,
 } from "@/app/components/automation/builder/flow-step-cards";
-import { isPaymentReminderFlow } from "@/app/components/automation/builder/bundled-actions";
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import {
   buildSegmentsForIndexedNodes,
@@ -364,8 +363,7 @@ export function BuilderCanvas({
   );
   const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
   const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
-  const usePaymentReminderSections =
-    isPaymentReminderFlow(flowNodes) && !splitLayout.hasSplit;
+  const usePaymentReminderSections = false;
   const headSegments = usePrepaidVisitSplit
     ? buildSegmentsForIndexedNodes(prepaidVisitSplit.head)
     : usePaymentReminderSections
