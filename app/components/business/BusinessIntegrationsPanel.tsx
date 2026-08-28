@@ -7,7 +7,13 @@ import {
   MetaLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
-import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
+import {
+  connectFacebookInPopup,
+  consumeFacebookOAuthStatusSync,
+  FACEBOOK_OAUTH_AUTHENTICATED_MESSAGE,
+  FACEBOOK_OAUTH_COMPLETE_MESSAGE,
+  FACEBOOK_OAUTH_STATUS_SYNC_KEY,
+} from "@/app/lib/facebook-oauth-popup";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
 import {
   getDefaultSelectedMetaScopes,
@@ -46,7 +52,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
@@ -303,9 +309,9 @@ export function BusinessIntegrationsPanel({
     queryKey: integrationsStatusQueryKey(businessId),
     queryFn: () => getIntegrationsStatus(businessId),
     enabled: businessId > 0,
-    staleTime: 30_000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const statusLoading = statusQuery.isPending;
@@ -336,6 +342,83 @@ export function BusinessIntegrationsPanel({
       queryKey: integrationsStatusQueryKey(businessId),
     });
   }, [businessId, queryClient]);
+
+  const applyMetaOAuthStatusSync = useCallback(
+    async (phase?: "authenticated" | "complete") => {
+      await refreshStatus();
+      bumpAuditLogs();
+      if (phase === "complete") {
+        setMetaConnectModalOpen(false);
+        setMetaActionError(null);
+        setMetaBusy("idle");
+      }
+    },
+    [bumpAuditLogs, refreshStatus],
+  );
+
+  // Refresh when the OAuth popup finishes (postMessage + localStorage cross-tab).
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+
+      const type = (data as { type?: string }).type;
+      if (
+        type !== FACEBOOK_OAUTH_COMPLETE_MESSAGE &&
+        type !== FACEBOOK_OAUTH_AUTHENTICATED_MESSAGE
+      ) {
+        return;
+      }
+
+      const raw =
+        (data as { businessId?: unknown }).businessId ??
+        (data as { restaurantId?: unknown }).restaurantId;
+      if (typeof raw !== "number" || raw !== businessId) return;
+
+      void applyMetaOAuthStatusSync(
+        type === FACEBOOK_OAUTH_COMPLETE_MESSAGE ? "complete" : "authenticated",
+      );
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== FACEBOOK_OAUTH_STATUS_SYNC_KEY || !event.newValue) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(event.newValue) as {
+          businessId?: unknown;
+          phase?: unknown;
+        };
+        if (parsed.businessId !== businessId) return;
+        void applyMetaOAuthStatusSync(
+          parsed.phase === "complete" ? "complete" : "authenticated",
+        );
+        window.localStorage.removeItem(FACEBOOK_OAUTH_STATUS_SYNC_KEY);
+      } catch {
+        /* ignore bad payload */
+      }
+    };
+
+    const onAppVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!consumeFacebookOAuthStatusSync(businessId)) return;
+      void applyMetaOAuthStatusSync("complete");
+    };
+
+    window.addEventListener("message", onMessage);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onAppVisible);
+    document.addEventListener("visibilitychange", onAppVisible);
+    onAppVisible();
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onAppVisible);
+      document.removeEventListener("visibilitychange", onAppVisible);
+    };
+  }, [applyMetaOAuthStatusSync, businessId]);
 
   const handleConnectStripe = async () => {
     setStripeBusy("loading");
@@ -597,13 +680,15 @@ export function BusinessIntegrationsPanel({
         actions={
           statusLoading ? null : metaConnected ? (
             <>
-              <Link
-                href={`/facebook/select-ad-account?businessId=${businessId}`}
-                className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
-              >
-                <Briefcase className="size-3" strokeWidth={2.25} />
-                {metaNeedsAdAccount ? "Choose ad account" : "Change ad account"}
-              </Link>
+              {metaNeedsAdAccount ? (
+                <Link
+                  href={`/facebook/select-ad-account?businessId=${businessId}`}
+                  className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
+                >
+                  <Briefcase className="size-3" strokeWidth={2.25} />
+                  Choose ad account
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setShowMetaPermissions((open) => !open)}

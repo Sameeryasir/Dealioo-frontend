@@ -9,9 +9,55 @@ export const FACEBOOK_OAUTH_AUTHENTICATED_MESSAGE =
 export const FACEBOOK_OAUTH_CANCELLED_MESSAGE =
   "facebook-oauth-cancelled" as const;
 
+/** Cross-tab signal so Integrations can refresh after the OAuth popup finishes. */
+export const FACEBOOK_OAUTH_STATUS_SYNC_KEY = "dealioo-facebook-oauth-status-sync";
+
 export type FacebookOAuthResult =
   | { status: "connected"; businessId: number }
   | { status: "cancelled" };
+
+function signalFacebookOAuthStatusSync(
+  businessId: number,
+  phase: "authenticated" | "complete",
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      FACEBOOK_OAUTH_STATUS_SYNC_KEY,
+      JSON.stringify({ businessId, phase, at: Date.now() }),
+    );
+  } catch {
+    /* private mode / quota — ignore */
+  }
+}
+
+function readBusinessIdFromSyncPayload(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as { businessId?: unknown };
+    if (typeof parsed.businessId !== "number" || parsed.businessId < 1) {
+      return null;
+    }
+    return parsed.businessId;
+  } catch {
+    return null;
+  }
+}
+
+export function consumeFacebookOAuthStatusSync(
+  businessId: number,
+): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(FACEBOOK_OAUTH_STATUS_SYNC_KEY);
+    const id = readBusinessIdFromSyncPayload(raw);
+    if (id !== businessId) return false;
+    window.localStorage.removeItem(FACEBOOK_OAUTH_STATUS_SYNC_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function openFacebookConnectPopup(oauthUrl?: string): Window | null {
   return window.open(
@@ -187,6 +233,8 @@ export async function connectFacebookInPopup(
 /** Notify opener that Meta OAuth succeeded (token saved). Keeps the popup open. */
 export function notifyFacebookOAuthAuthenticated(businessId: number): boolean {
   if (typeof window === "undefined") return false;
+  signalFacebookOAuthStatusSync(businessId, "authenticated");
+
   const opener = window.opener;
   if (!opener || opener.closed) return false;
 
@@ -198,8 +246,15 @@ export function notifyFacebookOAuthAuthenticated(businessId: number): boolean {
 }
 
 /** Notify opener and close when connect + ad account step finished in a popup. */
-export function notifyFacebookOAuthComplete(businessId: number): boolean {
+export function notifyFacebookOAuthComplete(
+  businessId: number,
+  redirectHref?: string,
+): boolean {
   if (typeof window === "undefined") return false;
+
+  // Signal other tabs first — redirect/close can drop late postMessage handlers.
+  signalFacebookOAuthStatusSync(businessId, "complete");
+
   const opener = window.opener;
   if (!opener || opener.closed) return false;
 
@@ -207,6 +262,15 @@ export function notifyFacebookOAuthComplete(businessId: number): boolean {
     { type: FACEBOOK_OAUTH_COMPLETE_MESSAGE, businessId },
     window.location.origin,
   );
+
+  if (redirectHref?.trim()) {
+    try {
+      opener.location.assign(redirectHref.trim());
+    } catch {
+      /* cross-origin opener — ignore */
+    }
+  }
+
   window.close();
   return true;
 }

@@ -11,6 +11,7 @@ import {
   Lock,
   Save,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import {
   getFacebookAdAccounts,
@@ -19,6 +20,7 @@ import {
 import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-account";
 import { notifyFacebookOAuthComplete } from "@/app/lib/facebook-oauth-popup";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
+import { integrationsStatusQueryKey } from "@/app/services/integration-audit/get-integrations-status";
 
 const ACCOUNT_THEME = {
   Icon: Briefcase,
@@ -44,6 +46,7 @@ function accountStatusLabel(status: number | null): string {
 
 function SelectAdAccountInner() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const businessId = readBusinessIdFromSearchParams(searchParams) ?? null;
 
@@ -57,6 +60,18 @@ function SelectAdAccountInner() {
     businessId != null
       ? `/business/${businessId}/dashboard/settings/integrations`
       : "/dashboard";
+
+  const metaCampaignBuilderHref =
+    businessId != null
+      ? `/business/${businessId}/dashboard/meta`
+      : "/dashboard";
+
+  const refreshIntegrationsStatus = useCallback(async () => {
+    if (businessId == null) return;
+    await queryClient.invalidateQueries({
+      queryKey: integrationsStatusQueryKey(businessId),
+    });
+  }, [businessId, queryClient]);
 
   const loadAccounts = useCallback(async () => {
     if (businessId == null) return;
@@ -82,14 +97,11 @@ function SelectAdAccountInner() {
   }, [loadAccounts]);
 
   const handleSkip = () => {
-    if (businessId != null && notifyFacebookOAuthComplete(businessId)) {
-      try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.location.assign(integrationsHref);
-        }
-      } catch {
-        /* cross-origin opener — ignore */
-      }
+    void refreshIntegrationsStatus();
+    if (
+      businessId != null &&
+      notifyFacebookOAuthComplete(businessId, integrationsHref)
+    ) {
       return;
     }
     router.push(integrationsHref);
@@ -101,17 +113,13 @@ function SelectAdAccountInner() {
     setError(null);
     try {
       await setFacebookAdAccount(businessId, selectedId);
-      if (notifyFacebookOAuthComplete(businessId)) {
-        try {
-          if (window.opener && !window.opener.closed) {
-            window.opener.location.assign(integrationsHref);
-          }
-        } catch {
-          /* cross-origin opener — ignore */
-        }
+      await refreshIntegrationsStatus();
+      if (
+        notifyFacebookOAuthComplete(businessId, metaCampaignBuilderHref)
+      ) {
         return;
       }
-      router.push(integrationsHref);
+      router.push(metaCampaignBuilderHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save ad account.");
       setSaving(false);
