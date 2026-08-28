@@ -104,9 +104,7 @@ function FacebookConnectInner() {
       );
 
       if (result.status === "connected") {
-        router.replace(
-          `/facebook/select-ad-account?businessId=${businessId}`,
-        );
+        router.replace(integrationsHref);
         return;
       }
 
@@ -123,7 +121,7 @@ function FacebookConnectInner() {
     } finally {
       setConnecting(false);
     }
-  }, [businessId, router, selectedScopes]);
+  }, [businessId, integrationsHref, router, selectedScopes]);
 
   const isConnected = Boolean(connection?.connected);
 

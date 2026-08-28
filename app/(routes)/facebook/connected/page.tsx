@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { BarChart3, CheckCircle2, Megaphone, Shield } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { BarChart3, CheckCircle2, Loader2, Megaphone, Shield } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
-import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
-import { notifyFacebookOAuthAuthenticated } from "@/app/lib/facebook-oauth-popup";
+import {
+  notifyFacebookOAuthAuthenticated,
+  notifyFacebookOAuthComplete,
+} from "@/app/lib/facebook-oauth-popup";
 import {
   META_ADS_PERMISSION_OPTIONS,
   formatMetaScopeTitle,
@@ -31,6 +32,7 @@ function isSelectableScopeId(scopeId: string): scopeId is MetaSelectableScopeId 
 }
 
 function FacebookConnectedInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const businessId = readBusinessIdFromSearchParams(searchParams);
   const granted = useMemo(
@@ -38,15 +40,34 @@ function FacebookConnectedInner() {
     [searchParams],
   );
 
+  const integrationsHref =
+    businessId != null
+      ? `/business/${businessId}/dashboard/settings/integrations`
+      : "/dashboard";
+
   useEffect(() => {
     if (businessId == null) return;
-    notifyFacebookOAuthAuthenticated(businessId);
-  }, [businessId]);
 
-  const selectHref =
-    businessId != null
-      ? `/facebook/select-ad-account?businessId=${businessId}`
-      : "/dashboard";
+    notifyFacebookOAuthAuthenticated(businessId);
+
+    const timer = window.setTimeout(() => {
+      if (notifyFacebookOAuthComplete(businessId)) {
+        return;
+      }
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.location.assign(integrationsHref);
+          window.close();
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      router.replace(integrationsHref);
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [businessId, integrationsHref, router]);
 
   const grantedOptions = useMemo(() => {
     return granted.map((scopeId) => {
@@ -80,8 +101,7 @@ function FacebookConnectedInner() {
               <span>connected successfully</span>
             </p>
             <p className="m-0 text-[13px] leading-snug text-[#65676b]">
-              Meta already granted these permissions. This is a summary — not a
-              selection screen.
+              Taking you back to Integrations…
             </p>
           </div>
         </div>
@@ -143,24 +163,12 @@ function FacebookConnectedInner() {
               );
             })}
           </ul>
-        ) : (
-          <p className="mt-4 m-0 text-[13px] leading-snug text-[#65676b]">
-            No permission details were returned. You can still choose an ad
-            account to continue.
-          </p>
-        )}
+        ) : null}
 
-        <p className="mt-4 m-0 text-center text-[13px] leading-snug text-[#65676b]">
-          Next, choose which ad account Dealioo should use.
+        <p className="mt-5 m-0 flex items-center justify-center gap-2 text-[13px] text-[#65676b]">
+          <Loader2 className="size-4 animate-spin text-[#1877F2]" aria-hidden />
+          Returning to Integrations…
         </p>
-
-        <Link
-          href={selectHref}
-          className="mt-5 flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[#1877F2] text-[16px] font-bold text-white no-underline transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40"
-        >
-          <MetaLogo className="size-5 text-white" monochrome />
-          Select Meta Ad Account
-        </Link>
       </div>
     </main>
   );

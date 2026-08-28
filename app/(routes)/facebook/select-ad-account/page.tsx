@@ -53,9 +53,9 @@ function SelectAdAccountInner() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const metaAdsHref =
+  const integrationsHref =
     businessId != null
-      ? `/business/${businessId}/dashboard/meta`
+      ? `/business/${businessId}/dashboard/settings/integrations`
       : "/dashboard";
 
   const loadAccounts = useCallback(async () => {
@@ -85,14 +85,14 @@ function SelectAdAccountInner() {
     if (businessId != null && notifyFacebookOAuthComplete(businessId)) {
       try {
         if (window.opener && !window.opener.closed) {
-          window.opener.location.assign(metaAdsHref);
+          window.opener.location.assign(integrationsHref);
         }
       } catch {
         /* cross-origin opener — ignore */
       }
       return;
     }
-    router.push(metaAdsHref);
+    router.push(integrationsHref);
   };
 
   const handleSave = async () => {
@@ -104,14 +104,14 @@ function SelectAdAccountInner() {
       if (notifyFacebookOAuthComplete(businessId)) {
         try {
           if (window.opener && !window.opener.closed) {
-            window.opener.location.assign(metaAdsHref);
+            window.opener.location.assign(integrationsHref);
           }
         } catch {
           /* cross-origin opener — ignore */
         }
         return;
       }
-      router.push(metaAdsHref);
+      router.push(integrationsHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save ad account.");
       setSaving(false);
