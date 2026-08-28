@@ -29,6 +29,7 @@ import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationA
 import {
   AlertCircle,
   BarChart3,
+  Briefcase,
   CalendarDays,
   Check,
   FileText,
@@ -43,8 +44,9 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
@@ -64,15 +66,24 @@ const cardStatusClass =
 function StatusBadge({
   loading,
   connected,
+  needsAdAccount,
 }: {
   loading: boolean;
   connected: boolean;
+  needsAdAccount?: boolean;
 }) {
   if (loading) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[0.62rem] font-semibold text-slate-500">
         <Loader2 className="size-2.5 animate-spin" strokeWidth={2.5} />
         Checking
+      </span>
+    );
+  }
+  if (connected && needsAdAccount) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold text-amber-800">
+        Ads account needed
       </span>
     );
   }
@@ -119,9 +130,13 @@ function FeatureRow({
 function ConnectedStatus({
   iconClass,
   icon: Icon,
+  label = "Connected",
+  detail = "Account linked",
 }: {
   iconClass: string;
   icon: LucideIcon;
+  label?: string;
+  detail?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -132,9 +147,9 @@ function ConnectedStatus({
       </span>
       <div>
         <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-400">
-          Connected
+          {label}
         </p>
-        <p className="m-0 text-xs font-semibold text-slate-800">Account linked</p>
+        <p className="m-0 text-xs font-semibold text-slate-800">{detail}</p>
       </div>
     </div>
   );
@@ -195,6 +210,7 @@ function IntegrationCard({
   featureToneClass,
   loading,
   connected,
+  needsAdAccount,
   status,
   actions,
   error,
@@ -208,6 +224,7 @@ function IntegrationCard({
   featureToneClass: string;
   loading: boolean;
   connected: boolean;
+  needsAdAccount?: boolean;
   status: ReactNode;
   actions: ReactNode;
   error?: string | null;
@@ -231,7 +248,11 @@ function IntegrationCard({
             <h3 className="m-0 text-sm font-bold tracking-tight text-slate-900">
               {title}
             </h3>
-            <StatusBadge loading={loading} connected={connected} />
+            <StatusBadge
+              loading={loading}
+              connected={connected}
+              needsAdAccount={needsAdAccount}
+            />
           </div>
           <p className="m-0 mt-0.5 text-xs text-slate-500">{description}</p>
           <FeatureRow items={features} toneClass={featureToneClass} />
@@ -302,17 +323,13 @@ export function BusinessIntegrationsPanel({
   const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
   const metaMissingScopes =
     statusQuery.data?.facebook.missingRequiredScopes ?? [];
+  const metaAdAccountId =
+    statusQuery.data?.facebook.metaAdAccountId?.trim() || null;
+  const metaNeedsAdAccount = metaConnected && !metaAdAccountId;
   const metaError = metaActionError ?? statusError;
 
   const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
   const googleError = googleActionError ?? statusError;
-
-  useEffect(() => {
-    if (!metaConnected) return;
-    setMetaConnectModalOpen(false);
-    setMetaActionError(null);
-    setMetaBusy("idle");
-  }, [metaConnected]);
 
   const refreshStatus = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -545,13 +562,29 @@ export function BusinessIntegrationsPanel({
         ]}
         loading={statusLoading}
         connected={metaConnected}
+        needsAdAccount={metaNeedsAdAccount}
         error={metaError}
         status={
           metaConnected ? (
-            <ConnectedStatus
-              icon={CalendarDays}
-              iconClass="bg-[#E8F1FF] text-[#1877F2]"
-            />
+            metaNeedsAdAccount ? (
+              <ConnectedStatus
+                icon={Briefcase}
+                iconClass="bg-amber-50 text-amber-700"
+                label="Meta linked"
+                detail="Ads account not selected"
+              />
+            ) : (
+              <ConnectedStatus
+                icon={CalendarDays}
+                iconClass="bg-[#E8F1FF] text-[#1877F2]"
+                label="Connected"
+                detail={
+                  metaAdAccountId
+                    ? `Ad account ${metaAdAccountId.replace(/^act_/, "")}`
+                    : "Account linked"
+                }
+              />
+            )
           ) : (
             <PromptStatus
               icon={Megaphone}
@@ -564,6 +597,13 @@ export function BusinessIntegrationsPanel({
         actions={
           statusLoading ? null : metaConnected ? (
             <>
+              <Link
+                href={`/facebook/select-ad-account?businessId=${businessId}`}
+                className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
+              >
+                <Briefcase className="size-3" strokeWidth={2.25} />
+                {metaNeedsAdAccount ? "Choose ad account" : "Change ad account"}
+              </Link>
               <button
                 type="button"
                 onClick={() => setShowMetaPermissions((open) => !open)}
@@ -597,7 +637,7 @@ export function BusinessIntegrationsPanel({
       />
 
       <MetaConnectPermissionsModal
-        open={metaConnectModalOpen && !metaConnected}
+        open={metaConnectModalOpen}
         selectedScopes={selectedMetaScopes}
         onChangeScopes={setSelectedMetaScopes}
         connecting={metaBusy === "loading"}
@@ -606,7 +646,7 @@ export function BusinessIntegrationsPanel({
         onContinue={() => void handleConnectMeta()}
       />
 
-      {showMetaPermissions && metaConnected ? (
+      {showMetaPermissions ? (
         <FacebookPermissionsPanel
           grantedScopes={metaScopes}
           missingRequiredScopes={metaMissingScopes}

@@ -11,6 +11,7 @@ export type IntegrationsStatus = {
     status: string | null;
     metaOauthScopes: string[];
     missingRequiredScopes: string[];
+    metaAdAccountId: string | null;
   };
   googleAds: {
     connected: boolean;
@@ -56,6 +57,7 @@ export async function getIntegrationsStatus(
       status: json.facebook?.status ?? null,
       metaOauthScopes: json.facebook?.metaOauthScopes ?? [],
       missingRequiredScopes: json.facebook?.missingRequiredScopes ?? [],
+      metaAdAccountId: json.facebook?.metaAdAccountId?.trim() || null,
     },
     googleAds: {
       connected: Boolean(json.googleAds?.connected),

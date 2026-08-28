@@ -164,7 +164,7 @@ function SelectAdAccountInner() {
                 className="size-4 animate-spin text-[#1877F2]"
                 aria-hidden
               />
-              Loading ad accounts…
+              Fetching ads account…
             </p>
           ) : null}
 
