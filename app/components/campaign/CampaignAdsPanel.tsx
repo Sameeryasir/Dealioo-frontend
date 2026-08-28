@@ -189,7 +189,7 @@ export function CampaignAdsPanel({
   const openCreateOrResume = useCallback(async () => {
     if (!hasMetaAdsManagementScope(metaOauthScopes)) {
       setAdStatsError(
-        "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns.",
+        "Analytics is available with Read advertising data. To create campaigns, reconnect Meta and also grant Manage advertising campaigns.",
       );
       return;
     }
@@ -281,7 +281,7 @@ export function CampaignAdsPanel({
   const createCampaignBlockedReason = !hasMetaAdsManagementScope(
     metaOauthScopes,
   )
-    ? "Your Meta connection only has ads_read. Reconnect Meta Ads and grant Manage advertising campaigns to create campaigns."
+    ? "Analytics is available with Read advertising data. To create campaigns, reconnect Meta and also grant Manage advertising campaigns."
     : !can("meta_campaigns_create")
       ? "You do not have permission to create Meta campaigns."
       : null;
@@ -303,6 +303,7 @@ export function CampaignAdsPanel({
           : prev,
       );
       setCampaignPendingDelete(null);
+      invalidateDrafts();
     } catch (e) {
       setAdStatsError(
         e instanceof Error ? e.message : "Could not delete campaign.",
@@ -310,7 +311,7 @@ export function CampaignAdsPanel({
     } finally {
       setDeletingCampaignId(null);
     }
-  }, [businessId, campaignPendingDelete]);
+  }, [businessId, campaignPendingDelete, invalidateDrafts]);
 
   const loadStats = useCallback(async (opts?: {
     refresh?: boolean;
@@ -395,9 +396,6 @@ export function CampaignAdsPanel({
         metaAdAccountId: status.metaAdAccountId,
       };
     } catch (e) {
-      setMetaConnected(false);
-      setMetaAdAccountId(null);
-      setMetaOauthScopes([]);
       setMetaError(
         e instanceof Error ? e.message : "Could not check Meta connection.",
       );
@@ -553,7 +551,26 @@ export function CampaignAdsPanel({
           />
         ) : (
           <div>
-            {connectionPhase === "not_connected" ? (
+            {metaError ? (
+              <p
+                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  {metaError}
+                  <button
+                    type="button"
+                    onClick={() => void refreshConnection()}
+                    className="mt-2 block text-xs font-semibold underline"
+                  >
+                    Try again
+                  </button>
+                </span>
+              </p>
+            ) : null}
+
+            {connectionPhase === "not_connected" && !metaError ? (
               <MetaAdsConnectEmptyState businessId={businessId} />
             ) : null}
 
@@ -581,16 +598,6 @@ export function CampaignAdsPanel({
                   </Link>
                 </div>
               </div>
-            ) : null}
-
-            {metaError && connectionPhase !== "not_connected" ? (
-              <p
-                className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-                role="alert"
-              >
-                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {metaError}
-              </p>
             ) : null}
           </div>
         )}

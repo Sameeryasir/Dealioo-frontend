@@ -1,4 +1,7 @@
-export type MetaSelectableScopeId = "ads_read" | "ads_management";
+export type MetaSelectableScopeId =
+  | "ads_read"
+  | "ads_management"
+  | "pages_read_engagement";
 
 export type MetaPermissionOption = {
   id: MetaSelectableScopeId;
@@ -22,9 +25,18 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     id: "ads_management",
     title: "Manage advertising campaigns",
     description:
-      "Create, update, pause, and publish campaigns, ad sets, and ads.",
+      "Create, read, delete, and publish campaigns, ad sets, and ads.",
     tooltip:
-      "Used for creating and editing ads from Dealioo. Maps to ads_management.",
+      "Used to create, read, delete, and publish Meta ads from Dealioo. Maps to ads_management.",
+    defaultSelected: false,
+  },
+  {
+    id: "pages_read_engagement",
+    title: "Read Facebook Page data",
+    description:
+      "Access Facebook Pages you manage so ads can run from your Page.",
+    tooltip:
+      "Required with manage advertising campaigns. Used to associate ads with your Facebook Page. Maps to pages_read_engagement.",
     defaultSelected: false,
   },
 ];
@@ -47,6 +59,35 @@ export function hasMetaAdsManagementScope(
 
 export function formatMetaScopeTitle(scopeId: string): string {
   return META_SCOPE_LABELS[scopeId] ?? formatFacebookScopeLabelFallback(scopeId);
+}
+
+export function toggleMetaSelectableScope(
+  current: MetaSelectableScopeId[],
+  id: MetaSelectableScopeId,
+): MetaSelectableScopeId[] {
+  const next = new Set(current);
+
+  if (next.has(id)) {
+    next.delete(id);
+    if (id === "ads_management") {
+      next.delete("pages_read_engagement");
+    }
+    if (id === "pages_read_engagement") {
+      next.delete("ads_management");
+    }
+  } else {
+    next.add(id);
+    if (id === "ads_management") {
+      next.add("pages_read_engagement");
+    }
+    if (id === "pages_read_engagement") {
+      next.add("ads_management");
+    }
+  }
+
+  return META_ADS_PERMISSION_OPTIONS.map((opt) => opt.id).filter((scopeId) =>
+    next.has(scopeId),
+  );
 }
 
 function formatFacebookScopeLabelFallback(scopeId: string): string {

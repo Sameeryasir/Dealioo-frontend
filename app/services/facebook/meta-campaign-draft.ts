@@ -523,6 +523,24 @@ export async function listMetaCampaignDrafts(
   return res.json() as Promise<MetaCampaignDraft[]>;
 }
 
+export async function deleteMetaCampaignDraft(
+  restaurantId: number,
+  draftId: string,
+): Promise<{ deleted: true; draftId: string }> {
+  const res = await authenticatedFetch(
+    `${draftsBase(restaurantId)}/${encodeURIComponent(draftId)}`,
+    { method: "DELETE" },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not delete campaign draft."),
+    );
+  }
+
+  return res.json() as Promise<{ deleted: true; draftId: string }>;
+}
+
 export async function getMetaCampaignDraft(
   restaurantId: number,
   draftId: string,

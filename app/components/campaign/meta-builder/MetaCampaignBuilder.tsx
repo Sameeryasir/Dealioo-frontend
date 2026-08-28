@@ -176,6 +176,7 @@ export function MetaCampaignBuilder({
   const autosaveSkipRef = useRef(true);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutosavePayloadRef = useRef<string>("");
+  const stepNavTokenRef = useRef(0);
 
   useEffect(() => {
     stepScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
@@ -296,14 +297,20 @@ export function MetaCampaignBuilder({
     return 4;
   }, [adCreativeData, adSetData, campaignData, draftId]);
 
+  const goToStep = useCallback((stepId: number) => {
+    stepNavTokenRef.current += 1;
+    setSaving(false);
+    setError(null);
+    setCurrentStep(stepId);
+  }, []);
+
   const handleStepClick = useCallback(
     (stepId: number) => {
       if (stepId <= maxReachableStep && stepId !== currentStep) {
-        setCurrentStep(stepId);
-        setError(null);
+        goToStep(stepId);
       }
     },
-    [currentStep, maxReachableStep],
+    [currentStep, goToStep, maxReachableStep],
   );
 
   
@@ -464,6 +471,7 @@ export function MetaCampaignBuilder({
   const handleSaveCampaignStep = useCallback(
     async (data: CampaignStepData) => {
       const previousObjective = campaignData?.objective;
+      const navToken = stepNavTokenRef.current;
       setSaving(true);
       setError(null);
       try {
@@ -471,6 +479,10 @@ export function MetaCampaignBuilder({
           ...data,
           draftId: draftId ?? undefined,
         });
+
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
 
         autosaveSkipRef.current = true;
         lastAutosavePayloadRef.current = "";
@@ -491,14 +503,19 @@ export function MetaCampaignBuilder({
         setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "Could not save campaign step.",
         );
       } finally {
-        setSaving(false);
+        if (navToken === stepNavTokenRef.current) {
+          setSaving(false);
+        }
       }
     },
-    [applyDraftState, draftId, onDraftSaved, businessId],
+    [applyDraftState, campaignData?.objective, draftId, onDraftSaved, businessId],
   );
 
   const handleSaveAdSetStep = useCallback(
@@ -513,6 +530,7 @@ export function MetaCampaignBuilder({
         return;
       }
 
+      const navToken = stepNavTokenRef.current;
       setSaving(true);
       setError(null);
       try {
@@ -520,6 +538,9 @@ export function MetaCampaignBuilder({
           ...data,
           draftId,
         });
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
         autosaveSkipRef.current = true;
         lastAutosavePayloadRef.current = "";
         applyDraftState(draft);
@@ -527,11 +548,16 @@ export function MetaCampaignBuilder({
         setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "Could not save ad set step.",
         );
       } finally {
-        setSaving(false);
+        if (navToken === stepNavTokenRef.current) {
+          setSaving(false);
+        }
       }
     },
     [applyDraftState, draftId, onDraftSaved, businessId],
@@ -544,6 +570,7 @@ export function MetaCampaignBuilder({
         return;
       }
 
+      const navToken = stepNavTokenRef.current;
       setSaving(true);
       setError(null);
       try {
@@ -551,6 +578,9 @@ export function MetaCampaignBuilder({
           ...data,
           draftId,
         });
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
         autosaveSkipRef.current = true;
         lastAutosavePayloadRef.current = "";
         applyDraftState(draft);
@@ -558,11 +588,16 @@ export function MetaCampaignBuilder({
         setAutosaveState("saved");
         onDraftSaved?.(draft);
       } catch (err) {
+        if (navToken !== stepNavTokenRef.current) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "Could not save ad creative step.",
         );
       } finally {
-        setSaving(false);
+        if (navToken === stepNavTokenRef.current) {
+          setSaving(false);
+        }
       }
     },
     [applyDraftState, draftId, onDraftSaved, businessId],
@@ -1075,7 +1110,7 @@ export function MetaCampaignBuilder({
               saving={saving}
               error={error}
               onBack={onClose}
-              onPrevious={() => setCurrentStep(1)}
+              onPrevious={() => goToStep(1)}
               onSave={handleSaveAdSetStep}
             />
           ) : null}
@@ -1085,7 +1120,7 @@ export function MetaCampaignBuilder({
               title="Ad Set"
               description="Complete Step 1 (Campaign) first."
               onBack={onClose}
-              onPrevious={() => setCurrentStep(1)}
+              onPrevious={() => goToStep(1)}
             />
           ) : null}
 
@@ -1101,7 +1136,7 @@ export function MetaCampaignBuilder({
               saving={saving}
               error={error}
               onBack={onClose}
-              onPrevious={() => setCurrentStep(2)}
+              onPrevious={() => goToStep(2)}
               onSave={handleSaveAdCreativeStep}
               onWorkingChange={handleAdCreativeWorkingChange}
             />
@@ -1112,7 +1147,7 @@ export function MetaCampaignBuilder({
               title="Ad"
               description="Complete Steps 1 and 2 first."
               onBack={onClose}
-              onPrevious={() => setCurrentStep(2)}
+              onPrevious={() => goToStep(2)}
             />
           ) : null}
 
@@ -1131,7 +1166,7 @@ export function MetaCampaignBuilder({
               partialPublish={partialMeta ?? undefined}
               publishSuccess={publishSuccess}
               onBack={onClose}
-              onPrevious={() => setCurrentStep(3)}
+              onPrevious={() => goToStep(3)}
               onPublish={handlePublish}
               onRefreshStatus={handleRefreshPublishStatus}
               refreshingStatus={refreshingPublishStatus}
@@ -1143,7 +1178,7 @@ export function MetaCampaignBuilder({
               title="Review & Publish"
               description="Complete Steps 1–3 before reviewing and publishing."
               onBack={onClose}
-              onPrevious={() => setCurrentStep(3)}
+              onPrevious={() => goToStep(3)}
             />
           ) : null}
         </div>

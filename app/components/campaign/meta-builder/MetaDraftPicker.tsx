@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   Plus,
   RefreshCw,
   Rocket,
+  Trash2,
   X,
 } from "lucide-react";
 import type { MetaCampaignDraft } from "@/app/lib/meta-campaign-builder-types";
@@ -18,8 +19,14 @@ import {
   BUILDER_STEPS,
   buildMetaAdsManagerUrl,
 } from "@/app/lib/meta-campaign-builder-types";
+import {
+  clearMetaDraftLocalState,
+  readActiveMetaDraftId,
+} from "@/app/lib/meta-active-draft-storage";
 import { resolveMetaImageUrl } from "@/app/lib/resolve-meta-image-url";
 import { useMetaCampaignDraftsQuery } from "@/app/hooks/use-meta-campaign-drafts-query";
+import { deleteMetaCampaignDraft } from "@/app/services/facebook/meta-campaign-draft";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 
 export type MetaDraftPickerAction =
   | { type: "create" }
@@ -154,6 +161,10 @@ export function MetaDraftPicker({
   const { data: drafts, isLoading, error, refetch, isFetching } =
     useMetaCampaignDraftsQuery(businessId, { enabled: open });
   const [filter, setFilter] = useState<DraftBucket | "all">("all");
+  const [draftPendingDelete, setDraftPendingDelete] =
+    useState<MetaCampaignDraft | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const map: Record<DraftBucket, MetaCampaignDraft[]> = {
@@ -187,9 +198,31 @@ export function MetaDraftPicker({
     ? buildMetaAdsManagerUrl(metaAdAccountId)
     : "https://www.facebook.com/adsmanager";
 
+  const handleConfirmDeleteDraft = useCallback(async () => {
+    if (!draftPendingDelete) return;
+    const draft = draftPendingDelete;
+    setDeletingDraftId(draft.id);
+    setDeleteError(null);
+    try {
+      await deleteMetaCampaignDraft(businessId, draft.id);
+      if (readActiveMetaDraftId(businessId) === draft.id) {
+        clearMetaDraftLocalState(businessId);
+      }
+      setDraftPendingDelete(null);
+      await refetch();
+    } catch (e) {
+      setDeleteError(
+        e instanceof Error ? e.message : "Could not delete campaign draft.",
+      );
+    } finally {
+      setDeletingDraftId(null);
+    }
+  }, [businessId, draftPendingDelete, refetch]);
+
   if (!open) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
@@ -325,6 +358,16 @@ export function MetaDraftPicker({
             </div>
           ) : null}
 
+          {deleteError ? (
+            <div
+              className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+              role="alert"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <p>{deleteError}</p>
+            </div>
+          ) : null}
+
           {!isLoading && !error && drafts.length === 0 ? (
             <div className="py-10 text-center">
               <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#1877f2]">
@@ -433,7 +476,7 @@ export function MetaDraftPicker({
                                   </p>
                                 ) : null}
 
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
                                   {bucket === "draft" ? (
                                     <button
                                       type="button"
@@ -499,6 +542,29 @@ export function MetaDraftPicker({
                                       />
                                     </a>
                                   ) : null}
+
+                                  {bucket === "draft" || bucket === "failed" ? (
+                                    <button
+                                      type="button"
+                                      title="Delete draft"
+                                      aria-label={`Delete ${draftDisplayName(draft)}`}
+                                      disabled={deletingDraftId === draft.id}
+                                      onClick={() => {
+                                        setDeleteError(null);
+                                        setDraftPendingDelete(draft);
+                                      }}
+                                      className="ml-auto rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                    >
+                                      {deletingDraftId === draft.id ? (
+                                        <Loader2
+                                          className="size-4 animate-spin"
+                                          aria-hidden
+                                        />
+                                      ) : (
+                                        <Trash2 className="size-4" aria-hidden />
+                                      )}
+                                    </button>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -522,5 +588,38 @@ export function MetaDraftPicker({
         </div>
       </div>
     </div>
+
+    <DeleteConfirmationDialog
+      open={draftPendingDelete != null}
+      itemName={
+        draftPendingDelete
+          ? draftDisplayName(draftPendingDelete)
+          : "this draft"
+      }
+      title="Delete this draft?"
+      description={
+        <>
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-[#1877f2]">
+            {draftPendingDelete
+              ? draftDisplayName(draftPendingDelete)
+              : "this draft"}
+          </span>
+          ? This only removes the Dealioo draft. It cannot be undone.
+        </>
+      }
+      confirmText="Delete draft"
+      checkboxLabel="I understand this draft will be permanently deleted."
+      isLoading={deletingDraftId != null}
+      onConfirm={() => {
+        void handleConfirmDeleteDraft();
+      }}
+      onCancel={() => {
+        if (deletingDraftId == null) {
+          setDraftPendingDelete(null);
+        }
+      }}
+    />
+    </>
   );
 }

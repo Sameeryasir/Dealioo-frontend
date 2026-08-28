@@ -168,7 +168,7 @@ export function BuilderSelect<T extends string>({
 }: {
   id?: string;
   value: T;
-  options: Array<{ value: T; label: string }>;
+  options: Array<{ value: T; label: string; imageUrl?: string | null }>;
   onChange: (value: T) => void;
   disabled?: boolean;
   "aria-label"?: string;
@@ -248,6 +248,7 @@ export function BuilderSelect<T extends string>({
           >
             {options.map((opt) => {
               const isSelected = opt.value === value;
+              const thumb = opt.imageUrl?.trim() || null;
               return (
                 <li key={opt.value} role="option" aria-selected={isSelected}>
                   <button
@@ -263,7 +264,18 @@ export function BuilderSelect<T extends string>({
                         : "text-[#07111f] hover:bg-[#f8fafc]"
                     }`}
                   >
-                    <span className="truncate">{opt.label}</span>
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- Meta CDN URLs
+                        <img
+                          src={thumb}
+                          alt=""
+                          className="size-7 shrink-0 rounded-full object-cover ring-1 ring-[#e8edf5]"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : null}
+                      <span className="truncate">{opt.label}</span>
+                    </span>
                     {isSelected ? (
                       <Check
                         className="size-4 shrink-0 text-[#1877f2]"
@@ -293,7 +305,18 @@ export function BuilderSelect<T extends string>({
         onClick={() => setOpen((prev) => !prev)}
         className={`${builderSelectTriggerClass} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
       >
-        <span className="truncate">{selected?.label ?? "Select"}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          {selected?.imageUrl?.trim() ? (
+            // eslint-disable-next-line @next/next/no-img-element -- Meta CDN URLs
+            <img
+              src={selected.imageUrl.trim()}
+              alt=""
+              className="size-7 shrink-0 rounded-full object-cover ring-1 ring-[#e8edf5]"
+              referrerPolicy="no-referrer"
+            />
+          ) : null}
+          <span className="truncate">{selected?.label ?? "Select"}</span>
+        </span>
         <ChevronDown
           className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`}
           aria-hidden
@@ -1037,7 +1060,11 @@ export function BuilderFooter({
           {secondaryLabel && onSecondary ? (
             <button
               type="button"
-              onClick={onSecondary}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onSecondary();
+              }}
               className="rounded-xl border border-[#e8edf5] px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-[#f4f8ff] hover:text-[#1877f2]"
             >
               {secondaryLabel}

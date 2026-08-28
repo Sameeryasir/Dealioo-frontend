@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   BarChart3,
   ChevronDown,
+  Flag,
   Megaphone,
   Shield,
   type LucideIcon,
@@ -11,6 +12,7 @@ import {
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import {
   META_ADS_PERMISSION_OPTIONS,
+  toggleMetaSelectableScope,
   type MetaSelectableScopeId,
 } from "@/app/lib/meta-ads-permissions";
 
@@ -35,6 +37,11 @@ const PERMISSION_VISUALS: Record<
     iconWrap: "bg-[#eaf8ef]",
     iconColor: "text-[#22c55e]",
   },
+  pages_read_engagement: {
+    Icon: Flag,
+    iconWrap: "bg-[#fff4e5]",
+    iconColor: "text-[#ea580c]",
+  },
 };
 
 export function MetaAdsPermissionConsent({
@@ -51,17 +58,7 @@ export function MetaAdsPermissionConsent({
 
   const toggle = (id: MetaSelectableScopeId) => {
     if (disabled) return;
-    const next = new Set(selected);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    onChange(
-      META_ADS_PERMISSION_OPTIONS.map((opt) => opt.id).filter((scopeId) =>
-        next.has(scopeId),
-      ),
-    );
+    onChange(toggleMetaSelectableScope(selectedScopes, id));
   };
 
   if (compact) {
@@ -141,7 +138,8 @@ export function MetaAdsPermissionConsent({
               <span>will request only what you check below:</span>
             </p>
             <p className="m-0 text-[13px] leading-snug text-[#65676b]">
-              Tick one or both. Nothing is selected until you choose.
+              Tick one or more. Manage campaigns also selects Facebook Page
+              access.
             </p>
           </div>
         </div>

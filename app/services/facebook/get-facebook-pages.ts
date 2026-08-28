@@ -4,6 +4,7 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 export type FacebookPage = {
   id: string;
   name: string | null;
+  pictureUrl?: string | null;
 };
 
 const inflightByBusinessId = new Map<number, Promise<FacebookPage[]>>();
@@ -11,7 +12,7 @@ const cacheByBusinessId = new Map<
   number,
   { at: number; pages: FacebookPage[] }
 >();
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 30_000;
 
 export async function getFacebookPages(
   restaurantId: number,

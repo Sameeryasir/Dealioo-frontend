@@ -16,7 +16,10 @@ import {
   type MetaGender,
   type MetaPlacements,
 } from "@/app/services/facebook/create-facebook-campaign";
-import { getFacebookPages } from "@/app/services/facebook/get-facebook-pages";
+import {
+  getFacebookPages,
+  type FacebookPage,
+} from "@/app/services/facebook/get-facebook-pages";
 import { uploadFacebookCampaignImage } from "@/app/services/facebook/upload-facebook-campaign-image";
 import { uploadFacebookCampaignVideo } from "@/app/services/facebook/upload-facebook-campaign-video";
 
@@ -114,9 +117,7 @@ export function CreateFacebookCampaignDialog({
 
   const [facebookPageId, setFacebookPageId] = useState("");
   const [instagramActorId, setInstagramActorId] = useState("");
-  const [pages, setPages] = useState<Array<{ id: string; name: string | null }>>(
-    [],
-  );
+  const [pages, setPages] = useState<FacebookPage[]>([]);
   const [pagesLoading, setPagesLoading] = useState(false);
 
   const [headline, setHeadline] = useState(defaultName);
@@ -584,25 +585,42 @@ export function CreateFacebookCampaignDialog({
               <SectionTitle>Page &amp; Instagram</SectionTitle>
               <label className="block text-sm">
                 <span className="font-medium text-zinc-800">Facebook Page</span>
-                <select
-                  required
-                  value={facebookPageId}
-                  onChange={(e) => setFacebookPageId(e.target.value)}
-                  disabled={pagesLoading}
-                  className={inputClass}
-                >
-                  {pages.length === 0 ? (
-                    <option value="">
-                      {pagesLoading ? "Loading pages…" : "No pages found"}
-                    </option>
-                  ) : (
-                    pages.map((page) => (
-                      <option key={page.id} value={page.id}>
-                        {page.name ?? page.id}
-                      </option>
-                    ))
-                  )}
-                </select>
+                {(() => {
+                  const selected = pages.find((p) => p.id === facebookPageId);
+                  const thumb = selected?.pictureUrl?.trim() || null;
+                  return (
+                    <div className="mt-1 flex items-center gap-2">
+                      {thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- Meta CDN
+                        <img
+                          src={thumb}
+                          alt=""
+                          className="size-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : null}
+                      <select
+                        required
+                        value={facebookPageId}
+                        onChange={(e) => setFacebookPageId(e.target.value)}
+                        disabled={pagesLoading}
+                        className={`${inputClass} mt-0 flex-1`}
+                      >
+                        {pages.length === 0 ? (
+                          <option value="">
+                            {pagesLoading ? "Loading pages…" : "No pages found"}
+                          </option>
+                        ) : (
+                          pages.map((page) => (
+                            <option key={page.id} value={page.id}>
+                              {page.name ?? page.id}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                  );
+                })()}
               </label>
               <label className="block text-sm">
                 <span className="font-medium text-zinc-800">

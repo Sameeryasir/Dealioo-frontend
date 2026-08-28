@@ -28,7 +28,12 @@ const META_PERMISSIONS = [
   {
     permission: "ads_management",
     purpose:
-      "Create, update, and publish ad campaigns, ad sets, creatives, and ads on your behalf through the Meta Marketing API.",
+      "Create, read, delete, and publish ad campaigns, ad sets, creatives, and ads on your behalf through the Meta Marketing API.",
+  },
+  {
+    permission: "pages_read_engagement",
+    purpose:
+      "Access the Facebook Page you select so ads created in Dealioo can run from that Page. Requested automatically with ads_management.",
   },
   {
     permission: "public_profile",

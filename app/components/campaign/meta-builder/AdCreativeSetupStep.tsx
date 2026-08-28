@@ -30,11 +30,15 @@ import {
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
+  BuilderSelect,
   BuilderStepHeader,
   builderInputClass,
   builderInputErrorClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
-import { getFacebookPages } from "@/app/services/facebook/get-facebook-pages";
+import {
+  getFacebookPages,
+  type FacebookPage,
+} from "@/app/services/facebook/get-facebook-pages";
 import {
   getFacebookAdAccounts,
   type FacebookAdAccount,
@@ -139,7 +143,7 @@ export function AdCreativeSetupStep({
   const [pixelId, setPixelId] = useState(initialData?.pixelId ?? "");
   const [conversionEvent, setConversionEvent] = useState(initialData?.conversionEvent ?? "");
 
-  const [pages, setPages] = useState<Array<{ id: string; name: string | null }>>([]);
+  const [pages, setPages] = useState<FacebookPage[]>([]);
   const [pagesLoading, setPagesLoading] = useState(true);
   const [adAccounts, setAdAccounts] = useState<FacebookAdAccount[]>([]);
   const [selectedAdAccountId, setSelectedAdAccountId] = useState("");
@@ -651,21 +655,35 @@ export function AdCreativeSetupStep({
           error={fieldErrors.facebookPageId}
           hint="The page that represents your business in the ad."
         >
-          <select
-            required
-            value={facebookPageId}
-            onChange={(e) => setFacebookPageId(e.target.value)}
-            disabled={pagesLoading}
-            className={`${inputClass} ${fieldErrors.facebookPageId ? builderInputErrorClass : ""}`}
-          >
-            {pages.length === 0 ? (
-              <option value="">{pagesLoading ? "Loading…" : "No pages"}</option>
-            ) : (
-              pages.map((p) => (
-                <option key={p.id} value={p.id}>{p.name ?? p.id}</option>
-              ))
-            )}
-          </select>
+          {pagesLoading ? (
+            <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+              Loading Facebook pages from Meta…
+            </p>
+          ) : pages.length > 0 ? (
+            <BuilderSelect
+              aria-label="Facebook Page"
+              value={
+                pages.some((p) => p.id === facebookPageId)
+                  ? facebookPageId
+                  : pages[0]!.id
+              }
+              options={pages.map((p) => ({
+                value: p.id,
+                label: p.name?.trim() || p.id,
+                imageUrl: p.pictureUrl ?? null,
+              }))}
+              onChange={setFacebookPageId}
+            />
+          ) : (
+            <select
+              required
+              value={facebookPageId}
+              onChange={(e) => setFacebookPageId(e.target.value)}
+              className={`${inputClass} ${fieldErrors.facebookPageId ? builderInputErrorClass : ""}`}
+            >
+              <option value="">No pages</option>
+            </select>
+          )}
         </BuilderField>
 
       </BuilderCard>

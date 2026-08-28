@@ -195,9 +195,9 @@ export function AdSetSetupStep({
     () => defaultOptimizationGoalForObjective(campaignData.objective),
   );
   const isAwarenessObjective = campaignData.objective === "OUTCOME_AWARENESS";
-  const destinationType: MetaDestinationType = isAwarenessObjective
-    ? "FACEBOOK_PAGE"
-    : "WEBSITE";
+  // Meta rejects FACEBOOK_PAGE for Awareness (and several other outcomes).
+  // Dealioo funnels publish as website destinations: WEBSITE | APP | MESSENGER.
+  const destinationType: MetaDestinationType = "WEBSITE";
   const [facebookPageId, setFacebookPageId] = useState(
     initialData?.promotedObject?.pageId ?? "",
   );
@@ -377,6 +377,7 @@ export function AdSetSetupStep({
     const fromMeta = facebookPages.map((page) => ({
       value: page.id,
       label: page.name?.trim() || page.id,
+      imageUrl: page.pictureUrl ?? null,
     }));
     if (
       facebookPageId.trim() &&
@@ -625,17 +626,30 @@ export function AdSetSetupStep({
       <BuilderCard title={formatObjective(campaignData.objective)}>
         <BuilderField
           label="Conversion location"
-          hint="Where you want to drive the conversion."
+          hint="Where people go after engaging with your ad. Meta requires Website for Awareness in Dealioo."
           error={fieldErrors.facebookPageId ?? facebookPagesError ?? undefined}
         >
-          {isAwarenessObjective ? (
-            facebookPagesLoading ? (
+          <BuilderSelect
+            aria-label="Conversion location"
+            value={destinationType}
+            options={WEBSITE_CONVERSION_LOCATION_OPTIONS}
+            onChange={(_value) => {}}
+          />
+        </BuilderField>
+
+        {isAwarenessObjective ? (
+          <BuilderField
+            label="Facebook Page"
+            hint="Used as the identity for your Awareness ad (page profile)."
+            error={fieldErrors.facebookPageId ?? facebookPagesError ?? undefined}
+          >
+            {facebookPagesLoading ? (
               <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
                 Loading Facebook pages from Meta…
               </p>
             ) : facebookPageSelectOptions.length > 0 ? (
               <BuilderSelect
-                aria-label="Conversion location"
+                aria-label="Facebook Page"
                 value={
                   facebookPageSelectOptions.some(
                     (option) => option.value === facebookPageId,
@@ -661,16 +675,9 @@ export function AdSetSetupStep({
                   placeholder="Enter Facebook Page ID"
                 />
               </div>
-            )
-          ) : (
-            <BuilderSelect
-              aria-label="Conversion location"
-              value={destinationType}
-              options={WEBSITE_CONVERSION_LOCATION_OPTIONS}
-              onChange={(_value) => {}}
-            />
-          )}
-        </BuilderField>
+            )}
+          </BuilderField>
+        ) : null}
 
         <BuilderField
           label="Performance goal"

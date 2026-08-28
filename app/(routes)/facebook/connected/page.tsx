@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BarChart3, CheckCircle2, Loader2, Megaphone, Shield } from "lucide-react";
+import { BarChart3, CheckCircle2, Flag, Loader2, Megaphone, Shield } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
@@ -26,7 +26,11 @@ function parseGrantedParam(raw: string | null): string[] {
 }
 
 function isSelectableScopeId(scopeId: string): scopeId is MetaSelectableScopeId {
-  return scopeId === "ads_read" || scopeId === "ads_management";
+  return (
+    scopeId === "ads_read" ||
+    scopeId === "ads_management" ||
+    scopeId === "pages_read_engagement"
+  );
 }
 
 function FacebookConnectedInner() {
@@ -100,13 +104,21 @@ function FacebookConnectedInner() {
                   ? Megaphone
                   : opt.id === "ads_read"
                     ? BarChart3
-                    : CheckCircle2;
+                    : opt.id === "pages_read_engagement"
+                      ? Flag
+                      : CheckCircle2;
               const iconWrap =
-                opt.id === "ads_management" ? "bg-[#eaf8ef]" : "bg-[#e8f1ff]";
+                opt.id === "ads_management"
+                  ? "bg-[#eaf8ef]"
+                  : opt.id === "pages_read_engagement"
+                    ? "bg-[#fff4e5]"
+                    : "bg-[#e8f1ff]";
               const iconColor =
                 opt.id === "ads_management"
                   ? "text-[#22c55e]"
-                  : "text-[#1877F2]";
+                  : opt.id === "pages_read_engagement"
+                    ? "text-[#ea580c]"
+                    : "text-[#1877F2]";
 
               return (
                 <li key={opt.id}>
