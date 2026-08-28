@@ -3,14 +3,13 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, Check, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import {
-  formatMetaScopeTitle,
   getDefaultSelectedMetaScopes,
   type MetaSelectableScopeId,
 } from "@/app/lib/meta-ads-permissions";
@@ -19,23 +18,6 @@ import {
   getFacebookConnectionStatus,
   type MetaConnectionStatus,
 } from "@/app/services/facebook/get-facebook-connection-status";
-
-function FacebookLogoMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden
-      className={className}
-    >
-      <path
-        fill="currentColor"
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-      />
-    </svg>
-  );
-}
 
 function FacebookConnectInner() {
   const router = useRouter();
@@ -55,11 +37,6 @@ function FacebookConnectInner() {
   const integrationsHref =
     businessId != null
       ? `/business/${businessId}/dashboard/settings/integrations`
-      : "/dashboard";
-
-  const selectAdAccountHref =
-    businessId != null
-      ? `/facebook/select-ad-account?businessId=${businessId}`
       : "/dashboard";
 
   useEffect(() => {
@@ -148,6 +125,13 @@ function FacebookConnectInner() {
     }
   }, [businessId, router, selectedScopes]);
 
+  const isConnected = Boolean(connection?.connected);
+
+  useEffect(() => {
+    if (statusLoading || !isConnected || businessId == null) return;
+    router.replace(integrationsHref);
+  }, [businessId, integrationsHref, isConnected, router, statusLoading]);
+
   if (businessId == null) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5] px-4 py-12">
@@ -181,81 +165,12 @@ function FacebookConnectInner() {
     );
   }
 
-  const isConnected = Boolean(connection?.connected);
-  const grantedScopes = connection?.metaOauthScopes ?? [];
-  const adAccountId = connection?.metaAdAccountId?.trim() || null;
-
   if (isConnected) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f0f2f5] px-4 py-12 font-[Helvetica,Arial,'Segoe_UI',sans-serif]">
-        <div className="w-full max-w-[400px] overflow-hidden rounded-xl bg-white shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]">
-          <div className="flex flex-col items-center px-6 pt-7 pb-2">
-            <span className="flex size-14 items-center justify-center rounded-full bg-[#1877F2] text-white">
-              <FacebookLogoMark className="size-8" />
-            </span>
-            <h1 className="mt-4 text-center text-[20px] font-bold leading-tight text-[#1c1e21]">
-              Already connected to Meta
-            </h1>
-            <p className="mt-2 text-center text-[15px] leading-snug text-[#65676b]">
-              Your Meta account is linked to Dealioo for Meta Ads.
-            </p>
-          </div>
-
-          <div className="space-y-3 px-6 pb-6 pt-4">
-            <div className="flex items-center gap-2 rounded-lg bg-[#e7f3ff] px-3 py-2.5 text-[13px] font-semibold text-[#1877F2]">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#1877F2] text-white">
-                <Check className="size-3" strokeWidth={3} aria-hidden />
-              </span>
-              Connected with Meta
-            </div>
-
-            {adAccountId ? (
-              <p className="m-0 text-center text-[13px] text-[#65676b]">
-                Ad account{" "}
-                <span className="font-mono font-semibold text-[#1c1e21]">
-                  {adAccountId}
-                </span>
-              </p>
-            ) : (
-              <p className="m-0 text-center text-[15px] text-[#65676b]">
-                Next, choose which ad account Dealioo should use.
-              </p>
-            )}
-
-            {grantedScopes.length > 0 ? (
-              <ul className="m-0 divide-y divide-[#e4e6eb] overflow-hidden rounded-lg border border-[#dadde1] p-0">
-                {grantedScopes.map((scopeId) => (
-                  <li
-                    key={scopeId}
-                    className="flex items-center gap-3 px-3.5 py-3"
-                  >
-                    <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877F2]">
-                      <Check className="size-2.5" strokeWidth={3} aria-hidden />
-                    </span>
-                    <span className="text-[14px] font-semibold text-[#1c1e21]">
-                      {formatMetaScopeTitle(scopeId)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {!adAccountId ? (
-              <Link
-                href={selectAdAccountHref}
-                className="flex h-11 w-full items-center justify-center rounded-lg bg-[#1877F2] text-[17px] font-bold text-white no-underline hover:bg-[#166fe5]"
-              >
-                Choose Ad Account
-              </Link>
-            ) : null}
-
-            <Link
-              href={integrationsHref}
-              className="flex h-10 w-full items-center justify-center text-[15px] font-semibold text-[#1877F2] no-underline hover:underline"
-            >
-              Back to Integrations
-            </Link>
-          </div>
+      <main className="flex min-h-dvh items-center justify-center bg-[#f0f2f5]">
+        <div className="flex items-center gap-2 text-sm text-[#65676b]">
+          <Loader2 className="size-5 animate-spin text-[#1877F2]" aria-hidden />
+          Taking you back…
         </div>
       </main>
     );
@@ -264,11 +179,31 @@ function FacebookConnectInner() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f5f6f8] px-4 py-12">
       <div className="w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] sm:p-7">
+        <div className="mb-5 space-y-1.5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-[#1877F2]">
+            Step 1 of 2
+          </p>
+          <h1 className="m-0 text-[20px] font-bold leading-snug text-[#1c1e21]">
+            Choose Meta permissions
+          </h1>
+          <p className="m-0 text-[14px] leading-snug text-[#65676b]">
+            Tick what Dealioo can do, then continue. Facebook opens only after
+            you choose.
+          </p>
+        </div>
+
         <MetaAdsPermissionConsent
           selectedScopes={selectedScopes}
           onChange={setSelectedScopes}
           disabled={connecting}
         />
+
+        <p className="mt-4 m-0 rounded-xl border border-[#e4e6eb] bg-[#f7f8fa] px-3.5 py-3 text-[12px] leading-snug text-[#65676b]">
+          If Facebook says you previously linked Dealioo, tap{" "}
+          <strong className="font-semibold text-[#1c1e21]">Edit settings</strong>{" "}
+          there to change permissions — don’t tap Continue until you’ve reviewed
+          them.
+        </p>
 
         {errorMessage ? (
           <p
@@ -294,10 +229,16 @@ function FacebookConnectInner() {
             ) : (
               <>
                 <MetaLogo className="size-5 text-white" monochrome />
-                Connect with Meta
+                Continue with Meta
               </>
             )}
         </button>
+
+        {selectedScopes.length === 0 ? (
+          <p className="mt-3 m-0 text-center text-[12px] text-[#8a8d91]">
+            Select at least one permission to enable Continue.
+          </p>
+        ) : null}
 
         <Link
           href={integrationsHref}

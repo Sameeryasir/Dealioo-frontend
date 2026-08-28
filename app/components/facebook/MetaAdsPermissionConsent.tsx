@@ -18,6 +18,7 @@ type MetaAdsPermissionConsentProps = {
   selectedScopes: MetaSelectableScopeId[];
   onChange: (scopes: MetaSelectableScopeId[]) => void;
   disabled?: boolean;
+  variant?: "default" | "compact";
 };
 
 const PERMISSION_VISUALS: Record<
@@ -40,11 +41,13 @@ export function MetaAdsPermissionConsent({
   selectedScopes,
   onChange,
   disabled = false,
+  variant = "default",
 }: MetaAdsPermissionConsentProps) {
   const selected = new Set(selectedScopes);
   const [expandedId, setExpandedId] = useState<MetaSelectableScopeId | null>(
     null,
   );
+  const compact = variant === "compact";
 
   const toggle = (id: MetaSelectableScopeId) => {
     if (disabled) return;
@@ -61,23 +64,87 @@ export function MetaAdsPermissionConsent({
     );
   };
 
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        <p className="m-0 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+          Permissions
+        </p>
+        <ul className="m-0 list-none space-y-1.5 p-0" role="list">
+          {META_ADS_PERMISSION_OPTIONS.map((opt) => {
+            const checked = selected.has(opt.id);
+            const visual = PERMISSION_VISUALS[opt.id];
+            const { Icon } = visual;
+            const checkboxId = `meta-perm-compact-${opt.id}`;
+
+            return (
+              <li key={opt.id}>
+                <label
+                  htmlFor={checkboxId}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors ${
+                    checked
+                      ? "border-[#1877F2]/50 bg-white"
+                      : "border-transparent bg-white/70 hover:border-[#D7E4F7] hover:bg-white"
+                  } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+                >
+                  <input
+                    id={checkboxId}
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => toggle(opt.id)}
+                    className="size-3.5 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed"
+                  />
+                  <span
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-md ${visual.iconWrap}`}
+                    aria-hidden
+                  >
+                    <Icon className={`size-3.5 ${visual.iconColor}`} strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12.5px] font-semibold leading-tight text-slate-900">
+                      {opt.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11px] leading-snug text-slate-500">
+                      {opt.description}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3.5">
-      <div className="flex items-start gap-2.5">
-        <Shield
-          className="mt-0.5 size-[18px] shrink-0 text-[#1877F2]"
-          strokeWidth={2}
-          aria-hidden
-        />
-        <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] leading-snug text-[#1c1e21]">
-          <DealiooLogo
-            src="/black-logo.png"
-            className="inline-block h-[15px] w-auto"
-            width={562}
-            height={144}
-          />
-          <span>will request the following permissions from Meta:</span>
+      <div className="space-y-1.5">
+        <p className="m-0 text-[16px] font-bold leading-snug text-[#1c1e21]">
+          Choose Meta permissions
         </p>
+        <div className="flex items-start gap-2.5">
+          <Shield
+            className="mt-0.5 size-[18px] shrink-0 text-[#1877F2]"
+            strokeWidth={2}
+            aria-hidden
+          />
+          <div className="min-w-0 space-y-1">
+            <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] leading-snug text-[#1c1e21]">
+              <DealiooLogo
+                src="/black-logo.png"
+                className="inline-block h-[15px] w-auto"
+                width={562}
+                height={144}
+              />
+              <span>will request only what you check below:</span>
+            </p>
+            <p className="m-0 text-[13px] leading-snug text-[#65676b]">
+              Tick one or both. Nothing is selected until you choose.
+            </p>
+          </div>
+        </div>
       </div>
 
       <ul className="m-0 list-none space-y-2.5 p-0" role="list">
@@ -92,25 +159,27 @@ export function MetaAdsPermissionConsent({
             <li key={opt.id}>
               <div
                 className={`rounded-xl border bg-white transition-colors ${
-                  checked ? "border-[#1877F2]/45" : "border-[#dadde1]"
+                  checked
+                    ? "border-[#1877F2] bg-[#F5F9FF] shadow-[0_0_0_1px_rgba(24,119,242,0.12)]"
+                    : "border-[#E5EAF2] hover:border-[#C5D8F6]"
                 }`}
               >
                 <div className="flex items-start gap-3 px-3.5 py-3.5">
-                  <span
-                    className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${visual.iconWrap}`}
-                    aria-hidden
-                  >
-                    <Icon className={`size-5 ${visual.iconColor}`} strokeWidth={2} />
-                  </span>
-
                   <input
                     id={checkboxId}
                     type="checkbox"
                     checked={checked}
                     disabled={disabled}
                     onChange={() => toggle(opt.id)}
-                    className="mt-2.5 size-4 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed"
+                    className="mt-1 size-4 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed"
                   />
+
+                  <span
+                    className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${visual.iconWrap}`}
+                    aria-hidden
+                  >
+                    <Icon className={`size-5 ${visual.iconColor}`} strokeWidth={2} />
+                  </span>
 
                   <label
                     htmlFor={checkboxId}

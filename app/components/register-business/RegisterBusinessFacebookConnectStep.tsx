@@ -119,8 +119,8 @@ export default function RegisterBusinessFacebookConnectStep({
               <span className="landing-hero-accent-blue">Meta Ads</span>
             </h2>
             <p className={styles.subtitle}>
-              Connecting Meta Ads lets Dealioo read campaign performance and
-              manage ads on your behalf. Both permissions below are recommended.
+              Step 1: tick one or both permissions below. Step 2: continue to
+              Meta. Nothing is checked until you choose.
             </p>
           </header>
 
@@ -129,6 +129,14 @@ export default function RegisterBusinessFacebookConnectStep({
             onChange={setSelectedScopes}
             disabled={connecting}
           />
+
+          <div className={styles.privacyBox}>
+            <p>
+              If Facebook says you previously linked Dealioo, tap{" "}
+              <strong>Edit settings</strong> to pick permissions — don’t use
+              Continue until you’ve reviewed them.
+            </p>
+          </div>
 
           <div className={styles.privacyBox}>
             <p>

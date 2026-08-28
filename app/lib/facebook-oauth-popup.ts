@@ -13,8 +13,11 @@ export type FacebookOAuthResult =
   | { status: "connected"; businessId: number }
   | { status: "cancelled" };
 
-function openFacebookConnectPopup(oauthUrl: string): Window | null {
-  return window.open(oauthUrl, "dealioo_facebook_oauth");
+function openFacebookConnectPopup(oauthUrl?: string): Window | null {
+  return window.open(
+    oauthUrl && oauthUrl.trim() ? oauthUrl : "about:blank",
+    "dealioo_facebook_oauth",
+  );
 }
 
 function readBusinessIdFromMessage(data: object): number | null {
@@ -157,13 +160,25 @@ export async function connectFacebookInPopup(
   if (!scopes.length) {
     throw new Error("Select at least one Meta Ads permission before connecting.");
   }
-  const { url } = await connectFacebook(accessToken, businessId, scopes);
-  const popup = openFacebookConnectPopup(url);
 
+  // Open during the click gesture so the browser does not block the tab.
+  const popup = openFacebookConnectPopup();
   if (!popup) {
     throw new Error(
       "The new tab was blocked. Allow pop-ups for Dealioo, then try again.",
     );
+  }
+
+  try {
+    const { url } = await connectFacebook(accessToken, businessId, scopes);
+    popup.location.href = url;
+  } catch (error) {
+    try {
+      popup.close();
+    } catch {
+      /* ignore */
+    }
+    throw error;
   }
 
   return waitForFacebookOAuthPopup(popup, accessToken, businessId);

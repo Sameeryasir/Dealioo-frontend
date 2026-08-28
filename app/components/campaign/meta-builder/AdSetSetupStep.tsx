@@ -46,7 +46,6 @@ import {
   BuilderPerformanceGoalSelect,
   BuilderSearchableSelect,
   BuilderSelect,
-  BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
 } from "@/app/components/campaign/meta-builder/builder-ui";
@@ -611,7 +610,7 @@ export function AdSetSetupStep({
         badge={campaignData.objective.replace("OUTCOME_", "")}
       />
 
-      <BuilderCard title="Basics" description="Name this ad set and choose whether it starts paused or active.">
+      <BuilderCard title="Basics" description="Name this ad set. Delivery follows the campaign status.">
         <BuilderField label="Ad set name" required error={fieldErrors.name}>
           <input
             required
@@ -619,19 +618,6 @@ export function AdSetSetupStep({
             onChange={(e) => setName(e.target.value)}
             className={builderInputClass}
             placeholder="e.g. Local diners, lunch hours"
-          />
-        </BuilderField>
-        <BuilderField
-          label="Delivery status"
-          hint="Paused is recommended so you can review in Ads Manager before spending."
-        >
-          <BuilderStatusToggle
-            value={status}
-            onChange={(v) => setStatus(v as MetaCampaignStatus)}
-            options={[
-              { value: "PAUSED", label: "Paused (recommended)", hint: "Review before going live" },
-              { value: "ACTIVE", label: "Active", hint: "Start when published" },
-            ]}
           />
         </BuilderField>
       </BuilderCard>

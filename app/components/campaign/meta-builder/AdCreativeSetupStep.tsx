@@ -30,7 +30,6 @@ import {
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
-  BuilderStatusToggle,
   BuilderStepHeader,
   builderInputClass,
   builderInputErrorClass,
@@ -669,16 +668,6 @@ export function AdCreativeSetupStep({
           </select>
         </BuilderField>
 
-        <BuilderField label="Ad status" hint="Paused is recommended until you review in Ads Manager.">
-          <BuilderStatusToggle
-            value={status}
-            onChange={(v) => setStatus(v as MetaCampaignStatus)}
-            options={[
-              { value: "PAUSED", label: "Paused", hint: "Recommended" },
-              { value: "ACTIVE", label: "Active", hint: "Runs when published" },
-            ]}
-          />
-        </BuilderField>
       </BuilderCard>
 
       <BuilderCard title="Creative format" description="Pick how your ad will look in feed and stories.">

@@ -1,6 +1,7 @@
 "use client";
 
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
+import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
 import {
   GoogleAdsLogo,
   MetaLogo,
@@ -8,7 +9,10 @@ import {
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
-import { META_ADS_PERMISSION_OPTIONS } from "@/app/lib/meta-ads-permissions";
+import {
+  getDefaultSelectedMetaScopes,
+  type MetaSelectableScopeId,
+} from "@/app/lib/meta-ads-permissions";
 import { connectStripeInPopup } from "@/app/lib/stripe-oauth-popup";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
@@ -40,7 +44,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
@@ -194,6 +198,7 @@ function IntegrationCard({
   status,
   actions,
   error,
+  footer,
 }: {
   accentColor: string;
   logo: ReactNode;
@@ -206,6 +211,7 @@ function IntegrationCard({
   status: ReactNode;
   actions: ReactNode;
   error?: string | null;
+  footer?: ReactNode;
 }) {
   return (
     <article className={cardShellClass}>
@@ -242,6 +248,11 @@ function IntegrationCard({
           {error}
         </p>
       ) : null}
+      {footer ? (
+        <div className="border-t border-[#EEF2F7] bg-[#F8FBFF] px-4 py-3.5">
+          {footer}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -255,6 +266,10 @@ export function BusinessIntegrationsPanel({
   const [metaBusy, setMetaBusy] = useState<ConnectStatus>("idle");
   const [metaActionError, setMetaActionError] = useState<string | null>(null);
   const [showMetaPermissions, setShowMetaPermissions] = useState(false);
+  const [metaConnectModalOpen, setMetaConnectModalOpen] = useState(false);
+  const [selectedMetaScopes, setSelectedMetaScopes] = useState<
+    MetaSelectableScopeId[]
+  >(() => getDefaultSelectedMetaScopes());
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
@@ -291,6 +306,13 @@ export function BusinessIntegrationsPanel({
 
   const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
   const googleError = googleActionError ?? statusError;
+
+  useEffect(() => {
+    if (!metaConnected) return;
+    setMetaConnectModalOpen(false);
+    setMetaActionError(null);
+    setMetaBusy("idle");
+  }, [metaConnected]);
 
   const refreshStatus = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -340,22 +362,48 @@ export function BusinessIntegrationsPanel({
     }
   };
 
+  const openMetaConnectModal = () => {
+    setMetaActionError(null);
+    setSelectedMetaScopes(getDefaultSelectedMetaScopes());
+    setMetaConnectModalOpen(true);
+  };
+
+  const closeMetaConnectModal = useCallback(() => {
+    setMetaConnectModalOpen(false);
+    setMetaActionError(null);
+    if (metaBusy === "loading") {
+      setMetaBusy("idle");
+    }
+  }, [metaBusy]);
+
   const handleConnectMeta = async () => {
+    if (selectedMetaScopes.length === 0) {
+      setMetaBusy("error");
+      setMetaActionError("Select at least one Meta permission to continue.");
+      return;
+    }
     setMetaBusy("loading");
     setMetaActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
-      const scopes = META_ADS_PERMISSION_OPTIONS.map((opt) => opt.id);
-      const result = await connectFacebookInPopup(token, businessId, scopes);
-      if (result.status === "connected") {
-        await refreshStatus();
-      } else {
-        await abortFacebookConnect(businessId);
-        await refreshStatus();
-      }
-      setMetaBusy("idle");
+      const result = await connectFacebookInPopup(
+        token,
+        businessId,
+        selectedMetaScopes,
+      );
+      await refreshStatus();
       bumpAuditLogs();
+      if (result.status === "connected") {
+        setMetaConnectModalOpen(false);
+        setMetaActionError(null);
+        setMetaBusy("idle");
+        return;
+      }
+      await abortFacebookConnect(businessId);
+      await refreshStatus();
+      setMetaBusy("idle");
+      setMetaActionError("Meta connect was cancelled. You can try again.");
     } catch (e) {
       setMetaBusy("error");
       setMetaActionError(
@@ -537,24 +585,28 @@ export function BusinessIntegrationsPanel({
           ) : (
             <button
               type="button"
-              onClick={() => void handleConnectMeta()}
+              onClick={openMetaConnectModal}
               disabled={metaBusy === "loading"}
               className={`${actionBtn} gap-1.5 bg-[#1877F2] text-white`}
             >
-              {metaBusy === "loading" ? (
-                "Connecting…"
-              ) : (
-                <>
-                  <MetaLogo className="size-3.5 text-white" monochrome />
-                  Connect with Meta
-                </>
-              )}
+              <MetaLogo className="size-3.5 text-white" monochrome />
+              Connect with Meta
             </button>
           )
         }
       />
 
-      {showMetaPermissions ? (
+      <MetaConnectPermissionsModal
+        open={metaConnectModalOpen && !metaConnected}
+        selectedScopes={selectedMetaScopes}
+        onChangeScopes={setSelectedMetaScopes}
+        connecting={metaBusy === "loading"}
+        error={metaActionError}
+        onClose={closeMetaConnectModal}
+        onContinue={() => void handleConnectMeta()}
+      />
+
+      {showMetaPermissions && metaConnected ? (
         <FacebookPermissionsPanel
           grantedScopes={metaScopes}
           missingRequiredScopes={metaMissingScopes}
