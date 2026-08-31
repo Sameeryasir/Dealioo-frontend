@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          
+
           script: |
             cd /root/Dealioo-frontend
 
@@ -25,6 +25,5 @@ jobs:
 
             npm ci
             npm run build
-
             pm2 restart dealioo-frontend
             pm2 save
