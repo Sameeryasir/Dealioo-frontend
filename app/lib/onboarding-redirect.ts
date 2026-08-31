@@ -1,5 +1,6 @@
 import type { OnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
 import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import { fetchMyBusinesses } from "@/app/services/business/get-my-business";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 
@@ -76,14 +77,21 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
   } catch {
   }
 
-  if (isInvitedTeamUser()) {
-    return "/dashboard";
+  let businessListKnownEmpty = false;
+  try {
+    const list = await fetchMyBusinesses({ page: 1, limit: 1 });
+    const count = list.meta?.total ?? list.data?.length ?? 0;
+    if (count > 0) {
+      return "/dashboard";
+    }
+    businessListKnownEmpty = true;
+  } catch {
   }
 
   try {
     const subscription = await getMyUserSubscription();
     if (isPaidSubscriptionStatus(subscription?.status)) {
-      return "/business/register";
+      return businessListKnownEmpty ? "/business/register" : "/dashboard";
     }
   } catch {
   }

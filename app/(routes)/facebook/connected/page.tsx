@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BarChart3, CheckCircle2, Flag, Loader2, Megaphone, Shield } from "lucide-react";
+import { BarChart3, CheckCircle2, Flag, List, Loader2, Megaphone, Shield } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
@@ -29,8 +29,49 @@ function isSelectableScopeId(scopeId: string): scopeId is MetaSelectableScopeId 
   return (
     scopeId === "ads_read" ||
     scopeId === "ads_management" ||
+    scopeId === "pages_show_list" ||
     scopeId === "pages_read_engagement"
   );
+}
+
+function scopeVisual(scopeId: string): {
+  Icon: typeof Megaphone;
+  iconWrap: string;
+  iconColor: string;
+} {
+  if (scopeId === "ads_management") {
+    return {
+      Icon: Megaphone,
+      iconWrap: "bg-[#eaf8ef]",
+      iconColor: "text-[#22c55e]",
+    };
+  }
+  if (scopeId === "pages_show_list") {
+    return {
+      Icon: List,
+      iconWrap: "bg-[#f3e8ff]",
+      iconColor: "text-[#7c3aed]",
+    };
+  }
+  if (scopeId === "pages_read_engagement") {
+    return {
+      Icon: Flag,
+      iconWrap: "bg-[#fff4e5]",
+      iconColor: "text-[#ea580c]",
+    };
+  }
+  if (scopeId === "ads_read") {
+    return {
+      Icon: BarChart3,
+      iconWrap: "bg-[#e8f1ff]",
+      iconColor: "text-[#1877F2]",
+    };
+  }
+  return {
+    Icon: CheckCircle2,
+    iconWrap: "bg-[#e8f1ff]",
+    iconColor: "text-[#1877F2]",
+  };
 }
 
 function FacebookConnectedInner() {
@@ -99,26 +140,7 @@ function FacebookConnectedInner() {
         {grantedOptions.length > 0 ? (
           <ul className="m-0 mt-4 list-none space-y-2.5 p-0" role="list">
             {grantedOptions.map((opt) => {
-              const Icon =
-                opt.id === "ads_management"
-                  ? Megaphone
-                  : opt.id === "ads_read"
-                    ? BarChart3
-                    : opt.id === "pages_read_engagement"
-                      ? Flag
-                      : CheckCircle2;
-              const iconWrap =
-                opt.id === "ads_management"
-                  ? "bg-[#eaf8ef]"
-                  : opt.id === "pages_read_engagement"
-                    ? "bg-[#fff4e5]"
-                    : "bg-[#e8f1ff]";
-              const iconColor =
-                opt.id === "ads_management"
-                  ? "text-[#22c55e]"
-                  : opt.id === "pages_read_engagement"
-                    ? "text-[#ea580c]"
-                    : "text-[#1877F2]";
+              const { Icon, iconWrap, iconColor } = scopeVisual(opt.id);
 
               return (
                 <li key={opt.id}>

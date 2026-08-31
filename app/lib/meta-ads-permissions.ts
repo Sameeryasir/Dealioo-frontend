@@ -1,6 +1,7 @@
 export type MetaSelectableScopeId =
   | "ads_read"
   | "ads_management"
+  | "pages_show_list"
   | "pages_read_engagement";
 
 export type MetaPermissionOption = {
@@ -10,6 +11,11 @@ export type MetaPermissionOption = {
   tooltip: string;
   defaultSelected: boolean;
 };
+
+const PAGE_SCOPES_WITH_ADS_MANAGEMENT: MetaSelectableScopeId[] = [
+  "pages_show_list",
+  "pages_read_engagement",
+];
 
 export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
   {
@@ -27,14 +33,23 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     description:
       "Create, read, delete, and publish Meta campaigns, ad sets, creatives, and ads from Dealioo’s campaign builder.",
     tooltip:
-      "Required to build and publish ads in Dealioo. Selecting this also selects Facebook Page access so ads can run from your Page.",
+      "Required to build and publish ads in Dealioo. Selecting this also selects Facebook Page permissions so ads can run from your Page.",
+    defaultSelected: false,
+  },
+  {
+    id: "pages_show_list",
+    title: "Show Facebook Pages",
+    description:
+      "List Facebook Pages you manage so you can choose which Page will run your ads in Dealioo’s campaign builder.",
+    tooltip:
+      "Needed to show your Page picker. Selecting this also selects campaign management and Page data access.",
     defaultSelected: false,
   },
   {
     id: "pages_read_engagement",
     title: "Read Facebook Page data",
     description:
-      "List Facebook Pages you manage and use the Page you choose as the identity for your ads (name, profile picture, and Page ID).",
+      "Use the Facebook Page you choose as the identity for your ads (name, profile picture, and Page ID).",
     tooltip:
       "Needed so ads can be published from your business Facebook Page. Dealioo does not read Page posts, comments, or follower lists.",
     defaultSelected: false,
@@ -66,22 +81,23 @@ export function toggleMetaSelectableScope(
   id: MetaSelectableScopeId,
 ): MetaSelectableScopeId[] {
   const next = new Set(current);
+  const isPageScope = PAGE_SCOPES_WITH_ADS_MANAGEMENT.includes(id);
 
   if (next.has(id)) {
     next.delete(id);
-    if (id === "ads_management") {
-      next.delete("pages_read_engagement");
-    }
-    if (id === "pages_read_engagement") {
+    if (id === "ads_management" || isPageScope) {
       next.delete("ads_management");
+      for (const scope of PAGE_SCOPES_WITH_ADS_MANAGEMENT) {
+        next.delete(scope);
+      }
     }
   } else {
     next.add(id);
-    if (id === "ads_management") {
-      next.add("pages_read_engagement");
-    }
-    if (id === "pages_read_engagement") {
+    if (id === "ads_management" || isPageScope) {
       next.add("ads_management");
+      for (const scope of PAGE_SCOPES_WITH_ADS_MANAGEMENT) {
+        next.add(scope);
+      }
     }
   }
 

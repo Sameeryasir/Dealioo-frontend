@@ -4,6 +4,7 @@ import {
   BarChart3,
   Check,
   Flag,
+  List,
   Megaphone,
   Shield,
   type LucideIcon,
@@ -25,12 +26,14 @@ type FacebookPermissionsPanelProps = {
 
 const PREFERRED_SCOPE_ORDER = [
   "ads_management",
+  "pages_show_list",
   "pages_read_engagement",
   "ads_read",
 ] as const;
 
 const SCOPE_ICONS: Record<string, LucideIcon> = {
   ads_management: Megaphone,
+  pages_show_list: List,
   pages_read_engagement: Flag,
   ads_read: BarChart3,
 };

@@ -5,6 +5,7 @@ import {
   BarChart3,
   ChevronDown,
   Flag,
+  List,
   Megaphone,
   Shield,
   type LucideIcon,
@@ -36,6 +37,11 @@ const PERMISSION_VISUALS: Record<
     Icon: Megaphone,
     iconWrap: "bg-[#eaf8ef]",
     iconColor: "text-[#22c55e]",
+  },
+  pages_show_list: {
+    Icon: List,
+    iconWrap: "bg-[#f3e8ff]",
+    iconColor: "text-[#7c3aed]",
   },
   pages_read_engagement: {
     Icon: Flag,

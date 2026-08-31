@@ -22,7 +22,10 @@ import {
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { prependBusinessToMyListCache } from "@/app/services/business/business-query-cache";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
-import { type AdminBusiness } from "@/app/services/business/get-my-business";
+import {
+  fetchMyBusinesses,
+  type AdminBusiness,
+} from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
 import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
@@ -56,6 +59,13 @@ async function userCanRegisterBusiness(
   } catch {
     return false;
   }
+}
+
+function shouldLeaveCreateFormForExistingBusiness(
+  subscription: Awaited<ReturnType<typeof getMyUserSubscription>> | null,
+): boolean {
+  if (!subscription) return true;
+  return isStarterSubscription(subscription);
 }
 
 type CreatedBusiness = {
@@ -110,7 +120,7 @@ export default function RegisterBusinessPage() {
 
         if (
           status.businessCreated &&
-          isStarterSubscription(subscription) &&
+          shouldLeaveCreateFormForExistingBusiness(subscription) &&
           !readPostCreateOnboarding()
         ) {
           router.replace(resolvePostAuthPath(status));
@@ -128,12 +138,40 @@ export default function RegisterBusinessPage() {
 
         if (!cancelled) setGateReady(true);
       } catch {
-        const canRegister = await userCanRegisterBusiness(queryClient);
-        if (cancelled) return;
-        if (!canRegister) {
-          router.replace("/auth/select-plan");
+        try {
+          const list = await fetchMyBusinesses({ page: 1, limit: 1 });
+          if (cancelled) return;
+          const count = list.meta?.total ?? list.data?.length ?? 0;
+
+          if (count > 0 && !readPostCreateOnboarding()) {
+            const subscription = await queryClient
+              .fetchQuery({
+                queryKey: myUserSubscriptionQueryKey,
+                queryFn: getMyUserSubscription,
+                staleTime: 5 * 60_000,
+              })
+              .catch(() => null);
+            if (shouldLeaveCreateFormForExistingBusiness(subscription)) {
+              router.replace("/dashboard");
+              return;
+            }
+          }
+
+          if (count === 0) {
+            const canRegister = await userCanRegisterBusiness(queryClient);
+            if (cancelled) return;
+            if (!canRegister) {
+              router.replace("/auth/select-plan");
+              return;
+            }
+          }
+        } catch {
+          if (cancelled) return;
+          router.replace("/dashboard");
           return;
         }
+
+        if (cancelled) return;
         const saved = readPostCreateOnboarding();
         if (saved) {
           setCreatedBusiness({
