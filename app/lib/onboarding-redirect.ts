@@ -1,5 +1,8 @@
 import type { OnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
-import { getOnboardingStatus } from "@/app/services/onboarding/get-onboarding-status";
+import {
+  getOnboardingStatus,
+  invalidateOnboardingStatusCache,
+} from "@/app/services/onboarding/get-onboarding-status";
 import { fetchMyBusinesses } from "@/app/services/business/get-my-business";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
@@ -58,14 +61,29 @@ export function resolvePostAuthPath(status: OnboardingStatus): string {
   return resolvePostLoginPath(status);
 }
 
+async function loadOnboardingStatusWithRetry(): Promise<OnboardingStatus | null> {
+  try {
+    return await getOnboardingStatus();
+  } catch {
+  }
+
+  invalidateOnboardingStatusCache();
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  try {
+    return await getOnboardingStatus();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAuthenticatedOnboardingDestination(): Promise<string> {
   if (isInvitedTeamUser()) {
     return "/dashboard";
   }
 
-  try {
-    const status = await getOnboardingStatus();
-
+  const status = await loadOnboardingStatusWithRetry();
+  if (status) {
     if (
       status.onboardingCompleted ||
       status.businessCreated ||
@@ -74,7 +92,6 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
     ) {
       return resolvePostAuthPath(status);
     }
-  } catch {
   }
 
   let businessListKnownEmpty = false;
@@ -100,7 +117,9 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
     return "/dashboard";
   }
 
-  return "/auth/select-plan";
+  // Unknown / API flaky: prefer dashboard over wrongly forcing select-plan
+  // for users who already finished onboarding (e.g. testdeveloper).
+  return status ? "/auth/select-plan" : "/dashboard";
 }
 
 export function resolveCompletedStepRedirect(
