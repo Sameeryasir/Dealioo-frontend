@@ -41,7 +41,6 @@ jobs:
 
             git fetch origin
             git reset --hard origin/main
-
             npm ci
             npm run build
 
