@@ -26,5 +26,5 @@ jobs:
             npm ci
             npm run build
 
-            pm2 restart Dealioo-frontend
+            pm2 restart dealioo-frontend
             pm2 save
