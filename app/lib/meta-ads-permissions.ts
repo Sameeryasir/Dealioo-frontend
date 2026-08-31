@@ -33,25 +33,25 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     description:
       "Create, read, delete, and publish Meta campaigns, ad sets, creatives, and ads from Dealioo’s campaign builder.",
     tooltip:
-      "Required to build and publish ads in Dealioo. Selecting this also selects Facebook Page permissions so ads can run from your Page.",
+      "Required to build and publish ads in Dealioo. Selecting this also selects Show Facebook Pages (pages_show_list) and Read Facebook Page data (pages_read_engagement).",
     defaultSelected: false,
   },
   {
     id: "pages_show_list",
     title: "Show Facebook Pages",
     description:
-      "List Facebook Pages you manage so you can choose which Page will run your ads in Dealioo’s campaign builder.",
+      "Lists Facebook Pages you manage in Dealioo’s Page picker so you can choose which Page will run your ads. This is Meta’s pages_show_list permission (list Pages only — it does not attach a Page to ads).",
     tooltip:
-      "Needed to show your Page picker. Selecting this also selects campaign management and Page data access.",
+      "Needed to show your Page list. Selecting this also selects campaign management and Read Facebook Page data.",
     defaultSelected: false,
   },
   {
     id: "pages_read_engagement",
     title: "Read Facebook Page data",
     description:
-      "Use the Facebook Page you choose as the identity for your ads (name, profile picture, and Page ID).",
+      "Uses the Facebook Page you already chose as the identity for your ads (name, profile picture, and Page ID). This is Meta’s pages_read_engagement permission (Page association for ads — not Page posts, comments, or followers).",
     tooltip:
-      "Needed so ads can be published from your business Facebook Page. Dealioo does not read Page posts, comments, or follower lists.",
+      "Needed so ads publish from your business Facebook Page. Selecting this also selects campaign management and Show Facebook Pages.",
     defaultSelected: false,
   },
 ];
