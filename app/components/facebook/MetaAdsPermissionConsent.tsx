@@ -63,11 +63,11 @@ export function MetaAdsPermissionConsent({
 
   if (compact) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2.5 sm:space-y-3">
         <p className="m-0 text-[11px] font-medium uppercase tracking-wide text-slate-500">
           Permissions
         </p>
-        <ul className="m-0 list-none space-y-1.5 p-0" role="list">
+        <ul className="m-0 list-none space-y-2 p-0 sm:space-y-2.5" role="list">
           {META_ADS_PERMISSION_OPTIONS.map((opt) => {
             const checked = selected.has(opt.id);
             const visual = PERMISSION_VISUALS[opt.id];
@@ -78,10 +78,10 @@ export function MetaAdsPermissionConsent({
               <li key={opt.id}>
                 <label
                   htmlFor={checkboxId}
-                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors ${
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors sm:gap-3 sm:px-4 sm:py-3.5 ${
                     checked
-                      ? "border-[#1877F2]/50 bg-white"
-                      : "border-transparent bg-white/70 hover:border-[#D7E4F7] hover:bg-white"
+                      ? "border-[#1877F2]/50 bg-[#F5F9FF]"
+                      : "border-[#E8EDF5] bg-white hover:border-[#C5D8F6]"
                   } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <input
@@ -90,20 +90,26 @@ export function MetaAdsPermissionConsent({
                     checked={checked}
                     disabled={disabled}
                     onChange={() => toggle(opt.id)}
-                    className="size-3.5 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed"
+                    className="mt-1 size-3.5 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed sm:size-4"
                   />
                   <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-md ${visual.iconWrap}`}
+                    className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md sm:size-9 sm:rounded-lg ${visual.iconWrap}`}
                     aria-hidden
                   >
-                    <Icon className={`size-3.5 ${visual.iconColor}`} strokeWidth={2} />
+                    <Icon
+                      className={`size-3.5 sm:size-4 ${visual.iconColor}`}
+                      strokeWidth={2}
+                    />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[12.5px] font-semibold leading-tight text-slate-900">
+                    <span className="block text-[13px] font-semibold leading-snug text-slate-900 sm:text-[15px]">
                       {opt.title}
                     </span>
-                    <span className="mt-0.5 block truncate text-[11px] leading-snug text-slate-500">
+                    <span className="mt-1 block text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
                       {opt.description}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-relaxed text-slate-500 sm:text-[12px]">
+                      {opt.tooltip}
                     </span>
                   </span>
                 </label>

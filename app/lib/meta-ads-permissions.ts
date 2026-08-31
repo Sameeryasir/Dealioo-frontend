@@ -16,27 +16,27 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     id: "ads_read",
     title: "Read advertising data",
     description:
-      "Read ad accounts, campaigns, ads, insights, and performance data.",
+      "View your Meta ad accounts, campaigns, ads, and performance reports (spend, clicks, impressions, and insights) inside Dealioo.",
     tooltip:
-      "Used to read Meta Ads analytics and campaign reporting. Maps to ads_read.",
+      "Use this if you only need analytics and reporting. It does not let Dealioo create or change campaigns.",
     defaultSelected: false,
   },
   {
     id: "ads_management",
     title: "Manage advertising campaigns",
     description:
-      "Create, read, delete, and publish campaigns, ad sets, and ads.",
+      "Create, read, delete, and publish Meta campaigns, ad sets, creatives, and ads from Dealioo’s campaign builder.",
     tooltip:
-      "Used to create, read, delete, and publish Meta ads from Dealioo. Maps to ads_management.",
+      "Required to build and publish ads in Dealioo. Selecting this also selects Facebook Page access so ads can run from your Page.",
     defaultSelected: false,
   },
   {
     id: "pages_read_engagement",
     title: "Read Facebook Page data",
     description:
-      "Access Facebook Pages you manage so ads can run from your Page.",
+      "List Facebook Pages you manage and use the Page you choose as the identity for your ads (name, profile picture, and Page ID).",
     tooltip:
-      "Required with manage advertising campaigns. Used to associate ads with your Facebook Page. Maps to pages_read_engagement.",
+      "Needed so ads can be published from your business Facebook Page. Dealioo does not read Page posts, comments, or follower lists.",
     defaultSelected: false,
   },
 ];
