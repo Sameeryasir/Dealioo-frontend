@@ -1,22 +1,20 @@
 "use client";
 
-/**
- * Change summary:
- * - Full-screen edit modal matching the Business profile edit mock (nav + form + completion).
- * - Why: Edit profile previously only scrolled the page; now opens this UI.
- * - Related: BusinessGeneralSettingsForm, update-business, BookMeetingPhoneInput.
- */
-
 import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import {
   locationFieldMessage,
   validateBusinessLocation,
 } from "@/app/lib/business-location";
-import { businessSettingsHref } from "@/app/lib/business-settings-routes";
+import {
+  buildBusinessAddressQuery,
+  geocodeBusinessAddress,
+  reverseGeocodeBusinessAddress,
+} from "@/app/lib/geocode-business-address";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
   isValidOptionalHttpsWebsiteUrl,
@@ -33,10 +31,8 @@ import {
   ChevronDown,
   ExternalLink,
   FileText,
-  GitBranch,
   Globe,
   Lightbulb,
-  Link2,
   Loader2,
   Mail,
   MapPin,
@@ -47,7 +43,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
@@ -59,6 +55,21 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+
+const RegisterBusinessLocationMap = dynamic(
+  () =>
+    import("@/app/components/register-business/RegisterBusinessLocationMap").then(
+      (mod) => mod.RegisterBusinessLocationMap,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-64 items-center justify-center rounded-xl border border-[#E8EDF5] bg-[#F8FAFC] text-sm text-slate-500">
+        Loading map…
+      </div>
+    ),
+  },
+);
 
 type FormSnapshot = {
   name: string;
@@ -77,10 +88,7 @@ type NavId =
   | "details"
   | "contact"
   | "address"
-  | "category"
-  | "about"
-  | "other"
-  | "integrations";
+  | "about";
 
 // Same icon palette as BusinessGeneralSettingsForm (profile page).
 const ICON = {
@@ -124,32 +132,11 @@ const NAV: {
     tone: "orange",
   },
   {
-    id: "category",
-    label: "Business category",
-    hint: "Industry & category",
-    icon: Tag,
-    tone: "purple",
-  },
-  {
     id: "about",
     label: "About your business",
     hint: "Description & story",
     icon: FileText,
     tone: "slate",
-  },
-  {
-    id: "other",
-    label: "Other information",
-    hint: "Branches & extras",
-    icon: GitBranch,
-    tone: "yellow",
-  },
-  {
-    id: "integrations",
-    label: "Integrations",
-    hint: "Connected apps",
-    icon: Link2,
-    tone: "pink",
   },
 ];
 
@@ -346,8 +333,15 @@ export function BusinessProfileEditModal({
   const [logoError, setLogoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [mapPin, setMapPin] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [mapGeocoding, setMapGeocoding] = useState(false);
+  const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const mapPinManualRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -362,7 +356,64 @@ export function BusinessProfileEditModal({
     setLogoError(null);
     setFormError(null);
     setActiveNav("details");
+    mapPinManualRef.current = false;
+    setMapPin(null);
+    setTwilioDialogOpen(false);
   }, [open, business]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (mapPinManualRef.current) return;
+
+    const query = buildBusinessAddressQuery({
+      city: form.city,
+      state: form.state,
+      postalCode: form.postalCode,
+      country: form.country,
+    });
+
+    if (!query) {
+      setMapPin(null);
+      setMapGeocoding(false);
+      return;
+    }
+
+    let cancelled = false;
+    setMapGeocoding(true);
+    const timer = window.setTimeout(() => {
+      void geocodeBusinessAddress(query)
+        .then((coords) => {
+          if (cancelled || mapPinManualRef.current) return;
+          setMapPin(coords);
+        })
+        .finally(() => {
+          if (!cancelled) setMapGeocoding(false);
+        });
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [open, form.city, form.state, form.postalCode, form.country]);
+
+  const handleMapDropPin = useCallback(
+    (latitude: number, longitude: number) => {
+      mapPinManualRef.current = true;
+      setMapPin({ latitude, longitude });
+      void reverseGeocodeBusinessAddress(latitude, longitude).then((place) => {
+        if (!place) return;
+        setForm((prev) => ({
+          ...prev,
+          city: place.city || prev.city,
+          state: place.state || prev.state,
+          postalCode: place.postalCode || prev.postalCode,
+          country: place.country || prev.country,
+        }));
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -426,33 +477,23 @@ export function BusinessProfileEditModal({
       {
         id: "address" as const,
         label: "Business address",
-        done: Boolean(form.state.trim() && form.postalCode.trim()),
-      },
-      {
-        id: "category" as const,
-        label: "Business category",
-        done: Boolean(form.city.trim() && form.country.trim()),
+        done: Boolean(
+          form.city.trim() &&
+            form.state.trim() &&
+            form.postalCode.trim() &&
+            form.country.trim(),
+        ),
       },
       {
         id: "about" as const,
         label: "About your business",
         done: Boolean(form.description.trim()),
       },
-      {
-        id: "other" as const,
-        label: "Other information",
-        done: Number.parseInt(form.branchCount, 10) >= 1,
-      },
-      {
-        id: "integrations" as const,
-        label: "Integrations",
-        done: business?.stripeConnected === true,
-      },
     ];
     const doneCount = checks.filter((c) => c.done).length;
     const percent = Math.round((doneCount / checks.length) * 100);
     return { checks, percent };
-  }, [form, business?.stripeConnected]);
+  }, [form]);
 
   const canSave = useMemo(() => {
     if (!form.name.trim()) return false;
@@ -483,7 +524,6 @@ export function BusinessProfileEditModal({
 
   const scrollToSection = (id: NavId) => {
     setActiveNav(id);
-    if (id === "integrations") return;
     const el = document.getElementById(`edit-profile-${id}`);
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -860,18 +900,41 @@ export function BusinessProfileEditModal({
                     >
                       <div className="relative">
                         <MessageSquare
-                          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B5CF6]"
+                          className="pointer-events-none absolute left-3 top-1/2 z-[1] size-4 -translate-y-1/2 text-[#8B5CF6]"
                           strokeWidth={2.25}
                           aria-hidden
                         />
-                        <input
+                        <button
                           id="edit-business-twilio"
-                          className={`${inputClass} pl-10 text-slate-500`}
-                          value={twilioNumber || "Not assigned yet"}
-                          readOnly
-                          disabled
-                        />
+                          type="button"
+                          onClick={() => setTwilioDialogOpen(true)}
+                          disabled={saving}
+                          className={`${inputClass} flex cursor-pointer items-center gap-2 pl-10 pr-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
+                          aria-label={
+                            twilioNumber
+                              ? `Change Twilio number (${twilioNumber})`
+                              : "Choose a Twilio number"
+                          }
+                        >
+                          <span
+                            className={`min-w-0 flex-1 truncate ${
+                              twilioNumber
+                                ? "font-medium text-slate-900"
+                                : "font-normal text-slate-400"
+                            }`}
+                          >
+                            {twilioNumber || "Choose a Twilio number"}
+                          </span>
+                          <ChevronDown
+                            className="size-4 shrink-0 text-slate-400"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                        </button>
                       </div>
+                      <p className="m-0 mt-1.5 text-[0.7rem] text-slate-500">
+                        Pick the SMS number this business will send from.
+                      </p>
                     </Field>
 
                     <Field
@@ -941,53 +1004,91 @@ export function BusinessProfileEditModal({
                 </SectionCard>
 
                 <SectionCard id="edit-profile-address" title="Business address">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field
-                      label="State / province"
-                      htmlFor="edit-business-state"
-                      error={locationFieldMessage("state", form.state)}
-                    >
-                      <input
-                        id="edit-business-state"
-                        className={inputClass}
-                        value={form.state}
-                        onChange={(e) => patchForm({ state: e.target.value })}
-                        placeholder="State or province"
-                      />
-                    </Field>
-                    <Field
-                      label="Postal code"
-                      htmlFor="edit-business-postal"
-                      error={locationFieldMessage("postalCode", form.postalCode)}
-                    >
-                      <input
-                        id="edit-business-postal"
-                        className={inputClass}
-                        value={form.postalCode}
-                        onChange={(e) =>
-                          patchForm({ postalCode: e.target.value })
-                        }
-                        placeholder="Postal / ZIP code"
-                      />
-                    </Field>
-                  </div>
-                </SectionCard>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field
+                        label="City"
+                        htmlFor="edit-business-address-city"
+                        error={locationFieldMessage("city", form.city)}
+                      >
+                        <input
+                          id="edit-business-address-city"
+                          className={inputClass}
+                          value={form.city}
+                          onChange={(e) => {
+                            mapPinManualRef.current = false;
+                            patchForm({ city: e.target.value });
+                          }}
+                          placeholder="City"
+                        />
+                      </Field>
+                      <Field
+                        label="Country"
+                        htmlFor="edit-business-address-country"
+                        error={locationFieldMessage("country", form.country)}
+                      >
+                        <input
+                          id="edit-business-address-country"
+                          className={inputClass}
+                          value={form.country}
+                          onChange={(e) => {
+                            mapPinManualRef.current = false;
+                            patchForm({ country: e.target.value });
+                          }}
+                          placeholder="Country"
+                        />
+                      </Field>
+                      <Field
+                        label="State / province"
+                        htmlFor="edit-business-state"
+                        error={locationFieldMessage("state", form.state)}
+                      >
+                        <input
+                          id="edit-business-state"
+                          className={inputClass}
+                          value={form.state}
+                          onChange={(e) => {
+                            mapPinManualRef.current = false;
+                            patchForm({ state: e.target.value });
+                          }}
+                          placeholder="State or province"
+                        />
+                      </Field>
+                      <Field
+                        label="Postal code"
+                        htmlFor="edit-business-postal"
+                        error={locationFieldMessage("postalCode", form.postalCode)}
+                      >
+                        <input
+                          id="edit-business-postal"
+                          className={inputClass}
+                          value={form.postalCode}
+                          onChange={(e) => {
+                            mapPinManualRef.current = false;
+                            patchForm({ postalCode: e.target.value });
+                          }}
+                          placeholder="Postal / ZIP code"
+                        />
+                      </Field>
+                    </div>
 
-                <SectionCard
-                  id="edit-profile-category"
-                  title="Business category"
-                >
-                  <p className="m-0 text-sm text-slate-500">
-                    Industry and category are edited in{" "}
-                    <button
-                      type="button"
-                      className="cursor-pointer font-semibold text-[#2F6BFF] underline-offset-2 hover:underline"
-                      onClick={() => scrollToSection("details")}
-                    >
-                      Business details
-                    </button>
-                    .
-                  </p>
+                    <div>
+                      <p className={labelClass}>Location on map</p>
+                      <p className="m-0 mb-2 text-[0.72rem] leading-snug text-slate-500">
+                        {mapGeocoding
+                          ? "Finding this address on the map…"
+                          : mapPin
+                            ? "Pin shows the saved address. Click the map to move it."
+                            : "Enter an address above to place a pin on the map."}
+                      </p>
+                      <RegisterBusinessLocationMap
+                        latitude={mapPin?.latitude ?? null}
+                        longitude={mapPin?.longitude ?? null}
+                        dropPinMode
+                        onDropPin={handleMapDropPin}
+                      />
+                    </div>
+                  </div>
                 </SectionCard>
 
                 <SectionCard
@@ -1016,38 +1117,6 @@ export function BusinessProfileEditModal({
                       </span>
                     </div>
                   </Field>
-                </SectionCard>
-
-                <SectionCard id="edit-profile-other" title="Other information">
-                  <Field
-                    label="Number of branches"
-                    htmlFor="edit-business-branches"
-                  >
-                    <input
-                      id="edit-business-branches"
-                      type="number"
-                      min={1}
-                      className={inputClass}
-                      value={form.branchCount}
-                      onChange={(e) =>
-                        patchForm({ branchCount: e.target.value })
-                      }
-                    />
-                  </Field>
-                </SectionCard>
-
-                <SectionCard id="edit-profile-integrations" title="Integrations">
-                  <p className="m-0 text-sm text-slate-500">
-                    Manage Stripe, Meta, and Google Ads from Integrations.
-                  </p>
-                  <Link
-                    href={businessSettingsHref(businessId, "integrations")}
-                    onClick={onClose}
-                    className="mt-3 inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-3.5 text-sm font-semibold text-[#2F6BFF] no-underline hover:bg-[#DBEAFE]"
-                  >
-                    <Link2 className="size-4" strokeWidth={2.25} />
-                    Open Integrations
-                  </Link>
                 </SectionCard>
 
                 {formError ? (
@@ -1114,5 +1183,30 @@ export function BusinessProfileEditModal({
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(
+    <>
+      {modal}
+      <ChooseNumberDialog
+        open={twilioDialogOpen}
+        businessId={businessId}
+        overlayClassName="z-[100]"
+        title="Choose a Twilio number"
+        description="Pick the SMS number this business will send from."
+        confirmLabel="Save number"
+        confirmingLabel="Saving number…"
+        onClose={() => setTwilioDialogOpen(false)}
+        onConfirmed={async (selected) => {
+          setTwilioDialogOpen(false);
+          toast.success(`Twilio number set to ${selected.phoneNumber}.`);
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.detail(businessId),
+          });
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.myLists(),
+          });
+        }}
+      />
+    </>,
+    document.body,
+  );
 }

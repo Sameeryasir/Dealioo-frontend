@@ -23,6 +23,7 @@ type ChooseNumberDialogProps = {
   confirmLabel?: string;
   confirmingLabel?: string;
   dismissible?: boolean;
+  overlayClassName?: string;
   onClose: () => void;
   onConfirmed: (selected: TwilioPhoneNumberOption) => void | Promise<void>;
 };
@@ -40,6 +41,7 @@ export function ChooseNumberDialog({
   confirmLabel = "Save & continue",
   confirmingLabel = "Saving…",
   dismissible = true,
+  overlayClassName = "z-[70]",
   onClose,
   onConfirmed,
 }: ChooseNumberDialogProps) {
@@ -238,7 +240,7 @@ export function ChooseNumberDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+      className={`fixed inset-0 flex items-center justify-center p-4 ${overlayClassName}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
