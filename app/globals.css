@@ -11040,6 +11040,21 @@ body:has(.auth-select-plan-page) {
   display: none;
 }
 
+@keyframes automation-flow-step-invalid-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.42;
+  }
+}
+
+.automation-flow-step-invalid-blink {
+  animation: automation-flow-step-invalid-blink 1s ease-in-out infinite;
+}
+
 @media (max-width: 639px) {
   .automation-builder-topbar-center-host:not(:empty) {
     max-width: calc(100% - 8.5rem);

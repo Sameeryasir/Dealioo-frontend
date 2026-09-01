@@ -164,6 +164,106 @@ export function PrepaidVisitSplitConnector({ wide = false }: { wide?: boolean })
   );
 }
 
+export function FlowParallelSplitFork({
+  branches,
+  wide = false,
+  selected = false,
+  onSelect,
+}: {
+  branches: readonly { id: string; title: string }[];
+  wide?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
+  const branchCount = Math.max(
+    2,
+    branches.length > 0 ? branches.length : 2,
+  );
+  const branchInset =
+    branchCount <= 2
+      ? wide
+        ? "inset-x-[10%] lg:inset-x-[6%]"
+        : "inset-x-[12%] sm:inset-x-[10%]"
+      : wide
+        ? "inset-x-[4%]"
+        : "inset-x-[4%]";
+  const arrowInset =
+    branchCount <= 2
+      ? wide
+        ? "px-[12%] lg:px-[8%]"
+        : "px-6"
+      : wide
+        ? "px-[6%]"
+        : "px-[6%]";
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      title="Click to edit parallel split"
+      aria-label="Edit parallel split branches"
+      className={`group flex w-full flex-col items-center py-3 transition ${
+        onSelect ? "cursor-pointer" : "cursor-default"
+      }`}
+    >
+      <div
+        className={`h-6 w-0.5 rounded-full transition ${
+          selected ? "bg-blue-400" : "bg-zinc-300 group-hover:bg-zinc-400"
+        }`}
+      />
+      <div
+        className={`relative flex w-full items-center justify-center ${wide ? "px-[10%] lg:px-[6%]" : "px-4"}`}
+      >
+        <div
+          className={`absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full transition ${
+            selected ? "bg-blue-400" : "bg-zinc-300 group-hover:bg-zinc-400"
+          } ${branchInset}`}
+        />
+        <div
+          className="relative grid w-full"
+          style={{
+            gridTemplateColumns: `repeat(${branchCount}, minmax(0, 1fr))`,
+          }}
+        >
+          {Array.from({ length: branchCount }, (_, index) => (
+            <span
+              key={`branch-junction-${index}`}
+              className={`mx-auto size-1.5 rounded-full transition ${
+                selected ? "bg-blue-400" : "bg-zinc-300 group-hover:bg-zinc-400"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+      <div
+        className={`relative mt-2 grid w-full ${arrowInset}`}
+        style={{
+          gridTemplateColumns: `repeat(${branchCount}, minmax(0, 1fr))`,
+        }}
+      >
+        {Array.from({ length: branchCount }, (_, index) => (
+          <div
+            key={`branch-arrow-${index}`}
+            className="flex flex-col items-center"
+          >
+            <div
+              className={`h-4 w-0.5 rounded-full transition ${
+                selected ? "bg-blue-500/90" : "bg-blue-400/80"
+              }`}
+            />
+            <ChevronDown
+              className={`size-3.5 transition ${
+                selected ? "text-blue-600" : "text-blue-500"
+              }`}
+              strokeWidth={2.5}
+            />
+          </div>
+        ))}
+      </div>
+    </button>
+  );
+}
+
 export function FlowSplitRow({
   gapPx,
   children,

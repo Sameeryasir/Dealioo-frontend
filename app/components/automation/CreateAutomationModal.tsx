@@ -18,7 +18,6 @@ import {
   ShoppingCart,
   Sparkles,
   Tag,
-  Target,
   Type,
   UserPlus,
   Workflow,
@@ -33,12 +32,13 @@ import {
 } from "@/app/components/automation/automation-templates";
 import { flowPreviewHeaderClass } from "@/app/components/automation/builder/flow-step-colors";
 import { automationEase } from "@/app/lib/motion";
+import { resolvePurposeForTrigger } from "@/app/services/automation/automation-create-context";
 import {
   AUTOMATION_PURPOSE_OPTIONS,
   type AutomationPurpose,
 } from "@/app/services/automation/types";
 
-const TRIGGERS = ["Cron Job", "Payment", "Abandoned Checkout"];
+const TRIGGERS = ["Cron Job", "Payment", "Signup"];
 
 type ModalStep = "choose" | "import-list" | "import-preview" | "create-blank";
 
@@ -80,10 +80,14 @@ function RadioOptionGroup<T extends string>({
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
-  accent?: "violet" | "amber";
+  accent?: "violet" | "amber" | "orange";
 }) {
   const accentClass =
-    accent === "amber" ? "accent-amber-600" : "accent-violet-600";
+    accent === "amber"
+      ? "accent-amber-600"
+      : accent === "orange"
+        ? "accent-orange-600"
+        : "accent-violet-600";
 
   return (
     <div className="space-y-2 pl-0.5 sm:space-y-2.5" role="radiogroup" aria-label={name}>
@@ -266,8 +270,8 @@ export function CreateAutomationModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [trigger, setTrigger] = useState(TRIGGERS[0]!);
-  const [purpose, setPurpose] = useState<AutomationPurpose>(
-    AUTOMATION_PURPOSE_OPTIONS[0]!.value,
+  const [purpose, setPurpose] = useState<AutomationPurpose>(() =>
+    resolvePurposeForTrigger(TRIGGERS[0]!),
   );
 
   const selectedTemplate = selectedTemplateId
@@ -281,8 +285,12 @@ export function CreateAutomationModal({
     setName("");
     setDescription("");
     setTrigger(TRIGGERS[0]!);
-    setPurpose(AUTOMATION_PURPOSE_OPTIONS[0]!.value);
+    setPurpose(resolvePurposeForTrigger(TRIGGERS[0]!));
   }, [open]);
+
+  useEffect(() => {
+    setPurpose(resolvePurposeForTrigger(trigger));
+  }, [trigger]);
 
   useEffect(() => {
     if (!open) return;
@@ -335,7 +343,7 @@ export function CreateAutomationModal({
         ? "Pick a template to pre-fill your automation steps."
         : step === "import-preview"
           ? "Review the workflow steps before opening the builder."
-          : "Name your workflow, set its purpose, and choose a trigger.";
+          : "Name your workflow, choose a trigger, and pick what this automation is for.";
 
   return (
     <AnimatePresence>
@@ -554,7 +562,7 @@ export function CreateAutomationModal({
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Recover Abandoned Checkout"
+                        placeholder="Welcome New Signups"
                         className={fieldInputClass}
                       />
                     </div>
@@ -568,31 +576,39 @@ export function CreateAutomationModal({
                         className={`${fieldTextareaClass} min-h-[4.5rem] sm:min-h-[5.5rem]`}
                       />
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-                      <div className="min-w-0">
-                        <FieldLabel icon={Target} iconClassName="text-indigo-600">
-                          Purpose
-                        </FieldLabel>
-                        <RadioOptionGroup
-                          name="automation-purpose"
-                          value={purpose}
-                          onChange={setPurpose}
-                          options={AUTOMATION_PURPOSE_OPTIONS}
-                          accent="violet"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <FieldLabel icon={Zap} iconClassName="text-amber-600">
-                          Trigger
-                        </FieldLabel>
-                        <RadioOptionGroup
-                          name="automation-trigger"
-                          value={trigger}
-                          onChange={setTrigger}
-                          options={TRIGGERS.map((t) => ({ value: t, label: t }))}
-                          accent="amber"
-                        />
-                      </div>
+                    <div>
+                      <FieldLabel icon={Zap} iconClassName="text-orange-600">
+                        Trigger
+                      </FieldLabel>
+                      <RadioOptionGroup
+                        name="automation-trigger"
+                        value={trigger}
+                        onChange={setTrigger}
+                        options={TRIGGERS.map((t) => ({ value: t, label: t }))}
+                        accent="orange"
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel icon={Workflow} iconClassName="text-violet-600">
+                        Purpose
+                      </FieldLabel>
+                      <RadioOptionGroup
+                        name="automation-purpose"
+                        value={purpose}
+                        onChange={setPurpose}
+                        options={AUTOMATION_PURPOSE_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                        accent="violet"
+                      />
+                      <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                        {
+                          AUTOMATION_PURPOSE_OPTIONS.find(
+                            (option) => option.value === purpose,
+                          )?.description
+                        }
+                      </p>
                     </div>
                   </div>
 

@@ -6,6 +6,7 @@ import type {
   FunnelAutomationGraph,
   UpdateAutomationNodeBody,
 } from "@/app/services/automation/types";
+import { defaultParallelSplitConfig } from "@/app/components/automation/builder/workflow-branch-context";
 import { enforceCronTriggerFirst } from "@/app/components/automation/workflow-node-order";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
 import type {
@@ -57,6 +58,9 @@ export function isTriggerBlockKind(kind: WorkflowNodeKind): boolean {
 export function defaultConfigForBlockKind(
   kind: WorkflowNodeKind,
 ): Record<string, unknown> {
+  if (kind === "parallel_split") {
+    return defaultParallelSplitConfig();
+  }
   return TRIGGER_DEFAULT_CONFIG_BY_KIND[kind] ?? {};
 }
 
@@ -67,6 +71,7 @@ const BLOCK_TO_NODE_TYPE: Record<WorkflowNodeKind, ApiNodeType> = {
   cron_trigger: "trigger",
   wait: "wait",
   delay: "wait",
+  parallel_split: "wait",
   send_email: "email",
   send_sms: "sms",
   send_whatsapp: "whatsapp",
@@ -102,6 +107,9 @@ export function nodeTypeToBlockKind(
     if (trigger === "cron") return "cron_trigger";
     if (trigger === "abandoned_checkout") return "signup_trigger";
     return "signup_trigger";
+  }
+  if (type === "wait" && config?.isParallelSplit === true) {
+    return "parallel_split";
   }
   if (API_NODE_TYPES.includes(type as ApiNodeType)) {
     return NODE_TYPE_TO_BLOCK_KIND[type as ApiNodeType];

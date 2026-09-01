@@ -7,6 +7,8 @@ import type { WorkflowNode } from "@/app/components/automation/types";
 export function WorkflowNodeCard({
   node,
   selected,
+  invalid = false,
+  invalidStepIds,
   isDragging = false,
   isPressing = false,
   isGhost = false,
@@ -14,6 +16,8 @@ export function WorkflowNodeCard({
 }: {
   node: WorkflowNode;
   selected: boolean;
+  invalid?: boolean;
+  invalidStepIds?: ReadonlySet<string> | readonly string[];
   isDragging?: boolean;
   isPressing?: boolean;
   isGhost?: boolean;
@@ -31,7 +35,13 @@ export function WorkflowNodeCard({
             : { scale: 1, y: 0 }
       }
     >
-      <FlowStepCard node={node} selected={selected && !isGhost} pressing={isPressing && !isGhost} />
+      <FlowStepCard
+        node={node}
+        selected={selected && !isGhost}
+        pressing={isPressing && !isGhost}
+        invalid={invalid && !isGhost}
+        invalidStepIds={invalidStepIds}
+      />
     </motion.div>
   );
 }

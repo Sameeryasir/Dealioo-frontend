@@ -20,6 +20,7 @@ import {
   TriggerFlowConnector,
   FlowSplitTrunk,
   FlowSplitStem,
+  FlowParallelSplitFork,
   BranchTraceLine,
   PrepaidVisitSplitConnector,
 } from "@/app/components/automation/builder/WorkflowConnector";
@@ -32,6 +33,8 @@ import {
 import { isActionNodeKind } from "@/app/components/automation/automation-ui";
 import {
   buildSegmentsForIndexedNodes,
+  getParallelBranchDefs,
+  isParallelSplitNode,
   parallelTreeHasNestedSplit,
   parsePaymentReminderSplitLayout,
   parsePrepaidVisitSplitLayout,
@@ -56,6 +59,13 @@ import {
   isWorkflowNodeReorderLocked,
 } from "@/app/components/automation/workflow-node-order";
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
+import type {
+  WorkflowBranchTarget,
+  WorkflowDropPlacement,
+} from "@/app/components/automation/builder/workflow-branch-context";
+import {
+  isWorkflowNodeInvalid,
+} from "@/app/components/automation/builder/workflow-activation-validation";
 
 const FLOW_CARD_WIDTH_CLASS = "w-[36rem] shrink-0";
 const FLOW_TRUNK_WIDTH = FLOW_CARD_WIDTH_CLASS;
@@ -105,6 +115,8 @@ export function BuilderCanvas({
   nodes,
   loading = false,
   selectedId,
+  invalidNodeIds = [],
+  invalidStepIds = [],
   onSelect,
   onDropBlock,
   onReorderNodes,
@@ -114,8 +126,14 @@ export function BuilderCanvas({
   nodes: WorkflowNode[];
   loading?: boolean;
   selectedId: string | null;
+  invalidNodeIds?: readonly string[];
+  invalidStepIds?: readonly string[];
   onSelect: (id: string) => void;
-  onDropBlock?: (blockId: WorkflowNodeKind) => void;
+  onDropBlock?: (
+    blockId: WorkflowNodeKind,
+    branchTarget?: WorkflowBranchTarget | null,
+    dropPlacement?: WorkflowDropPlacement | null,
+  ) => void;
   onReorderNodes?: (fromIndex: number, toIndex: number) => void;
   editLocked?: boolean;
   onEditBlocked?: () => void;
@@ -335,7 +353,11 @@ export function BuilderCanvas({
   );
 
   const handleBlockDrop = useCallback(
-    (e: React.DragEvent) => {
+    (
+      e: React.DragEvent,
+      branchTarget?: WorkflowBranchTarget | null,
+      dropPlacement?: WorkflowDropPlacement | null,
+    ) => {
       if (!isBlockDrag(e.dataTransfer)) return;
       e.preventDefault();
       e.stopPropagation();
@@ -346,7 +368,7 @@ export function BuilderCanvas({
       }
       if (!onDropBlock) return;
       const blockId = readBlockDragData(e.dataTransfer);
-      if (blockId) onDropBlock(blockId);
+      if (blockId) onDropBlock(blockId, branchTarget ?? null, dropPlacement ?? null);
     },
     [clearDragState, editLocked, onDropBlock, onEditBlocked],
   );
@@ -362,6 +384,17 @@ export function BuilderCanvas({
     flowStartIndex,
   );
   const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
+
+  const handleCanvasBlockDrop = useCallback(
+    (e: React.DragEvent) => {
+      handleBlockDrop(
+        e,
+        null,
+        splitLayout.hasSplit ? "after_parallel_split" : null,
+      );
+    },
+    [handleBlockDrop, splitLayout.hasSplit],
+  );
   const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
   const usePaymentReminderSections = false;
   const headSegments = usePrepaidVisitSplit
@@ -454,7 +487,12 @@ export function BuilderCanvas({
 
   const renderSegmentList = (
     segments: FlowSegment[],
-    options?: { branchStepNumber?: number; showInlineSectionTitle?: boolean },
+    options?: {
+      branchStepNumber?: number;
+      showInlineSectionTitle?: boolean;
+      branchTarget?: WorkflowBranchTarget | null;
+      dropPlacement?: WorkflowDropPlacement | null;
+    },
   ) =>
     segments.map((segment, segmentIndex) => {
       const index =
@@ -462,6 +500,10 @@ export function BuilderCanvas({
       const slotNode = nodes[index]!;
       const displayNode =
         segment.type === "actions" ? segment.nodes[0]! : segment.node;
+
+      if (isParallelSplitNode(displayNode)) {
+        return null;
+      }
       const isLast = segmentIndex === segments.length - 1;
       const isBranchAction =
         options?.branchStepNumber != null &&
@@ -491,6 +533,7 @@ export function BuilderCanvas({
               selectedId={selectedId}
               ownerNodeId={slotNode.id}
               footer={stepFooter}
+              invalidStepIds={invalidStepIds}
               onSelectStep={onSelect}
             />,
             { skipSelectOnPointerUp: segment.nodes.length > 1 },
@@ -503,6 +546,7 @@ export function BuilderCanvas({
               nodes={[displayNode]}
               selectedId={selectedId}
               footer={stepFooter}
+              invalidStepIds={invalidStepIds}
               onSelectStep={onSelect}
             />,
           )
@@ -514,6 +558,8 @@ export function BuilderCanvas({
               node={displayNode}
               selected={selectedId === slotNode.id}
               pressing={pressingIndex === index}
+              invalid={isWorkflowNodeInvalid(slotNode.id, invalidNodeIds)}
+              invalidStepIds={invalidStepIds}
             />,
           )
         );
@@ -544,7 +590,16 @@ export function BuilderCanvas({
               className="flex w-full justify-center py-1.5"
               variants={flowConnectorReveal}
               onDragOver={handleSlotDragOver}
-              onDrop={handleBlockDrop}
+              onDrop={(e) =>
+                handleBlockDrop(
+                  e,
+                  options?.branchTarget ?? null,
+                  options?.dropPlacement ??
+                    (splitLayout.hasSplit && !options?.branchTarget
+                      ? "main_flow"
+                      : null),
+                )
+              }
             >
               <WorkflowConnector />
             </motion.div>
@@ -554,19 +609,27 @@ export function BuilderCanvas({
     });
 
   const renderSplitBranches = () => {
+    const splitNode = splitLayout.parallelSplit?.node;
     const columns = parallelTree.branches;
     const count = columns.length;
 
     return (
       <div className="flex w-max max-w-none flex-col items-center">
-        <FlowSplitTrunk />
+        {splitNode ? (
+          <FlowParallelSplitFork
+            branches={getParallelBranchDefs(splitNode)}
+            wide
+            selected={selectedId === splitNode.id}
+            onSelect={() => onSelect(splitNode.id)}
+          />
+        ) : null}
         <div
           className="flex w-max max-w-none items-start justify-center"
           style={{ gap: FLOW_BRANCH_GAP_PX }}
         >
           {columns.map((column, columnIndex) =>
             renderParallelBranchColumn(column, 0, columnIndex, {
-              showStem: true,
+              showStem: false,
               isFirst: columnIndex === 0,
               isLast: columnIndex === count - 1,
             }),
@@ -606,11 +669,27 @@ export function BuilderCanvas({
     return sections;
   };
 
+  const renderBranchDropZone = (
+    target: WorkflowBranchTarget | null,
+    key: string,
+  ) =>
+    canDropBlocks ? (
+      <div
+        key={key}
+        className="mt-3 flex w-full justify-center rounded-xl border-2 border-dashed border-zinc-300/80 bg-zinc-50/70 px-4 py-3 text-center text-xs font-medium text-zinc-500 transition hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
+        onDragOver={handleSlotDragOver}
+        onDrop={(e) => handleBlockDrop(e, target)}
+      >
+        Drop a block here to add to this branch
+      </div>
+    ) : null;
+
   const renderBranchSectionBox = (
     title: string,
     entries: IndexedWorkflowNode[],
     columnIndex: number,
     key: string,
+    branchTarget?: WorkflowBranchTarget | null,
   ) => (
     <div key={key} className={`relative ${FLOW_CARD_WIDTH_CLASS}`}>
       <FlowBranchContainer title={title}>
@@ -619,7 +698,12 @@ export function BuilderCanvas({
           <div className="relative z-10 flex w-full flex-col items-center">
             {renderSegmentList(buildSegmentsForIndexedNodes(entries), {
               branchStepNumber: 18 + columnIndex,
+              branchTarget: branchTarget ?? null,
             })}
+            {renderBranchDropZone(
+              branchTarget ?? null,
+              `${key}-branch-drop`,
+            )}
           </div>
         </div>
       </FlowBranchContainer>
@@ -631,7 +715,11 @@ export function BuilderCanvas({
     depth: number,
     columnIndex: number,
     fork?: { showStem: boolean; isFirst: boolean; isLast: boolean },
+    parentBranchId?: string | null,
   ) => {
+    const branchTarget: WorkflowBranchTarget = parentBranchId
+      ? { flowBranch: column.id, flowBranchParent: parentBranchId }
+      : { flowBranch: column.id };
     const nested = parallelTreeHasNestedSplit(column.content);
     const widthClass = nested ? "w-max max-w-none" : FLOW_CARD_WIDTH_CLASS;
 
@@ -662,6 +750,7 @@ export function BuilderCanvas({
                         section.entries,
                         columnIndex,
                         `${depth}-${column.id}-head-${sectionIndex}-box`,
+                        branchTarget,
                       )}
                       {sectionIndex < all.length - 1 ? (
                         <div className="flex w-full justify-center py-1.5">
@@ -676,46 +765,98 @@ export function BuilderCanvas({
                 </div>
               </div>
             ) : null}
-            <div className="flex w-max max-w-none flex-col items-center">
-              <FlowSplitTrunk />
-              <div
-                className="flex w-max max-w-none items-start justify-center"
-                style={{ gap: FLOW_BRANCH_GAP_PX }}
-              >
-                {column.content.branches.map((child, childIndex) =>
-                  renderParallelBranchColumn(child, depth + 1, childIndex, {
-                    showStem: true,
+            {column.content.parallelSplit ? (
+              <FlowParallelSplitFork
+                branches={getParallelBranchDefs(column.content.parallelSplit.node)}
+                wide
+                selected={selectedId === column.content.parallelSplit.node.id}
+                onSelect={() => onSelect(column.content.parallelSplit!.node.id)}
+              />
+            ) : null}
+            <div
+              className="flex w-max max-w-none items-start justify-center"
+              style={{ gap: FLOW_BRANCH_GAP_PX }}
+            >
+              {column.content.branches.map((child, childIndex) =>
+                renderParallelBranchColumn(
+                  child,
+                  depth + 1,
+                  childIndex,
+                  {
+                    showStem: false,
                     isFirst: childIndex === 0,
                     isLast: childIndex === column.content.branches.length - 1,
-                  }),
-                )}
-              </div>
+                  },
+                  column.id,
+                ),
+              )}
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center">
-            {splitBranchSections(column.content.head, column.title).map(
-              (section, sectionIndex, all) => (
-                <div
-                  key={`${depth}-${column.id}-sec-${sectionIndex}`}
-                  className="flex flex-col items-center"
-                >
-                  {renderBranchSectionBox(
-                    section.title,
-                    section.entries,
-                    columnIndex,
-                    `${depth}-${column.id}-sec-${sectionIndex}-box`,
+            {splitBranchSections(column.content.head, column.title).length > 0 ? (
+              splitBranchSections(column.content.head, column.title).map(
+                (section, sectionIndex, all) => (
+                  <div
+                    key={`${depth}-${column.id}-sec-${sectionIndex}`}
+                    className="flex flex-col items-center"
+                  >
+                    {renderBranchSectionBox(
+                      section.title,
+                      section.entries,
+                      columnIndex,
+                      `${depth}-${column.id}-sec-${sectionIndex}-box`,
+                      branchTarget,
+                    )}
+                    {sectionIndex < all.length - 1 ? (
+                      <div className="flex w-full justify-center py-1.5">
+                        <WorkflowConnector />
+                      </div>
+                    ) : null}
+                  </div>
+                ),
+              )
+            ) : (
+              <div className={`relative ${FLOW_CARD_WIDTH_CLASS}`}>
+                <FlowBranchContainer title={column.title}>
+                  {renderBranchDropZone(
+                    branchTarget,
+                    `${depth}-${column.id}-empty-drop`,
                   )}
-                  {sectionIndex < all.length - 1 ? (
-                    <div className="flex w-full justify-center py-1.5">
-                      <WorkflowConnector />
-                    </div>
-                  ) : null}
-                </div>
-              ),
+                </FlowBranchContainer>
+              </div>
             )}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderPostSplitSection = () => {
+    if (splitLayout.tail.length > 0) {
+      return (
+        <div className={`mt-6 flex flex-col items-center ${FLOW_TRUNK_WIDTH}`}>
+          <WorkflowConnector />
+          {renderSegmentList(buildSegmentsForIndexedNodes(splitLayout.tail), {
+            dropPlacement: "after_parallel_split",
+          })}
+        </div>
+      );
+    }
+
+    if (!canDropBlocks) {
+      return null;
+    }
+
+    return (
+      <div
+        className="mt-6 flex w-full justify-center px-4"
+        onDragOver={handleSlotDragOver}
+        onDrop={(e) => handleBlockDrop(e, null, "after_parallel_split")}
+      >
+        <div className="w-full max-w-md rounded-xl border-2 border-dashed border-zinc-300/80 bg-zinc-50/70 px-4 py-3 text-center text-xs font-medium text-zinc-500 transition hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700">
+          Drop a block here to continue after the parallel split
+        </div>
       </div>
     );
   };
@@ -829,7 +970,7 @@ export function BuilderCanvas({
           if (e.currentTarget.contains(e.relatedTarget as Node)) return;
           setCanvasDragOver(false);
         }}
-        onDrop={handleBlockDrop}
+        onDrop={handleCanvasBlockDrop}
       >
         <div
           className="mx-auto"
@@ -891,7 +1032,7 @@ export function BuilderCanvas({
               initial="hidden"
               animate="show"
               onDragOver={handleCanvasDragOver}
-              onDrop={handleBlockDrop}
+              onDrop={handleCanvasBlockDrop}
             >
               {trigger ? (
                 <>
@@ -905,6 +1046,8 @@ export function BuilderCanvas({
                       <WorkflowNodeCard
                         node={trigger}
                         selected={selectedId === trigger.id}
+                        invalid={isWorkflowNodeInvalid(trigger.id, invalidNodeIds)}
+                        invalidStepIds={invalidStepIds}
                         isPressing={pressingIndex === 0}
                         reorderLocked={isWorkflowNodeReorderLocked(nodes, 0)}
                       />,
@@ -915,7 +1058,7 @@ export function BuilderCanvas({
                         <div className="relative w-full rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
                           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.625rem]">
                             <span
-                              className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
+                              className="size-2 rounded-full bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.65)]"
                               aria-hidden
                             />
                             Live
@@ -934,8 +1077,9 @@ export function BuilderCanvas({
                       {renderPrepaidVisitBranches()}
                     </div>
                   ) : splitLayout.hasSplit ? (
-                    <div className="mt-6 w-max max-w-none">
+                    <div className="mt-6 flex w-max max-w-none flex-col items-center">
                       {renderSplitBranches()}
+                      {renderPostSplitSection()}
                     </div>
                   ) : null}
                 </>
@@ -946,7 +1090,13 @@ export function BuilderCanvas({
                 <div
                   className="h-8 w-full"
                   onDragOver={handleSlotDragOver}
-                  onDrop={handleBlockDrop}
+                  onDrop={(e) =>
+                    handleBlockDrop(
+                      e,
+                      null,
+                      splitLayout.hasSplit ? "after_parallel_split" : null,
+                    )
+                  }
                 />
               ) : null}
             </motion.div>

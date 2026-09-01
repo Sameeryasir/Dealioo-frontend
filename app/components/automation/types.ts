@@ -32,6 +32,7 @@ export type WorkflowNodeKind =
   | "create_coupon"
   | "tag_customer"
   | "delay"
+  | "parallel_split"
   | "reviews";
 
 export type BlockDefinition = {

@@ -59,10 +59,10 @@ export function nodeToneClass(
       return {
         shell:
           "border-blue-200/70 bg-gradient-to-br from-blue-50 via-white to-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
-        icon: "bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-[0_4px_14px_rgba(59,130,246,0.35)]",
-        ring: "ring-2 ring-blue-400/50 shadow-[0_8px_30px_rgba(59,130,246,0.18)]",
-        accent: "border-l-[3px] border-l-blue-500",
-        badge: "bg-blue-500/10 text-blue-700 ring-1 ring-blue-500/15",
+        icon: "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]",
+        ring: "ring-2 ring-blue-400/50 shadow-[0_8px_30px_rgba(24,119,242,0.18)]",
+        accent: "border-l-[3px] border-l-[#1877f2]",
+        badge: "bg-[#1877f2]/10 text-[#0f5ed7] ring-1 ring-[#1877f2]/15",
       };
     case "violet":
       return {

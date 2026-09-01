@@ -70,8 +70,9 @@ export type FlowBranchColumn = {
 
 export function isParallelSplitNode(node: WorkflowNode): boolean {
   return (
-    (node.kind === "wait" || node.kind === "delay") &&
-    node.config?.isParallelSplit === true
+    node.kind === "parallel_split" ||
+    ((node.kind === "wait" || node.kind === "delay") &&
+      node.config?.isParallelSplit === true)
   );
 }
 
@@ -337,6 +338,7 @@ export function parseSplitFlowLayout(
   startIndex: number,
 ): {
   head: IndexedWorkflowNode[];
+  tail: IndexedWorkflowNode[];
   parallelSplit: IndexedWorkflowNode | null;
   branches: Record<FlowBranchId, IndexedWorkflowNode[]>;
   branchColumns: ParallelBranchColumn[];
@@ -371,6 +373,7 @@ export function parseSplitFlowLayout(
   const topOrder: string[] = [];
   const topBucket = new Map<string, IndexedWorkflowNode[]>();
   const head: IndexedWorkflowNode[] = [];
+  const tail: IndexedWorkflowNode[] = [];
   const branchParentMap = new Map<string, string>();
 
   for (const entry of entries) {
@@ -423,6 +426,10 @@ export function parseSplitFlowLayout(
   }
 
   const topIds = new Set(topOrder);
+  const topSplitEntryIndex =
+    topSplit != null
+      ? entries.findIndex((entry) => entry.index === topSplit.index)
+      : -1;
 
   for (const entry of entries) {
     const { node } = entry;
@@ -451,7 +458,16 @@ export function parseSplitFlowLayout(
     }
 
     if (!isParallelSplitNode(node)) {
-      head.push(entry);
+      const entryIndex = entries.indexOf(entry);
+      if (
+        topSplitEntryIndex >= 0 &&
+        entryIndex > topSplitEntryIndex &&
+        branchKey == null
+      ) {
+        tail.push(entry);
+      } else {
+        head.push(entry);
+      }
     }
   }
 
@@ -475,6 +491,7 @@ export function parseSplitFlowLayout(
 
   return {
     head,
+    tail,
     parallelSplit: topSplit,
     branches: branchesRecord,
     branchColumns,

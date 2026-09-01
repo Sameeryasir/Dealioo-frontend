@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   CalendarClock,
   Clock,
+  CreditCard,
   Filter,
   Gift,
   GitBranch,
@@ -13,8 +14,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import {
+  DEALIOO_SIDEBAR,
   FLOW_ACTIONS,
-  FLOW_CRON,
   FLOW_FILTER,
   FLOW_TRIGGER,
   FLOW_WAIT,
@@ -35,15 +36,37 @@ import {
   isSmsMergeTag,
   splitSmsPreviewParts,
 } from "@/app/components/automation/builder/workflow-node-display";
-import { expandBundledActionsForDisplay, isBundledActionsNode, isPaymentReminderLoopFilterNode, isPaymentReminderStatusSplitFilterNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
+import {
+  expandBundledActionsForDisplay, isBundledActionsNode, isPaymentReminderLoopFilterNode, isPaymentReminderStatusSplitFilterNode, isPrepaidVisitReminderLoopNode, PREPAID_FIRST_EMAIL_DEFAULTS } from "@/app/components/automation/builder/bundled-actions";
+import { getEmailPreviewText } from "@/app/components/automation/builder/action-node-defaults";
 import { isCustomerVisitedFilterNode, isParallelSplitNode } from "@/app/components/automation/builder/flow-layout";
-import { isActionNodeKind } from "@/app/components/automation/automation-ui";
+import { isActionNodeKind, isTriggerNodeKind } from "@/app/components/automation/automation-ui";
 import type { WorkflowNode } from "@/app/components/automation/types";
 
-function cardShellClass(selected: boolean, ringClass: string): string {
-  return selected
+const FLOW_STEP_INVALID_BLINK = "automation-flow-step-invalid-blink";
+
+function hasInvalidStepIds(
+  invalidStepIds: ReadonlySet<string> | readonly string[] | undefined,
+): boolean {
+  if (!invalidStepIds) {
+    return false;
+  }
+  if (Array.isArray(invalidStepIds)) {
+    return invalidStepIds.length > 0;
+  }
+  return [...invalidStepIds].length > 0;
+}
+
+function cardShellClass(
+  selected: boolean,
+  ringClass: string,
+  invalid = false,
+): string {
+  const base = selected
     ? `ring-2 ring-offset-2 ring-offset-[#ececee] ${ringClass} shadow-lg`
     : "shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)]";
+
+  return invalid ? `${base} ${FLOW_STEP_INVALID_BLINK}` : base;
 }
 
 export function FlowStepHeader({
@@ -78,72 +101,81 @@ export function FlowStepHeader({
   );
 }
 
+function triggerIcon(node: WorkflowNode): LucideIcon {
+  switch (node.kind) {
+    case "cron_trigger":
+      return CalendarClock;
+    case "payment_trigger":
+      return CreditCard;
+    default:
+      return UserPlus;
+  }
+}
+
+function triggerDisplayTitle(node: WorkflowNode): string {
+  switch (node.kind) {
+    case "cron_trigger":
+      return "Cron Job";
+    case "payment_trigger":
+      return "Payment Trigger";
+    case "signup_trigger":
+      return "Signup";
+    case "funnel_complete":
+      return "Funnel Complete";
+    default:
+      return getTriggerTitle(node);
+  }
+}
+
+function triggerDisplayBody(node: WorkflowNode): string {
+  if (node.kind === "cron_trigger") {
+    const schedule = formatCronScheduleSummary(node.config);
+    return `${schedule}. Checks unpaid guests, then continues the flow.`;
+  }
+  return getTriggerDescription(node);
+}
+
 export function FlowTriggerCard({
   node,
   selected,
   pressing = false,
+  invalid = false,
 }: {
   node: WorkflowNode;
   selected?: boolean;
   pressing?: boolean;
+  invalid?: boolean;
 }) {
+  const Icon = triggerIcon(node);
+  const shellClass = invalid
+    ? cardShellClass(!!selected, FLOW_TRIGGER.ring, true)
+    : selected
+      ? cardShellClass(true, FLOW_TRIGGER.ring)
+      : pressing
+        ? "scale-[0.99]"
+        : "";
+
   return (
     <div
-      className={`overflow-hidden rounded-2xl ${FLOW_TRIGGER.border} ${FLOW_TRIGGER.bg} transition-all ${
-        selected ? cardShellClass(true, FLOW_TRIGGER.ring) : pressing ? "scale-[0.99]" : ""
-      }`}
+      className={`overflow-hidden rounded-2xl border ${FLOW_TRIGGER.border} bg-white transition-all ${shellClass}`}
     >
-      <div className="px-5 py-5">
+      <div className="relative">
         <div
-          className={`mb-3 flex size-9 items-center justify-center rounded-xl ring-1 ${FLOW_TRIGGER.iconWrap}`}
-        >
-          <UserPlus className={`size-4 ${FLOW_TRIGGER.icon}`} strokeWidth={2.25} aria-hidden />
-        </div>
-        <p className={`text-[0.625rem] font-bold uppercase tracking-[0.16em] ${FLOW_TRIGGER.label}`}>
-          Trigger
-        </p>
-        <h3 className={`mt-1 text-base font-bold leading-tight tracking-tight ${FLOW_TRIGGER.title}`}>
-          {getTriggerTitle(node)}
-        </h3>
-        <p className={`mt-2 text-xs leading-relaxed ${FLOW_TRIGGER.body}`}>
-          {getTriggerDescription(node)}
-        </p>
+          className={`pointer-events-none absolute inset-0 ${DEALIOO_SIDEBAR.glow}`}
+          aria-hidden
+        />
+        <FlowStepHeader
+          icon={Icon}
+          title={triggerDisplayTitle(node)}
+          subtitle="When this automation starts"
+          iconClass={FLOW_TRIGGER.icon}
+          barClass={`relative z-[1] ${FLOW_TRIGGER.header}`}
+          subtitleClass={FLOW_TRIGGER.headerSub}
+        />
       </div>
-    </div>
-  );
-}
-
-export function FlowCronJobCard({
-  node,
-  selected,
-  pressing = false,
-}: {
-  node: WorkflowNode;
-  selected?: boolean;
-  pressing?: boolean;
-}) {
-  const schedule = formatCronScheduleSummary(node.config);
-
-  return (
-    <div
-      className={`overflow-hidden rounded-2xl border ${FLOW_CRON.border} bg-white transition-all ${
-        selected ? cardShellClass(true, FLOW_CRON.ring) : pressing ? "scale-[0.99]" : ""
-      }`}
-    >
-      <FlowStepHeader
-        icon={CalendarClock}
-        title="Cron Job"
-        subtitle="Runs on a schedule"
-        iconClass={FLOW_CRON.icon}
-        barClass={FLOW_CRON.header}
-        subtitleClass={FLOW_CRON.headerSub}
-      />
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <p className={`text-sm font-bold tracking-tight ${FLOW_CRON.body}`}>
-          {schedule}
-        </p>
-        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-          Checks unpaid guests, then continues the flow.
+      <div className="bg-white px-5 py-5 sm:px-6 sm:py-6">
+        <p className={`text-sm font-medium leading-relaxed ${FLOW_TRIGGER.body}`}>
+          {triggerDisplayBody(node)}
         </p>
       </div>
     </div>
@@ -154,16 +186,24 @@ export function FlowWaitCard({
   node,
   selected,
   pressing = false,
+  invalid = false,
 }: {
   node: WorkflowNode;
   selected?: boolean;
   pressing?: boolean;
+  invalid?: boolean;
 }) {
+  const shellClass = invalid
+    ? cardShellClass(!!selected, FLOW_WAIT.ring, true)
+    : selected
+      ? cardShellClass(true, FLOW_WAIT.ring)
+      : pressing
+        ? "scale-[0.99]"
+        : "";
+
   return (
     <div
-      className={`overflow-hidden rounded-2xl border ${FLOW_WAIT.border} bg-white transition-all ${
-        selected ? cardShellClass(true, FLOW_WAIT.ring) : pressing ? "scale-[0.99]" : ""
-      }`}
+      className={`overflow-hidden rounded-2xl border ${FLOW_WAIT.border} bg-white transition-all ${shellClass}`}
     >
       <FlowStepHeader
         icon={Clock}
@@ -186,17 +226,25 @@ export function FlowFilterCard({
   node,
   selected,
   pressing = false,
+  invalid = false,
 }: {
   node: WorkflowNode;
   selected?: boolean;
   pressing?: boolean;
+  invalid?: boolean;
 }) {
   const conditions = getFilterConditions(node);
+  const shellClass = invalid
+    ? cardShellClass(!!selected, FLOW_FILTER.ring, true)
+    : selected
+      ? cardShellClass(true, FLOW_FILTER.ring)
+      : pressing
+        ? "scale-[0.99]"
+        : "";
+
   return (
     <div
-      className={`overflow-hidden rounded-2xl border ${FLOW_FILTER.border} bg-white transition-all ${
-        selected ? cardShellClass(true, FLOW_FILTER.ring) : pressing ? "scale-[0.99]" : ""
-      }`}
+      className={`overflow-hidden rounded-2xl border ${FLOW_FILTER.border} bg-white transition-all ${shellClass}`}
     >
       <FlowStepHeader
         icon={Filter}
@@ -229,62 +277,62 @@ export function FlowFilterCard({
       </div>
       {isCustomerVisitedFilterNode(node) ? (
         <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
+          <div className="rounded-xl border border-blue-200/70 bg-blue-50/50 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               If not visited
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(node.config.branchLabelFalse ?? "Restart from first email")}
             </p>
           </div>
-          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
+          <div className="rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               If visited
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(node.config.branchLabelTrue ?? "Continue post-visit emails")}
             </p>
           </div>
         </div>
       ) : isPaymentReminderLoopFilterNode(node) ? (
         <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
+          <div className="rounded-xl border border-blue-200/70 bg-blue-50/50 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               Still unpaid
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(
                 node.config.branchLabelFalse ??
                   "Send payment + pass reminders again",
               )}
             </p>
           </div>
-          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
+          <div className="rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               Guest paid
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(node.config.branchLabelTrue ?? "Stop reminders")}
             </p>
           </div>
         </div>
       ) : isPaymentReminderStatusSplitFilterNode(node) ? (
         <div className="grid gap-2 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2 sm:px-6">
-          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-800">
+          <div className="rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               If paid → left branch
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-emerald-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(
                 node.config.branchLabelTrue ?? "Guest paid — stop reminders",
               )}
             </p>
           </div>
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2.5">
-            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-800">
+          <div className="rounded-xl border border-blue-200/70 bg-blue-50/50 px-3 py-2.5">
+            <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-800">
               If unpaid → right branch
             </p>
-            <p className="mt-1 text-[0.65rem] font-medium text-amber-950">
+            <p className="mt-1 text-[0.65rem] font-medium text-blue-950">
               {String(
                 node.config.branchLabelFalse ??
                   "Still unpaid — send reminders",
@@ -323,22 +371,22 @@ export function PrepaidLoopBackCard({
         PREPAID_FIRST_EMAIL_DEFAULTS.message;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
-      <div className="flex items-center gap-3 border-b border-amber-100 bg-amber-50/80 px-5 py-4">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+    <div className="overflow-hidden rounded-2xl border border-blue-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
           <RotateCcw className="size-4" aria-hidden />
         </span>
         <div>
           <p className="text-xs font-bold tracking-tight text-zinc-900">
             Loop back
           </p>
-          <p className="text-[0.65rem] font-medium text-amber-800">
+          <p className="text-[0.65rem] font-medium text-blue-800">
             Customer not visited → send visit reminder again
           </p>
         </div>
       </div>
       <div className="px-5 py-4">
-        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
+        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-700">
           Send Email
         </p>
         {previewSubject ? (
@@ -363,22 +411,22 @@ export function PaymentReminderLoopBackCard({
   const previewMessage = String(loopTarget?.config?.message ?? "").trim();
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white">
-      <div className="flex items-center gap-3 border-b border-amber-100 bg-amber-50/80 px-5 py-4">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+    <div className="overflow-hidden rounded-2xl border border-blue-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
           <RotateCcw className="size-4" aria-hidden />
         </span>
         <div>
           <p className="text-xs font-bold tracking-tight text-zinc-900">
             Loop back
           </p>
-          <p className="text-[0.65rem] font-medium text-amber-800">
+          <p className="text-[0.65rem] font-medium text-blue-800">
             Still unpaid → restart payment reminder cycle
           </p>
         </div>
       </div>
       <div className="px-5 py-4">
-        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-emerald-700">
+        <p className="text-[0.6rem] font-bold uppercase tracking-wide text-blue-700">
           Send Email
         </p>
         {previewSubject ? (
@@ -396,16 +444,16 @@ export function PaymentReminderLoopBackCard({
 
 export function PaymentReminderPaidStopCard() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-emerald-200/80 bg-white">
-      <div className="flex items-center gap-3 border-b border-emerald-100 bg-emerald-50/80 px-5 py-4">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+    <div className="overflow-hidden rounded-2xl border border-blue-200/80 bg-white">
+      <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50/80 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
           <GitBranch className="size-4" aria-hidden />
         </span>
         <div>
           <p className="text-xs font-bold tracking-tight text-zinc-900">
             Guest paid
           </p>
-          <p className="text-[0.65rem] font-medium text-emerald-800">
+          <p className="text-[0.65rem] font-medium text-blue-800">
             Stop reminders for this guest
           </p>
         </div>
@@ -447,7 +495,6 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
 
   if (
     node.kind === "send_sms" ||
-    node.kind === "send_email" ||
     node.kind === "send_whatsapp" ||
     isReturnOfferEmailNode(node)
   ) {
@@ -462,7 +509,7 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
             isSmsMergeTag(part) ? (
               <span
                 key={`${part}-${index}`}
-                className="mx-0.5 inline rounded-md bg-sky-100 px-1.5 py-0.5 font-semibold text-sky-800"
+                className="mx-0.5 inline rounded-md bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-800"
               >
                 {part}
               </span>
@@ -472,7 +519,39 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
           )}
         </p>
         {linkLabel ? (
-          <span className="inline-flex items-center rounded-lg bg-sky-500 px-2.5 py-1 text-[0.65rem] font-semibold text-white shadow-sm">
+          <span className="inline-flex items-center rounded-lg bg-[#1877f2] px-2.5 py-1 text-[0.65rem] font-semibold text-white shadow-sm">
+            {linkLabel}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (node.kind === "send_email") {
+    const previewMessage = getEmailPreviewText(config);
+    if (!previewMessage) {
+      return null;
+    }
+
+    const parts = splitSmsPreviewParts(previewMessage);
+    return (
+      <div className="space-y-2.5 text-left">
+        <p className="whitespace-pre-wrap text-left text-xs leading-relaxed text-zinc-700">
+          {parts.map((part, index) =>
+            isSmsMergeTag(part) ? (
+              <span
+                key={`${part}-${index}`}
+                className="mx-0.5 inline rounded-md bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-800"
+              >
+                {part}
+              </span>
+            ) : (
+              <span key={`${part}-${index}`}>{part}</span>
+            ),
+          )}
+        </p>
+        {linkLabel ? (
+          <span className="inline-flex items-center rounded-lg bg-[#1877f2] px-2.5 py-1 text-[0.65rem] font-semibold text-white shadow-sm">
             {linkLabel}
           </span>
         ) : null}
@@ -518,10 +597,12 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
 export function FlowActionStepContent({
   node,
   selected,
+  invalid = false,
   onSelect,
 }: {
   node: WorkflowNode;
   selected?: boolean;
+  invalid?: boolean;
   onSelect?: (id: string) => void;
 }) {
   const { label, icon: Icon } = actionMeta(node);
@@ -545,7 +626,9 @@ export function FlowActionStepContent({
       }}
       className={`rounded-xl border transition-all ${
         onSelect ? "cursor-pointer" : ""
-      } ${selected ? FLOW_ACTIONS.stepSelected : FLOW_ACTIONS.stepDefault}`}
+      } ${
+        selected ? FLOW_ACTIONS.stepSelected : FLOW_ACTIONS.stepDefault
+      } ${invalid ? FLOW_STEP_INVALID_BLINK : ""}`}
     >
       <div className="flex items-start gap-3.5 px-4 py-4 sm:px-5 sm:py-5">
         <span
@@ -554,7 +637,7 @@ export function FlowActionStepContent({
           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
         </span>
         <div className="min-w-0 flex-1 text-left">
-          <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-emerald-700/70">
+          <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-blue-700/70">
             {label}
           </p>
           <div className="mt-2">
@@ -608,14 +691,20 @@ export function FlowActionsBlock({
   selectedId,
   ownerNodeId,
   footer,
+  invalidStepIds,
   onSelectStep,
 }: {
   nodes: WorkflowNode[];
   selectedId?: string | null;
   ownerNodeId?: string;
   footer?: ReactNode;
+  invalidStepIds?: ReadonlySet<string> | readonly string[];
   onSelectStep?: (id: string) => void;
 }) {
+  const invalidSteps =
+    invalidStepIds instanceof Set
+      ? invalidStepIds
+      : new Set(invalidStepIds ?? []);
   const groupSelected =
     (ownerNodeId != null && selectedId === ownerNodeId) ||
     nodes.some((node) => node.id === selectedId);
@@ -633,7 +722,9 @@ export function FlowActionsBlock({
   return (
     <div
       className={`overflow-hidden rounded-2xl border bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all ${
-        groupSelected ? `border-emerald-300 ring-2 ${FLOW_ACTIONS.ring}` : FLOW_ACTIONS.border
+        groupSelected
+          ? `border-blue-300 ring-2 ${FLOW_ACTIONS.ring}`
+          : FLOW_ACTIONS.border
       }`}
     >
       <FlowActionsBlockHeader />
@@ -642,6 +733,7 @@ export function FlowActionsBlock({
           <FlowActionStepContent
             key={node.id}
             node={node}
+            invalid={invalidSteps.has(node.id)}
             selected={
               selectedId === node.id ||
               (ownerNodeId != null &&
@@ -660,53 +752,77 @@ export function FlowStepCard({
   node,
   selected,
   pressing = false,
+  invalid = false,
+  invalidStepIds,
 }: {
   node: WorkflowNode;
   selected?: boolean;
   pressing?: boolean;
+  invalid?: boolean;
+  invalidStepIds?: ReadonlySet<string> | readonly string[];
 }) {
   if (isBundledActionsNode(node)) {
     return (
       <FlowActionsBlock
         nodes={expandBundledActionsForDisplay(node)}
         selectedId={selected ? node.id : null}
+        ownerNodeId={node.id}
+        invalidStepIds={invalidStepIds}
       />
     );
   }
 
   if (isActionNodeKind(node.kind)) {
     return (
-      <FlowActionsBlock nodes={[node]} selectedId={selected ? node.id : null} />
+      <FlowActionsBlock
+        nodes={[node]}
+        selectedId={selected ? node.id : null}
+        invalidStepIds={
+          invalid
+            ? hasInvalidStepIds(invalidStepIds)
+              ? invalidStepIds
+              : [node.id]
+            : invalidStepIds
+        }
+      />
     );
   }
 
-  if (node.kind === "cron_trigger") {
-    return <FlowCronJobCard node={node} selected={selected} pressing={pressing} />;
+  if (isTriggerNodeKind(node.kind)) {
+    return (
+      <FlowTriggerCard
+        node={node}
+        selected={selected}
+        pressing={pressing}
+        invalid={invalid}
+      />
+    );
   }
 
-  if (
-    node.kind === "signup_trigger" ||
-    node.kind === "payment_trigger" ||
-    node.kind === "funnel_complete"
-  ) {
-    return <FlowTriggerCard node={node} selected={selected} pressing={pressing} />;
+  if (node.kind === "parallel_split" || isParallelSplitNode(node)) {
+    return null;
   }
 
   if (node.kind === "wait" || node.kind === "delay") {
-    if (isParallelSplitNode(node)) {
-      return (
-        <FlowParallelSplitCard
-          node={node}
-          selected={selected}
-          pressing={pressing}
-        />
-      );
-    }
-    return <FlowWaitCard node={node} selected={selected} pressing={pressing} />;
+    return (
+      <FlowWaitCard
+        node={node}
+        selected={selected}
+        pressing={pressing}
+        invalid={invalid}
+      />
+    );
   }
 
   if (node.kind === "condition") {
-    return <FlowFilterCard node={node} selected={selected} pressing={pressing} />;
+    return (
+      <FlowFilterCard
+        node={node}
+        selected={selected}
+        pressing={pressing}
+        invalid={invalid}
+      />
+    );
   }
 
   return (
@@ -732,13 +848,13 @@ export function FlowBranchContainer({
       <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:px-3 sm:text-[0.625rem]">
           <span
-            className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.65)]"
+            className="size-2 rounded-full bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.65)]"
             aria-hidden
           />
           Live
         </span>
         {title ? (
-          <span className="truncate rounded-full bg-sky-50 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide text-sky-800 ring-1 ring-sky-200/80 sm:px-3 sm:text-[0.625rem]">
+          <span className="truncate rounded-full bg-blue-50 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide text-blue-800 ring-1 ring-blue-200/80 sm:px-3 sm:text-[0.625rem]">
             {title}
           </span>
         ) : null}
@@ -752,10 +868,12 @@ export function FlowParallelSplitCard({
   node,
   selected,
   pressing = false,
+  invalid = false,
 }: {
   node: WorkflowNode;
   selected?: boolean;
   pressing?: boolean;
+  invalid?: boolean;
 }) {
   const branchCount = Array.isArray(node.config.branches)
     ? node.config.branches.length
@@ -763,23 +881,25 @@ export function FlowParallelSplitCard({
 
   return (
     <div
-      className={`w-full max-w-sm overflow-hidden rounded-2xl border border-sky-200/80 bg-white transition-all ${
+      className={`w-full max-w-sm overflow-hidden rounded-2xl border border-blue-200/80 bg-white transition-all ${
+        invalid ? FLOW_STEP_INVALID_BLINK : ""
+      } ${
         selected
-          ? "ring-2 ring-sky-400/50 shadow-[0_8px_30px_rgba(14,165,233,0.18)]"
+          ? "ring-2 ring-[#1877f2]/50 shadow-[0_8px_30px_rgba(24,119,242,0.18)]"
           : pressing
             ? "scale-[0.99]"
             : "shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
       }`}
     >
-      <div className="flex items-center gap-2.5 border-b border-sky-100 bg-gradient-to-r from-sky-50 to-white px-5 py-4">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-sm">
+      <div className="flex items-center gap-2.5 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-white px-5 py-4">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-[#1877f2] text-white shadow-sm">
           <GitBranch className="size-4" strokeWidth={2.25} aria-hidden />
         </span>
         <div>
-          <p className="text-xs font-bold tracking-tight text-sky-950">
+          <p className="text-xs font-bold tracking-tight text-blue-950">
             Parallel Split
           </p>
-          <p className="text-[0.625rem] text-sky-700/80">
+          <p className="text-[0.625rem] text-blue-700/80">
             Runs each branch independently
           </p>
         </div>

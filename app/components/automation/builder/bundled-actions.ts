@@ -392,11 +392,45 @@ function makeSyntheticNode(
   };
 }
 
+function isSavedPaymentReminderTemplateGraph(nodes: WorkflowNode[]): boolean {
+  return nodes.some((node) => {
+    const workflowKind = String(node.config.workflowKind ?? "").trim();
+    if (workflowKind) {
+      return (
+        workflowKind.startsWith("payment_reminder") ||
+        workflowKind === PAYMENT_REMINDER_EMAIL_KIND ||
+        workflowKind === PAYMENT_REMINDER_WALLET_EMAIL_KIND ||
+        workflowKind === PAYMENT_REMINDER_EXPIRY_EMAIL_KIND ||
+        workflowKind === PAYMENT_REMINDER_WALLET_WAIT_KIND ||
+        workflowKind === PAYMENT_REMINDER_EXPIRY_WAIT_KIND
+      );
+    }
+
+    return (
+      isPaymentReminderEmailNode(node) ||
+      isPaymentReminderLoopFilterNode(node) ||
+      isPaymentReminderStatusSplitFilterNode(node) ||
+      isPassNotAddedFilterNode(node) ||
+      isWalletReminderEmailNode(node) ||
+      Boolean(node.config.flowBranch) ||
+      node.config.isPaymentReminderStatusSplit === true
+    );
+  });
+}
+
 export function normalizePaymentReminderWorkflowNodes(
   nodes: WorkflowNode[],
   purpose?: string | null,
 ): WorkflowNode[] {
+  if (nodes.length === 0) {
+    return nodes;
+  }
+
   if (purpose !== "funnel_signup_payment_reminder") {
+    return nodes;
+  }
+
+  if (!isSavedPaymentReminderTemplateGraph(nodes)) {
     return nodes;
   }
 

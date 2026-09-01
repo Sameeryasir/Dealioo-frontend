@@ -4,8 +4,10 @@ import { LayoutGrid, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { setBlockDragData } from "@/app/components/automation/builder/automation-dnd";
 import { AUTOMATION_BLOCKS, getBlockByKind } from "@/app/components/automation/mock-data";
-import { nodeToneClass } from "@/app/components/automation/automation-ui";
 import type { BlockSection, WorkflowNodeKind } from "@/app/components/automation/types";
+
+const SIDEBAR_NODE_ICON =
+  "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]";
 
 const SECTIONS: { id: BlockSection; label: string }[] = [
   { id: "triggers", label: "Triggers" },
@@ -15,6 +17,7 @@ const SECTIONS: { id: BlockSection; label: string }[] = [
 ];
 
 const VISIBLE_TRIGGER_IDS = new Set<WorkflowNodeKind>([
+  "signup_trigger",
   "payment_trigger",
   "cron_trigger",
 ]);
@@ -30,8 +33,8 @@ const SECTION_ACCENT: Record<
   { dot: string; chip: string }
 > = {
   triggers: {
-    dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.45)]",
-    chip: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15",
+    dot: "bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.45)]",
+    chip: "bg-blue-500/10 text-blue-700 ring-blue-500/15",
   },
   actions: {
     dot: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.45)]",
@@ -42,8 +45,8 @@ const SECTION_ACCENT: Record<
     chip: "bg-orange-500/10 text-orange-700 ring-orange-500/15",
   },
   flow: {
-    dot: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.45)]",
-    chip: "bg-blue-500/10 text-blue-700 ring-blue-500/15",
+    dot: "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.45)]",
+    chip: "bg-sky-500/10 text-sky-700 ring-sky-500/15",
   },
 };
 
@@ -78,7 +81,6 @@ function BlockChip({
   onEditBlocked?: () => void;
 }) {
   const block = getBlockByKind(blockId);
-  const tone = nodeToneClass(block.tone);
   const Icon = block.icon;
 
   return (
@@ -118,7 +120,7 @@ function BlockChip({
         aria-hidden
       />
       <span
-        className={`relative flex size-9 shrink-0 items-center justify-center rounded-xl ring-2 ring-white/90 ${tone.icon}`}
+        className={`relative flex size-9 shrink-0 items-center justify-center rounded-xl ring-2 ring-white/90 ${SIDEBAR_NODE_ICON}`}
       >
         <span
           className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-b from-white/30 to-transparent"
@@ -137,10 +139,12 @@ export function BlockSidebar({
   onAddBlock,
   editLocked = false,
   onEditBlocked,
+  hideTriggers = false,
 }: {
   onAddBlock: (blockId: WorkflowNodeKind) => void;
   editLocked?: boolean;
   onEditBlocked?: () => void;
+  hideTriggers?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const didDragRef = useRef(false);
@@ -149,18 +153,23 @@ export function BlockSidebar({
     const q = query.trim().toLowerCase();
     const palette = AUTOMATION_BLOCKS.filter((b) => {
       if (HIDDEN_BLOCK_IDS.has(b.id)) return false;
-      if (b.section === "triggers") return VISIBLE_TRIGGER_IDS.has(b.id);
+      if (b.section === "triggers") {
+        if (hideTriggers) return false;
+        return VISIBLE_TRIGGER_IDS.has(b.id);
+      }
       return true;
     });
     if (!q) return palette;
     return palette.filter((b) => b.label.toLowerCase().includes(q));
-  }, [query]);
+  }, [hideTriggers, query]);
 
   return (
     <aside className="flex h-full w-full min-w-0 flex-col border-r border-zinc-200/60 bg-white shadow-[4px_0_28px_rgba(0,0,0,0.04)]">
-      <div className="shrink-0 border-b border-zinc-100/90 bg-gradient-to-br from-zinc-50/90 via-white to-white px-2.5 py-3 lg:px-3 lg:py-3 xl:px-3.5 xl:py-3.5">
+      <div className="shrink-0 border-b border-zinc-100/90 bg-white px-2.5 py-3 lg:px-3 lg:py-3 xl:px-3.5 xl:py-3.5">
         <div className="flex items-start gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/70 bg-white text-zinc-600 shadow-sm ring-1 ring-zinc-950/[0.04] xl:size-9 xl:rounded-xl">
+          <span
+            className={`flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-200/70 shadow-sm ring-1 ring-blue-100/80 xl:size-9 xl:rounded-xl ${SIDEBAR_NODE_ICON}`}
+          >
             <LayoutGrid className="size-3.5 xl:size-4" strokeWidth={2} aria-hidden />
           </span>
           <div className="min-w-0 pt-0.5">
@@ -181,7 +190,7 @@ export function BlockSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search block…"
-            className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white py-2 pl-9 pr-2.5 text-xs shadow-sm ring-1 ring-zinc-950/[0.03] outline-none placeholder:text-zinc-400 transition focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10 xl:h-11 xl:rounded-xl xl:pl-10 xl:pr-3 xl:text-sm"
+            className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white py-2 pl-9 pr-2.5 text-xs text-zinc-900 shadow-sm ring-1 ring-zinc-950/[0.03] outline-none placeholder:text-zinc-400 transition focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10 xl:h-11 xl:rounded-xl xl:pl-10 xl:pr-3 xl:text-sm"
           />
         </div>
       </div>

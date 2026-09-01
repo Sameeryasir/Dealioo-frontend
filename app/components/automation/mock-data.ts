@@ -18,31 +18,31 @@ import type { BlockDefinition, WorkflowNode } from "@/app/components/automation/
 export const AUTOMATION_BLOCKS: BlockDefinition[] = [
   {
     id: "signup_trigger",
-    label: "Signup Trigger",
+    label: "Signup",
     section: "triggers",
     icon: UserPlus,
-    tone: "emerald",
+    tone: "blue",
   },
   {
     id: "payment_trigger",
     label: "Payment Trigger",
     section: "triggers",
     icon: CreditCard,
-    tone: "emerald",
+    tone: "blue",
   },
   {
     id: "funnel_complete",
     label: "Funnel Complete",
     section: "triggers",
     icon: Workflow,
-    tone: "emerald",
+    tone: "blue",
   },
   {
     id: "cron_trigger",
     label: "Cron Job",
     section: "triggers",
     icon: CalendarClock,
-    tone: "violet",
+    tone: "blue",
   },
   {
     id: "wait",
@@ -56,6 +56,13 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     label: "Delay",
     section: "flow",
     icon: Timer,
+    tone: "blue",
+  },
+  {
+    id: "parallel_split",
+    label: "Parallel Split",
+    section: "flow",
+    icon: GitBranch,
     tone: "blue",
   },
   {

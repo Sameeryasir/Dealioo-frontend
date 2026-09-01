@@ -1,56 +1,62 @@
+export const DEALIOO_SIDEBAR = {
+  header:
+    "border-b border-white/10 bg-[linear-gradient(180deg,#0e2238_0%,#122d48_52%,#16385a_100%)] text-white",
+  glow: "bg-[radial-gradient(ellipse_120%_40%_at_50%_0%,rgba(24,119,242,0.24)_0%,transparent_70%),radial-gradient(ellipse_120%_35%_at_50%_100%,rgba(244,114,182,0.12)_0%,transparent_70%)]",
+  activeIcon:
+    "bg-gradient-to-br from-[#1d84ff] via-[#1877f2] to-[#0f5ed7] shadow-[0_4px_14px_rgba(24,119,242,0.32)]",
+} as const;
+
 export const FLOW_TRIGGER = {
-  bg: "bg-gradient-to-br from-orange-500 via-orange-500 to-orange-600",
-  border: "border border-orange-400/30",
-  ring: "ring-orange-400/45",
-  label: "text-orange-100",
-  title: "text-white",
-  body: "text-orange-50/95",
-  iconWrap: "bg-white/15 ring-white/20",
-  icon: "text-white",
-  previewHeader: "border-orange-200 bg-orange-100 text-orange-950",
+  border: "border-zinc-200/80",
+  ring: "ring-[#1877f2]/45",
+  header: DEALIOO_SIDEBAR.header,
+  headerSub: "text-white/75",
+  icon: DEALIOO_SIDEBAR.activeIcon,
+  body: "text-zinc-700",
+  previewHeader: DEALIOO_SIDEBAR.header,
 } as const;
 
 export const FLOW_WAIT = {
-  border: "border-sky-200/80",
-  ring: "ring-sky-400/40",
-  header: "border-sky-100 bg-sky-100 text-sky-950",
-  headerSub: "text-sky-800/75",
-  icon: "bg-sky-500 shadow-sky-500/20",
-  body: "text-sky-900",
-  previewHeader: "border-sky-200 bg-sky-100 text-sky-950",
+  border: "border-blue-200/80",
+  ring: "ring-[#1877f2]/40",
+  header: "border-blue-100 bg-blue-100 text-blue-950",
+  headerSub: "text-blue-800/75",
+  icon: "bg-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.32)]",
+  body: "text-blue-900",
+  previewHeader: "border-blue-200 bg-blue-100 text-blue-950",
 } as const;
 
 export const FLOW_FILTER = {
-  border: "border-orange-200/80",
-  ring: "ring-orange-300/45",
-  header: "border-orange-100 bg-orange-100 text-orange-950",
-  headerSub: "text-orange-800/75",
-  icon: "bg-orange-400 shadow-orange-400/20",
-  notPill: "bg-sky-600 text-white",
-  valuePill: "bg-sky-100 text-sky-900 ring-sky-200/80",
-  previewHeader: "border-orange-200 bg-orange-100 text-orange-950",
+  border: "border-blue-200/80",
+  ring: "ring-[#1877f2]/40",
+  header: "border-blue-100 bg-blue-100 text-blue-950",
+  headerSub: "text-blue-800/75",
+  icon: "bg-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.32)]",
+  notPill: "bg-[#0f5ed7] text-white",
+  valuePill: "bg-blue-100 text-blue-900 ring-blue-200/80",
+  previewHeader: "border-blue-200 bg-blue-100 text-blue-950",
 } as const;
 
 export const FLOW_ACTIONS = {
-  border: "border-emerald-200/80",
-  ring: "ring-emerald-400/35",
-  header: "border-emerald-100 bg-emerald-100 text-emerald-950",
-  headerSub: "text-emerald-800/75",
-  icon: "bg-emerald-500 shadow-emerald-500/20",
-  stepIcon: "text-emerald-800 bg-emerald-50 ring-emerald-100",
-  stepSelected: "border-emerald-300 bg-emerald-50/90 ring-emerald-200/80",
-  stepDefault: "border-emerald-100/80 bg-white hover:border-emerald-200",
-  previewHeader: "border-emerald-200 bg-emerald-100 text-emerald-950",
+  border: "border-blue-200/80",
+  ring: "ring-[#1877f2]/35",
+  header: "border-blue-100 bg-blue-100 text-blue-950",
+  headerSub: "text-blue-800/75",
+  icon: "bg-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.32)]",
+  stepIcon: "text-blue-800 bg-blue-50 ring-blue-100",
+  stepSelected: "border-blue-300 bg-blue-50/90 ring-blue-200/80",
+  stepDefault: "border-blue-100/80 bg-white hover:border-blue-200",
+  previewHeader: "border-blue-200 bg-blue-100 text-blue-950",
 } as const;
 
 export const FLOW_CRON = {
-  border: "border-violet-200/80",
-  ring: "ring-violet-400/40",
-  header: "border-violet-100 bg-violet-100 text-violet-950",
-  headerSub: "text-violet-800/75",
-  icon: "bg-violet-500 shadow-violet-500/20",
-  body: "text-violet-900",
-  previewHeader: "border-violet-200 bg-violet-100 text-violet-950",
+  border: "border-blue-200/80",
+  ring: "ring-[#1877f2]/40",
+  header: "border-blue-100 bg-blue-100 text-blue-950",
+  headerSub: "text-blue-800/75",
+  icon: "bg-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.32)]",
+  body: "text-blue-900",
+  previewHeader: "border-blue-200 bg-blue-100 text-blue-950",
 } as const;
 
 export function flowPreviewHeaderClass(
@@ -60,7 +66,7 @@ export function flowPreviewHeaderClass(
     case "signup_trigger":
       return FLOW_TRIGGER.previewHeader;
     case "cron_trigger":
-      return FLOW_CRON.previewHeader;
+      return FLOW_TRIGGER.previewHeader;
     case "wait":
       return FLOW_WAIT.previewHeader;
     case "condition":

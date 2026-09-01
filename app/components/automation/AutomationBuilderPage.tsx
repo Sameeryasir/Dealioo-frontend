@@ -38,12 +38,14 @@ import {
 } from "@/app/components/automation/AutomationBuilderTopbar";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import {
+  canAddTriggerBlock,
   getWorkflowNodeInsertIndex,
-  hasCronTriggerNode,
+  hasTriggerNode,
   isCronStartingTrigger,
   isManualRunDisabledFlow,
   isPaymentStartingTrigger,
   isSignupStartingTrigger,
+  isTriggerWorkflowKind,
   insertWorkflowNode,
   reorderWorkflowNodes,
 } from "@/app/components/automation/workflow-node-order";
@@ -65,6 +67,14 @@ import {
 import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
 import { isPositiveInt } from "@/app/lib/numbers";
 import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
+import { validateWorkflowForActivation } from "@/app/components/automation/builder/workflow-activation-validation";
+import {
+  resolveBranchConfigForNewNode,
+  type WorkflowBranchTarget,
+  type WorkflowDropPlacement,
+} from "@/app/components/automation/builder/workflow-branch-context";
+
+const ACTIVATION_INVALID_BLINK_MS = 3500;
 
 type BuilderTab = AutomationBuilderTab;
 
@@ -107,6 +117,11 @@ export function AutomationBuilderPage({
   const [automationPublished, setAutomationPublished] = useState(false);
   const [isFlowDirty, setIsFlowDirty] = useState(false);
   const [hasUnsavedStepSettings, setHasUnsavedStepSettings] = useState(false);
+  const [invalidNodeIds, setInvalidNodeIds] = useState<string[]>([]);
+  const [invalidStepIds, setInvalidStepIds] = useState<string[]>([]);
+  const invalidBlinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [navPromptOpen, setNavPromptOpen] = useState(false);
   const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
@@ -372,11 +387,51 @@ export function AutomationBuilderPage({
     }
   }, [nodes]);
 
+  const clearInvalidBlinkTimer = useCallback(() => {
+    if (invalidBlinkTimeoutRef.current) {
+      clearTimeout(invalidBlinkTimeoutRef.current);
+      invalidBlinkTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleInvalidBlinkHighlight = useCallback(
+    (nodeIds: string[], stepIds: string[]) => {
+      clearInvalidBlinkTimer();
+      setInvalidNodeIds(nodeIds);
+      setInvalidStepIds(stepIds);
+      invalidBlinkTimeoutRef.current = setTimeout(() => {
+        invalidBlinkTimeoutRef.current = null;
+        setInvalidNodeIds([]);
+        setInvalidStepIds([]);
+      }, ACTIVATION_INVALID_BLINK_MS);
+    },
+    [clearInvalidBlinkTimer],
+  );
+
+  useEffect(() => () => clearInvalidBlinkTimer(), [clearInvalidBlinkTimer]);
+
   const handleActivate = useCallback(async (): Promise<boolean> => {
     if (!isPositiveInt(automationNumericId)) {
       toast.error("Open a saved automation before activating.");
       return false;
     }
+
+    const workflowValidation = validateWorkflowForActivation(nodes);
+    if (!workflowValidation.ok) {
+      scheduleInvalidBlinkHighlight(
+        workflowValidation.invalidNodeIds,
+        workflowValidation.invalidStepIds,
+      );
+      if (workflowValidation.firstInvalidNodeId) {
+        setSelectedId(workflowValidation.firstInvalidNodeId);
+      }
+      toast.error(workflowValidation.message, { duration: 5000 });
+      return false;
+    }
+
+    clearInvalidBlinkTimer();
+    setInvalidNodeIds([]);
+    setInvalidStepIds([]);
 
     const scheduleValidation = validatePaymentReminderSchedule(
       nodes,
@@ -429,11 +484,13 @@ export function AutomationBuilderPage({
     }
   }, [
     automationNumericId,
+    clearInvalidBlinkTimer,
     isFlowDirty,
     nodes,
     queryClient,
     refetchAutomation,
     remoteAutomation?.purpose,
+    scheduleInvalidBlinkHighlight,
     syncDirtyNodesToServer,
   ]);
 
@@ -494,7 +551,11 @@ export function AutomationBuilderPage({
   }, []);
 
   const onAddBlock = useCallback(
-    async (blockId: WorkflowNodeKind) => {
+    async (
+      blockId: WorkflowNodeKind,
+      branchTarget?: WorkflowBranchTarget | null,
+      dropPlacement?: WorkflowDropPlacement | null,
+    ) => {
       if (!guardEdit()) {
         return;
       }
@@ -507,19 +568,35 @@ export function AutomationBuilderPage({
         return;
       }
 
-      if (blockId === "cron_trigger" && hasCronTriggerNode(nodes)) {
-        toast.error("This flow already has a Cron Job trigger at the start.");
+      if (isTriggerWorkflowKind(blockId) && !canAddTriggerBlock(nodes, blockId)) {
+        toast.error(
+          "A trigger already exists. Triggers can only be placed at the start of the flow.",
+        );
         return;
       }
 
       if (addingBlockRef.current) return;
 
-      const defaultConfig = defaultConfigForBlockKind(blockId);
-      const isCronTrigger = blockId === "cron_trigger";
-      const insertIndex = getWorkflowNodeInsertIndex(nodes, blockId);
+      const defaultConfig = {
+        ...defaultConfigForBlockKind(blockId),
+        ...resolveBranchConfigForNewNode(
+          nodes,
+          selectedId,
+          branchTarget,
+          dropPlacement,
+        ),
+      };
+      const isTrigger = isTriggerWorkflowKind(blockId);
+      const insertIndex = getWorkflowNodeInsertIndex(nodes, blockId, dropPlacement);
       const order = insertIndex;
-      const previousNode = isCronTrigger ? null : nodes[nodes.length - 1];
-      const firstNode = isCronTrigger && nodes.length > 0 ? nodes[0] : null;
+      const firstExistingNode = isTrigger && nodes.length > 0 ? nodes[0]! : null;
+      const previousNode = isTrigger
+        ? null
+        : insertIndex > 0
+          ? nodes[insertIndex - 1]!
+          : nodes.length > 0
+            ? nodes[nodes.length - 1]!
+            : null;
       const tempId = `local-${blockId}-${Date.now()}`;
       const optimisticNode: WorkflowNode = {
         id: tempId,
@@ -530,7 +607,7 @@ export function AutomationBuilderPage({
       };
 
       addingBlockRef.current = true;
-      setNodes((prev) => insertWorkflowNode(prev, optimisticNode));
+      setNodes((prev) => insertWorkflowNode(prev, optimisticNode, insertIndex));
       setSelectedId(tempId);
       setIsFlowDirty(true);
 
@@ -552,15 +629,15 @@ export function AutomationBuilderPage({
         };
 
         let newConnection: AutomationConnection | null = null;
-        if (isCronTrigger) {
+        if (isTrigger) {
           if (
-            firstNode?.numericId != null &&
+            firstExistingNode?.numericId != null &&
             workflowNode.numericId != null
           ) {
             newConnection = await createAutomationConnection({
               automationId: automationNumericId,
               sourceNodeId: workflowNode.numericId,
-              targetNodeId: firstNode.numericId,
+              targetNodeId: firstExistingNode.numericId,
             });
           }
         } else if (
@@ -578,6 +655,7 @@ export function AutomationBuilderPage({
           insertWorkflowNode(
             prev.filter((node) => node.id !== tempId),
             workflowNode,
+            insertIndex,
           ),
         );
         if (newConnection) {
@@ -593,7 +671,7 @@ export function AutomationBuilderPage({
         addingBlockRef.current = false;
       }
     },
-    [automationNumericId, guardEdit, nodes],
+    [automationNumericId, guardEdit, nodes, selectedId],
   );
 
   const onUpdateNode = useCallback(
@@ -700,6 +778,18 @@ export function AutomationBuilderPage({
     }
   }, [guardEdit]);
 
+  useEffect(() => {
+    if (invalidNodeIds.length === 0) {
+      return;
+    }
+    const validation = validateWorkflowForActivation(nodes);
+    if (validation.ok) {
+      clearInvalidBlinkTimer();
+      setInvalidNodeIds([]);
+      setInvalidStepIds([]);
+    }
+  }, [nodes, invalidNodeIds.length, clearInvalidBlinkTimer]);
+
   const builderAlerts =
     tab === "builder" && (automationActive || hasUnsavedStepSettings) ? (
       <div className="shrink-0 space-y-2 border-b border-zinc-200/60 bg-white/80 px-3 py-2 sm:px-4 sm:py-2.5">
@@ -772,6 +862,7 @@ export function AutomationBuilderPage({
                 editLocked={automationActive}
                 onEditBlocked={showDeactivatePrompt}
                 onAddBlock={(id) => void onAddBlock(id)}
+                hideTriggers={hasTriggerNode(nodes)}
               />
             }
             canvas={
@@ -779,10 +870,14 @@ export function AutomationBuilderPage({
                 nodes={nodes}
                 loading={nodesLoading || (bootstrapping && nodes.length === 0)}
                 selectedId={selectedId}
+                invalidNodeIds={invalidNodeIds}
+                invalidStepIds={invalidStepIds}
                 onSelect={setSelectedId}
                 editLocked={automationActive}
                 onEditBlocked={showDeactivatePrompt}
-                onDropBlock={(id) => void onAddBlock(id)}
+                onDropBlock={(id, branchTarget, dropPlacement) =>
+                  void onAddBlock(id, branchTarget, dropPlacement)
+                }
                 onReorderNodes={onReorderNodes}
               />
             }

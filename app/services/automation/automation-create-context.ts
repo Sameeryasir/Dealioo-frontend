@@ -71,3 +71,13 @@ export function buildCreateAutomationBody(
     campaignId: input.ids.campaignId,
   };
 }
+
+const DEFAULT_PURPOSE_BY_TRIGGER: Record<string, AutomationPurpose> = {
+  "Cron Job": "funnel_signup_payment_reminder",
+  Payment: "funnel_payment",
+  Signup: "funnel_signup",
+};
+
+export function resolvePurposeForTrigger(trigger: string): AutomationPurpose {
+  return DEFAULT_PURPOSE_BY_TRIGGER[trigger] ?? "funnel_signup";
+}

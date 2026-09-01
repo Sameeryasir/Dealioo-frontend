@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarClock,
   MousePointerClick,
+  Settings,
   Sparkles,
   Trash2,
   type LucideIcon,
@@ -26,13 +27,32 @@ import {
 import { SettingsSelectDropdown } from "@/app/components/automation/builder/SettingsSelectDropdown";
 import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 import { isReturnOfferEmailNode } from "@/app/components/automation/builder/workflow-node-display";
+import {
+  readEmailField,
+  resolveEmailContentDefaults,
+} from "@/app/components/automation/builder/action-node-defaults";
+import {
+  branchPlacementFromKey,
+  branchPlacementKey,
+  getNodeBranchPlacement,
+  isParallelSplitWorkflowNode,
+  listBranchPlacementOptions,
+  listWorkflowBranchDefs,
+  parseParallelBranchesFromConfig,
+  slugifyBranchId,
+} from "@/app/components/automation/builder/workflow-branch-context";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
 import {
   blockSectionLabel,
-  nodeToneClass,
 } from "@/app/components/automation/automation-ui";
 import { automationEase } from "@/app/lib/motion";
 import type { WorkflowNode } from "@/app/components/automation/types";
+
+const SETTINGS_PRIMARY_BUTTON =
+  "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#1877f2] px-4 py-3 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(24,119,242,0.28)] transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:opacity-60";
+
+const SETTINGS_NODE_ICON =
+  "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]";
 
 const EMAIL_TEMPLATES = [
   "Payment reminder",
@@ -347,6 +367,7 @@ function hasEditableSettings(kind: WorkflowNode["kind"]): boolean {
   return [
     "wait",
     "delay",
+    "parallel_split",
     "cron_trigger",
     "send_email",
     "condition",
@@ -372,6 +393,7 @@ function buildConfigForNode(
     cronDayOfWeek: CronDayOfWeek;
     cronInterval: number;
     cronIntervalUnit: CronIntervalUnit;
+    parallelBranches: { id: string; title: string }[];
   },
 ): Record<string, unknown> {
   switch (kind) {
@@ -393,12 +415,24 @@ function buildConfigForNode(
     case "wait":
     case "delay":
       return { delay: values.delay, unit: values.unit };
+    case "parallel_split":
+      return {
+        isParallelSplit: true,
+        delay: 0,
+        unit: "minutes",
+        branches: values.parallelBranches.map((branch, index) => ({
+          id: branch.id.trim() || slugifyBranchId(branch.title, index),
+          title: branch.title.trim() || `Branch ${index + 1}`,
+        })),
+      };
     case "send_email":
       return {
         template: values.template,
-        subject: values.subject,
+        subject: values.subject.trim(),
         message: values.message.trim(),
-        ctaLabel: values.ctaLabel.trim() || "Complete payment",
+        ...(values.ctaLabel.trim()
+          ? { ctaLabel: values.ctaLabel.trim() }
+          : {}),
       };
     case "condition": {
       const label =
@@ -453,8 +487,8 @@ function mergeNodeConfigPreservingStructure(
     }
   }
 
-  if (kind === "wait" || kind === "delay") {
-    if (existing.isParallelSplit === true) {
+  if (kind === "wait" || kind === "delay" || kind === "parallel_split") {
+    if (existing.isParallelSplit === true || kind === "parallel_split") {
       next.isParallelSplit = true;
       if (existing.branches !== undefined) {
         next.branches = existing.branches;
@@ -515,18 +549,26 @@ export function NodeSettingsPanel({
   deleting?: boolean;
 }) {
   const block = node ? getBlockByKind(node.kind) : null;
-  const tone = block ? nodeToneClass(block.tone) : null;
   const Icon = block?.icon;
 
   return (
     <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden border-l border-zinc-200/60 bg-white">
       <motion.div className="relative border-b border-zinc-100 px-4 py-4">
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-          Settings
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed text-zinc-500">
-          {node ? "Configure the selected step." : "Select a step on the canvas."}
-        </p>
+        <div className="flex items-start gap-2.5">
+          <span
+            className={`flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-200/70 shadow-sm ring-1 ring-blue-100/80 ${SETTINGS_NODE_ICON}`}
+          >
+            <Settings className="size-4" strokeWidth={2} aria-hidden />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+              Settings
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-zinc-500">
+              {node ? "Configure the selected step." : "Select a step on the canvas."}
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       <AnimatePresence mode="wait">
@@ -563,7 +605,6 @@ export function NodeSettingsPanel({
               nodes={nodes}
               automationPurpose={automationPurpose}
               blockSection={block.section}
-              tone={tone}
               icon={Icon}
               onSave={onSave}
               onDelete={onDelete}
@@ -586,7 +627,6 @@ function NodeSettingsForm({
   nodes,
   automationPurpose,
   blockSection,
-  tone,
   icon: Icon,
   onSave,
   onDelete,
@@ -601,7 +641,6 @@ function NodeSettingsForm({
   nodes: WorkflowNode[];
   automationPurpose?: string | null;
   blockSection: string;
-  tone: ReturnType<typeof nodeToneClass> | null;
   icon?: LucideIcon;
   onSave?: (config: Record<string, unknown>) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
@@ -636,24 +675,17 @@ function NodeSettingsForm({
   const emailFieldConfig = isPrepaidBundledActionsNode(node)
     ? bundledEmailConfig
     : config;
+  const emailDefaults = resolveEmailContentDefaults(node);
 
   const [delay, setDelay] = useState(() =>
     configNumber(config, "delay", 30),
   );
   const [unit, setUnit] = useState<WaitUnit>(() => configUnit(config));
   const [template, setTemplate] = useState(() =>
-    configString(config, "template", EMAIL_TEMPLATES[0]),
+    readEmailField(emailFieldConfig, "template", emailDefaults),
   );
   const [subject, setSubject] = useState(() =>
-    configString(
-      emailFieldConfig,
-      "subject",
-      prepaidBundled
-        ? PREPAID_FIRST_EMAIL_DEFAULTS.subject
-        : node.kind === "send_email" || returnOfferEmail
-          ? "Complete your payment — your offer is waiting"
-          : "Complete your order — offer inside",
-    ),
+    readEmailField(emailFieldConfig, "subject", emailDefaults),
   );
   const [conditionType, setConditionType] = useState(() =>
     configString(config, "conditionType", CONDITION_TYPES[0]),
@@ -665,24 +697,10 @@ function NodeSettingsForm({
     parseFilterRowsFromConfig(config),
   );
   const [message, setMessage] = useState(() =>
-    configString(
-      emailFieldConfig,
-      "message",
-      prepaidBundled
-        ? PREPAID_FIRST_EMAIL_DEFAULTS.message
-        : node.kind === "send_email" || returnOfferEmail
-          ? returnOfferEmail
-            ? "Hi [First Name] — we'd love to see you again! Your return visit offer is ready.\n\nValid for 30 days after send."
-            : "Hi — thank you for signing up! Your offer is almost ready. Please complete your payment to unlock it. If you already paid, you can ignore this email."
-          : "Hi! Your table offer is waiting — reply STOP to opt out.",
-    ),
+    readEmailField(emailFieldConfig, "message", emailDefaults),
   );
   const [ctaLabel, setCtaLabel] = useState(() =>
-    configString(
-      emailFieldConfig,
-      "ctaLabel",
-      prepaidBundled ? PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel : "Complete payment",
-    ),
+    readEmailField(emailFieldConfig, "ctaLabel", emailDefaults),
   );
   const [whatsappTemplate, setWhatsappTemplate] = useState(() =>
     configString(config, "template", "order_reminder"),
@@ -702,6 +720,16 @@ function NodeSettingsForm({
   const [cronIntervalUnit, setCronIntervalUnit] = useState<CronIntervalUnit>(() =>
     configCronIntervalUnit(config),
   );
+  const [parallelBranches, setParallelBranches] = useState<
+    { id: string; title: string }[]
+  >(() => parseParallelBranchesFromConfig(config));
+  const branchPlacementOptions = useMemo(
+    () => listBranchPlacementOptions(listWorkflowBranchDefs(nodes)),
+    [nodes],
+  );
+  const [branchPlacement, setBranchPlacement] = useState(() =>
+    branchPlacementKey(getNodeBranchPlacement(node)),
+  );
 
   const configKey = JSON.stringify(node.config ?? {});
 
@@ -712,8 +740,6 @@ function NodeSettingsForm({
     } catch {
       saved = {};
     }
-    const prepaid = isPrepaidFirstEmailNode(node);
-    const returnOffer = isReturnOfferEmailNode(node);
     const bundledIndex = isPrepaidBundledActionsNode(node)
       ? findPrepaidBundledEmailActionIndex(node)
       : -1;
@@ -725,52 +751,32 @@ function NodeSettingsForm({
         ? (saved.actions[bundledIndex] as Record<string, unknown>)
         : {};
     const emailConfig = isPrepaidBundledActionsNode(node) ? bundledConfig : saved;
+    const defaults = resolveEmailContentDefaults(node);
     setDelay(configNumber(saved, "delay", 30));
     setUnit(configUnit(saved));
-    setTemplate(configString(saved, "template", EMAIL_TEMPLATES[0]));
-    setSubject(
-      configString(
-        emailConfig,
-        "subject",
-        prepaid
-          ? PREPAID_FIRST_EMAIL_DEFAULTS.subject
-          : node.kind === "send_email" || returnOffer
-            ? returnOffer
-              ? "Your return visit offer is ready"
-              : "Complete your payment — your offer is waiting"
-            : "Complete your order — offer inside",
-      ),
-    );
+    setTemplate(readEmailField(emailConfig, "template", defaults));
+    setSubject(readEmailField(emailConfig, "subject", defaults));
     setConditionType(configString(saved, "conditionType", CONDITION_TYPES[0]));
     setConditionValue(initialConditionValue(saved));
     setFilterRows(parseFilterRowsFromConfig(saved));
-    setMessage(
-      configString(
-        emailConfig,
-        "message",
-        prepaid
-          ? PREPAID_FIRST_EMAIL_DEFAULTS.message
-          : node.kind === "send_email" || returnOffer
-            ? returnOffer
-              ? "Hi [First Name] — we'd love to see you again! Your return visit offer is ready.\n\nValid for 30 days after send."
-              : "Hi — thank you for signing up! Your offer is almost ready. Please complete your payment to unlock it. If you already paid, you can ignore this email."
-            : "Hi! Your table offer is waiting — reply STOP to opt out.",
-      ),
-    );
-    setCtaLabel(
-      configString(
-        emailConfig,
-        "ctaLabel",
-        prepaid ? PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel : "Complete payment",
-      ),
-    );
+    setMessage(readEmailField(emailConfig, "message", defaults));
+    setCtaLabel(readEmailField(emailConfig, "ctaLabel", defaults));
     setWhatsappTemplate(configString(saved, "template", "order_reminder"));
     setCronFrequency(configCronFrequency(saved));
     setCronTime(configString(saved, "time", "09:00"));
     setCronDayOfWeek(configCronDay(saved));
     setCronInterval(configCronIntervalValue(saved));
     setCronIntervalUnit(configCronIntervalUnit(saved));
-  }, [node.id, configKey]);
+    setParallelBranches(parseParallelBranchesFromConfig(saved));
+    setBranchPlacement(
+      branchPlacementKey(
+        getNodeBranchPlacement({
+          ...node,
+          config: saved,
+        }),
+      ),
+    );
+  }, [node, configKey]);
 
   const cronPreview = formatCronScheduleSummary({
     frequency: cronFrequency,
@@ -795,6 +801,7 @@ function NodeSettingsForm({
     cronDayOfWeek,
     cronInterval,
     cronIntervalUnit,
+    parallelBranches,
   };
 
   const buildNextConfig = useCallback((): Record<string, unknown> => {
@@ -837,7 +844,31 @@ function NodeSettingsForm({
         node.kind,
       );
     }
-    return mergeNodeConfigPreservingStructure(
+    if (node.kind === "parallel_split") {
+      return mergeNodeConfigPreservingStructure(
+        (node.config ?? {}) as Record<string, unknown>,
+        buildConfigForNode(node.kind, {
+          delay,
+          unit,
+          template,
+          subject,
+          conditionType,
+          conditionValue,
+          message,
+          ctaLabel,
+          whatsappTemplate,
+          cronFrequency,
+          cronTime,
+          cronDayOfWeek,
+          cronInterval,
+          cronIntervalUnit,
+          parallelBranches,
+        }),
+        node.kind,
+      );
+    }
+
+    let next = mergeNodeConfigPreservingStructure(
       (node.config ?? {}) as Record<string, unknown>,
       buildConfigForNode(node.kind, {
         delay,
@@ -854,9 +885,26 @@ function NodeSettingsForm({
         cronDayOfWeek,
         cronInterval,
         cronIntervalUnit,
+        parallelBranches,
       }),
       node.kind,
     );
+
+    const placement = branchPlacementFromKey(branchPlacement);
+    if (placement && !isParallelSplitWorkflowNode(node)) {
+      next = {
+        ...next,
+        flowBranch: placement.flowBranch,
+        ...(placement.flowBranchParent
+          ? { flowBranchParent: placement.flowBranchParent }
+          : {}),
+      };
+    } else if (branchPlacement === "main" && !isParallelSplitWorkflowNode(node)) {
+      delete next.flowBranch;
+      delete next.flowBranchParent;
+    }
+
+    return next;
   }, [
     conditionType,
     conditionValue,
@@ -876,6 +924,8 @@ function NodeSettingsForm({
     template,
     unit,
     whatsappTemplate,
+    branchPlacement,
+    parallelBranches,
   ]);
 
   const isSettingsDirty = useMemo(() => {
@@ -964,6 +1014,7 @@ function NodeSettingsForm({
       cronDayOfWeek,
       cronInterval,
       cronIntervalUnit,
+      parallelBranches,
     });
     const validation = validatePaymentReminderSchedule(nodes, automationPurpose, {
       nodeId: node.id,
@@ -1001,20 +1052,18 @@ function NodeSettingsForm({
     >
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 [scrollbar-gutter:stable]">
       <motion.div
-        className={`mb-8 flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-zinc-50/40 px-4 py-3.5 ${tone?.accent ?? "border-l-[3px] border-l-zinc-400"}`}
+        className="mb-8 flex items-center gap-3 rounded-2xl border border-zinc-200/70 border-l-[3px] border-l-[#1877f2] bg-zinc-50/40 px-4 py-3.5"
         layout
       >
-        {Icon && tone ? (
+        {Icon ? (
           <span
-            className={`relative flex size-10 shrink-0 items-center justify-center rounded-xl ${tone.icon}`}
+            className={`relative flex size-10 shrink-0 items-center justify-center rounded-xl ${SETTINGS_NODE_ICON}`}
           >
             <Icon className="relative size-[1.125rem]" strokeWidth={2.15} aria-hidden />
           </span>
         ) : null}
         <div className="min-w-0">
-          <span
-            className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ${tone?.badge ?? "bg-zinc-100 text-zinc-600"}`}
-          >
+          <span className="inline-flex rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-[#0f5ed7] ring-1 ring-[#1877f2]/15">
             {blockSectionLabel(blockSection)}
           </span>
           <p className="mt-1 truncate text-[0.9375rem] font-semibold tracking-tight text-zinc-900">
@@ -1054,7 +1103,8 @@ function NodeSettingsForm({
           onIntervalUnitChange={setCronIntervalUnit}
         />
       )}
-      {(node.kind === "wait" || node.kind === "delay") && (
+      {(node.kind === "wait" || node.kind === "delay") &&
+        !isParallelSplitWorkflowNode(node) && (
         <WaitSettings
           delay={delay}
           unit={unit}
@@ -1063,6 +1113,23 @@ function NodeSettingsForm({
           onEditBlocked={onEditBlocked}
           onDelayChange={setDelay}
           onUnitChange={setUnit}
+        />
+      )}
+      {node.kind === "parallel_split" && (
+        <ParallelSplitSettings
+          branches={parallelBranches}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
+          onBranchesChange={setParallelBranches}
+        />
+      )}
+      {branchPlacementOptions.length > 1 && !isParallelSplitWorkflowNode(node) && (
+        <BranchPlacementSettings
+          value={branchPlacement}
+          options={branchPlacementOptions}
+          readOnly={readOnly}
+          onEditBlocked={onEditBlocked}
+          onChange={setBranchPlacement}
         />
       )}
       {(node.kind === "send_email" || prepaidBundled || returnOfferEmail) && (
@@ -1122,7 +1189,7 @@ function NodeSettingsForm({
                   onEditBlocked?.();
                 }
               }}
-              className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+              className={SETTINGS_PRIMARY_BUTTON}
             >
               {saving ? "Saving…" : "Save changes"}
             </button>
@@ -1241,7 +1308,7 @@ function SegmentButton({
       }}
       className={`cursor-pointer rounded-xl px-2 py-2.5 text-xs font-semibold transition ${
         active
-          ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/80"
+          ? "bg-[#1877f2] text-white shadow-sm shadow-[#1877f2]/25"
           : "text-zinc-500 hover:text-zinc-800"
       }`}
     >
@@ -1505,7 +1572,10 @@ function EmailSettings({
       <FormField label="Template">
         <SettingsSelectDropdown
           value={template}
-          options={EMAIL_TEMPLATES.map((t) => ({ value: t, label: t }))}
+          options={[
+            { value: "", label: "Custom" },
+            ...EMAIL_TEMPLATES.map((t) => ({ value: t, label: t })),
+          ]}
           onChange={onTemplateChange}
           ariaLabel="Email template"
           locked={readOnly}
@@ -1517,6 +1587,7 @@ function EmailSettings({
           type="text"
           value={subject}
           onChange={(e) => onSubjectChange(e.target.value)}
+          placeholder="Email subject"
           className={inputClass()}
           {...lockedInputProps(readOnly, onEditBlocked)}
         />
@@ -1526,6 +1597,7 @@ function EmailSettings({
           rows={6}
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
+          placeholder="Write your email message"
           className={textareaClass()}
           {...lockedInputProps(readOnly, onEditBlocked)}
         />
@@ -1535,6 +1607,7 @@ function EmailSettings({
           type="text"
           value={ctaLabel}
           onChange={(e) => onCtaLabelChange(e.target.value)}
+          placeholder="Button text"
           className={inputClass()}
           {...lockedInputProps(readOnly, onEditBlocked)}
         />
@@ -1782,6 +1855,141 @@ function SmsSettings({
         />
       </FormField>
     </motion.div>
+    </SettingsSection>
+  );
+}
+
+function BranchPlacementSettings({
+  value,
+  options,
+  readOnly = false,
+  onEditBlocked,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <SettingsSection
+      title="Branch placement"
+      description="Choose which branch this step belongs to."
+    >
+      <FormField label="Runs in">
+        <SettingsSelectDropdown
+          value={value}
+          options={options.map((option) => ({
+            value: option.value,
+            label: option.label,
+          }))}
+          onChange={onChange}
+          ariaLabel="Branch placement"
+          locked={readOnly}
+          onLockedEdit={onEditBlocked}
+        />
+      </FormField>
+    </SettingsSection>
+  );
+}
+
+function ParallelSplitSettings({
+  branches,
+  readOnly = false,
+  onEditBlocked,
+  onBranchesChange,
+}: {
+  branches: { id: string; title: string }[];
+  readOnly?: boolean;
+  onEditBlocked?: () => void;
+  onBranchesChange: (branches: { id: string; title: string }[]) => void;
+}) {
+  const updateBranch = (index: number, title: string) => {
+    const next = branches.map((branch, rowIndex) =>
+      rowIndex === index
+        ? {
+            ...branch,
+            title,
+            id: slugifyBranchId(title, rowIndex),
+          }
+        : branch,
+    );
+    onBranchesChange(next);
+  };
+
+  const addBranch = () => {
+    const index = branches.length;
+    onBranchesChange([
+      ...branches,
+      {
+        id: slugifyBranchId(`Branch ${index + 1}`, index),
+        title: `Branch ${index + 1}`,
+      },
+    ]);
+  };
+
+  const removeBranch = (index: number) => {
+    if (branches.length <= 2) {
+      toast.error("Keep at least two branches in a split.");
+      return;
+    }
+    onBranchesChange(branches.filter((_, rowIndex) => rowIndex !== index));
+  };
+
+  return (
+    <SettingsSection
+      title="Parallel branches"
+      description="Each branch runs on its own path. Add steps inside a branch, or add a nested split for sub-branches."
+    >
+      <div className="space-y-3">
+        {branches.map((branch, index) => (
+          <div
+            key={`${branch.id}-${index}`}
+            className="rounded-xl border border-blue-100 bg-blue-50/40 p-3"
+          >
+            <FormField label={`Branch ${index + 1}`}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={branch.title}
+                  onChange={(e) => updateBranch(index, e.target.value)}
+                  className={inputClass()}
+                  {...lockedInputProps(readOnly, onEditBlocked)}
+                />
+                <button
+                  type="button"
+                  disabled={readOnly || branches.length <= 2}
+                  onClick={() => {
+                    if (readOnly) {
+                      onEditBlocked?.();
+                      return;
+                    }
+                    removeBranch(index);
+                  }}
+                  className="shrink-0 rounded-lg px-2 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+            </FormField>
+          </div>
+        ))}
+        <button
+          type="button"
+          disabled={readOnly}
+          onClick={() => {
+            if (readOnly) {
+              onEditBlocked?.();
+              return;
+            }
+            addBranch();
+          }}
+          className="inline-flex w-full items-center justify-center rounded-xl border border-dashed border-blue-200 bg-white px-3 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+        >
+          Add branch
+        </button>
+      </div>
     </SettingsSection>
   );
 }

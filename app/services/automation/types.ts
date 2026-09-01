@@ -8,14 +8,27 @@ export type AutomationPurpose =
 export const AUTOMATION_PURPOSE_OPTIONS: {
   value: AutomationPurpose;
   label: string;
+  description: string;
 }[] = [
   {
     value: "funnel_signup_payment_reminder",
-    label: "Funnel signup payment reminder",
+    label: "Payment reminder (unpaid signups)",
+    description: "Nudge guests who signed up but have not paid yet.",
+  },
+  {
+    value: "funnel_signup",
+    label: "Signup welcome",
+    description: "Run when someone new signs up to your campaign.",
+  },
+  {
+    value: "funnel_payment",
+    label: "Prepaid / paid guests",
+    description: "Target guests who already completed payment.",
   },
   {
     value: "funnel_abandoned_checkout_reminder",
-    label: "Funnel abandoned checkout reminder",
+    label: "Abandoned checkout reminder",
+    description: "Follow up with guests who started checkout but did not finish.",
   },
 ];
 
@@ -107,12 +120,14 @@ export interface AutomationConnection {
   automationId: number;
   sourceNodeId: number;
   targetNodeId: number;
+  branch?: string | null;
 }
 
 export interface CreateAutomationConnectionBody {
   automationId: number;
   sourceNodeId: number;
   targetNodeId: number;
+  branch?: string;
 }
 
 export interface FunnelAutomationGraph {
