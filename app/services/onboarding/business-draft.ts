@@ -7,6 +7,8 @@ export type BusinessOnboardingDraftPayload = {
   email?: string;
   description?: string;
   websiteUrl?: string;
+  businessType?: string;
+  currency?: string;
   city?: string;
   state?: string;
   postalCode?: string;

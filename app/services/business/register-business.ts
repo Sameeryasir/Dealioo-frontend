@@ -20,6 +20,8 @@ export type RegisterBusinessPayload = {
   websiteUrl?: string;
   logoFile?: File | null;
   logoUrl?: string | null;
+  businessType?: string;
+  currency?: string;
   city?: string;
   state?: string;
   postalCode?: string;
@@ -111,6 +113,18 @@ export async function registerBusiness(
   formData.append("branchCount", String(payload.branchCount));
   formData.append("twilioPhoneSid", payload.twilioPhoneSid.trim());
   formData.append("twilioPhoneNumber", payload.twilioPhoneNumber.trim());
+
+  const businessType = optionalString(payload.businessType);
+  if (!businessType) {
+    throw new Error("Please select a business type.");
+  }
+  formData.append("businessType", businessType);
+
+  const currency = optionalString(payload.currency)?.toUpperCase();
+  if (!currency) {
+    throw new Error("Please select a currency.");
+  }
+  formData.append("currency", currency);
 
   const slug = optionalString(payload.slug);
   if (slug !== undefined) formData.append("slug", slug);

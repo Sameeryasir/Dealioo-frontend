@@ -527,6 +527,31 @@ export function BusinessGeneralSettingsForm({
               </DetailField>
 
               <DetailField
+                label="Business type"
+                htmlFor="business-settings-type"
+                icon={Store}
+                tone="blue"
+              >
+                <p id="business-settings-type" className={`${fieldInputClass} m-0`}>
+                  {displayOrDash(business?.businessType ?? "")}
+                </p>
+              </DetailField>
+
+              <DetailField
+                label="Currency"
+                htmlFor="business-settings-currency"
+                icon={Target}
+                tone="green"
+              >
+                <p
+                  id="business-settings-currency"
+                  className={`${fieldInputClass} m-0`}
+                >
+                  {displayOrDash(business?.currency ?? "")}
+                </p>
+              </DetailField>
+
+              <DetailField
                 label="Phone number"
                 htmlFor="business-settings-phone"
                 icon={Phone}

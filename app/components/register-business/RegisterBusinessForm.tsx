@@ -15,6 +15,10 @@ import "@/app/components/register-business/register-business-responsive.css";
 import logoStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { validateBusinessLocation } from "@/app/lib/business-location";
+import {
+  BUSINESS_CURRENCY_OPTIONS,
+  BUSINESS_TYPE_OPTIONS,
+} from "@/app/lib/business-type-currency";
 import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import { compressImageForUpload } from "@/app/lib/compress-image-file";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
@@ -24,6 +28,7 @@ import {
   uploadBusinessDraftLogo,
 } from "@/app/services/onboarding/business-draft";
 import { RegisterBusinessTwilioNumberField } from "@/app/components/register-business/RegisterBusinessTwilioNumberField";
+import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
 import { useAvailableTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
 
@@ -32,6 +37,7 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Banknote,
   Building2,
   Check,
   Clock3,
@@ -48,6 +54,7 @@ import {
   Search,
   Shield,
   Sparkles,
+  Tag,
   Trash2,
   TrendingUp,
   Upload,
@@ -240,6 +247,8 @@ export type RegisterBusinessFormValues = {
   email: string;
   description: string;
   websiteUrl: string;
+  businessType: string;
+  currency: string;
   city: string;
   state: string;
   postalCode: string;
@@ -264,6 +273,8 @@ const DEFAULT_VALUES: RegisterBusinessFormValues = {
   email: "",
   description: "",
   websiteUrl: "",
+  businessType: "",
+  currency: "USD",
   city: "",
   state: "",
   postalCode: "",
@@ -952,6 +963,8 @@ export default function RegisterBusinessForm({
           email: payload.email ?? prev.email,
           description: payload.description ?? prev.description,
           websiteUrl: payload.websiteUrl ?? prev.websiteUrl,
+          businessType: payload.businessType ?? prev.businessType,
+          currency: payload.currency ?? prev.currency,
           city: payload.city ?? prev.city,
           state: payload.state ?? prev.state,
           postalCode: payload.postalCode ?? prev.postalCode,
@@ -990,6 +1003,8 @@ export default function RegisterBusinessForm({
           email: values.email,
           description: values.description,
           websiteUrl: values.websiteUrl,
+          businessType: values.businessType,
+          currency: values.currency,
           city: values.city,
           state: values.state,
           postalCode: values.postalCode,
@@ -1049,6 +1064,12 @@ export default function RegisterBusinessForm({
           if (!snapshot.name.trim()) return "Please enter your business name.";
           if (!snapshot.phoneNumber.trim() || !isValidPhoneNumber(snapshot.phoneNumber)) {
             return "Please enter a valid phone number.";
+          }
+          if (!snapshot.businessType.trim()) {
+            return "Please select a business type.";
+          }
+          if (!snapshot.currency.trim()) {
+            return "Please select a currency.";
           }
           return null;
         case "about":
@@ -1514,6 +1535,58 @@ export default function RegisterBusinessForm({
                                 }}
                               />
                             </div>
+                          </label>
+
+                          <label>
+                            <span className={logoStyles.basicsLabel}>
+                              Business type
+                              <span className={logoStyles.basicsRequired}>*</span>
+                            </span>
+                            <span className={logoStyles.basicsInputWrap}>
+                              <Tag
+                                className={`${logoStyles.basicsInputIcon} size-4`}
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                              <BusinessOptionSelect
+                                value={values.businessType}
+                                options={[...BUSINESS_TYPE_OPTIONS]}
+                                placeholder="Select business type"
+                                ariaLabel="Business type"
+                                triggerClassName={`${logoStyles.basicsInput} ${logoStyles.basicsSelectTrigger}`}
+                                onChange={(nextValue) => {
+                                  patchValues({ businessType: nextValue });
+                                  setStepError(null);
+                                }}
+                              />
+                            </span>
+                          </label>
+
+                          <label>
+                            <span className={logoStyles.basicsLabel}>
+                              Currency
+                              <span className={logoStyles.basicsRequired}>*</span>
+                            </span>
+                            <span className={logoStyles.basicsInputWrap}>
+                              <Banknote
+                                className={`${logoStyles.basicsInputIcon} size-4`}
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                              <BusinessOptionSelect
+                                value={values.currency}
+                                options={[...BUSINESS_CURRENCY_OPTIONS]}
+                                placeholder="Select currency"
+                                ariaLabel="Currency"
+                                triggerClassName={`${logoStyles.basicsInput} ${logoStyles.basicsSelectTrigger}`}
+                                onChange={(nextValue) => {
+                                  patchValues({
+                                    currency: nextValue.toUpperCase(),
+                                  });
+                                  setStepError(null);
+                                }}
+                              />
+                            </span>
                           </label>
                         </div>
 

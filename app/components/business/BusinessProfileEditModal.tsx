@@ -5,11 +5,16 @@ import {
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
+import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import {
   locationFieldMessage,
   validateBusinessLocation,
 } from "@/app/lib/business-location";
+import {
+  BUSINESS_CURRENCY_OPTIONS,
+  BUSINESS_TYPE_OPTIONS,
+} from "@/app/lib/business-type-currency";
 import {
   buildBusinessAddressQuery,
   geocodeBusinessAddress,
@@ -77,6 +82,8 @@ type FormSnapshot = {
   phoneNumber: string;
   email: string;
   websiteUrl: string;
+  businessType: string;
+  currency: string;
   city: string;
   state: string;
   country: string;
@@ -168,6 +175,8 @@ function snapshotFromBusiness(business: {
   phoneNumber?: string | null;
   email?: string | null;
   websiteUrl?: string | null;
+  businessType?: string | null;
+  currency?: string | null;
   city?: string | null;
   state?: string | null;
   country?: string | null;
@@ -180,6 +189,8 @@ function snapshotFromBusiness(business: {
     phoneNumber: business.phoneNumber?.trim() ?? "",
     email: business.email?.trim() ?? "",
     websiteUrl: business.websiteUrl?.trim() ?? "",
+    businessType: business.businessType?.trim() ?? "",
+    currency: business.currency?.trim().toUpperCase() ?? "",
     city: business.city?.trim() ?? "",
     state: business.state?.trim() ?? "",
     country: business.country?.trim() ?? "",
@@ -322,6 +333,8 @@ export function BusinessProfileEditModal({
     phoneNumber: "",
     email: "",
     websiteUrl: "",
+    businessType: "",
+    currency: "",
     city: "",
     state: "",
     country: "",
@@ -497,6 +510,8 @@ export function BusinessProfileEditModal({
 
   const canSave = useMemo(() => {
     if (!form.name.trim()) return false;
+    if (!form.businessType.trim()) return false;
+    if (!form.currency.trim()) return false;
     if (!form.phoneNumber.trim() || !isValidPhoneNumber(form.phoneNumber)) {
       return false;
     }
@@ -583,6 +598,8 @@ export function BusinessProfileEditModal({
         phoneNumber: form.phoneNumber.trim(),
         email: form.email.trim() || undefined,
         websiteUrl: form.websiteUrl.trim() || undefined,
+        businessType: form.businessType.trim() || undefined,
+        currency: form.currency.trim().toUpperCase() || undefined,
         city: form.city.trim() || undefined,
         state: form.state.trim() || undefined,
         country: form.country.trim() || undefined,
@@ -791,6 +808,49 @@ export function BusinessProfileEditModal({
                         placeholder="Your business name"
                       />
                     </Field>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field
+                        label="Business type"
+                        htmlFor="edit-business-type"
+                        required
+                      >
+                        <BusinessOptionSelect
+                          id="edit-business-type"
+                          value={form.businessType}
+                          options={[...BUSINESS_TYPE_OPTIONS]}
+                          placeholder="Select business type"
+                          ariaLabel="Business type"
+                          menuZIndex={200}
+                          placeholderClassName="font-normal text-slate-400"
+                          triggerClassName={`${inputClass} pr-2.5`}
+                          onChange={(nextValue) =>
+                            patchForm({ businessType: nextValue })
+                          }
+                        />
+                      </Field>
+                      <Field
+                        label="Currency"
+                        htmlFor="edit-business-currency"
+                        required
+                      >
+                        <BusinessOptionSelect
+                          id="edit-business-currency"
+                          value={form.currency}
+                          options={[...BUSINESS_CURRENCY_OPTIONS]}
+                          placeholder="Select currency"
+                          ariaLabel="Currency"
+                          menuZIndex={200}
+                          placeholderClassName="font-normal text-slate-400"
+                          triggerClassName={`${inputClass} pr-2.5`}
+                          onChange={(nextValue) =>
+                            patchForm({
+                              currency: nextValue.toUpperCase(),
+                            })
+                          }
+                        />
+                      </Field>
+                    </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Field

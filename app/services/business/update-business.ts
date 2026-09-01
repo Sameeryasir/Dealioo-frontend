@@ -19,6 +19,8 @@ export type UpdateBusinessPayload = {
   phoneNumber?: string;
   email?: string;
   websiteUrl?: string;
+  businessType?: string;
+  currency?: string;
   city?: string;
   state?: string;
   country?: string;
@@ -72,6 +74,16 @@ export async function updateBusiness(
       }
       const websiteUrl = optionalUrl(payload.websiteUrl);
       if (websiteUrl !== undefined) formData.append("websiteUrl", websiteUrl);
+      if (payload.businessType !== undefined) {
+        const businessType = optionalString(payload.businessType);
+        if (businessType !== undefined) {
+          formData.append("businessType", businessType);
+        }
+      }
+      if (payload.currency !== undefined) {
+        const currency = optionalString(payload.currency)?.toUpperCase();
+        if (currency !== undefined) formData.append("currency", currency);
+      }
       if (payload.city !== undefined) {
         const city = optionalString(payload.city);
         if (city !== undefined) formData.append("city", city);
@@ -141,6 +153,14 @@ export async function updateBusiness(
     }
     const websiteUrl = optionalUrl(payload.websiteUrl);
     if (websiteUrl !== undefined) body.websiteUrl = websiteUrl;
+    if (payload.businessType !== undefined) {
+      const businessType = optionalString(payload.businessType);
+      if (businessType !== undefined) body.businessType = businessType;
+    }
+    if (payload.currency !== undefined) {
+      const currency = optionalString(payload.currency)?.toUpperCase();
+      if (currency !== undefined) body.currency = currency;
+    }
     if (payload.city !== undefined) {
       const city = optionalString(payload.city);
       if (city !== undefined) body.city = city;

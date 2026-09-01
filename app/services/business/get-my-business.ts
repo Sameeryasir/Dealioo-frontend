@@ -17,6 +17,8 @@ export type AdminBusiness = {
   slug?: string | null;
   description?: string | null;
   logoUrl?: string | null;
+  businessType?: string | null;
+  currency?: string | null;
   websiteUrl?: string | null;
   email?: string | null;
   phoneNumber?: string | null;
@@ -203,6 +205,8 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
     slug: pickString(o, "slug", "slug") ?? null,
     description: pickString(o, "description", "description") ?? null,
     logoUrl: pickString(o, "logoUrl", "logo_url") ?? null,
+    businessType: pickString(o, "businessType", "business_type") ?? null,
+    currency: pickString(o, "currency", "currency") ?? null,
     websiteUrl: pickString(o, "websiteUrl", "website_url") ?? null,
     email: pickString(o, "email", "email") ?? null,
     phoneNumber: pickString(o, "phoneNumber", "phone_number") ?? null,
