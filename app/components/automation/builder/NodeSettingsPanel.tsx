@@ -32,12 +32,7 @@ import {
   resolveEmailContentDefaults,
 } from "@/app/components/automation/builder/action-node-defaults";
 import {
-  branchPlacementFromKey,
-  branchPlacementKey,
-  getNodeBranchPlacement,
   isParallelSplitWorkflowNode,
-  listBranchPlacementOptions,
-  listWorkflowBranchDefs,
   parseParallelBranchesFromConfig,
   slugifyBranchId,
 } from "@/app/components/automation/builder/workflow-branch-context";
@@ -723,13 +718,6 @@ function NodeSettingsForm({
   const [parallelBranches, setParallelBranches] = useState<
     { id: string; title: string }[]
   >(() => parseParallelBranchesFromConfig(config));
-  const branchPlacementOptions = useMemo(
-    () => listBranchPlacementOptions(listWorkflowBranchDefs(nodes)),
-    [nodes],
-  );
-  const [branchPlacement, setBranchPlacement] = useState(() =>
-    branchPlacementKey(getNodeBranchPlacement(node)),
-  );
 
   const configKey = JSON.stringify(node.config ?? {});
 
@@ -768,14 +756,6 @@ function NodeSettingsForm({
     setCronInterval(configCronIntervalValue(saved));
     setCronIntervalUnit(configCronIntervalUnit(saved));
     setParallelBranches(parseParallelBranchesFromConfig(saved));
-    setBranchPlacement(
-      branchPlacementKey(
-        getNodeBranchPlacement({
-          ...node,
-          config: saved,
-        }),
-      ),
-    );
   }, [node, configKey]);
 
   const cronPreview = formatCronScheduleSummary({
@@ -868,7 +848,7 @@ function NodeSettingsForm({
       );
     }
 
-    let next = mergeNodeConfigPreservingStructure(
+    return mergeNodeConfigPreservingStructure(
       (node.config ?? {}) as Record<string, unknown>,
       buildConfigForNode(node.kind, {
         delay,
@@ -889,22 +869,6 @@ function NodeSettingsForm({
       }),
       node.kind,
     );
-
-    const placement = branchPlacementFromKey(branchPlacement);
-    if (placement && !isParallelSplitWorkflowNode(node)) {
-      next = {
-        ...next,
-        flowBranch: placement.flowBranch,
-        ...(placement.flowBranchParent
-          ? { flowBranchParent: placement.flowBranchParent }
-          : {}),
-      };
-    } else if (branchPlacement === "main" && !isParallelSplitWorkflowNode(node)) {
-      delete next.flowBranch;
-      delete next.flowBranchParent;
-    }
-
-    return next;
   }, [
     conditionType,
     conditionValue,
@@ -924,7 +888,6 @@ function NodeSettingsForm({
     template,
     unit,
     whatsappTemplate,
-    branchPlacement,
     parallelBranches,
   ]);
 
@@ -1121,15 +1084,6 @@ function NodeSettingsForm({
           readOnly={readOnly}
           onEditBlocked={onEditBlocked}
           onBranchesChange={setParallelBranches}
-        />
-      )}
-      {branchPlacementOptions.length > 1 && !isParallelSplitWorkflowNode(node) && (
-        <BranchPlacementSettings
-          value={branchPlacement}
-          options={branchPlacementOptions}
-          readOnly={readOnly}
-          onEditBlocked={onEditBlocked}
-          onChange={setBranchPlacement}
         />
       )}
       {(node.kind === "send_email" || prepaidBundled || returnOfferEmail) && (
@@ -1863,41 +1817,6 @@ function SmsSettings({
   );
 }
 
-function BranchPlacementSettings({
-  value,
-  options,
-  readOnly = false,
-  onEditBlocked,
-  onChange,
-}: {
-  value: string;
-  options: { value: string; label: string }[];
-  readOnly?: boolean;
-  onEditBlocked?: () => void;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <SettingsSection
-      title="Branch placement"
-      description="Choose which branch this step belongs to."
-    >
-      <FormField label="Runs in">
-        <SettingsSelectDropdown
-          value={value}
-          options={options.map((option) => ({
-            value: option.value,
-            label: option.label,
-          }))}
-          onChange={onChange}
-          ariaLabel="Branch placement"
-          locked={readOnly}
-          onLockedEdit={onEditBlocked}
-        />
-      </FormField>
-    </SettingsSection>
-  );
-}
-
 function ParallelSplitSettings({
   branches,
   readOnly = false,
@@ -1927,8 +1846,8 @@ function ParallelSplitSettings({
     onBranchesChange([
       ...branches,
       {
-        id: slugifyBranchId(`Branch ${index + 1}`, index),
-        title: `Branch ${index + 1}`,
+        id: slugifyBranchId(`Path ${index + 1}`, index),
+        title: `Path ${index + 1}`,
       },
     ]);
   };
@@ -1952,7 +1871,7 @@ function ParallelSplitSettings({
             key={`${branch.id}-${index}`}
             className="rounded-xl border border-blue-100 bg-blue-50/40 p-3"
           >
-            <FormField label={`Branch ${index + 1}`}>
+            <FormField label={`Path ${index + 1}`}>
               <div className="flex items-center gap-2">
                 <input
                   type="text"

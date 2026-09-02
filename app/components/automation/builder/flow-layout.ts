@@ -205,8 +205,14 @@ export function parsePrepaidVisitSplitLayout(
     return { node: targetNode, index: startIndex + index };
   })();
 
+  const hasTemplateVisitedBranch = flowNodes.some(
+    (node) => getFlowBranch(node) === FLOW_BRANCH_VISITED_YES,
+  );
   const hasSplit =
-    visitFilterIndex >= 0 && visitedYes.length > 0 && loopTarget != null;
+    hasTemplateVisitedBranch &&
+    visitFilterIndex >= 0 &&
+    visitedYes.length > 0 &&
+    loopTarget != null;
 
   return { head, visitedYes, loopTarget, hasSplit };
 }

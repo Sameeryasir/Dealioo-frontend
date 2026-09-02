@@ -61,18 +61,16 @@ export function defaultParallelSplitConfig(
   nestUnder?: string | null,
 ): Record<string, unknown> {
   const nestKey = String(nestUnder ?? "").trim();
-  const unique =
-    nestKey.length > 0
-      ? `_${slugifyBranchId(nestKey)}_${Date.now().toString(36)}`
-      : "";
+  const stamp = Date.now().toString(36);
+  const prefix = nestKey.length > 0 ? `${slugifyBranchId(nestKey)}_` : "";
 
   return {
     isParallelSplit: true,
     delay: 0,
     unit: "minutes",
     branches: [
-      { id: `branch_a${unique}`, title: "Branch A" },
-      { id: `branch_b${unique}`, title: "Branch B" },
+      { id: `${prefix}path_1_${stamp}`, title: "Path 1" },
+      { id: `${prefix}path_2_${stamp}`, title: "Path 2" },
     ],
   };
 }
@@ -313,4 +311,70 @@ export function normalizeWorkflowNodeKind(node: WorkflowNode): WorkflowNodeKind 
     return "parallel_split";
   }
   return node.kind;
+}
+
+export function buildDesiredAutomationConnectionPairs(
+  nodes: WorkflowNode[],
+): { sourceNodeId: number; targetNodeId: number }[] {
+  const pairs: { sourceNodeId: number; targetNodeId: number }[] = [];
+  const seen = new Set<string>();
+
+  const pushPair = (source: WorkflowNode, target: WorkflowNode) => {
+    if (source.numericId == null || target.numericId == null) return;
+    const key = `${source.numericId}->${target.numericId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({
+      sourceNodeId: source.numericId,
+      targetNodeId: target.numericId,
+    });
+  };
+
+  const mainFlow = nodes.filter(
+    (node) => getNodeBranchPlacement(node) == null,
+  );
+  for (let index = 0; index < mainFlow.length - 1; index++) {
+    pushPair(mainFlow[index]!, mainFlow[index + 1]!);
+  }
+
+  const branchGroups = new Map<string, WorkflowNode[]>();
+  for (const node of nodes) {
+    const placement = getNodeBranchPlacement(node);
+    if (!placement) continue;
+    const key = branchPlacementKey(placement);
+    const group = branchGroups.get(key) ?? [];
+    group.push(node);
+    branchGroups.set(key, group);
+  }
+  for (const group of branchGroups.values()) {
+    for (let index = 0; index < group.length - 1; index++) {
+      pushPair(group[index]!, group[index + 1]!);
+    }
+  }
+
+  for (const node of nodes) {
+    if (!isParallelSplitWorkflowNode(node)) continue;
+    const nestUnder = getNodeBranchPlacement(node);
+    for (const branch of parseParallelBranchesFromConfig(node.config)) {
+      const target: WorkflowBranchTarget = nestUnder?.flowBranch
+        ? {
+            flowBranch: branch.id,
+            flowBranchParent: nestUnder.flowBranch,
+          }
+        : { flowBranch: branch.id };
+      const firstInBranch = nodes.find(
+        (candidate) =>
+          nodeMatchesBranchTarget(candidate, target) &&
+          !(
+            isParallelSplitWorkflowNode(candidate) &&
+            candidate.id === node.id
+          ),
+      );
+      if (firstInBranch) {
+        pushPair(node, firstInBranch);
+      }
+    }
+  }
+
+  return pairs;
 }

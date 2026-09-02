@@ -27,18 +27,6 @@ const SECTIONS: { id: BlockSection; label: string }[] = [
   { id: "flow", label: "Flow" },
 ];
 
-const VISIBLE_TRIGGER_IDS = new Set<WorkflowNodeKind>([
-  "signup_trigger",
-  "payment_trigger",
-  "cron_trigger",
-]);
-
-const HIDDEN_BLOCK_IDS = new Set<WorkflowNodeKind>([
-  "create_coupon",
-  "tag_customer",
-  "reviews",
-]);
-
 const SECTION_ACCENT: Record<
   BlockSection,
   { dot: string; chip: string }
@@ -170,11 +158,7 @@ export function BlockSidebar({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const palette = AUTOMATION_BLOCKS.filter((b) => {
-      if (HIDDEN_BLOCK_IDS.has(b.id)) return false;
-      if (b.section === "triggers") {
-        if (hideTriggers) return false;
-        return VISIBLE_TRIGGER_IDS.has(b.id);
-      }
+      if (b.section === "triggers" && hideTriggers) return false;
       return true;
     });
     if (!q) return palette;

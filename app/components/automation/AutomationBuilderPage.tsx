@@ -77,6 +77,7 @@ import {
   isParallelSplitWorkflowNode,
   nodeMatchesBranchTarget,
   parseParallelBranchesFromConfig,
+  buildDesiredAutomationConnectionPairs,
   type WorkflowBranchTarget,
   type WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
@@ -896,21 +897,82 @@ export function AutomationBuilderPage({
     }
   }, [guardEdit, nodes, selectedNode]);
 
-  const onReorderNodes = useCallback((fromIndex: number, toIndex: number) => {
-    if (!guardEdit()) {
-      return;
-    }
+  const onReorderNodes = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (!guardEdit()) {
+        return;
+      }
+      if (!isPositiveInt(automationNumericId)) {
+        toast.error("Open a saved automation before reordering steps.");
+        return;
+      }
 
-    let changed = false;
-    setNodes((prev) => {
-      const next = reorderWorkflowNodes(prev, fromIndex, toIndex);
-      changed = next !== prev;
-      return next;
-    });
-    if (changed) {
+      const nextNodes = reorderWorkflowNodes(nodes, fromIndex, toIndex);
+      if (nextNodes === nodes) {
+        return;
+      }
+
+      setNodes(nextNodes);
       setIsFlowDirty(true);
-    }
-  }, [guardEdit]);
+
+      void (async () => {
+        try {
+          for (let order = 0; order < nextNodes.length; order++) {
+            const node = nextNodes[order]!;
+            if (node.numericId == null) continue;
+            await updateAutomationNode(node.numericId, {
+              order,
+              config: node.config,
+            });
+          }
+
+          const desiredPairs = buildDesiredAutomationConnectionPairs(nextNodes);
+          const desiredKeys = new Set(
+            desiredPairs.map(
+              (pair) => `${pair.sourceNodeId}->${pair.targetNodeId}`,
+            ),
+          );
+          const existingKeys = new Set(
+            connections.map(
+              (connection) =>
+                `${connection.sourceNodeId}->${connection.targetNodeId}`,
+            ),
+          );
+
+          for (const connection of connections) {
+            const key = `${connection.sourceNodeId}->${connection.targetNodeId}`;
+            if (desiredKeys.has(key)) continue;
+            try {
+              await deleteAutomationConnection(connection.id);
+            } catch {
+            }
+          }
+
+          const kept = connections.filter((connection) =>
+            desiredKeys.has(
+              `${connection.sourceNodeId}->${connection.targetNodeId}`,
+            ),
+          );
+          const created: AutomationConnection[] = [];
+          for (const pair of desiredPairs) {
+            const key = `${pair.sourceNodeId}->${pair.targetNodeId}`;
+            if (existingKeys.has(key)) continue;
+            created.push(
+              await createAutomationConnection({
+                automationId: automationNumericId,
+                sourceNodeId: pair.sourceNodeId,
+                targetNodeId: pair.targetNodeId,
+              }),
+            );
+          }
+          setConnections([...kept, ...created]);
+        } catch (err) {
+          toastApiError(err, "Could not save step order.");
+        }
+      })();
+    },
+    [automationNumericId, connections, guardEdit, nodes],
+  );
 
   useEffect(() => {
     if (invalidNodeIds.length === 0) {
@@ -1017,7 +1079,7 @@ export function AutomationBuilderPage({
                       (lastIsEmptyBranch && !activeBranchTarget))
                   ) {
                     toast.error(
-                      "Please drag and drop this block onto Branch A, Branch B, or a step on the canvas.",
+                      "Please drag and drop this block onto a branch path or a step on the canvas.",
                     );
                     return;
                   }

@@ -413,7 +413,10 @@ export function AutomationListPage({
                   automationId: created.id,
                   type: "trigger",
                   order: 0,
-                  config: defaultConfigForBlockKind(triggerKind),
+                  config: {
+                    ...defaultConfigForBlockKind(triggerKind),
+                    executionMode: "graph",
+                  },
                   positionX: 100,
                   positionY: 200,
                 });

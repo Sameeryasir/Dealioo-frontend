@@ -130,6 +130,12 @@ function triggerDisplayTitle(node: WorkflowNode): string {
 function triggerDisplayBody(node: WorkflowNode): string {
   if (node.kind === "cron_trigger") {
     const schedule = formatCronScheduleSummary(node.config);
+    if (
+      node.config?.executionMode === "graph" ||
+      node.config?.isCustomGraph === true
+    ) {
+      return `${schedule}. Runs the custom flow you built.`;
+    }
     return `${schedule}. Checks unpaid guests, then continues the flow.`;
   }
   return getTriggerDescription(node);

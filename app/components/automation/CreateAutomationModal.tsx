@@ -607,7 +607,10 @@ export function CreateAutomationModal({
                           AUTOMATION_PURPOSE_OPTIONS.find(
                             (option) => option.value === purpose,
                           )?.description
-                        }
+                        }{" "}
+                        You can create more than one automation with the same
+                        purpose — each keeps its own steps and does not mix with
+                        others.
                       </p>
                     </div>
                   </div>

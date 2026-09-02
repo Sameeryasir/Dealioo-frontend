@@ -430,6 +430,19 @@ export function normalizePaymentReminderWorkflowNodes(
     return nodes;
   }
 
+  const isScratchGraph = nodes.some(
+    (node) =>
+      (node.kind === "cron_trigger" ||
+        node.kind === "signup_trigger" ||
+        node.kind === "payment_trigger" ||
+        node.kind === "funnel_complete") &&
+      (node.config?.executionMode === "graph" ||
+        node.config?.isCustomGraph === true),
+  );
+  if (isScratchGraph) {
+    return nodes;
+  }
+
   if (!isSavedPaymentReminderTemplateGraph(nodes)) {
     return nodes;
   }
