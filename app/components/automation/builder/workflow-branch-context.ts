@@ -11,7 +11,6 @@ export type WorkflowBranchTarget = {
   flowBranchParent?: string | null;
 };
 
-/** Where a dragged block should land when dropped on the canvas. */
 export type WorkflowDropPlacement = "main_flow" | "after_parallel_split";
 
 export function isParallelSplitWorkflowNode(node: WorkflowNode): boolean {
@@ -58,14 +57,22 @@ export function parseParallelBranchesFromConfig(
     .filter((item): item is { id: string; title: string } => item != null);
 }
 
-export function defaultParallelSplitConfig(): Record<string, unknown> {
+export function defaultParallelSplitConfig(
+  nestUnder?: string | null,
+): Record<string, unknown> {
+  const nestKey = String(nestUnder ?? "").trim();
+  const unique =
+    nestKey.length > 0
+      ? `_${slugifyBranchId(nestKey)}_${Date.now().toString(36)}`
+      : "";
+
   return {
     isParallelSplit: true,
     delay: 0,
     unit: "minutes",
     branches: [
-      { id: "branch_a", title: "Branch A" },
-      { id: "branch_b", title: "Branch B" },
+      { id: `branch_a${unique}`, title: "Branch A" },
+      { id: `branch_b${unique}`, title: "Branch B" },
     ],
   };
 }
@@ -115,6 +122,77 @@ export function getNodeBranchPlacement(node: WorkflowNode): WorkflowBranchTarget
     flowBranch,
     ...(flowBranchParent ? { flowBranchParent } : {}),
   };
+}
+
+export function sameBranchTarget(
+  a: WorkflowBranchTarget | null | undefined,
+  b: WorkflowBranchTarget | null | undefined,
+): boolean {
+  if (!a?.flowBranch || !b?.flowBranch) return false;
+  return (
+    a.flowBranch === b.flowBranch &&
+    (a.flowBranchParent ?? null) === (b.flowBranchParent ?? null)
+  );
+}
+
+export function nodeMatchesBranchTarget(
+  node: WorkflowNode,
+  target: WorkflowBranchTarget,
+): boolean {
+  return sameBranchTarget(getNodeBranchPlacement(node), target);
+}
+
+export function findParallelSplitForBranch(
+  nodes: WorkflowNode[],
+  branchTarget: WorkflowBranchTarget,
+): WorkflowNode | null {
+  for (const node of nodes) {
+    if (!isParallelSplitWorkflowNode(node)) continue;
+    const ownsBranch = parseParallelBranchesFromConfig(node.config).some(
+      (branch) => branch.id === branchTarget.flowBranch,
+    );
+    if (!ownsBranch) continue;
+
+    const placement = getNodeBranchPlacement(node);
+    if (branchTarget.flowBranchParent) {
+      if (placement?.flowBranch === branchTarget.flowBranchParent) {
+        return node;
+      }
+      continue;
+    }
+    if (placement == null) {
+      return node;
+    }
+  }
+  return null;
+}
+
+export function findPreviousNodeInBranch(
+  nodes: WorkflowNode[],
+  insertIndex: number,
+  branchTarget: WorkflowBranchTarget,
+): WorkflowNode | null {
+  for (let i = insertIndex - 1; i >= 0; i--) {
+    const candidate = nodes[i]!;
+    if (nodeMatchesBranchTarget(candidate, branchTarget)) {
+      return candidate;
+    }
+  }
+  return findParallelSplitForBranch(nodes, branchTarget);
+}
+
+export function findNextNodeInBranch(
+  nodes: WorkflowNode[],
+  insertIndex: number,
+  branchTarget: WorkflowBranchTarget,
+): WorkflowNode | null {
+  for (let i = insertIndex; i < nodes.length; i++) {
+    const candidate = nodes[i]!;
+    if (nodeMatchesBranchTarget(candidate, branchTarget)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 export function resolveBranchConfigForNewNode(

@@ -57,9 +57,10 @@ export function isTriggerBlockKind(kind: WorkflowNodeKind): boolean {
 
 export function defaultConfigForBlockKind(
   kind: WorkflowNodeKind,
+  options?: { nestUnderBranchId?: string | null },
 ): Record<string, unknown> {
   if (kind === "parallel_split") {
-    return defaultParallelSplitConfig();
+    return defaultParallelSplitConfig(options?.nestUnderBranchId ?? null);
   }
   return TRIGGER_DEFAULT_CONFIG_BY_KIND[kind] ?? {};
 }

@@ -2,9 +2,20 @@
 
 import { LayoutGrid, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { setBlockDragData } from "@/app/components/automation/builder/automation-dnd";
+import { setBlockDragData, setActiveBlockDragKind } from "@/app/components/automation/builder/automation-dnd";
 import { AUTOMATION_BLOCKS, getBlockByKind } from "@/app/components/automation/mock-data";
 import type { BlockSection, WorkflowNodeKind } from "@/app/components/automation/types";
+import { toast } from "sonner";
+
+const BRANCH_PLACE_TIP =
+  "Drag Branch onto the step after which you want to create it, then drop when that step highlights.";
+
+function showBranchPlaceTip() {
+  toast.message("How to add a Branch", {
+    description: BRANCH_PLACE_TIP,
+    duration: 5000,
+  });
+}
 
 const SIDEBAR_NODE_ICON =
   "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]";
@@ -95,8 +106,12 @@ function BlockChip({
         }
         didDragRef.current = true;
         setBlockDragData(e.dataTransfer, block.id);
+        if (block.id === "parallel_split") {
+          showBranchPlaceTip();
+        }
       }}
       onDragEnd={() => {
+        setActiveBlockDragKind(null);
         window.setTimeout(() => {
           didDragRef.current = false;
         }, 0);
@@ -106,6 +121,9 @@ function BlockChip({
         if (editLocked) {
           onEditBlocked?.();
           return;
+        }
+        if (block.id === "parallel_split") {
+          showBranchPlaceTip();
         }
         onAddBlock(block.id);
       }}

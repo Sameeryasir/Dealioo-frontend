@@ -3,6 +3,7 @@ import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation
 import {
   getNodeBranchPlacement,
   isParallelSplitWorkflowNode,
+  type WorkflowBranchTarget,
   type WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
 
@@ -149,9 +150,49 @@ export function getWorkflowNodeInsertIndex(
   nodes: WorkflowNode[],
   kind: WorkflowNode["kind"],
   dropPlacement?: WorkflowDropPlacement | null,
+  branchTarget?: WorkflowBranchTarget | null,
+  insertAfterNodeId?: string | null,
 ): number {
   if (isTriggerWorkflowKind(kind)) {
     return 0;
+  }
+
+  if (insertAfterNodeId) {
+    const afterIndex = nodes.findIndex((node) => node.id === insertAfterNodeId);
+    if (afterIndex >= 0) {
+      return afterIndex + 1;
+    }
+  }
+
+  if (branchTarget?.flowBranch) {
+    let lastInBranch = -1;
+    for (let i = 0; i < nodes.length; i++) {
+      const placement = getNodeBranchPlacement(nodes[i]!);
+      if (
+        placement?.flowBranch === branchTarget.flowBranch &&
+        (branchTarget.flowBranchParent == null ||
+          placement.flowBranchParent === branchTarget.flowBranchParent)
+      ) {
+        lastInBranch = i;
+      }
+    }
+    if (lastInBranch >= 0) {
+      return lastInBranch + 1;
+    }
+
+    const splitIndex = getTopLevelParallelSplitIndex(nodes);
+    if (splitIndex != null) {
+      for (let i = splitIndex + 1; i < nodes.length; i++) {
+        const node = nodes[i]!;
+        if (
+          !isParallelSplitWorkflowNode(node) &&
+          getNodeBranchPlacement(node) == null
+        ) {
+          return i;
+        }
+      }
+    }
+    return nodes.length;
   }
 
   if (dropPlacement === "after_parallel_split") {

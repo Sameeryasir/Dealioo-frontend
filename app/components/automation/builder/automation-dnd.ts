@@ -3,12 +3,23 @@ import type { WorkflowNodeKind } from "@/app/components/automation/types";
 export const AUTOMATION_BLOCK_DRAG_MIME = "application/x-automation-block";
 export const AUTOMATION_NODE_DRAG_MIME = "application/x-automation-node";
 
+let activeBlockDragKind: WorkflowNodeKind | null = null;
+
+export function setActiveBlockDragKind(kind: WorkflowNodeKind | null): void {
+  activeBlockDragKind = kind;
+}
+
+export function getActiveBlockDragKind(): WorkflowNodeKind | null {
+  return activeBlockDragKind;
+}
+
 export function setBlockDragData(
   dataTransfer: DataTransfer,
   blockId: WorkflowNodeKind,
 ): void {
   dataTransfer.setData(AUTOMATION_BLOCK_DRAG_MIME, blockId);
   dataTransfer.effectAllowed = "copy";
+  setActiveBlockDragKind(blockId);
 }
 
 export function readBlockDragData(

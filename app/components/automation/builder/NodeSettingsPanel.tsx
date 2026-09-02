@@ -1067,7 +1067,7 @@ function NodeSettingsForm({
             {blockSectionLabel(blockSection)}
           </span>
           <p className="mt-1 truncate text-[0.9375rem] font-semibold tracking-tight text-zinc-900">
-            {node.label}
+            {getBlockByKind(node.kind).label}
           </p>
         </div>
       </motion.div>
@@ -1115,7 +1115,7 @@ function NodeSettingsForm({
           onUnitChange={setUnit}
         />
       )}
-      {node.kind === "parallel_split" && (
+      {isParallelSplitWorkflowNode(node) && (
         <ParallelSplitSettings
           branches={parallelBranches}
           readOnly={readOnly}
@@ -1208,7 +1208,11 @@ function NodeSettingsForm({
               className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >
               <Trash2 className="size-4" aria-hidden />
-              {deleting ? "Removing…" : "Delete step"}
+              {deleting
+                ? "Removing…"
+                : isParallelSplitWorkflowNode(node)
+                  ? "Delete branch"
+                  : "Delete step"}
             </button>
           ) : null}
         </div>
@@ -1939,8 +1943,8 @@ function ParallelSplitSettings({
 
   return (
     <SettingsSection
-      title="Parallel branches"
-      description="Each branch runs on its own path. Add steps inside a branch, or add a nested split for sub-branches."
+      title="Branches"
+      description="Each path runs on its own. Add steps inside a branch, or add a nested split for sub-branches."
     >
       <div className="space-y-3">
         {branches.map((branch, index) => (

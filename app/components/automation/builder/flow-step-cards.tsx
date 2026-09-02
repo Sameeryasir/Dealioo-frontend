@@ -839,12 +839,20 @@ export function FlowStepCard({
 export function FlowBranchContainer({
   children,
   title,
+  active = false,
 }: {
   children: ReactNode;
   title?: string;
+  active?: boolean;
 }) {
   return (
-    <div className="relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
+    <div
+      className={`relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6 ${
+        active
+          ? "border-blue-400 bg-blue-50/40"
+          : "border-zinc-300/70 bg-white/70"
+      }`}
+    >
       <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:px-3 sm:text-[0.625rem]">
           <span
@@ -897,18 +905,18 @@ export function FlowParallelSplitCard({
         </span>
         <div>
           <p className="text-xs font-bold tracking-tight text-blue-950">
-            Parallel Split
+            Branch
           </p>
           <p className="text-[0.625rem] text-blue-700/80">
-            Runs each branch independently
+            Runs each path independently
           </p>
         </div>
       </div>
       <div className="px-5 py-4 sm:px-6">
         <p className="text-sm font-semibold text-zinc-800">
           {branchCount > 0
-            ? `${branchCount} parallel path${branchCount === 1 ? "" : "s"}`
-            : "Split into parallel paths"}
+            ? `${branchCount} path${branchCount === 1 ? "" : "s"}`
+            : "Split into paths"}
         </p>
       </div>
     </div>

@@ -23,7 +23,7 @@ export function getTriggerDescription(node: WorkflowNode): string {
 
 export function formatWaitSummary(config: Record<string, unknown>): string {
   if (config.isParallelSplit === true) {
-    return "Parallel Split";
+    return "Branch";
   }
 
   const untilLabel = configString(config, "untilLabel", "").trim();

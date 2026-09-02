@@ -606,7 +606,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     {
       key: "parallel_split",
       kind: "wait",
-      label: "Parallel Split",
+      label: "Branch",
       summary: "Split into Wallet Reminder and Follow-up Message.",
       config: {
         isParallelSplit: true,
@@ -691,7 +691,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     {
       key: "parallel_split_follow_up",
       kind: "wait",
-      label: "Parallel Split",
+      label: "Branch",
       summary: "Nested split: offer expiry + weekend pass reminders.",
       config: {
         isParallelSplit: true,

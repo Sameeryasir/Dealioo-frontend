@@ -335,7 +335,7 @@ export default function MakeYourOffer({
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid min-w-0 md:grid-cols-[minmax(13.5rem,16rem)_minmax(0,1fr)] lg:grid-cols-[minmax(16rem,18.5rem)_minmax(0,1fr)]">
           {/* --- Tips + live preview --- */}
-          <aside className="relative order-2 min-w-0 border-t border-[#e8edf5] bg-[#f0f7ff] px-4 py-4 md:order-1 md:border-t-0 md:border-r sm:px-5 sm:py-5">
+          <aside className="relative order-2 min-w-0 border-t border-[#e8edf5] bg-white px-4 py-4 md:order-1 md:border-t-0 md:border-r sm:px-5 sm:py-5">
             {/* Mobile: tip chips + preview */}
             <div className="md:hidden">
               <div className="mb-3 flex items-center gap-2">

@@ -51,6 +51,7 @@ import {
 } from "@/app/components/automation/workflow-node-order";
 import {
   createAutomationConnection,
+  deleteAutomationConnection,
 } from "@/app/services/automation/connection-api";
 import type { AutomationConnection } from "@/app/services/automation/types";
 import { isAutomationStatusResponse } from "@/app/services/automation/types";
@@ -70,6 +71,12 @@ import { validatePaymentReminderSchedule } from "@/app/components/automation/pay
 import { validateWorkflowForActivation } from "@/app/components/automation/builder/workflow-activation-validation";
 import {
   resolveBranchConfigForNewNode,
+  getNodeBranchPlacement,
+  findNextNodeInBranch,
+  findPreviousNodeInBranch,
+  isParallelSplitWorkflowNode,
+  nodeMatchesBranchTarget,
+  parseParallelBranchesFromConfig,
   type WorkflowBranchTarget,
   type WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
@@ -110,6 +117,8 @@ export function AutomationBuilderPage({
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [connections, setConnections] = useState<AutomationConnection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeBranchTarget, setActiveBranchTarget] =
+    useState<WorkflowBranchTarget | null>(null);
   const [deletingNode, setDeletingNode] = useState(false);
   const [savingNode, setSavingNode] = useState(false);
   const addingBlockRef = useRef(false);
@@ -555,6 +564,7 @@ export function AutomationBuilderPage({
       blockId: WorkflowNodeKind,
       branchTarget?: WorkflowBranchTarget | null,
       dropPlacement?: WorkflowDropPlacement | null,
+      insertAfterNodeId?: string | null,
     ) => {
       if (!guardEdit()) {
         return;
@@ -577,26 +587,64 @@ export function AutomationBuilderPage({
 
       if (addingBlockRef.current) return;
 
+      const anchorNode = insertAfterNodeId
+        ? nodes.find((node) => node.id === insertAfterNodeId) ?? null
+        : null;
+      const resolvedBranchTarget =
+        branchTarget ??
+        (anchorNode ? getNodeBranchPlacement(anchorNode) : null) ??
+        (dropPlacement ? null : activeBranchTarget);
+
+      if (
+        blockId === "parallel_split" &&
+        resolvedBranchTarget?.flowBranch &&
+        !nodes.some((node) =>
+          nodeMatchesBranchTarget(node, resolvedBranchTarget),
+        )
+      ) {
+        toast.error(
+          "Add a step to this branch before adding another Branch.",
+        );
+        return;
+      }
+
       const defaultConfig = {
-        ...defaultConfigForBlockKind(blockId),
+        ...defaultConfigForBlockKind(blockId, {
+          nestUnderBranchId:
+            blockId === "parallel_split"
+              ? resolvedBranchTarget?.flowBranch ?? null
+              : null,
+        }),
         ...resolveBranchConfigForNewNode(
           nodes,
           selectedId,
-          branchTarget,
+          resolvedBranchTarget,
           dropPlacement,
         ),
       };
       const isTrigger = isTriggerWorkflowKind(blockId);
-      const insertIndex = getWorkflowNodeInsertIndex(nodes, blockId, dropPlacement);
+      const insertIndex = getWorkflowNodeInsertIndex(
+        nodes,
+        blockId,
+        dropPlacement,
+        resolvedBranchTarget,
+        insertAfterNodeId,
+      );
       const order = insertIndex;
       const firstExistingNode = isTrigger && nodes.length > 0 ? nodes[0]! : null;
       const previousNode = isTrigger
         ? null
-        : insertIndex > 0
-          ? nodes[insertIndex - 1]!
-          : nodes.length > 0
-            ? nodes[nodes.length - 1]!
-            : null;
+        : resolvedBranchTarget?.flowBranch
+          ? findPreviousNodeInBranch(nodes, insertIndex, resolvedBranchTarget)
+          : insertIndex > 0
+            ? nodes[insertIndex - 1]!
+            : nodes.length > 0
+              ? nodes[nodes.length - 1]!
+              : null;
+      const nextNodeInBranch =
+        !isTrigger && resolvedBranchTarget?.flowBranch
+          ? findNextNodeInBranch(nodes, insertIndex, resolvedBranchTarget)
+          : null;
       const tempId = `local-${blockId}-${Date.now()}`;
       const optimisticNode: WorkflowNode = {
         id: tempId,
@@ -609,6 +657,9 @@ export function AutomationBuilderPage({
       addingBlockRef.current = true;
       setNodes((prev) => insertWorkflowNode(prev, optimisticNode, insertIndex));
       setSelectedId(tempId);
+      if (resolvedBranchTarget) {
+        setActiveBranchTarget(resolvedBranchTarget);
+      }
       setIsFlowDirty(true);
 
       try {
@@ -628,27 +679,65 @@ export function AutomationBuilderPage({
           config: defaultConfig,
         };
 
-        let newConnection: AutomationConnection | null = null;
+        const createdConnections: AutomationConnection[] = [];
         if (isTrigger) {
           if (
             firstExistingNode?.numericId != null &&
             workflowNode.numericId != null
           ) {
-            newConnection = await createAutomationConnection({
-              automationId: automationNumericId,
-              sourceNodeId: workflowNode.numericId,
-              targetNodeId: firstExistingNode.numericId,
-            });
+            createdConnections.push(
+              await createAutomationConnection({
+                automationId: automationNumericId,
+                sourceNodeId: workflowNode.numericId,
+                targetNodeId: firstExistingNode.numericId,
+              }),
+            );
           }
-        } else if (
-          previousNode?.numericId != null &&
-          workflowNode.numericId != null
-        ) {
-          newConnection = await createAutomationConnection({
-            automationId: automationNumericId,
-            sourceNodeId: previousNode.numericId,
-            targetNodeId: workflowNode.numericId,
-          });
+        } else if (workflowNode.numericId != null) {
+          if (
+            previousNode?.numericId != null &&
+            nextNodeInBranch?.numericId != null
+          ) {
+            const stale = connections.filter(
+              (connection) =>
+                connection.sourceNodeId === previousNode.numericId &&
+                connection.targetNodeId === nextNodeInBranch.numericId,
+            );
+            for (const connection of stale) {
+              try {
+                await deleteAutomationConnection(connection.id);
+              } catch {
+              }
+            }
+            if (stale.length > 0) {
+              setConnections((prev) =>
+                prev.filter(
+                  (connection) =>
+                    !stale.some((item) => item.id === connection.id),
+                ),
+              );
+            }
+          }
+
+          if (previousNode?.numericId != null) {
+            createdConnections.push(
+              await createAutomationConnection({
+                automationId: automationNumericId,
+                sourceNodeId: previousNode.numericId,
+                targetNodeId: workflowNode.numericId,
+              }),
+            );
+          }
+
+          if (nextNodeInBranch?.numericId != null) {
+            createdConnections.push(
+              await createAutomationConnection({
+                automationId: automationNumericId,
+                sourceNodeId: workflowNode.numericId,
+                targetNodeId: nextNodeInBranch.numericId,
+              }),
+            );
+          }
         }
 
         setNodes((prev) =>
@@ -658,8 +747,8 @@ export function AutomationBuilderPage({
             insertIndex,
           ),
         );
-        if (newConnection) {
-          setConnections((prev) => [...prev, newConnection]);
+        if (createdConnections.length > 0) {
+          setConnections((prev) => [...prev, ...createdConnections]);
         }
         setSelectedId(workflowNode.id);
         toast.success("Step added.");
@@ -671,7 +760,14 @@ export function AutomationBuilderPage({
         addingBlockRef.current = false;
       }
     },
-    [automationNumericId, guardEdit, nodes, selectedId],
+    [
+      automationNumericId,
+      activeBranchTarget,
+      connections,
+      guardEdit,
+      nodes,
+      selectedId,
+    ],
   );
 
   const onUpdateNode = useCallback(
@@ -736,31 +832,69 @@ export function AutomationBuilderPage({
 
     const nodeId = selectedNode.id;
     const numericId = selectedNode.numericId;
+    const branchIds = isParallelSplitWorkflowNode(selectedNode)
+      ? new Set(
+          parseParallelBranchesFromConfig(selectedNode.config).map(
+            (branch) => branch.id,
+          ),
+        )
+      : null;
+
+    const nodesToRemove = nodes.filter((node) => {
+      if (node.id === nodeId) return true;
+      if (!branchIds || branchIds.size === 0) return false;
+      const placement = getNodeBranchPlacement(node);
+      if (!placement) return false;
+      if (branchIds.has(placement.flowBranch)) return true;
+      if (
+        placement.flowBranchParent &&
+        branchIds.has(placement.flowBranchParent)
+      ) {
+        return true;
+      }
+      return false;
+    });
+
     setDeletingNode(true);
 
     try {
-      if (numericId != null) {
-        await deleteAutomationNode(numericId);
+      for (const node of nodesToRemove) {
+        if (node.numericId != null) {
+          await deleteAutomationNode(node.numericId);
+        }
       }
 
-      setNodes((prev) => prev.filter((n) => n.id !== nodeId));
-      if (numericId != null) {
+      const removedIds = new Set(nodesToRemove.map((node) => node.id));
+      const removedNumericIds = new Set(
+        nodesToRemove
+          .map((node) => node.numericId)
+          .filter((id): id is number => id != null),
+      );
+
+      setNodes((prev) => prev.filter((node) => !removedIds.has(node.id)));
+      if (removedNumericIds.size > 0) {
         setConnections((prev) =>
           prev.filter(
-            (c) =>
-              c.sourceNodeId !== numericId && c.targetNodeId !== numericId,
+            (connection) =>
+              !removedNumericIds.has(connection.sourceNodeId) &&
+              !removedNumericIds.has(connection.targetNodeId),
           ),
         );
       }
       setSelectedId(null);
+      setActiveBranchTarget(null);
       setIsFlowDirty(true);
-      toast.success("Step removed.");
+      toast.success(
+        isParallelSplitWorkflowNode(selectedNode)
+          ? "Branch removed."
+          : "Step removed.",
+      );
     } catch (err) {
       toastApiError(err, "Could not delete step.");
     } finally {
       setDeletingNode(false);
     }
-  }, [guardEdit, selectedNode]);
+  }, [guardEdit, nodes, selectedNode]);
 
   const onReorderNodes = useCallback((fromIndex: number, toIndex: number) => {
     if (!guardEdit()) {
@@ -861,7 +995,42 @@ export function AutomationBuilderPage({
               <BlockSidebar
                 editLocked={automationActive}
                 onEditBlocked={showDeactivatePrompt}
-                onAddBlock={(id) => void onAddBlock(id)}
+                onAddBlock={(id) => {
+                  const selected = selectedId
+                    ? nodes.find((node) => node.id === selectedId) ?? null
+                    : null;
+                  const lastNode =
+                    nodes.length > 0 ? nodes[nodes.length - 1]! : null;
+                  const selectedIsBranch =
+                    selected != null &&
+                    isParallelSplitWorkflowNode(selected);
+                  const lastIsEmptyBranch =
+                    lastNode != null &&
+                    isParallelSplitWorkflowNode(lastNode) &&
+                    !nodes.some(
+                      (node) => getNodeBranchPlacement(node) != null,
+                    );
+
+                  if (
+                    id !== "parallel_split" &&
+                    (selectedIsBranch ||
+                      (lastIsEmptyBranch && !activeBranchTarget))
+                  ) {
+                    toast.error(
+                      "Please drag and drop this block onto Branch A, Branch B, or a step on the canvas.",
+                    );
+                    return;
+                  }
+
+                  if (id === "parallel_split") {
+                    if (!selectedId && !activeBranchTarget) {
+                      return;
+                    }
+                    void onAddBlock(id, activeBranchTarget, null, selectedId);
+                    return;
+                  }
+                  void onAddBlock(id, activeBranchTarget);
+                }}
                 hideTriggers={hasTriggerNode(nodes)}
               />
             }
@@ -872,12 +1041,35 @@ export function AutomationBuilderPage({
                 selectedId={selectedId}
                 invalidNodeIds={invalidNodeIds}
                 invalidStepIds={invalidStepIds}
-                onSelect={setSelectedId}
+                activeBranchTarget={activeBranchTarget}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  const selected = nodes.find((node) => node.id === id);
+                  setActiveBranchTarget(
+                    selected ? getNodeBranchPlacement(selected) : null,
+                  );
+                }}
+                onActiveBranchChange={setActiveBranchTarget}
                 editLocked={automationActive}
                 onEditBlocked={showDeactivatePrompt}
-                onDropBlock={(id, branchTarget, dropPlacement) =>
-                  void onAddBlock(id, branchTarget, dropPlacement)
-                }
+                onDropBlock={(
+                  id,
+                  branchTarget,
+                  dropPlacement,
+                  insertAfterNodeId,
+                ) => {
+                  if (branchTarget) {
+                    setActiveBranchTarget(branchTarget);
+                  } else if (dropPlacement === "after_parallel_split") {
+                    setActiveBranchTarget(null);
+                  }
+                  void onAddBlock(
+                    id,
+                    branchTarget,
+                    dropPlacement,
+                    insertAfterNodeId,
+                  );
+                }}
                 onReorderNodes={onReorderNodes}
               />
             }

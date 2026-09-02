@@ -60,7 +60,7 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
   },
   {
     id: "parallel_split",
-    label: "Parallel Split",
+    label: "Branch",
     section: "flow",
     icon: GitBranch,
     tone: "blue",

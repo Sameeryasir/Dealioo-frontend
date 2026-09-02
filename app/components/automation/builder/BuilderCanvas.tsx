@@ -63,6 +63,7 @@ import type {
   WorkflowBranchTarget,
   WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
+import { getNodeBranchPlacement } from "@/app/components/automation/builder/workflow-branch-context";
 import {
   isWorkflowNodeInvalid,
 } from "@/app/components/automation/builder/workflow-activation-validation";
@@ -117,7 +118,9 @@ export function BuilderCanvas({
   selectedId,
   invalidNodeIds = [],
   invalidStepIds = [],
+  activeBranchTarget = null,
   onSelect,
+  onActiveBranchChange,
   onDropBlock,
   onReorderNodes,
   editLocked = false,
@@ -128,11 +131,14 @@ export function BuilderCanvas({
   selectedId: string | null;
   invalidNodeIds?: readonly string[];
   invalidStepIds?: readonly string[];
+  activeBranchTarget?: WorkflowBranchTarget | null;
   onSelect: (id: string) => void;
+  onActiveBranchChange?: (target: WorkflowBranchTarget | null) => void;
   onDropBlock?: (
     blockId: WorkflowNodeKind,
     branchTarget?: WorkflowBranchTarget | null,
     dropPlacement?: WorkflowDropPlacement | null,
+    insertAfterNodeId?: string | null,
   ) => void;
   onReorderNodes?: (fromIndex: number, toIndex: number) => void;
   editLocked?: boolean;
@@ -144,6 +150,10 @@ export function BuilderCanvas({
   const [pressingIndex, setPressingIndex] = useState<number | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [canvasDragOver, setCanvasDragOver] = useState(false);
+  const [dropHoverNodeId, setDropHoverNodeId] = useState<string | null>(null);
+  const [dropHoverBranchKey, setDropHoverBranchKey] = useState<string | null>(
+    null,
+  );
   const [zoom, setZoom] = useState(1);
   const zoomContentRef = useRef<HTMLDivElement | null>(null);
   const [nativeContentSize, setNativeContentSize] = useState({
@@ -185,7 +195,38 @@ export function BuilderCanvas({
   const clearDragState = useCallback(() => {
     clearPointerReorder();
     setCanvasDragOver(false);
+    setDropHoverNodeId(null);
+    setDropHoverBranchKey(null);
   }, [clearPointerReorder]);
+
+  const branchTargetKey = useCallback((target: WorkflowBranchTarget | null) => {
+    if (!target?.flowBranch) return null;
+    return target.flowBranchParent
+      ? `${target.flowBranchParent}>${target.flowBranch}`
+      : target.flowBranch;
+  }, []);
+
+  const handleNodeBlockDragOver = useCallback(
+    (e: React.DragEvent, nodeId: string) => {
+      if (!canDropBlocks || !isBlockDrag(e.dataTransfer)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+      setCanvasDragOver(true);
+      setDropHoverNodeId(nodeId);
+      setDropHoverBranchKey(null);
+    },
+    [canDropBlocks],
+  );
+
+  const handleNodeBlockDragLeave = useCallback(
+    (e: React.DragEvent, nodeId: string) => {
+      const next = e.relatedTarget as Node | null;
+      if (next && e.currentTarget.contains(next)) return;
+      setDropHoverNodeId((current) => (current === nodeId ? null : current));
+    },
+    [],
+  );
 
   const resolveDropIndex = useCallback(
     (clientY: number, fromIndex: number | null) => {
@@ -357,6 +398,7 @@ export function BuilderCanvas({
       e: React.DragEvent,
       branchTarget?: WorkflowBranchTarget | null,
       dropPlacement?: WorkflowDropPlacement | null,
+      insertAfterNodeId?: string | null,
     ) => {
       if (!isBlockDrag(e.dataTransfer)) return;
       e.preventDefault();
@@ -368,7 +410,14 @@ export function BuilderCanvas({
       }
       if (!onDropBlock) return;
       const blockId = readBlockDragData(e.dataTransfer);
-      if (blockId) onDropBlock(blockId, branchTarget ?? null, dropPlacement ?? null);
+      if (blockId) {
+        onDropBlock(
+          blockId,
+          branchTarget ?? null,
+          dropPlacement ?? null,
+          insertAfterNodeId ?? null,
+        );
+      }
     },
     [clearDragState, editLocked, onDropBlock, onEditBlocked],
   );
@@ -387,13 +436,41 @@ export function BuilderCanvas({
 
   const handleCanvasBlockDrop = useCallback(
     (e: React.DragEvent) => {
+      if (dropHoverBranchKey && dropHoverBranchKey !== "after_parallel_split") {
+        const parts = dropHoverBranchKey.split(">");
+        const branchTarget: WorkflowBranchTarget =
+          parts.length >= 2
+            ? {
+                flowBranchParent: parts[parts.length - 2]!,
+                flowBranch: parts[parts.length - 1]!,
+              }
+            : { flowBranch: dropHoverBranchKey };
+        handleBlockDrop(e, branchTarget);
+        return;
+      }
+      if (dropHoverNodeId) {
+        const anchor = nodes.find((node) => node.id === dropHoverNodeId);
+        handleBlockDrop(
+          e,
+          anchor ? getNodeBranchPlacement(anchor) : null,
+          null,
+          dropHoverNodeId,
+        );
+        return;
+      }
       handleBlockDrop(
         e,
         null,
         splitLayout.hasSplit ? "after_parallel_split" : null,
       );
     },
-    [handleBlockDrop, splitLayout.hasSplit],
+    [
+      dropHoverBranchKey,
+      dropHoverNodeId,
+      handleBlockDrop,
+      nodes,
+      splitLayout.hasSplit,
+    ],
   );
   const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
   const usePaymentReminderSections = false;
@@ -446,15 +523,26 @@ export function BuilderCanvas({
     node: WorkflowNode,
     index: number,
     content: React.ReactNode,
-    options?: { skipSelectOnPointerUp?: boolean },
+    options?: {
+      skipSelectOnPointerUp?: boolean;
+      insertAfterNodeId?: string;
+      branchTarget?: WorkflowBranchTarget | null;
+    },
   ) => {
     const reorderLocked = isWorkflowNodeReorderLocked(nodes, index);
+    const dropAnchorId = options?.insertAfterNodeId ?? node.id;
+    const isDropHover = dropHoverNodeId === dropAnchorId;
+
     return (
       <div
         ref={(el) => {
           nodeSlotRefs.current[index] = el;
         }}
-        className={`w-full ${
+        className={`w-full rounded-2xl transition ${
+          isDropHover
+            ? "ring-2 ring-[#1877f2] ring-offset-2 ring-offset-[#ececee] scale-[1.01]"
+            : ""
+        } ${
           draggingIndex !== null || pressingIndex !== null ? "touch-none" : ""
         } ${
           reorderLocked
@@ -471,6 +559,27 @@ export function BuilderCanvas({
           })
         }
         onPointerCancel={handleNodePointerCancel}
+        onDragOver={
+          canDropBlocks
+            ? (e) => handleNodeBlockDragOver(e, dropAnchorId)
+            : undefined
+        }
+        onDragLeave={
+          canDropBlocks
+            ? (e) => handleNodeBlockDragLeave(e, dropAnchorId)
+            : undefined
+        }
+        onDrop={
+          canDropBlocks
+            ? (e) =>
+                handleBlockDrop(
+                  e,
+                  options?.branchTarget ?? getNodeBranchPlacement(node),
+                  null,
+                  dropAnchorId,
+                )
+            : undefined
+        }
       >
         {draggingIndex === index ? (
           <div
@@ -523,6 +632,11 @@ export function BuilderCanvas({
         </>
       ) : undefined;
 
+      const insertAfterNodeId =
+        segment.type === "actions"
+          ? segment.nodes[segment.nodes.length - 1]!.id
+          : displayNode.id;
+
       const stepContent =
         segment.type === "actions" ? (
           renderNodeSlot(
@@ -536,7 +650,11 @@ export function BuilderCanvas({
               invalidStepIds={invalidStepIds}
               onSelectStep={onSelect}
             />,
-            { skipSelectOnPointerUp: segment.nodes.length > 1 },
+            {
+              skipSelectOnPointerUp: segment.nodes.length > 1,
+              insertAfterNodeId,
+              branchTarget: options?.branchTarget ?? null,
+            },
           )
         ) : isActionNodeKind(displayNode.kind) ? (
           renderNodeSlot(
@@ -549,6 +667,10 @@ export function BuilderCanvas({
               invalidStepIds={invalidStepIds}
               onSelectStep={onSelect}
             />,
+            {
+              insertAfterNodeId,
+              branchTarget: options?.branchTarget ?? null,
+            },
           )
         ) : (
           renderNodeSlot(
@@ -561,6 +683,10 @@ export function BuilderCanvas({
               invalid={isWorkflowNodeInvalid(slotNode.id, invalidNodeIds)}
               invalidStepIds={invalidStepIds}
             />,
+            {
+              insertAfterNodeId,
+              branchTarget: options?.branchTarget ?? null,
+            },
           )
         );
 
@@ -589,7 +715,18 @@ export function BuilderCanvas({
             <motion.div
               className="flex w-full justify-center py-1.5"
               variants={flowConnectorReveal}
-              onDragOver={handleSlotDragOver}
+              onDragOver={(e) => {
+                handleSlotDragOver(e);
+                setDropHoverNodeId(insertAfterNodeId);
+                setDropHoverBranchKey(null);
+              }}
+              onDragLeave={(e) => {
+                const next = e.relatedTarget as Node | null;
+                if (next && e.currentTarget.contains(next)) return;
+                setDropHoverNodeId((current) =>
+                  current === insertAfterNodeId ? null : current,
+                );
+              }}
               onDrop={(e) =>
                 handleBlockDrop(
                   e,
@@ -598,6 +735,7 @@ export function BuilderCanvas({
                     (splitLayout.hasSplit && !options?.branchTarget
                       ? "main_flow"
                       : null),
+                  insertAfterNodeId,
                 )
               }
             >
@@ -672,17 +810,43 @@ export function BuilderCanvas({
   const renderBranchDropZone = (
     target: WorkflowBranchTarget | null,
     key: string,
-  ) =>
-    canDropBlocks ? (
+  ) => {
+    if (!canDropBlocks || !target) {
+      return null;
+    }
+
+    const hoverKey = branchTargetKey(target);
+    const isHover = hoverKey != null && dropHoverBranchKey === hoverKey;
+
+    return (
       <div
         key={key}
-        className="mt-3 flex w-full justify-center rounded-xl border-2 border-dashed border-zinc-300/80 bg-zinc-50/70 px-4 py-3 text-center text-xs font-medium text-zinc-500 transition hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700"
-        onDragOver={handleSlotDragOver}
+        className={`mt-3 h-8 w-full rounded-xl border-2 border-dashed transition ${
+          isHover
+            ? "border-blue-400 bg-blue-50"
+            : "border-transparent bg-transparent"
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onActiveBranchChange?.(target);
+        }}
+        onDragOver={(e) => {
+          handleSlotDragOver(e);
+          if (hoverKey) setDropHoverBranchKey(hoverKey);
+          setDropHoverNodeId(null);
+        }}
+        onDragLeave={(e) => {
+          const next = e.relatedTarget as Node | null;
+          if (next && e.currentTarget.contains(next)) return;
+          setDropHoverBranchKey((current) =>
+            current === hoverKey ? null : current,
+          );
+        }}
         onDrop={(e) => handleBlockDrop(e, target)}
-      >
-        Drop a block here to add to this branch
-      </div>
-    ) : null;
+        aria-hidden
+      />
+    );
+  };
 
   const renderBranchSectionBox = (
     title: string,
@@ -690,25 +854,72 @@ export function BuilderCanvas({
     columnIndex: number,
     key: string,
     branchTarget?: WorkflowBranchTarget | null,
-  ) => (
-    <div key={key} className={`relative ${FLOW_CARD_WIDTH_CLASS}`}>
-      <FlowBranchContainer title={title}>
-        <div className="relative w-full">
-          <BranchTraceLine />
-          <div className="relative z-10 flex w-full flex-col items-center">
-            {renderSegmentList(buildSegmentsForIndexedNodes(entries), {
-              branchStepNumber: 18 + columnIndex,
-              branchTarget: branchTarget ?? null,
-            })}
-            {renderBranchDropZone(
-              branchTarget ?? null,
-              `${key}-branch-drop`,
-            )}
+  ) => {
+    const hoverKey = branchTargetKey(branchTarget ?? null);
+    const isBranchHover =
+      hoverKey != null && dropHoverBranchKey === hoverKey;
+    const isActive =
+      branchTarget != null &&
+      activeBranchTarget?.flowBranch === branchTarget.flowBranch &&
+      (activeBranchTarget.flowBranchParent ?? null) ===
+        (branchTarget.flowBranchParent ?? null);
+
+    return (
+      <div
+        key={key}
+        className={`relative ${FLOW_CARD_WIDTH_CLASS}`}
+        onDragOver={
+          branchTarget
+            ? (e) => {
+                handleSlotDragOver(e);
+                if (hoverKey) setDropHoverBranchKey(hoverKey);
+                setDropHoverNodeId(null);
+              }
+            : undefined
+        }
+        onDragLeave={
+          branchTarget
+            ? (e) => {
+                const next = e.relatedTarget as Node | null;
+                if (next && e.currentTarget.contains(next)) return;
+                setDropHoverBranchKey((current) =>
+                  current === hoverKey ? null : current,
+                );
+              }
+            : undefined
+        }
+        onDrop={
+          branchTarget
+            ? (e) => handleBlockDrop(e, branchTarget)
+            : undefined
+        }
+        onClick={() => {
+          if (branchTarget) {
+            onActiveBranchChange?.(branchTarget);
+          }
+        }}
+      >
+        <FlowBranchContainer
+          title={title}
+          active={isActive || isBranchHover}
+        >
+          <div className="relative w-full">
+            <BranchTraceLine />
+            <div className="relative z-10 flex w-full flex-col items-center">
+              {renderSegmentList(buildSegmentsForIndexedNodes(entries), {
+                branchStepNumber: 18 + columnIndex,
+                branchTarget: branchTarget ?? null,
+              })}
+              {renderBranchDropZone(
+                branchTarget ?? null,
+                `${key}-branch-drop`,
+              )}
+            </div>
           </div>
-        </div>
-      </FlowBranchContainer>
-    </div>
-  );
+        </FlowBranchContainer>
+      </div>
+    );
+  };
 
   const renderParallelBranchColumn = (
     column: ParallelBranchColumn,
@@ -727,6 +938,22 @@ export function BuilderCanvas({
       <div
         key={`${depth}-${column.id}`}
         className={`flex flex-col items-center ${widthClass}`}
+        onDragOver={(e) => {
+          handleSlotDragOver(e);
+          const hoverKey = branchTargetKey(branchTarget);
+          if (hoverKey) setDropHoverBranchKey(hoverKey);
+          setDropHoverNodeId(null);
+          onActiveBranchChange?.(branchTarget);
+        }}
+        onDragLeave={(e) => {
+          const next = e.relatedTarget as Node | null;
+          if (next && e.currentTarget.contains(next)) return;
+          const hoverKey = branchTargetKey(branchTarget);
+          setDropHoverBranchKey((current) =>
+            current === hoverKey ? null : current,
+          );
+        }}
+        onDrop={(e) => handleBlockDrop(e, branchTarget)}
       >
         {fork?.showStem ? (
           <FlowSplitStem
@@ -817,8 +1044,34 @@ export function BuilderCanvas({
                 ),
               )
             ) : (
-              <div className={`relative ${FLOW_CARD_WIDTH_CLASS}`}>
-                <FlowBranchContainer title={column.title}>
+              <div
+                className={`relative ${FLOW_CARD_WIDTH_CLASS}`}
+                onClick={() => onActiveBranchChange?.(branchTarget)}
+                onDragOver={(e) => {
+                  handleSlotDragOver(e);
+                  const hoverKey = branchTargetKey(branchTarget);
+                  if (hoverKey) setDropHoverBranchKey(hoverKey);
+                  setDropHoverNodeId(null);
+                }}
+                onDragLeave={(e) => {
+                  const next = e.relatedTarget as Node | null;
+                  if (next && e.currentTarget.contains(next)) return;
+                  const hoverKey = branchTargetKey(branchTarget);
+                  setDropHoverBranchKey((current) =>
+                    current === hoverKey ? null : current,
+                  );
+                }}
+                onDrop={(e) => handleBlockDrop(e, branchTarget)}
+              >
+                <FlowBranchContainer
+                  title={column.title}
+                  active={
+                    (activeBranchTarget?.flowBranch === branchTarget.flowBranch &&
+                      (activeBranchTarget.flowBranchParent ?? null) ===
+                        (branchTarget.flowBranchParent ?? null)) ||
+                    dropHoverBranchKey === branchTargetKey(branchTarget)
+                  }
+                >
                   {renderBranchDropZone(
                     branchTarget,
                     `${depth}-${column.id}-empty-drop`,
@@ -850,14 +1103,26 @@ export function BuilderCanvas({
 
     return (
       <div
-        className="mt-6 flex w-full justify-center px-4"
-        onDragOver={handleSlotDragOver}
+        className={`mt-6 h-10 w-full max-w-md rounded-xl border-2 border-dashed transition ${
+          dropHoverBranchKey === "after_parallel_split"
+            ? "border-blue-400 bg-blue-50"
+            : "border-transparent"
+        }`}
+        onDragOver={(e) => {
+          handleSlotDragOver(e);
+          setDropHoverBranchKey("after_parallel_split");
+          setDropHoverNodeId(null);
+        }}
+        onDragLeave={(e) => {
+          const next = e.relatedTarget as Node | null;
+          if (next && e.currentTarget.contains(next)) return;
+          setDropHoverBranchKey((current) =>
+            current === "after_parallel_split" ? null : current,
+          );
+        }}
         onDrop={(e) => handleBlockDrop(e, null, "after_parallel_split")}
-      >
-        <div className="w-full max-w-md rounded-xl border-2 border-dashed border-zinc-300/80 bg-zinc-50/70 px-4 py-3 text-center text-xs font-medium text-zinc-500 transition hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700">
-          Drop a block here to continue after the parallel split
-        </div>
-      </div>
+        aria-hidden
+      />
     );
   };
 
@@ -969,6 +1234,8 @@ export function BuilderCanvas({
         onDragLeave={(e) => {
           if (e.currentTarget.contains(e.relatedTarget as Node)) return;
           setCanvasDragOver(false);
+          setDropHoverNodeId(null);
+          setDropHoverBranchKey(null);
         }}
         onDrop={handleCanvasBlockDrop}
       >

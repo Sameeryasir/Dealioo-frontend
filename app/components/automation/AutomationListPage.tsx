@@ -47,6 +47,7 @@ import {
   createAutomation,
   deleteAutomation,
   mapAutomationToListItem,
+  triggerToApi,
 } from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
@@ -57,6 +58,11 @@ import {
   validateAutomationCreateContext,
 } from "@/app/services/automation/automation-create-context";
 import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
+import {
+  createAutomationNode,
+  defaultConfigForBlockKind,
+  nodeTypeToBlockKind,
+} from "@/app/services/automation/node-api";
 
 function truncateDescription(description: string, maxLength = 40): string {
   const text = description.trim();
@@ -387,9 +393,9 @@ export function AutomationListPage({
             }
 
             syncAutomationQueryCache(queryClient, created);
-            openBuilderAfterCreate(String(created.id), Boolean(template));
 
             if (template) {
+              openBuilderAfterCreate(String(created.id), true);
               void applyAutomationTemplate(created.id, template)
                 .then((withGraph) => {
                   syncAutomationQueryCache(queryClient, withGraph);
@@ -399,6 +405,25 @@ export function AutomationListPage({
                   toastApiError(err, "Could not apply the template steps.");
                 });
             } else {
+              const triggerKind = nodeTypeToBlockKind("trigger", {
+                trigger: triggerToApi(trigger),
+              });
+              try {
+                await createAutomationNode({
+                  automationId: created.id,
+                  type: "trigger",
+                  order: 0,
+                  config: defaultConfigForBlockKind(triggerKind),
+                  positionX: 100,
+                  positionY: 200,
+                });
+              } catch (err) {
+                toastApiError(
+                  err,
+                  "Automation was created, but the trigger step could not be added.",
+                );
+              }
+              openBuilderAfterCreate(String(created.id), false);
               toast.success("Automation created.");
             }
           } catch (err) {

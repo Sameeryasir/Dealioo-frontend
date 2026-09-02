@@ -127,15 +127,9 @@ function CampaignsFilterEmptyState({
   canCreate: boolean;
 }) {
   return (
-    <div className="flex min-h-[280px] w-full flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-[#dbeafe] bg-[#f8fbff] px-6 py-12 text-center">
-      <div className="relative mb-5 flex size-20 items-center justify-center">
-        <span
-          className="absolute inset-0 rounded-full bg-[#1877f2]/10 blur-xl"
-          aria-hidden
-        />
-        <span className="relative flex size-16 items-center justify-center rounded-2xl border border-[#bfdbfe] bg-white shadow-[0_10px_24px_rgba(24,119,242,0.12)]">
-          <Megaphone className="size-8 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
-        </span>
+    <div className="flex w-full flex-col items-center justify-center px-6 py-8 text-center sm:py-10">
+      <div className="mb-5 flex size-16 items-center justify-center rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
+        <Megaphone className="size-8 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
       </div>
       <p className="m-0 max-w-sm text-[1rem] font-extrabold tracking-tight text-[#07111f]">
         {message}
@@ -511,7 +505,9 @@ export function BusinessCampaignsPanel({
             className={
               showCreateFlow
                 ? "rd-premium-panel__body rd-premium-panel__body--center !overflow-x-hidden !overflow-y-auto items-stretch sm:items-center px-3 py-3 sm:px-6 sm:py-5"
-                : "rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
+                : showNoCampaignsForFilter
+                  ? "rd-premium-panel__body rd-premium-panel__body--center px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
+                  : "rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
             }
           >
             {loading ? (
