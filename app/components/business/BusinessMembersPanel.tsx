@@ -1075,18 +1075,6 @@ export function BusinessMembersPanel({
             </div>
           )}
         </div>
-
-        <div className="flex items-start gap-3 rounded-2xl border border-[#dbeafe] bg-[#f5f9ff] px-4 py-3.5 sm:items-center">
-          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#dbeafe] text-[#2563eb] sm:mt-0">
-            <ShieldCheck className="size-4" strokeWidth={2.25} aria-hidden />
-          </span>
-          <p className="text-sm leading-relaxed text-slate-600">
-            <span className="font-semibold text-[#0f172a]">
-              Member access is scoped to this business.
-            </span>{" "}
-            Changes to roles or permissions take effect immediately.
-          </p>
-        </div>
       </section>
 
       <InviteMemberModal
@@ -1116,6 +1104,7 @@ export function BusinessMembersPanel({
       <ConfirmDialog
         open={memberToRemove != null}
         titleId="remove-member-confirm-title"
+        zIndex={90}
         title={isPendingInvite ? "Remove access?" : "Remove member?"}
         description={
           isPendingInvite ? (

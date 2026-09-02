@@ -3004,7 +3004,17 @@ body {
   }
 
   .profile-hero-features {
-    @apply mt-1;
+    @apply mt-3 sm:mt-3.5;
+  }
+
+  .org-dashboard-stats-banner:has(.org-dashboard-stats-layout--profile) .org-dashboard-stats-inner {
+    padding-bottom: 3.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .org-dashboard-stats-banner:has(.org-dashboard-stats-layout--profile) .org-dashboard-stats-inner {
+      padding-bottom: 4rem;
+    }
   }
 
   .profile-hero-identity-copy {
