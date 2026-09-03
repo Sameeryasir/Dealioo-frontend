@@ -44,6 +44,7 @@ export type CreateCampaignCompletePayload = {
   campaignName: string;
   websiteUrl: string;
   offerName: string;
+  description: string;
   offerPrice: string;
   offerImage: File;
   campaignType: CampaignType;
@@ -453,6 +454,7 @@ export default function CreateCampaigns({
         if (
           !campaignName.trim() ||
           !payload.offerName.trim() ||
+          !payload.description.trim() ||
           !(payload.imageFile instanceof File)
         ) {
           return;
@@ -467,6 +469,7 @@ export default function CreateCampaigns({
           campaignName: campaignName.trim(),
           websiteUrl: pendingWebsiteUrl,
           offerName: payload.offerName,
+          description: payload.description,
           offerPrice: payload.includeOfferPrice ? payload.offerPrice : "",
           offerImage: payload.imageFile,
           campaignType,

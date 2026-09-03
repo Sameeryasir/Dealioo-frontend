@@ -61,16 +61,25 @@ export function BusinessCardSkeleton() {
 }
 
 const campaignCardShell =
-  "flex w-full flex-col overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]";
+  "org-campaign-card relative flex w-full flex-col overflow-hidden sm:max-w-none";
 
 export function CampaignFunnelCardSkeleton() {
   return (
     <article className={campaignCardShell} aria-hidden>
-      <Skeleton className="h-40 w-full shrink-0 rounded-none bg-[#f1f5f9]" />
-      <div className="flex flex-col gap-2 p-4">
-        <Skeleton className="h-4 w-2/3 bg-[#f8fafc]" />
-        <Skeleton className="h-3 w-1/2 bg-[#f8fafc]" />
-        <Skeleton className="mt-2 h-3 w-1/3 bg-[#f8fafc]" />
+      <div className="flex min-h-[11.5rem] flex-col p-3.5 pt-3 sm:p-4 sm:pt-3.5">
+        <div className="flex items-start gap-3 pr-8">
+          <Skeleton className="size-[4.25rem] shrink-0 rounded-full bg-[#f8fafc] sm:size-[4.75rem]" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-3/4 bg-[#f8fafc]" />
+            <Skeleton className="h-2.5 w-full bg-[#f8fafc]" />
+            <Skeleton className="h-2.5 w-5/6 bg-[#f8fafc]" />
+          </div>
+        </div>
+        <Skeleton className="mt-3 h-7 w-2/5 max-w-[12rem] rounded-full bg-[#f8fafc]" />
+        <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+          <Skeleton className="h-6 w-12 bg-[#f8fafc]" />
+          <Skeleton className="h-3 w-20 bg-[#f8fafc]" />
+        </div>
       </div>
     </article>
   );

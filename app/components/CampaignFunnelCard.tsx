@@ -1,17 +1,31 @@
 "use client";
 
-import { ArrowUpRight, Megaphone, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { BusinessProfileImage } from "@/app/components/business/BusinessProfileImage";
+import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import { CalendarDays, MoreVertical, Pencil, Tag, Trash2 } from "lucide-react";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { createPortal } from "react-dom";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 
 type Props = {
   funnel: Funnel;
   businessId: number;
   onDeleteRequest?: (campaign: Funnel) => void;
+  onEditRequest?: (campaign: Funnel) => void;
   canDelete?: boolean;
+  canEdit?: boolean;
 };
+
+const PREVIEW_SIZE = 220;
+const PREVIEW_GAP = 12;
 
 function formatPrice(amount: number): string {
   if (Number.isInteger(amount)) return `$${amount}`;
@@ -36,24 +50,31 @@ function formatCreatedDate(iso: string | undefined): string | null {
   });
 }
 
-function normalizeImgSrc(raw: string): string {
-  return resolveUploadImageUrl(raw);
-}
-
 export default function CampaignFunnelCard({
   funnel,
   businessId,
   onDeleteRequest,
+  onEditRequest,
   canDelete = true,
+  canEdit = true,
 }: Props) {
-  const imageSrc = useMemo(
-    () => normalizeImgSrc(funnel.imageUrl?.trim() ?? ""),
-    [funnel.imageUrl],
-  );
-  const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => {
-    setImageFailed(false);
-  }, [funnel.id, imageSrc]);
+  const hasImage = Boolean(funnel.imageUrl?.trim());
+  const showActionsMenu = Boolean(onEditRequest || onDeleteRequest);
+  const {
+    open: menuOpen,
+    setOpen: setMenuOpen,
+    toggle: toggleMenu,
+    mounted: menuMounted,
+    anchorRef,
+    menuRef,
+    menuPosition,
+    menuStyle,
+  } = useAnchoredMenu({
+    placement: "flip",
+    align: "right",
+    width: 168,
+    estimatedHeight: 96,
+  });
 
   const priceNum = parsePrice(funnel.price);
   const priceText = priceNum != null ? formatPrice(priceNum) : null;
@@ -70,109 +91,247 @@ export default function CampaignFunnelCard({
   const offerName = funnel.offer?.trim() ?? "";
   const title =
     campaignName || offerName || `Campaign ${funnel.id}`;
-  const showOfferSubtitle = offerName.length > 0 && campaignName.length > 0;
+  const description = funnel.description?.trim() || null;
+  const showOfferBar = offerName.length > 0;
+  const previewSrc = resolveUploadImageUrl(funnel.imageUrl);
+  const canPreviewImage = Boolean(previewSrc) && hasImage;
+
+  const imageAnchorRef = useRef<HTMLSpanElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMounted, setPreviewMounted] = useState(false);
+  const [previewStyle, setPreviewStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    setPreviewMounted(true);
+  }, []);
+
+  const updatePreviewPosition = useCallback(() => {
+    const el = imageAnchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const preferredLeft = rect.right + PREVIEW_GAP;
+    const fitsRight = preferredLeft + PREVIEW_SIZE <= window.innerWidth - 8;
+    const left = fitsRight
+      ? preferredLeft
+      : Math.max(8, rect.left - PREVIEW_SIZE - PREVIEW_GAP);
+    const top = Math.min(
+      Math.max(8, rect.top + rect.height / 2 - PREVIEW_SIZE / 2),
+      window.innerHeight - PREVIEW_SIZE - 8,
+    );
+    setPreviewStyle({
+      position: "fixed",
+      top,
+      left,
+      width: PREVIEW_SIZE,
+      height: PREVIEW_SIZE,
+      zIndex: 120,
+    });
+  }, []);
+
+  const openPreview = useCallback(() => {
+    if (!canPreviewImage) return;
+    updatePreviewPosition();
+    setPreviewOpen(true);
+  }, [canPreviewImage, updatePreviewPosition]);
+
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onScrollOrResize = () => updatePreviewPosition();
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    return () => {
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+    };
+  }, [previewOpen, updatePreviewPosition]);
 
   return (
-    <div className="group relative flex w-full flex-col overflow-hidden rounded-[1.15rem] border border-[#e8edf5] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] outline-none ring-1 ring-black/[0.02] transition duration-300 hover:-translate-y-0.5 hover:border-[#1877f2]/40 hover:shadow-[0_16px_36px_rgba(24,119,242,0.14)]">
+    <div className="org-campaign-card group relative flex w-full max-w-none flex-col overflow-hidden">
+      {showActionsMenu ? (
+        <div ref={anchorRef} className="absolute right-2.5 top-2.5 z-20">
+          <button
+            type="button"
+            aria-label={`More actions for ${title}`}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title="More actions"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleMenu();
+            }}
+            className="org-campaign-card-more inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-slate-500 transition hover:bg-[#f4f7fb] hover:text-[#07111f]"
+          >
+            <MoreVertical className="size-4" strokeWidth={2.25} aria-hidden />
+          </button>
+          {menuMounted && menuOpen && menuPosition
+            ? createPortal(
+                <div
+                  ref={menuRef}
+                  role="menu"
+                  aria-label={`${title} actions`}
+                  style={menuStyle}
+                  className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.02]"
+                >
+                  {onEditRequest ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!canEdit}
+                      title={
+                        canEdit
+                          ? "Edit campaign"
+                          : "You do not have permission to edit campaigns"
+                      }
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (!canEdit) return;
+                        setMenuOpen(false);
+                        onEditRequest(funnel);
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[0.8rem] font-semibold transition ${
+                        canEdit
+                          ? "cursor-pointer text-slate-700 hover:bg-[#f8fbff]"
+                          : "cursor-not-allowed text-slate-300"
+                      }`}
+                    >
+                      <Pencil className="size-3.5 text-[#1877f2]" aria-hidden />
+                      Edit
+                    </button>
+                  ) : null}
+                  {onDeleteRequest ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!canDelete}
+                      title={
+                        canDelete
+                          ? "Delete campaign"
+                          : "You do not have permission to delete campaigns"
+                      }
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (!canDelete) return;
+                        setMenuOpen(false);
+                        onDeleteRequest(funnel);
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[0.8rem] font-semibold transition ${
+                        canDelete
+                          ? "cursor-pointer text-red-600 hover:bg-red-50"
+                          : "cursor-not-allowed text-slate-300"
+                      }`}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                      Delete
+                    </button>
+                  ) : null}
+                </div>,
+                document.body,
+              )
+            : null}
+        </div>
+      ) : null}
+
       <Link
         href={campaignHref}
         aria-label={`Open ${title}`}
-        className="flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 focus-visible:ring-offset-2"
+        className="org-campaign-card-link relative z-[1] flex flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 focus-visible:ring-offset-2"
       >
-        <article className="flex flex-col">
-          <div className="relative flex h-44 w-full shrink-0 items-center justify-center overflow-hidden bg-[#18243d]">
-            {imageSrc && !imageFailed ? (
-              <img
-                src={imageSrc}
-                alt={title}
-                className="h-full w-full object-contain object-center transition duration-500"
-                onError={() => setImageFailed(true)}
-              />
-            ) : (
-              <div
-                className="flex h-full w-full items-center justify-center text-[#93c5fd]/70"
-                aria-hidden
-              >
-                <Megaphone className="size-11" strokeWidth={1.75} />
-              </div>
-            )}
+        <article className="org-campaign-card-inner flex min-h-[11.5rem] flex-col p-3.5 pt-3 sm:p-4 sm:pt-3.5">
+          <div className="org-campaign-card-head flex items-start gap-3 pr-8">
             <span
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07111f]/20 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100"
-              aria-hidden
-            />
-
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-2 p-3">
-              {onDeleteRequest ? (
-                <button
-                  type="button"
-                  aria-label={
-                    canDelete
-                      ? `Delete ${title}`
-                      : "You do not have permission to delete campaigns"
-                  }
-                  title={
-                    canDelete
-                      ? "Delete campaign"
-                      : "You do not have permission to delete campaigns"
-                  }
-                  disabled={!canDelete}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (!canDelete) return;
-                    onDeleteRequest(funnel);
-                  }}
-                  className={`pointer-events-auto inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/90 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.18)] transition ${
-                    canDelete
-                      ? "cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700"
-                      : "cursor-not-allowed text-slate-300 opacity-60"
-                  }`}
-                >
-                  <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                </button>
+              ref={imageAnchorRef}
+              className="org-campaign-card-image-hover relative shrink-0"
+              onMouseEnter={openPreview}
+              onMouseLeave={closePreview}
+              onFocus={openPreview}
+              onBlur={closePreview}
+            >
+              <BusinessProfileImage
+                src={funnel.imageUrl}
+                variant="campaign"
+                className="org-campaign-card-avatar"
+                aria-hidden={hasImage}
+              />
+            </span>
+            <div className="org-campaign-card-copy min-w-0 flex-1">
+              <div className="flex flex-wrap items-start gap-2">
+                <h3 className="org-campaign-card-title m-0 line-clamp-2 min-w-0 flex-1 text-[0.95rem] font-extrabold leading-snug sm:text-[1rem]">
+                  {title}
+                </h3>
+                {funnel.published === true ||
+                funnel.status?.trim().toLowerCase() === "published" ? (
+                  <span className="org-campaign-card-status org-campaign-card-status--active">
+                    <span className="org-campaign-card-status-dot" aria-hidden />
+                    Active
+                  </span>
+                ) : null}
+              </div>
+              {description ? (
+                <p className="org-campaign-card-desc m-0 mt-1.5 line-clamp-3 text-[0.68rem] leading-relaxed sm:text-[0.72rem]">
+                  {description}
+                </p>
               ) : null}
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="m-0 line-clamp-2 flex-1 text-[0.94rem] font-extrabold leading-snug text-[#07111f] transition group-hover:text-[#1877f2]">
-                {title}
-              </h3>
-              <ArrowUpRight
-                className="mt-0.5 size-4 shrink-0 text-[#1877f2]/0 transition duration-300 group-hover:text-[#1877f2]"
-                strokeWidth={2.5}
-                aria-hidden
-              />
-            </div>
-            {showOfferSubtitle ? (
-              <p className="m-0 line-clamp-1 text-[0.75rem] font-medium text-slate-500">
+          {showOfferBar ? (
+            <div className="org-campaign-card-offer-bar mt-3 inline-flex max-w-full items-center gap-1.5">
+              <Tag className="size-3 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="line-clamp-1">
                 Offer: {offerName}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="org-campaign-card-footer mt-auto flex items-end justify-between gap-2 pt-3">
+            {priceText ? (
+              <p className="org-campaign-card-price m-0 text-[1.35rem] font-extrabold leading-none sm:text-[1.45rem]">
+                {priceText}
+              </p>
+            ) : campaignTypeLabel ? (
+              <span className="org-campaign-card-type inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.04em]">
+                {campaignTypeLabel}
+              </span>
+            ) : (
+              <span className="org-campaign-card-meta text-[0.72rem] font-medium">
+                No price set
+              </span>
+            )}
+            {created ? (
+              <p className="org-campaign-card-date m-0 inline-flex items-center gap-1 text-[0.65rem] font-medium sm:text-[0.68rem]">
+                <CalendarDays className="size-3 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                {created}
               </p>
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              {priceText ? (
-                <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
-                  {priceText}
-                </p>
-              ) : campaignTypeLabel ? (
-                <span className="inline-flex items-center rounded-full bg-[#e8f2ff] px-2.5 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.04em] text-[#1877f2]">
-                  {campaignTypeLabel}
-                </span>
-              ) : (
-                <span className="text-[0.75rem] font-medium text-slate-400">
-                  No price set
-                </span>
-              )}
-              {created ? (
-                <p className="m-0 text-[0.68rem] font-medium text-slate-400">
-                  {created}
-                </p>
-              ) : null}
-            </div>
           </div>
         </article>
       </Link>
+
+      {previewMounted && previewOpen && previewSrc && previewStyle
+        ? createPortal(
+            <div
+              className="org-campaign-card-image-preview pointer-events-none"
+              style={previewStyle}
+              role="img"
+              aria-label={`${title} image preview`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc}
+                alt=""
+                className="size-full object-cover object-center"
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

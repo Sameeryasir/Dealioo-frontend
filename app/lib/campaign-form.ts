@@ -36,3 +36,15 @@ export function offerPriceValidationMessage(raw: string): string | null {
   }
   return null;
 }
+
+export function campaignDescriptionValidationMessage(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return "Enter a campaign description.";
+  if (trimmed.length < 10) {
+    return "Description must be at least 10 characters.";
+  }
+  if (trimmed.length > 2000) {
+    return "Description must be 2000 characters or less.";
+  }
+  return null;
+}

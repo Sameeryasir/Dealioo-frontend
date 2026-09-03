@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Check,
   CircleDollarSign,
+  FileText,
   Gift,
   ImageIcon,
   ImagePlus,
@@ -25,8 +26,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { parseOfferPrice } from "@/app/lib/campaign-form";
+import { parseOfferPrice, campaignDescriptionValidationMessage } from "@/app/lib/campaign-form";
+import { upsertCampaignInQueryClient } from "@/app/lib/campaign-query-cache";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
+import { parseCampaignFromApi } from "@/app/services/funnel/get-campaigns-by-business";
 import { updateCampaign } from "@/app/services/funnel/update-campaign";
 
 const inputClassName =
@@ -76,6 +79,7 @@ export function EditCampaignModal({
   const [mounted, setMounted] = useState(false);
   const [campaignName, setCampaignName] = useState("");
   const [offer, setOffer] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -93,6 +97,7 @@ export function EditCampaignModal({
     if (!open || !campaign) return;
     setCampaignName(campaign.campaignName?.trim() ?? "");
     setOffer(campaign.offer?.trim() ?? "");
+    setDescription(campaign.description?.trim() ?? "");
     setPrice(parsePrice(campaign.price));
     setImageFile(null);
     setPreviewUrl(campaign.imageUrl?.trim() || null);
@@ -165,14 +170,39 @@ export function EditCampaignModal({
     try {
       setError(null);
       setIsSaving(true);
-      await updateCampaign({
+      const descriptionError = campaignDescriptionValidationMessage(description);
+      if (descriptionError) {
+        setError(descriptionError);
+        setIsSaving(false);
+        return;
+      }
+      const updatedBody = await updateCampaign({
         campaignId: campaign.id,
         campaignName: campaignName.trim(),
         websiteUrl: campaign.websiteUrl?.trim() ?? "",
         offer: offer.trim(),
+        description: description.trim(),
         price: parseOfferPrice(price),
         image: imageFile,
       });
+      const updatedCampaign =
+        parseCampaignFromApi(updatedBody) ??
+        ({
+          ...campaign,
+          campaignName: campaignName.trim(),
+          offer: offer.trim(),
+          description: description.trim(),
+          price: parseOfferPrice(price),
+          updatedAt: new Date().toISOString(),
+        } satisfies Funnel);
+
+      // Keep React Query list + detail caches in sync with the edit.
+      upsertCampaignInQueryClient(
+        queryClient,
+        campaign.businessId,
+        updatedCampaign,
+      );
+
       await queryClient.invalidateQueries({
         queryKey: ["business-activity-events", campaign.businessId],
       });
@@ -219,7 +249,7 @@ export function EditCampaignModal({
                   Edit campaign
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Update name, offer, price, and image
+                  Update name, description, offer, price, and image
                 </p>
               </div>
             </div>
@@ -247,6 +277,20 @@ export function EditCampaignModal({
                 onChange={(e) => setCampaignName(e.target.value)}
                 className={inputClassName}
                 placeholder="Campaign name"
+                required
+              />
+            </div>
+
+            <div>
+              <FieldLabel htmlFor="edit-campaign-description" icon={FileText}>
+                Description
+              </FieldLabel>
+              <textarea
+                id="edit-campaign-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={`${inputClassName} min-h-[5.5rem] resize-y leading-relaxed`}
+                placeholder="Describe what customers get and why they should care."
                 required
               />
             </div>

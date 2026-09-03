@@ -5,7 +5,6 @@ import {
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
-import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import {
   locationFieldMessage,
@@ -815,40 +814,46 @@ export function BusinessProfileEditModal({
                         htmlFor="edit-business-type"
                         required
                       >
-                        <BusinessOptionSelect
+                        <select
                           id="edit-business-type"
+                          className={`${inputClass} appearance-none bg-transparent`}
                           value={form.businessType}
-                          options={[...BUSINESS_TYPE_OPTIONS]}
-                          placeholder="Select business type"
-                          ariaLabel="Business type"
-                          menuZIndex={200}
-                          placeholderClassName="font-normal text-slate-400"
-                          triggerClassName={`${inputClass} pr-2.5`}
-                          onChange={(nextValue) =>
-                            patchForm({ businessType: nextValue })
+                          aria-label="Business type"
+                          onChange={(e) =>
+                            patchForm({ businessType: e.target.value })
                           }
-                        />
+                        >
+                          <option value="">Select business type</option>
+                          {BUSINESS_TYPE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </Field>
                       <Field
                         label="Currency"
                         htmlFor="edit-business-currency"
                         required
                       >
-                        <BusinessOptionSelect
+                        <select
                           id="edit-business-currency"
+                          className={`${inputClass} appearance-none bg-transparent`}
                           value={form.currency}
-                          options={[...BUSINESS_CURRENCY_OPTIONS]}
-                          placeholder="Select currency"
-                          ariaLabel="Currency"
-                          menuZIndex={200}
-                          placeholderClassName="font-normal text-slate-400"
-                          triggerClassName={`${inputClass} pr-2.5`}
-                          onChange={(nextValue) =>
+                          aria-label="Currency"
+                          onChange={(e) =>
                             patchForm({
-                              currency: nextValue.toUpperCase(),
+                              currency: e.target.value.toUpperCase(),
                             })
                           }
-                        />
+                        >
+                          <option value="">Select currency</option>
+                          {BUSINESS_CURRENCY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </Field>
                     </div>
 
@@ -866,17 +871,12 @@ export function BusinessProfileEditModal({
                           />
                           <input
                             id="edit-business-country"
-                            className={`${inputClass} pl-10 pr-9`}
+                            className={`${inputClass} pl-10`}
                             value={form.country}
                             onChange={(e) =>
                               patchForm({ country: e.target.value })
                             }
                             placeholder="e.g. Digital Marketing"
-                          />
-                          <ChevronDown
-                            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-300"
-                            strokeWidth={2.25}
-                            aria-hidden
                           />
                         </div>
                       </Field>
@@ -893,17 +893,12 @@ export function BusinessProfileEditModal({
                           />
                           <input
                             id="edit-business-city"
-                            className={`${inputClass} pl-10 pr-9`}
+                            className={`${inputClass} pl-10`}
                             value={form.city}
                             onChange={(e) =>
                               patchForm({ city: e.target.value })
                             }
                             placeholder="e.g. Marketing Agency"
-                          />
-                          <ChevronDown
-                            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-300"
-                            strokeWidth={2.25}
-                            aria-hidden
                           />
                         </div>
                       </Field>

@@ -14,7 +14,13 @@ export type HeroLayoutPresetKey =
   | "product_square"
   | "magazine_band"
   | "glass_fade"
-  | "split_margin";
+  | "split_margin"
+  | "contain_inset"
+  | "contain_square"
+  | "contain_wide"
+  | "contain_portrait"
+  | "contain_floating"
+  | "contain_frame";
 
 export type HeroLayoutPreset = Pick<
   HeroDesignStyle,
@@ -153,5 +159,60 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     imageClass: "h-full w-full object-cover",
     fade: "full",
     placeholderClass: "rounded-lg border border-dashed",
+  },
+  /** Adaptive layouts: full image visible (object-contain), neutral frame for letterboxing. */
+  contain_inset: {
+    previewKind: "inset",
+    wrapperClass: "px-4 pt-4",
+    frameClass:
+      "relative flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f4f4f5] p-3 shadow-md ring-1 ring-black/5",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-2xl border border-dashed",
+  },
+  contain_square: {
+    previewKind: "square",
+    wrapperClass: "px-6 pt-5",
+    frameClass:
+      "relative mx-auto flex aspect-square w-full max-w-[min(100%,20rem)] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafc] p-4 shadow-md ring-1 ring-zinc-200/80",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-2xl border border-dashed",
+  },
+  contain_wide: {
+    previewKind: "wide",
+    wrapperClass: "px-4 pt-3",
+    frameClass:
+      "relative flex aspect-[21/9] w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f1f5f9] p-3 ring-1 ring-zinc-200/70",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-xl border border-dashed",
+  },
+  contain_portrait: {
+    previewKind: "tall",
+    wrapperClass: "px-5 pt-4",
+    frameClass:
+      "relative mx-auto flex aspect-[4/5] w-full max-w-[min(100%,18rem)] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f4f4f5] p-3 shadow-sm ring-1 ring-zinc-200/80",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-2xl border border-dashed",
+  },
+  contain_floating: {
+    previewKind: "card",
+    wrapperClass: "px-4 pt-4 pb-1",
+    frameClass:
+      "relative flex aspect-[16/10] w-full shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white p-4 shadow-xl ring-1 ring-black/[0.06]",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-3xl border border-dashed shadow-md",
+  },
+  contain_frame: {
+    previewKind: "frame",
+    wrapperClass: "px-5 pt-5",
+    frameClass:
+      "relative flex aspect-[5/4] w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200/90 bg-[#fafafa] p-4 shadow-sm",
+    imageClass: "max-h-full max-w-full object-contain object-center",
+    fade: "none",
+    placeholderClass: "rounded-xl border border-dashed",
   },
 };

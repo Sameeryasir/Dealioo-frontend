@@ -94,6 +94,48 @@ export const HERO_DESIGN_CATALOG = [
     label: "Split margin",
     description: "Framed with side margins, professional services and B2B.",
   },
+  {
+    id: "adaptive_inset",
+    preset: "contain_inset",
+    label: "Adaptive inset",
+    description:
+      "Rounded frame that fits any image ratio — square, portrait, or landscape — without cropping.",
+  },
+  {
+    id: "adaptive_square",
+    preset: "contain_square",
+    label: "Adaptive square",
+    description:
+      "Centered square frame; logos and product shots stay fully visible.",
+  },
+  {
+    id: "adaptive_wide",
+    preset: "contain_wide",
+    label: "Adaptive wide",
+    description:
+      "Wide letterbox frame for panoramic and landscape hero photos.",
+  },
+  {
+    id: "adaptive_portrait",
+    preset: "contain_portrait",
+    label: "Adaptive portrait",
+    description:
+      "Tall frame for vertical photography; no top or bottom cut-off.",
+  },
+  {
+    id: "adaptive_floating",
+    preset: "contain_floating",
+    label: "Adaptive floating",
+    description:
+      "Elevated card with padding; busy or mixed-ratio images blend cleanly.",
+  },
+  {
+    id: "adaptive_frame",
+    preset: "contain_frame",
+    label: "Adaptive frame",
+    description:
+      "Editorial border with neutral backdrop; works with any upload size.",
+  },
 ] as const satisfies readonly HeroDesignCatalogEntry[];
 
 export type HeroDesign = (typeof HERO_DESIGN_CATALOG)[number]["id"];

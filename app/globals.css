@@ -4609,7 +4609,9 @@ body {
     position: static !important;
     inset: auto !important;
     transform: none !important;
-    @apply relative z-[1] flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white p-1.5 sm:size-16;
+    @apply relative z-[1] flex size-14 shrink-0 items-center justify-center overflow-hidden border bg-white p-0 sm:size-16;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
     border-color: #e8edf5;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   }
@@ -4626,12 +4628,177 @@ body {
     box-shadow: none;
   }
 
+  .org-biz-card-avatar-media {
+    @apply relative block size-full min-h-0 min-w-0 overflow-hidden rounded-full;
+  }
+
   .org-biz-card-avatar-img {
-    @apply block h-full w-full object-contain object-center;
+    @apply object-cover object-center;
   }
 
   .org-biz-card-avatar-placeholder {
     @apply flex size-full items-center justify-center text-slate-400;
+  }
+
+  .org-campaign-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    color: #0f172a;
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .org-campaign-card:hover {
+    transform: translateY(-2px);
+    border-color: #dbe4f0;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .org-campaign-card-more {
+    border-color: #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  }
+
+  .org-campaign-card-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .org-campaign-card-title {
+    color: #07111f;
+  }
+
+  .org-campaign-card-desc {
+    color: #64748b;
+  }
+
+  .org-campaign-card-offer-bar {
+    width: fit-content;
+    max-width: 100%;
+    border-radius: 9999px;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #1877f2;
+  }
+
+  .org-campaign-card-offer-bar svg {
+    color: #1877f2;
+  }
+
+  .org-campaign-card-status {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide;
+    color: #15803d;
+    background: #dcfce7;
+    border-color: #bbf7d0;
+  }
+
+  .org-campaign-card-status--active {
+    color: #15803d;
+    background: #dcfce7;
+    border-color: #bbf7d0;
+  }
+
+  .org-campaign-card-status-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .org-campaign-card-price {
+    color: #07111f;
+  }
+
+  .org-campaign-card-type {
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    color: #1877f2;
+  }
+
+  .org-campaign-card-meta,
+  .org-campaign-card-date {
+    color: #94a3b8;
+  }
+
+  .org-campaign-card-avatar {
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    @apply flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden border bg-white p-0 sm:size-[4.75rem];
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border-color: #e8edf5;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .org-campaign-card-image-hover:hover .org-campaign-card-avatar,
+  .org-campaign-card-image-hover:focus-within .org-campaign-card-avatar {
+    transform: scale(1.04) !important;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  }
+
+  .org-campaign-card-image-preview {
+    overflow: hidden;
+    border-radius: 50%;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow:
+      0 18px 40px rgba(15, 23, 42, 0.18),
+      0 0 0 1px rgba(15, 23, 42, 0.04);
+    animation: org-campaign-image-preview-in 0.16s ease-out;
+  }
+
+  @keyframes org-campaign-image-preview-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .org-campaign-card-image-preview {
+      animation: none;
+    }
+
+    .org-campaign-card-avatar {
+      transition: none;
+    }
+  }
+
+  .org-campaign-card-avatar.org-biz-card-avatar--placeholder {
+    @apply p-0;
+    border-color: #dbeafe;
+    background: #eff6ff;
+    box-shadow: none;
+  }
+
+  .org-campaign-card-avatar .org-biz-card-avatar-media {
+    @apply relative block size-full min-h-0 min-w-0 overflow-hidden rounded-full;
+  }
+
+  .org-campaign-card-avatar .org-biz-card-avatar-img {
+    @apply object-cover object-center;
+  }
+
+  .org-campaign-card-avatar.org-biz-card-avatar--placeholder svg {
+    @apply size-7 sm:size-8;
   }
 
   .org-biz-card-content {
@@ -5342,9 +5509,10 @@ body {
   }
 
   .org-biz-card-thumb {
-    @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border;
+    @apply relative z-[1] flex size-12 shrink-0 items-center justify-center overflow-hidden border bg-white p-0;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
     border-color: #e8edf5;
-    background: #ffffff;
   }
 
   .org-biz-card-thumb--placeholder {
@@ -5354,7 +5522,7 @@ body {
   }
 
   .org-biz-card-thumb .org-biz-card-avatar-img {
-    @apply object-contain;
+    @apply object-cover object-center;
   }
 
   .org-biz-card-thumb .org-biz-card-avatar-placeholder svg {

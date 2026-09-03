@@ -7,6 +7,7 @@ export type UpdateCampaignPayload = {
   campaignName: string;
   websiteUrl: string;
   offer: string;
+  description: string;
   price: number;
   image?: File | null;
 };
@@ -29,6 +30,9 @@ export async function updateCampaign(
   if (!payload.offer.trim()) {
     throw new Error("Offer is required.");
   }
+  if (!payload.description.trim()) {
+    throw new Error("Description is required.");
+  }
   if (!Number.isFinite(payload.price)) {
     throw new Error("Price is required.");
   }
@@ -37,6 +41,7 @@ export async function updateCampaign(
   form.append("campaignName", payload.campaignName.trim());
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("offer", payload.offer.trim());
+  form.append("description", payload.description.trim());
   form.append("price", String(payload.price));
   if (payload.image instanceof File) {
     form.append("image", payload.image, payload.image.name);

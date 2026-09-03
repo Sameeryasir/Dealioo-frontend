@@ -8,6 +8,7 @@ export type Funnel = {
   websiteUrl: string;
   imageUrl?: string;
   offer?: string;
+  description?: string | null;
   price?: number | string;
   campaignType?: "prepaid" | "postpaid";
   published?: boolean;
@@ -74,6 +75,12 @@ function coerceCampaign(value: unknown): Funnel | null {
       : o.offer === null
         ? undefined
         : undefined;
+  const description =
+    typeof o.description === "string"
+      ? o.description.trim() || null
+      : o.description === null
+        ? null
+        : undefined;
   const price = o.price ?? undefined;
   const rawCampaignType = o.campaignType ?? o.campaign_type;
   const campaignType =
@@ -106,6 +113,7 @@ function coerceCampaign(value: unknown): Funnel | null {
     websiteUrl,
     imageUrl,
     offer,
+    description,
     price: typeof price === "number" || typeof price === "string" ? price : undefined,
     campaignType,
     published:
@@ -116,6 +124,11 @@ function coerceCampaign(value: unknown): Funnel | null {
     createdAt,
     updatedAt,
   };
+}
+
+/** Public parser so create/edit responses can be stored in React Query. */
+export function parseCampaignFromApi(value: unknown): Funnel | null {
+  return coerceCampaign(value);
 }
 
 function campaignsFromResponseBody(

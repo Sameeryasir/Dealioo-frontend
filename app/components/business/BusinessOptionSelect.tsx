@@ -20,6 +20,7 @@ export function BusinessOptionSelect({
   placeholderClassName = "font-medium text-[#94a3b8]",
   menuZIndex = 120,
   disabled,
+  hideChevron = false,
 }: {
   id?: string;
   value: string;
@@ -31,6 +32,7 @@ export function BusinessOptionSelect({
   placeholderClassName?: string;
   menuZIndex?: number;
   disabled?: boolean;
+  hideChevron?: boolean;
 }) {
   const {
     open,
@@ -112,11 +114,13 @@ export function BusinessOptionSelect({
         >
           {selected?.label ?? placeholder}
         </span>
+        {hideChevron ? null : (
         <ChevronDown
           className={`size-4 shrink-0 text-[#94a3b8] transition ${open ? "rotate-180" : ""}`}
           strokeWidth={2.25}
           aria-hidden
         />
+        )}
       </button>
       {menu}
     </div>

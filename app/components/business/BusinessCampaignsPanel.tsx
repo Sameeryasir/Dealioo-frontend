@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
+import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import CreateCampaigns from "@/app/components/CreateCampaigns";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
@@ -23,6 +24,10 @@ import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membe
 import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
+import {
+  removeCampaignFromQueryClient,
+  upsertCampaignInQueryClient,
+} from "@/app/lib/campaign-query-cache";
 import { standardEase } from "@/app/lib/motion";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
@@ -35,6 +40,7 @@ import { deleteCampaign } from "@/app/services/funnel/delete-campaign";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import {
   CAMPAIGNS_PAGE_SIZE,
+  parseCampaignFromApi,
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-business";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
@@ -47,7 +53,7 @@ const campaignsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
 const campaignsGridClass =
-  "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+  "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4";
 const campaignCardWrapClass = "min-w-0";
 
 function getEmptyFilterMessage(
@@ -186,6 +192,8 @@ export function BusinessCampaignsPanel({
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [campaignPendingDelete, setCampaignPendingDelete] =
     useState<Funnel | null>(null);
+  const [campaignPendingEdit, setCampaignPendingEdit] =
+    useState<Funnel | null>(null);
   const [isDeletingCampaign, setIsDeletingCampaign] = useState(false);
 
   const {
@@ -204,6 +212,7 @@ export function BusinessCampaignsPanel({
   const { data: business } = useBusinessByIdQuery(businessId);
   const { can } = useBusinessMembershipPermissions(businessId);
   const canCreateCampaign = can("campaigns_create");
+  const canEditCampaign = can("campaigns_edit");
   const canDeleteCampaign = can("campaigns_delete");
 
   const loading = isLoading || (isFetching && campaigns.length === 0);
@@ -270,8 +279,11 @@ export function BusinessCampaignsPanel({
     setIsDeletingCampaign(true);
     try {
       await deleteCampaign(campaignPendingDelete.id);
+      const deletedId = campaignPendingDelete.id;
       setCampaignPendingDelete(null);
       toast.success("Campaign deleted.");
+      // Update React Query client immediately, then refresh from server.
+      removeCampaignFromQueryClient(queryClient, businessId, deletedId);
       await queryClient.invalidateQueries({
         queryKey: [...funnelQueryKeys.campaigns(), businessId],
       });
@@ -386,6 +398,7 @@ export function BusinessCampaignsPanel({
     campaignName: string;
     websiteUrl: string;
     offerName: string;
+    description: string;
     offerPrice: string;
     offerImage: File;
     campaignType: "prepaid" | "postpaid";
@@ -401,6 +414,7 @@ export function BusinessCampaignsPanel({
         websiteUrl: payload.websiteUrl,
         image: payload.offerImage,
         offer: payload.offerName,
+        description: payload.description,
         campaignType: payload.campaignType,
         ...(payload.includeOfferPrice
           ? { price: parseOfferPrice(payload.offerPrice) }
@@ -408,6 +422,14 @@ export function BusinessCampaignsPanel({
       });
       skipPostCreateNavRef.current = true;
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
+      const createdCampaign = parseCampaignFromApi(createdBody);
+
+      // Store the new campaign in React Query right away so the list updates.
+      if (createdCampaign) {
+        upsertCampaignInQueryClient(queryClient, businessId, createdCampaign, {
+          prepend: true,
+        });
+      }
 
       void Promise.all([
         queryClient.invalidateQueries({
@@ -462,6 +484,19 @@ export function BusinessCampaignsPanel({
         open={submitError != null && !alertDismissed}
         message={submitError ?? ""}
         onClose={() => setAlertDismissed(true)}
+      />
+
+      <EditCampaignModal
+        open={campaignPendingEdit != null}
+        campaign={campaignPendingEdit}
+        onOpenChange={(open) => {
+          if (!open) setCampaignPendingEdit(null);
+        }}
+        onSaved={async () => {
+          await queryClient.invalidateQueries({
+            queryKey: [...funnelQueryKeys.campaigns(), businessId],
+          });
+        }}
       />
 
       <DeleteConfirmationDialog
@@ -542,7 +577,9 @@ export function BusinessCampaignsPanel({
                         funnel={funnel}
                         businessId={businessId}
                         canDelete={canDeleteCampaign}
+                        canEdit={canEditCampaign}
                         onDeleteRequest={setCampaignPendingDelete}
+                        onEditRequest={setCampaignPendingEdit}
                       />
                     </div>
                   ))}

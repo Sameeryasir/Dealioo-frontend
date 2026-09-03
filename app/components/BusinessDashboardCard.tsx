@@ -6,10 +6,7 @@ import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirma
 import { getBusinessSetup } from "@/app/lib/business-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import {
-  resolveUploadImageUrl,
-  spacesImageLoadProps,
-} from "@/app/lib/resolve-upload-image-url";
+import { BusinessProfileImage } from "@/app/components/business/BusinessProfileImage";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { deleteBusiness } from "@/app/services/business/delete-business";
 import type { AdminBusiness } from "@/app/services/business/get-my-business";
@@ -17,7 +14,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Building2,
-  ImageIcon,
   Loader2,
   MapPin,
   Trash2,
@@ -57,7 +53,6 @@ export default function BusinessDashboardCard({
       ? `${cityState}, ${countryLabel}`
       : cityState
     : countryLabel || "Add location";
-  const logoSrc = resolveUploadImageUrl(logoUrl);
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;
   const { access, isFetched } = useBusinessMembershipPermissions(businessId);
@@ -132,20 +127,6 @@ export default function BusinessDashboardCard({
 
   const cardAriaLabel = `${name}${isReady ? ", ready" : ", in setup"}. Open dashboard.`;
 
-  const logoMark = logoSrc ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoSrc}
-      alt=""
-      className="org-biz-card-avatar-img"
-      {...spacesImageLoadProps}
-    />
-  ) : (
-    <span className="org-biz-card-avatar-placeholder" aria-hidden>
-      <ImageIcon className="size-6 sm:size-7" strokeWidth={1.75} />
-    </span>
-  );
-
   const openDeleteConfirm = useCallback((event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -218,17 +199,15 @@ export default function BusinessDashboardCard({
   if (layout === "list") {
     return (
       <>
-        <div className="org-biz-card org-biz-card--list org-biz-card--with-delete group relative">
+        <div
+          className="org-biz-card org-biz-card--list org-biz-card--with-delete group relative"
+        >
           <Link
             href={dashboardHref}
             className="org-biz-card-link-fill outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35 focus-visible:ring-offset-2"
             aria-label={cardAriaLabel}
           >
-            <span
-              className={`org-biz-card-thumb${logoSrc ? "" : " org-biz-card-thumb--placeholder"}`}
-            >
-              {logoMark}
-            </span>
+            <BusinessProfileImage src={logoUrl} variant="list" />
 
             <span className="org-biz-card-list-main">
               <span className="org-biz-card-list-top">
@@ -261,7 +240,9 @@ export default function BusinessDashboardCard({
 
   return (
     <>
-      <div className="org-biz-card org-biz-card--grid org-biz-card--with-delete group relative outline-none">
+      <div
+        className="org-biz-card org-biz-card--grid org-biz-card--with-delete group relative outline-none"
+      >
         <div className="org-biz-card-inner">
           <div className="org-biz-card-head">
             <Link
@@ -269,12 +250,11 @@ export default function BusinessDashboardCard({
               className="org-biz-card-identity min-w-0 flex-1 no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/35 focus-visible:ring-offset-2"
               aria-label={cardAriaLabel}
             >
-              <span
-                className={`org-biz-card-avatar${logoSrc ? "" : " org-biz-card-avatar--placeholder"}`}
-                aria-hidden={!logoSrc}
-              >
-                {logoMark}
-              </span>
+              <BusinessProfileImage
+                src={logoUrl}
+                variant="grid"
+                aria-hidden={Boolean(logoUrl?.trim())}
+              />
               <div className="org-biz-card-main">
                 <div className="org-biz-card-title-row">
                   <h2 className="org-biz-card-title">{name}</h2>

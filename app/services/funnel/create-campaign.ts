@@ -16,6 +16,7 @@ export type CreateCampaignPayload = {
   websiteUrl: string;
   image: File;
   offer: string;
+  description: string;
   price?: number | null;
   campaignType: "prepaid" | "postpaid";
 };
@@ -59,6 +60,9 @@ export async function createCampaign(
   if (!payload.offer.trim()) {
     throw new Error("Offer is required.");
   }
+  if (!payload.description.trim()) {
+    throw new Error("Description is required.");
+  }
   if (
     payload.campaignType !== "prepaid" &&
     payload.campaignType !== "postpaid"
@@ -84,6 +88,7 @@ export async function createCampaign(
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);
   form.append("offer", payload.offer.trim());
+  form.append("description", payload.description.trim());
   if (price != null) {
     form.append("price", String(price));
   }

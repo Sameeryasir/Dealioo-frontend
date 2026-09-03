@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { hasAuthSession } from "@/app/lib/auth-session";
+import { seedCampaignDetailCache } from "@/app/lib/campaign-query-cache";
 import { isPositiveInt } from "@/app/lib/numbers";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -25,6 +26,7 @@ export function useCampaignsByBusinessQuery(
   businessId: number | null | undefined,
   options: UseCampaignsByRestaurantQueryOptions = {},
 ) {
+  const queryClient = useQueryClient();
   const page = options.page ?? 1;
   const search = options.search?.trim() ?? "";
   const limit = options.limit ?? CAMPAIGNS_PAGE_SIZE;
@@ -38,9 +40,17 @@ export function useCampaignsByBusinessQuery(
       if (!isPositiveInt(businessId)) {
         throw new Error("Invalid business.");
       }
-      return fetchCampaignsByBusiness(businessId, { page, search, limit });
+      const result = await fetchCampaignsByBusiness(businessId, {
+        page,
+        search,
+        limit,
+      });
+      // Keep each campaign in the React Query client for detail screens / edits.
+      seedCampaignDetailCache(queryClient, result.data);
+      return result;
     },
     enabled: isPositiveInt(businessId) && hasAuthSession(),
+    staleTime: 60_000,
   });
 
   const emptyMeta: PaginatedCampaignsResponse["meta"] = {
@@ -66,7 +76,9 @@ export function useCampaignByIdQuery(
   campaignId: number | null | undefined,
 ) {
   const query = useQuery({
-    queryKey: [...funnelQueryKeys.campaigns(), "detail", campaignId] as const,
+    queryKey: isPositiveInt(campaignId)
+      ? funnelQueryKeys.campaignById(campaignId)
+      : ([...funnelQueryKeys.campaigns(), "detail", "missing"] as const),
     queryFn: async () => {
       if (!isPositiveInt(campaignId)) {
         throw new Error("Invalid campaign.");
