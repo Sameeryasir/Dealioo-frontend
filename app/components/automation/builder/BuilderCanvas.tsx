@@ -64,9 +64,15 @@ import type {
   WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
 import { getNodeBranchPlacement } from "@/app/components/automation/builder/workflow-branch-context";
-import {
-  isWorkflowNodeInvalid,
-} from "@/app/components/automation/builder/workflow-activation-validation";
+
+function isWorkflowNodeInvalid(
+  nodeId: string,
+  invalidNodeIds: ReadonlySet<string> | readonly string[],
+): boolean {
+  const ids =
+    invalidNodeIds instanceof Set ? invalidNodeIds : new Set(invalidNodeIds);
+  return ids.has(nodeId);
+}
 
 const FLOW_CARD_WIDTH_CLASS = "w-[36rem] shrink-0";
 const FLOW_TRUNK_WIDTH = FLOW_CARD_WIDTH_CLASS;
@@ -123,6 +129,8 @@ export function BuilderCanvas({
   onActiveBranchChange,
   onDropBlock,
   onReorderNodes,
+  onRenamePath,
+  onDeletePath,
   editLocked = false,
   onEditBlocked,
 }: {
@@ -141,6 +149,19 @@ export function BuilderCanvas({
     insertAfterNodeId?: string | null,
   ) => void;
   onReorderNodes?: (fromIndex: number, toIndex: number) => void;
+  onRenamePath?: (payload: {
+    branchTarget: WorkflowBranchTarget | null;
+    title: string;
+    entryNodeIds: string[];
+    isContinueSection: boolean;
+    nextTitle: string;
+  }) => void;
+  onDeletePath?: (payload: {
+    branchTarget: WorkflowBranchTarget | null;
+    title: string;
+    entryNodeIds: string[];
+    isContinueSection: boolean;
+  }) => void;
   editLocked?: boolean;
   onEditBlocked?: () => void;
 }) {
@@ -436,6 +457,14 @@ export function BuilderCanvas({
 
   const handleCanvasBlockDrop = useCallback(
     (e: React.DragEvent) => {
+      if (dropHoverBranchKey === "continue_main_path") {
+        handleBlockDrop(e, null, "continue_main_path");
+        return;
+      }
+      if (dropHoverBranchKey === "main_flow_inside") {
+        handleBlockDrop(e, null, "main_flow");
+        return;
+      }
       if (dropHoverBranchKey && dropHoverBranchKey !== "after_parallel_split") {
         const parts = dropHoverBranchKey.split(">");
         const branchTarget: WorkflowBranchTarget =
@@ -458,13 +487,17 @@ export function BuilderCanvas({
         );
         return;
       }
-      handleBlockDrop(
-        e,
-        null,
-        splitLayout.hasSplit ? "after_parallel_split" : null,
-      );
+      // With a parallel split, new steps must land on a path — never a shared merge.
+      if (splitLayout.hasSplit) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearDragState();
+        return;
+      }
+      handleBlockDrop(e, null, null);
     },
     [
+      clearDragState,
       dropHoverBranchKey,
       dropHoverNodeId,
       handleBlockDrop,
@@ -810,41 +843,118 @@ export function BuilderCanvas({
   const renderBranchDropZone = (
     target: WorkflowBranchTarget | null,
     key: string,
+    options?: {
+      outside?: boolean;
+      continueMain?: boolean;
+      insertAfterNodeId?: string | null;
+    },
   ) => {
-    if (!canDropBlocks || !target) {
+    const continueMain = options?.continueMain === true;
+    const outside = options?.outside === true;
+    if (!canDropBlocks || (!target && !continueMain)) {
       return null;
     }
 
-    const hoverKey = branchTargetKey(target);
+    const hoverKey = target
+      ? branchTargetKey(target)
+      : continueMain
+        ? outside
+          ? "continue_main_path"
+          : "main_flow_inside"
+        : null;
     const isHover = hoverKey != null && dropHoverBranchKey === hoverKey;
+    const insertAfterNodeId = options?.insertAfterNodeId ?? null;
+
+    if (!outside) {
+      return (
+        <div
+          key={key}
+          className={`mt-3 h-8 w-full rounded-xl border-2 border-dashed transition ${
+            isHover
+              ? "border-blue-400 bg-blue-50"
+              : "border-transparent bg-transparent"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (target) onActiveBranchChange?.(target);
+          }}
+          onDragOver={(e) => {
+            handleSlotDragOver(e);
+            if (hoverKey) setDropHoverBranchKey(hoverKey);
+            setDropHoverNodeId(null);
+            if (target) onActiveBranchChange?.(target);
+          }}
+          onDragLeave={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && e.currentTarget.contains(next)) return;
+            setDropHoverBranchKey((current) =>
+              current === hoverKey ? null : current,
+            );
+          }}
+          onDrop={(e) =>
+            handleBlockDrop(e, target, null, insertAfterNodeId)
+          }
+          aria-hidden
+        />
+      );
+    }
 
     return (
       <div
         key={key}
-        className={`mt-3 h-8 w-full rounded-xl border-2 border-dashed transition ${
-          isHover
-            ? "border-blue-400 bg-blue-50"
-            : "border-transparent bg-transparent"
-        }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onActiveBranchChange?.(target);
-        }}
-        onDragOver={(e) => {
-          handleSlotDragOver(e);
-          if (hoverKey) setDropHoverBranchKey(hoverKey);
-          setDropHoverNodeId(null);
-        }}
-        onDragLeave={(e) => {
-          const next = e.relatedTarget as Node | null;
-          if (next && e.currentTarget.contains(next)) return;
-          setDropHoverBranchKey((current) =>
-            current === hoverKey ? null : current,
-          );
-        }}
-        onDrop={(e) => handleBlockDrop(e, target)}
-        aria-hidden
-      />
+        className="mt-3 flex w-full flex-col items-center"
+      >
+        <WorkflowConnector />
+        <div
+          className={`flex h-11 w-full items-center justify-center rounded-xl border-2 border-dashed px-2 text-center transition ${
+            isHover
+              ? "border-blue-400 bg-blue-50 text-blue-700"
+              : "border-zinc-300/80 bg-white/70 text-zinc-500"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (target) onActiveBranchChange?.(target);
+            else onActiveBranchChange?.(null);
+          }}
+          onDragOver={(e) => {
+            handleSlotDragOver(e);
+            if (hoverKey) setDropHoverBranchKey(hoverKey);
+            setDropHoverNodeId(null);
+            if (target) onActiveBranchChange?.(target);
+          }}
+          onDragLeave={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && e.currentTarget.contains(next)) return;
+            setDropHoverBranchKey((current) =>
+              current === hoverKey ? null : current,
+            );
+          }}
+          onDrop={(e) =>
+            handleBlockDrop(
+              e,
+              target,
+              continueMain ? "continue_main_path" : "continue_branch_path",
+            )
+          }
+          role="button"
+          tabIndex={0}
+          aria-label={
+            continueMain
+              ? "Add step below this group"
+              : "Add step below this path"
+          }
+        >
+          <span className="text-[0.65rem] font-semibold tracking-wide">
+            {isHover
+              ? continueMain
+                ? "Drop to start a new group below"
+                : "Drop to continue this path"
+              : continueMain
+                ? "Add step below this group"
+                : "Add step below this path"}
+          </span>
+        </div>
+      </div>
     );
   };
 
@@ -863,27 +973,42 @@ export function BuilderCanvas({
       activeBranchTarget?.flowBranch === branchTarget.flowBranch &&
       (activeBranchTarget.flowBranchParent ?? null) ===
         (branchTarget.flowBranchParent ?? null);
+    const entryNodeIds = entries.map((entry) => entry.node.id);
+    const isContinueSection = entries.some((entry) => {
+      const raw = entry.node.config?.flowSectionTitle;
+      return typeof raw === "string" && raw.trim() === title.trim();
+    });
+    const isMainSection = branchTarget == null;
+    const pathActionsEnabled = onRenamePath != null || onDeletePath != null;
+    const lastEntryId =
+      entries.length > 0 ? entries[entries.length - 1]!.node.id : null;
+    const containsSelected =
+      selectedId != null && entryNodeIds.includes(selectedId);
+    const renameAsSection = isContinueSection || isMainSection;
 
     return (
       <div
         key={key}
         className={`relative ${FLOW_CARD_WIDTH_CLASS}`}
         onDragOver={
-          branchTarget
+          branchTarget || isMainSection
             ? (e) => {
                 handleSlotDragOver(e);
-                if (hoverKey) setDropHoverBranchKey(hoverKey);
+                if (branchTarget && hoverKey) setDropHoverBranchKey(hoverKey);
+                if (isMainSection) setDropHoverBranchKey("main_flow_inside");
                 setDropHoverNodeId(null);
               }
             : undefined
         }
         onDragLeave={
-          branchTarget
+          branchTarget || isMainSection
             ? (e) => {
                 const next = e.relatedTarget as Node | null;
                 if (next && e.currentTarget.contains(next)) return;
                 setDropHoverBranchKey((current) =>
-                  current === hoverKey ? null : current,
+                  current === hoverKey || current === "main_flow_inside"
+                    ? null
+                    : current,
                 );
               }
             : undefined
@@ -891,17 +1016,51 @@ export function BuilderCanvas({
         onDrop={
           branchTarget
             ? (e) => handleBlockDrop(e, branchTarget)
-            : undefined
+            : isMainSection
+              ? (e) =>
+                  handleBlockDrop(e, null, "main_flow", lastEntryId)
+              : undefined
         }
         onClick={() => {
           if (branchTarget) {
             onActiveBranchChange?.(branchTarget);
+          } else {
+            onActiveBranchChange?.(null);
           }
         }}
       >
         <FlowBranchContainer
           title={title}
-          active={isActive || isBranchHover}
+          active={
+            isMainSection
+              ? containsSelected || dropHoverBranchKey === "main_flow_inside"
+              : isActive || isBranchHover
+          }
+          editLocked={editLocked}
+          onEditBlocked={onEditBlocked}
+          onRename={
+            pathActionsEnabled && onRenamePath
+              ? (nextTitle) =>
+                  onRenamePath({
+                    branchTarget: branchTarget ?? null,
+                    title,
+                    entryNodeIds,
+                    isContinueSection: renameAsSection,
+                    nextTitle,
+                  })
+              : undefined
+          }
+          onDelete={
+            pathActionsEnabled && onDeletePath
+              ? () =>
+                  onDeletePath({
+                    branchTarget: branchTarget ?? null,
+                    title,
+                    entryNodeIds,
+                    isContinueSection: renameAsSection,
+                  })
+              : undefined
+          }
         >
           <div className="relative w-full">
             <BranchTraceLine />
@@ -909,11 +1068,14 @@ export function BuilderCanvas({
               {renderSegmentList(buildSegmentsForIndexedNodes(entries), {
                 branchStepNumber: 18 + columnIndex,
                 branchTarget: branchTarget ?? null,
+                dropPlacement: isMainSection ? "main_flow" : undefined,
               })}
-              {renderBranchDropZone(
-                branchTarget ?? null,
-                `${key}-branch-drop`,
-              )}
+              {!isMainSection
+                ? renderBranchDropZone(
+                    branchTarget ?? null,
+                    `${key}-branch-drop`,
+                  )
+                : null}
             </div>
           </div>
         </FlowBranchContainer>
@@ -1022,27 +1184,34 @@ export function BuilderCanvas({
         ) : (
           <div className="flex flex-col items-center">
             {splitBranchSections(column.content.head, column.title).length > 0 ? (
-              splitBranchSections(column.content.head, column.title).map(
-                (section, sectionIndex, all) => (
-                  <div
-                    key={`${depth}-${column.id}-sec-${sectionIndex}`}
-                    className="flex flex-col items-center"
-                  >
-                    {renderBranchSectionBox(
-                      section.title,
-                      section.entries,
-                      columnIndex,
-                      `${depth}-${column.id}-sec-${sectionIndex}-box`,
-                      branchTarget,
-                    )}
-                    {sectionIndex < all.length - 1 ? (
-                      <div className="flex w-full justify-center py-1.5">
-                        <WorkflowConnector />
-                      </div>
-                    ) : null}
-                  </div>
-                ),
-              )
+              <>
+                {splitBranchSections(column.content.head, column.title).map(
+                  (section, sectionIndex, all) => (
+                    <div
+                      key={`${depth}-${column.id}-sec-${sectionIndex}`}
+                      className="flex flex-col items-center"
+                    >
+                      {renderBranchSectionBox(
+                        section.title,
+                        section.entries,
+                        columnIndex,
+                        `${depth}-${column.id}-sec-${sectionIndex}-box`,
+                        branchTarget,
+                      )}
+                      {sectionIndex < all.length - 1 ? (
+                        <div className="flex w-full justify-center py-1.5">
+                          <WorkflowConnector />
+                        </div>
+                      ) : null}
+                    </div>
+                  ),
+                )}
+                {renderBranchDropZone(
+                  branchTarget,
+                  `${depth}-${column.id}-continue-path`,
+                  { outside: true },
+                )}
+              </>
             ) : (
               <div
                 className={`relative ${FLOW_CARD_WIDTH_CLASS}`}
@@ -1071,6 +1240,31 @@ export function BuilderCanvas({
                         (branchTarget.flowBranchParent ?? null)) ||
                     dropHoverBranchKey === branchTargetKey(branchTarget)
                   }
+                  editLocked={editLocked}
+                  onEditBlocked={onEditBlocked}
+                  onRename={
+                    onRenamePath
+                      ? (nextTitle) =>
+                          onRenamePath({
+                            branchTarget,
+                            title: column.title,
+                            entryNodeIds: [],
+                            isContinueSection: false,
+                            nextTitle,
+                          })
+                      : undefined
+                  }
+                  onDelete={
+                    onDeletePath
+                      ? () =>
+                          onDeletePath({
+                            branchTarget,
+                            title: column.title,
+                            entryNodeIds: [],
+                            isContinueSection: false,
+                          })
+                      : undefined
+                  }
                 >
                   {renderBranchDropZone(
                     branchTarget,
@@ -1086,43 +1280,66 @@ export function BuilderCanvas({
   };
 
   const renderPostSplitSection = () => {
-    if (splitLayout.tail.length > 0) {
-      return (
-        <div className={`mt-6 flex flex-col items-center ${FLOW_TRUNK_WIDTH}`}>
-          <WorkflowConnector />
-          {renderSegmentList(buildSegmentsForIndexedNodes(splitLayout.tail), {
-            dropPlacement: "after_parallel_split",
-          })}
-        </div>
-      );
-    }
-
-    if (!canDropBlocks) {
+    // Keep any already-saved post-split steps visible, but never offer a shared merge drop zone.
+    if (splitLayout.tail.length === 0) {
       return null;
     }
 
     return (
-      <div
-        className={`mt-6 h-10 w-full max-w-md rounded-xl border-2 border-dashed transition ${
-          dropHoverBranchKey === "after_parallel_split"
-            ? "border-blue-400 bg-blue-50"
-            : "border-transparent"
-        }`}
-        onDragOver={(e) => {
-          handleSlotDragOver(e);
-          setDropHoverBranchKey("after_parallel_split");
-          setDropHoverNodeId(null);
-        }}
-        onDragLeave={(e) => {
-          const next = e.relatedTarget as Node | null;
-          if (next && e.currentTarget.contains(next)) return;
-          setDropHoverBranchKey((current) =>
-            current === "after_parallel_split" ? null : current,
-          );
-        }}
-        onDrop={(e) => handleBlockDrop(e, null, "after_parallel_split")}
-        aria-hidden
-      />
+      <div className={`mt-6 flex flex-col items-center ${FLOW_TRUNK_WIDTH}`}>
+        <WorkflowConnector />
+        {renderSegmentList(buildSegmentsForIndexedNodes(splitLayout.tail), {
+          dropPlacement: "after_parallel_split",
+        })}
+      </div>
+    );
+  };
+
+  const renderMainFlowTrunk = () => {
+    const headEntries: IndexedWorkflowNode[] = usePrepaidVisitSplit
+      ? prepaidVisitSplit.head
+      : splitLayout.hasSplit
+        ? splitLayout.head
+        : flowNodes.map((node, offset) => ({
+            node,
+            index: flowStartIndex + offset,
+          }));
+
+    if (headEntries.length === 0) {
+      return null;
+    }
+
+    const sections = splitBranchSections(headEntries, "Main");
+
+    return (
+      <div className="flex w-full flex-col items-center gap-3">
+        {sections.map((section, sectionIndex, all) => (
+          <div
+            key={`main-section-${sectionIndex}`}
+            className="flex w-full flex-col items-center"
+          >
+            {renderBranchSectionBox(
+              section.title,
+              section.entries,
+              sectionIndex,
+              `main-section-${sectionIndex}-box`,
+              null,
+            )}
+            {sectionIndex < all.length - 1 ? (
+              <div className="flex w-full justify-center py-1.5">
+                <WorkflowConnector />
+              </div>
+            ) : !splitLayout.hasSplit && !usePrepaidVisitSplit ? (
+              <div className={FLOW_CARD_WIDTH_CLASS}>
+                {renderBranchDropZone(null, "main-continue-outside", {
+                  outside: true,
+                  continueMain: true,
+                })}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -1319,23 +1536,14 @@ export function BuilderCanvas({
                         reorderLocked={isWorkflowNodeReorderLocked(nodes, 0)}
                       />,
                     )}
-                    {flowSegments.length > 0 ? (
+                    {flowSegments.length > 0 ||
+                    splitLayout.head.length > 0 ||
+                    prepaidVisitSplit.head.length > 0 ? (
                       <>
                         <TriggerFlowConnector />
-                        <div className="relative w-full rounded-[1.25rem] border-2 border-dashed border-zinc-300/70 bg-white/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
-                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:left-4 sm:top-4 sm:px-3 sm:text-[0.625rem]">
-                            <span
-                              className="size-2 rounded-full bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.65)]"
-                              aria-hidden
-                            />
-                            Live
-                          </span>
-                          <div className="mt-10 flex flex-col gap-3 sm:mt-11 sm:gap-4">
-                            {usePaymentReminderSections
-                              ? renderPaymentReminderTrunk()
-                              : renderSegmentList(flowSegments)}
-                          </div>
-                        </div>
+                        {usePaymentReminderSections
+                          ? renderPaymentReminderTrunk()
+                          : renderMainFlowTrunk()}
                       </>
                     ) : null}
                   </motion.div>
@@ -1353,17 +1561,14 @@ export function BuilderCanvas({
               ) : (
                 <div className={FLOW_TRUNK_WIDTH}>{renderSegmentList(flowSegments)}</div>
               )}
-              {canDropBlocks ? (
+              {canDropBlocks &&
+              !splitLayout.hasSplit &&
+              !usePrepaidVisitSplit &&
+              flowNodes.length === 0 ? (
                 <div
                   className="h-8 w-full"
                   onDragOver={handleSlotDragOver}
-                  onDrop={(e) =>
-                    handleBlockDrop(
-                      e,
-                      null,
-                      splitLayout.hasSplit ? "after_parallel_split" : null,
-                    )
-                  }
+                  onDrop={(e) => handleBlockDrop(e, null, null)}
                 />
               ) : null}
             </motion.div>

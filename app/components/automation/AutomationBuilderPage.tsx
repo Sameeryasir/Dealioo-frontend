@@ -25,7 +25,8 @@ import type {
 } from "@/app/components/automation/types";
 import {
   mapAutomationToListItem,
-  updateAutomation,
+  activateAutomation,
+  deactivateAutomation,
 } from "@/app/services/automation/automation-api";
 import { syncAutomationQueryCache, invalidateAutomationQueries } from "@/app/services/automation/automation-query-cache";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
@@ -52,6 +53,7 @@ import {
 import {
   createAutomationConnection,
   deleteAutomationConnection,
+  syncAutomationConnections,
 } from "@/app/services/automation/connection-api";
 import type { AutomationConnection } from "@/app/services/automation/types";
 import { isAutomationStatusResponse } from "@/app/services/automation/types";
@@ -72,17 +74,85 @@ import { validateWorkflowForActivation } from "@/app/components/automation/build
 import {
   resolveBranchConfigForNewNode,
   getNodeBranchPlacement,
+  findNextMainFlowNode,
   findNextNodeInBranch,
+  findPreviousMainFlowNode,
   findPreviousNodeInBranch,
   isParallelSplitWorkflowNode,
   nodeMatchesBranchTarget,
   parseParallelBranchesFromConfig,
+  resolveClickAddBranchTarget,
   buildDesiredAutomationConnectionPairs,
   type WorkflowBranchTarget,
   type WorkflowDropPlacement,
 } from "@/app/components/automation/builder/workflow-branch-context";
 
 const ACTIVATION_INVALID_BLINK_MS = 3500;
+
+async function ensureMissingDesiredConnections(
+  automationId: number,
+  workflowNodes: WorkflowNode[],
+  existingConnections: AutomationConnection[],
+): Promise<AutomationConnection[]> {
+  const desiredPairs = buildDesiredAutomationConnectionPairs(workflowNodes);
+  const existingByEndpoint = new Map(
+    existingConnections.map((connection) => [
+      `${connection.sourceNodeId}->${connection.targetNodeId}`,
+      connection,
+    ]),
+  );
+  const needsSync = desiredPairs.some((pair) => {
+    const current = existingByEndpoint.get(
+      `${pair.sourceNodeId}->${pair.targetNodeId}`,
+    );
+    if (!current) {
+      return true;
+    }
+    const desiredBranch =
+      typeof pair.branch === "string" && pair.branch.trim()
+        ? pair.branch.trim().toUpperCase()
+        : null;
+    const currentBranch =
+      String(current.branch ?? "")
+        .trim()
+        .toUpperCase() || null;
+    return desiredBranch !== currentBranch;
+  });
+  if (!needsSync) {
+    return [];
+  }
+
+  const synced = await syncAutomationConnections({
+    automationId,
+    pairs: desiredPairs,
+    pruneStale: false,
+  });
+  const beforeKeys = new Set(
+    existingConnections.map(
+      (connection) =>
+        `${connection.sourceNodeId}->${connection.targetNodeId}:${String(connection.branch ?? "").trim().toUpperCase()}`,
+    ),
+  );
+  return synced.filter(
+    (connection) =>
+      !beforeKeys.has(
+        `${connection.sourceNodeId}->${connection.targetNodeId}:${String(connection.branch ?? "").trim().toUpperCase()}`,
+      ),
+  );
+}
+
+async function syncDesiredAutomationConnections(
+  automationId: number,
+  workflowNodes: WorkflowNode[],
+  _existingConnections: AutomationConnection[],
+): Promise<AutomationConnection[]> {
+  const desiredPairs = buildDesiredAutomationConnectionPairs(workflowNodes);
+  return syncAutomationConnections({
+    automationId,
+    pairs: desiredPairs,
+    pruneStale: true,
+  });
+}
 
 type BuilderTab = AutomationBuilderTab;
 
@@ -426,7 +496,26 @@ export function AutomationBuilderPage({
       return false;
     }
 
-    const workflowValidation = validateWorkflowForActivation(nodes);
+    let connectionsForValidation = connections;
+    try {
+      const healed = await ensureMissingDesiredConnections(
+        automationNumericId,
+        nodes,
+        connections,
+      );
+      if (healed.length > 0) {
+        connectionsForValidation = [...connections, ...healed];
+        setConnections(connectionsForValidation);
+      }
+    } catch (err) {
+      toastApiError(err, "Could not fix branch connections before activating.");
+      return false;
+    }
+
+    const workflowValidation = validateWorkflowForActivation(
+      nodes,
+      connectionsForValidation,
+    );
     if (!workflowValidation.ok) {
       scheduleInvalidBlinkHighlight(
         workflowValidation.invalidNodeIds,
@@ -465,10 +554,7 @@ export function AutomationBuilderPage({
         await syncDirtyNodesToServer();
       }
 
-      const updated = await updateAutomation(automationNumericId, {
-        isActive: true,
-        published: true,
-      });
+      const updated = await activateAutomation(automationNumericId);
       syncAutomationQueryCache(queryClient, updated);
       if (isAutomationStatusResponse(updated)) {
         setAutomation((prev) =>
@@ -495,6 +581,7 @@ export function AutomationBuilderPage({
   }, [
     automationNumericId,
     clearInvalidBlinkTimer,
+    connections,
     isFlowDirty,
     nodes,
     queryClient,
@@ -512,10 +599,7 @@ export function AutomationBuilderPage({
 
     setActivating(true);
     try {
-      const updated = await updateAutomation(automationNumericId, {
-        isActive: false,
-        published: false,
-      });
+      const updated = await deactivateAutomation(automationNumericId);
       syncAutomationQueryCache(queryClient, updated);
       void queryClient.invalidateQueries({
         queryKey: automationQueryKeys.executionsRoot(automationNumericId),
@@ -637,15 +721,13 @@ export function AutomationBuilderPage({
         ? null
         : resolvedBranchTarget?.flowBranch
           ? findPreviousNodeInBranch(nodes, insertIndex, resolvedBranchTarget)
-          : insertIndex > 0
-            ? nodes[insertIndex - 1]!
-            : nodes.length > 0
-              ? nodes[nodes.length - 1]!
-              : null;
-      const nextNodeInBranch =
+          : findPreviousMainFlowNode(nodes, insertIndex);
+      const nextNodeAfterInsert =
         !isTrigger && resolvedBranchTarget?.flowBranch
           ? findNextNodeInBranch(nodes, insertIndex, resolvedBranchTarget)
-          : null;
+          : !isTrigger
+            ? findNextMainFlowNode(nodes, insertIndex)
+            : null;
       const tempId = `local-${blockId}-${Date.now()}`;
       const optimisticNode: WorkflowNode = {
         id: tempId,
@@ -675,12 +757,14 @@ export function AutomationBuilderPage({
 
         const workflowNode: WorkflowNode = {
           ...mapApiNodeToWorkflowNode(created),
+          id: tempId,
           kind: blockId,
           label: block.label,
           config: defaultConfig,
         };
 
         const createdConnections: AutomationConnection[] = [];
+        let removedStaleIds = new Set<number>();
         if (isTrigger) {
           if (
             firstExistingNode?.numericId != null &&
@@ -697,13 +781,14 @@ export function AutomationBuilderPage({
         } else if (workflowNode.numericId != null) {
           if (
             previousNode?.numericId != null &&
-            nextNodeInBranch?.numericId != null
+            nextNodeAfterInsert?.numericId != null
           ) {
             const stale = connections.filter(
               (connection) =>
                 connection.sourceNodeId === previousNode.numericId &&
-                connection.targetNodeId === nextNodeInBranch.numericId,
+                connection.targetNodeId === nextNodeAfterInsert.numericId,
             );
+            removedStaleIds = new Set(stale.map((item) => item.id));
             for (const connection of stale) {
               try {
                 await deleteAutomationConnection(connection.id);
@@ -712,10 +797,7 @@ export function AutomationBuilderPage({
             }
             if (stale.length > 0) {
               setConnections((prev) =>
-                prev.filter(
-                  (connection) =>
-                    !stale.some((item) => item.id === connection.id),
-                ),
+                prev.filter((connection) => !removedStaleIds.has(connection.id)),
               );
             }
           }
@@ -730,28 +812,37 @@ export function AutomationBuilderPage({
             );
           }
 
-          if (nextNodeInBranch?.numericId != null) {
+          if (nextNodeAfterInsert?.numericId != null) {
             createdConnections.push(
               await createAutomationConnection({
                 automationId: automationNumericId,
                 sourceNodeId: workflowNode.numericId,
-                targetNodeId: nextNodeInBranch.numericId,
+                targetNodeId: nextNodeAfterInsert.numericId,
               }),
             );
           }
         }
 
-        setNodes((prev) =>
-          insertWorkflowNode(
-            prev.filter((node) => node.id !== tempId),
-            workflowNode,
-            insertIndex,
-          ),
+        let nodesAfterInsert: WorkflowNode[] = [];
+        setNodes((prev) => {
+          nodesAfterInsert = prev.some((node) => node.id === tempId)
+            ? prev.map((node) => (node.id === tempId ? workflowNode : node))
+            : insertWorkflowNode(prev, workflowNode, insertIndex);
+          return nodesAfterInsert;
+        });
+
+        const connectionsSoFar = [
+          ...connections.filter((connection) => !removedStaleIds.has(connection.id)),
+          ...createdConnections,
+        ];
+        const healed = await ensureMissingDesiredConnections(
+          automationNumericId,
+          nodesAfterInsert,
+          connectionsSoFar,
         );
-        if (createdConnections.length > 0) {
-          setConnections((prev) => [...prev, ...createdConnections]);
+        if (createdConnections.length > 0 || healed.length > 0 || removedStaleIds.size > 0) {
+          setConnections([...connectionsSoFar, ...healed]);
         }
-        setSelectedId(workflowNode.id);
         toast.success("Step added.");
       } catch (err) {
         setNodes((prev) => prev.filter((node) => node.id !== tempId));
@@ -872,16 +963,26 @@ export function AutomationBuilderPage({
           .filter((id): id is number => id != null),
       );
 
-      setNodes((prev) => prev.filter((node) => !removedIds.has(node.id)));
-      if (removedNumericIds.size > 0) {
-        setConnections((prev) =>
-          prev.filter(
-            (connection) =>
-              !removedNumericIds.has(connection.sourceNodeId) &&
-              !removedNumericIds.has(connection.targetNodeId),
-          ),
+      const remainingNodes = nodes.filter((node) => !removedIds.has(node.id));
+      const remainingConnections = connections.filter(
+        (connection) =>
+          !removedNumericIds.has(connection.sourceNodeId) &&
+          !removedNumericIds.has(connection.targetNodeId),
+      );
+
+      setNodes(remainingNodes);
+
+      let nextConnections = remainingConnections;
+      if (isPositiveInt(automationNumericId) && remainingNodes.length > 0) {
+        const healed = await ensureMissingDesiredConnections(
+          automationNumericId,
+          remainingNodes,
+          remainingConnections,
         );
+        nextConnections = [...remainingConnections, ...healed];
       }
+      setConnections(nextConnections);
+
       setSelectedId(null);
       setActiveBranchTarget(null);
       setIsFlowDirty(true);
@@ -895,7 +996,270 @@ export function AutomationBuilderPage({
     } finally {
       setDeletingNode(false);
     }
-  }, [guardEdit, nodes, selectedNode]);
+  }, [automationNumericId, connections, guardEdit, nodes, selectedNode]);
+
+  const findSplitOwningBranch = useCallback(
+    (branchTarget: WorkflowBranchTarget): WorkflowNode | null => {
+      for (const node of nodes) {
+        if (!isParallelSplitWorkflowNode(node)) continue;
+        const ownsBranch = parseParallelBranchesFromConfig(node.config).some(
+          (branch) => branch.id === branchTarget.flowBranch,
+        );
+        if (!ownsBranch) continue;
+        const nest = getNodeBranchPlacement(node);
+        if (branchTarget.flowBranchParent) {
+          if (nest?.flowBranch === branchTarget.flowBranchParent) {
+            return node;
+          }
+          continue;
+        }
+        if (!nest?.flowBranch) {
+          return node;
+        }
+      }
+      return null;
+    },
+    [nodes],
+  );
+
+  const collectNodesOnBranchPath = useCallback(
+    (branchTarget: WorkflowBranchTarget): WorkflowNode[] => {
+      const ownedBranchIds = new Set<string>([branchTarget.flowBranch]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const node of nodes) {
+          if (!isParallelSplitWorkflowNode(node)) continue;
+          const placement = getNodeBranchPlacement(node);
+          const onOwnedPath =
+            placement != null &&
+            (ownedBranchIds.has(placement.flowBranch) ||
+              (placement.flowBranchParent != null &&
+                ownedBranchIds.has(placement.flowBranchParent)));
+          if (!onOwnedPath) continue;
+          for (const branch of parseParallelBranchesFromConfig(node.config)) {
+            if (!ownedBranchIds.has(branch.id)) {
+              ownedBranchIds.add(branch.id);
+              grew = true;
+            }
+          }
+        }
+      }
+
+      return nodes.filter((node) => {
+        const placement = getNodeBranchPlacement(node);
+        return placement != null && ownedBranchIds.has(placement.flowBranch);
+      });
+    },
+    [nodes],
+  );
+
+  const onRenamePath = useCallback(
+    async (payload: {
+      branchTarget: WorkflowBranchTarget | null;
+      title: string;
+      entryNodeIds: string[];
+      isContinueSection: boolean;
+      nextTitle: string;
+    }) => {
+      if (!guardEdit()) return;
+      const nextTitle = payload.nextTitle.trim();
+      if (!nextTitle || nextTitle === payload.title.trim()) return;
+
+      try {
+        if (payload.isContinueSection || payload.branchTarget == null) {
+          const titleNode =
+            nodes.find(
+              (node) =>
+                payload.entryNodeIds.includes(node.id) &&
+                String(node.config.flowSectionTitle ?? "").trim() ===
+                  payload.title.trim(),
+            ) ??
+            nodes.find((node) => payload.entryNodeIds.includes(node.id));
+          if (!titleNode) {
+            toast.error("Could not find that path section.");
+            return;
+          }
+          const nextConfig = {
+            ...titleNode.config,
+            flowSectionTitle: nextTitle,
+          };
+          if (titleNode.numericId != null) {
+            await updateAutomationNode(titleNode.numericId, {
+              config: nextConfig,
+            });
+          }
+          setNodes((prev) =>
+            prev.map((node) =>
+              node.id === titleNode.id
+                ? { ...node, config: nextConfig }
+                : node,
+            ),
+          );
+          setIsFlowDirty(true);
+          toast.success("Path renamed.");
+          return;
+        }
+
+        const splitNode = findSplitOwningBranch(payload.branchTarget);
+        if (!splitNode) {
+          toast.error("Could not find that branch.");
+          return;
+        }
+        const branches = parseParallelBranchesFromConfig(splitNode.config).map(
+          (branch) =>
+            branch.id === payload.branchTarget!.flowBranch
+              ? { ...branch, title: nextTitle }
+              : branch,
+        );
+        const nextConfig = {
+          ...splitNode.config,
+          isParallelSplit: true,
+          branches,
+        };
+        if (splitNode.numericId != null) {
+          await updateAutomationNode(splitNode.numericId, {
+            config: nextConfig,
+          });
+        }
+        setNodes((prev) =>
+          prev.map((node) =>
+            node.id === splitNode.id ? { ...node, config: nextConfig } : node,
+          ),
+        );
+        setIsFlowDirty(true);
+        toast.success("Path renamed.");
+      } catch (err) {
+        toastApiError(err, "Could not rename path.");
+      }
+    },
+    [findSplitOwningBranch, guardEdit, nodes],
+  );
+
+  const onDeletePath = useCallback(
+    async (payload: {
+      branchTarget: WorkflowBranchTarget | null;
+      title: string;
+      entryNodeIds: string[];
+      isContinueSection: boolean;
+    }) => {
+      if (!guardEdit()) return;
+
+      const label = payload.title.trim() || "this path";
+      if (
+        !window.confirm(
+          `Delete “${label}” and all steps on it? This cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+
+      try {
+        let nodesToRemove: WorkflowNode[] = [];
+        let splitNode: WorkflowNode | null = null;
+        let nextSplitConfig: Record<string, unknown> | null = null;
+
+        if (payload.isContinueSection || payload.branchTarget == null) {
+          const idSet = new Set(payload.entryNodeIds);
+          nodesToRemove = nodes.filter((node) => idSet.has(node.id));
+          if (nodesToRemove.length === 0) {
+            toast.error("That group has no steps to remove.");
+            return;
+          }
+        } else {
+          nodesToRemove = collectNodesOnBranchPath(payload.branchTarget);
+          splitNode = findSplitOwningBranch(payload.branchTarget);
+          if (splitNode) {
+            const branches = parseParallelBranchesFromConfig(splitNode.config);
+            if (branches.length > 2) {
+              nextSplitConfig = {
+                ...splitNode.config,
+                isParallelSplit: true,
+                branches: branches.filter(
+                  (branch) => branch.id !== payload.branchTarget!.flowBranch,
+                ),
+              };
+            } else if (nodesToRemove.length === 0) {
+              toast.error(
+                "Keep at least two paths. Add another path before deleting this one.",
+              );
+              return;
+            }
+          } else if (nodesToRemove.length === 0) {
+            toast.error("Could not find that path.");
+            return;
+          }
+        }
+
+        for (const node of nodesToRemove) {
+          if (node.numericId != null) {
+            await deleteAutomationNode(node.numericId);
+          }
+        }
+
+        if (splitNode?.numericId != null && nextSplitConfig != null) {
+          await updateAutomationNode(splitNode.numericId, {
+            config: nextSplitConfig,
+          });
+        }
+
+        const removedIds = new Set(nodesToRemove.map((node) => node.id));
+        const removedNumericIds = new Set(
+          nodesToRemove
+            .map((node) => node.numericId)
+            .filter((id): id is number => id != null),
+        );
+
+        let remainingNodes = nodes.filter((node) => !removedIds.has(node.id));
+        if (splitNode != null && nextSplitConfig != null) {
+          remainingNodes = remainingNodes.map((node) =>
+            node.id === splitNode!.id
+              ? { ...node, config: nextSplitConfig! }
+              : node,
+          );
+        }
+
+        const remainingConnections = connections.filter(
+          (connection) =>
+            !removedNumericIds.has(connection.sourceNodeId) &&
+            !removedNumericIds.has(connection.targetNodeId),
+        );
+
+        setNodes(remainingNodes);
+
+        let nextConnections = remainingConnections;
+        if (isPositiveInt(automationNumericId) && remainingNodes.length > 0) {
+          const healed = await ensureMissingDesiredConnections(
+            automationNumericId,
+            remainingNodes,
+            remainingConnections,
+          );
+          nextConnections = [...remainingConnections, ...healed];
+        }
+        setConnections(nextConnections);
+
+        if (selectedId && removedIds.has(selectedId)) {
+          setSelectedId(null);
+        }
+        setActiveBranchTarget(null);
+        setIsFlowDirty(true);
+        toast.success(
+          payload.isContinueSection ? "Path section removed." : "Path removed.",
+        );
+      } catch (err) {
+        toastApiError(err, "Could not delete path.");
+      }
+    },
+    [
+      automationNumericId,
+      collectNodesOnBranchPath,
+      connections,
+      findSplitOwningBranch,
+      guardEdit,
+      nodes,
+      selectedId,
+    ],
+  );
 
   const onReorderNodes = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -917,55 +1281,24 @@ export function AutomationBuilderPage({
 
       void (async () => {
         try {
-          for (let order = 0; order < nextNodes.length; order++) {
-            const node = nextNodes[order]!;
-            if (node.numericId == null) continue;
-            await updateAutomationNode(node.numericId, {
-              order,
-              config: node.config,
-            });
-          }
-
-          const desiredPairs = buildDesiredAutomationConnectionPairs(nextNodes);
-          const desiredKeys = new Set(
-            desiredPairs.map(
-              (pair) => `${pair.sourceNodeId}->${pair.targetNodeId}`,
-            ),
-          );
-          const existingKeys = new Set(
-            connections.map(
-              (connection) =>
-                `${connection.sourceNodeId}->${connection.targetNodeId}`,
-            ),
+          await Promise.all(
+            nextNodes.map((node, order) => {
+              if (node.numericId == null) {
+                return Promise.resolve();
+              }
+              return updateAutomationNode(node.numericId, {
+                order,
+                config: node.config,
+              });
+            }),
           );
 
-          for (const connection of connections) {
-            const key = `${connection.sourceNodeId}->${connection.targetNodeId}`;
-            if (desiredKeys.has(key)) continue;
-            try {
-              await deleteAutomationConnection(connection.id);
-            } catch {
-            }
-          }
-
-          const kept = connections.filter((connection) =>
-            desiredKeys.has(
-              `${connection.sourceNodeId}->${connection.targetNodeId}`,
-            ),
+          const synced = await syncDesiredAutomationConnections(
+            automationNumericId,
+            nextNodes,
+            connections,
           );
-          const created: AutomationConnection[] = [];
-          for (const pair of desiredPairs) {
-            const key = `${pair.sourceNodeId}->${pair.targetNodeId}`;
-            if (existingKeys.has(key)) continue;
-            created.push(
-              await createAutomationConnection({
-                automationId: automationNumericId,
-                sourceNodeId: pair.sourceNodeId,
-                targetNodeId: pair.targetNodeId,
-              }),
-            );
-          }
-          setConnections([...kept, ...created]);
+          setConnections(synced);
         } catch (err) {
           toastApiError(err, "Could not save step order.");
         }
@@ -978,13 +1311,13 @@ export function AutomationBuilderPage({
     if (invalidNodeIds.length === 0) {
       return;
     }
-    const validation = validateWorkflowForActivation(nodes);
+    const validation = validateWorkflowForActivation(nodes, connections);
     if (validation.ok) {
       clearInvalidBlinkTimer();
       setInvalidNodeIds([]);
       setInvalidStepIds([]);
     }
-  }, [nodes, invalidNodeIds.length, clearInvalidBlinkTimer]);
+  }, [nodes, connections, invalidNodeIds.length, clearInvalidBlinkTimer]);
 
   const builderAlerts =
     tab === "builder" && (automationActive || hasUnsavedStepSettings) ? (
@@ -1058,14 +1391,14 @@ export function AutomationBuilderPage({
                 editLocked={automationActive}
                 onEditBlocked={showDeactivatePrompt}
                 onAddBlock={(id) => {
-                  const selected = selectedId
+                  const selectedNodeForAdd = selectedId
                     ? nodes.find((node) => node.id === selectedId) ?? null
                     : null;
                   const lastNode =
                     nodes.length > 0 ? nodes[nodes.length - 1]! : null;
                   const selectedIsBranch =
-                    selected != null &&
-                    isParallelSplitWorkflowNode(selected);
+                    selectedNodeForAdd != null &&
+                    isParallelSplitWorkflowNode(selectedNodeForAdd);
                   const lastIsEmptyBranch =
                     lastNode != null &&
                     isParallelSplitWorkflowNode(lastNode) &&
@@ -1073,25 +1406,46 @@ export function AutomationBuilderPage({
                       (node) => getNodeBranchPlacement(node) != null,
                     );
 
-                  if (
-                    id !== "parallel_split" &&
-                    (selectedIsBranch ||
-                      (lastIsEmptyBranch && !activeBranchTarget))
-                  ) {
-                    toast.error(
-                      "Please drag and drop this block onto a branch path or a step on the canvas.",
+                  if (id === "parallel_split") {
+                    const nestTarget =
+                      activeBranchTarget?.flowBranch != null
+                        ? activeBranchTarget
+                        : null;
+                    void onAddBlock(
+                      id,
+                      nestTarget,
+                      nestTarget ? null : "main_flow",
+                      selectedId,
                     );
                     return;
                   }
 
-                  if (id === "parallel_split") {
-                    if (!selectedId && !activeBranchTarget) {
-                      return;
-                    }
-                    void onAddBlock(id, activeBranchTarget, null, selectedId);
+                  const pathTarget = resolveClickAddBranchTarget(
+                    nodes,
+                    selectedId,
+                    activeBranchTarget,
+                  );
+
+                  if (
+                    (selectedIsBranch || lastIsEmptyBranch) &&
+                    pathTarget?.flowBranch
+                  ) {
+                    setActiveBranchTarget(pathTarget);
+                    void onAddBlock(id, pathTarget);
                     return;
                   }
-                  void onAddBlock(id, activeBranchTarget);
+
+                  if (
+                    selectedIsBranch ||
+                    (lastIsEmptyBranch && !activeBranchTarget)
+                  ) {
+                    toast.error(
+                      "Select a path (PATH 1, PATH 2, …) or drag this block onto a path.",
+                    );
+                    return;
+                  }
+
+                  void onAddBlock(id, activeBranchTarget ?? pathTarget);
                 }}
                 hideTriggers={hasTriggerNode(nodes)}
               />
@@ -1107,9 +1461,22 @@ export function AutomationBuilderPage({
                 onSelect={(id) => {
                   setSelectedId(id);
                   const selected = nodes.find((node) => node.id === id);
-                  setActiveBranchTarget(
-                    selected ? getNodeBranchPlacement(selected) : null,
-                  );
+                  if (!selected) {
+                    setActiveBranchTarget(null);
+                    return;
+                  }
+                  const placement = getNodeBranchPlacement(selected);
+                  if (placement) {
+                    setActiveBranchTarget(placement);
+                    return;
+                  }
+                  if (isParallelSplitWorkflowNode(selected)) {
+                    setActiveBranchTarget(
+                      resolveClickAddBranchTarget(nodes, id, null),
+                    );
+                    return;
+                  }
+                  setActiveBranchTarget(null);
                 }}
                 onActiveBranchChange={setActiveBranchTarget}
                 editLocked={automationActive}
@@ -1123,7 +1490,10 @@ export function AutomationBuilderPage({
                   if (branchTarget) {
                     setActiveBranchTarget(branchTarget);
                   } else if (dropPlacement === "after_parallel_split") {
-                    setActiveBranchTarget(null);
+                    toast.error(
+                      "Drop this block onto a path (PATH 1, PATH 2, …) to continue that branch.",
+                    );
+                    return;
                   }
                   void onAddBlock(
                     id,
@@ -1133,6 +1503,12 @@ export function AutomationBuilderPage({
                   );
                 }}
                 onReorderNodes={onReorderNodes}
+                onRenamePath={(payload) => {
+                  void onRenamePath(payload);
+                }}
+                onDeletePath={(payload) => {
+                  void onDeletePath(payload);
+                }}
               />
             }
             settingsPanel={

@@ -1,5 +1,19 @@
 import type { WorkflowNode, WorkflowNodeKind } from "@/app/components/automation/types";
 
+function isCustomerVisitedConditionNode(node: WorkflowNode): boolean {
+  const conditionType = String(
+    node.config?.conditionType ?? node.config?.type ?? "",
+  )
+    .trim()
+    .toLowerCase();
+  return (
+    conditionType.includes("customer visited") ||
+    conditionType.includes("visited business") ||
+    conditionType.includes("visited restaurant") ||
+    conditionType === "visit_completed"
+  );
+}
+
 export type WorkflowBranchDef = {
   id: string;
   title: string;
@@ -11,7 +25,11 @@ export type WorkflowBranchTarget = {
   flowBranchParent?: string | null;
 };
 
-export type WorkflowDropPlacement = "main_flow" | "after_parallel_split";
+export type WorkflowDropPlacement =
+  | "main_flow"
+  | "after_parallel_split"
+  | "continue_branch_path"
+  | "continue_main_path";
 
 export function isParallelSplitWorkflowNode(node: WorkflowNode): boolean {
   return (
@@ -140,6 +158,89 @@ export function nodeMatchesBranchTarget(
   return sameBranchTarget(getNodeBranchPlacement(node), target);
 }
 
+export function firstBranchTargetForSplit(
+  split: WorkflowNode,
+): WorkflowBranchTarget | null {
+  const branches = parseParallelBranchesFromConfig(split.config);
+  const first = branches[0];
+  if (!first) {
+    return null;
+  }
+  const nestUnder = getNodeBranchPlacement(split);
+  if (nestUnder?.flowBranch) {
+    return {
+      flowBranch: first.id,
+      flowBranchParent: nestUnder.flowBranch,
+    };
+  }
+  return { flowBranch: first.id };
+}
+
+export function resolveClickAddBranchTarget(
+  nodes: WorkflowNode[],
+  selectedId: string | null,
+  activeBranchTarget: WorkflowBranchTarget | null,
+): WorkflowBranchTarget | null {
+  if (activeBranchTarget?.flowBranch) {
+    return activeBranchTarget;
+  }
+
+  const selected = selectedId
+    ? nodes.find((node) => node.id === selectedId) ?? null
+    : null;
+
+  if (selected) {
+    const placement = getNodeBranchPlacement(selected);
+    if (placement) {
+      return placement;
+    }
+    if (isParallelSplitWorkflowNode(selected)) {
+      const emptyOnSelected = firstEmptyBranchTargetForSplit(selected, nodes);
+      return emptyOnSelected ?? firstBranchTargetForSplit(selected);
+    }
+  }
+
+  for (const split of nodes) {
+    if (!isParallelSplitWorkflowNode(split)) {
+      continue;
+    }
+    const empty = firstEmptyBranchTargetForSplit(split, nodes);
+    if (empty) {
+      return empty;
+    }
+  }
+
+  const topLevelSplits = nodes.filter(
+    (node) =>
+      isParallelSplitWorkflowNode(node) && getNodeBranchPlacement(node) == null,
+  );
+  const lastSplit = topLevelSplits[topLevelSplits.length - 1] ?? null;
+  return lastSplit ? firstBranchTargetForSplit(lastSplit) : null;
+}
+
+function firstEmptyBranchTargetForSplit(
+  split: WorkflowNode,
+  nodes: WorkflowNode[],
+): WorkflowBranchTarget | null {
+  const nestUnder = getNodeBranchPlacement(split);
+  for (const branch of parseParallelBranchesFromConfig(split.config)) {
+    const target: WorkflowBranchTarget = nestUnder?.flowBranch
+      ? {
+          flowBranch: branch.id,
+          flowBranchParent: nestUnder.flowBranch,
+        }
+      : { flowBranch: branch.id };
+    const hasStep = nodes.some(
+      (node) =>
+        node.id !== split.id && nodeMatchesBranchTarget(node, target),
+    );
+    if (!hasStep) {
+      return target;
+    }
+  }
+  return null;
+}
+
 export function findParallelSplitForBranch(
   nodes: WorkflowNode[],
   branchTarget: WorkflowBranchTarget,
@@ -193,6 +294,32 @@ export function findNextNodeInBranch(
   return null;
 }
 
+export function findPreviousMainFlowNode(
+  nodes: WorkflowNode[],
+  insertIndex: number,
+): WorkflowNode | null {
+  for (let i = insertIndex - 1; i >= 0; i--) {
+    const candidate = nodes[i]!;
+    if (getNodeBranchPlacement(candidate) == null) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+export function findNextMainFlowNode(
+  nodes: WorkflowNode[],
+  insertIndex: number,
+): WorkflowNode | null {
+  for (let i = insertIndex; i < nodes.length; i++) {
+    const candidate = nodes[i]!;
+    if (getNodeBranchPlacement(candidate) == null) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 export function resolveBranchConfigForNewNode(
   nodes: WorkflowNode[],
   selectedId: string | null,
@@ -203,13 +330,35 @@ export function resolveBranchConfigForNewNode(
     return {};
   }
 
-  if (branchTarget?.flowBranch) {
+  if (dropPlacement === "continue_main_path") {
+    const sectionCount = nodes.filter((node) => {
+      if (getNodeBranchPlacement(node) != null) return false;
+      const title = node.config.flowSectionTitle;
+      return typeof title === "string" && title.trim().length > 0;
+    }).length;
     return {
+      flowSectionTitle: `Continue ${sectionCount + 1}`,
+    };
+  }
+
+  if (branchTarget?.flowBranch) {
+    const branchConfig: Record<string, unknown> = {
       flowBranch: branchTarget.flowBranch,
       ...(branchTarget.flowBranchParent
         ? { flowBranchParent: branchTarget.flowBranchParent }
         : {}),
     };
+
+    if (dropPlacement === "continue_branch_path") {
+      const sectionCount = nodes.filter((node) => {
+        if (!nodeMatchesBranchTarget(node, branchTarget)) return false;
+        const title = node.config.flowSectionTitle;
+        return typeof title === "string" && title.trim().length > 0;
+      }).length;
+      branchConfig.flowSectionTitle = `Continue ${sectionCount + 1}`;
+    }
+
+    return branchConfig;
   }
 
   if (!selectedId) {
@@ -313,28 +462,54 @@ export function normalizeWorkflowNodeKind(node: WorkflowNode): WorkflowNodeKind 
   return node.kind;
 }
 
+export type DesiredAutomationConnectionPair = {
+  sourceNodeId: number;
+  targetNodeId: number;
+  branch?: string | null;
+};
+
 export function buildDesiredAutomationConnectionPairs(
   nodes: WorkflowNode[],
-): { sourceNodeId: number; targetNodeId: number }[] {
-  const pairs: { sourceNodeId: number; targetNodeId: number }[] = [];
+): DesiredAutomationConnectionPair[] {
+  const pairs: DesiredAutomationConnectionPair[] = [];
   const seen = new Set<string>();
 
-  const pushPair = (source: WorkflowNode, target: WorkflowNode) => {
+  const pushPair = (
+    source: WorkflowNode,
+    target: WorkflowNode,
+    branch?: string | null,
+  ) => {
     if (source.numericId == null || target.numericId == null) return;
-    const key = `${source.numericId}->${target.numericId}`;
+    const normalizedBranch =
+      typeof branch === "string" && branch.trim() ? branch.trim().toUpperCase() : null;
+    const key = `${source.numericId}->${target.numericId}:${normalizedBranch ?? ""}`;
     if (seen.has(key)) return;
     seen.add(key);
     pairs.push({
       sourceNodeId: source.numericId,
       targetNodeId: target.numericId,
+      branch: normalizedBranch,
     });
+  };
+
+  const conditionContinueBranch = (source: WorkflowNode): string | null => {
+    if (source.kind !== "condition") {
+      return null;
+    }
+    // Engine advances visited=true with TRUE; other continue paths use FALSE.
+    if (isCustomerVisitedConditionNode(source)) {
+      return "TRUE";
+    }
+    return "FALSE";
   };
 
   const mainFlow = nodes.filter(
     (node) => getNodeBranchPlacement(node) == null,
   );
   for (let index = 0; index < mainFlow.length - 1; index++) {
-    pushPair(mainFlow[index]!, mainFlow[index + 1]!);
+    const source = mainFlow[index]!;
+    const target = mainFlow[index + 1]!;
+    pushPair(source, target, conditionContinueBranch(source));
   }
 
   const branchGroups = new Map<string, WorkflowNode[]>();
@@ -348,7 +523,9 @@ export function buildDesiredAutomationConnectionPairs(
   }
   for (const group of branchGroups.values()) {
     for (let index = 0; index < group.length - 1; index++) {
-      pushPair(group[index]!, group[index + 1]!);
+      const source = group[index]!;
+      const target = group[index + 1]!;
+      pushPair(source, target, conditionContinueBranch(source));
     }
   }
 
@@ -371,7 +548,7 @@ export function buildDesiredAutomationConnectionPairs(
           ),
       );
       if (firstInBranch) {
-        pushPair(node, firstInBranch);
+        pushPair(node, firstInBranch, null);
       }
     }
   }

@@ -130,6 +130,16 @@ export interface CreateAutomationConnectionBody {
   branch?: string;
 }
 
+export interface SyncAutomationConnectionsBody {
+  automationId: number;
+  pairs: {
+    sourceNodeId: number;
+    targetNodeId: number;
+    branch?: string | null;
+  }[];
+  pruneStale?: boolean;
+}
+
 export interface FunnelAutomationGraph {
   funnelId: number;
   automationIds: number[];

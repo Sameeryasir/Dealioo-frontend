@@ -22,6 +22,11 @@ export function buildFlowSegments(flowNodes: WorkflowNode[], startIndex: number)
   const segments: FlowSegment[] = [];
   let i = 0;
 
+  const sectionTitleOf = (node: WorkflowNode): string => {
+    const raw = node.config?.flowSectionTitle;
+    return typeof raw === "string" ? raw.trim() : "";
+  };
+
   while (i < flowNodes.length) {
     const node = flowNodes[i]!;
     const globalIndex = startIndex + i;
@@ -38,8 +43,13 @@ export function buildFlowSegments(flowNodes: WorkflowNode[], startIndex: number)
 
     if (isActionNodeKind(node.kind)) {
       const group: WorkflowNode[] = [node];
+      const groupSection = sectionTitleOf(node);
       let j = i + 1;
       while (j < flowNodes.length && isActionNodeKind(flowNodes[j]!.kind)) {
+        // Keep separately titled path sections as their own Actions cards.
+        if (sectionTitleOf(flowNodes[j]!) !== groupSection) {
+          break;
+        }
         group.push(flowNodes[j]!);
         j += 1;
       }

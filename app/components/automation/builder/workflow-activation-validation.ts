@@ -3,8 +3,18 @@ import {
   isBundledActionsNode,
 } from "@/app/components/automation/builder/bundled-actions";
 import { isUserCreatedActionNode } from "@/app/components/automation/builder/action-node-defaults";
+import {
+  buildDesiredAutomationConnectionPairs,
+  getNodeBranchPlacement,
+  isParallelSplitWorkflowNode,
+  nodeMatchesBranchTarget,
+  parseParallelBranchesFromConfig,
+  type WorkflowBranchTarget,
+} from "@/app/components/automation/builder/workflow-branch-context";
 import { resolveWaitDelayMinutesFromConfig } from "@/app/components/automation/payment-reminder-schedule-validation";
 import type { WorkflowNode } from "@/app/components/automation/types";
+import type { AutomationConnection } from "@/app/services/automation/types";
+import { isTriggerWorkflowKind } from "@/app/components/automation/workflow-node-order";
 
 export type WorkflowActivationValidation =
   | { ok: true }
@@ -16,46 +26,58 @@ export type WorkflowActivationValidation =
       firstInvalidNodeId: string | null;
     };
 
+function hasText(value: unknown): boolean {
+  return String(value ?? "").trim().length > 0;
+}
+
 function validateEmailNode(node: WorkflowNode): boolean {
-  const subject = String(node.config.subject ?? "").trim();
-  const message = String(node.config.message ?? "").trim();
-  return subject.length > 0 && message.length > 0;
+  if (!hasText(node.config.subject) || !hasText(node.config.message)) {
+    return false;
+  }
+  if (!isUserCreatedActionNode(node)) {
+    return true;
+  }
+  return hasText(node.config.ctaLabel) || hasText(node.config.linkLabel);
 }
 
 function validateSmsNode(node: WorkflowNode): boolean {
-  const message = String(node.config.message ?? "").trim();
-  if (message.length > 0) {
+  if (hasText(node.config.message)) {
     return true;
   }
   if (!isUserCreatedActionNode(node)) {
-    const linkLabel = String(
-      node.config.linkLabel ?? node.config.ctaLabel ?? "",
-    ).trim();
-    return linkLabel.length > 0;
+    return hasText(node.config.linkLabel ?? node.config.ctaLabel);
   }
   return false;
 }
 
+function isParallelSplitMarker(node: WorkflowNode): boolean {
+  return (
+    node.kind === "parallel_split" ||
+    node.config?.isParallelSplit === true
+  );
+}
+
 function validateWaitNode(node: WorkflowNode): boolean {
+  if (isParallelSplitMarker(node)) {
+    return true;
+  }
   return resolveWaitDelayMinutesFromConfig(node.config) > 0;
 }
 
 function validateConditionNode(node: WorkflowNode): boolean {
   const config = node.config ?? {};
+
   const conditions = config.conditions;
   if (Array.isArray(conditions) && conditions.length > 0) {
     return conditions.some((row) => {
       if (!row || typeof row !== "object") {
         return false;
       }
-      const value = String((row as Record<string, unknown>).value ?? "").trim();
-      return value.length > 0;
+      return hasText((row as Record<string, unknown>).value);
     });
   }
 
-  const conditionType = String(config.conditionType ?? "").trim();
-  const value = String(config.value ?? config.conditionValue ?? "").trim();
-  return conditionType.length > 0 || value.length > 0;
+  return hasText(config.conditionType);
 }
 
 function validateActionNode(node: WorkflowNode): boolean {
@@ -94,11 +116,137 @@ function nodeLabel(node: WorkflowNode): string {
   return node.label?.trim() || "Step";
 }
 
+function activationMessageForNode(node: WorkflowNode): string {
+  switch (node.kind) {
+    case "send_email":
+      if (
+        hasText(node.config.subject) &&
+        hasText(node.config.message) &&
+        isUserCreatedActionNode(node) &&
+        !hasText(node.config.ctaLabel) &&
+        !hasText(node.config.linkLabel)
+      ) {
+        return `Choose a button label on "${nodeLabel(node)}" before activating.`;
+      }
+      return `Send email needs a subject and message text. "${nodeLabel(node)}" is incomplete.`;
+    case "send_sms":
+    case "send_whatsapp":
+      return `Message text is required. "${nodeLabel(node)}" is incomplete.`;
+    case "wait":
+    case "delay":
+      return `Wait needs a delay greater than 0. "${nodeLabel(node)}" is incomplete.`;
+    case "condition":
+      return `Condition is required — choose a condition on "${nodeLabel(node)}".`;
+    default:
+      return `Fill in the required settings on "${nodeLabel(node)}" to activate.`;
+  }
+}
+
+function findEmptyBranchPaths(nodes: WorkflowNode[]): {
+  split: WorkflowNode;
+  pathTitle: string;
+}[] {
+  const empty: { split: WorkflowNode; pathTitle: string }[] = [];
+
+  for (const node of nodes) {
+    if (!isParallelSplitWorkflowNode(node)) {
+      continue;
+    }
+    const nestUnder = getNodeBranchPlacement(node);
+    for (const branch of parseParallelBranchesFromConfig(node.config)) {
+      const target: WorkflowBranchTarget = nestUnder?.flowBranch
+        ? {
+            flowBranch: branch.id,
+            flowBranchParent: nestUnder.flowBranch,
+          }
+        : { flowBranch: branch.id };
+      const hasStep = nodes.some(
+        (candidate) =>
+          candidate.id !== node.id &&
+          nodeMatchesBranchTarget(candidate, target),
+      );
+      if (!hasStep) {
+        empty.push({
+          split: node,
+          pathTitle: branch.title.trim() || branch.id,
+        });
+      }
+    }
+  }
+
+  return empty;
+}
+
+function findUnreachableNodes(
+  nodes: WorkflowNode[],
+  connections: AutomationConnection[],
+): WorkflowNode[] {
+  const trigger = nodes.find((node) => isTriggerWorkflowKind(node.kind));
+  if (trigger?.numericId == null) {
+    return [];
+  }
+
+  const outgoing = new Map<number, number[]>();
+  for (const connection of connections) {
+    const list = outgoing.get(connection.sourceNodeId) ?? [];
+    list.push(connection.targetNodeId);
+    outgoing.set(connection.sourceNodeId, list);
+  }
+
+  const reachable = new Set<number>();
+  const queue = [trigger.numericId];
+  reachable.add(trigger.numericId);
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of outgoing.get(current) ?? []) {
+      if (reachable.has(next)) {
+        continue;
+      }
+      reachable.add(next);
+      queue.push(next);
+    }
+  }
+
+  return nodes.filter(
+    (node) =>
+      node.numericId != null &&
+      node.id !== trigger.id &&
+      !reachable.has(node.numericId),
+  );
+}
+
+function findMissingDesiredWires(
+  nodes: WorkflowNode[],
+  connections: AutomationConnection[],
+): { sourceNodeId: number; targetNodeId: number }[] {
+  const existing = new Set(
+    connections.map(
+      (connection) =>
+        `${connection.sourceNodeId}->${connection.targetNodeId}`,
+    ),
+  );
+  return buildDesiredAutomationConnectionPairs(nodes).filter(
+    (pair) => !existing.has(`${pair.sourceNodeId}->${pair.targetNodeId}`),
+  );
+}
+
 export function validateWorkflowForActivation(
   nodes: WorkflowNode[],
+  connections: AutomationConnection[] = [],
 ): WorkflowActivationValidation {
   const invalidNodeIds = new Set<string>();
   const invalidStepIds = new Set<string>();
+  let message: string | null = null;
+  let firstInvalidNodeId: string | null = null;
+
+  const markInvalid = (node: WorkflowNode, errorMessage: string) => {
+    invalidNodeIds.add(node.id);
+    invalidStepIds.add(node.id);
+    if (!message) {
+      message = errorMessage;
+      firstInvalidNodeId = node.id;
+    }
+  };
 
   for (const node of nodes) {
     if (isBundledActionsNode(node)) {
@@ -106,14 +254,54 @@ export function validateWorkflowForActivation(
         if (!validateActionNode(step)) {
           invalidNodeIds.add(node.id);
           invalidStepIds.add(step.id);
+          if (!message) {
+            message = activationMessageForNode(node);
+            firstInvalidNodeId = node.id;
+          }
         }
       }
       continue;
     }
 
     if (!validateWorkflowNode(node)) {
-      invalidNodeIds.add(node.id);
-      invalidStepIds.add(node.id);
+      markInvalid(node, activationMessageForNode(node));
+    }
+  }
+
+  for (const empty of findEmptyBranchPaths(nodes)) {
+    markInvalid(
+      empty.split,
+      `Add at least one step to "${empty.pathTitle}" before activating.`,
+    );
+  }
+
+  if (connections.length > 0 || nodes.some((node) => node.numericId != null)) {
+    const missingWires = findMissingDesiredWires(nodes, connections);
+    if (missingWires.length > 0) {
+      const byNumericId = new Map(
+        nodes
+          .filter((node) => node.numericId != null)
+          .map((node) => [node.numericId!, node]),
+      );
+      for (const pair of missingWires) {
+        const source = byNumericId.get(pair.sourceNodeId);
+        const target = byNumericId.get(pair.targetNodeId);
+        const focus = target ?? source;
+        if (!focus) {
+          continue;
+        }
+        markInvalid(
+          focus,
+          `Connect "${nodeLabel(source ?? focus)}" to "${nodeLabel(target ?? focus)}" before activating.`,
+        );
+      }
+    }
+
+    for (const orphan of findUnreachableNodes(nodes, connections)) {
+      markInvalid(
+        orphan,
+        `"${nodeLabel(orphan)}" is not connected to the flow. Drop it onto a path or reconnect it before activating.`,
+      );
     }
   }
 
@@ -121,16 +309,12 @@ export function validateWorkflowForActivation(
     return { ok: true };
   }
 
-  const firstInvalidNode =
-    nodes.find((node) => invalidNodeIds.has(node.id)) ?? null;
-  const label = firstInvalidNode ? nodeLabel(firstInvalidNode) : "a step";
-
   return {
     ok: false,
-    message: `Fill in all required settings to proceed. "${label}" still has empty fields.`,
+    message: message ?? "Fill in the required settings to activate.",
     invalidNodeIds: [...invalidNodeIds],
     invalidStepIds: [...invalidStepIds],
-    firstInvalidNodeId: firstInvalidNode?.id ?? null,
+    firstInvalidNodeId,
   };
 }
 

@@ -31,8 +31,7 @@ export function SettingsSelectDropdown({
     menuStyle,
   } = useAnchoredMenu({ width: "anchor", align: "left", estimatedHeight: 200 });
 
-  const selected =
-    options.find((o) => o.value === value) ?? options[0];
+  const selected = options.find((o) => o.value === value);
 
   const menu =
     open && menuPosition ? (
@@ -109,7 +108,7 @@ export function SettingsSelectDropdown({
         } focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10`}
       >
         <span className="min-w-0 flex-1 truncate text-left">
-          {selected?.label ?? "Select…"}
+          {selected?.label || "\u00A0"}
         </span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}

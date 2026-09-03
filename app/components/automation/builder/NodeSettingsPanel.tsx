@@ -55,6 +55,12 @@ const EMAIL_TEMPLATES = [
   "Abandoned checkout reminder",
 ];
 
+const CTA_LABEL_OPTIONS = [
+  "Complete payment",
+  "Add to Google Wallet",
+  "View my pass",
+] as const;
+
 const CONDITION_TYPES = [
   "Has not completed payment",
   "Opened email",
@@ -457,6 +463,7 @@ function buildConfigForNode(
 const NODE_STRUCTURE_KEYS = [
   "flowBranch",
   "flowBranchParent",
+  "flowSectionTitle",
   "isParallelSplit",
   "branches",
   "linkLabel",
@@ -1561,13 +1568,24 @@ function EmailSettings({
         />
       </FormField>
       <FormField label="Button label">
-        <input
-          type="text"
+        <SettingsSelectDropdown
           value={ctaLabel}
-          onChange={(e) => onCtaLabelChange(e.target.value)}
-          placeholder="Button text"
-          className={inputClass()}
-          {...lockedInputProps(readOnly, onEditBlocked)}
+          options={[
+            ...CTA_LABEL_OPTIONS.map((label) => ({
+              value: label,
+              label,
+            })),
+            ...(ctaLabel.trim() &&
+            !CTA_LABEL_OPTIONS.includes(
+              ctaLabel as (typeof CTA_LABEL_OPTIONS)[number],
+            )
+              ? [{ value: ctaLabel, label: ctaLabel }]
+              : []),
+          ]}
+          onChange={onCtaLabelChange}
+          ariaLabel="Button label"
+          locked={readOnly}
+          onLockedEdit={onEditBlocked}
         />
       </FormField>
     </motion.div>
@@ -1863,7 +1881,7 @@ function ParallelSplitSettings({
   return (
     <SettingsSection
       title="Branches"
-      description="Each path runs on its own. Add steps inside a branch, or add a nested split for sub-branches."
+      description="Each path runs on its own. Select a path on the canvas, then click blocks in the sidebar to add steps — or drag onto a path."
     >
       <div className="space-y-3">
         {branches.map((branch, index) => (

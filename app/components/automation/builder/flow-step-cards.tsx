@@ -1,17 +1,28 @@
 "use client";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import {
   CalendarClock,
+  Check,
   Clock,
   CreditCard,
   Filter,
   Gift,
   GitBranch,
   MessageSquare,
+  Pencil,
   RotateCcw,
   Send,
+  Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
 import {
   DEALIOO_SIDEBAR,
@@ -846,20 +857,80 @@ export function FlowBranchContainer({
   children,
   title,
   active = false,
+  editLocked = false,
+  onEditBlocked,
+  onRename,
+  onDelete,
 }: {
   children: ReactNode;
   title?: string;
   active?: boolean;
+  editLocked?: boolean;
+  onEditBlocked?: () => void;
+  onRename?: (nextTitle: string) => void;
+  onDelete?: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title ?? "");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const canEdit = onRename != null;
+  const canDelete = onDelete != null;
+
+  useEffect(() => {
+    if (!editing) {
+      setDraft(title ?? "");
+    }
+  }, [title, editing]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const beginEdit = (e: MouseEvent | KeyboardEvent) => {
+    e.stopPropagation();
+    if (!canEdit) return;
+    if (editLocked) {
+      onEditBlocked?.();
+      return;
+    }
+    setDraft(title ?? "");
+    setEditing(true);
+  };
+
+  const commitEdit = () => {
+    const next = draft.trim();
+    setEditing(false);
+    if (!next || next === (title ?? "").trim()) return;
+    onRename?.(next);
+  };
+
+  const cancelEdit = () => {
+    setDraft(title ?? "");
+    setEditing(false);
+  };
+
+  const handleDelete = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (!canDelete) return;
+    if (editLocked) {
+      onEditBlocked?.();
+      return;
+    }
+    onDelete?.();
+  };
+
   return (
     <div
-      className={`relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6 ${
+      className={`group/path relative w-full min-w-0 rounded-[1.25rem] border-2 border-dashed p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6 ${
         active
           ? "border-blue-400 bg-blue-50/40"
           : "border-zinc-300/70 bg-white/70"
       }`}
     >
-      <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
+      <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.6rem] font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200/90 sm:px-3 sm:text-[0.625rem]">
           <span
             className="size-2 rounded-full bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.65)]"
@@ -868,9 +939,92 @@ export function FlowBranchContainer({
           Live
         </span>
         {title ? (
-          <span className="truncate rounded-full bg-blue-50 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide text-blue-800 ring-1 ring-blue-200/80 sm:px-3 sm:text-[0.625rem]">
-            {title}
-          </span>
+          <div className="flex max-w-[70%] items-center gap-1">
+            {editing ? (
+              <div
+                className="flex min-w-0 items-center gap-1 rounded-full bg-white py-0.5 pl-2.5 pr-1 ring-1 ring-blue-300 shadow-sm"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      commitEdit();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelEdit();
+                    }
+                  }}
+                  onBlur={commitEdit}
+                  className="min-w-0 flex-1 bg-transparent text-[0.6rem] font-bold uppercase tracking-wide text-blue-900 outline-none sm:text-[0.625rem]"
+                  aria-label="Path name"
+                />
+                <button
+                  type="button"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-blue-700 hover:bg-blue-50"
+                  aria-label="Save path name"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    commitEdit();
+                  }}
+                >
+                  <Check className="size-3" strokeWidth={2.5} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100"
+                  aria-label="Cancel rename"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelEdit();
+                  }}
+                >
+                  <X className="size-3" strokeWidth={2.5} aria-hidden />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={beginEdit}
+                  disabled={!canEdit}
+                  className={`inline-flex max-w-full items-center gap-1 truncate rounded-full bg-blue-50 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide text-blue-800 ring-1 ring-blue-200/80 sm:px-3 sm:text-[0.625rem] ${
+                    canEdit
+                      ? "cursor-pointer hover:bg-blue-100"
+                      : "cursor-default"
+                  }`}
+                  title={canEdit ? "Click to rename path" : title}
+                >
+                  <span className="truncate">{title}</span>
+                  {canEdit ? (
+                    <Pencil
+                      className="size-2.5 shrink-0 opacity-60"
+                      strokeWidth={2.5}
+                      aria-hidden
+                    />
+                  ) : null}
+                </button>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-red-600 opacity-0 shadow-sm ring-1 ring-red-200/80 transition hover:bg-red-50 group-hover/path:opacity-100 focus-visible:opacity-100"
+                    aria-label={`Delete path ${title}`}
+                    title="Delete this path"
+                  >
+                    <Trash2 className="size-3" strokeWidth={2.25} aria-hidden />
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
         ) : null}
       </div>
       <div className="mt-10 flex flex-col gap-3 sm:mt-11 sm:gap-4">{children}</div>

@@ -115,16 +115,16 @@ export const drawerLogItem = {
 export const flowListStagger = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.14, delayChildren: 0.06 },
+    transition: { staggerChildren: 0.06, delayChildren: 0.02 },
   },
 };
 
 export const flowStepReveal = {
-  hidden: { opacity: 0, y: -28 },
+  hidden: { opacity: 0, y: -10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.42, ease: automationEase },
+    transition: { duration: 0.28, ease: automationEase },
   },
 };
 

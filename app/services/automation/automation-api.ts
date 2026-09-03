@@ -128,6 +128,13 @@ export async function activateAutomation(id: number): Promise<Automation> {
   );
 }
 
+export async function deactivateAutomation(id: number): Promise<Automation> {
+  return automationFetch<Automation>(
+    `/${encodeURIComponent(String(id))}/deactivate`,
+    { method: "POST" },
+  );
+}
+
 export async function publishAutomation(id: number): Promise<Automation> {
   return automationFetch<Automation>(
     `/${encodeURIComponent(String(id))}/publish`,
