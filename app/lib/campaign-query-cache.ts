@@ -1,14 +1,9 @@
-/**
- * Change: Helpers to keep campaign list + detail data in the React Query client.
- * Why: Avoid blank/stale UI after create/edit/delete and reuse list data for detail views.
- * Related: use-campaigns-by-business-query.ts, BusinessCampaignsPanel.tsx, EditCampaignModal.tsx
- */
-
 import type { QueryClient } from "@tanstack/react-query";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
-import type {
-  Funnel,
-  PaginatedCampaignsResponse,
+import {
+  CAMPAIGNS_PAGE_SIZE,
+  type Funnel,
+  type PaginatedCampaignsResponse,
 } from "@/app/services/funnel/get-campaigns-by-business";
 
 function isCampaignListResponse(
@@ -22,7 +17,56 @@ function isCampaignListResponse(
   );
 }
 
-/** Store each campaign under its detail key so later screens can reuse it. */
+function mergeCampaignIntoList(
+  previous: PaginatedCampaignsResponse | undefined,
+  campaign: Funnel,
+  options?: { prepend?: boolean },
+): PaginatedCampaignsResponse {
+  if (!isCampaignListResponse(previous)) {
+    return {
+      data: [campaign],
+      meta: {
+        page: 1,
+        limit: CAMPAIGNS_PAGE_SIZE,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+  }
+
+  const existingIndex = previous.data.findIndex((row) => row.id === campaign.id);
+  let nextData: Funnel[];
+  let totalDelta = 0;
+
+  if (existingIndex >= 0) {
+    nextData = previous.data.map((row, index) =>
+      index === existingIndex ? { ...row, ...campaign } : row,
+    );
+  } else if (options?.prepend) {
+    nextData = [campaign, ...previous.data];
+    totalDelta = 1;
+  } else {
+    nextData = [...previous.data, campaign];
+    totalDelta = 1;
+  }
+
+  const total = Math.max(0, previous.meta.total + totalDelta);
+  const totalPages =
+    previous.meta.limit > 0
+      ? Math.max(1, Math.ceil(total / previous.meta.limit))
+      : previous.meta.totalPages;
+
+  return {
+    ...previous,
+    data: nextData,
+    meta: {
+      ...previous.meta,
+      total,
+      totalPages,
+    },
+  };
+}
+
 export function seedCampaignDetailCache(
   queryClient: QueryClient,
   campaigns: Funnel[],
@@ -33,7 +77,6 @@ export function seedCampaignDetailCache(
   }
 }
 
-/** Write / refresh one campaign in every matching business list cache + detail cache. */
 export function upsertCampaignInQueryClient(
   queryClient: QueryClient,
   businessId: number,
@@ -42,49 +85,26 @@ export function upsertCampaignInQueryClient(
 ): void {
   seedCampaignDetailCache(queryClient, [campaign]);
 
+  const listKeyPrefix = [...funnelQueryKeys.campaigns(), businessId] as const;
+
   queryClient.setQueriesData<PaginatedCampaignsResponse>(
-    { queryKey: [...funnelQueryKeys.campaigns(), businessId] },
+    { queryKey: listKeyPrefix },
     (previous) => {
       if (!isCampaignListResponse(previous)) return previous;
-
-      const existingIndex = previous.data.findIndex(
-        (row) => row.id === campaign.id,
-      );
-      let nextData: Funnel[];
-      let totalDelta = 0;
-
-      if (existingIndex >= 0) {
-        nextData = previous.data.map((row, index) =>
-          index === existingIndex ? { ...row, ...campaign } : row,
-        );
-      } else if (options?.prepend) {
-        nextData = [campaign, ...previous.data];
-        totalDelta = 1;
-      } else {
-        nextData = [...previous.data, campaign];
-        totalDelta = 1;
-      }
-
-      const total = Math.max(0, previous.meta.total + totalDelta);
-      const totalPages =
-        previous.meta.limit > 0
-          ? Math.max(1, Math.ceil(total / previous.meta.limit))
-          : previous.meta.totalPages;
-
-      return {
-        ...previous,
-        data: nextData,
-        meta: {
-          ...previous.meta,
-          total,
-          totalPages,
-        },
-      };
+      return mergeCampaignIntoList(previous, campaign, options);
     },
+  );
+
+  const primaryKey = funnelQueryKeys.campaignsByRestaurant(businessId, 1, "");
+  queryClient.setQueryData<PaginatedCampaignsResponse>(primaryKey, (previous) =>
+    mergeCampaignIntoList(
+      isCampaignListResponse(previous) ? previous : undefined,
+      campaign,
+      options,
+    ),
   );
 }
 
-/** Remove a campaign from list caches and drop its detail entry. */
 export function removeCampaignFromQueryClient(
   queryClient: QueryClient,
   businessId: number,

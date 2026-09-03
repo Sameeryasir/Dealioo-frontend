@@ -422,9 +422,39 @@ export function BusinessCampaignsPanel({
       });
       skipPostCreateNavRef.current = true;
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
-      const createdCampaign = parseCampaignFromApi(createdBody);
+      const nowIso = new Date().toISOString();
+      const bodyRecord =
+        createdBody && typeof createdBody === "object"
+          ? (createdBody as Record<string, unknown>)
+          : null;
+      const imageUrlFromBody =
+        typeof bodyRecord?.imageUrl === "string"
+          ? bodyRecord.imageUrl
+          : typeof bodyRecord?.image_url === "string"
+            ? bodyRecord.image_url
+            : undefined;
+      const createdCampaign =
+        parseCampaignFromApi(createdBody) ??
+        (campaignId != null
+          ? ({
+              id: campaignId,
+              businessId,
+              campaignName: payload.campaignName.trim(),
+              websiteUrl: payload.websiteUrl.trim(),
+              imageUrl: imageUrlFromBody,
+              offer: payload.offerName.trim(),
+              description: payload.description.trim(),
+              price: payload.includeOfferPrice
+                ? parseOfferPrice(payload.offerPrice)
+                : undefined,
+              campaignType: payload.campaignType,
+              published: true,
+              status: "published",
+              createdAt: nowIso,
+              updatedAt: nowIso,
+            } satisfies Funnel)
+          : null);
 
-      // Store the new campaign in React Query right away so the list updates.
       if (createdCampaign) {
         upsertCampaignInQueryClient(queryClient, businessId, createdCampaign, {
           prepend: true,

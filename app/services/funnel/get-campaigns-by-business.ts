@@ -47,11 +47,13 @@ function coerceCampaign(value: unknown): Funnel | null {
   const businessId =
     typeof o.businessId === "number" && Number.isFinite(o.businessId)
       ? o.businessId
-      : typeof o.restaurantId === "number" && Number.isFinite(o.restaurantId)
-        ? o.restaurantId
-        : typeof o.restaurant_id === "number" && Number.isFinite(o.restaurant_id)
-          ? o.restaurant_id
-          : null;
+      : typeof o.business_id === "number" && Number.isFinite(o.business_id)
+        ? o.business_id
+        : typeof o.restaurantId === "number" && Number.isFinite(o.restaurantId)
+          ? o.restaurantId
+          : typeof o.restaurant_id === "number" && Number.isFinite(o.restaurant_id)
+            ? o.restaurant_id
+            : null;
   const websiteUrl =
     typeof o.websiteUrl === "string"
       ? o.websiteUrl
@@ -98,13 +100,21 @@ function coerceCampaign(value: unknown): Funnel | null {
       ? o.createdAt
       : typeof o.created_at === "string"
         ? o.created_at
-        : new Date().toISOString();
+        : o.createdAt instanceof Date
+          ? o.createdAt.toISOString()
+          : o.created_at instanceof Date
+            ? o.created_at.toISOString()
+            : new Date().toISOString();
   const updatedAt =
     typeof o.updatedAt === "string"
       ? o.updatedAt
       : typeof o.updated_at === "string"
         ? o.updated_at
-        : createdAt;
+        : o.updatedAt instanceof Date
+          ? o.updatedAt.toISOString()
+          : o.updated_at instanceof Date
+            ? o.updated_at.toISOString()
+            : createdAt;
 
   return {
     id,
