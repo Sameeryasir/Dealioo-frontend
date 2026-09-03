@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * Change: Circular profile/campaign images that fill the full round frame.
- * Why: Consistent full-circle thumbnails on business and campaign cards.
- * Related: BusinessDashboardCard.tsx, CampaignFunnelCard.tsx, globals.css (.org-biz-card-avatar*)
+ * Circular business logo that fits the full mark inside the frame (no crop).
+ * Related: BusinessDashboardCard.tsx, globals.css (.org-biz-card-avatar*)
  */
 
 import {
@@ -74,7 +73,6 @@ export function BusinessProfileImage({
     <span className={rootClassName} aria-hidden={ariaHidden}>
       {hasImage ? (
         <span className="org-biz-card-avatar-media">
-          {/* Full circle: cover fills the round frame edge-to-edge. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resolvedSrc}

@@ -4629,11 +4629,11 @@ body {
   }
 
   .org-biz-card-avatar-media {
-    @apply relative block size-full min-h-0 min-w-0 overflow-hidden rounded-full;
+    @apply relative flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-full bg-white p-1;
   }
 
   .org-biz-card-avatar-img {
-    @apply object-cover object-center;
+    @apply size-full object-contain object-center;
   }
 
   .org-biz-card-avatar-placeholder {
@@ -5522,7 +5522,7 @@ body {
   }
 
   .org-biz-card-thumb .org-biz-card-avatar-img {
-    @apply object-cover object-center;
+    @apply size-full object-contain object-center;
   }
 
   .org-biz-card-thumb .org-biz-card-avatar-placeholder svg {
