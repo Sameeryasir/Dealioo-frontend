@@ -256,7 +256,7 @@ export default function CampaignFunnelCard({
               <BusinessProfileImage
                 src={funnel.imageUrl}
                 variant="campaign"
-                className="org-campaign-card-avatar"
+                className="org-campaign-card-avatar rounded-full"
                 aria-hidden={hasImage}
               />
             </span>

@@ -44,14 +44,14 @@ type ModalStep = "choose" | "import-list" | "import-preview" | "create-blank";
 
 const ICON_STROKE = 2.5;
 const fieldInputClass =
-  "h-11 w-full rounded-xl border border-zinc-200/90 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-violet-500/25";
+  "h-11 w-full rounded-xl border border-zinc-200/90 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1877f2]/25";
 const fieldTextareaClass =
-  "w-full resize-none rounded-xl border border-zinc-200/90 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-violet-500/25";
+  "w-full resize-none rounded-xl border border-zinc-200/90 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1877f2]/25";
 
 function FieldLabel({
   icon: Icon,
   children,
-  iconClassName = "text-violet-600",
+  iconClassName = "text-[#1877f2]",
 }: {
   icon: LucideIcon;
   children: ReactNode;
@@ -74,20 +74,20 @@ function RadioOptionGroup<T extends string>({
   value,
   onChange,
   options,
-  accent = "violet",
+  accent = "blue",
 }: {
   name: string;
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
-  accent?: "violet" | "amber" | "orange";
+  accent?: "blue" | "amber" | "orange";
 }) {
   const accentClass =
     accent === "amber"
       ? "accent-amber-600"
       : accent === "orange"
         ? "accent-orange-600"
-        : "accent-violet-600";
+        : "accent-blue-600";
 
   return (
     <div className="space-y-2 pl-0.5 sm:space-y-2.5" role="radiogroup" aria-label={name}>
@@ -125,24 +125,24 @@ function templateListVisual(templateId: string): {
   if (templateId === "payment_reminder") {
     return {
       icon: CreditCard,
-      accentClass: "bg-gradient-to-br from-sky-500 to-blue-600 shadow-sky-500/20",
+      accentClass: "bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] shadow-[#1877f2]/25",
     };
   }
   if (templateId === "post_payment_journey") {
     return {
       icon: CreditCard,
-      accentClass: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/20",
+      accentClass: "bg-gradient-to-br from-sky-500 to-blue-600 shadow-sky-500/25",
     };
   }
   if (templateId === "signup_automation") {
     return {
       icon: UserPlus,
-      accentClass: "bg-gradient-to-br from-teal-500 to-cyan-600 shadow-teal-500/20",
+      accentClass: "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-500/25",
     };
   }
   return {
     icon: ShoppingCart,
-    accentClass: "bg-gradient-to-br from-orange-500 to-orange-600 shadow-orange-500/20",
+    accentClass: "bg-gradient-to-br from-[#3b82f6] to-[#1877f2] shadow-[#1877f2]/25",
   };
 }
 
@@ -221,10 +221,10 @@ function ChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className="create-automation-choice-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25"
+      className="create-automation-choice-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1877f2]/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
     >
       <span
-        className={`create-automation-choice-card__icon flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${accentClass}`}
+        className={`create-automation-choice-card__icon flex size-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm ${accentClass}`}
       >
         <Icon className="size-5" strokeWidth={ICON_STROKE} />
       </span>
@@ -386,7 +386,7 @@ export function CreateAutomationModal({
                     </button>
                   ) : (
                     <span
-                      className="create-automation-modal__brand-icon flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20 sm:size-10"
+                      className="create-automation-modal__brand-icon flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-md shadow-[#1877f2]/25 sm:size-10"
                       aria-hidden
                     >
                       <Workflow className="size-4 sm:size-5" strokeWidth={ICON_STROKE} />
@@ -408,7 +408,7 @@ export function CreateAutomationModal({
                   type="button"
                   onClick={onClose}
                   aria-label="Close"
-                  className="create-automation-modal__close flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-900 bg-zinc-900 text-white shadow-sm transition hover:border-zinc-800 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 sm:size-9"
+                  className="create-automation-modal__close flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#1877f2] bg-[#1877f2] text-white shadow-sm transition hover:border-[#0f5ed7] hover:bg-[#0f5ed7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 sm:size-9"
                 >
                   <X className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
                 </button>
@@ -420,14 +420,14 @@ export function CreateAutomationModal({
                     icon={Download}
                     title="Import template"
                     description="Start from a proven template — Payment Reminder, Prepaid Offer, or Signup automation."
-                    accentClass="bg-gradient-to-br from-emerald-500 to-teal-600"
+                    accentClass="bg-gradient-to-br from-sky-500 to-[#1877f2] shadow-[#1877f2]/25"
                     onClick={() => setStep("import-list")}
                   />
                   <ChoiceCard
                     icon={Sparkles}
                     title="Create from scratch"
                     description="Build a custom automation and add your own triggers, waits, and actions."
-                    accentClass="bg-gradient-to-br from-violet-600 to-indigo-600"
+                    accentClass="bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] shadow-[#1877f2]/25"
                     onClick={() => setStep("create-blank")}
                   />
                 </div>
@@ -447,10 +447,10 @@ export function CreateAutomationModal({
                           setSelectedTemplateId(template.id);
                           setStep("import-preview");
                         }}
-                        className="create-automation-template-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25"
+                        className="create-automation-template-card group flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-zinc-200/90 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1877f2]/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
                       >
                         <span
-                          className={`create-automation-template-card__icon flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${visual.accentClass}`}
+                          className={`create-automation-template-card__icon flex size-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm ${visual.accentClass}`}
                         >
                           <TemplateIcon className="size-5" strokeWidth={ICON_STROKE} />
                         </span>
@@ -466,7 +466,7 @@ export function CreateAutomationModal({
                           <span className="create-automation-template-card__description mt-1 block text-sm leading-relaxed text-zinc-500">
                             {template.description}
                           </span>
-                          <span className="create-automation-template-card__steps mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                          <span className="create-automation-template-card__steps mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1877f2]">
                             {template.nodes.length} steps
                             <ChevronRight
                               className="size-3.5 transition group-hover:translate-x-0.5"
@@ -533,7 +533,7 @@ export function CreateAutomationModal({
                       type="button"
                       onClick={handleUseTemplate}
                       disabled={isSubmitting}
-                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-11 sm:min-w-[9rem] sm:w-auto"
+                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-11 sm:min-w-[9rem] sm:w-auto"
                     >
                       <Plus className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
                       {isSubmitting ? "Creating…" : "Use template"}
@@ -589,7 +589,7 @@ export function CreateAutomationModal({
                       />
                     </div>
                     <div>
-                      <FieldLabel icon={Workflow} iconClassName="text-violet-600">
+                      <FieldLabel icon={Workflow} iconClassName="text-[#1877f2]">
                         Purpose
                       </FieldLabel>
                       <RadioOptionGroup
@@ -600,7 +600,7 @@ export function CreateAutomationModal({
                           value: option.value,
                           label: option.label,
                         }))}
-                        accent="violet"
+                        accent="blue"
                       />
                       <p className="mt-2 text-xs leading-relaxed text-zinc-500">
                         {
@@ -627,7 +627,7 @@ export function CreateAutomationModal({
                     <button
                       type="submit"
                       disabled={!name.trim() || isSubmitting}
-                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-11 sm:min-w-[7rem] sm:w-auto"
+                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-11 sm:min-w-[7rem] sm:w-auto"
                     >
                       <Plus className="size-4" aria-hidden strokeWidth={ICON_STROKE} />
                       {isSubmitting ? "Creating…" : "Create"}
