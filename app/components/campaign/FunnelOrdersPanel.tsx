@@ -5,7 +5,6 @@ import {
   Calendar,
   Check,
   CircleDollarSign,
-  Clock,
   Copy,
   Layers,
   Mail,
@@ -251,42 +250,8 @@ function orderStatusBadgeClass(status: string): string {
 }
 
 function OrderStatusBadge({ status }: { status: string }) {
-  const normalized = status.trim().toLowerCase();
   const label = formatPaymentStatusLabel(status);
-  const isPaid = normalized === "paid" || normalized === "succeeded";
-  const isPending =
-    normalized === "pending" ||
-    normalized === "processing" ||
-    normalized === "open";
-
-  if (isPaid) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
-        <span
-          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white"
-          aria-hidden
-        >
-          <Check className="size-2.5" strokeWidth={3} />
-        </span>
-        {label}
-      </span>
-    );
-  }
-
-  if (isPending) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff4ed] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-[#c2410c] ring-1 ring-[#fdba74]">
-        <span
-          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#FD7137] text-white"
-          aria-hidden
-        >
-          <Clock className="size-2.5" strokeWidth={2.5} />
-        </span>
-        {label}
-      </span>
-    );
-  }
-
+  // Tag with bold status text only — no icons
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${orderStatusBadgeClass(status)}`}
@@ -459,7 +424,7 @@ function OrderPaymentMobileCard({
             {guestInitial(email)}
           </span>
           <div className="min-w-0">
-            <p className="m-0 truncate text-[0.88rem] font-bold text-[#07111f]">
+            <p className="m-0 truncate text-[0.88rem] font-normal text-[#07111f]">
               {email || "N/A"}
             </p>
             <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
@@ -568,7 +533,7 @@ function OrdersTableSection({
                         <div className="flex min-w-0 items-center gap-0.5">
                           <a
                             href={`mailto:${email}`}
-                            className="block min-w-0 truncate font-semibold text-[#07111f] underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                            className="block min-w-0 truncate font-normal text-[#07111f] underline-offset-2 transition hover:text-[#1877f2] hover:underline"
                             title={email}
                           >
                             {email}
@@ -582,10 +547,10 @@ function OrdersTableSection({
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     <span className="inline-flex items-baseline gap-1.5">
-                      <span className="text-sm font-bold tabular-nums tracking-tight text-[#07111f]">
+                      <span className="text-sm font-normal tabular-nums tracking-tight text-[#07111f]">
                         {formatCents(payment.amount, payment.currency)}
                       </span>
-                      <span className="text-[0.68rem] font-semibold uppercase tabular-nums text-slate-400">
+                      <span className="text-[0.68rem] font-normal uppercase tabular-nums text-slate-400">
                         {currency}
                       </span>
                     </span>

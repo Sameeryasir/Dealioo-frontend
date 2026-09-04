@@ -586,32 +586,21 @@ export function BusinessProgramCustomersPanel({
                             {customerInitials(customer)}
                           </span>
                           <div className="min-w-0 leading-tight">
-                            <p className="truncate text-sm font-bold text-[#07111f]">
+                            <p className="truncate text-sm font-normal text-[#07111f]">
                               {customer.name}
-                            </p>
-                            <p className="mt-0.5 truncate text-[0.7rem] font-medium text-slate-400">
-                              Guest profile
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 align-middle">
-                        <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
-                          <Mail
-                            className="size-3.5 shrink-0 text-[#1877f2]"
-                            aria-hidden
-                          />
-                          <span className="truncate">{customer.email}</span>
+                        <span className="block max-w-full truncate text-sm leading-none text-slate-700">
+                          {customer.email}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 align-middle">
                         {customer.phone ? (
-                          <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
-                            <Phone
-                              className="size-3.5 shrink-0 text-[#1877f2]"
-                              aria-hidden
-                            />
-                            <span className="truncate">{customer.phone}</span>
+                          <span className="block max-w-full truncate text-sm leading-none text-slate-700">
+                            {customer.phone}
                           </span>
                         ) : (
                           <span className="text-sm leading-none text-slate-400">
@@ -620,20 +609,12 @@ export function BusinessProgramCustomersPanel({
                         )}
                       </td>
                       <td className="px-4 py-3.5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-normal tabular-nums leading-none text-slate-700">
-                          <BarChart3
-                            className="size-3.5 shrink-0 text-[#1877f2]"
-                            aria-hidden
-                          />
+                        <span className="text-sm font-normal tabular-nums leading-none text-slate-700">
                           {customer.visitCount}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold leading-none text-slate-700">
-                          <CalendarDays
-                            className="size-3.5 shrink-0 text-[#1877f2]"
-                            aria-hidden
-                          />
+                        <span className="text-sm font-normal leading-none text-slate-700">
                           {formatJoiningDate(customer.joiningDate)}
                         </span>
                       </td>

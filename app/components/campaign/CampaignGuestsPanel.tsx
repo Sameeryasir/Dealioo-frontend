@@ -438,7 +438,7 @@ function GuestMobileCard({
             {initials}
           </span>
           <div className="min-w-0">
-            <p className="m-0 truncate text-[0.88rem] font-bold text-[#07111f]">
+            <p className="m-0 truncate text-[0.88rem] font-normal text-[#07111f]">
               {guest.name}
             </p>
             <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
@@ -449,7 +449,9 @@ function GuestMobileCard({
         <GuestRowActions guest={guest} />
       </div>
       <div className="mt-3 space-y-1 text-[0.8rem] text-slate-600">
-        {guest.email ? <p className="m-0 truncate">{guest.email}</p> : null}
+        {guest.email ? (
+          <p className="m-0 truncate font-normal text-slate-600">{guest.email}</p>
+        ) : null}
         {guest.phone ? <p className="m-0">{guest.phone}</p> : null}
       </div>
     </article>
@@ -542,7 +544,7 @@ function GuestsTableSection({
                       >
                         {initials}
                       </span>
-                      <span className="block min-w-0 truncate font-semibold text-[#07111f]">
+                      <span className="block min-w-0 truncate font-normal text-[#07111f]">
                         {guest.name}
                       </span>
                     </div>
@@ -552,7 +554,7 @@ function GuestsTableSection({
                       <div className="flex min-w-0 items-center gap-0.5">
                         <a
                           href={`mailto:${guest.email}`}
-                          className="block min-w-0 truncate font-semibold text-[#07111f] underline-offset-2 transition hover:text-[#1877f2] hover:underline"
+                          className="block min-w-0 truncate text-sm font-normal text-slate-700 underline-offset-2 transition hover:text-[#1877f2] hover:underline"
                           title={guest.email}
                         >
                           {guest.email}

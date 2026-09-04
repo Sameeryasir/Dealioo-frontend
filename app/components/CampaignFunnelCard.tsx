@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
@@ -128,11 +129,21 @@ export default function CampaignFunnelCard({
     });
   }, []);
 
-  const openPreview = useCallback(() => {
-    if (!canPreviewImage) return;
-    updatePreviewPosition();
-    setPreviewOpen(true);
-  }, [canPreviewImage, updatePreviewPosition]);
+  // Click-to-preview (not hover) so cards stay calm until the user asks
+  const togglePreview = useCallback(
+    (event: ReactMouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!canPreviewImage) return;
+      if (previewOpen) {
+        setPreviewOpen(false);
+        return;
+      }
+      updatePreviewPosition();
+      setPreviewOpen(true);
+    },
+    [canPreviewImage, previewOpen, updatePreviewPosition],
+  );
 
   const closePreview = useCallback(() => {
     setPreviewOpen(false);
@@ -141,13 +152,31 @@ export default function CampaignFunnelCard({
   useEffect(() => {
     if (!previewOpen) return;
     const onScrollOrResize = () => updatePreviewPosition();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePreview();
+    };
+    // Delay so the same click that opened preview does not immediately close it
+    let removeOutside: (() => void) | undefined;
+    const outsideTimer = window.setTimeout(() => {
+      const onPointer = (event: globalThis.MouseEvent) => {
+        if (imageAnchorRef.current?.contains(event.target as Node)) return;
+        closePreview();
+      };
+      document.addEventListener("mousedown", onPointer);
+      removeOutside = () => document.removeEventListener("mousedown", onPointer);
+    }, 0);
+
     window.addEventListener("resize", onScrollOrResize);
     window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(outsideTimer);
+      removeOutside?.();
       window.removeEventListener("resize", onScrollOrResize);
       window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("keydown", onKey);
     };
-  }, [previewOpen, updatePreviewPosition]);
+  }, [previewOpen, updatePreviewPosition, closePreview]);
 
   return (
     <div className="org-campaign-card group relative flex w-full max-w-none flex-col overflow-hidden">
@@ -247,11 +276,33 @@ export default function CampaignFunnelCard({
           <div className="org-campaign-card-head flex items-start gap-3 pr-8">
             <span
               ref={imageAnchorRef}
-              className="org-campaign-card-image-hover relative shrink-0"
-              onMouseEnter={openPreview}
-              onMouseLeave={closePreview}
-              onFocus={openPreview}
-              onBlur={closePreview}
+              role={canPreviewImage ? "button" : undefined}
+              tabIndex={canPreviewImage ? 0 : undefined}
+              aria-label={
+                canPreviewImage
+                  ? previewOpen
+                    ? `Close ${title} image preview`
+                    : `Preview ${title} image`
+                  : undefined
+              }
+              aria-expanded={canPreviewImage ? previewOpen : undefined}
+              onClick={togglePreview}
+              onKeyDown={(event) => {
+                if (!canPreviewImage) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (previewOpen) {
+                    setPreviewOpen(false);
+                    return;
+                  }
+                  updatePreviewPosition();
+                  setPreviewOpen(true);
+                }
+              }}
+              className={`org-campaign-card-image-trigger relative shrink-0 ${
+                canPreviewImage ? "cursor-zoom-in" : "cursor-default"
+              }`}
             >
               <BusinessProfileImage
                 src={funnel.imageUrl}

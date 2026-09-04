@@ -38,9 +38,12 @@ import {
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
-import { startTransition, useDeferredValue, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 const ORDERS_TABLE_PAGE_SIZE = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE;
+const CAMPAIGN_IMAGE_PREVIEW_SIZE = 220;
+const CAMPAIGN_IMAGE_PREVIEW_GAP = 12;
 
 const ordersCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -87,19 +90,15 @@ function CampaignTypeBadge({
 }) {
   if (campaignType === "postpaid") {
     return (
-      <span className="inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
-        Postpaid
-      </span>
+      <span className="text-[calc(0.78rem+1px)] font-normal text-slate-600">Postpaid</span>
     );
   }
   if (campaignType === "prepaid") {
     return (
-      <span className="inline-flex rounded-md bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#1877f2] ring-1 ring-[#dbeafe]">
-        Prepaid
-      </span>
+      <span className="text-[calc(0.78rem+1px)] font-normal text-slate-600">Prepaid</span>
     );
   }
-  return <span className="text-slate-400">—</span>;
+  return <span className="text-[calc(0.78rem+1px)] text-slate-400">—</span>;
 }
 
 function OrdersTableBodySkeleton() {
@@ -183,7 +182,7 @@ function orderStatusLabel(status: DisplayPaymentStatus): string {
   if (status === "paid") return "Paid";
   if (status === "failed") return "Failed";
   if (status === "refunded") return "Refunded";
-  return "Payment Pending";
+  return "Pending";
 }
 
 function orderStatusBadgeClass(status: DisplayPaymentStatus): string {
@@ -197,13 +196,6 @@ function orderStatusBadgeClass(status: DisplayPaymentStatus): string {
     return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
   }
   return "bg-[#fff7ed] text-[#c2410c] ring-1 ring-[#fed7aa]/80";
-}
-
-function orderStatusDotClass(status: DisplayPaymentStatus): string {
-  if (status === "paid") return "bg-[#1877f2]";
-  if (status === "failed") return "bg-[#ef4444]";
-  if (status === "refunded") return "bg-[#1877f2]";
-  return "bg-[#f97316]";
 }
 
 function eventCampaignAmount(event: BusinessFunnelEvent): number {
@@ -308,33 +300,160 @@ function CampaignNameWithImage({
   imageUrl?: string | null;
   maxWidthClass?: string;
 }) {
+  // --- Click-to-preview (rounded circle), same pattern as campaign cards ---
   const src = resolveUploadImageUrl(imageUrl);
+  const canPreview = Boolean(src);
   const initial = guestInitial(formatTitleCase(name) || "Campaign");
+  const imageAnchorRef = useRef<HTMLSpanElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMounted, setPreviewMounted] = useState(false);
+  const [previewStyle, setPreviewStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    setPreviewMounted(true);
+  }, []);
+
+  const updatePreviewPosition = useCallback(() => {
+    const el = imageAnchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const preferredLeft = rect.right + CAMPAIGN_IMAGE_PREVIEW_GAP;
+    const fitsRight =
+      preferredLeft + CAMPAIGN_IMAGE_PREVIEW_SIZE <= window.innerWidth - 8;
+    const left = fitsRight
+      ? preferredLeft
+      : Math.max(8, rect.left - CAMPAIGN_IMAGE_PREVIEW_SIZE - CAMPAIGN_IMAGE_PREVIEW_GAP);
+    const top = Math.min(
+      Math.max(8, rect.top + rect.height / 2 - CAMPAIGN_IMAGE_PREVIEW_SIZE / 2),
+      window.innerHeight - CAMPAIGN_IMAGE_PREVIEW_SIZE - 8,
+    );
+    setPreviewStyle({
+      position: "fixed",
+      top,
+      left,
+      width: CAMPAIGN_IMAGE_PREVIEW_SIZE,
+      height: CAMPAIGN_IMAGE_PREVIEW_SIZE,
+      zIndex: 120,
+    });
+  }, []);
+
+  const togglePreview = useCallback(
+    (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!canPreview) return;
+      if (previewOpen) {
+        setPreviewOpen(false);
+        return;
+      }
+      updatePreviewPosition();
+      setPreviewOpen(true);
+    },
+    [canPreview, previewOpen, updatePreviewPosition],
+  );
+
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onScrollOrResize = () => updatePreviewPosition();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePreview();
+    };
+    let removeOutside: (() => void) | undefined;
+    const outsideTimer = window.setTimeout(() => {
+      const onPointer = (event: globalThis.MouseEvent) => {
+        if (imageAnchorRef.current?.contains(event.target as Node)) return;
+        closePreview();
+      };
+      document.addEventListener("mousedown", onPointer);
+      removeOutside = () => document.removeEventListener("mousedown", onPointer);
+    }, 0);
+
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(outsideTimer);
+      removeOutside?.();
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [previewOpen, updatePreviewPosition, closePreview]);
 
   return (
-    <div className={`flex min-w-0 items-center gap-2.5 ${maxWidthClass}`}>
-      {src ? (
-        <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-[#f4f7fb] ring-1 ring-[#e8edf5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt=""
-            {...spacesImageLoadProps}
-            className="size-full object-cover object-center"
-          />
+    <>
+      <div className={`flex min-w-0 items-center gap-2.5 ${maxWidthClass}`}>
+        {src ? (
+          <span
+            ref={imageAnchorRef}
+            role="button"
+            tabIndex={0}
+            aria-label={
+              previewOpen
+                ? `Close ${name} image preview`
+                : `Preview ${name} image`
+            }
+            aria-expanded={previewOpen}
+            onClick={togglePreview}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                if (previewOpen) {
+                  setPreviewOpen(false);
+                  return;
+                }
+                updatePreviewPosition();
+                setPreviewOpen(true);
+              }
+            }}
+            className="org-campaign-card-image-trigger relative size-8 shrink-0 cursor-zoom-in overflow-hidden rounded-full bg-[#f4f7fb] ring-1 ring-[#e8edf5]"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt=""
+              {...spacesImageLoadProps}
+              className="size-full object-cover object-center"
+            />
+          </span>
+        ) : (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
+            {initial}
+          </span>
+        )}
+        <span
+          title={name}
+          className="min-w-0 truncate font-normal text-[#07111f]"
+        >
+          {name}
         </span>
-      ) : (
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
-          {initial}
-        </span>
-      )}
-      <span
-        title={name}
-        className="min-w-0 truncate font-semibold text-[#07111f]"
-      >
-        {name}
-      </span>
-    </div>
+      </div>
+
+      {previewMounted && previewOpen && src && previewStyle
+        ? createPortal(
+            <div
+              className="org-campaign-card-image-preview pointer-events-none"
+              style={previewStyle}
+              role="img"
+              aria-label={`${name} image preview`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt=""
+                {...spacesImageLoadProps}
+                className="size-full object-cover object-center"
+              />
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
@@ -389,7 +508,7 @@ function OrderEventMobileCard({
             {initial}
           </span>
           <div className="min-w-0">
-            <p className="m-0 truncate text-[0.88rem] font-bold text-[#07111f]">
+            <p className="m-0 truncate text-[0.88rem] font-normal text-[#07111f]">
               {name}
             </p>
             <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
@@ -398,12 +517,8 @@ function OrderEventMobileCard({
           </div>
         </div>
         <span
-          className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[0.68rem] font-bold ${orderStatusBadgeClass(status)}`}
+          className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-[0.68rem] font-bold ${orderStatusBadgeClass(status)}`}
         >
-          <span
-            className={`size-1.5 rounded-full ${orderStatusDotClass(status)}`}
-            aria-hidden
-          />
           {orderStatusLabel(status)}
         </span>
       </div>
@@ -803,12 +918,8 @@ export function BusinessOrdersPanel({
                               </td>
                               <td className={`${tdClass} whitespace-nowrap`}>
                                 <span
-                                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[0.72rem] font-bold ${orderStatusBadgeClass(status)}`}
+                                  className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[0.72rem] font-bold ${orderStatusBadgeClass(status)}`}
                                 >
-                                  <span
-                                    className={`size-2 shrink-0 rounded-full ${orderStatusDotClass(status)}`}
-                                    aria-hidden
-                                  />
                                   {orderStatusLabel(status)}
                                 </span>
                               </td>
@@ -817,7 +928,7 @@ export function BusinessOrdersPanel({
                                   <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold ${avatarTone(index)}`}>
                                     {initial}
                                   </span>
-                                  <span className="truncate font-semibold text-[#07111f]">
+                                  <span className="truncate font-normal text-[#07111f]">
                                     {name}
                                   </span>
                                 </div>

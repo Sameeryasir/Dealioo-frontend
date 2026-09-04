@@ -4744,8 +4744,8 @@ body {
       box-shadow 0.2s ease;
   }
 
-  .org-campaign-card-image-hover:hover .org-campaign-card-avatar,
-  .org-campaign-card-image-hover:focus-within .org-campaign-card-avatar {
+  .org-campaign-card-image-trigger:hover .org-campaign-card-avatar,
+  .org-campaign-card-image-trigger[aria-expanded="true"] .org-campaign-card-avatar {
     transform: scale(1.04) !important;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   }

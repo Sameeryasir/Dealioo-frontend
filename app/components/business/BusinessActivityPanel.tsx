@@ -167,73 +167,37 @@ function EventTypeBadge({
   paymentChannel?: "online" | "in_store" | null;
   visitChannel?: "scanned" | "in_store" | null;
 }) {
+  // Tag only — no status dot (same as Orders status pills)
+  const label = eventTypeLabel(type, paymentChannel, visitChannel);
+  let badgeClass = DASHBOARD_EVENT_BADGE.default;
+
   switch (type) {
     case "visited":
-      if (visitChannel === "scanned") {
-        return (
-          <span className={DASHBOARD_EVENT_BADGE.scanned}>
-            <span className={DASHBOARD_EVENT_BADGE.scannedDot} aria-hidden />
-            Scanned
-          </span>
-        );
-      }
-      if (visitChannel === "in_store") {
-        return (
-          <span className={DASHBOARD_EVENT_BADGE.inStore}>
-            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
-            In-person
-          </span>
-        );
-      }
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.visited}>
-          <span className={DASHBOARD_EVENT_BADGE.visitedDot} aria-hidden />
-          Visited
-        </span>
-      );
+      if (visitChannel === "scanned") badgeClass = DASHBOARD_EVENT_BADGE.scanned;
+      else if (visitChannel === "in_store")
+        badgeClass = DASHBOARD_EVENT_BADGE.inStore;
+      else badgeClass = DASHBOARD_EVENT_BADGE.visited;
+      break;
     case "redeemed_reward":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.redeemed}>
-          <span className={DASHBOARD_EVENT_BADGE.redeemedDot} aria-hidden />
-          Redeemed
-        </span>
-      );
+      badgeClass = DASHBOARD_EVENT_BADGE.redeemed;
+      break;
     case "signed_up":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.signedUp}>
-          <span className={DASHBOARD_EVENT_BADGE.signedUpDot} aria-hidden />
-          Signed up
-        </span>
-      );
+      badgeClass = DASHBOARD_EVENT_BADGE.signedUp;
+      break;
     case "prepaid_for_offer":
-      if (paymentChannel === "in_store") {
-        return (
-          <span className={DASHBOARD_EVENT_BADGE.inStore}>
-            <span className={DASHBOARD_EVENT_BADGE.inStoreDot} aria-hidden />
-            In person
-          </span>
-        );
-      }
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.prepaid}>
-          <span className={DASHBOARD_EVENT_BADGE.prepaidDot} aria-hidden />
-          Prepaid
-        </span>
-      );
+      badgeClass =
+        paymentChannel === "in_store"
+          ? DASHBOARD_EVENT_BADGE.inStore
+          : DASHBOARD_EVENT_BADGE.prepaid;
+      break;
     case "message_sent":
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.messageSent}>
-          <span className={DASHBOARD_EVENT_BADGE.messageSentDot} aria-hidden />
-          Text sent
-        </span>
-      );
+      badgeClass = DASHBOARD_EVENT_BADGE.messageSent;
+      break;
     default:
-      return (
-        <span className={DASHBOARD_EVENT_BADGE.default}>
-          {eventTypeLabel(type, paymentChannel, visitChannel)}
-        </span>
-      );
+      break;
   }
+
+  return <span className={badgeClass}>{label}</span>;
 }
 
 function FilterTab({
@@ -388,7 +352,7 @@ function ActivityEventMobileCard({
             {guestInitial(name)}
           </span>
           <div className="min-w-0">
-            <p className="m-0 truncate text-[0.88rem] font-bold text-[#07111f]">
+            <p className="m-0 truncate text-[0.88rem] font-normal text-[#07111f]">
               {name}
             </p>
             <p className="m-0 mt-0.5 text-[0.72rem] font-medium text-slate-500">
@@ -729,7 +693,7 @@ export function BusinessActivityPanel({
                                     {guestInitial(name)}
                                   </span>
                                   <div className="min-w-0">
-                                    <span className="block truncate font-bold text-[#07111f]">
+                                    <span className="block truncate font-normal text-[#07111f]">
                                       {name}
                                     </span>
                                     {event.customerEmail ? (

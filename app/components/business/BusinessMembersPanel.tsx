@@ -6,7 +6,6 @@ import {
   Briefcase,
   CalendarDays,
   CheckCircle2,
-  Crown,
   Eye,
   Hourglass,
   Loader2,
@@ -98,10 +97,6 @@ function avatarTone(member: BusinessMemberListItem): string {
   return AVATAR_TONES[index] ?? AVATAR_TONES[0];
 }
 
-function roleBadgeClass(_role: string) {
-  return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
-}
-
 function statusBadgeClass(_status: BusinessMemberListItem["status"]) {
   return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
 }
@@ -110,84 +105,6 @@ function memberStatusLabel(status: BusinessMemberListItem["status"]) {
   if (status === "pending") return "Pending";
   if (status === "owner") return "Active";
   return "Accepted";
-}
-
-function MemberAccessPills({ member }: { member: BusinessMemberListItem }) {
-  if (
-    member.status === "owner" ||
-    member.permissions.includes(FULL_ACCESS_PERMISSION)
-  ) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-semibold text-[#1877f2] ring-1 ring-[#dbeafe]">
-        <Crown className="size-3" strokeWidth={2.25} aria-hidden />
-        Full access
-      </span>
-    );
-  }
-
-  if (member.permissions.length === 0) {
-    return <span className="text-xs text-slate-400">No access set</span>;
-  }
-
-  const displayPermissions: string[] = [];
-  let hasCampaignChip = false;
-  let hasMetaChip = false;
-  let hasGoogleChip = false;
-  for (const permission of member.permissions) {
-    if (permission === "campaigns" || permission.startsWith("campaigns_")) {
-      if (!hasCampaignChip) {
-        displayPermissions.push("campaigns");
-        hasCampaignChip = true;
-      }
-      continue;
-    }
-    if (
-      permission === "meta_ads" ||
-      permission === "meta_campaigns" ||
-      permission.startsWith("meta_campaigns_")
-    ) {
-      if (!hasMetaChip) {
-        displayPermissions.push("meta_campaigns");
-        hasMetaChip = true;
-      }
-      continue;
-    }
-    if (permission.startsWith("google_campaigns_")) {
-      if (!hasGoogleChip) {
-        displayPermissions.push("google_campaigns");
-        hasGoogleChip = true;
-      }
-      continue;
-    }
-    displayPermissions.push(permission);
-  }
-
-  const visible = displayPermissions.slice(0, 3);
-  const hiddenCount = displayPermissions.length - visible.length;
-
-  return (
-    <div className="flex max-w-[18rem] flex-wrap gap-1.5">
-      {visible.map((permission) => (
-        <span
-          key={permission}
-          className="inline-flex rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.68rem] font-semibold text-[#1877f2] ring-1 ring-[#dbeafe]"
-        >
-          {permission === "campaigns"
-            ? "Campaigns"
-            : permission === "meta_campaigns"
-              ? "Meta Campaigns"
-              : permission === "google_campaigns"
-                ? "Google Campaigns"
-                : getPermissionLabel(permission)}
-        </span>
-      ))}
-      {hiddenCount > 0 ? (
-        <span className="inline-flex rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-500">
-          +{hiddenCount} more
-        </span>
-      ) : null}
-    </div>
-  );
 }
 
 function MembersTableSkeleton() {
@@ -805,7 +722,7 @@ export function BusinessMembersPanel({
 
         {!isLoading && !loadError ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-[#dbeafe] bg-[#f5f9ff] px-4 py-4">
+            <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-semibold text-[#1877f2]">
@@ -818,13 +735,13 @@ export function BusinessMembersPanel({
                     Active users in this business
                   </p>
                 </div>
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#dbeafe] text-[#1877f2]">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
                   <Users className="size-4" strokeWidth={2.25} aria-hidden />
                 </span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#dbeafe] bg-[#f5f9ff] px-4 py-4">
+            <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-semibold text-[#1877f2]">Roles</p>
@@ -835,13 +752,13 @@ export function BusinessMembersPanel({
                     Different roles assigned
                   </p>
                 </div>
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#dbeafe] text-[#1877f2]">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
                   <Shield className="size-4" strokeWidth={2.25} aria-hidden />
                 </span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#dbeafe] bg-[#f5f9ff] px-4 py-4">
+            <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-semibold text-[#1877f2]">
@@ -854,13 +771,13 @@ export function BusinessMembersPanel({
                     Awaiting acceptance
                   </p>
                 </div>
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#dbeafe] text-[#1877f2]">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
                   <Hourglass className="size-4" strokeWidth={2.25} aria-hidden />
                 </span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#dbeafe] bg-[#f5f9ff] px-4 py-4">
+            <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-semibold text-[#1877f2]">
@@ -873,7 +790,7 @@ export function BusinessMembersPanel({
                     Members with full access
                   </p>
                 </div>
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#dbeafe] text-[#1877f2]">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
                   <LockOpen className="size-4" strokeWidth={2.25} aria-hidden />
                 </span>
               </div>
@@ -963,9 +880,6 @@ export function BusinessMembersPanel({
                     <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
                       Status
                     </th>
-                    <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
-                      Access
-                    </th>
                     <th className="whitespace-nowrap px-5 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
                       Actions
                     </th>
@@ -1005,28 +919,14 @@ export function BusinessMembersPanel({
                           </div>
                         </td>
                         <td className="px-4 py-4 align-middle">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[0.72rem] font-semibold ${roleBadgeClass(member.role)}`}
-                          >
+                          <span className="text-sm font-semibold text-[#0f172a]">
                             {member.role}
                           </span>
                         </td>
                         <td className="px-4 py-4 align-middle">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.72rem] font-semibold ${statusBadgeClass(member.status)}`}
-                          >
-                            <span
-                              className={`size-1.5 rounded-full ${
-                                member.status === "pending"
-                                  ? "bg-[#1877f2]"
-                                  : "bg-[#1877f2]"
-                              }`}
-                            />
+                          <span className="text-sm font-medium text-slate-600">
                             {memberStatusLabel(member.status)}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 align-middle">
-                          <MemberAccessPills member={member} />
                         </td>
                         <td className="px-5 py-4 align-middle text-right">
                           {canViewDetails || canRemove ? (
