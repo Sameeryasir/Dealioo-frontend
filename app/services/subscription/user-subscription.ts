@@ -148,7 +148,50 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-/** Waits until the Stripe webhook activates the user's subscription. */
+export async function waitForCheckoutSessionActivation(
+  sessionId: string,
+  options?: {
+    maxAttempts?: number;
+    intervalMs?: number;
+  },
+): Promise<UserSubscription> {
+  const maxAttempts = options?.maxAttempts ?? 30;
+  const intervalMs = options?.intervalMs ?? 2000;
+  const trimmed = sessionId.trim();
+  if (!trimmed) {
+    throw new Error("Missing Stripe checkout session id.");
+  }
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      return await completeUserPlanCheckout(trimmed);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const message = lastError.message.toLowerCase();
+      const retryable =
+        message.includes("not activated") ||
+        message.includes("not complete yet") ||
+        message.includes("not completed yet") ||
+        message.includes("did not include a subscription");
+      if (!retryable || attempt >= maxAttempts - 1) {
+        throw lastError;
+      }
+      await sleep(intervalMs);
+    }
+  }
+
+  throw (
+    lastError ??
+    new Error(
+      "Your payment was received but the subscription is not active yet. " +
+        "If testing locally, run stripe listen --forward-to localhost:4001/api/payment/webhook " +
+        "and set STRIPE_WEBHOOK_SECRET in the backend .env.",
+    )
+  );
+}
+
 export async function waitForActiveUserSubscription(options?: {
   maxAttempts?: number;
   intervalMs?: number;
@@ -158,7 +201,10 @@ export async function waitForActiveUserSubscription(options?: {
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const subscription = await getMyUserSubscription();
-    if (subscription?.status === "active") {
+    if (
+      subscription?.status === "active" ||
+      subscription?.status === "trialing"
+    ) {
       return subscription;
     }
     if (attempt < maxAttempts - 1) {

@@ -10,7 +10,7 @@ import { getSetupUser } from "@/app/lib/setup-user";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
 import { getSubscriptionPlans } from "@/app/services/subscription/get-subscription-plans";
 import {
-  waitForActiveUserSubscription,
+  waitForCheckoutSessionActivation,
   type UserSubscription,
 } from "@/app/services/subscription/user-subscription";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -92,8 +92,7 @@ function SubscriptionSuccessInner() {
       }
 
       try {
-        // Plan turns on only after Stripe webhook checkout.session.completed.
-        const subscription = await waitForActiveUserSubscription();
+        const subscription = await waitForCheckoutSessionActivation(sessionId);
         if (cancelled) return;
 
         saveSelectedSignupPlan({

@@ -65,11 +65,11 @@ export function CustomCardCheckoutForm({
     boxShadow: page.checkoutTheme.shadow,
   };
 
-  const confirmationPath = buildFunnelPaymentConfirmationPath(
-    funnelId,
-    { campaignId, businessId, checkoutToken },
-    { redirectStatus: "succeeded", paymentConfirmed: true },
-  );
+  const confirmationPath = buildFunnelPaymentConfirmationPath(funnelId, {
+    campaignId,
+    businessId,
+    checkoutToken,
+  });
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

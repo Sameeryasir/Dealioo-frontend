@@ -13,7 +13,7 @@ const EVENT_TYPE_OPTIONS: { id: ActivityEventFilter; label: string }[] = [
   { id: "all", label: "All types" },
   { id: "signed_up", label: "Signed up" },
   { id: "redeemed_reward", label: "Redeemed" },
-  { id: "prepaid_for_offer", label: "Prepaid" },
+  { id: "prepaid_for_offer", label: "Paid online" },
   { id: "in_person", label: "In person" },
   { id: "message_sent", label: "Text sent" },
 ];

@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Link2,
   PanelLeft,
-  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -12,8 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
-import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
 import { FunnelTrackingLinkDialog } from "@/app/components/campaign/FunnelTrackingLinkDialog";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
@@ -48,7 +45,6 @@ export type CampaignHeaderProps = {
   price?: number | string;
   campaign?: Funnel | null;
   onGenerateTrackingLink?: () => void;
-  onCampaignUpdated?: () => void | Promise<void>;
   embedded?: boolean;
 };
 
@@ -60,12 +56,9 @@ export default function CampaignHeader({
   price,
   campaign,
   onGenerateTrackingLink,
-  onCampaignUpdated,
   embedded = false,
 }: CampaignHeaderProps) {
   const pathname = usePathname();
-  const { can } = useBusinessMembershipPermissions(businessId);
-  const canEditCampaign = can("campaigns_edit");
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
   const offerLine = offer?.trim() ?? "";
   const priceText = useMemo(() => {
@@ -88,7 +81,6 @@ export default function CampaignHeader({
       : "overview";
 
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
-  const [editCampaignOpen, setEditCampaignOpen] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -280,22 +272,6 @@ export default function CampaignHeader({
                 <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
                 <span className="hidden sm:inline">Tracking link</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setEditCampaignOpen(true)}
-                disabled={
-                  !canEditCampaign || campaignId == null || campaign == null
-                }
-                title={
-                  !canEditCampaign
-                    ? "You do not have permission to edit campaigns"
-                    : "Edit campaign"
-                }
-                aria-label="Edit campaign"
-                className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
-              >
-              <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
-            </button>
           </div>
         </div>
       ) : (
@@ -340,24 +316,6 @@ export default function CampaignHeader({
           >
             <Link2 className="size-3.5 shrink-0" aria-hidden strokeWidth={2.25} />
             <span className="truncate">Generate Tracking Link</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditCampaignOpen(true)}
-            disabled={
-              !canEditCampaign || campaignId == null || campaign == null
-            }
-            title={
-              !canEditCampaign
-                ? "You do not have permission to edit campaigns"
-                : campaignId == null || campaign == null
-                  ? "Campaign details not loaded yet"
-                  : "Edit campaign"
-            }
-            aria-label="Edit campaign"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
-          >
-            <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
           </button>
         </div>
       </div>
@@ -457,13 +415,6 @@ export default function CampaignHeader({
           document.body,
         )
       : null}
-
-    <EditCampaignModal
-      open={editCampaignOpen}
-      campaign={campaign}
-      onOpenChange={setEditCampaignOpen}
-      onSaved={onCampaignUpdated}
-    />
     </>
   );
 }

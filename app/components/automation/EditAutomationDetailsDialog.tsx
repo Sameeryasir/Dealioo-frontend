@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * What changed: Polish the edit-automation dialog to match Edit Campaign modal styling.
- * Why: Keep edit dialogs visually consistent across the product.
- * Related: EditCampaignModal, AutomationListPage, AutomationBuilderPage.
- */
-
 import {
   Check,
   FileText,
@@ -78,7 +72,6 @@ export function EditAutomationDetailsDialog({
     setMounted(true);
   }, []);
 
-  // --- Reset fields when the dialog opens ---
   useEffect(() => {
     if (!open) return;
     setName(initialName);
@@ -124,7 +117,6 @@ export function EditAutomationDetailsDialog({
         className="relative w-full max-w-md overflow-hidden rounded-[1.25rem] border border-[#e2eaf5] bg-white shadow-[0_24px_56px_rgba(7,17,31,0.28)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* --- Header (matches Edit Campaign) --- */}
         <div className="relative overflow-hidden border-b border-[#eef2f8] bg-white px-5 py-4">
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -189,7 +181,6 @@ export function EditAutomationDetailsDialog({
             </div>
           </div>
 
-          {/* --- Footer actions --- */}
           <div className="flex justify-end gap-2 border-t border-[#eef2f8] bg-white px-5 py-3.5">
             <button
               type="button"

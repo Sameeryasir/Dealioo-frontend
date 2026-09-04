@@ -207,7 +207,6 @@ export function AutomationBuilderPage({
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [navPromptOpen, setNavPromptOpen] = useState(false);
   const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
-  // --- Edit automation name/description ---
   const [detailsEditOpen, setDetailsEditOpen] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
@@ -1349,7 +1348,6 @@ export function AutomationBuilderPage({
       </div>
     ) : null;
 
-  // --- Name + description strip (editable via dialog) ---
   const detailsHeader =
     automation != null ? (
       <div className="shrink-0 border-b border-zinc-200/70 bg-white px-3 py-2.5 sm:px-4">

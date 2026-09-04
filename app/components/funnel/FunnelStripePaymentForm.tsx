@@ -121,7 +121,6 @@ export function FunnelStripePaymentForm({
               businessId,
               checkoutToken: context.checkoutToken,
             },
-            { redirectStatus: "succeeded", paymentConfirmed: true },
           );
           markFunnelLockedStep(context.funnelId, "confirmation");
           window.location.replace(confirmationPath);

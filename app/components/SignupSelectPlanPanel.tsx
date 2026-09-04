@@ -24,6 +24,8 @@ import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoad
 import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
+import { getBillingOverview } from "@/app/services/subscription/billing";
+import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import {
   isPlanFitComplete,
   isPlanFitPlanId,
@@ -32,6 +34,38 @@ import {
 } from "@/app/lib/plan-fit-questionnaire";
 import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+async function confirmUpgradePaymentIfRequired(
+  paymentIntentClientSecret: string | null | undefined,
+): Promise<void> {
+  const clientSecret = paymentIntentClientSecret?.trim();
+  if (!clientSecret) return;
+
+  const publishableKey =
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
+  if (!publishableKey) {
+    throw new Error(
+      "Card confirmation is required, but Stripe is not configured in this app.",
+    );
+  }
+
+  const stripe = await loadDealiooStripe(publishableKey);
+  if (!stripe) {
+    throw new Error("Could not load Stripe to confirm your upgrade payment.");
+  }
+
+  const result = await stripe.confirmCardPayment(clientSecret);
+  if (result.error) {
+    throw new Error(
+      result.error.message ?? "Could not confirm the upgrade payment.",
+    );
+  }
+
+  const status = result.paymentIntent?.status;
+  if (status !== "succeeded" && status !== "processing") {
+    throw new Error("Upgrade payment was not completed. Please try again.");
+  }
+}
 
 type SignupSelectPlanPanelProps = {
   mode?: "checkout" | "upgrade";
@@ -224,10 +258,16 @@ export function SignupSelectPlanPanel({
       }
 
       if (mode === "upgrade") {
-        await upgradeUserSubscription({
+        const upgraded = await upgradeUserSubscription({
           planSlug: selectedPlanId,
           billingCycle,
         });
+        await confirmUpgradePaymentIfRequired(
+          upgraded.paymentIntentClientSecret,
+        );
+        if (upgraded.paymentIntentClientSecret?.trim()) {
+          await getBillingOverview().catch(() => null);
+        }
 
         saveSelectedSignupPlan({
           planId: selectedPlanId,

@@ -247,7 +247,6 @@ export function AutomationListPage({
     null,
   );
   const [deleting, setDeleting] = useState(false);
-  // --- Edit name/description dialog state ---
   const [editTarget, setEditTarget] = useState<AutomationListItem | null>(null);
   const [savingDetails, setSavingDetails] = useState(false);
   const canEditAutomation = canCreateAutomation;

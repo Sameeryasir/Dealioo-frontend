@@ -60,7 +60,8 @@ export function FunnelConfirmationView({
   const postpaidConfirmed =
     !isDesignPreview &&
     isPostpaid &&
-    searchParams.get("paymentConfirmed") === "true";
+    (searchParams.get("payment_confirmed") === "1" ||
+      searchParams.get("paymentConfirmed") === "true");
   const celebrate = confirmedByServer;
 
   useEffect(() => {
@@ -231,20 +232,14 @@ export function FunnelConfirmationView({
           aria-live="polite"
         >
           <div className="max-w-md rounded-2xl bg-white px-4 py-3 text-center shadow-lg ring-1 ring-black/10">
-            <p className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-600">
-              <CheckCircle2 className="size-4 shrink-0" aria-hidden />
-              Payment received
-            </p>
-            <p className="mt-2 flex items-center justify-center gap-2 text-sm font-medium text-zinc-900">
+            <p className="flex items-center justify-center gap-2 text-sm font-medium text-zinc-900">
               <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-              Confirming your payment with Stripe…
+              Checking your payment status…
             </p>
             <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-              We&apos;re confirming your payment with Stripe.
+              We&apos;re confirming with Stripe. This usually takes a few seconds.
               <br />
-              This usually takes only a few seconds.
-              <br />
-              Please do not refresh the page or make another payment.
+              Please wait — do not pay again until this finishes.
             </p>
           </div>
         </div>

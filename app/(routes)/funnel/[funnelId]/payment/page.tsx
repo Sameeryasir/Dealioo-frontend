@@ -49,16 +49,12 @@ function FunnelCampaignPaymentPageInner() {
     if (!alreadyPaidThisOffer || funnelId == null) return;
     markFunnelLockedStep(funnelId, "confirmation");
     router.replace(
-      buildFunnelPaymentConfirmationPath(
-        funnelId,
-        {
-          campaignId,
-          businessId,
-          checkoutToken,
-          campaignType: campaignType ?? undefined,
-        },
-        { paymentConfirmed: true, redirectStatus: "succeeded" },
-      ),
+      buildFunnelPaymentConfirmationPath(funnelId, {
+        campaignId,
+        businessId,
+        checkoutToken,
+        campaignType: campaignType ?? undefined,
+      }),
     );
   }, [
     alreadyPaidThisOffer,

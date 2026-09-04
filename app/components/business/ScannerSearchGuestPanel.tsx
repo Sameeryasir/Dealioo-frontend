@@ -1413,28 +1413,15 @@ export function ScannerSearchGuestPanel({
                             </td>
                             <td className={`${tdClass} max-w-[16rem]`}>
                               <span
-                                className="inline-flex max-w-full items-center gap-2 text-slate-600"
+                                className="block max-w-full truncate text-slate-600"
                                 title={guest.email}
                               >
-                                <span
-                                  className="size-1.5 shrink-0 rounded-full bg-emerald-500"
-                                  aria-hidden
-                                />
-                                <span className="truncate">{guest.email}</span>
+                                {guest.email}
                               </span>
                             </td>
                             <td className={tdClass}>
                               {phone ? (
-                                <span className="inline-flex items-center gap-2 text-slate-600">
-                                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#ecfdf5] text-[#059669] ring-1 ring-[#a7f3d0]">
-                                    <Phone
-                                      className="size-3.5"
-                                      strokeWidth={2.15}
-                                      aria-hidden
-                                    />
-                                  </span>
-                                  {phone}
-                                </span>
+                                <span className="text-slate-600">{phone}</span>
                               ) : (
                                 <span className="text-slate-300">—</span>
                               )}

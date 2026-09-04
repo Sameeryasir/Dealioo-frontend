@@ -6,10 +6,8 @@ import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { campaignDashboardTabFromPathname } from "@/app/lib/campaign-dashboard-tab";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
-import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
-import { useQueryClient } from "@tanstack/react-query";
 import { useParams, usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export default function CampaignWorkspaceLayout({
@@ -17,7 +15,6 @@ export default function CampaignWorkspaceLayout({
 }: {
   children: ReactNode;
 }) {
-  const queryClient = useQueryClient();
   const pathname = usePathname();
   const params = useParams();
   const businessId = useMemo(
@@ -42,16 +39,6 @@ export default function CampaignWorkspaceLayout({
     setPattiHost(document.getElementById("campaign-immersive-patti-host"));
   }, []);
 
-  const handleCampaignUpdated = useCallback(async () => {
-    if (businessId == null) return;
-    await queryClient.invalidateQueries({
-      queryKey: [...funnelQueryKeys.campaigns(), businessId],
-    });
-    await queryClient.invalidateQueries({
-      queryKey: [...funnelQueryKeys.campaigns(), "detail", campaignId],
-    });
-  }, [queryClient, businessId, campaignId]);
-
   if (businessId == null || campaignId == null) {
     return <InvalidRouteMessage />;
   }
@@ -65,7 +52,6 @@ export default function CampaignWorkspaceLayout({
       offer={campaign?.offer}
       price={campaign?.price}
       campaign={campaign}
-      onCampaignUpdated={handleCampaignUpdated}
     />
   );
 

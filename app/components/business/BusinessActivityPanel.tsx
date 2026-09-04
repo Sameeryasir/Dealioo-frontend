@@ -72,7 +72,7 @@ const EVENT_FILTERS: {
   { id: "all", label: "All", icon: LayoutGrid, countKey: "totalEvents" },
   { id: "signed_up", label: "Signups", icon: UserPlus, countKey: "totalSignedUp" },
   { id: "redeemed_reward", label: "Redemptions", icon: Gift, countKey: "totalRedeemed" },
-  { id: "prepaid_for_offer", label: "Prepaid", icon: CircleDollarSign, countKey: "totalPrepaid" },
+  { id: "prepaid_for_offer", label: "Paid online", icon: CircleDollarSign, countKey: "totalPrepaid" },
   { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },
   { id: "message_sent", label: "Texts", icon: MessageSquare, countKey: "totalMessagesSent" },
 ];
@@ -107,6 +107,23 @@ function activityDescription(event: RestaurantActivityEvent): string {
   if (!text) return "No details";
   if (event.eventType === "message_sent") {
     return formatMessageSentDescription(text);
+  }
+  if (event.eventType === "signed_up") {
+    return text
+      .replace(/\s*·\s*(Prepaid|Postpaid)\s*·\s*/gi, " · ")
+      .replace(/\s*·\s*(Prepaid|Postpaid)\s*$/gi, "")
+      .trim();
+  }
+  if (
+    event.eventType === "redeemed_reward" ||
+    event.eventType === "prepaid_for_offer"
+  ) {
+    return text
+      .replace(/\s*·\s*Prepaid\s*(?=·|at\b|$)/gi, " · ")
+      .replace(/\s*·\s*Postpaid\s*(?=·|at\b|$)/gi, " · ")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s·\s·/g, " · ")
+      .trim();
   }
   return text;
 }
@@ -150,7 +167,7 @@ function eventTypeLabel(
     case "signed_up":
       return "Signed up";
     case "prepaid_for_offer":
-      return paymentChannel === "in_store" ? "In person" : "Prepaid";
+      return paymentChannel === "in_store" ? "In person" : "Paid online";
     case "message_sent":
       return "Text sent";
     default:
@@ -167,7 +184,6 @@ function EventTypeBadge({
   paymentChannel?: "online" | "in_store" | null;
   visitChannel?: "scanned" | "in_store" | null;
 }) {
-  // Tag only — no status dot (same as Orders status pills)
   const label = eventTypeLabel(type, paymentChannel, visitChannel);
   let badgeClass = DASHBOARD_EVENT_BADGE.default;
 
