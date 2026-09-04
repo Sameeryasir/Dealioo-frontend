@@ -27,7 +27,7 @@ export function GuestChatAvatar({
         ? "size-10 text-xs"
         : "size-11 text-sm";
 
-  const className = `relative flex shrink-0 items-center justify-center rounded-full font-bold text-white ring-2 ${sizeClass} ${guestAvatarSidebarClass()}`;
+  const className = `relative flex shrink-0 items-center justify-center rounded-full font-bold text-white ring-2 ${sizeClass} ${guestAvatarSidebarClass(customerId)}`;
 
   if (animated) {
     return (

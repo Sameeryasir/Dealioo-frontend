@@ -31,4 +31,20 @@ export const funnelQueryKeys = {
   trafficSources: () => [...funnelQueryKeys.all, "traffic-sources"] as const,
   trafficSourcesByFunnel: (funnelId: number) =>
     [...funnelQueryKeys.trafficSources(), funnelId] as const,
+  businessOrders: () => [...funnelQueryKeys.all, "business-orders"] as const,
+  businessOrdersEvents: (
+    businessId: number,
+    page: number,
+    status: string,
+    date: string,
+    search: string,
+  ) =>
+    [
+      ...funnelQueryKeys.businessOrders(),
+      businessId,
+      page,
+      status,
+      date,
+      search,
+    ] as const,
 };

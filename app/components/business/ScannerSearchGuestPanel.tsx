@@ -5,6 +5,8 @@ import {
   Briefcase,
   CheckCircle2,
   ChevronRight,
+  Clock,
+  CreditCard,
   FileText,
   Gift,
   History,
@@ -12,6 +14,7 @@ import {
   Mail,
   Megaphone,
   Phone,
+  Plus,
   ScanLine,
   Search,
   ShieldCheck,
@@ -89,6 +92,66 @@ const SEARCH_STEPS = [
     stepWrap: "bg-[#9333ea] text-white",
   },
 ] as const;
+
+/** Curved blue halftone dots for the guest profile header (bottom-right). */
+function GuestHeaderDotPattern() {
+  const width = 320;
+  const height = 220;
+  // Origin sits on the bottom-right corner so arcs hug that edge.
+  const originX = width;
+  const originY = height;
+  const dots: Array<{
+    cx: number;
+    cy: number;
+    r: number;
+    opacity: number;
+    key: string;
+  }> = [];
+
+  const rings = 18;
+  for (let ring = 1; ring <= rings; ring += 1) {
+    const radius = ring * 10.5;
+    const count = Math.max(10, Math.round(ring * 2.6));
+    const fade = 1 - ring / (rings + 1.2);
+    const baseR = 1.05 + fade * 1.65;
+
+    for (let i = 0; i <= count; i += 1) {
+      // Quarter-circle sweep from left → up (into the card from bottom-right).
+      const t = i / count;
+      const angle = Math.PI + (Math.PI / 2) * t;
+      const cx = originX + Math.cos(angle) * radius;
+      const cy = originY + Math.sin(angle) * radius;
+      if (cx < -6 || cy < -6 || cx > width + 2 || cy > height + 2) continue;
+      dots.push({
+        key: `${ring}-${i}`,
+        cx,
+        cy,
+        r: baseR * (0.65 + fade * 0.4),
+        opacity: 0.14 + fade * 0.48,
+      });
+    }
+  }
+
+  return (
+    <svg
+      className="pointer-events-none absolute right-0 bottom-0 h-full w-[min(52%,20rem)] text-[#1877f2]"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMaxYMax slice"
+      fill="currentColor"
+      aria-hidden
+    >
+      {dots.map((dot) => (
+        <circle
+          key={dot.key}
+          cx={dot.cx}
+          cy={dot.cy}
+          r={dot.r}
+          opacity={dot.opacity}
+        />
+      ))}
+    </svg>
+  );
+}
 
 function SearchHeroCard({
   query,
@@ -315,8 +378,8 @@ function DealPaymentBadge({
     <span
       className={`inline-flex rounded-md px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] ${
         isPaid
-          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-          : "bg-[#eef1f5] text-[#4b5563] ring-1 ring-[#e5e7eb]"
+          ? "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]"
+          : "bg-[#fff7ed] text-[#c2410c] ring-1 ring-[#fed7aa]"
       }`}
     >
       {display}
@@ -380,19 +443,17 @@ function BusinessDealCheckboxRow({
           <span className="block truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
             {deal.campaignName}
           </span>
-          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {priceLabel ? (
-              <span className="inline-flex rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-emerald-700 ring-1 ring-emerald-100">
-                {priceLabel}
-              </span>
-            ) : null}
-            {deal.campaignType === "postpaid" ? (
-              <span className="inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
-                Postpaid
-              </span>
-            ) : null}
-          </span>
+          {deal.campaignType === "postpaid" ? (
+            <span className="mt-1.5 inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
+              Postpaid
+            </span>
+          ) : null}
         </span>
+        {priceLabel ? (
+          <span className="inline-flex shrink-0 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
+            {priceLabel}
+          </span>
+        ) : null}
       </button>
     </li>
   );
@@ -496,7 +557,8 @@ function DealSelectRow({
             />
           </div>
           {deal.expiresAt ? (
-            <p className="m-0 mt-1.5 text-[0.72rem] font-medium text-slate-400">
+            <p className="m-0 mt-1.5 inline-flex items-center gap-1 text-[0.72rem] font-medium text-slate-400">
+              <Clock className="size-3 shrink-0" aria-hidden />
               Expires {formatDateTimeShort(deal.expiresAt)}
             </p>
           ) : null}
@@ -506,7 +568,7 @@ function DealSelectRow({
             type="button"
             disabled={disabled}
             onClick={onRedeem}
-            className="shrink-0 cursor-pointer rounded-lg border border-[#bfdbfe] bg-white px-3.5 py-2 text-[0.8rem] font-semibold text-[#1877f2] transition hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 cursor-pointer rounded-lg bg-[#1877f2] px-3.5 py-2 text-[0.8rem] font-semibold text-white shadow-[0_6px_14px_rgba(24,119,242,0.22)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Redeem
           </button>
@@ -1435,12 +1497,10 @@ export function ScannerSearchGuestPanel({
               <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7">
                 <div className="relative flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="relative flex size-2.5">
-                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
-                    </span>
-                    <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
-                      Guest profile
+                    <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em]">
+                      <span className="text-slate-400">Guest</span>
+                      <span className="text-slate-300"> · </span>
+                      <span className="text-[#1877f2]">Guest profile</span>
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -1462,7 +1522,7 @@ export function ScannerSearchGuestPanel({
                         setPreviousRedemptionsPage(1);
                         idempotencyKeyRef.current = "";
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-3.5 py-2 text-[0.72rem] font-bold text-[#0e182b] transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2 text-[0.72rem] font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
                     >
                       <ArrowLeft className="size-3.5" aria-hidden />
                       Back to results
@@ -1476,69 +1536,93 @@ export function ScannerSearchGuestPanel({
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease: standardEase }}
-                  className="relative overflow-hidden border-b border-[#e8edf5] bg-white px-5 py-7 sm:px-7 sm:py-8"
+                  className="px-5 pt-5 sm:px-7 sm:pt-6"
                 >
-                  <div className="relative flex min-w-0 flex-wrap items-start gap-5 sm:gap-6">
-                    <span className="flex size-[4.75rem] shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[1.45rem] font-bold text-white shadow-[0_12px_28px_rgba(24,119,242,0.28)] sm:size-[5.25rem] sm:text-[1.6rem]">
-                      {guestInitials(selectedProfile.customerName)}
-                    </span>
+                  <div className="relative overflow-hidden rounded-2xl border border-[#dbeafe] bg-[#f0f6ff] p-5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] sm:p-6">
+                    <GuestHeaderDotPattern />
+                    <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+                        <span className="flex size-[4.25rem] shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[1.25rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.28)] sm:size-[4.5rem] sm:text-[1.35rem]">
+                          {guestInitials(selectedProfile.customerName)}
+                        </span>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-3 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)]">
-                        <UserCheck className="size-3.5" aria-hidden />
-                        Ready to redeem
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                        <h2 className="m-0 text-[1.65rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.9rem]">
-                          {selectedProfile.customerName}
-                        </h2>
-                        <span className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-medium text-slate-600 ring-1 ring-[#e2e8f0] sm:max-w-[20rem]">
-                          <Mail
-                            className="size-3.5 shrink-0 text-[#1877f2]"
-                            aria-hidden
-                          />
-                          <span className="truncate">
-                            {selectedProfile.email}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.65rem]">
+                              {selectedProfile.customerName}
+                            </h2>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
+                              <span className="flex size-4 items-center justify-center rounded-full bg-[#1877f2] text-white">
+                                <UserCheck className="size-2.5" strokeWidth={2.75} aria-hidden />
+                              </span>
+                              Ready to Redeem
+                            </span>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex max-w-[18rem] items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-[0.78rem] font-medium text-slate-600 sm:max-w-[22rem]">
+                              <Mail
+                                className="size-3.5 shrink-0 text-[#1877f2]"
+                                aria-hidden
+                              />
+                              <span className="truncate">
+                                {selectedProfile.email}
+                              </span>
+                            </span>
+                            {selectedProfile.phone ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-[0.78rem] font-medium text-slate-600">
+                                <Phone
+                                  className="size-3.5 shrink-0 text-[#1877f2]"
+                                  aria-hidden
+                                />
+                                {selectedProfile.phone}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+                            <Gift className="size-4" aria-hidden />
                           </span>
-                        </span>
-                        {selectedProfile.phone ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-medium text-slate-600 ring-1 ring-[#e2e8f0]">
-                            <Phone
-                              className="size-3.5 shrink-0 text-[#1877f2]"
-                              aria-hidden
-                            />
-                            {selectedProfile.phone}
+                          <div className="min-w-0">
+                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                              Guest Deals
+                            </p>
+                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
+                              {activeDeals.length}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+                            <CreditCard className="size-4" aria-hidden />
                           </span>
-                        ) : null}
-                        <span
-                          className="hidden h-5 w-px shrink-0 bg-[#e2e8f0] sm:block"
-                          aria-hidden
-                        />
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[0.78rem] font-semibold text-[#0e182b] ring-1 ring-[#e2e8f0]">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
-                            Guest deals
+                          <div className="min-w-0">
+                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                              Paid
+                            </p>
+                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
+                              {prepaidDeals.length}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+                            <ShieldCheck className="size-4" aria-hidden />
                           </span>
-                          <span className="tabular-nums font-extrabold">
-                            {activeDeals.length}
-                          </span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.78rem] font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-600">
-                            Paid
-                          </span>
-                          <span className="tabular-nums font-extrabold">
-                            {prepaidDeals.length}
-                          </span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.78rem] font-semibold text-[#0e3a8a] ring-1 ring-[#dbeafe]">
-                          <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#1877f2]">
-                            Redeemed
-                          </span>
-                          <span className="tabular-nums font-extrabold">
-                            {previousRedemptionsMeta?.total ??
-                              selectedProfile.previouslyRedeemedCount}
-                          </span>
-                        </span>
+                          <div className="min-w-0">
+                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                              Redeemed
+                            </p>
+                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
+                              {previousRedemptionsMeta?.total ??
+                                selectedProfile.previouslyRedeemedCount}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1627,12 +1711,18 @@ export function ScannerSearchGuestPanel({
                                 Guest deals
                               </h3>
                               <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                                Redeem deals already on this guest.
+                                Redeem deals already attached to this guest.
                               </p>
                             </div>
                           </div>
-                          <p className="m-0 shrink-0 text-[0.74rem] font-semibold text-[#1877f2]">
-                            Redeem one guest deal at a time →
+                          <p className="m-0 inline-flex shrink-0 items-center gap-1 text-[0.74rem] font-semibold text-[#1877f2]">
+                            Redeem one guest deal at a time
+                            <span
+                              className="flex size-4 items-center justify-center rounded-full bg-[#e8f2ff] text-[0.58rem] font-extrabold text-[#1877f2]"
+                              aria-hidden
+                            >
+                              i
+                            </span>
                           </p>
                         </div>
                       </div>
@@ -1783,8 +1873,9 @@ export function ScannerSearchGuestPanel({
                               </p>
                             </div>
                           </div>
-                          <p className="m-0 shrink-0 text-[0.74rem] font-semibold text-[#1877f2]">
-                            Attach new deal →
+                          <p className="m-0 inline-flex shrink-0 items-center gap-1 text-[0.74rem] font-semibold text-[#1877f2]">
+                            Attach new deal
+                            <Plus className="size-3.5" strokeWidth={2.5} aria-hidden />
                           </p>
                         </div>
                       </div>
@@ -1817,34 +1908,29 @@ export function ScannerSearchGuestPanel({
                               ))}
                             </ul>
 
-                            <p className="m-0 mt-3 text-center text-[0.72rem] font-medium text-slate-400">
-                              Showing {availableBusinessDeals.length} of{" "}
-                              {availableBusinessDeals.length} deals
-                            </p>
-
-                            {selectedBusinessDeals.length > 0 ? (
-                              <div className="mt-3 flex justify-end border-t border-[#f1f5f9] pt-3">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    purchasing ||
-                                    confirmingRedemption ||
-                                    !canConfirmBusinessDeals
+                            <div className="mt-3 border-t border-[#f1f5f9] pt-3">
+                              <button
+                                type="button"
+                                disabled={
+                                  purchasing ||
+                                  confirmingRedemption ||
+                                  !canConfirmBusinessDeals ||
+                                  selectedBusinessDeals.length === 0
+                                }
+                                onClick={() => {
+                                  setPendingDealAmount(null);
+                                  if (attachingPostpaidOnly) {
+                                    setPurchaseStep("enterPrice");
+                                    return;
                                   }
-                                  onClick={() => {
-                                    setPendingDealAmount(null);
-                                    if (attachingPostpaidOnly) {
-                                      setPurchaseStep("enterPrice");
-                                      return;
-                                    }
-                                    setPurchaseStep("confirm");
-                                  }}
-                                  className="cursor-pointer rounded-lg bg-[#1877f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
-                                >
-                                  Confirm ({selectedBusinessDeals.length})
-                                </button>
-                              </div>
-                            ) : null}
+                                  setPurchaseStep("confirm");
+                                }}
+                                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 py-3 text-[0.86rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Attach selected deal
+                                <ChevronRight className="size-4" aria-hidden />
+                              </button>
+                            </div>
                           </div>
                         ) : null}
 

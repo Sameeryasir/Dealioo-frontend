@@ -4,10 +4,6 @@ import { AutomationFilterDropdown } from "@/app/components/automation/Automation
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
-import {
-  TABLE_HEAD_ICON_CLASS,
-  TABLE_HEAD_LABEL_CLASS,
-} from "@/app/lib/dashboard-brand-tones";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { standardEase } from "@/app/lib/motion";
 import {
@@ -124,58 +120,41 @@ function eventVisual(type: BusinessHistoryEventType): {
   icon: LucideIcon;
 } {
   if (type.startsWith("funnel_")) {
-    const deleted = type.endsWith("_deleted");
     return {
-      dot: deleted ? "bg-red-500" : "bg-blue-500",
-      title: deleted ? "text-red-600" : "text-blue-600",
-      iconWrap: deleted
-        ? "bg-red-50 text-red-600"
-        : "bg-blue-50 text-blue-600",
+      dot: "bg-[#1877f2]",
+      title: "text-[#1877f2]",
+      iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
       icon: Filter,
     };
   }
   if (type.startsWith("automation_")) {
-    const negative =
-      type.includes("deactivated") || type.includes("deleted");
-    const activated = type.includes("activated") && !negative;
     return {
-      dot: negative ? "bg-red-500" : activated ? "bg-emerald-500" : "bg-blue-500",
-      title: negative
-        ? "text-red-600"
-        : activated
-          ? "text-emerald-600"
-          : "text-blue-600",
-      iconWrap: negative
-        ? "bg-red-50 text-red-600"
-        : activated
-          ? "bg-emerald-50 text-emerald-600"
-          : "bg-blue-50 text-blue-600",
+      dot: "bg-[#1877f2]",
+      title: "text-[#1877f2]",
+      iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
       icon: Bot,
     };
   }
   if (type.startsWith("campaign_")) {
-    const deleted = type.includes("deleted");
     return {
-      dot: deleted ? "bg-red-500" : "bg-blue-500",
-      title: deleted ? "text-red-600" : "text-blue-600",
-      iconWrap: deleted
-        ? "bg-red-50 text-red-600"
-        : "bg-blue-50 text-blue-600",
+      dot: "bg-[#1877f2]",
+      title: "text-[#1877f2]",
+      iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
       icon: Megaphone,
     };
   }
   if (type.startsWith("scanner_")) {
     return {
-      dot: "bg-emerald-500",
-      title: "text-emerald-600",
-      iconWrap: "bg-emerald-50 text-emerald-600",
+      dot: "bg-[#1877f2]",
+      title: "text-[#1877f2]",
+      iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
       icon: CreditCard,
     };
   }
   return {
-    dot: "bg-blue-500",
-    title: "text-blue-600",
-    iconWrap: "bg-blue-50 text-blue-600",
+    dot: "bg-[#1877f2]",
+    title: "text-[#1877f2]",
+    iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
     icon: History,
   };
 }
@@ -545,32 +524,32 @@ export function BusinessHistoryPanel({
                           <TableColumnHeader
                             icon={Activity}
                             label="Activity"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            iconClassName="text-[#1877f2]"
+                            labelClassName="text-[#1877f2]"
                           />
                         </th>
                         <th className="px-4 py-3 text-left">
                           <TableColumnHeader
                             icon={MessageSquare}
                             label="Description"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            iconClassName="text-[#1877f2]"
+                            labelClassName="text-[#1877f2]"
                           />
                         </th>
                         <th className="px-4 py-3 text-left">
                           <TableColumnHeader
                             icon={UserRound}
                             label="Performed by"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            iconClassName="text-[#1877f2]"
+                            labelClassName="text-[#1877f2]"
                           />
                         </th>
                         <th className="px-4 py-3 text-left last:pr-5">
                           <TableColumnHeader
                             icon={Calendar}
                             label="Date"
-                            iconClassName={TABLE_HEAD_ICON_CLASS}
-                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            iconClassName="text-[#1877f2]"
+                            labelClassName="text-[#1877f2]"
                           />
                         </th>
                       </tr>

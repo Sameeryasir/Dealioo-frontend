@@ -4,18 +4,10 @@ import {
   Activity,
   ArrowUpRight,
   Calendar,
-  Check,
   CircleDollarSign,
-  Copy,
-  CreditCard,
-  Eye,
   Layers,
   LayoutGrid,
-  Mail,
   Megaphone,
-  MoreHorizontal,
-  Phone,
-  Plus,
   Search,
   TrendingUp,
   UserRound,
@@ -30,7 +22,6 @@ import { Skeleton } from "@/app/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
-  DASHBOARD_CAMPAIGN_TAG,
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
 } from "@/app/lib/dashboard-brand-tones";
@@ -46,9 +37,8 @@ import {
   RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE,
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
-import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
+import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
+import { startTransition, useDeferredValue, useEffect, useRef, useState, type ReactNode } from "react";
 
 const ORDERS_TABLE_PAGE_SIZE = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE;
 
@@ -59,10 +49,6 @@ const thClass =
   "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
 const tdClass =
   "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
-const thActionsClass =
-  "whitespace-nowrap px-4 py-3 pr-6 text-right align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800";
-const tdActionsClass =
-  "px-4 py-3 pl-3 pr-6 text-right align-middle text-sm text-slate-700";
 
 type StatusFilter = "all" | "paid" | "not_paid";
 type DateFilter = "all" | "today" | "week" | "month";
@@ -121,7 +107,7 @@ function OrdersTableBodySkeleton() {
     <>
       <div className="border-b border-[#e8edf5] px-5 py-3">
         <div className="flex gap-8">
-          {Array.from({ length: 7 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} funnel className="h-3 w-12" />
           ))}
         </div>
@@ -137,10 +123,14 @@ function OrdersTableBodySkeleton() {
             <Skeleton funnel className="size-8 shrink-0 rounded-full" />
             <Skeleton funnel className="h-4 w-28" />
           </div>
-          <Skeleton funnel className="h-6 w-24 rounded-full" />
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Skeleton funnel className="size-8 shrink-0 rounded-full" />
+            <Skeleton funnel className="h-4 w-24" />
+          </div>
+          <Skeleton funnel className="h-6 w-16 rounded-md" />
+          <Skeleton funnel className="h-4 w-16" />
           <Skeleton funnel className="h-4 w-16" />
           <Skeleton funnel className="h-4 w-24" />
-          <Skeleton funnel className="h-8 w-16 rounded-lg" />
         </div>
       ))}
     </>
@@ -198,21 +188,21 @@ function orderStatusLabel(status: DisplayPaymentStatus): string {
 
 function orderStatusBadgeClass(status: DisplayPaymentStatus): string {
   if (status === "paid") {
-    return "bg-[#ecfdf5] text-[#166534] ring-1 ring-[#bbf7d0]/80";
+    return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
   }
   if (status === "failed") {
     return "bg-[#fef2f2] text-[#991b1b] ring-1 ring-[#fecaca]/80";
   }
   if (status === "refunded") {
-    return "bg-[#eff6ff] text-[#1d4ed8] ring-1 ring-[#bfdbfe]/80";
+    return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
   }
   return "bg-[#fff7ed] text-[#c2410c] ring-1 ring-[#fed7aa]/80";
 }
 
 function orderStatusDotClass(status: DisplayPaymentStatus): string {
-  if (status === "paid") return "bg-[#22c55e]";
+  if (status === "paid") return "bg-[#1877f2]";
   if (status === "failed") return "bg-[#ef4444]";
-  if (status === "refunded") return "bg-[#3b82f6]";
+  if (status === "refunded") return "bg-[#1877f2]";
   return "bg-[#f97316]";
 }
 
@@ -309,6 +299,45 @@ function guestInitial(name: string): string {
   return parts[0].charAt(0).toUpperCase();
 }
 
+function CampaignNameWithImage({
+  name,
+  imageUrl,
+  maxWidthClass = "max-w-[14rem]",
+}: {
+  name: string;
+  imageUrl?: string | null;
+  maxWidthClass?: string;
+}) {
+  const src = resolveUploadImageUrl(imageUrl);
+  const initial = guestInitial(formatTitleCase(name) || "Campaign");
+
+  return (
+    <div className={`flex min-w-0 items-center gap-2.5 ${maxWidthClass}`}>
+      {src ? (
+        <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-[#f4f7fb] ring-1 ring-[#e8edf5]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt=""
+            {...spacesImageLoadProps}
+            className="size-full object-cover object-center"
+          />
+        </span>
+      ) : (
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.7rem] font-bold text-white">
+          {initial}
+        </span>
+      )}
+      <span
+        title={name}
+        className="min-w-0 truncate font-semibold text-[#07111f]"
+      >
+        {name}
+      </span>
+    </div>
+  );
+}
+
 function FilterTab({
   active,
   label,
@@ -343,32 +372,17 @@ function OrderEventMobileCard({
   event,
   rowNumber,
   index,
-  baseHref,
-  onView,
 }: {
   event: BusinessFunnelEvent;
   rowNumber: number;
   index: number;
-  baseHref: string;
-  onView: () => void;
 }) {
   const name = displayName(event);
   const initial = guestInitial(name);
   const status = resolveDisplayStatus(event);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onView}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onView();
-        }
-      }}
-      className="w-full cursor-pointer rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 text-left shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff]/60"
-    >
+    <div className="w-full rounded-[1.1rem] border border-[#e8edf5] bg-white p-3.5 text-left shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold ${avatarTone(index)}`}>
@@ -395,13 +409,13 @@ function OrderEventMobileCard({
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <span
-          className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[55%] gap-1 text-[0.72rem]`}
-          title={event.campaignName}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span className="truncate">{event.campaignName}</span>
-        </span>
+        <div className="min-w-0 max-w-[55%]">
+          <CampaignNameWithImage
+            name={event.campaignName}
+            imageUrl={event.campaignImageUrl}
+            maxWidthClass="max-w-full"
+          />
+        </div>
         <div className="shrink-0 text-right">
           <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
             <OrderAmountDisplay event={event} />
@@ -474,431 +488,6 @@ function formatTitleCase(value: string): string {
     .join(" ");
 }
 
-function getCustomerEmail(event: BusinessFunnelEvent): string | null {
-  const fromProfile = event.customer?.email?.trim();
-  if (fromProfile) return fromProfile;
-  const fromSignup = event.customerEmail?.trim();
-  if (fromSignup) return fromSignup;
-  return null;
-}
-
-function getCustomerPhone(event: BusinessFunnelEvent): string | null {
-  const phone = event.customer?.phone?.trim();
-  return phone ? phone : null;
-}
-
-function resolvePaymentMedium(
-  event: BusinessFunnelEvent,
-): "In store" | "Online" | null {
-  const source = (event.paymentSource ?? "").toUpperCase();
-  if (source === "SCANNER" || source === "MANUAL") return "In store";
-  if (source === "STRIPE") return "Online";
-  if (
-    event.orderStatus === "paid_walk_in" ||
-    event.orderStatus === "paid_both"
-  ) {
-    return "In store";
-  }
-  if (event.orderStatus === "paid_online") return "Online";
-  return null;
-}
-
-function formatOrderDetailDate(iso: string | null | undefined): string {
-  if (!iso) return "N/A";
-  try {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return "N/A";
-    const day = date.getDate();
-    const month = date.toLocaleString("en-GB", { month: "short" });
-    const time = date
-      .toLocaleString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-      .toLowerCase();
-    return `${day} ${month}, ${time}`;
-  } catch {
-    return "N/A";
-  }
-}
-
-function CopyValueButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      className="ml-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#eaf2ff] text-[#3b82f6] transition hover:bg-[#dbeafe]"
-      aria-label={copied ? "Copied" : "Copy"}
-    >
-      {copied ? (
-        <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} aria-hidden />
-      ) : (
-        <Copy className="size-3.5" strokeWidth={2.1} aria-hidden />
-      )}
-    </button>
-  );
-}
-
-function OrderDetailIcon({
-  icon: Icon,
-}: {
-  icon: LucideIcon;
-}) {
-  return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[#4f6bed]">
-      <Icon className="size-[0.95rem]" strokeWidth={1.9} aria-hidden />
-    </span>
-  );
-}
-
-function OrderDetailRow({
-  icon: Icon,
-  label,
-  children,
-  copyValue,
-}: {
-  icon: LucideIcon;
-  label: string;
-  children: ReactNode;
-  copyValue?: string | null;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-4 py-[0.95rem] last:border-b-0">
-      <dt className="flex min-w-0 shrink-0 items-center gap-2.5 text-[0.92rem] font-medium text-[#1a1c3d]">
-        <OrderDetailIcon icon={Icon} />
-        {label}
-      </dt>
-      <dd className="m-0 flex min-w-0 max-w-[58%] items-center justify-end gap-1 text-right text-[0.92rem] font-medium text-[#1a1c3d]">
-        {children}
-        {copyValue ? <CopyValueButton value={copyValue} /> : null}
-      </dd>
-    </div>
-  );
-}
-
-function HeaderStatusBadge({ status }: { status: DisplayPaymentStatus }) {
-  const label = orderStatusLabel(status);
-  if (status === "pending") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#fdba74] bg-[#fff7ed] px-2.5 py-1 text-[0.7rem] font-medium text-[#c2410c]">
-        <CreditCard className="size-3.5" strokeWidth={2.2} aria-hidden />
-        {label}
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${orderStatusBadgeClass(status)}`}
-    >
-      <span
-        className={`size-2 shrink-0 rounded-full ${orderStatusDotClass(status)}`}
-        aria-hidden
-      />
-      {label}
-    </span>
-  );
-}
-
-function OrderEventDetailDialog({
-  event,
-  open,
-  onClose,
-}: {
-  event: BusinessFunnelEvent | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, onClose]);
-
-  if (!mounted || !open || !event) return null;
-
-  const name = displayName(event);
-  const status = resolveDisplayStatus(event);
-  const email = getCustomerEmail(event);
-  const phone = getCustomerPhone(event);
-  const paymentMedium = resolvePaymentMedium(event);
-  const campaignLabel = formatTitleCase(event.campaignName);
-  const campaignInitial = guestInitial(campaignLabel || "Campaign");
-  const campaignImageSrc = resolveUploadImageUrl(event.campaignImageUrl);
-  const amountDisplay = formatOrderAmountText(event, status);
-  const netAmountText = formatCounterExtrasText(event);
-
-  const dialog = (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-[#07111f]/40 p-4 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="order-detail-title"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-[27.5rem] rounded-[1.85rem] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative size-[3.35rem] shrink-0">
-              {campaignImageSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={campaignImageSrc}
-                  alt=""
-                  {...spacesImageLoadProps}
-                  className="size-[3.35rem] rounded-full object-cover ring-[3px] ring-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
-                />
-              ) : (
-                <span className="flex size-[3.35rem] items-center justify-center rounded-full bg-[#1877f2] text-[0.95rem] font-medium text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
-                  {campaignInitial}
-                </span>
-              )}
-              <span
-                className="absolute right-0.5 bottom-0.5 size-3.5 rounded-full border-[2.5px] border-white bg-[#22c55e]"
-                aria-hidden
-              />
-            </div>
-            <div className="min-w-0">
-              <h2
-                id="order-detail-title"
-                className="m-0 truncate text-[1.2rem] font-medium tracking-tight text-[#1a1c3d]"
-              >
-                {campaignLabel || "Campaign"}
-              </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <HeaderStatusBadge status={status} />
-                {paymentMedium ? (
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
-                      paymentMedium === "In store"
-                        ? "border border-[#fdba74] bg-[#fff7ed] text-[#c2410c]"
-                        : "bg-[#ecfdf5] text-[#047857]"
-                    }`}
-                  >
-                    <span
-                      className={`size-2 shrink-0 rounded-full ${
-                        paymentMedium === "In store"
-                          ? "bg-[#ea580c]"
-                          : "bg-[#22c55e]"
-                      }`}
-                      aria-hidden
-                    />
-                    {paymentMedium}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-slate-400 shadow-[0_2px_10px_rgba(15,23,42,0.08)] ring-1 ring-[#eef2f7] transition hover:text-[#1a1c3d]"
-            aria-label="Close"
-          >
-            <X className="size-4" strokeWidth={2.25} aria-hidden />
-          </button>
-        </div>
-
-        <div className="relative mt-5 overflow-hidden rounded-[1.25rem] bg-[linear-gradient(118deg,#dce9ff_0%,#e7ecff_48%,#efe8ff_100%)] px-4 py-[1.15rem]">
-          <span
-            className="pointer-events-none absolute -top-10 right-10 size-28 rounded-full bg-[#c7d9ff]/70 blur-md"
-            aria-hidden
-          />
-          <span
-            className="pointer-events-none absolute -right-6 -bottom-12 size-32 rotate-[18deg] rounded-[2rem] bg-[#d9c8ff]/55 blur-[2px]"
-            aria-hidden
-          />
-          <span
-            className="pointer-events-none absolute right-[4.5rem] top-2 size-11 rounded-full bg-white/55"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute top-3 right-8 flex items-end gap-1 opacity-45"
-            aria-hidden
-          >
-            <span className="h-5 w-2.5 rounded-t-md bg-[#8eb4ff]" />
-            <span className="h-9 w-2.5 rounded-t-md bg-[#6f9dff]" />
-            <span className="h-7 w-2.5 rounded-t-md bg-[#a9c4ff]" />
-          </div>
-          <Megaphone
-            className="pointer-events-none absolute right-1 -bottom-1 size-[4.25rem] rotate-[18deg] text-[#9bb6ff]/55"
-            strokeWidth={1.4}
-            aria-hidden
-          />
-          <div className="relative z-[1] flex items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-[0.95rem] bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.38)]">
-              <Megaphone className="size-5" strokeWidth={2.2} aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-[0.98rem] font-medium text-[#1a1c3d]">
-                Campaign Overview
-              </p>
-              <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
-                Here are the details of this campaign.
-              </p>
-            </div>
-            <span className="inline-flex max-w-[44%] shrink-0 items-center gap-1.5 rounded-full bg-[#fce7f3] px-3 py-1.5 text-[0.74rem] font-medium text-[#be185d]">
-              <UserRound className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-              <span className="truncate">{name}</span>
-            </span>
-          </div>
-        </div>
-
-        <dl className="m-0 mt-4 overflow-hidden rounded-[1.15rem] border border-[#eef2f7]">
-            <OrderDetailRow icon={Layers} label="Medium">
-              {paymentMedium ? (
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-medium ${
-                    paymentMedium === "In store"
-                      ? "bg-[#fff7ed] text-[#c2410c]"
-                      : "bg-[#ecfdf5] text-[#047857]"
-                  }`}
-                >
-                  {paymentMedium}
-                </span>
-              ) : (
-                <span className="font-medium text-slate-400">—</span>
-              )}
-            </OrderDetailRow>
-
-            <OrderDetailRow icon={CircleDollarSign} label="Offer amount">
-              <span className={amountDisplay.muted ? "font-medium text-slate-400" : "text-[#1a1c3d]"}>
-                {amountDisplay.text}
-              </span>
-            </OrderDetailRow>
-
-            <OrderDetailRow icon={Plus} label="Counter extras">
-              <span className={netAmountText === "—" ? "font-medium text-slate-400" : "text-[#1a1c3d]"}>
-                {netAmountText}
-              </span>
-            </OrderDetailRow>
-
-            <OrderDetailRow icon={Calendar} label="Date">
-              <span className="inline-flex items-center gap-1.5 font-medium text-[#1a1c3d]">
-                <Calendar className="size-3.5 shrink-0 text-slate-400" aria-hidden />
-                {formatOrderDetailDate(eventPaymentDate(event))}
-              </span>
-            </OrderDetailRow>
-
-            <OrderDetailRow icon={Mail} label="Email" copyValue={email}>
-              <span className={`truncate ${email ? "text-[#1a1c3d]" : "font-medium text-slate-400"}`}>
-                {email ?? "None"}
-              </span>
-            </OrderDetailRow>
-
-            <OrderDetailRow icon={Phone} label="Phone" copyValue={phone}>
-              <span className={phone ? "text-[#1a1c3d]" : "font-medium text-slate-400"}>
-                {phone ?? "None"}
-              </span>
-            </OrderDetailRow>
-          </dl>
-      </div>
-    </div>
-  );
-
-  return createPortal(dialog, document.body);
-}
-
-function OrderRowActions({
-  event,
-  baseHref,
-  onView,
-}: {
-  event: BusinessFunnelEvent;
-  baseHref: string;
-  onView: () => void;
-}) {
-  const menuItemCount = 1;
-  const {
-    open,
-    setOpen,
-    toggle,
-    mounted,
-    anchorRef,
-    menuRef,
-    menuPosition,
-    menuStyle,
-  } = useAnchoredMenu({
-    placement: "flip",
-    align: "right",
-    width: 168,
-    estimatedHeight: menuItemCount * 40 + 8,
-  });
-
-  const menu =
-    mounted && open && menuPosition ? (
-      <div
-        ref={menuRef}
-        role="menu"
-        aria-label="Order actions"
-        style={menuStyle}
-        className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.02]"
-      >
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            setOpen(false);
-            onView();
-          }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[0.8rem] font-semibold text-slate-700 transition hover:bg-[#f8fbff]"
-        >
-          <Eye className="size-3.5 text-[#1877f2]" aria-hidden />
-          View details
-        </button>
-      </div>
-    ) : null;
-
-  return (
-    <div ref={anchorRef} className="relative flex justify-end">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggle();
-        }}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-[#f4f7fb] hover:text-[#07111f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label="Order actions"
-      >
-        <MoreHorizontal className="size-4" strokeWidth={2.25} aria-hidden />
-      </button>
-      {mounted ? createPortal(menu, document.body) : null}
-    </div>
-  );
-}
-
 export function BusinessOrdersPanel({
   businessId,
 }: {
@@ -914,9 +503,6 @@ export function BusinessOrdersPanel({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const searchRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
-  const [selectedEvent, setSelectedEvent] =
-    useState<BusinessFunnelEvent | null>(null);
-  const closeOrderDetail = useCallback(() => setSelectedEvent(null), []);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
@@ -924,14 +510,13 @@ export function BusinessOrdersPanel({
     deferredSearchQuery.trim().length > 0;
 
   const eventsQuery = useQuery({
-    queryKey: [
-      "business-orders-events",
+    queryKey: funnelQueryKeys.businessOrdersEvents(
       businessId,
       page,
       statusFilter,
       dateFilter,
       deferredSearchQuery,
-    ],
+    ),
     queryFn: () =>
       getBusinessFunnelEvents(businessId, page, ORDERS_TABLE_PAGE_SIZE, {
         status: statusFilter,
@@ -1020,12 +605,6 @@ export function BusinessOrdersPanel({
           setAlertMessage(null);
           setAlertDismissed(true);
         }}
-      />
-
-      <OrderEventDetailDialog
-        event={selectedEvent}
-        open={selectedEvent != null}
-        onClose={closeOrderDetail}
       />
 
       <div className="rd-premium-page">
@@ -1203,9 +782,6 @@ export function BusinessOrdersPanel({
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
                           </th>
-                          <th className={thActionsClass}>
-                            Actions
-                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1218,8 +794,7 @@ export function BusinessOrdersPanel({
                           return (
                             <tr
                               key={event.rowKey ?? `event:${event.id}`}
-                              onClick={() => setSelectedEvent(event)}
-                              className="group cursor-pointer border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
+                              className="border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/40"
                             >
                               <td className={tdClass}>
                                 <span className="text-xs font-semibold tabular-nums text-slate-400">
@@ -1249,16 +824,11 @@ export function BusinessOrdersPanel({
                               </td>
                               <td
                                 className={tdClass}
-                                onClick={(e) => e.stopPropagation()}
                               >
-                                <span
-                                  title={event.campaignName}
-                                  className={`${DASHBOARD_CAMPAIGN_TAG} max-w-[14rem]`}
-                                >
-                                  <span className="truncate">
-                                    {event.campaignName}
-                                  </span>
-                                </span>
+                                <CampaignNameWithImage
+                                  name={event.campaignName}
+                                  imageUrl={event.campaignImageUrl}
+                                />
                               </td>
                               <td className={`${tdClass} whitespace-nowrap`}>
                                 <CampaignTypeBadge
@@ -1286,18 +856,6 @@ export function BusinessOrdersPanel({
                                   {formatDateTimeShort(eventPaymentDate(event))}
                                 </span>
                               </td>
-                              <td className={tdActionsClass}>
-                                <div
-                                  className="inline-flex justify-end"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <OrderRowActions
-                                    event={event}
-                                    baseHref={baseHref}
-                                    onView={() => setSelectedEvent(event)}
-                                  />
-                                </div>
-                              </td>
                             </tr>
                           );
                         })}
@@ -1312,8 +870,6 @@ export function BusinessOrdersPanel({
                         event={event}
                         rowNumber={rowOffset + index + 1}
                         index={index}
-                        baseHref={baseHref}
-                        onView={() => setSelectedEvent(event)}
                       />
                     ))}
                   </div>

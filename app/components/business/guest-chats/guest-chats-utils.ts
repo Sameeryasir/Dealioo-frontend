@@ -135,21 +135,39 @@ export function matchesSearch(row: ChatCustomer, query: string): boolean {
   return haystack.includes(needle);
 }
 
-export function guestAvatarSidebarClass(): string {
-  return "bg-[#1877f2] shadow-[0_4px_14px_rgba(19,102,224,0.28)] ring-[#1366e0]/35";
+/** Same initials colors as activity log / guest roster. */
+const GUEST_CHAT_AVATAR_TONES = [
+  "bg-[#7c3aed]",
+  "bg-[#16a34a]",
+  "bg-[#2563eb]",
+  "bg-[#db2777]",
+  "bg-[#0f766e]",
+  "bg-[#d97706]",
+  "bg-[#e11d48]",
+] as const;
+
+export function guestAvatarToneClass(seed: number | string): string {
+  const numeric =
+    typeof seed === "number"
+      ? seed
+      : Array.from(seed).reduce(
+          (sum, char, index) => sum + char.charCodeAt(0) * (index + 1),
+          0,
+        );
+  const index = Math.abs(numeric) % GUEST_CHAT_AVATAR_TONES.length;
+  return GUEST_CHAT_AVATAR_TONES[index] ?? GUEST_CHAT_AVATAR_TONES[0];
 }
 
-export function channelGradientClass(channel: ConversationMessageKind | null | undefined): string {
-  switch (channel) {
-    case "email":
-      return guestAvatarSidebarClass();
-    case "sms":
-      return guestAvatarSidebarClass();
-    case "whatsapp":
-      return guestAvatarSidebarClass();
-    default:
-      return guestAvatarSidebarClass();
-  }
+export function guestAvatarSidebarClass(seed: number | string = 0): string {
+  return `${guestAvatarToneClass(seed)} shadow-[0_4px_14px_rgba(15,23,42,0.18)] ring-black/10`;
+}
+
+export function channelGradientClass(
+  channel: ConversationMessageKind | null | undefined,
+  seed: number | string = 0,
+): string {
+  void channel;
+  return guestAvatarSidebarClass(seed);
 }
 
 export function channelLabel(channel: ConversationMessageKind | null | undefined): string {

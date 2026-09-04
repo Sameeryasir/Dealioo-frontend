@@ -78,6 +78,21 @@ function customerInitials(customer: BusinessCustomerRecord): string {
   return (email.charAt(0) || "?").toUpperCase();
 }
 
+/** Same initials colors as the activity log. */
+const AVATAR_TONES = [
+  "bg-[#7c3aed] text-white",
+  "bg-[#16a34a] text-white",
+  "bg-[#2563eb] text-white",
+  "bg-[#db2777] text-white",
+  "bg-[#0f766e] text-white",
+  "bg-[#d97706] text-white",
+  "bg-[#e11d48] text-white",
+];
+
+function avatarTone(index: number): string {
+  return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
+}
+
 function SectionIcon({ children }: { children: ReactNode }) {
   return (
     <span
@@ -509,46 +524,49 @@ export function BusinessProgramCustomersPanel({
                       <TableColumnHeader
                         icon={UserRound}
                         label="Guest"
-                        iconClassName="text-[#0B69FC]"
-                        labelClassName="text-[#0B69FC]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={Mail}
                         label="Email"
-                        iconClassName="text-[#AD20E3]"
-                        labelClassName="text-[#AD20E3]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={Phone}
                         label="Phone"
-                        iconClassName="text-[#FD7137]"
-                        labelClassName="text-[#FD7137]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={BarChart3}
                         label="Visits"
-                        iconClassName="text-[#00B34C]"
-                        labelClassName="text-[#00B34C]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={CalendarDays}
                         label="Joining date"
-                        iconClassName="text-[#F83071]"
-                        labelClassName="text-[#F83071]"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
                       />
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
-                      <span className="inline-flex items-center text-[0.65rem] font-bold uppercase tracking-[0.12em] leading-none text-[#FCB825]">
-                        Actions
-                      </span>
+                      <TableColumnHeader
+                        icon={MoreHorizontal}
+                        label="Actions"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
+                      />
                     </th>
                   </tr>
                 </thead>
@@ -562,7 +580,9 @@ export function BusinessProgramCustomersPanel({
                     >
                       <td className="px-5 py-3.5 align-middle">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-bold leading-none text-[#1877f2] ring-1 ring-[#bfdbfe]">
+                          <span
+                            className={`relative flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold leading-none ${avatarTone(index)}`}
+                          >
                             {customerInitials(customer)}
                           </span>
                           <div className="min-w-0 leading-tight">
@@ -578,7 +598,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                           <Mail
-                            className="size-3.5 shrink-0 text-[#AD20E3]"
+                            className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           <span className="truncate">{customer.email}</span>
@@ -588,7 +608,7 @@ export function BusinessProgramCustomersPanel({
                         {customer.phone ? (
                           <span className="inline-flex max-w-full items-center gap-1.5 text-sm leading-none text-slate-700">
                             <Phone
-                              className="size-3.5 shrink-0 text-[#FD7137]"
+                              className="size-3.5 shrink-0 text-[#1877f2]"
                               aria-hidden
                             />
                             <span className="truncate">{customer.phone}</span>
@@ -602,7 +622,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex items-center gap-1.5 text-sm font-normal tabular-nums leading-none text-slate-700">
                           <BarChart3
-                            className="size-3.5 shrink-0 text-[#00B34C]"
+                            className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           {customer.visitCount}
@@ -611,7 +631,7 @@ export function BusinessProgramCustomersPanel({
                       <td className="px-4 py-3.5 align-middle">
                         <span className="inline-flex items-center gap-1.5 text-sm font-semibold leading-none text-slate-700">
                           <CalendarDays
-                            className="size-3.5 shrink-0 text-[#F83071]"
+                            className="size-3.5 shrink-0 text-[#1877f2]"
                             aria-hidden
                           />
                           {formatJoiningDate(customer.joiningDate)}
@@ -621,7 +641,7 @@ export function BusinessProgramCustomersPanel({
                         <button
                           type="button"
                           aria-label={`Actions for ${customer.name}`}
-                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:border-[#FCB825]/50 hover:bg-[#FFF8E8] hover:text-[#FCB825]"
+                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:border-[#1877f2]/40 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
                         >
                           <MoreHorizontal className="size-4" aria-hidden />
                         </button>

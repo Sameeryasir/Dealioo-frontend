@@ -232,7 +232,7 @@ function OrderPaidAt({ payment }: { payment: FunnelPayment }) {
 function orderStatusBadgeClass(status: string): string {
   const normalized = status.trim().toLowerCase();
   if (normalized === "paid" || normalized === "succeeded") {
-    return "bg-[#ecfdf5] text-emerald-700 ring-1 ring-emerald-200";
+    return "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]";
   }
   if (normalized === "pending" || normalized === "processing" || normalized === "open") {
     return "bg-[#fff4ed] text-[#FD7137] ring-1 ring-[#fdba74]";
@@ -261,9 +261,9 @@ function OrderStatusBadge({ status }: { status: string }) {
 
   if (isPaid) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-emerald-700 ring-1 ring-emerald-200">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2 py-1 pr-2.5 text-[0.6875rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
         <span
-          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"
+          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white"
           aria-hidden
         >
           <Check className="size-2.5" strokeWidth={3} />

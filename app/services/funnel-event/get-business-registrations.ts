@@ -118,5 +118,14 @@ export async function getBusinessFunnelEvents(
     );
   }
 
-  return (await res.json()) as PaginatedBusinessFunnelEventsResponse;
+  const payload = (await res.json()) as PaginatedBusinessFunnelEventsResponse;
+
+  // Keep campaign image on each row so React Query caches it with the orders list.
+  return {
+    ...payload,
+    data: (payload.data ?? []).map((event) => ({
+      ...event,
+      campaignImageUrl: event.campaignImageUrl?.trim() || null,
+    })),
+  };
 }
