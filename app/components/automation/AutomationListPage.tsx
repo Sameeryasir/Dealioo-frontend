@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FilePenLine,
   MoreHorizontal,
+  Pencil,
   Trash2,
   Plus,
   SearchX,
@@ -37,6 +38,7 @@ import { Skeleton } from "@/app/components/skeleton";
 import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { CreateAutomationModal } from "@/app/components/automation/CreateAutomationModal";
 import { DeleteAutomationDialog } from "@/app/components/automation/DeleteAutomationDialog";
+import { EditAutomationDetailsDialog } from "@/app/components/automation/EditAutomationDetailsDialog";
 import { automationStatusBadgeClass } from "@/app/lib/badge-variants";
 import type {
   AutomationFilter,
@@ -48,7 +50,9 @@ import {
   deleteAutomation,
   mapAutomationToListItem,
   triggerToApi,
+  updateAutomation,
 } from "@/app/services/automation/automation-api";
+import { isAutomationStatusResponse } from "@/app/services/automation/types";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";
 import { useAutomationsQuery } from "@/app/hooks/use-automations-query";
@@ -243,6 +247,10 @@ export function AutomationListPage({
     null,
   );
   const [deleting, setDeleting] = useState(false);
+  // --- Edit name/description dialog state ---
+  const [editTarget, setEditTarget] = useState<AutomationListItem | null>(null);
+  const [savingDetails, setSavingDetails] = useState(false);
+  const canEditAutomation = canCreateAutomation;
 
   const {
     data: items,
@@ -469,6 +477,38 @@ export function AutomationListPage({
           }
         }}
       />
+
+      <EditAutomationDetailsDialog
+        open={editTarget != null}
+        initialName={editTarget?.name ?? ""}
+        initialDescription={editTarget?.description ?? ""}
+        isSaving={savingDetails}
+        onClose={() => {
+          if (!savingDetails) setEditTarget(null);
+        }}
+        onSave={async ({ name, description }) => {
+          const id = editTarget?.numericId;
+          if (id == null || id < 1) {
+            toast.error("Could not update this automation.");
+            return;
+          }
+          setSavingDetails(true);
+          try {
+            const updated = await updateAutomation(id, { name, description });
+            if (isAutomationStatusResponse(updated)) {
+              toast.error("Could not update automation details.");
+              return;
+            }
+            syncAutomationQueryCache(queryClient, updated);
+            setEditTarget(null);
+            toast.success("Automation details saved.");
+          } catch (err) {
+            toastApiError(err, "Could not update automation details.");
+          } finally {
+            setSavingDetails(false);
+          }
+        }}
+      />
     </>
   );
 
@@ -560,6 +600,9 @@ export function AutomationListPage({
             rows={filtered}
             builderHref={builderHref}
             onOpenBuilder={onOpenBuilder}
+            onEditDetails={
+              canEditAutomation ? (row) => setEditTarget(row) : undefined
+            }
             onDelete={
               canDeleteAutomation
                 ? (row) => setDeleteTarget(row)
@@ -625,11 +668,13 @@ function AutomationsTableSection({
   rows,
   builderHref,
   onOpenBuilder,
+  onEditDetails,
   onDelete,
 }: {
   rows: AutomationListItem[];
   builderHref: (row: AutomationListItem) => string;
   onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
+  onEditDetails?: (row: AutomationListItem) => void;
   onDelete?: (row: AutomationListItem) => void;
 }) {
   return (
@@ -741,6 +786,9 @@ function AutomationsTableSection({
                     <AutomationRowMenu
                       href={href}
                       onOpenBuilder={() => onOpenBuilder?.(row.id)}
+                      onEditDetails={
+                        onEditDetails ? () => onEditDetails(row) : undefined
+                      }
                       onDelete={
                         onDelete ? () => onDelete(row) : undefined
                       }
@@ -797,13 +845,17 @@ const ROW_MENU_ITEM_HEIGHT = 44;
 function AutomationRowMenu({
   href,
   onOpenBuilder,
+  onEditDetails,
   onDelete,
 }: {
   href: string;
   onOpenBuilder?: () => void;
+  onEditDetails?: () => void;
   onDelete?: () => void;
 }) {
-  const menuHeight = onDelete ? ROW_MENU_ITEM_HEIGHT * 2 : ROW_MENU_ITEM_HEIGHT;
+  const menuItemCount =
+    1 + (onEditDetails ? 1 : 0) + (onDelete ? 1 : 0);
+  const menuHeight = ROW_MENU_ITEM_HEIGHT * menuItemCount;
   const {
     open,
     setOpen,
@@ -845,6 +897,24 @@ function AutomationRowMenu({
           />
           Open builder
         </Link>
+        {onEditDetails ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onEditDetails();
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-900"
+          >
+            <Pencil
+              className="size-4 shrink-0 text-[#1877f2]"
+              aria-hidden
+              strokeWidth={ICON_STROKE}
+            />
+            Edit details
+          </button>
+        ) : null}
         {onDelete ? (
           <button
             type="button"

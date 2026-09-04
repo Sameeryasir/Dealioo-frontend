@@ -8,6 +8,7 @@ import {
   Gift,
   ImageIcon,
   ImagePlus,
+  Loader2,
   Megaphone,
   Pencil,
   Upload,
@@ -33,7 +34,7 @@ import { parseCampaignFromApi } from "@/app/services/funnel/get-campaigns-by-bus
 import { updateCampaign } from "@/app/services/funnel/update-campaign";
 
 const inputClassName =
-  "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/55 focus:ring-2 focus:ring-[#1877f2]/20";
+  "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:text-slate-400 hover:border-[#bfdbfe] focus:border-[#1877f2]/55 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/18 disabled:cursor-not-allowed disabled:opacity-60";
 
 function FieldLabel({
   icon: Icon,
@@ -49,7 +50,7 @@ function FieldLabel({
       htmlFor={htmlFor}
       className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-700"
     >
-      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg border border-[#dbeafe] bg-white text-[#1877f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
         <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
       </span>
       {children}
@@ -196,7 +197,6 @@ export function EditCampaignModal({
           updatedAt: new Date().toISOString(),
         } satisfies Funnel);
 
-      // Keep React Query list + detail caches in sync with the edit.
       upsertCampaignInQueryClient(
         queryClient,
         campaign.businessId,
@@ -222,7 +222,7 @@ export function EditCampaignModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/55 p-3 backdrop-blur-[6px]"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/55 p-3 backdrop-blur-[6px] sm:p-4"
       role="presentation"
       onClick={() => {
         if (!isSaving) onOpenChange(false);
@@ -232,23 +232,27 @@ export function EditCampaignModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-md overflow-hidden rounded-[1.25rem] border border-[#e2eaf5] bg-white shadow-[0_24px_56px_rgba(7,17,31,0.28)]"
+        className="relative flex max-h-[min(92vh,44rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.35rem] border border-[#e2eaf5] bg-white shadow-[0_28px_64px_rgba(7,17,31,0.3)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative overflow-hidden border-b border-[#eef2f8] bg-white px-5 py-4">
+        <div className="relative shrink-0 overflow-hidden border-b border-[#e8f0fb] bg-gradient-to-b from-[#f4f8ff] to-white px-5 py-4">
+          <div
+            className="pointer-events-none absolute -right-8 -top-10 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
+            aria-hidden
+          />
           <div className="relative flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
                 <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
               </span>
-              <div>
+              <div className="min-w-0">
                 <h2
                   id={titleId}
                   className="text-base font-extrabold tracking-tight text-[#07111f]"
                 >
                   Edit campaign
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
                   Update name, description, offer, price, and image
                 </p>
               </div>
@@ -258,15 +262,18 @@ export function EditCampaignModal({
               aria-label="Close"
               disabled={isSaving}
               onClick={() => onOpenChange(false)}
-              className="flex size-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-[#1877f2] hover:shadow-sm disabled:opacity-50"
             >
               <X className="size-4" strokeWidth={2} aria-hidden />
             </button>
           </div>
         </div>
 
-        <form onSubmit={(e) => void handleSubmit(e)}>
-          <div className="space-y-4 bg-white px-5 py-4">
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(e) => void handleSubmit(e)}
+        >
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-[#fafbfd] px-5 py-4">
             <div>
               <FieldLabel htmlFor="edit-campaign-name" icon={Megaphone}>
                 Campaign name
@@ -277,6 +284,7 @@ export function EditCampaignModal({
                 onChange={(e) => setCampaignName(e.target.value)}
                 className={inputClassName}
                 placeholder="Campaign name"
+                disabled={isSaving}
                 required
               />
             </div>
@@ -289,13 +297,15 @@ export function EditCampaignModal({
                 id="edit-campaign-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className={`${inputClassName} min-h-[5.5rem] resize-y leading-relaxed`}
+                rows={4}
+                className={`${inputClassName} min-h-[6rem] resize-none leading-relaxed`}
                 placeholder="Describe what customers get and why they should care."
+                disabled={isSaving}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-[1fr_7rem] gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_7.25rem]">
               <div>
                 <FieldLabel htmlFor="edit-campaign-offer" icon={Gift}>
                   Offer
@@ -306,6 +316,7 @@ export function EditCampaignModal({
                   onChange={(e) => setOffer(e.target.value)}
                   className={inputClassName}
                   placeholder="Offer name"
+                  disabled={isSaving}
                   required
                 />
               </div>
@@ -320,6 +331,7 @@ export function EditCampaignModal({
                   inputMode="decimal"
                   className={inputClassName}
                   placeholder="0.00"
+                  disabled={isSaving}
                   required
                 />
               </div>
@@ -339,22 +351,23 @@ export function EditCampaignModal({
               />
 
               {previewUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white shadow-[0_8px_20px_rgba(24,119,242,0.06)]">
-                  <div className="relative aspect-[16/9] w-full bg-[#f8fafc]">
+                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white shadow-[0_10px_24px_rgba(24,119,242,0.08)] ring-1 ring-[#1877f2]/5">
+                  <div className="relative aspect-[16/9] w-full bg-[#eef4fb]">
                     <img
                       src={previewUrl}
                       alt="Campaign offer preview"
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-cover"
                     />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-[#07111f]/80 via-[#0a1628]/35 to-transparent px-3 pb-3 pt-10">
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-[#07111f]/85 via-[#0a1628]/40 to-transparent px-3 pb-3 pt-12">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-white/95">
                         <ImageIcon className="size-3.5 text-[#93c5fd]" aria-hidden />
                         Current offer image
                       </p>
                       <button
                         type="button"
+                        disabled={isSaving}
                         onClick={() => fileInputRef.current?.click()}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#07111f] shadow-md transition hover:bg-[#eef5ff]"
+                        className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#07111f] shadow-md transition hover:bg-[#eef5ff] disabled:opacity-50"
                       >
                         <Upload className="size-3.5 text-[#1877f2]" aria-hidden />
                         Replace
@@ -366,21 +379,22 @@ export function EditCampaignModal({
                 <button
                   type="button"
                   aria-label="Upload offer image"
+                  disabled={isSaving}
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`flex w-full flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-all ${
+                  className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                     isDragging
                       ? "scale-[1.01] border-[#1877f2] bg-[#eef5ff] shadow-md ring-2 ring-[#1877f2]/15"
-                      : "border-[#dbeafe] bg-white hover:border-[#1877f2]/45 hover:bg-[#f8fafc]"
+                      : "border-[#dbeafe] bg-white hover:border-[#1877f2]/45 hover:bg-[#f4f8ff]"
                   }`}
                 >
                   <span
                     className={`flex size-12 items-center justify-center rounded-xl shadow-sm transition-colors ${
                       isDragging
                         ? "bg-[#1877f2] text-white"
-                        : "bg-white text-[#1877f2] ring-1 ring-[#dbeafe]"
+                        : "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]"
                     }`}
                   >
                     <ImagePlus className="size-6" strokeWidth={1.5} aria-hidden />
@@ -411,12 +425,12 @@ export function EditCampaignModal({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-[#eef2f8] bg-white px-5 py-3.5">
+          <div className="flex shrink-0 justify-end gap-2 border-t border-[#e8f0fb] bg-white px-5 py-3.5">
             <button
               type="button"
               disabled={isSaving}
               onClick={() => onOpenChange(false)}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
+              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
             >
               <X className="size-4" aria-hidden />
               Cancel
@@ -424,9 +438,13 @@ export function EditCampaignModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Check className="size-4" aria-hidden />
+              {isSaving ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="size-4" aria-hidden />
+              )}
               {isSaving ? "Saving…" : "Save changes"}
             </button>
           </div>
