@@ -14,6 +14,10 @@ import type { PaymentTemplatePage, TemplatePage } from "@/app/components/crm-tem
 import { checkoutFormRootClass, checkoutSectionTitle } from "@/app/components/payment-templates/shared/checkout-form-classes";
 import type { CheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
 import { checkoutPreviewFieldShell } from "@/app/components/payment-templates/shared/checkout-form-styles";
+import {
+  resolveUploadImageUrl,
+  spacesImageEagerLoadProps,
+} from "@/app/lib/resolve-upload-image-url";
 
 export function OrderSummaryBlock({
   page,
@@ -35,7 +39,7 @@ export function OrderSummaryBlock({
   const subtotal = formatCampaignPrice(campaignPricing.subtotal);
   const fees = formatCampaignPrice(campaignPricing.fees ?? 0);
   const total = formatCampaignPrice(campaignPricingTotal(campaignPricing));
-  const thumbUrl = landingPage.imageUrl;
+  const thumbUrl = resolveUploadImageUrl(landingPage.imageUrl);
   const shell = dark
     ? "rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md"
     : "rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm ring-1 ring-zinc-950/[0.04]";
@@ -49,10 +53,13 @@ export function OrderSummaryBlock({
       </p>
       <div className={`mt-3 flex items-center gap-3 ${text}`}>
         <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-100">
-          {thumbUrl?.trim() ? (
+          {thumbUrl ? (
             <img
               src={thumbUrl}
               alt=""
+              width={56}
+              height={56}
+              {...spacesImageEagerLoadProps}
               className="h-full w-full object-cover"
               style={imageScaleStyle(normalizeImageScale(landingPage.imageScale))}
             />

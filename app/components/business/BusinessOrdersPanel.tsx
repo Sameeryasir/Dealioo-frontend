@@ -8,6 +8,7 @@ import {
   Layers,
   LayoutGrid,
   Megaphone,
+  Package,
   Search,
   TrendingUp,
   UserRound,
@@ -29,7 +30,7 @@ import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
 import {
   resolveUploadImageUrl,
-  spacesImageLoadProps,
+  spacesImageEagerLoadProps,
 } from "@/app/lib/resolve-upload-image-url";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -259,12 +260,22 @@ function formatCounterExtrasText(event: BusinessFunnelEvent): string {
   return extras > 0 ? formatDollars(extras, currency) : "—";
 }
 
+function formatExtraItemLine(
+  item: { name: string; unitPrice: number; qty: number },
+  currency: string,
+): string {
+  const productName = formatTitleCase(item.name.trim()) || item.name.trim();
+  const qtyLabel = item.qty > 1 ? `${item.qty}× ` : "";
+  const lineTotal = item.unitPrice * item.qty;
+  return `${qtyLabel}${productName} · ${formatDollars(lineTotal, currency)}`;
+}
+
 function OrderAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
   const status = resolveDisplayStatus(event);
   const { text, muted } = formatOrderAmountText(event, status);
 
   return (
-    <span className={muted ? "text-slate-400" : "font-semibold text-[#07111f]"}>
+    <span className={muted ? "text-slate-400" : "font-normal text-[#07111f]"}>
       {text}
     </span>
   );
@@ -277,11 +288,177 @@ function OrderNetAmountDisplay({ event }: { event: BusinessFunnelEvent }) {
       className={
         text === "—"
           ? "text-slate-400"
-          : "font-semibold tabular-nums text-[#07111f]"
+          : "font-normal tabular-nums text-[#07111f]"
       }
     >
       {text}
     </span>
+  );
+}
+
+const EXTRA_ITEMS_VISIBLE = 1;
+
+function OrderExtraProductsDisplay({ event }: { event: BusinessFunnelEvent }) {
+  const currency = event.currency ?? "USD";
+  const items = Array.isArray(event.extraItems) ? event.extraItems : [];
+  const moreAnchorRef = useRef<HTMLButtonElement>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [popoverMounted, setPopoverMounted] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    setPopoverMounted(true);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+    };
+  }, []);
+
+  const updatePopoverPosition = useCallback(() => {
+    const el = moreAnchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const width = 260;
+    const preferredLeft = rect.left;
+    const left = Math.min(
+      Math.max(8, preferredLeft),
+      window.innerWidth - width - 8,
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const openAbove = spaceBelow < 180 && rect.top > spaceBelow;
+    setPopoverStyle({
+      position: "fixed",
+      left,
+      width,
+      zIndex: 120,
+      ...(openAbove
+        ? { bottom: window.innerHeight - rect.top + 6 }
+        : { top: rect.bottom + 6 }),
+    });
+  }, []);
+
+  const showPopover = useCallback(() => {
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    updatePopoverPosition();
+    setPopoverOpen(true);
+  }, [updatePopoverPosition]);
+
+  const scheduleHidePopover = useCallback(() => {
+    if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => {
+      setPopoverOpen(false);
+      hideTimerRef.current = null;
+    }, 120);
+  }, []);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const onScrollOrResize = () => updatePopoverPosition();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPopoverOpen(false);
+    };
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [popoverOpen, updatePopoverPosition]);
+
+  if (items.length === 0) {
+    return <span className="text-slate-400">—</span>;
+  }
+
+  const hasOverflow = items.length > EXTRA_ITEMS_VISIBLE;
+  const visibleItems = items.slice(0, EXTRA_ITEMS_VISIBLE);
+  const hiddenCount = items.length - EXTRA_ITEMS_VISIBLE;
+  const addOnTotal = eventCounterExtrasAmount(event);
+
+  return (
+    <>
+      <div className="flex min-w-0 max-w-[14rem] flex-row flex-wrap items-center gap-x-1.5 gap-y-1">
+        {visibleItems.map((item, index) => (
+          <span
+            key={`${item.name}-${item.unitPrice}-${item.qty}-${index}`}
+            className="inline-flex max-w-[9rem] shrink-0 items-center truncate rounded-md bg-slate-100 px-2 py-0.5 text-xs font-normal text-[#07111f]"
+            title={formatExtraItemLine(item, currency)}
+          >
+            {formatExtraItemLine(item, currency)}
+          </span>
+        ))}
+        {hasOverflow ? (
+          <button
+            ref={moreAnchorRef}
+            type="button"
+            aria-expanded={popoverOpen}
+            aria-haspopup="dialog"
+            onMouseEnter={showPopover}
+            onMouseLeave={scheduleHidePopover}
+            onFocus={showPopover}
+            onBlur={scheduleHidePopover}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (popoverOpen) {
+                setPopoverOpen(false);
+                return;
+              }
+              showPopover();
+            }}
+            className="inline-flex shrink-0 items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-normal text-[#2563EB] transition hover:bg-[#EEF4FF]"
+          >
+            +{hiddenCount} more
+          </button>
+        ) : null}
+      </div>
+
+      {popoverMounted &&
+      popoverOpen &&
+      popoverStyle &&
+      createPortal(
+        <div
+          role="dialog"
+          aria-label="Add-on items"
+          style={popoverStyle}
+          onMouseEnter={showPopover}
+          onMouseLeave={scheduleHidePopover}
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.14)]"
+        >
+          <div className="mb-2 flex items-baseline justify-between gap-2">
+            <p className="text-xs font-normal text-zinc-900">Add-on items</p>
+            {addOnTotal > 0 ? (
+              <p className="text-[11px] font-normal tabular-nums text-slate-500">
+                {formatDollars(addOnTotal, currency)}
+              </p>
+            ) : null}
+          </div>
+          <ul className="max-h-48 list-none space-y-1.5 overflow-y-auto p-0">
+            {items.map((item, index) => (
+              <li
+                key={`hover-${item.name}-${item.unitPrice}-${item.qty}-${index}`}
+                className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5"
+              >
+                <span className="min-w-0 truncate text-xs font-normal text-zinc-900">
+                  {item.qty > 1 ? `${item.qty}× ` : ""}
+                  {formatTitleCase(item.name.trim()) || item.name.trim()}
+                </span>
+                <span className="shrink-0 text-xs font-normal tabular-nums text-zinc-900">
+                  {formatDollars(item.unitPrice * item.qty, currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 
@@ -300,7 +477,6 @@ function CampaignNameWithImage({
   imageUrl?: string | null;
   maxWidthClass?: string;
 }) {
-  // --- Click-to-preview (rounded circle), same pattern as campaign cards ---
   const src = resolveUploadImageUrl(imageUrl);
   const canPreview = Boolean(src);
   const initial = guestInitial(formatTitleCase(name) || "Campaign");
@@ -417,7 +593,9 @@ function CampaignNameWithImage({
             <img
               src={src}
               alt=""
-              {...spacesImageLoadProps}
+              width={32}
+              height={32}
+              {...spacesImageEagerLoadProps}
               className="size-full object-cover object-center"
             />
           </span>
@@ -446,7 +624,9 @@ function CampaignNameWithImage({
               <img
                 src={src}
                 alt=""
-                {...spacesImageLoadProps}
+                width={CAMPAIGN_IMAGE_PREVIEW_SIZE}
+                height={CAMPAIGN_IMAGE_PREVIEW_SIZE}
+                {...spacesImageEagerLoadProps}
                 className="size-full object-cover object-center"
               />
             </div>,
@@ -531,13 +711,19 @@ function OrderEventMobileCard({
             maxWidthClass="max-w-full"
           />
         </div>
-        <div className="shrink-0 text-right">
-          <p className="m-0 text-[0.82rem] font-bold text-[#07111f]">
+        <div className="min-w-0 text-right">
+          <p className="m-0 text-[0.82rem] font-normal text-[#07111f]">
             <OrderAmountDisplay event={event} />
           </p>
-          <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-500">
-            Paid <OrderNetAmountDisplay event={event} />
+          <p className="m-0 mt-1 text-[0.68rem] font-medium text-slate-500">
+            Add-ons <OrderNetAmountDisplay event={event} />
           </p>
+          <div className="mt-1.5 text-left">
+            <p className="m-0 text-[0.68rem] font-medium text-slate-500">
+              Add-on items
+            </p>
+            <OrderExtraProductsDisplay event={event} />
+          </div>
         </div>
       </div>
     </div>
@@ -884,7 +1070,15 @@ export function BusinessOrdersPanel({
                           <th className={thClass}>
                             <TableColumnHeader
                               icon={CircleDollarSign}
-                              label="Counter extras"
+                              label="Add-on amount"
+                              iconClassName={TABLE_HEAD_ICON_CLASS}
+                              labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            />
+                          </th>
+                          <th className={thClass}>
+                            <TableColumnHeader
+                              icon={Package}
+                              label="Add-on items"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
@@ -955,6 +1149,9 @@ export function BusinessOrdersPanel({
                                 className={`${tdClass} whitespace-nowrap tabular-nums`}
                               >
                                 <OrderNetAmountDisplay event={event} />
+                              </td>
+                              <td className={`${tdClass} align-top whitespace-normal`}>
+                                <OrderExtraProductsDisplay event={event} />
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap text-slate-600`}

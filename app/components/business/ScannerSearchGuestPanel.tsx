@@ -954,7 +954,12 @@ export function ScannerSearchGuestPanel({
   );
 
   const handlePurchaseDeals = useCallback(
-    async (orderSubtotal: number, extraItemsAmount = 0) => {
+    async (
+      orderSubtotal: number,
+      extraItemsAmount = 0,
+      extraItemNames?: string[],
+      extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
+    ) => {
       const funnelIds = selectedBusinessDeals.map((deal) => deal.id);
       if (!selectedProfile || funnelIds.length === 0) return;
 
@@ -975,6 +980,8 @@ export function ScannerSearchGuestPanel({
           purchaseMeans: "IN_PERSON",
           orderSubtotal,
           extraItemsAmount,
+          extraItemNames,
+          extraItems,
           idempotencyKey: purchaseIdempotencyKeyRef.current,
         });
         purchaseIdempotencyKeyRef.current = "";
@@ -1008,6 +1015,8 @@ export function ScannerSearchGuestPanel({
       couponIds: number[],
       orderSubtotal?: number,
       extraItemsAmount = 0,
+      extraItemNames?: string[],
+      extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
     ) => {
       if (!selectedProfile || couponIds.length === 0) return;
 
@@ -1038,6 +1047,8 @@ export function ScannerSearchGuestPanel({
           idempotencyKeyRef.current,
           "staff_lookup",
           extraItemsAmount,
+          extraItemNames,
+          extraItems,
         );
 
         if (result.success) {
@@ -1200,8 +1211,13 @@ export function ScannerSearchGuestPanel({
           confirming={purchasing}
           extraPurchaseMode
           onBack={() => setPurchaseStep("enterPrice")}
-          onDone={(extraItemsAmount) =>
-            void handlePurchaseDeals(pendingDealAmount, extraItemsAmount)
+          onDone={(extraItemsAmount, meta) =>
+            void handlePurchaseDeals(
+              pendingDealAmount,
+              extraItemsAmount,
+              meta?.itemNames,
+              meta?.items,
+            )
           }
           onDismiss={() => {
             setPurchaseStep(null);
@@ -1241,12 +1257,18 @@ export function ScannerSearchGuestPanel({
             setRedeemStep("completeOrder");
             setPendingRedeemAmount(null);
           }}
-          onDone={(orderSubtotal) => {
+          onDone={(orderSubtotal, meta) => {
             const allPrepaid =
               selectedDeals.length > 0 &&
               selectedDeals.every((deal) => deal.paymentLabel === "PREPAID");
             if (allPrepaid) {
-              void handleConfirmRedeem(selectedDealIds, orderSubtotal);
+              void handleConfirmRedeem(
+                selectedDealIds,
+                orderSubtotal,
+                0,
+                meta?.itemNames,
+                meta?.items,
+              );
               return;
             }
             setPendingRedeemAmount(orderSubtotal);
@@ -1266,11 +1288,13 @@ export function ScannerSearchGuestPanel({
           confirming={confirmingRedemption}
           extraPurchaseMode
           onBack={() => setRedeemStep("enterSubtotal")}
-          onDone={(extraItemsAmount) =>
+          onDone={(extraItemsAmount, meta) =>
             void handleConfirmRedeem(
               selectedDealIds,
               pendingRedeemAmount,
               extraItemsAmount,
+              meta?.itemNames,
+              meta?.items,
             )
           }
           onDismiss={() => {

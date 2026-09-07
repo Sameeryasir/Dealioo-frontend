@@ -20,6 +20,12 @@ export type RestaurantOrderPaymentStatus =
   | "paid_walk_in"
   | "paid_both";
 
+export type BusinessOrderExtraItem = {
+  name: string;
+  unitPrice: number;
+  qty: number;
+};
+
 export type BusinessFunnelEvent = {
   id: number;
   rowKey?: string;
@@ -45,6 +51,7 @@ export type BusinessFunnelEvent = {
   onlineAmountCents: number | null;
   businessAmount: number | null;
   businessVisitedAt: string | null;
+  extraItems?: BusinessOrderExtraItem[] | null;
   paidAt: string | null;
   funnelPaymentId: number | null;
   orderId?: number | null;

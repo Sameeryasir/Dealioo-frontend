@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -126,6 +134,139 @@ function activityDescription(event: RestaurantActivityEvent): string {
       .trim();
   }
   return text;
+}
+
+function ActivityDescriptionDisplay({
+  text,
+  className = "",
+}: {
+  text: string;
+  className?: string;
+}) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [popoverMounted, setPopoverMounted] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    setPopoverMounted(true);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      setIsTruncated(
+        el.scrollHeight > el.clientHeight + 1 ||
+          el.scrollWidth > el.clientWidth + 1,
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+
+  const updatePopoverPosition = useCallback(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const width = 320;
+    const left = Math.min(
+      Math.max(8, rect.left),
+      window.innerWidth - width - 8,
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const openAbove = spaceBelow < 160 && rect.top > spaceBelow;
+    setPopoverStyle({
+      position: "fixed",
+      left,
+      width,
+      zIndex: 120,
+      ...(openAbove
+        ? { bottom: window.innerHeight - rect.top + 6 }
+        : { top: rect.bottom + 6 }),
+    });
+  }, []);
+
+  const showPopover = useCallback(() => {
+    if (!isTruncated) return;
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    updatePopoverPosition();
+    setPopoverOpen(true);
+  }, [isTruncated, updatePopoverPosition]);
+
+  const scheduleHidePopover = useCallback(() => {
+    if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => {
+      setPopoverOpen(false);
+      hideTimerRef.current = null;
+    }, 120);
+  }, []);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const onScrollOrResize = () => updatePopoverPosition();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPopoverOpen(false);
+    };
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [popoverOpen, updatePopoverPosition]);
+
+  return (
+    <>
+      <span
+        ref={anchorRef}
+        tabIndex={isTruncated ? 0 : undefined}
+        onMouseEnter={showPopover}
+        onMouseLeave={scheduleHidePopover}
+        onFocus={showPopover}
+        onBlur={scheduleHidePopover}
+        className={`line-clamp-2 text-slate-600 ${isTruncated ? "cursor-help" : ""} ${className}`.trim()}
+      >
+        {text}
+      </span>
+
+      {popoverMounted &&
+      popoverOpen &&
+      isTruncated &&
+      popoverStyle &&
+      createPortal(
+        <div
+          role="tooltip"
+          style={popoverStyle}
+          onMouseEnter={showPopover}
+          onMouseLeave={scheduleHidePopover}
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.14)]"
+        >
+          <p className="m-0 max-h-56 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-zinc-900">
+            {text}
+          </p>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
 }
 
 function guestName(event: RestaurantActivityEvent): string {
@@ -382,9 +523,12 @@ function ActivityEventMobileCard({
           visitChannel={event.visitChannel}
         />
       </div>
-      <p className="m-0 mt-3 text-[0.8rem] font-medium leading-snug text-slate-600">
-        {activityDescription(event)}
-      </p>
+      <div className="mt-3">
+        <ActivityDescriptionDisplay
+          text={activityDescription(event)}
+          className="text-[0.8rem] font-medium leading-snug"
+        />
+      </div>
     </article>
   );
 }
@@ -721,9 +865,9 @@ export function BusinessActivityPanel({
                                 </div>
                               </td>
                               <td className={`${tdClass} max-w-[18rem]`}>
-                                <span className="line-clamp-2 text-slate-600">
-                                  {activityDescription(event)}
-                                </span>
+                                <ActivityDescriptionDisplay
+                                  text={activityDescription(event)}
+                                />
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap text-slate-600`}

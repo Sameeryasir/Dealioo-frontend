@@ -22,6 +22,10 @@ import {
   landingTemplateCtaLayoutClass,
 } from "@/app/components/crm-template-editor/landing-cta-styles";
 import { resolveLandingTheme } from "@/app/components/crm-template-editor/theme-resolver";
+import {
+  resolveUploadImageUrl,
+  spacesImageHeroLoadProps,
+} from "@/app/lib/resolve-upload-image-url";
 
 export function pageBackgroundStyle(
   color: string | undefined,
@@ -58,9 +62,12 @@ export function LandingHero({
   placeholderClass: string;
   heroStyle: HeroDesignStyle;
 }) {
+  const resolvedUrl = resolveUploadImageUrl(url);
+  const hasImage = Boolean(resolvedUrl.trim());
+
   const frameClass = [
     heroStyle.frameClass,
-    !url?.trim() ? `${placeholderClass} ${heroStyle.placeholderClass}` : "",
+    !hasImage ? `${placeholderClass} ${heroStyle.placeholderClass}` : "",
   ].join(" ");
 
   const placeholder = (
@@ -77,8 +84,11 @@ export function LandingHero({
   const imageBlock = (
     <div className={frameClass}>
       <img
-        src={url}
+        src={resolvedUrl}
         alt=""
+        width={1200}
+        height={800}
+        {...spacesImageHeroLoadProps}
         className={heroStyle.imageClass}
         style={imageScaleStyle(normalizeImageScale(scale))}
       />
@@ -92,7 +102,7 @@ export function LandingHero({
     </div>
   );
 
-  const inner = !url?.trim() ? placeholder : imageBlock;
+  const inner = hasImage ? imageBlock : placeholder;
 
   if (!heroStyle.wrapperClass) {
     return inner;

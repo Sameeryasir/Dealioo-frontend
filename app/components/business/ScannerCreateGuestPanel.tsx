@@ -296,6 +296,8 @@ export function ScannerCreateGuestPanel({
   const handlePurchase = async (
     orderSubtotal: number,
     extraItemsAmount = 0,
+    extraItemNames?: string[],
+    extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
   ) => {
     if (createdGuestId == null || selectedFunnelIds.length === 0) return;
 
@@ -316,6 +318,8 @@ export function ScannerCreateGuestPanel({
         purchaseMeans: "IN_PERSON",
         orderSubtotal,
         extraItemsAmount,
+        extraItemNames,
+        extraItems,
         idempotencyKey: purchaseIdempotencyKeyRef.current,
       });
       purchaseIdempotencyKeyRef.current = "";
@@ -474,8 +478,13 @@ export function ScannerCreateGuestPanel({
           confirming={purchasing}
           extraPurchaseMode
           onBack={() => setPurchaseStep("enterPrice")}
-          onDone={(extraItemsAmount) =>
-            void handlePurchase(pendingDealAmount, extraItemsAmount)
+          onDone={(extraItemsAmount, meta) =>
+            void handlePurchase(
+              pendingDealAmount,
+              extraItemsAmount,
+              meta?.itemNames,
+              meta?.items,
+            )
           }
           onDismiss={() => {
             setPurchaseStep(null);

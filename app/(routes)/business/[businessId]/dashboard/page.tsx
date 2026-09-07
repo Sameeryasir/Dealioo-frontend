@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Info banner above Business Performance when Stripe/Meta not connected.
- * Why: Guide owners to finish Integrations so payments and ads data can work.
- * Related: BusinessSettingsPanel integrations, businessSettingsHref
- */
-
 import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";

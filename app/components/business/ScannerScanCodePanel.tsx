@@ -550,6 +550,8 @@ export function ScannerScanCodePanel({
       couponIds: number[],
       orderSubtotal: number,
       extraItemsAmount = 0,
+      extraItemNames?: string[],
+      extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
     ) => {
       if (!previewResult || !pendingTokenRef.current || couponIds.length === 0) {
         return;
@@ -574,6 +576,8 @@ export function ScannerScanCodePanel({
           idempotencyKeyRef.current,
           "qr_scan",
           extraItemsAmount,
+          extraItemNames,
+          extraItems,
         );
         if (result.success) {
           idempotencyKeyRef.current = "";
@@ -772,7 +776,7 @@ export function ScannerScanCodePanel({
             setDialogStep("completeOrder");
             setPendingRedeemAmount(null);
           }}
-          onDone={(orderSubtotal) => {
+          onDone={(orderSubtotal, meta) => {
             const selectedRewards = (
               previewResult.availableRewards ?? []
             ).filter((reward) => pendingCouponIds.includes(reward.couponId));
@@ -782,7 +786,13 @@ export function ScannerScanCodePanel({
                 (reward) => reward.paymentLabel === "PREPAID",
               );
             if (allPrepaid) {
-              void handleConfirmRedeem(pendingCouponIds, orderSubtotal);
+              void handleConfirmRedeem(
+                pendingCouponIds,
+                orderSubtotal,
+                0,
+                meta?.itemNames,
+                meta?.items,
+              );
               return;
             }
             setPendingRedeemAmount(orderSubtotal);
@@ -800,11 +810,13 @@ export function ScannerScanCodePanel({
           confirming={confirmingRedemption}
           extraPurchaseMode
           onBack={() => setDialogStep("enterSubtotal")}
-          onDone={(extraItemsAmount) =>
+          onDone={(extraItemsAmount, meta) =>
             void handleConfirmRedeem(
               pendingCouponIds,
               pendingRedeemAmount,
               extraItemsAmount,
+              meta?.itemNames,
+              meta?.items,
             )
           }
           onDismiss={() => void resetScan()}

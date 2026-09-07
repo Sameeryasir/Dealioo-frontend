@@ -70,3 +70,14 @@ export const spacesImageLoadProps = {
   decoding: "async" as const,
   loading: "lazy" as const,
 };
+
+export const spacesImageEagerLoadProps = {
+  decoding: "async" as const,
+  loading: "eager" as const,
+};
+
+export const spacesImageHeroLoadProps = {
+  decoding: "async" as const,
+  loading: "eager" as const,
+  fetchPriority: "high" as const,
+};

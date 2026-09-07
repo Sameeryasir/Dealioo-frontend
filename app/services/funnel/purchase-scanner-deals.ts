@@ -18,6 +18,8 @@ export async function purchaseScannerDeals(params: {
   purchaseMeans: ScannerPurchaseMeans;
   orderSubtotal?: number;
   extraItemsAmount?: number;
+  extraItemNames?: string[];
+  extraItems?: Array<{ name: string; unitPrice: number; qty: number }>;
   idempotencyKey?: string;
 }): Promise<ScannerPurchasedDeal[]> {
   if (!hasAuthSession()) {
@@ -28,6 +30,32 @@ export async function purchaseScannerDeals(params: {
   if (businessId == null || businessId < 1) {
     throw new Error("Business is required.");
   }
+
+  const extraItemNames = Array.isArray(params.extraItemNames)
+    ? params.extraItemNames
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .slice(0, 20)
+    : [];
+  const extraItems = Array.isArray(params.extraItems)
+    ? params.extraItems
+        .filter(
+          (item) =>
+            item &&
+            typeof item.name === "string" &&
+            item.name.trim() &&
+            Number.isFinite(item.unitPrice) &&
+            item.unitPrice > 0 &&
+            Number.isFinite(item.qty) &&
+            item.qty >= 1,
+        )
+        .map((item) => ({
+          name: item.name.trim().slice(0, 120),
+          unitPrice: Math.round(item.unitPrice * 100) / 100,
+          qty: Math.min(99, Math.max(1, Math.round(item.qty))),
+        }))
+        .slice(0, 20)
+    : [];
 
   const response = await authAxios.post<ScannerPurchasedDeal[]>(
     `/funnel-event/business/${businessId}/guest/${params.customerId}/purchase-deals`,
@@ -40,6 +68,8 @@ export async function purchaseScannerDeals(params: {
       ...(params.extraItemsAmount != null && params.extraItemsAmount > 0
         ? { extraItemsAmount: params.extraItemsAmount }
         : {}),
+      ...(extraItems.length > 0 ? { extraItems } : {}),
+      ...(extraItemNames.length > 0 ? { extraItemNames } : {}),
       ...(params.idempotencyKey?.trim()
         ? { idempotencyKey: params.idempotencyKey.trim() }
         : {}),

@@ -122,6 +122,8 @@ async function postScanPayload(
   idempotencyKey?: string,
   channel: "qr_scan" | "staff_lookup" = "qr_scan",
   extraItemsAmount?: number,
+  extraItemNames?: string[],
+  extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
 ): Promise<Response> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -132,6 +134,32 @@ async function postScanPayload(
   if (!qrToken.trim()) {
     throw new Error("QR token is required.");
   }
+
+  const normalizedNames = Array.isArray(extraItemNames)
+    ? extraItemNames
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .slice(0, 20)
+    : [];
+  const normalizedItems = Array.isArray(extraItems)
+    ? extraItems
+        .filter(
+          (item) =>
+            item &&
+            typeof item.name === "string" &&
+            item.name.trim() &&
+            Number.isFinite(item.unitPrice) &&
+            item.unitPrice > 0 &&
+            Number.isFinite(item.qty) &&
+            item.qty >= 1,
+        )
+        .map((item) => ({
+          name: item.name.trim().slice(0, 120),
+          unitPrice: Math.round(item.unitPrice * 100) / 100,
+          qty: Math.min(99, Math.max(1, Math.round(item.qty))),
+        }))
+        .slice(0, 20)
+    : [];
 
   return authenticatedFetch(
     `${getApiBaseUrl()}/redemption/scan/${encodeURIComponent(String(restaurantId))}${pathSuffix}`,
@@ -147,6 +175,10 @@ async function postScanPayload(
         orderSubtotal,
         ...(extraItemsAmount != null && extraItemsAmount > 0
           ? { extraItemsAmount }
+          : {}),
+        ...(normalizedItems.length > 0 ? { extraItems: normalizedItems } : {}),
+        ...(normalizedNames.length > 0
+          ? { extraItemNames: normalizedNames }
           : {}),
         idempotencyKey,
         channel: pathSuffix === "" ? channel : undefined,
@@ -180,6 +212,8 @@ export async function scanRedemptionQr(
   idempotencyKey: string = createRedemptionIdempotencyKey(),
   channel: "qr_scan" | "staff_lookup" = "qr_scan",
   extraItemsAmount?: number,
+  extraItemNames?: string[],
+  extraItems?: Array<{ name: string; unitPrice: number; qty: number }>,
 ): Promise<ScanRedemptionResponse> {
   const res = await postScanPayload(
     restaurantId,
@@ -190,6 +224,8 @@ export async function scanRedemptionQr(
     idempotencyKey,
     channel,
     extraItemsAmount,
+    extraItemNames,
+    extraItems,
   );
 
   if (!res.ok) {

@@ -24,6 +24,7 @@ import {
   EMPTY_CAMPAIGN_PRICING,
   type CampaignPricing,
 } from "@/app/lib/campaign-price";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type {
   LandingTemplatePage,
   PaymentTemplatePage,
@@ -96,7 +97,7 @@ export function PaymentPagePreview({
   const landingBlend: CheckoutLandingBlend | null =
     onLanding && landingStyle
       ? {
-          isDark: isLandingDesignDark(landingDesignId),
+          isDark: isLandingDesignDark(landingDesignId ?? undefined),
           background:
             landingPage.backgroundColor?.trim() ||
             landingStyle.backgroundDefault,
@@ -134,7 +135,7 @@ export function PaymentPagePreview({
   return (
     <LandingFunnelStepShell
       landingPage={landingPage}
-      heroImageUrl={landingPage.imageUrl}
+      heroImageUrl={resolveUploadImageUrl(landingPage.imageUrl)}
       heroImageScale={landingPage.imageScale}
       fillViewport={fillViewport}
     >
