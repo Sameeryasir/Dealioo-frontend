@@ -51,6 +51,7 @@ export function useFunnelStepGuard(
 
     const checkoutToken = params.get("checkoutToken")?.trim() || null;
     const paymentSucceeded = paymentSucceededFromUrl(search);
+    const isPostpaid = campaignType === "postpaid";
 
     if (step === "landing") {
       clearFunnelLockedStep(funnelId);
@@ -78,6 +79,17 @@ export function useFunnelStepGuard(
     }
 
     if (step === "payment") {
+      if (!isPostpaid && !checkoutToken) {
+        router.replace(
+          buildFunnelStepPath(
+            funnelId,
+            "signup",
+            stripPaymentSuccessParams(search),
+          ),
+        );
+        return;
+      }
+
       forceFunnelLockedStep(funnelId, "payment");
 
       window.history.pushState(
@@ -102,14 +114,26 @@ export function useFunnelStepGuard(
 
     if (step === "confirmation") {
       const locked = getFunnelLockedStep(funnelId);
-      const isPostpaid = campaignType === "postpaid";
       const postpaidOk =
         isPostpaid &&
         (params.get("payment_confirmed") === "1" ||
           params.get("paymentConfirmed") === "true");
       const prepaidOk =
         !isPostpaid &&
-        (locked === "confirmation" || Boolean(checkoutToken) || paymentSucceeded);
+        (locked === "confirmation" ||
+          Boolean(checkoutToken) ||
+          paymentSucceeded);
+
+      if (!isPostpaid && !checkoutToken && !paymentSucceeded) {
+        router.replace(
+          buildFunnelStepPath(
+            funnelId,
+            locked === "payment" ? "payment" : "signup",
+            stripPaymentSuccessParams(search),
+          ),
+        );
+        return;
+      }
 
       if (!postpaidOk && !prepaidOk && locked !== "confirmation") {
         const fallback =

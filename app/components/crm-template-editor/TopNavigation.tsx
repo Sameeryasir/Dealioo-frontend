@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import {
   Eye,
+  Globe,
+  GlobeLock,
   Loader2,
   Save,
 } from "lucide-react";
@@ -22,6 +24,9 @@ export type TopNavigationProps = {
   saveStatus: EditorSaveStatus;
   isDirty: boolean;
   onSave: () => void;
+  onPublish?: () => void;
+  onUnpublish?: () => void;
+  published?: boolean;
   onPreview?: () => void;
   isSaving?: boolean;
   saveError?: string | null;
@@ -39,12 +44,18 @@ const compactPrimaryActionClass =
 const ghostActionClass =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
 
+const publishActionClass =
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
+
 export function TopNavigation({
   campaignName,
   pageLabel,
   saveStatus,
   isDirty,
   onSave,
+  onPublish,
+  onUnpublish,
+  published = false,
   onPreview,
   isSaving = false,
   saveError,
@@ -55,6 +66,33 @@ export function TopNavigation({
   const campaignLine = campaignName ? campaignName : "Your campaign";
   const compact = embedded || docked;
   const ctaClass = compact ? compactPrimaryActionClass : primaryActionClass;
+
+  const publishControls =
+    onPublish || onUnpublish ? (
+      published ? (
+        <button
+          type="button"
+          onClick={onUnpublish}
+          disabled={isSaving || !onUnpublish}
+          title="Take this funnel offline for guests"
+          className={ghostActionClass}
+        >
+          <GlobeLock className="size-3.5" aria-hidden />
+          Unpublish
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onPublish}
+          disabled={isSaving || !onPublish}
+          title="Make this funnel live for guests and ads"
+          className={publishActionClass}
+        >
+          <Globe className="size-3.5" aria-hidden />
+          Publish
+        </button>
+      )
+    ) : null;
 
   if (embedded && docked) {
     return (
@@ -72,9 +110,17 @@ export function TopNavigation({
             </p>
             <StatusBadge status={saveStatus} isDirty={isDirty} />
           </div>
+          <p
+            className={`mt-1 m-0 text-[0.65rem] font-semibold ${
+              published ? "text-emerald-700" : "text-amber-700"
+            }`}
+          >
+            {published ? "Live for guests" : "Draft — not public yet"}
+          </p>
         </div>
 
         <div className="editor-panel-top-foot flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+          {publishControls}
           <button
             type="button"
             onClick={onSave}
@@ -109,6 +155,20 @@ export function TopNavigation({
         <StatusBadge status={saveStatus} isDirty={isDirty} />
       </motion.div>
 
+      <motion.div
+        variants={headerActionItemVariants}
+        className={`hidden text-[0.65rem] font-bold sm:inline ${
+          published ? "text-emerald-700" : "text-amber-700"
+        }`}
+        title={
+          published
+            ? "Guests can open the public funnel link"
+            : "Publish before sharing ad or tracking links"
+        }
+      >
+        {published ? "Live" : "Draft"}
+      </motion.div>
+
       {showPreview && onPreview ? (
         <motion.button
           type="button"
@@ -119,6 +179,10 @@ export function TopNavigation({
           <Eye className="size-3.5" />
           Preview
         </motion.button>
+      ) : null}
+
+      {publishControls ? (
+        <motion.div variants={headerActionItemVariants}>{publishControls}</motion.div>
       ) : null}
 
       <motion.button

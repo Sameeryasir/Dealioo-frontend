@@ -40,6 +40,9 @@ function publicFunnelCacheKey(
   options?: {
     businessId?: number | null;
     step?: PublicFunnelStep | null;
+    preview?: boolean;
+    previewToken?: string | null;
+    checkoutToken?: string | null;
   },
 ): string {
   const businessId =
@@ -47,7 +50,10 @@ function publicFunnelCacheKey(
       ? options.businessId
       : "";
   const step = options?.step?.trim() || "";
-  return `${funnelId}|${businessId}|${step}`;
+  const preview = options?.preview ? "1" : "0";
+  const previewToken = options?.previewToken?.trim() || "";
+  const checkoutToken = options?.checkoutToken?.trim() || "";
+  return `${funnelId}|${businessId}|${step}|${preview}|${previewToken}|${checkoutToken}`;
 }
 
 async function fetchPublicFunnelByIdOnce(
@@ -55,6 +61,9 @@ async function fetchPublicFunnelByIdOnce(
   options?: {
     businessId?: number | null;
     step?: PublicFunnelStep | null;
+    preview?: boolean;
+    previewToken?: string | null;
+    checkoutToken?: string | null;
   },
 ): Promise<PublicFunnelResponse | null> {
   const params = new URLSearchParams();
@@ -63,6 +72,15 @@ async function fetchPublicFunnelByIdOnce(
   }
   if (options?.step) {
     params.set("step", options.step);
+  }
+  if (options?.preview) {
+    params.set("preview", "1");
+  }
+  if (options?.previewToken?.trim()) {
+    params.set("previewToken", options.previewToken.trim());
+  }
+  if (options?.checkoutToken?.trim()) {
+    params.set("checkoutToken", options.checkoutToken.trim());
   }
   const query = params.toString();
 
@@ -93,6 +111,9 @@ export async function fetchPublicFunnelById(
   options?: {
     businessId?: number | null;
     step?: PublicFunnelStep | null;
+    preview?: boolean;
+    previewToken?: string | null;
+    checkoutToken?: string | null;
   },
 ): Promise<PublicFunnelResponse | null> {
   if (!isPositiveInt(funnelId)) {

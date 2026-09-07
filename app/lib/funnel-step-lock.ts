@@ -24,7 +24,6 @@ export function getFunnelLockedStep(
       return raw;
     }
   } catch {
-    // ignore
   }
   return null;
 }
@@ -38,7 +37,6 @@ export function clearFunnelLockedStep(
   try {
     sessionStorage.removeItem(storageKey(funnelId));
   } catch {
-    // ignore
   }
 }
 
@@ -52,7 +50,6 @@ export function forceFunnelLockedStep(
   try {
     sessionStorage.setItem(storageKey(funnelId), step);
   } catch {
-    // ignore
   }
 }
 

@@ -8,26 +8,25 @@ import {
 } from "@/app/components/crm-template-editor/funnel-template-storage";
 import { cloneTemplatePages } from "@/app/lib/clone-template-pages";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { loadTemplatePagesForCampaign } from "@/app/services/funnel/get-funnel-by-campaign";
+import {
+  loadTemplatePagesForCampaign,
+  peekCachedFunnelId,
+} from "@/app/services/funnel/get-funnel-by-campaign";
 import type { TemplatePagesState } from "@/app/components/crm-template-editor/template-types";
 
 export type CampaignFunnelLoaderState = {
   pages: TemplatePagesState;
   pagesBaseline: TemplatePagesState;
   funnelId: number | null;
+  published: boolean;
   isLoading: boolean;
   loadError: string | null;
   isHydrated: boolean;
+  markSaved: (pages: TemplatePagesState, options?: { published?: boolean }) => void;
+  setPublished: (published: boolean) => void;
 };
 
-const IDLE: CampaignFunnelLoaderState = {
-  pages: cloneTemplatePages(),
-  pagesBaseline: cloneTemplatePages(),
-  funnelId: null,
-  isLoading: false,
-  loadError: null,
-  isHydrated: true,
-};
+const IDLE_PAGES = cloneTemplatePages();
 
 function clonePages(pages: TemplatePagesState): TemplatePagesState {
   return JSON.parse(JSON.stringify(pages)) as TemplatePagesState;
@@ -47,51 +46,63 @@ function persistFunnelPagesLocally(
 export function useCampaignFunnelLoader(
   campaignId: number | undefined,
 ): CampaignFunnelLoaderState {
-  const [state, setState] = useState<CampaignFunnelLoaderState>(() =>
-    campaignId == null
-      ? IDLE
-      : {
-          ...IDLE,
-          isLoading: true,
-          isHydrated: false,
-        },
+  const [pages, setPages] = useState<TemplatePagesState>(IDLE_PAGES);
+  const [pagesBaseline, setPagesBaseline] =
+    useState<TemplatePagesState>(IDLE_PAGES);
+  const [funnelId, setFunnelId] = useState<number | null>(null);
+  const [published, setPublishedState] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(true);
+
+  const markSaved = useCallback(
+    (savedPages: TemplatePagesState, options?: { published?: boolean }) => {
+      const next = clonePages(savedPages);
+      setPages(next);
+      setPagesBaseline(clonePages(next));
+      if (options?.published !== undefined) {
+        setPublishedState(options.published);
+      }
+      if (campaignId != null) {
+        persistFunnelPagesLocally(campaignId, funnelId, next);
+      }
+    },
+    [campaignId, funnelId],
   );
+
+  const setPublished = useCallback((next: boolean) => {
+    setPublishedState(next);
+  }, []);
 
   const load = useCallback(async (id: number, signal: { cancelled: boolean }) => {
     const token = getSetupAccessToken().trim();
     const local = await loadFunnelTemplatePagesAsync(String(id));
     const baseline = local ?? cloneTemplatePages();
+    const cachedFunnelId = peekCachedFunnelId(id);
 
     if (local && !signal.cancelled) {
-      setState({
-        pages: baseline,
-        pagesBaseline: clonePages(baseline),
-        funnelId: null,
-        isLoading: Boolean(token),
-        loadError: null,
-        isHydrated: true,
-      });
+      setPages(baseline);
+      setPagesBaseline(clonePages(baseline));
+      setFunnelId(cachedFunnelId);
+      setIsLoading(Boolean(token));
+      setLoadError(null);
+      setIsHydrated(true);
     } else if (!signal.cancelled) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        loadError: null,
-        isHydrated: false,
-      }));
+      setIsLoading(true);
+      setLoadError(null);
+      setIsHydrated(false);
     }
 
     if (!token) {
       if (signal.cancelled) return;
-      setState({
-        pages: baseline,
-        pagesBaseline: clonePages(baseline),
-        funnelId: null,
-        isLoading: false,
-        loadError: local
-          ? null
-          : "Sign in to load funnel data from the server.",
-        isHydrated: true,
-      });
+      setPages(baseline);
+      setPagesBaseline(clonePages(baseline));
+      setFunnelId(cachedFunnelId);
+      setIsLoading(false);
+      setLoadError(
+        local ? null : "Sign in to load funnel data from the server.",
+      );
+      setIsHydrated(true);
       return;
     }
 
@@ -99,36 +110,43 @@ export function useCampaignFunnelLoader(
       const result = await loadTemplatePagesForCampaign(id, token, baseline);
       if (signal.cancelled) return;
 
-      setState({
-        pages: result.pages,
-        pagesBaseline: clonePages(result.pages),
-        funnelId: result.funnelId,
-        isLoading: false,
-        loadError: null,
-        isHydrated: true,
-      });
+      setPages(result.pages);
+      setPagesBaseline(clonePages(result.pages));
+      setFunnelId(result.funnelId ?? cachedFunnelId);
+      setPublishedState(result.published);
+      setIsLoading(false);
+      setLoadError(null);
+      setIsHydrated(true);
 
-      persistFunnelPagesLocally(id, result.funnelId, result.pages);
+      persistFunnelPagesLocally(
+        id,
+        result.funnelId ?? cachedFunnelId,
+        result.pages,
+      );
     } catch (e) {
-      const loadError =
+      const nextError =
         e instanceof Error ? e.message : "Could not load funnel from server.";
       if (signal.cancelled) return;
 
       const cached = local ?? (await loadFunnelTemplatePagesAsync(String(id)));
-      setState({
-        pages: cached ?? baseline,
-        pagesBaseline: clonePages(cached ?? baseline),
-        funnelId: null,
-        isLoading: false,
-        loadError: cached ? loadError : loadError,
-        isHydrated: true,
-      });
+      setPages(cached ?? baseline);
+      setPagesBaseline(clonePages(cached ?? baseline));
+      setFunnelId(cachedFunnelId);
+      setIsLoading(false);
+      setLoadError(nextError);
+      setIsHydrated(true);
     }
   }, []);
 
   useEffect(() => {
     if (campaignId == null) {
-      setState(IDLE);
+      setPages(IDLE_PAGES);
+      setPagesBaseline(IDLE_PAGES);
+      setFunnelId(null);
+      setPublishedState(false);
+      setIsLoading(false);
+      setLoadError(null);
+      setIsHydrated(true);
       return;
     }
 
@@ -139,7 +157,17 @@ export function useCampaignFunnelLoader(
     };
   }, [campaignId, load]);
 
-  return state;
+  return {
+    pages,
+    pagesBaseline,
+    funnelId,
+    published,
+    isLoading,
+    loadError,
+    isHydrated,
+    markSaved,
+    setPublished,
+  };
 }
 
 export function usePersistCampaignFunnelDraft(

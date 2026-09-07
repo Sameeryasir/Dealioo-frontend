@@ -50,6 +50,7 @@ export type FunnelByCampaignResponse = {
 export type CampaignFunnelLoadResult = {
   pages: TemplatePagesState;
   funnelId: number | null;
+  published: boolean;
   fromApi: boolean;
   apiPageKeys: (keyof NonNullable<FunnelByCampaignResponse["pages"]>)[];
 };
@@ -98,7 +99,11 @@ function mapFormFields(ids: string[] | undefined, fallback: FormFieldId[]): Form
   const mapped = ids
     .map((id) => API_FORM_FIELD_TO_CLIENT[id])
     .filter((id): id is FormFieldId => Boolean(id));
-  return mapped.length > 0 ? mapped : fallback;
+  const base = mapped.length > 0 ? mapped : fallback;
+  const withRequired = new Set<FormFieldId>(base);
+  withRequired.add("email");
+  withRequired.add("phone");
+  return Array.from(withRequired);
 }
 
 function asFormDesign(value: string | undefined, fallback: FormDesign): FormDesign {
@@ -317,6 +322,7 @@ export function mergeApiPagesIntoTemplateState(
 }
 
 const funnelIdByCampaignCache = new Map<number, number>();
+const funnelPublishedByCampaignCache = new Map<number, boolean>();
 
 type CampaignFunnelIdListener = (
   campaignId: number,
@@ -343,12 +349,26 @@ function readFunnelId(
     funnelIdByCampaignCache.set(campaignId, id);
     notifyCampaignFunnelId(campaignId, id);
   }
+  if (remote && typeof remote.published === "boolean") {
+    funnelPublishedByCampaignCache.set(campaignId, remote.published);
+  }
   return id;
 }
 
 export function peekCachedFunnelId(campaignId: number): number | null {
   const cached = funnelIdByCampaignCache.get(campaignId);
   return isPositiveInt(cached) ? cached : null;
+}
+
+export function peekCachedFunnelPublished(campaignId: number): boolean {
+  return funnelPublishedByCampaignCache.get(campaignId) === true;
+}
+
+export function cacheFunnelPublished(
+  campaignId: number,
+  published: boolean,
+): void {
+  funnelPublishedByCampaignCache.set(campaignId, published);
 }
 
 export function subscribeCampaignFunnelId(
@@ -521,6 +541,7 @@ export async function loadTemplatePagesForCampaign(
     return {
       pages: start,
       funnelId,
+      published: peekCachedFunnelPublished(campaignId),
       fromApi: false,
       apiPageKeys: [],
     };
@@ -532,10 +553,16 @@ export async function loadTemplatePagesForCampaign(
       >)[])
     : [];
 
+  const published =
+    typeof remote?.published === "boolean"
+      ? remote.published
+      : peekCachedFunnelPublished(campaignId);
+
   if (remote?.pages && apiPageKeys.length > 0) {
     return {
       pages: mergeApiPagesIntoTemplateState(start, remote.pages),
       funnelId,
+      published,
       fromApi: true,
       apiPageKeys,
     };
@@ -544,6 +571,7 @@ export async function loadTemplatePagesForCampaign(
   return {
     pages: start,
     funnelId,
+    published,
     fromApi: false,
     apiPageKeys: [],
   };

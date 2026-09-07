@@ -52,6 +52,26 @@ const PREVIEW_STYLES: Record<
     panel: "bg-indigo-50",
     accent: "bg-indigo-600",
   },
+  [CheckoutTemplateType.COMPACT]: {
+    bar: "bg-teal-700",
+    panel: "bg-teal-50",
+    accent: "bg-teal-600",
+  },
+  [CheckoutTemplateType.GRADIENT]: {
+    bar: "bg-gradient-to-r from-rose-500 to-orange-400",
+    panel: "bg-rose-50",
+    accent: "bg-rose-600",
+  },
+  [CheckoutTemplateType.CARD]: {
+    bar: "bg-blue-700",
+    panel: "bg-blue-50",
+    accent: "bg-blue-600",
+  },
+  [CheckoutTemplateType.BOLD]: {
+    bar: "bg-red-700",
+    panel: "bg-red-50",
+    accent: "bg-red-600",
+  },
 };
 
 export function CheckoutTemplatePickerOption({

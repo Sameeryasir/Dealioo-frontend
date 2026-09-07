@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
+import { FunnelUnavailableNotice } from "@/app/components/funnel/FunnelUnavailableNotice";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
@@ -20,11 +21,8 @@ export function LandingFunnelPreview() {
   const isDesignPreview = searchParams.get("preview") === "1";
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
-  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
-    funnelIdSegment,
-    businessId,
-    "landing",
-  );
+  const { pages, isLoading, publicFunnel, unavailable } =
+    usePublicFunnelTemplatePages(funnelIdSegment, businessId, "landing");
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   useFunnelStepGuard(funnelId, "landing", { campaignType });
@@ -63,6 +61,8 @@ export function LandingFunnelPreview() {
       />
       {isLoading ? (
         <FunnelPreviewSkeleton />
+      ) : unavailable ? (
+        <FunnelUnavailableNotice />
       ) : (
         <TemplatePreview
           page={landing}

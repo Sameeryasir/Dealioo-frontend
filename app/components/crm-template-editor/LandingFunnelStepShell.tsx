@@ -21,6 +21,7 @@ export function LandingFunnelStepShell({
   heroImageScale,
   fillViewport = false,
   minHeight,
+  showHero = true,
   children,
 }: {
   landingPage: LandingTemplatePage;
@@ -28,6 +29,7 @@ export function LandingFunnelStepShell({
   heroImageScale: number;
   fillViewport?: boolean;
   minHeight?: number | null;
+  showHero?: boolean;
   children: ReactNode;
 }) {
   const landingDesign = normalizeLandingDesign(landingPage.landingDesign);
@@ -63,15 +65,19 @@ export function LandingFunnelStepShell({
           : {}),
       }}
     >
-      <LandingHero
-        url={heroImageUrl}
-        scale={normalizeImageScale(heroImageScale)}
-        fadeColor={theme.background}
-        placeholderClass={theme.heroPlaceholderClass}
-        heroStyle={heroStyle}
-      />
+      {showHero ? (
+        <LandingHero
+          url={heroImageUrl}
+          scale={normalizeImageScale(heroImageScale)}
+          fadeColor={theme.background}
+          placeholderClass={theme.heroPlaceholderClass}
+          heroStyle={heroStyle}
+        />
+      ) : null}
       <div
-        className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 pt-6 ${
+        className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 ${
+          showHero ? "pt-6" : "pt-8"
+        } ${
           fillViewport || stretchToMinHeight ? "min-h-0 flex-1" : ""
         } ${centered ? "text-center" : "text-left"}`}
         style={pageBackgroundStyle(theme.background, theme.background)}

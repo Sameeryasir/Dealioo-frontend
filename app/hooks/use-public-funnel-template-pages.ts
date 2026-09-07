@@ -7,6 +7,10 @@ import {
   loadFunnelTemplatePagesAsync,
   saveFunnelTemplatePagesAsync,
 } from "@/app/components/crm-template-editor/funnel-template-storage";
+import {
+  getFunnelPreviewTokenFromSearch,
+  isFunnelDesignPreviewSearch,
+} from "@/app/lib/funnel-public-path";
 import { isPositiveInt } from "@/app/lib/numbers";
 import {
   mapFunnelApiPagesToTemplateState,
@@ -43,13 +47,23 @@ export function usePublicFunnelTemplatePages(
   const [publicFunnel, setPublicFunnel] = useState<PublicFunnelResponse | null>(
     null,
   );
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const funnelId = Number.parseInt(funnelIdSegment, 10);
+    const search =
+      typeof window !== "undefined" ? window.location.search : "";
+    const isPreview = isFunnelDesignPreviewSearch(search);
+    const previewToken = getFunnelPreviewTokenFromSearch(search);
+    const checkoutToken =
+      new URLSearchParams(
+        search.startsWith("?") ? search.slice(1) : search,
+      ).get("checkoutToken")?.trim() || null;
 
     async function load() {
       setIsLoading(true);
+      setUnavailable(false);
       try {
         const cached = await loadFunnelTemplatePagesAsync(funnelIdSegment);
         if (!cancelled && cached) {
@@ -60,9 +74,23 @@ export function usePublicFunnelTemplatePages(
           const loaded = await fetchPublicFunnelById(funnelId, {
             businessId,
             step,
+            preview: isPreview,
+            previewToken,
+            checkoutToken,
           });
           if (cancelled) return;
+          if (!loaded) {
+            setPublicFunnel(null);
+            setUnavailable(true);
+            if (!isPreview) {
+              setPages(INITIAL_TEMPLATE_PAGES);
+            } else if (cached) {
+              setPages(cached);
+            }
+            return;
+          }
           setPublicFunnel(loaded);
+          setUnavailable(false);
           if (loaded?.pages) {
             const apiPages = loaded.pages as NonNullable<
               FunnelByCampaignResponse["pages"]
@@ -103,5 +131,5 @@ export function usePublicFunnelTemplatePages(
     };
   }, [funnelIdSegment, businessId, step]);
 
-  return { pages, isLoading, publicFunnel };
+  return { pages, isLoading, publicFunnel, unavailable };
 }

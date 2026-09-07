@@ -15,9 +15,9 @@ import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import {
-  buildFunnelDesignPreviewPath,
   buildFunnelPaymentConfirmationPath,
   buildFunnelPublicPath,
+  openFunnelDesignPreview,
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
 import {
@@ -115,10 +115,12 @@ export function CrmTemplateEditor({
   const funnelLoader = useCampaignFunnelLoader(campaignId);
   const {
     funnelId,
+    published,
     isLoading: isLoadingFunnel,
     loadError,
     isHydrated,
     pagesBaseline,
+    markSaved,
   } = funnelLoader;
 
   const {
@@ -177,6 +179,8 @@ export function CrmTemplateEditor({
           includePaymentPage: !isPostpaid,
         }),
       );
+      markSaved(pagesToSave);
+      resetPagesHistory(pagesToSave);
       setSaveStatus("saved");
       setIsDirty(false);
       editSnapshotRef.current = JSON.parse(
@@ -186,7 +190,66 @@ export function CrmTemplateEditor({
       setSaveStatus("error");
       setSaveError(e instanceof Error ? e.message : "Could not save changes.");
     }
-  }, [campaignId, pages, pagesBaseline, isPostpaid]);
+  }, [
+    campaignId,
+    pages,
+    pagesBaseline,
+    isPostpaid,
+    markSaved,
+    resetPagesHistory,
+  ]);
+
+  const handleSetPublished = useCallback(
+    async (nextPublished: boolean) => {
+      if (campaignId == null) {
+        setSaveStatus("error");
+        setSaveError("Missing campaign id.");
+        return;
+      }
+      const token = getSetupAccessToken().trim();
+      if (!token) {
+        setSaveStatus("error");
+        setSaveError("You're signed out. Sign in again to publish.");
+        return;
+      }
+      setSaveStatus("saving");
+      setSaveError(null);
+      try {
+        const pagesToSave = mergePagesForSave(pagesBaseline, pages);
+        await createFunnel(
+          token,
+          buildCreateFunnelRequestBody(campaignId, pagesToSave, {
+            includePaymentPage: !isPostpaid,
+            published: nextPublished,
+          }),
+        );
+        markSaved(pagesToSave, { published: nextPublished });
+        resetPagesHistory(pagesToSave);
+        setSaveStatus("saved");
+        setIsDirty(false);
+        editSnapshotRef.current = JSON.parse(
+          JSON.stringify(pagesToSave),
+        ) as TemplatePagesState;
+      } catch (e) {
+        setSaveStatus("error");
+        setSaveError(
+          e instanceof Error
+            ? e.message
+            : nextPublished
+              ? "Could not publish funnel."
+              : "Could not unpublish funnel.",
+        );
+      }
+    },
+    [
+      campaignId,
+      pages,
+      pagesBaseline,
+      isPostpaid,
+      markSaved,
+      resetPagesHistory,
+    ],
+  );
 
   useEffect(() => {
     if (!isPostpaid) return;
@@ -432,11 +495,7 @@ export function CrmTemplateEditor({
         : activeId === "confirmation"
           ? "confirmation"
           : activeId;
-    window.open(
-      buildFunnelDesignPreviewPath(previewRouteId, step),
-      "_blank",
-      "noopener,noreferrer",
-    );
+    void openFunnelDesignPreview(previewRouteId, step);
   }, [previewRouteId, activeId, isPostpaid]);
 
   const handlePreviewPage = useCallback(
@@ -444,11 +503,7 @@ export function CrmTemplateEditor({
       if (previewRouteId == null) return;
       if (isPostpaid && pageId === "payment") return;
       const step = pageId === "confirmation" ? "confirmation" : pageId;
-      window.open(
-        buildFunnelDesignPreviewPath(previewRouteId, step),
-        "_blank",
-        "noopener,noreferrer",
-      );
+      void openFunnelDesignPreview(previewRouteId, step);
     },
     [previewRouteId, isPostpaid],
   );
@@ -531,6 +586,9 @@ export function CrmTemplateEditor({
               saveStatus={displaySaveStatus}
               isDirty={isDirty}
               onSave={() => void handleSave()}
+              onPublish={() => void handleSetPublished(true)}
+              onUnpublish={() => void handleSetPublished(false)}
+              published={published}
               onPreview={previewRouteId != null ? handlePreview : undefined}
               isSaving={saveStatus === "saving"}
               saveError={saveError}
@@ -583,6 +641,9 @@ export function CrmTemplateEditor({
                   saveStatus={displaySaveStatus}
                   isDirty={isDirty}
                   onSave={() => void handleSave()}
+                  onPublish={() => void handleSetPublished(true)}
+                  onUnpublish={() => void handleSetPublished(false)}
+                  published={published}
                   isSaving={saveStatus === "saving"}
                   saveError={saveError}
                   embedded

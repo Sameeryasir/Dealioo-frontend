@@ -1,4 +1,5 @@
 import { LANDING_DESIGN_CATALOG } from "@/app/components/crm-template-editor/landing-designs/landing-design-catalog";
+import { getLandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { getFormDesignStyle } from "@/app/components/crm-template-editor/form-designs/registry";
 import type { FormDesign } from "@/app/components/crm-template-editor/form-designs/types";
 import type { FormDesignStyle } from "@/app/components/crm-template-editor/form-designs/types";
@@ -29,25 +30,36 @@ export function blendFormDesignWithLanding(
 ): Pick<
   FormDesignStyle,
   "shellClass" | "labelClass" | "fieldClass" | "rowClass" | "fieldsContainerClass"
-> {
+> & {
+  primary: string;
+  secondary: string;
+  background: string;
+} {
   const base = getFormDesignStyle(design);
+  const landing = getLandingDesignStyle(landingDesignId);
   const isDark = isLandingDesignDark(landingDesignId);
 
   if (!isDark) {
     return {
-      shellClass: "",
+      shellClass: base.shellClass,
       labelClass: base.labelClass,
       fieldClass: base.fieldClass,
       rowClass: base.rowClass,
       fieldsContainerClass: base.fieldsContainerClass,
+      primary: landing.primary,
+      secondary: landing.secondary,
+      background: landing.backgroundDefault,
     };
   }
 
   return {
-    shellClass: "",
+    shellClass: adaptClassForDarkLanding(base.shellClass),
     labelClass: adaptClassForDarkLanding(base.labelClass),
     fieldClass: adaptClassForDarkLanding(base.fieldClass),
     rowClass: adaptClassForDarkLanding(base.rowClass),
     fieldsContainerClass: base.fieldsContainerClass,
+    primary: landing.primary,
+    secondary: landing.secondary,
+    background: landing.backgroundDefault,
   };
 }

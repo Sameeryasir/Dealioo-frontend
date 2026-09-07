@@ -16,7 +16,10 @@ import type {
 
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
-import { clearStoredFunnelEtag } from "@/app/services/funnel/get-funnel-by-campaign";
+import {
+  cacheFunnelPublished,
+  clearStoredFunnelEtag,
+} from "@/app/services/funnel/get-funnel-by-campaign";
 
 export type CreateFunnelFormFieldId =
   | "first_name"
@@ -42,13 +45,10 @@ export type CreateFunnelLandingPagePayload = {
   heroImageScale: number;
   backgroundColor: string;
   layoutType: string;
-  /** Page design (Appearance). */
   landingPageDesign: string;
   pageDesign: string;
-  /** Hero / media layout (Media). */
   heroImageDesign: string;
   mediaDesign: string;
-  /** Content text colors, hex codes from the Content section. */
   headlineColor: string;
   subheadlineColor: string;
   bodyColor: string;
@@ -140,10 +140,14 @@ export type CreateFunnelPagesPayload = Partial<{
 export type CreateFunnelRequestBody = {
   campaignId: number;
   pages: CreateFunnelPagesPayload;
+  published?: boolean;
 };
 
 function mapFormFields(ids: FormFieldId[]): CreateFunnelFormFieldId[] {
-  return ids.map((id) => FORM_FIELD_TO_API[id]);
+  const withRequired = new Set<FormFieldId>(ids);
+  withRequired.add("email");
+  withRequired.add("phone");
+  return Array.from(withRequired).map((id) => FORM_FIELD_TO_API[id]);
 }
 
 function buildLandingPayload(
@@ -274,7 +278,7 @@ function buildConfirmationPayload(
 export function buildCreateFunnelRequestBody(
   campaignId: number,
   pages: TemplatePagesState,
-  options?: { includePaymentPage?: boolean },
+  options?: { includePaymentPage?: boolean; published?: boolean },
 ): CreateFunnelRequestBody {
   const includePaymentPage = options?.includePaymentPage !== false;
   const include = new Set<TemplatePageId>(
@@ -301,7 +305,13 @@ export function buildCreateFunnelRequestBody(
     out.confirmation = buildConfirmationPayload(pages.confirmation);
   }
 
-  return { campaignId, pages: out };
+  return {
+    campaignId,
+    pages: out,
+    ...(options?.published !== undefined
+      ? { published: options.published }
+      : {}),
+  };
 }
 
 export async function createFunnel(
@@ -328,6 +338,9 @@ export async function createFunnel(
   }
 
   clearStoredFunnelEtag(body.campaignId);
+  if (typeof body.published === "boolean") {
+    cacheFunnelPublished(body.campaignId, body.published);
+  }
 
   const ct = res.headers.get("content-type");
   if (ct?.includes("application/json")) {

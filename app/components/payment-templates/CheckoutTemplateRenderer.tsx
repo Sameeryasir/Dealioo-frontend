@@ -3,9 +3,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckoutTemplateType } from "@/app/components/crm-template-editor/checkout-template-types";
 import { AppleCheckout } from "@/app/components/payment-templates/AppleCheckout";
+import { BoldCheckout } from "@/app/components/payment-templates/BoldCheckout";
+import { CardCheckout } from "@/app/components/payment-templates/CardCheckout";
+import { CompactCheckout } from "@/app/components/payment-templates/CompactCheckout";
 import { CrmCheckout } from "@/app/components/payment-templates/CrmCheckout";
 import { DarkCheckout } from "@/app/components/payment-templates/DarkCheckout";
 import { FloatingCheckout } from "@/app/components/payment-templates/FloatingCheckout";
+import { GradientCheckout } from "@/app/components/payment-templates/GradientCheckout";
 import { MinimalCheckout } from "@/app/components/payment-templates/MinimalCheckout";
 import { PremiumCheckout } from "@/app/components/payment-templates/PremiumCheckout";
 import { ShopifyCheckout } from "@/app/components/payment-templates/ShopifyCheckout";
@@ -31,6 +35,14 @@ function renderTemplate(props: CheckoutTemplateProps) {
       return <DarkCheckout {...props} />;
     case CheckoutTemplateType.CRM:
       return <CrmCheckout {...props} />;
+    case CheckoutTemplateType.COMPACT:
+      return <CompactCheckout {...props} />;
+    case CheckoutTemplateType.GRADIENT:
+      return <GradientCheckout {...props} />;
+    case CheckoutTemplateType.CARD:
+      return <CardCheckout {...props} />;
+    case CheckoutTemplateType.BOLD:
+      return <BoldCheckout {...props} />;
     case CheckoutTemplateType.STRIPE:
     default:
       return <StripeStyleCheckout {...props} />;
@@ -38,7 +50,7 @@ function renderTemplate(props: CheckoutTemplateProps) {
 }
 
 export function CheckoutTemplateRenderer(props: CheckoutTemplateProps) {
-  const key = props.page.checkoutTemplate;
+  const key = `${props.page.checkoutTemplate}|${props.page.formDesign}`;
 
   return (
     <AnimatePresence mode="wait">

@@ -8,6 +8,10 @@ export enum CheckoutTemplateType {
   SPLIT = "split",
   DARK = "dark",
   CRM = "crm",
+  COMPACT = "compact",
+  GRADIENT = "gradient",
+  CARD = "card",
+  BOLD = "bold",
 }
 
 export type CheckoutTheme = {
@@ -73,6 +77,26 @@ export const CHECKOUT_TEMPLATE_OPTIONS: {
     value: CheckoutTemplateType.CRM,
     label: "CRM",
     description: "HubSpot / GoHighLevel style CRM checkout.",
+  },
+  {
+    value: CheckoutTemplateType.COMPACT,
+    label: "Compact",
+    description: "Dense single-column checkout for mobile speed.",
+  },
+  {
+    value: CheckoutTemplateType.GRADIENT,
+    label: "Gradient",
+    description: "Bold gradient wash behind the form.",
+  },
+  {
+    value: CheckoutTemplateType.CARD,
+    label: "Card",
+    description: "Centered elevated payment card.",
+  },
+  {
+    value: CheckoutTemplateType.BOLD,
+    label: "Bold",
+    description: "Large CTA and strong color framing.",
   },
 ];
 

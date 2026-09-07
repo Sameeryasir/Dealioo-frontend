@@ -6,6 +6,7 @@ import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/Funn
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
+import { FunnelUnavailableNotice } from "@/app/components/funnel/FunnelUnavailableNotice";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
@@ -31,11 +32,8 @@ function FunnelCampaignPaymentPageInner() {
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
-  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
-    funnelIdSegment,
-    businessId,
-    "payment",
-  );
+  const { pages, isLoading, publicFunnel, unavailable } =
+    usePublicFunnelTemplatePages(funnelIdSegment, businessId, "payment");
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   const isPostpaid = campaignType === "postpaid";
@@ -192,7 +190,7 @@ function FunnelCampaignPaymentPageInner() {
     session == null;
 
   const awaitingCampaignType =
-    !isDesignPreview && (isLoading || campaignType == null);
+    !isDesignPreview && !unavailable && (isLoading || campaignType == null);
 
   return (
     <>
@@ -210,10 +208,12 @@ function FunnelCampaignPaymentPageInner() {
         funnelId={funnelId}
         stepKey="payment"
       />
-      {awaitingCampaignType ||
-      (!isDesignPreview && isPostpaid) ||
-      alreadyPaidThisOffer ||
-      awaitingInitialCheckoutSession ? (
+      {unavailable ? (
+        <FunnelUnavailableNotice />
+      ) : awaitingCampaignType ||
+        (!isDesignPreview && isPostpaid) ||
+        alreadyPaidThisOffer ||
+        awaitingInitialCheckoutSession ? (
         <FunnelPreviewSkeleton />
       ) : (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">

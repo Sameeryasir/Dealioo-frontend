@@ -10,6 +10,7 @@ export type FunnelPublicPathQuery = {
   checkoutToken?: string | null;
   campaignType?: "prepaid" | "postpaid" | null;
   preview?: boolean;
+  previewToken?: string | null;
 };
 
 export type BuildFunnelPublicPathInput = {
@@ -49,6 +50,9 @@ export function buildFunnelPublicPath({
   if (query?.preview) {
     params.set("preview", "1");
   }
+  if (query?.previewToken?.trim()) {
+    params.set("previewToken", query.previewToken.trim());
+  }
 
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
@@ -64,15 +68,47 @@ export function isFunnelDesignPreviewSearch(
   return params.get("preview") === "1";
 }
 
+export function getFunnelPreviewTokenFromSearch(
+  search: string | null | undefined,
+): string | null {
+  if (!search) return null;
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  const token = params.get("previewToken")?.trim();
+  return token || null;
+}
+
 export function buildFunnelDesignPreviewPath(
   funnelId: number | string,
   step: FunnelPublicStep,
+  previewToken?: string | null,
 ): string {
   return buildFunnelPublicPath({
     funnelId,
     step,
-    query: { preview: true },
+    query: {
+      preview: true,
+      previewToken: previewToken?.trim() || undefined,
+    },
   });
+}
+
+export async function openFunnelDesignPreview(
+  funnelId: number | string,
+  step: FunnelPublicStep,
+): Promise<void> {
+  const id = Number(funnelId);
+  if (!Number.isFinite(id) || id < 1) return;
+  const { createFunnelPreviewToken } = await import(
+    "@/app/services/funnel/create-funnel-preview-token"
+  );
+  const previewToken = await createFunnelPreviewToken(id);
+  window.open(
+    buildFunnelDesignPreviewPath(id, step, previewToken),
+    "_blank",
+    "noopener,noreferrer",
+  );
 }
 
 export function withFunnelDesignPreviewParam(url: string): string {

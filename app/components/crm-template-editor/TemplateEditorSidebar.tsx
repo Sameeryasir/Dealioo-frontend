@@ -73,6 +73,7 @@ import {
   landingSectionOrder,
 } from "@/app/components/crm-template-editor/landing-sections";
 import { SortableSectionList } from "@/app/components/crm-template-editor/SortableSectionList";
+import { isSignupFormFieldRemovable } from "@/app/lib/funnel-signup-validation";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { uploadCampaignImage } from "@/app/services/campaign/upload-campaign-image";
 import {
@@ -394,41 +395,6 @@ const accordionChevronTransition = {
   ease: accordionEase,
 } as const;
 
-function UpgradePlanNavRow({
-  id,
-  title,
-  hint,
-}: {
-  id: SectionId;
-  title: string;
-  hint?: string;
-}) {
-  const Icon = SECTION_ICONS[id] ?? FileText;
-  const tone = SECTION_TONES[id];
-  const subtitle = hint ?? SECTION_HINTS[id];
-
-  return (
-    <motion.div className={tone.closedShell}>
-      <a
-        href="/dashboard/upgrade-plan"
-        className={editorAccordionHeaderButtonClass}
-        title={`${title} — Upgrade plan to unlock`}
-      >
-        <SectionIconChip id={id} open={false} Icon={Icon} />
-        <span className="min-w-0 flex-1">
-          <span className={editorAccordionTitleClass}>{title}</span>
-          {subtitle ? (
-            <span className={editorAccordionHintClass}>{subtitle}</span>
-          ) : null}
-        </span>
-        <span className={editorAccordionChevronClosedClass}>
-          <ChevronRight className="size-4" strokeWidth={2.25} aria-hidden />
-        </span>
-      </a>
-    </motion.div>
-  );
-}
-
 function AccordionSection({
   id,
   title,
@@ -742,6 +708,7 @@ export function TemplateEditorSidebar({
     if (!signup) return;
     const set = new Set(signup.formFieldIds);
     if (set.has(fieldId)) {
+      if (!isSignupFormFieldRemovable(fieldId)) return;
       if (set.size <= 1) return;
       set.delete(fieldId);
     } else {
@@ -1346,11 +1313,83 @@ export function TemplateEditorSidebar({
               ) : null}
             </AccordionSection>
 
-            <UpgradePlanNavRow
+            <AccordionSection
               id="checkout-templates"
               title="Checkout templates"
-            />
-            <UpgradePlanNavRow id="form" title="Form design" />
+              hint="Payment page layout style"
+              open={isOpen("checkout-templates")}
+              onToggle={toggle}
+              variant={accordionVariant}
+            >
+              <div className="max-h-80 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-[28rem]">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {CHECKOUT_TEMPLATE_OPTIONS.map((opt) => {
+                    const on =
+                      normalizeCheckoutTemplate(payment.checkoutTemplate) ===
+                      opt.value;
+                    return (
+                      <CheckoutTemplatePickerOption
+                        key={opt.value}
+                        value={opt.value}
+                        label={opt.label}
+                        description={opt.description}
+                        selected={on}
+                        onSelect={() =>
+                          onChange({ checkoutTemplate: opt.value })
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </AccordionSection>
+
+            <AccordionSection
+              id="form"
+              title="Form design"
+              hint="Payment form input styles"
+              open={isOpen("form")}
+              onToggle={toggle}
+              variant={accordionVariant}
+            >
+              <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
+                <div className="grid grid-cols-1 gap-2.5">
+                  {FORM_DESIGN_OPTIONS.filter(
+                    (opt) => !formDesignUsesSplitLayout(opt.value),
+                  ).map((opt) => {
+                    const on = payment.formDesign === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          onChange({ formDesign: opt.value as FormDesign })
+                        }
+                        className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
+                          on
+                            ? editorSidebarPickerRowSelectedClass
+                            : editorSidebarPickerRowClass
+                        }`}
+                      >
+                        <FormDesignSwatch design={opt.value} selected={on} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-bold tracking-tight">
+                            {opt.label}
+                          </span>
+                          <span
+                            className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
+                              on ? "text-slate-600" : "text-zinc-500"
+                            }`}
+                          >
+                            {opt.description}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </AccordionSection>
           </>
         ) : null}
 
@@ -1624,18 +1663,22 @@ export function TemplateEditorSidebar({
                   {FORM_FIELD_OPTIONS.map((f) => {
                     const on = signup.formFieldIds.includes(f.id);
                     const Icon = FORM_FIELD_ICONS[f.id];
+                    const lockedOn = on && !isSignupFormFieldRemovable(f.id);
                     return (
                       <button
                         key={f.id}
                         type="button"
                         aria-pressed={on}
+                        disabled={lockedOn}
                         onClick={() => toggleFormField(f.id)}
                         title={
-                          on
-                            ? `Included, click to remove (${f.label})`
-                            : `Not included, click to add (${f.label})`
+                          lockedOn
+                            ? `${f.label} is required for leads`
+                            : on
+                              ? `Included, click to remove (${f.label})`
+                              : `Not included, click to add (${f.label})`
                         }
-                        className={editorSidebarFormFieldRowClass}
+                        className={`${editorSidebarFormFieldRowClass} disabled:cursor-not-allowed disabled:opacity-80`}
                       >
                         <span
                           className={`flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ring-1 ring-black/5 transition-[border-color,background-color,color] duration-200 ${

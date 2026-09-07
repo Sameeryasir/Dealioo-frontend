@@ -13,7 +13,6 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   GoogleAdsLogo,
@@ -25,7 +24,7 @@ type FunnelTrackingLinkDialogProps = {
   campaignTitle: string;
   funnelLive: boolean;
   landingTrackingUrl: string;
-  landingPreviewUrl: string;
+  funnelId?: number | null;
   copyDone: boolean;
   onClose: () => void;
   onCopy: () => void;
@@ -44,7 +43,7 @@ export function FunnelTrackingLinkDialog({
   campaignTitle,
   funnelLive,
   landingTrackingUrl,
-  landingPreviewUrl,
+  funnelId,
   copyDone,
   onClose,
   onCopy,
@@ -307,16 +306,20 @@ export function FunnelTrackingLinkDialog({
           >
             Done
           </button>
-          {landingPreviewUrl ? (
-            <Link
-              href={landingPreviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {funnelId != null && funnelId > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                void import("@/app/lib/funnel-public-path").then(
+                  ({ openFunnelDesignPreview }) =>
+                    openFunnelDesignPreview(funnelId, "landing"),
+                );
+              }}
               className="inline-flex min-w-28 items-center justify-center gap-2 rounded-lg bg-[#1877f2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#166fe0]"
             >
               <ExternalLink className="size-4" strokeWidth={2} aria-hidden />
               Open preview
-            </Link>
+            </button>
           ) : null}
         </div>
       </div>

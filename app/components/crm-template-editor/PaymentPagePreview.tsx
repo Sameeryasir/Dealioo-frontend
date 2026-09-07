@@ -13,10 +13,13 @@ import {
 } from "@/app/components/crm-template-editor/checkout-template-types";
 import { LandingFunnelStepShell } from "@/app/components/crm-template-editor/LandingFunnelStepShell";
 import {
+  getLandingDesignStyle,
   normalizeLandingDesign,
   syncCheckoutThemeWithLandingDesign,
 } from "@/app/components/crm-template-editor/landing-designs/registry";
+import { isLandingDesignDark } from "@/app/components/crm-template-editor/landing-blended-form-styles";
 import { getCheckoutFormStyles } from "@/app/components/payment-templates/shared/checkout-form-styles";
+import type { CheckoutLandingBlend } from "@/app/components/payment-templates/types";
 import {
   EMPTY_CAMPAIGN_PRICING,
   type CampaignPricing,
@@ -66,6 +69,9 @@ export function PaymentPagePreview({
   const landingDesignId = onLanding
     ? normalizeLandingDesign(landingPage.landingDesign)
     : null;
+  const landingStyle = landingDesignId
+    ? getLandingDesignStyle(landingDesignId)
+    : null;
 
   const syncedPayment =
     onLanding && landingDesignId
@@ -75,6 +81,10 @@ export function PaymentPagePreview({
             payment.checkoutTheme,
             landingDesignId,
           ),
+          backgroundColor:
+            landingPage.backgroundColor?.trim() ||
+            landingStyle?.backgroundDefault ||
+            payment.backgroundColor,
         }
       : payment;
 
@@ -83,9 +93,17 @@ export function PaymentPagePreview({
     blendWithLanding: onLanding,
   });
 
-  const landingBlend = onLanding
-    ? { isDark: formStyles.isDark }
-    : null;
+  const landingBlend: CheckoutLandingBlend | null =
+    onLanding && landingStyle
+      ? {
+          isDark: isLandingDesignDark(landingDesignId),
+          background:
+            landingPage.backgroundColor?.trim() ||
+            landingStyle.backgroundDefault,
+          primary: landingStyle.primary,
+          secondary: landingStyle.secondary,
+        }
+      : null;
 
   const paymentSlot =
     stripeMode && stripeCheckout ? (

@@ -20,14 +20,14 @@ export function getLandingDesignStyle(design: LandingDesign | string | undefined
   return landingDesignStyles[normalizeLandingDesign(design)];
 }
 
-/** Keep payment CTA color aligned with the active landing template palette. */
 export function syncCheckoutThemeWithLandingDesign<
-  T extends { buttonColor: string },
+  T extends { buttonColor: string; background?: string },
 >(theme: T, landingDesign: LandingDesign | string | undefined): T {
-  const { primary } = getLandingDesignStyle(landingDesign);
+  const style = getLandingDesignStyle(landingDesign);
   return {
     ...theme,
-    buttonColor: primary,
+    buttonColor: style.primary,
+    background: style.backgroundDefault,
   };
 }
 

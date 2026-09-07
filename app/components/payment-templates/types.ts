@@ -9,6 +9,9 @@ import type {
 
 export type CheckoutLandingBlend = {
   isDark: boolean;
+  background: string;
+  primary: string;
+  secondary: string;
 };
 
 export type CheckoutTemplateProps = {

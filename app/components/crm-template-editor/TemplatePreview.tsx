@@ -2,21 +2,15 @@
 
 import type { FormEvent } from "react";
 import { useCallback, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formDesignHidesTopHero } from "@/app/components/crm-template-editor/form-design-registry";
-import { SignupFormFields } from "@/app/components/crm-template-editor/form-designs/SignupFormFields";
 import { LandingPagePreview } from "@/app/components/crm-template-editor/LandingPagePreview";
 import { SignupPagePreview } from "@/app/components/crm-template-editor/SignupPagePreview";
 import { normalizeHeroDesign } from "@/app/components/crm-template-editor/hero-designs/registry";
 import { normalizeLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { ConfirmationPagePreview } from "@/app/components/crm-template-editor/ConfirmationPagePreview";
 import { PaymentPagePreview } from "@/app/components/crm-template-editor/PaymentPagePreview";
-import {
-  imageScaleStyle,
-  normalizeImageScale,
-} from "@/app/components/crm-template-editor/template-image";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type { CampaignPricing } from "@/app/lib/campaign-price";
 import type {
@@ -30,6 +24,7 @@ import {
   createCheckoutSession,
 } from "@/app/services/payment/checkout-session";
 import { getOrCreateVisitorId } from "@/app/lib/funnel-visitor-id";
+import { validateFunnelSignupFormData } from "@/app/lib/funnel-signup-validation";
 import {
   trackMetaPixelCompleteRegistration,
 } from "@/app/lib/meta-pixel-funnel-conversions";
@@ -63,80 +58,6 @@ function previewOuterChrome(
     return "flex w-full min-w-0 flex-col bg-white";
   }
   return "overflow-hidden rounded-2xl bg-white shadow-sm";
-}
-
-function textAlign(layoutType: string) {
-  if (layoutType === "centered") return "text-center";
-  return "text-left";
-}
-
-function BodyBlock({
-  body,
-  layoutType,
-  isMobile,
-  centerBody = false,
-}: {
-  body: string;
-  layoutType: string;
-  isMobile: boolean;
-  centerBody?: boolean;
-}) {
-  const trimmed = body.trim();
-  if (!trimmed) return null;
-  const paras = trimmed.split(/\n\n+/).filter(Boolean);
-  const useCenter = centerBody || layoutType === "centered";
-  const center = useCenter ? "mx-auto max-w-prose" : "";
-  return (
-    <div
-      className={`mt-8 space-y-4 text-zinc-600 ${isMobile ? "text-sm" : "text-[0.9375rem] leading-relaxed"} ${center}`}
-    >
-      {paras.map((p, i) => (
-        <p key={i} className={useCenter ? "text-center" : ""}>
-          {p.trim()}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function HeroImage({
-  url,
-  scale,
-  variant = "inset",
-}: {
-  url: string;
-  scale: number;
-  variant?: "inset" | "fullBleedTop";
-}) {
-  const bleed = variant === "fullBleedTop";
-  const frameClass = bleed
-    ? "aspect-[4/3] w-full overflow-hidden rounded-t-2xl"
-    : "aspect-[16/9] w-full overflow-hidden rounded-xl shadow-sm";
-
-  if (!url?.trim()) {
-    return (
-      <div
-        className={`flex w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-300 bg-zinc-100/90 px-4 text-center ${frameClass}`}
-      >
-        <span className="text-xs font-semibold text-zinc-600">
-          Image placeholder
-        </span>
-        <span className="text-[0.65rem] text-zinc-500">
-          Upload an image in the sidebar under Media
-        </span>
-      </div>
-    );
-  }
-  return (
-    <div className={frameClass}>
-      <img
-        src={url}
-        alt=""
-        className="h-full w-full object-cover"
-        style={imageScaleStyle(normalizeImageScale(scale))}
-      />
-    </div>
-  );
 }
 
 export function TemplatePreview({
@@ -241,10 +162,10 @@ export function TemplatePreview({
       trackingFunnelId,
       googleAdsTagId,
       googleAdsBusinessId,
+      page.id,
     ],
   );
 
-  const isMobile = true;
   const fromLanding = page.id === "signup";
   const layoutType = page.layoutType;
   const heroImageUrl = resolveUploadImageUrl(
@@ -260,7 +181,6 @@ export function TemplatePreview({
     fullPageShell: fullPageShellChrome,
   });
   const fillFrame = fullPageShellChrome;
-  const align = textAlign(layoutType);
   const signup =
     page.id === "signup" ? (page as SignUpTemplatePage) : null;
   const showTopHero =
@@ -298,29 +218,18 @@ export function TemplatePreview({
   const onSignupCustomerSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      if (!signupSubmitFlow || !signupNextAsLink) return;
-      const fd = new FormData(e.currentTarget);
-      const first = String(fd.get("firstName") ?? "").trim();
-      const last = String(fd.get("lastName") ?? "").trim();
-      const email = String(fd.get("email") ?? "").trim();
-      const phone = String(fd.get("phone") ?? "").trim();
-      const name = [first, last].filter(Boolean).join(" ").trim();
-      if (!first) {
-        toast.error("Please enter your first name.");
+      if (!signupSubmitFlow || !signupNextAsLink || !signup) return;
+
+      const validated = validateFunnelSignupFormData(
+        new FormData(e.currentTarget),
+        signup.formFieldIds,
+      );
+      if (!validated.ok) {
+        toast.error(validated.message);
         return;
       }
-      if (!last) {
-        toast.error("Please enter your last name.");
-        return;
-      }
-      if (!email) {
-        toast.error("Please enter your email.");
-        return;
-      }
-      if (!phone) {
-        toast.error("Please enter your phone number.");
-        return;
-      }
+      const { email, phone, name } = validated.values;
+
       setSignupSubmitting(true);
       try {
         const customer = await createCustomer({
@@ -440,6 +349,7 @@ export function TemplatePreview({
       }
     },
     [
+      signup,
       signupSubmitFlow,
       signupNextAsLink,
       router,
@@ -454,12 +364,6 @@ export function TemplatePreview({
       googleAdsLeadConversionLabel,
       googleAdsBusinessId,
     ],
-  );
-
-  const withSurface = (alignClass: string, children: React.ReactNode) => (
-    <div className={shell}>
-      <div className={`${previewFrameClass} p-4 ${alignClass}`}>{children}</div>
-    </div>
   );
 
   const fullPageLayoutClass = fillFrame
@@ -570,305 +474,5 @@ export function TemplatePreview({
     );
   }
 
-  const stackedBody = (
-    <>
-      {showTopHero ? (
-        <div className="-mx-4 -mt-4 mb-6">
-          <HeroImage
-            url={heroImageUrl}
-            scale={heroImageScale}
-            variant="fullBleedTop"
-          />
-        </div>
-      ) : null}
-
-      {!signup ? (
-        <>
-          <h1
-            className={`font-bold tracking-tight text-zinc-900 ${isMobile ? "text-xl" : "text-2xl sm:text-3xl"}`}
-          >
-            {page.heading}
-          </h1>
-          <p
-            className={`mt-5 font-bold text-zinc-700 ${isMobile ? "text-[15px] leading-snug" : "text-[17px] leading-snug"} ${layoutType === "centered" ? "mx-auto max-w-prose" : ""}`}
-          >
-            {page.subheading}
-          </p>
-        </>
-      ) : null}
-
-      {signup ? (
-        signupSubmitFlow ? (
-          <form className="contents" onSubmit={onSignupCustomerSubmit}>
-            <BodyBlock
-              body={page.body}
-              layoutType={layoutType}
-              isMobile={isMobile}
-              centerBody
-            />
-            <div className="mt-6">
-              <SignupFormFields
-                fieldIds={signup.formFieldIds}
-                design={signup.formDesign}
-                interactive={formsEnabled}
-                omitInteractiveForm
-              />
-            </div>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {signupBackAsLink ? (
-                <Link
-                  href={signupBackAsLink}
-                  className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-zinc-50"
-                  onClick={() => trackButtonClick(signup.navBackLabel)}
-                >
-                  {signup.navBackLabel}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5"
-                  onClick={() => trackButtonClick(signup.navBackLabel)}
-                >
-                  {signup.navBackLabel}
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={signupSubmitting}
-                className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {signup.navNextLabel}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <BodyBlock
-              body={page.body}
-              layoutType={layoutType}
-              isMobile={isMobile}
-              centerBody
-            />
-            <div className="mt-6">
-              <SignupFormFields
-                fieldIds={signup.formFieldIds}
-                design={signup.formDesign}
-                interactive={formsEnabled}
-              />
-            </div>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {signupBackAsLink ? (
-                <Link
-                  href={signupBackAsLink}
-                  className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-zinc-50"
-                  onClick={() => trackButtonClick(signup.navBackLabel)}
-                >
-                  {signup.navBackLabel}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5"
-                  onClick={() => trackButtonClick(signup.navBackLabel)}
-                >
-                  {signup.navBackLabel}
-                </button>
-              )}
-              {signupNextAsLink ? (
-                <Link
-                  href={signupNextAsLink}
-                  className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800"
-                  onClick={() => trackButtonClick(signup.navNextLabel)}
-                >
-                  {signup.navNextLabel}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="min-w-36 rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
-                  onClick={() => trackButtonClick(signup.navNextLabel)}
-                >
-                  {signup.navNextLabel}
-                </button>
-              )}
-            </div>
-          </>
-        )
-      ) : (
-        <>
-          <BodyBlock
-            body={page.body}
-            layoutType={layoutType}
-            isMobile={isMobile}
-          />
-          <div className="mt-6 w-full">
-            {landingCtaAsLink ? (
-              <Link
-                href={landingCtaAsLink}
-                className="flex w-full items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 transition hover:bg-zinc-800"
-                onClick={() => trackButtonClick(page.buttonText)}
-              >
-                {page.buttonText}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                className="w-full rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
-                onClick={() => trackButtonClick(page.buttonText)}
-              >
-                {page.buttonText}
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </>
-  );
-
-  if (layoutType === "split") {
-    return (
-      <div className={shell}>
-        <div
-          className={`flex flex-col overflow-hidden ${previewFrameClass}`}
-        >
-          <div className="w-full min-w-0 shrink-0">
-            <HeroImage
-              url={heroImageUrl}
-              scale={heroImageScale}
-              variant="fullBleedTop"
-            />
-          </div>
-          <div className="flex w-full flex-col justify-center p-4 text-left">
-            {!signup ? (
-              <>
-                <h1 className="text-xl font-bold tracking-tight text-zinc-900">
-                  {page.heading}
-                </h1>
-                <p className="mt-5 text-[15px] font-bold leading-snug text-zinc-700">
-                  {page.subheading}
-                </p>
-              </>
-            ) : null}
-            <BodyBlock
-              body={page.body}
-              layoutType={signup ? layoutType : "stacked"}
-              isMobile
-              centerBody={Boolean(signup)}
-            />
-            {signup ? (
-              signupSubmitFlow ? (
-                <form className="contents" onSubmit={onSignupCustomerSubmit}>
-                  <div className="mt-6 w-full min-w-0">
-                    <SignupFormFields
-                      fieldIds={signup.formFieldIds}
-                      design={signup.formDesign}
-                      interactive={formsEnabled}
-                      omitInteractiveForm
-                    />
-                  </div>
-                  <div className="mt-6 flex w-full max-w-md flex-wrap justify-center gap-2">
-                    {signupBackAsLink ? (
-                      <Link
-                        href={signupBackAsLink}
-                        className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-                        onClick={() => trackButtonClick(signup.navBackLabel)}
-                      >
-                        {signup.navBackLabel}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm"
-                        onClick={() => trackButtonClick(signup.navBackLabel)}
-                      >
-                        {signup.navBackLabel}
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={signupSubmitting}
-                      className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                      onClick={() => trackButtonClick(signup.navNextLabel)}
-                    >
-                      {signup.navNextLabel}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <BodyBlock
-                    body={page.body}
-                    layoutType={layoutType}
-                    isMobile
-                    centerBody
-                  />
-                  <div className="mt-6 w-full min-w-0">
-                    <SignupFormFields
-                      fieldIds={signup.formFieldIds}
-                      design={signup.formDesign}
-                      interactive={formsEnabled}
-                    />
-                  </div>
-                  <div className="mt-6 flex w-full max-w-md flex-wrap justify-center gap-2">
-                    {signupBackAsLink ? (
-                      <Link
-                        href={signupBackAsLink}
-                        className="inline-flex min-w-36 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50"
-                        onClick={() => trackButtonClick(signup.navBackLabel)}
-                      >
-                        {signup.navBackLabel}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="min-w-36 rounded-lg border border-zinc-200 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm"
-                        onClick={() => trackButtonClick(signup.navBackLabel)}
-                      >
-                        {signup.navBackLabel}
-                      </button>
-                    )}
-                    {signupNextAsLink ? (
-                      <Link
-                        href={signupNextAsLink}
-                        className="inline-flex min-w-36 items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
-                        onClick={() => trackButtonClick(signup.navNextLabel)}
-                      >
-                        {signup.navNextLabel}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="min-w-36 rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white"
-                        onClick={() => trackButtonClick(signup.navNextLabel)}
-                      >
-                        {signup.navNextLabel}
-                      </button>
-                    )}
-                  </div>
-                </>
-              )
-            ) : landingCtaAsLink ? (
-              <Link
-                href={landingCtaAsLink}
-                className="mt-6 flex w-full items-center justify-center rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
-                onClick={() => trackButtonClick(page.buttonText)}
-              >
-                {page.buttonText}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                className="mt-6 w-full rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white"
-                onClick={() => trackButtonClick(page.buttonText)}
-              >
-                {page.buttonText}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return withSurface(align, stackedBody);
+  return null;
 }

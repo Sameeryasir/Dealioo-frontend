@@ -14,9 +14,7 @@ import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { FunnelTrackingLinkDialog } from "@/app/components/campaign/FunnelTrackingLinkDialog";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import {
-  buildFunnelDesignPreviewPath,
   buildFunnelLandingTrackingUrl,
-  resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
 import { automationEase } from "@/app/lib/motion";
 import {
@@ -101,12 +99,6 @@ export default function CampaignHeader({
           : undefined,
     });
   }, [campaignId, funnelId, businessId, price, campaign?.campaignType]);
-
-  const landingPreviewUrl = useMemo(() => {
-    const routeId = resolveFunnelRouteId(funnelId);
-    if (routeId == null) return "";
-    return buildFunnelDesignPreviewPath(routeId, "landing");
-  }, [funnelId]);
 
   const handleGenerate = useCallback(() => {
     onGenerateTrackingLink?.();
@@ -361,7 +353,7 @@ export default function CampaignHeader({
               campaignTitle={campaignTitle}
               funnelLive={funnelId != null && funnelId >= 1}
               landingTrackingUrl={landingTrackingUrl}
-              landingPreviewUrl={landingPreviewUrl}
+              funnelId={funnelId}
               copyDone={copyDone}
               onClose={() => setTrackingDialogOpen(false)}
               onCopy={() => void handleCopyLandingUrl()}

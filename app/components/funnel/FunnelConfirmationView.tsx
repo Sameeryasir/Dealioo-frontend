@@ -7,6 +7,7 @@ import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePr
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
+import { FunnelUnavailableNotice } from "@/app/components/funnel/FunnelUnavailableNotice";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { PaymentConfirmedSprinkles } from "@/app/components/funnel/PaymentConfirmedSprinkles";
 import { usePaymentStatusPoll } from "@/app/hooks/use-payment-status-poll";
@@ -38,11 +39,8 @@ export function FunnelConfirmationView({
 
   const isDesignPreview = searchParams.get("preview") === "1";
 
-  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
-    templateStorageKey,
-    businessId,
-    "confirmation",
-  );
+  const { pages, isLoading, publicFunnel, unavailable } =
+    usePublicFunnelTemplatePages(templateStorageKey, businessId, "confirmation");
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   const isPostpaid = campaignType === "postpaid";
@@ -202,6 +200,10 @@ export function FunnelConfirmationView({
     paymentId,
     searchParams,
   ]);
+
+  if (unavailable) {
+    return <FunnelUnavailableNotice />;
+  }
 
   if (!ready || isLoading || (!isDesignPreview && campaignType == null)) {
     return <FunnelPreviewSkeleton />;

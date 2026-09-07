@@ -6,6 +6,7 @@ import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/Funn
 import { FunnelGuestPageShell } from "@/app/components/funnel/FunnelGuestPageShell";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
 import { FunnelGoogleAdsTracking } from "@/app/components/funnel/FunnelGoogleAdsTracking";
+import { FunnelUnavailableNotice } from "@/app/components/funnel/FunnelUnavailableNotice";
 import { usePublicFunnelTemplatePages } from "@/app/hooks/use-public-funnel-template-pages";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import { useCampaignPricing } from "@/app/hooks/use-campaign-pricing";
@@ -27,11 +28,8 @@ function FunnelCampaignSignupInner() {
 
   const campaignPricing = useCampaignPricing(campaignId, businessId);
 
-  const { pages, isLoading, publicFunnel } = usePublicFunnelTemplatePages(
-    funnelIdSegment,
-    businessId,
-    "signup",
-  );
+  const { pages, isLoading, publicFunnel, unavailable } =
+    usePublicFunnelTemplatePages(funnelIdSegment, businessId, "signup");
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   const isPostpaid = campaignType === "postpaid";
@@ -78,8 +76,10 @@ function FunnelCampaignSignupInner() {
         funnelId={funnelId}
         stepKey="signup"
       />
-      {isLoading || (!isDesignPreview && campaignType == null) ? (
+      {isLoading || (!isDesignPreview && !unavailable && campaignType == null) ? (
         <FunnelPreviewSkeleton />
+      ) : unavailable ? (
+        <FunnelUnavailableNotice />
       ) : (
         <TemplatePreview
           page={signup}
