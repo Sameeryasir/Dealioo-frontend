@@ -79,10 +79,8 @@ const ICON_STROKE = 2.5;
 
 const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "draft", label: "Draft" },
-  { id: "published", label: "Published" },
   { id: "active", label: "Active" },
-  { id: "paused", label: "Paused" },
+  { id: "draft", label: "Draft" },
 ];
 
 const thClass = "funnel-automations-th whitespace-nowrap text-left align-middle";
@@ -911,7 +909,7 @@ function AutomationRowMenu({
               aria-hidden
               strokeWidth={ICON_STROKE}
             />
-            Edit details
+            Edit
           </button>
         ) : null}
         {onDelete ? (

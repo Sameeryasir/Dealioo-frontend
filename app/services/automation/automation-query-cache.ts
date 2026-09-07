@@ -1,8 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import {
-  automationStatusFromApi,
-  mapAutomationToListItem,
-} from "@/app/services/automation/automation-api";
+import { mapAutomationToListItem } from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import type { AutomationListItem } from "@/app/components/automation/types";
 import type {
@@ -90,13 +87,7 @@ export function syncAutomationStatusQueryCache(
       const current = next[index]!;
       next[index] = {
         ...current,
-        status: automationStatusFromApi({
-          id: response.id,
-          name: current.name,
-          trigger: current.trigger,
-          isActive: flags.isActive,
-          published: flags.published,
-        }),
+        status: flags.isActive ? "active" : "draft",
       };
       return next;
     },
@@ -126,28 +117,29 @@ export function syncAutomationQueryCache(
     automation,
   );
 
+  const listItem = mapAutomationToListItem(automation);
   const scopeBusinessId = automation.businessId ?? automation.restaurantId;
-  if (isPositiveInt(scopeBusinessId)) {
-    const listItem = mapAutomationToListItem(automation);
 
-    queryClient.setQueryData<AutomationListItem[]>(
-      automationQueryKeys.list(scopeBusinessId),
-      (prev) => {
-        if (!prev?.length) {
-          return prev;
-        }
+  queryClient.setQueriesData<AutomationListItem[]>(
+    { queryKey: automationQueryKeys.lists() },
+    (prev) => {
+      if (!prev?.length) {
+        return prev;
+      }
 
-        const index = prev.findIndex((row) => row.numericId === automation.id);
-        if (index === -1) {
-          return prev;
-        }
+      const index = prev.findIndex((row) => row.numericId === automation.id);
+      if (index === -1) {
+        return prev;
+      }
 
-        const next = [...prev];
-        next[index] = listItem;
-        return next;
-      },
-    );
-  }
+      const next = [...prev];
+      next[index] = {
+        ...listItem,
+        business: listItem.business !== "N/A" ? listItem.business : prev[index]!.business,
+      };
+      return next;
+    },
+  );
 
   if (options.invalidate !== false) {
     invalidateAutomationQueries(queryClient, {

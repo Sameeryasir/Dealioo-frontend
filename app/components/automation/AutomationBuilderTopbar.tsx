@@ -63,28 +63,35 @@ export function AutomationBuilderTabBar({
 export function AutomationBuilderActivateButton({
   automationActive,
   activating,
+  activateBlockedReason,
   onActivate,
   onDeactivate,
 }: {
   automationActive: boolean | null;
   activating: boolean;
+  activateBlockedReason?: string | null;
   onActivate: () => void;
   onDeactivate: () => void;
 }) {
   const statusKnown = automationActive !== null;
   const isActive = automationActive === true;
+  const activateBlocked =
+    !isActive && Boolean(activateBlockedReason?.trim());
 
   return (
     <button
       type="button"
+      title={activateBlocked ? activateBlockedReason ?? undefined : undefined}
       onClick={() => void (isActive ? onDeactivate() : onActivate())}
-      disabled={activating || !statusKnown}
+      disabled={activating || !statusKnown || activateBlocked}
       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.7rem] font-semibold shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xs ${
         !statusKnown
           ? "border border-zinc-200 bg-white text-zinc-500"
           : isActive
             ? "border border-brand-primary/30 bg-white text-brand-primary hover:bg-[#e8f2ff]"
-            : "bg-brand-primary text-white hover:bg-brand-primary-hover"
+            : activateBlocked
+              ? "border border-zinc-200 bg-zinc-100 text-zinc-500"
+              : "bg-brand-primary text-white hover:bg-brand-primary-hover"
       }`}
     >
       {activating || !statusKnown ? (
@@ -96,7 +103,13 @@ export function AutomationBuilderActivateButton({
         />
       ) : (
         <Zap
-          className={`size-3.5 ${isActive ? "text-brand-primary" : "text-white"}`}
+          className={`size-3.5 ${
+            isActive
+              ? "text-brand-primary"
+              : activateBlocked
+                ? "text-zinc-500"
+                : "text-white"
+          }`}
           aria-hidden
         />
       )}

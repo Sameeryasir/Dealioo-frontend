@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Pencil } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -10,7 +10,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
-import { EditAutomationDetailsDialog } from "@/app/components/automation/EditAutomationDetailsDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
@@ -28,11 +27,11 @@ import {
   mapAutomationToListItem,
   activateAutomation,
   deactivateAutomation,
-  updateAutomation,
 } from "@/app/services/automation/automation-api";
 import { syncAutomationQueryCache, invalidateAutomationQueries } from "@/app/services/automation/automation-query-cache";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { useAutomationQuery } from "@/app/hooks/use-automation-query";
+import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { BuilderShell } from "@/app/components/builder/BuilderShell";
 import {
   AutomationBuilderActivateButton,
@@ -207,8 +206,6 @@ export function AutomationBuilderPage({
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [navPromptOpen, setNavPromptOpen] = useState(false);
   const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
-  const [detailsEditOpen, setDetailsEditOpen] = useState(false);
-  const [savingDetails, setSavingDetails] = useState(false);
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
     null,
   );
@@ -235,6 +232,14 @@ export function AutomationBuilderPage({
     isLoading: nodesLoading,
     refetch: refetchAutomation,
   } = useAutomationQuery(automationNumericId);
+
+  const linkedCampaignId = remoteAutomation?.campaignId ?? null;
+  const { data: linkedCampaign } = useCampaignByIdQuery(linkedCampaignId);
+  const campaignIsPublished =
+    linkedCampaign == null
+      ? null
+      : linkedCampaign.status?.trim().toLowerCase() === "published" ||
+        linkedCampaign.published === true;
 
   const bootstrapping = searchParams.get("bootstrapping") === "1";
 
@@ -500,6 +505,11 @@ export function AutomationBuilderPage({
       return false;
     }
 
+    if (campaignIsPublished === false) {
+      toast.error("Publish the campaign before activating this automation.");
+      return false;
+    }
+
     let connectionsForValidation = connections;
     try {
       const healed = await ensureMissingDesiredConnections(
@@ -584,6 +594,7 @@ export function AutomationBuilderPage({
     }
   }, [
     automationNumericId,
+    campaignIsPublished,
     clearInvalidBlinkTimer,
     connections,
     isFlowDirty,
@@ -1351,26 +1362,15 @@ export function AutomationBuilderPage({
   const detailsHeader =
     automation != null ? (
       <div className="shrink-0 border-b border-zinc-200/70 bg-white px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-bold tracking-tight text-[#07111f] sm:text-base">
-              {automation.name}
-            </h1>
-            <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-zinc-500 sm:text-[0.8125rem]">
-              {automation.description.trim()
-                ? automation.description
-                : "No description yet."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setDetailsEditOpen(true)}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
-            aria-label="Edit automation name and description"
-          >
-            <Pencil className="size-3.5" aria-hidden strokeWidth={2.25} />
-            Edit
-          </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-bold tracking-tight text-[#07111f] sm:text-base">
+            {automation.name}
+          </h1>
+          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-zinc-500 sm:text-[0.8125rem]">
+            {automation.description.trim()
+              ? automation.description
+              : "No description yet."}
+          </p>
         </div>
       </div>
     ) : null;
@@ -1389,6 +1389,11 @@ export function AutomationBuilderPage({
           <AutomationBuilderActivateButton
             automationActive={automationIsActive}
             activating={activating}
+            activateBlockedReason={
+              automationIsActive !== true && campaignIsPublished === false
+                ? "Publish the campaign before activating this automation."
+                : null
+            }
             onActivate={handleActivate}
             onDeactivate={handleDeactivate}
           />,
@@ -1610,50 +1615,6 @@ export function AutomationBuilderPage({
         isLoading={activating}
         onClose={closeDeactivatePrompt}
         onDeactivate={() => void handleDeactivateFromPrompt()}
-      />
-      <EditAutomationDetailsDialog
-        open={detailsEditOpen}
-        initialName={automation?.name ?? ""}
-        initialDescription={automation?.description ?? ""}
-        isSaving={savingDetails}
-        onClose={() => {
-          if (!savingDetails) setDetailsEditOpen(false);
-        }}
-        onSave={async ({ name, description }) => {
-          if (!isPositiveInt(automationNumericId)) {
-            toast.error("Could not update this automation.");
-            return;
-          }
-          setSavingDetails(true);
-          try {
-            const updated = await updateAutomation(automationNumericId, {
-              name,
-              description,
-            });
-            if (isAutomationStatusResponse(updated)) {
-              toast.error("Could not update automation details.");
-              return;
-            }
-            syncAutomationQueryCache(queryClient, updated, {
-              invalidate: false,
-            });
-            setAutomation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    name: updated.name,
-                    description: updated.description?.trim() ?? "",
-                  }
-                : mapAutomationToListItem(updated),
-            );
-            setDetailsEditOpen(false);
-            toast.success("Automation details saved.");
-          } catch (err) {
-            toastApiError(err, "Could not update automation details.");
-          } finally {
-            setSavingDetails(false);
-          }
-        }}
       />
     </motion.div>
   );

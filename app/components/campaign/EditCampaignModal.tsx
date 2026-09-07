@@ -11,6 +11,7 @@ import {
   Loader2,
   Megaphone,
   Pencil,
+  Radio,
   Upload,
   X,
 } from "lucide-react";
@@ -31,7 +32,23 @@ import { parseOfferPrice, campaignDescriptionValidationMessage } from "@/app/lib
 import { upsertCampaignInQueryClient } from "@/app/lib/campaign-query-cache";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { parseCampaignFromApi } from "@/app/services/funnel/get-campaigns-by-business";
-import { updateCampaign } from "@/app/services/funnel/update-campaign";
+import {
+  type CampaignPublicationStatus,
+  updateCampaign,
+} from "@/app/services/funnel/update-campaign";
+import { getAutomations } from "@/app/services/automation/automation-api";
+import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
+
+function resolveCampaignStatus(
+  campaign: Funnel,
+): CampaignPublicationStatus {
+  const raw = campaign.status?.trim().toLowerCase();
+  if (raw === "published" || raw === "active") return "published";
+  if (raw === "unpublished" || raw === "inactive" || raw === "draft") {
+    return "unpublished";
+  }
+  return campaign.published === true ? "published" : "unpublished";
+}
 
 const inputClassName =
   "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:text-slate-400 hover:border-[#bfdbfe] focus:border-[#1877f2]/55 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/18 disabled:cursor-not-allowed disabled:opacity-60";
@@ -82,11 +99,14 @@ export function EditCampaignModal({
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [status, setStatus] = useState<CampaignPublicationStatus>("published");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [unpublishBlockedOpen, setUnpublishBlockedOpen] = useState(false);
+  const [activeAutomationCount, setActiveAutomationCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -100,11 +120,14 @@ export function EditCampaignModal({
     setOffer(campaign.offer?.trim() ?? "");
     setDescription(campaign.description?.trim() ?? "");
     setPrice(parsePrice(campaign.price));
+    setStatus(resolveCampaignStatus(campaign));
     setImageFile(null);
     setPreviewUrl(campaign.imageUrl?.trim() || null);
     setError(null);
     setIsSaving(false);
     setIsDragging(false);
+    setUnpublishBlockedOpen(false);
+    setActiveAutomationCount(0);
   }, [open, campaign]);
 
   useEffect(() => {
@@ -177,6 +200,23 @@ export function EditCampaignModal({
         setIsSaving(false);
         return;
       }
+
+      const previousStatus = resolveCampaignStatus(campaign);
+      if (status === "unpublished" && previousStatus !== "unpublished") {
+        const automations = await getAutomations(campaign.businessId);
+        const activeCount = automations.filter(
+          (automation) =>
+            automation.campaignId === campaign.id &&
+            automation.isActive === true,
+        ).length;
+        if (activeCount > 0) {
+          setActiveAutomationCount(activeCount);
+          setUnpublishBlockedOpen(true);
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const updatedBody = await updateCampaign({
         campaignId: campaign.id,
         campaignName: campaignName.trim(),
@@ -184,6 +224,7 @@ export function EditCampaignModal({
         offer: offer.trim(),
         description: description.trim(),
         price: parseOfferPrice(price),
+        status,
         image: imageFile,
       });
       const updatedCampaign =
@@ -194,6 +235,8 @@ export function EditCampaignModal({
           offer: offer.trim(),
           description: description.trim(),
           price: parseOfferPrice(price),
+          status,
+          published: status === "published",
           updatedAt: new Date().toISOString(),
         } satisfies Funnel);
 
@@ -221,6 +264,7 @@ export function EditCampaignModal({
   if (!open || !mounted || !campaign) return null;
 
   return createPortal(
+    <>
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/55 p-3 backdrop-blur-[6px] sm:p-4"
       role="presentation"
@@ -253,7 +297,7 @@ export function EditCampaignModal({
                   Edit campaign
                 </h2>
                 <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                  Update name, description, offer, price, and image
+                  Update name, description, offer, price, status, and image
                 </p>
               </div>
             </div>
@@ -334,6 +378,59 @@ export function EditCampaignModal({
                   disabled={isSaving}
                   required
                 />
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel htmlFor="edit-campaign-status" icon={Radio}>
+                Status
+              </FieldLabel>
+              <div
+                id="edit-campaign-status"
+                role="radiogroup"
+                aria-label="Campaign status"
+                className="grid grid-cols-2 gap-2"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={status === "published"}
+                  disabled={isSaving}
+                  onClick={() => setStatus("published")}
+                  className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    status === "published"
+                      ? "border-[#bbf7d0] bg-[#dcfce7] text-[#15803d] shadow-sm ring-2 ring-[#86efac]/40"
+                      : "border-[#dbeafe] bg-white text-slate-600 hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
+                  }`}
+                >
+                  <span
+                    className={`size-2 rounded-full ${
+                      status === "published" ? "bg-[#15803d]" : "bg-slate-300"
+                    }`}
+                    aria-hidden
+                  />
+                  Published
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={status === "unpublished"}
+                  disabled={isSaving}
+                  onClick={() => setStatus("unpublished")}
+                  className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    status === "unpublished"
+                      ? "border-[#e2e8f0] bg-[#f1f5f9] text-slate-700 shadow-sm ring-2 ring-slate-200/80"
+                      : "border-[#dbeafe] bg-white text-slate-600 hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
+                  }`}
+                >
+                  <span
+                    className={`size-2 rounded-full ${
+                      status === "unpublished" ? "bg-slate-500" : "bg-slate-300"
+                    }`}
+                    aria-hidden
+                  />
+                  Unpublished
+                </button>
               </div>
             </div>
 
@@ -450,7 +547,13 @@ export function EditCampaignModal({
           </div>
         </form>
       </div>
-    </div>,
+    </div>
+    <UnpublishCampaignBlockedDialog
+      open={unpublishBlockedOpen}
+      activeCount={activeAutomationCount}
+      onClose={() => setUnpublishBlockedOpen(false)}
+    />
+    </>,
     document.body,
   );
 }

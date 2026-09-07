@@ -2,6 +2,8 @@ import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
+export type CampaignPublicationStatus = "published" | "unpublished";
+
 export type UpdateCampaignPayload = {
   campaignId: number;
   campaignName: string;
@@ -9,6 +11,7 @@ export type UpdateCampaignPayload = {
   offer: string;
   description: string;
   price: number;
+  status: CampaignPublicationStatus;
   image?: File | null;
 };
 
@@ -36,6 +39,9 @@ export async function updateCampaign(
   if (!Number.isFinite(payload.price)) {
     throw new Error("Price is required.");
   }
+  if (payload.status !== "published" && payload.status !== "unpublished") {
+    throw new Error("Status must be published or unpublished.");
+  }
 
   const form = new FormData();
   form.append("campaignName", payload.campaignName.trim());
@@ -43,6 +49,7 @@ export async function updateCampaign(
   form.append("offer", payload.offer.trim());
   form.append("description", payload.description.trim());
   form.append("price", String(payload.price));
+  form.append("status", payload.status);
   if (payload.image instanceof File) {
     form.append("image", payload.image, payload.image.name);
   }

@@ -76,6 +76,10 @@ const DEFAULT_PURPOSE_BY_TRIGGER: Record<string, AutomationPurpose> = {
   "Cron Job": "funnel_signup_payment_reminder",
   Payment: "funnel_payment",
   Signup: "funnel_signup",
+  "Abandoned Checkout": "funnel_abandoned_checkout_reminder",
+  "First Purchase": "funnel_payment",
+  "Funnel Complete": "funnel_signup",
+  "No Visit": "funnel_signup_payment_reminder",
 };
 
 export function resolvePurposeForTrigger(trigger: string): AutomationPurpose {

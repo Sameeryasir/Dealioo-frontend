@@ -13,19 +13,22 @@ import type {
 const UI_TRIGGER_TO_API: Record<string, string> = {
   Signup: "signup",
   Payment: "payment",
-  "Funnel Complete": "funnel_complete",
+  "Funnel Complete": "funnel_completed",
   "Abandoned Checkout": "abandoned_checkout",
+  "First Purchase": "first_purchase",
+  "No Visit": "no_visit",
   "Cron Job": "cron",
-  "Tag Added": "tag_added",
 };
 
 const API_TRIGGER_TO_UI: Record<string, string> = {
   signup: "Signup",
   payment: "Payment",
+  funnel_completed: "Funnel Complete",
   funnel_complete: "Funnel Complete",
   abandoned_checkout: "Abandoned Checkout",
+  first_purchase: "First Purchase",
+  no_visit: "No Visit",
   cron: "Cron Job",
-  tag_added: "Tag Added",
 };
 
 export function triggerToApi(trigger: string): string {
@@ -38,7 +41,6 @@ export function triggerToUi(trigger: string): string {
 
 export function automationStatusFromApi(automation: Automation): AutomationStatus {
   if (automation.isActive) return "active";
-  if (automation.published) return "published";
   return "draft";
 }
 

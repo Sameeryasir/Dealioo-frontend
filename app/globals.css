@@ -4702,10 +4702,17 @@ body {
     border-color: #bbf7d0;
   }
 
-  .org-campaign-card-status--active {
+  .org-campaign-card-status--active,
+  .org-campaign-card-status--published {
     color: #15803d;
     background: #dcfce7;
     border-color: #bbf7d0;
+  }
+
+  .org-campaign-card-status--unpublished {
+    color: #64748b;
+    background: #f1f5f9;
+    border-color: #e2e8f0;
   }
 
   .org-campaign-card-status-dot {

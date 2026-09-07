@@ -318,11 +318,16 @@ export default function CampaignFunnelCard({
                 </h3>
                 {funnel.published === true ||
                 funnel.status?.trim().toLowerCase() === "published" ? (
-                  <span className="org-campaign-card-status org-campaign-card-status--active">
+                  <span className="org-campaign-card-status org-campaign-card-status--published">
                     <span className="org-campaign-card-status-dot" aria-hidden />
-                    Active
+                    Published
                   </span>
-                ) : null}
+                ) : (
+                  <span className="org-campaign-card-status org-campaign-card-status--unpublished">
+                    <span className="org-campaign-card-status-dot" aria-hidden />
+                    Unpublished
+                  </span>
+                )}
               </div>
               {description ? (
                 <p className="org-campaign-card-desc m-0 mt-1.5 line-clamp-3 text-[0.68rem] leading-relaxed sm:text-[0.72rem]">
