@@ -8,7 +8,7 @@ import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, Info, Link2, Megaphone } from "lucide-react";
+import { ChartColumn, CreditCard, Info, Link2, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -131,6 +131,36 @@ export default function BusinessDashboardPage() {
               Open Integrations
             </Link>
           </aside>
+        ) : null}
+
+        {businessId != null ? (
+          <section
+            className="rounded-[1.35rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5"
+            aria-label="Performance"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2] ring-1 ring-[#1877f2]/20">
+                  <ChartColumn className="size-4" strokeWidth={2.25} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="m-0 text-base font-semibold text-[#07111f]">
+                    Performance
+                  </h2>
+                  <p className="m-0 mt-1 text-sm font-medium leading-relaxed text-slate-600">
+                    See your highest-earning campaigns and monthly performance
+                    metrics.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/business/${businessId}/dashboard/performance`}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0]"
+              >
+                View Performance
+              </Link>
+            </div>
+          </section>
         ) : null}
 
         <section aria-label="Restaurant activity overview">

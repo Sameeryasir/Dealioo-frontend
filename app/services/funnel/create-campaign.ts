@@ -6,6 +6,10 @@ import {
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isValidOfferPrice, parseOfferPrice } from "@/app/lib/campaign-form";
+import {
+  isCampaignCategory,
+  type CampaignCategory,
+} from "@/app/lib/campaign-category";
 
 /** Image uploads can exceed the default 5s API timeout. */
 const CREATE_CAMPAIGN_TIMEOUT_MS = Math.max(API_REQUEST_TIMEOUT_MS, 120_000);
@@ -19,6 +23,7 @@ export type CreateCampaignPayload = {
   description: string;
   price?: number | null;
   campaignType: "prepaid" | "postpaid";
+  campaignCategory: CampaignCategory;
 };
 
 /** Reads `id` from common POST /campaign/create JSON shapes so we can deep-link after create. */
@@ -69,6 +74,9 @@ export async function createCampaign(
   ) {
     throw new Error("Campaign type is required.");
   }
+  if (!isCampaignCategory(payload.campaignCategory)) {
+    throw new Error("Campaign category is required.");
+  }
 
   let price: number | null = null;
   if (payload.price != null && payload.price !== undefined) {
@@ -85,6 +93,7 @@ export async function createCampaign(
   form.append("businessId", String(id));
   form.append("campaignName", payload.campaignName.trim());
   form.append("campaignType", payload.campaignType);
+  form.append("campaignCategory", payload.campaignCategory);
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("image", payload.image, payload.image.name);
   form.append("offer", payload.offer.trim());

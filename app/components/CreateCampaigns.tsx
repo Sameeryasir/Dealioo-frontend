@@ -16,6 +16,10 @@ import {
 import CampaignOfferPreviewCard from "@/app/components/CampaignOfferPreviewCard";
 import MakeYourOffer from "@/app/components/MakeYourOffer";
 import {
+  CAMPAIGN_CATEGORY_OPTIONS,
+  type CampaignCategory,
+} from "@/app/lib/campaign-category";
+import {
   resetCampaignDraft,
   setCampaignName as setDraftCampaignName,
   setWebsiteUrl as setDraftWebsiteUrl,
@@ -48,6 +52,7 @@ export type CreateCampaignCompletePayload = {
   offerPrice: string;
   offerImage: File;
   campaignType: CampaignType;
+  campaignCategory: CampaignCategory;
   includeOfferPrice: boolean;
 };
 
@@ -79,6 +84,7 @@ export default function CreateCampaigns({
   const dispatch = useAppDispatch();
   const isModal = variant === "modal";
   const nameFieldId = useId();
+  const categoryFieldId = useId();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<CreateStep>("billing");
@@ -86,7 +92,10 @@ export default function CreateCampaigns({
     useState<CampaignType | null>(null);
   const [showBillingError, setShowBillingError] = useState(false);
   const [campaignName, setCampaignName] = useState("");
+  const [campaignCategory, setCampaignCategory] =
+    useState<CampaignCategory | "">("");
   const [showNameError, setShowNameError] = useState(false);
+  const [showCategoryError, setShowCategoryError] = useState(false);
   const [pendingWebsiteUrl, setPendingWebsiteUrl] = useState<string | null>(
     null,
   );
@@ -117,7 +126,9 @@ export default function CreateCampaigns({
     setCampaignType(null);
     setShowBillingError(false);
     setCampaignName("");
+    setCampaignCategory("");
     setShowNameError(false);
+    setShowCategoryError(false);
     setPendingWebsiteUrl(null);
     setIsCompletingOffer(false);
     setCreatedOffer(null);
@@ -186,6 +197,10 @@ export default function CreateCampaigns({
       nameInputRef.current?.focus();
       return;
     }
+    if (!campaignCategory) {
+      setShowCategoryError(true);
+      return;
+    }
     if (!campaignType) {
       setStep("billing");
       setShowBillingError(true);
@@ -194,6 +209,7 @@ export default function CreateCampaigns({
 
     const websiteUrl = resolveDefaultCampaignWebsiteUrl(defaultWebsiteUrl);
     setShowNameError(false);
+    setShowCategoryError(false);
     dispatch(setDraftCampaignName(trimmed));
     dispatch(setDraftWebsiteUrl(websiteUrl));
     setPendingWebsiteUrl(websiteUrl);
@@ -417,6 +433,55 @@ export default function CreateCampaigns({
           </p>
         )}
 
+        <label
+          htmlFor={categoryFieldId}
+          className="mt-5 block text-sm font-bold text-[#07111f]"
+        >
+          Campaign category <span className="text-red-500">*</span>
+        </label>
+        <select
+          id={categoryFieldId}
+          name="campaignCategory"
+          required
+          value={campaignCategory}
+          onChange={(e) => {
+            const next = e.target.value as CampaignCategory | "";
+            setCampaignCategory(next);
+            if (showCategoryError && next) setShowCategoryError(false);
+          }}
+          aria-invalid={showCategoryError}
+          aria-describedby={
+            showCategoryError ? `${categoryFieldId}-error` : undefined
+          }
+          className={`mt-1.5 w-full appearance-none rounded-xl border bg-white px-3 py-2.5 text-sm font-medium text-[#07111f] shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition focus:ring-2 ${
+            showCategoryError
+              ? "border-red-400 focus:border-red-400 focus:ring-red-200/60"
+              : "border-[#e2e8f0] focus:border-[#1877f2]/55 focus:ring-[#1877f2]/15"
+          }`}
+        >
+          <option value="" disabled>
+            Select a category
+          </option>
+          {CAMPAIGN_CATEGORY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {showCategoryError ? (
+          <p
+            id={`${categoryFieldId}-error`}
+            className="mt-2 text-sm text-red-600"
+            role="alert"
+          >
+            Choose a campaign category to continue.
+          </p>
+        ) : (
+          <p className="mt-2 text-[0.75rem] font-medium text-slate-400">
+            Used on Performance — category for each campaign.
+          </p>
+        )}
+
         <div className="mt-6 flex flex-col-reverse gap-2 border-t border-[#e8edf5] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
@@ -428,7 +493,7 @@ export default function CreateCampaigns({
           </button>
           <button
             type="submit"
-            disabled={!campaignName.trim()}
+            disabled={!campaignName.trim() || !campaignCategory}
             className={`${continueButtonClassName} w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
           >
             Continue
@@ -453,6 +518,7 @@ export default function CreateCampaigns({
         if (!pendingWebsiteUrl || isCompletingOffer || !campaignType) return;
         if (
           !campaignName.trim() ||
+          !campaignCategory ||
           !payload.offerName.trim() ||
           !payload.description.trim() ||
           !(payload.imageFile instanceof File)
@@ -473,6 +539,7 @@ export default function CreateCampaigns({
           offerPrice: payload.includeOfferPrice ? payload.offerPrice : "",
           offerImage: payload.imageFile,
           campaignType,
+          campaignCategory,
           includeOfferPrice: payload.includeOfferPrice,
         };
         setIsCompletingOffer(true);

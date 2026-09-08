@@ -24,6 +24,7 @@ import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membe
 import { useCampaignsByBusinessQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { parseOfferPrice } from "@/app/lib/campaign-form";
+import type { CampaignCategory } from "@/app/lib/campaign-category";
 import {
   removeCampaignFromQueryClient,
   upsertCampaignInQueryClient,
@@ -402,6 +403,7 @@ export function BusinessCampaignsPanel({
     offerPrice: string;
     offerImage: File;
     campaignType: "prepaid" | "postpaid";
+    campaignCategory: CampaignCategory;
     includeOfferPrice: boolean;
   }) {
     setSubmitError(null);
@@ -416,6 +418,7 @@ export function BusinessCampaignsPanel({
         offer: payload.offerName,
         description: payload.description,
         campaignType: payload.campaignType,
+        campaignCategory: payload.campaignCategory,
         ...(payload.includeOfferPrice
           ? { price: parseOfferPrice(payload.offerPrice) }
           : { price: null }),
