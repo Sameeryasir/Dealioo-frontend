@@ -8,7 +8,14 @@ import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { useQuery } from "@tanstack/react-query";
-import { ChartColumn, CreditCard, Info, Link2, Megaphone } from "lucide-react";
+import {
+  ArrowRight,
+  ChartColumn,
+  CreditCard,
+  Info,
+  Link2,
+  Megaphone,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -86,6 +93,12 @@ export default function BusinessDashboardPage() {
         ? "Connect Stripe to accept funnel and campaign payments for this business."
         : "Connect Meta (Facebook) Ads to pull ad performance into Dealioo for this business.";
 
+  const isQuietBusiness =
+    !activityChartQuery.isPending &&
+    (activityData?.activeCampaigns ?? 0) === 0 &&
+    (activityData?.totalOrders ?? 0) === 0 &&
+    (activityData?.totalMembers ?? 0) === 0;
+
   return (
     <section className="rd-premium w-full" aria-label="Business dashboard">
       <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
@@ -148,8 +161,9 @@ export default function BusinessDashboardPage() {
                     Performance
                   </h2>
                   <p className="m-0 mt-1 text-sm font-medium leading-relaxed text-slate-600">
-                    See your highest-earning campaigns and monthly performance
-                    metrics.
+                    {isQuietBusiness
+                      ? "Publish a campaign, then watch earnings, conversion, and bundle tips here."
+                      : "Highest-earning campaigns, conversion, and bundle opportunities."}
                   </p>
                 </div>
               </div>
@@ -158,6 +172,7 @@ export default function BusinessDashboardPage() {
                 className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0]"
               >
                 View Performance
+                <ArrowRight className="size-4" strokeWidth={2.25} aria-hidden />
               </Link>
             </div>
           </section>
@@ -165,6 +180,7 @@ export default function BusinessDashboardPage() {
 
         <section aria-label="Restaurant activity overview">
           <BusinessActivityOverviewPanel
+            businessId={businessId}
             businessName={restaurant?.name}
             data={activityData?.data ?? []}
             months={activityData?.months ?? activityMonths}
@@ -173,6 +189,7 @@ export default function BusinessDashboardPage() {
             totalMembers={activityData?.totalMembers ?? 0}
             todayRevenueCents={activityData?.todayRevenueCents ?? 0}
             isLoading={activityChartQuery.isPending}
+            isQuietBusiness={isQuietBusiness}
           />
         </section>
       </div>

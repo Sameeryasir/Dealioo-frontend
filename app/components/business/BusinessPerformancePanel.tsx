@@ -19,6 +19,9 @@ import {
   spacesImageEagerLoadProps,
 } from "@/app/lib/resolve-upload-image-url";
 import {
+  getCampaignAddonCounts,
+} from "@/app/services/addon-suggestion/get-campaign-addon-counts";
+import {
   getBusinessTopEarningCampaigns,
   type BusinessConversionCampaign,
   type BusinessTopCampaign,
@@ -26,14 +29,20 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
+  ArrowRight,
   ArrowUpRight,
   ChartColumn,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
+  Equal,
   Info,
+  Layers,
   Link2,
   Megaphone,
+  PackagePlus,
+  PackageSearch,
+  Sparkles,
   Trophy,
   Users,
   type LucideIcon,
@@ -52,7 +61,6 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   Line,
   ReferenceLine,
   ResponsiveContainer,
@@ -69,8 +77,8 @@ const CHART_METRIC_BUTTONS: Array<{ id: ChartMetric; label: string }> = [
   { id: "customers", label: "Customers" },
 ];
 
-const CHART_COLORS = ["#3b82f6", "#a855f7", "#10b981", "#EA580C", "#DB2777"];
-const PERFORMANCE_CHART_HEIGHT_PX = 340;
+const CHART_COLORS = ["#1877f2", "#7C3AED", "#059669", "#EA580C", "#DB2777"];
+const PERFORMANCE_CHART_HEIGHT_PX = 360;
 
 function PerformanceChartMount({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -464,6 +472,254 @@ function CampaignBillingBadge({
   );
 }
 
+function BundleOpportunitiesSection({
+  businessId,
+  monthFilter,
+  monthLabel,
+  campaignCount,
+  topTips,
+  isPending,
+}: {
+  businessId: number;
+  monthFilter: string;
+  monthLabel: string;
+  campaignCount: number;
+  topTips: Array<{
+    campaignId?: number;
+    campaignName: string;
+    imageUrl?: string | null;
+    addonName: string;
+    timesPurchased: number;
+    topStatus?: "clear" | "tied" | "emerging";
+  }>;
+  isPending: boolean;
+}) {
+  const pageSize = 3;
+  const [page, setPage] = useState(0);
+  const detailsHref = `/business/${businessId}/dashboard/performance/bundle-opportunities?month=${encodeURIComponent(monthFilter)}`;
+
+  const tipHref = (campaignId?: number) =>
+    campaignId != null && campaignId > 0
+      ? `${detailsHref}&campaignId=${encodeURIComponent(String(campaignId))}`
+      : detailsHref;
+
+  const totalPages = Math.max(1, Math.ceil(topTips.length / pageSize));
+
+  useEffect(() => {
+    setPage(0);
+  }, [businessId, monthFilter, topTips.length]);
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [page, totalPages]);
+
+  const pageTips = useMemo(() => {
+    const start = page * pageSize;
+    return topTips.slice(start, start + pageSize);
+  }, [page, topTips]);
+
+  if (isPending) {
+    return (
+      <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+        <Skeleton className="h-5 w-48 rounded-md" />
+        <Skeleton className="mt-2 h-4 w-64 rounded-md" />
+        <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-[7.5rem] w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+              <Layers className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
+              Bundle opportunities
+            </h2>
+            {campaignCount > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
+                <Megaphone className="size-3" aria-hidden />
+                {campaignCount} campaign{campaignCount === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+          <p className="m-0 mt-1 text-sm text-slate-500">
+            Add-ons guests buy most often with each deal in {monthLabel}
+          </p>
+        </div>
+        {totalPages > 1 ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Previous bundle opportunities page"
+              disabled={page <= 0}
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="size-4" aria-hidden />
+            </button>
+            <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-slate-400">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              type="button"
+              aria-label="Next bundle opportunities page"
+              disabled={page >= totalPages - 1}
+              onClick={() =>
+                setPage((current) => Math.min(totalPages - 1, current + 1))
+              }
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronRight className="size-4" aria-hidden />
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {campaignCount === 0 ? (
+        <div className="mt-3 rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+          <PackageSearch
+            className="mx-auto size-7 text-slate-300"
+            strokeWidth={1.75}
+            aria-hidden
+          />
+          <p className="m-0 mt-3 text-sm font-semibold text-slate-600">
+            No data found
+          </p>
+          <p className="m-0 mt-1 text-xs text-slate-400">
+            Bundle tips appear after guests redeem deals with add-ons in this
+            period.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+          {pageTips.map((tip, index) => {
+            const globalIndex = page * pageSize + index;
+            const campaignLabel =
+              formatTitleCase(tip.campaignName) || tip.campaignName;
+            const addonLabel =
+              formatTitleCase(tip.addonName) || tip.addonName;
+            const topStatus = tip.topStatus ?? "emerging";
+            const isBest = globalIndex === 0 && topStatus === "clear";
+
+            return (
+              <div
+                key={`${tip.campaignName}:${tip.addonName}:${globalIndex}`}
+                className={`group relative overflow-hidden rounded-xl border bg-white transition duration-200 hover:border-[#c7d7fe] hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
+                  isBest
+                    ? "border-[#c7d7fe] shadow-[0_8px_20px_rgba(24,119,242,0.08)]"
+                    : "border-[#e8edf5] shadow-[0_4px_12px_rgba(15,23,42,0.03)]"
+                }`}
+              >
+                <div
+                  className={`absolute inset-y-0 left-0 w-[3px] ${
+                    isBest ? "bg-[#1877f2]" : "bg-[#e8edf5]"
+                  }`}
+                  aria-hidden
+                />
+
+                <div className="px-3.5 py-3.5 pl-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-semibold tabular-nums ${
+                          isBest
+                            ? "bg-[#1877f2] text-white"
+                            : "bg-[#f1f5f9] text-slate-500"
+                        }`}
+                      >
+                        {globalIndex + 1}
+                      </span>
+                      {topStatus === "clear" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-[#1D4ED8]">
+                          <Trophy className="size-3" aria-hidden />
+                          Best
+                        </span>
+                      ) : topStatus === "tied" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-slate-600">
+                          <Equal className="size-3" aria-hidden />
+                          Tied
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-amber-700">
+                          <Sparkles className="size-3" aria-hidden />
+                          Early tip
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="m-0 mt-3 truncate text-[0.95rem] font-semibold tracking-tight text-[#07111f]">
+                    {campaignLabel}
+                  </p>
+                  <p className="m-0 mt-1 flex items-start gap-1.5 line-clamp-2 text-[0.8rem] leading-snug text-slate-500">
+                    <Link2
+                      className="mt-0.5 size-3.5 shrink-0 text-slate-400"
+                      aria-hidden
+                    />
+                    <span>
+                      {topStatus === "tied" ? (
+                        <>
+                          Several add-ons tied · e.g.{" "}
+                          <span className="font-semibold text-[#1D4ED8]">
+                            {addonLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          Pair with{" "}
+                          <span className="font-semibold text-[#1D4ED8]">
+                            {addonLabel}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </p>
+
+                  <div className="mt-3 flex flex-col gap-2.5">
+                    <p className="m-0 inline-flex items-center gap-1.5 text-[0.75rem] text-slate-500">
+                      <PackagePlus
+                        className="size-3.5 shrink-0 text-slate-400"
+                        aria-hidden
+                      />
+                      Bought together{" "}
+                      <span className="font-semibold tabular-nums text-[#07111f]">
+                        {tip.timesPurchased}{" "}
+                        {tip.timesPurchased === 1 ? "time" : "times"}
+                      </span>
+                    </p>
+                    <Link
+                      href={tipHref(tip.campaignId)}
+                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 border-0 bg-[#EEF4FF] px-4 text-[0.8rem] font-semibold text-[#1D4ED8] no-underline shadow-none outline-none ring-0 transition hover:bg-[#dbe7ff] focus-visible:outline-none focus-visible:ring-0"
+                      style={{ borderRadius: 9999 }}
+                    >
+                      View details
+                      <ArrowRight
+                        className="size-3.5 shrink-0"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConversionPerformanceSection({
   campaigns,
   isPending,
@@ -508,7 +764,8 @@ function ConversionPerformanceSection({
           Conversion Performance
         </h2>
         <p className="m-0 mt-0.5 text-sm text-slate-500">
-          Paid orders ÷ page views for your top campaigns this period.
+          How often guests who view a deal go on to place a paid order, for your
+          top campaigns in this period.
         </p>
       </div>
 
@@ -657,8 +914,10 @@ function PerformanceScoreCell({
 }
 
 const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
+  businessId,
   chartData,
   chartCampaigns,
+  totalCampaignCount,
   chartMetric,
   chartMetricButtons,
   onMetricChange,
@@ -669,8 +928,10 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
   todayMarkerLabel,
   isPending,
 }: {
+  businessId: number;
   chartData: Array<Record<string, string | number | null>>;
   chartCampaigns: BusinessTopCampaign[];
+  totalCampaignCount: number;
   chartMetric: ChartMetric;
   chartMetricButtons: Array<{ id: ChartMetric; label: string }>;
   onMetricChange: (metric: ChartMetric) => void;
@@ -712,17 +973,37 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
-              Campaign Performance
-            </h2>
-            <p className="m-0 mt-0.5 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+                <ChartColumn className="size-3.5" strokeWidth={2.25} aria-hidden />
+              </span>
+              <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
+                Campaign Performance
+              </h2>
+              {chartCampaigns.length > 0 ? (
+                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
+                  Top {chartCampaigns.length}
+                </span>
+              ) : null}
+            </div>
+            <p className="m-0 mt-1 text-sm text-slate-500">
               {monthInProgress
-                ? `Full calendar for ${monthLabel}. Lines stop at today — later days are not $0 yet.`
-                : `Full calendar for ${monthLabel} — earnings, orders, and customers.`}
+                ? `Daily trend for your top 3 campaigns in ${monthLabel}. Lines stop at today.`
+                : `Daily trend for your top 3 campaigns in ${monthLabel}.`}
+              {totalCampaignCount > 3
+                ? ` Showing 3 of ${totalCampaignCount}.`
+                : null}
             </p>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <Link
+              href={`/business/${businessId}/dashboard/campaigns`}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[#dbe7ff] bg-white px-3 text-[0.75rem] font-semibold text-[#1877f2] no-underline shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/40 hover:bg-[#EEF4FF]"
+            >
+              View all campaigns
+              <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </Link>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
@@ -779,14 +1060,20 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
       </div>
 
       <div
-        className="mt-4 w-full min-w-0"
-        style={{ height: PERFORMANCE_CHART_HEIGHT_PX }}
+        className="mt-4 w-full min-w-0 rounded-2xl bg-[linear-gradient(180deg,#fbfdff_0%,#f8fafc_100%)] p-2 sm:p-3"
+        style={{ height: PERFORMANCE_CHART_HEIGHT_PX + 24 }}
       >
         {isPending ? (
           <Skeleton className="h-full w-full rounded-xl" />
         ) : chartData.length === 0 || chartCampaigns.length === 0 ? (
-          <div className="flex h-full items-center justify-center rounded-xl bg-[#f8fafc] text-sm text-slate-400">
-            No daily campaign activity in this period
+          <div className="flex h-full flex-col items-center justify-center rounded-xl text-center">
+            <ChartColumn className="size-8 text-slate-300" aria-hidden />
+            <p className="m-0 mt-2 text-sm font-medium text-slate-500">
+              No daily campaign activity in this period
+            </p>
+            <p className="m-0 mt-1 text-xs text-slate-400">
+              Trends appear after campaigns get orders or visits.
+            </p>
           </div>
         ) : (
           <PerformanceChartMount>
@@ -797,7 +1084,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
             >
               <AreaChart
                 data={chartData}
-                margin={{ top: 12, right: 12, left: 0, bottom: 0 }}
+                margin={{ top: 16, right: 14, left: 2, bottom: 4 }}
                 onMouseLeave={clearHovered}
               >
               <defs>
@@ -812,15 +1099,16 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor={color} stopOpacity={0.22} />
-                      <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                      <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+                      <stop offset="55%" stopColor={color} stopOpacity={0.08} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.01} />
                     </linearGradient>
                   );
                 })}
               </defs>
               <CartesianGrid
-                strokeDasharray="0"
-                stroke="#eef2f7"
+                strokeDasharray="3 6"
+                stroke="#e2e8f0"
                 vertical={false}
               />
               <XAxis
@@ -837,7 +1125,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
-                width={44}
+                width={48}
                 tickFormatter={(value: number) =>
                   chartMetric === "earnings"
                     ? `$${Math.round(Number(value) / 100)}`
@@ -849,7 +1137,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                   x={todayMarkerLabel}
                   stroke="#94a3b8"
                   strokeDasharray="4 4"
-                  strokeWidth={1}
+                  strokeWidth={1.25}
                   label={{
                     value: "Today",
                     position: "insideTopRight",
@@ -867,7 +1155,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 cursor={
                   hoveredSeriesKey
                     ? {
-                        stroke: "#cbd5e1",
+                        stroke: "#94a3b8",
                         strokeWidth: 1,
                         strokeDasharray: "4 4",
                       }
@@ -886,27 +1174,11 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                   />
                 }
               />
-              <Legend
-                verticalAlign="bottom"
-                align="center"
-                iconType="circle"
-                iconSize={8}
-                height={36}
-                wrapperStyle={{ paddingTop: 4 }}
-                formatter={(value) => {
-                  const campaign = chartCampaigns.find(
-                    (row) => `c${row.campaignId}` === String(value),
-                  );
-                  return (
-                    formatTitleCase(campaign?.campaignName ?? "") ||
-                    campaign?.campaignName ||
-                    String(value)
-                  );
-                }}
-              />
               {chartCampaigns.map((campaign, index) => {
                 const color = CHART_COLORS[index % CHART_COLORS.length]!;
                 const seriesKey = `c${campaign.campaignId}`;
+                const isActive =
+                  hoveredSeriesKey == null || hoveredSeriesKey === seriesKey;
                 return (
                   <Area
                     key={campaign.campaignId}
@@ -914,17 +1186,20 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                     dataKey={seriesKey}
                     name={seriesKey}
                     stroke={color}
-                    strokeWidth={2.25}
+                    strokeWidth={isActive ? 2.5 : 1.5}
+                    strokeOpacity={isActive ? 1 : 0.22}
                     fill={`url(#perf-area-${campaign.campaignId})`}
-                    fillOpacity={1}
+                    fillOpacity={isActive ? 1 : 0.2}
                     connectNulls={false}
                     style={{ pointerEvents: "none" }}
+                    legendType="none"
                     dot={(dotProps) => {
                       const raw = (dotProps as { value?: number | string | null })
                         .value;
                       if (raw == null) return null;
                       const value = Number(raw) || 0;
                       if (value <= 0) return null;
+                      if (!isActive) return null;
                       const cx = Number(
                         (dotProps as { cx?: number }).cx ?? 0,
                       );
@@ -936,7 +1211,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                           key={`${seriesKey}-${(dotProps as { index?: number }).index ?? 0}`}
                           cx={cx}
                           cy={cy}
-                          r={3}
+                          r={hoveredSeriesKey === seriesKey ? 4 : 3}
                           fill="#ffffff"
                           stroke={color}
                           strokeWidth={2}
@@ -1000,6 +1275,39 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
           </PerformanceChartMount>
         )}
       </div>
+
+      {chartCampaigns.length > 0 && !isPending ? (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          {chartCampaigns.map((campaign, index) => {
+            const color = CHART_COLORS[index % CHART_COLORS.length]!;
+            const seriesKey = `c${campaign.campaignId}`;
+            const name =
+              formatTitleCase(campaign.campaignName) || campaign.campaignName;
+            const isActive =
+              hoveredSeriesKey == null || hoveredSeriesKey === seriesKey;
+            return (
+              <button
+                key={campaign.campaignId}
+                type="button"
+                onMouseEnter={() => setHoveredFast(seriesKey)}
+                onMouseLeave={clearHovered}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.7rem] font-medium transition ${
+                  isActive
+                    ? "border-[#dbe7ff] bg-white text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)]"
+                    : "border-transparent bg-transparent text-slate-400"
+                }`}
+              >
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                />
+                <span className="max-w-[10rem] truncate">{name}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 });
@@ -1044,10 +1352,58 @@ export function BusinessPerformancePanel({
       }),
   });
 
+  const addonCountsQuery = useQuery({
+    queryKey: [
+      "business-addon-counts",
+      businessId,
+      monthFilter,
+      range.from,
+      range.to,
+    ],
+    enabled: Number.isFinite(businessId) && businessId > 0,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    queryFn: () =>
+      getCampaignAddonCounts(businessId, {
+        from: range.from,
+        to: range.to,
+        limit: 5,
+      }),
+  });
+
   useEffect(() => {
     setAlertDismissed(false);
   }, [businessId, monthFilter, query.errorUpdatedAt]);
 
+  const addonCountCampaigns = addonCountsQuery.data?.campaigns ?? [];
+  const campaignsWithAddonCounts = useMemo(
+    () =>
+      addonCountCampaigns.filter((campaign) => campaign.addons.length > 0),
+    [addonCountCampaigns],
+  );
+  const bundlePreviewTips = useMemo(() => {
+    const tips: Array<{
+      campaignId: number;
+      campaignName: string;
+      imageUrl: string | null;
+      addonName: string;
+      timesPurchased: number;
+      topStatus: "clear" | "tied" | "emerging";
+    }> = [];
+    for (const campaign of campaignsWithAddonCounts) {
+      const top = campaign.addons[0];
+      if (!top) continue;
+      tips.push({
+        campaignId: campaign.campaignId,
+        campaignName: campaign.campaignName,
+        imageUrl: campaign.imageUrl ?? null,
+        addonName: top.name,
+        timesPurchased: top.times,
+        topStatus: campaign.topStatus ?? "emerging",
+      });
+    }
+    return tips;
+  }, [campaignsWithAddonCounts]);
   const campaigns = query.data?.campaigns ?? [];
   const conversionCampaigns = useMemo(() => {
     const fromApi = query.data?.conversionCampaigns ?? [];
@@ -1298,8 +1654,10 @@ export function BusinessPerformancePanel({
         </div>
 
         <CampaignPerformanceChart
+          businessId={businessId}
           chartData={chartData}
           chartCampaigns={chartCampaigns}
+          totalCampaignCount={campaigns.length}
           chartMetric={chartMetric}
           chartMetricButtons={chartMetricButtons}
           onMetricChange={setChartMetric}
@@ -1314,6 +1672,15 @@ export function BusinessPerformancePanel({
         <ConversionPerformanceSection
           campaigns={conversionCampaigns}
           isPending={query.isPending}
+        />
+
+        <BundleOpportunitiesSection
+          businessId={businessId}
+          monthFilter={monthFilter}
+          monthLabel={monthLabel}
+          campaignCount={campaignsWithAddonCounts.length}
+          topTips={bundlePreviewTips}
+          isPending={addonCountsQuery.isPending}
         />
 
         <div className={`${panelCardClass} overflow-hidden`}>

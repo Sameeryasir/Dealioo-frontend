@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Stop showing mock/preview activity when API totals are 0.
- * Why: Empty businesses were looking busy with fake "Preview data".
- * Related: business-activity-mock.ts, dashboard page.tsx
- */
-
 import {
   buildCheckInsMonthlyData,
   buildMembersMonthlyData,
@@ -22,8 +16,16 @@ import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
 import type { ActivityMonthlyPoint } from "@/app/services/activity/get-business-activity";
-import { DollarSign, Megaphone, ScanLine, ShoppingBag, Users } from "lucide-react";
+import {
+  ArrowRight,
+  DollarSign,
+  Megaphone,
+  ScanLine,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { useMemo } from "react";
 
 const overviewCardClass =
@@ -118,7 +120,7 @@ function OverviewSkeleton() {
           >
             <Skeleton funnel className="h-4 w-36" />
             <Skeleton funnel className="mt-2 h-3 w-28" />
-            <Skeleton funnel className="mt-6 h-[220px] w-full rounded-xl" />
+            <Skeleton funnel className="mt-6 h-[200px] w-full rounded-xl" />
           </div>
         ))}
       </div>
@@ -127,6 +129,7 @@ function OverviewSkeleton() {
 }
 
 export function BusinessActivityOverviewPanel({
+  businessId,
   businessName,
   data,
   months,
@@ -135,7 +138,9 @@ export function BusinessActivityOverviewPanel({
   totalMembers = 0,
   todayRevenueCents = 0,
   isLoading,
+  isQuietBusiness = false,
 }: {
+  businessId?: number | null;
   businessName?: string;
   data: ActivityMonthlyPoint[];
   months: number;
@@ -144,8 +149,8 @@ export function BusinessActivityOverviewPanel({
   totalMembers?: number;
   todayRevenueCents?: number;
   isLoading?: boolean;
+  isQuietBusiness?: boolean;
 }) {
-  // Always use API values — never fall back to mock/preview when totals are 0.
   const chartData = data;
   const displayActiveCampaigns = activeCampaigns;
   const displayTotalOrders = totalOrders;
@@ -175,6 +180,10 @@ export function BusinessActivityOverviewPanel({
   );
 
   const displayName = businessName?.trim() || "Your business";
+  const campaignsHref =
+    businessId != null
+      ? `/business/${businessId}/dashboard/campaigns`
+      : "/business/dashboard/campaigns";
 
   return (
     <article className={`${overviewCardClass} w-full`} aria-label="Business activity">
@@ -215,6 +224,31 @@ export function BusinessActivityOverviewPanel({
       ) : (
         <div className="px-3 py-4 sm:px-4 sm:py-5">
           <div className="space-y-5">
+            {isQuietBusiness ? (
+              <aside
+                className="flex flex-col gap-3 rounded-[1.15rem] border border-dashed border-[#c7d7f5] bg-[#f7faff] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                role="status"
+                aria-label="Get started"
+              >
+                <div className="min-w-0">
+                  <p className="m-0 text-sm font-semibold text-[#07111f]">
+                    No activity yet — that is normal for a new shop
+                  </p>
+                  <p className="m-0 mt-1 text-xs font-medium leading-relaxed text-slate-500">
+                    Publish a campaign and check guests in. These numbers fill
+                    in as real visits and payments happen.
+                  </p>
+                </div>
+                <Link
+                  href={campaignsHref}
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.2)] transition hover:bg-[#166fe0]"
+                >
+                  Create a campaign
+                  <ArrowRight className="size-4" strokeWidth={2.25} aria-hidden />
+                </Link>
+              </aside>
+            ) : null}
+
             <section
               className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
               aria-label="Business summary"
@@ -222,7 +256,7 @@ export function BusinessActivityOverviewPanel({
               <OverviewKpiTile
                 label="Active campaigns"
                 value={displayActiveCampaigns}
-                hint="Published"
+                hint={isQuietBusiness ? "Publish your first deal" : "Published"}
                 icon={Megaphone}
                 iconBg={DASHBOARD_KPI_ICON.green}
                 hoverTone="green"
@@ -230,7 +264,7 @@ export function BusinessActivityOverviewPanel({
               <OverviewKpiTile
                 label="Total orders"
                 value={displayTotalOrders}
-                hint="Paid payments"
+                hint={isQuietBusiness ? "Waiting on first payment" : "Paid payments"}
                 icon={ShoppingBag}
                 iconBg={DASHBOARD_KPI_ICON.orange}
                 hoverTone="orange"
@@ -238,7 +272,7 @@ export function BusinessActivityOverviewPanel({
               <OverviewKpiTile
                 label="Total members"
                 value={displayTotalMembers}
-                hint="From customers"
+                hint={isQuietBusiness ? "Guests appear after signup" : "From customers"}
                 icon={Users}
                 iconBg={DASHBOARD_KPI_ICON.pink}
                 hoverTone="pink"
@@ -275,7 +309,9 @@ export function BusinessActivityOverviewPanel({
                   Performance insights
                 </h2>
                 <p className="m-0 mt-1 text-[0.78rem] font-medium text-slate-500">
-                  Monthly trends for the last {months} months.
+                  {isQuietBusiness
+                    ? "Charts stay flat until guests engage — then monthly trends show up here."
+                    : `Monthly trends for the last ${months} months.`}
                 </p>
               </div>
               <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">

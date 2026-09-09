@@ -11136,6 +11136,15 @@ body:has(.auth-select-plan-page) {
   width: 100%;
   padding: 0.2rem 0.1rem 0.3rem;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Keep sidebar fixed: only .rd-main-scroll should scroll dashboard content. */
+html:has(.rd-shell--app),
+body:has(.rd-shell--app) {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
