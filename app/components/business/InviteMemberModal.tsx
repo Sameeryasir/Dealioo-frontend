@@ -42,7 +42,7 @@ import {
   GoogleAdsLogo,
   MetaLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
-import { inviteBusinessMember } from "@/app/services/member/business-members";
+import { inviteBusinessMember, updateActiveBusinessMember, updatePendingBusinessInvitation } from "@/app/services/member/business-members";
 import {
   CAMPAIGN_ACTION_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
@@ -53,6 +53,14 @@ import {
   type GoogleCampaignActionPermission,
   type MetaCampaignActionPermission,
 } from "@/app/services/member/types";
+
+type MemberAccessEdit = {
+  kind: "pending" | "active";
+  id: number;
+  email: string;
+  role: BusinessMemberRole;
+  permissions: BusinessMemberPermission[];
+};
 
 type PermissionIcon = ComponentType<{
   className?: string;
@@ -331,37 +339,85 @@ export function InviteMemberForm({
   onSuccess,
   onCancel,
   variant = "modal",
+  editInvite = null,
 }: {
   businessId: number;
   onSuccess?: () => void;
   onCancel?: () => void;
   variant?: "modal" | "inline";
+  editInvite?: MemberAccessEdit | null;
 }) {
   const isInline = variant === "inline";
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<BusinessMemberRole>("Manager");
+  const isEdit = editInvite != null;
+  const isActiveEdit = editInvite?.kind === "active";
+  const [email, setEmail] = useState(editInvite?.email ?? "");
+  const [role, setRole] = useState<BusinessMemberRole>(
+    editInvite?.role ?? "Manager",
+  );
   const [permissions, setPermissions] = useState<BusinessMemberPermission[]>(
-    () => getDefaultPermissionsForRole("Manager"),
+    () =>
+      editInvite?.permissions?.length
+        ? editInvite.permissions
+        : getDefaultPermissionsForRole(editInvite?.role ?? "Manager"),
   );
   const [error, setError] = useState<string | null>(null);
   const [campaignsExpanded, setCampaignsExpanded] = useState(true);
   const [metaCampaignsExpanded, setMetaCampaignsExpanded] = useState(true);
   const [googleCampaignsExpanded, setGoogleCampaignsExpanded] = useState(true);
 
+  useEffect(() => {
+    if (!editInvite) return;
+    setEmail(editInvite.email);
+    setRole(editInvite.role);
+    setPermissions(
+      editInvite.permissions.length > 0
+        ? editInvite.permissions
+        : getDefaultPermissionsForRole(editInvite.role),
+    );
+    setError(null);
+  }, [editInvite]);
+
   const inviteMutation = useMutation({
-    mutationFn: () =>
-      inviteBusinessMember({
+    mutationFn: () => {
+      if (isEdit && editInvite) {
+        if (editInvite.kind === "active") {
+          return updateActiveBusinessMember({
+            memberId: editInvite.id,
+            role,
+            permissions,
+          });
+        }
+        return updatePendingBusinessInvitation({
+          businessId,
+          invitationId: editInvite.id,
+          role,
+          permissions,
+        });
+      }
+      return inviteBusinessMember({
         businessId,
         email: email.trim(),
         role,
         permissions,
-      }),
+      });
+    },
     onSuccess: () => {
-      resetInviteFormState(setEmail, setRole, setPermissions, setError);
+      if (!isEdit) {
+        resetInviteFormState(setEmail, setRole, setPermissions, setError);
+      }
       onSuccess?.();
     },
     onError: (err: unknown) => {
-      setError(getApiErrorMessage(err, "Could not send the invitation."));
+      setError(
+        getApiErrorMessage(
+          err,
+          isEdit
+            ? isActiveEdit
+              ? "Could not update member access."
+              : "Could not update the invitation."
+            : "Could not send the invitation.",
+        ),
+      );
     },
   });
 
@@ -611,19 +667,24 @@ export function InviteMemberForm({
             <div className="min-w-0 flex-1 pr-1">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:px-2.5 sm:py-1 sm:text-[0.68rem]">
                 <Sparkles className="size-3" aria-hidden />
-                Team invite
+                {isEdit ? (isActiveEdit ? "Member access" : "Pending invite") : "Team invite"}
               </div>
               <h2
                 id="invite-member-title"
                 className="mt-1.5 text-lg font-extrabold tracking-tight text-[#07111f] sm:mt-2 sm:text-xl"
               >
-                Add a new member
+                {isEdit
+                  ? isActiveEdit
+                    ? "Edit member access"
+                    : "Edit invitation"
+                  : "Add a new member"}
               </h2>
               <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
-                Send a secure email invitation, choose a role, and decide exactly
-                what this teammate can access. They stay Pending until they
-                finish signup or sign in — opening the link alone does not
-                accept the invite.
+                {isEdit
+                  ? isActiveEdit
+                    ? "Change their role and module permissions. They keep the same account — access updates right away."
+                    : "Update their role and permissions before they accept. Changes apply to this pending invite."
+                  : "Send a secure email invitation, choose a role, and decide exactly what this teammate can access. They stay Pending until they finish signup or sign in — opening the link alone does not accept the invite."}
               </p>
             </div>
           </div>
@@ -669,7 +730,8 @@ export function InviteMemberForm({
               onChange={(event) => setEmail(event.target.value)}
               placeholder="teammate@company.com"
               className={fieldInputClass}
-              disabled={inviteMutation.isPending}
+              disabled={inviteMutation.isPending || isEdit}
+              readOnly={isEdit}
             />
           </div>
         </div>
@@ -911,12 +973,12 @@ export function InviteMemberForm({
           {inviteMutation.isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
-              Sending invitation…
+              {isEdit ? "Saving…" : "Sending invitation…"}
             </>
           ) : (
             <>
               <Send className="size-4" strokeWidth={2.25} aria-hidden />
-              Send invitation
+              {isEdit ? "Save changes" : "Send invitation"}
             </>
           )}
         </button>
@@ -930,11 +992,13 @@ export function InviteMemberModal({
   onClose,
   businessId,
   onSuccess,
+  editInvite = null,
 }: {
   open: boolean;
   onClose: () => void;
   businessId: number;
   onSuccess?: () => void;
+  editInvite?: MemberAccessEdit | null;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -976,6 +1040,7 @@ export function InviteMemberModal({
             <InviteMemberForm
               businessId={businessId}
               variant="modal"
+              editInvite={editInvite}
               onCancel={onClose}
               onSuccess={() => {
                 onSuccess?.();

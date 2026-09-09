@@ -57,7 +57,13 @@ export type SignupFormProps = {
   invitation?: SignupInvitationContext | null;
   onRegister: (
     values: SignupRegisterValues,
-  ) => Promise<void | { skipOtp?: boolean; redirectToLogin?: boolean }>;
+  ) => Promise<
+    void | {
+      skipOtp?: boolean;
+      redirectToLogin?: boolean;
+      redirectTo?: string;
+    }
+  >;
   onVerifyOtp: (otp: number) => Promise<void>;
   onResendOtp: () => Promise<void>;
 };
@@ -298,8 +304,12 @@ export default function SignupForm({
             router.push("/auth/login");
             return;
           }
+          if (result.redirectTo?.trim()) {
+            router.replace(result.redirectTo.trim());
+            return;
+          }
           const destination = await fetchAuthenticatedOnboardingDestination();
-          router.push(destination);
+          router.replace(destination);
           return;
         }
         setStep(2);

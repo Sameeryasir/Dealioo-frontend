@@ -136,6 +136,8 @@ function SignupPageInner() {
             phone: values.phone,
           });
           setCredentials(values.email, values.password);
+          setAuthTokens(inviteResult.token, inviteResult.refreshToken);
+          setSetupUser(inviteResult.user);
           if (inviteResult.isNewCustomer) {
             trackProductLead("signup_form_invite", {
               email: values.email,
@@ -148,7 +150,14 @@ function SignupPageInner() {
               isNewCustomer: true,
             });
           }
-          return { skipOtp: true as const, redirectToLogin: true as const };
+          return {
+            skipOtp: true as const,
+            redirectTo:
+              typeof inviteResult.businessId === "number" &&
+              inviteResult.businessId > 0
+                ? `/business/${inviteResult.businessId}/dashboard`
+                : "/dashboard",
+          };
         }
 
         const registerResult = await registerUser(values);

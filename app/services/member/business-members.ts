@@ -3,7 +3,12 @@ import { parseApiMessage } from "@/app/lib/api";
 import { authAxios } from "@/app/lib/auth-axios";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { isPositiveInt } from "@/app/lib/numbers";
-import { createBusinessInvitation } from "@/app/services/invitation/business-invitations";
+import {
+  copyBusinessInvitationLink,
+  createBusinessInvitation,
+  resendBusinessInvitation,
+  updateBusinessInvitation,
+} from "@/app/services/invitation/business-invitations";
 import type {
   BusinessMemberListItem,
   BusinessMembersResponse,
@@ -202,9 +207,64 @@ export async function inviteBusinessMember(input: {
   email: string;
   role: string;
   permissions: BusinessMemberPermission[];
-}): Promise<{ message: string; inviteId: number }> {
+}): Promise<{ message: string; inviteId: number; inviteUrl?: string }> {
   const result = await createBusinessInvitation(input);
-  return { message: result.message, inviteId: result.invitationId };
+  return {
+    message: result.message,
+    inviteId: result.invitationId,
+    inviteUrl: result.inviteUrl,
+  };
+}
+
+export async function updatePendingBusinessInvitation(input: {
+  businessId: number;
+  invitationId: number;
+  role: string;
+  permissions: BusinessMemberPermission[];
+}): Promise<{ message: string; invitationId: number }> {
+  return updateBusinessInvitation(input);
+}
+
+export async function updateActiveBusinessMember(input: {
+  memberId: number;
+  role: string;
+  permissions: BusinessMemberPermission[];
+}): Promise<{ message: string }> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+
+  try {
+    const response = await authAxios.patch<unknown>(`/members/${input.memberId}`, {
+      role: input.role,
+      permissions: input.permissions,
+    });
+    const data = (response.data ?? {}) as Record<string, unknown>;
+    return {
+      message:
+        typeof data.message === "string"
+          ? data.message
+          : "Member access updated successfully.",
+    };
+  } catch (error) {
+    throw new Error(
+      readApiErrorMessage(error, "Could not update member access."),
+    );
+  }
+}
+
+export async function resendPendingBusinessInvitation(input: {
+  businessId: number;
+  invitationId: number;
+}): Promise<{ message: string; invitationId: number; inviteUrl: string }> {
+  return resendBusinessInvitation(input);
+}
+
+export async function copyPendingBusinessInvitationLink(input: {
+  businessId: number;
+  invitationId: number;
+}): Promise<{ message: string; invitationId: number; inviteUrl: string }> {
+  return copyBusinessInvitationLink(input);
 }
 
 export async function removeBusinessMember(

@@ -60,6 +60,10 @@ function AcceptInvitationInner() {
         router.replace("/dashboard");
       } catch (err) {
         if (cancelled) return;
+        if (hasAuthSession()) {
+          router.replace("/dashboard");
+          return;
+        }
         setError(
           err instanceof Error
             ? err.message
