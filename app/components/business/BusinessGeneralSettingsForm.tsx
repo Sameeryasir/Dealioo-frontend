@@ -6,6 +6,7 @@ import { BusinessProfileEditModal } from "@/app/components/business/BusinessProf
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
+import { getBusinessSetup } from "@/app/lib/business-setup";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import {
@@ -347,21 +348,24 @@ export function BusinessGeneralSettingsForm({
   const totalCustomers = business?.summary?.totalCustomers ?? 0;
   const activeAutomations = business?.summary?.activeAutomations ?? 0;
   const usagePercent = useMemo(() => {
-    // Keep the bar in sync while the owner edits fields before save.
-    const checks = [
-      form.name.trim(),
-      form.phoneNumber.trim(),
-      form.email.trim(),
-      form.websiteUrl.trim(),
-      form.city.trim(),
-      form.country.trim(),
-      form.description.trim(),
-      Boolean(logoSrc),
-    ];
-    const filled = checks.filter(Boolean).length;
-    const live = Math.round((filled / checks.length) * 100);
-    return business?.summary?.monthlyUsagePercent ?? live;
-  }, [business?.summary?.monthlyUsagePercent, form, logoSrc]);
+    const live = getBusinessSetup({
+      id: business?.id,
+      name: form.name,
+      logoUrl: logoSrc,
+      email: form.email,
+      phoneNumber: form.phoneNumber,
+      city: form.city,
+      state: form.state,
+      country: form.country,
+      postalCode: form.postalCode,
+      branchCount: Number.parseInt(form.branchCount, 10) || 0,
+      stripeConnected: business?.stripeConnected,
+      metaConnected: business?.metaConnected,
+      googleAdsConnected: business?.googleAdsConnected,
+      twilioConnected: business?.twilioConnected,
+    }).progressPercent;
+    return live;
+  }, [business, form, logoSrc]);
 
   const profileCompletion = useMemo(() => {
     const items = [

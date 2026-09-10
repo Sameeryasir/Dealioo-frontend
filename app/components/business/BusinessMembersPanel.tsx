@@ -39,10 +39,7 @@ import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membe
 import { standardEase } from "@/app/lib/motion";
 import { getPermissionLabel } from "@/app/lib/member-permissions";
 import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
-import {
-  isPusherConfigured,
-  memberJoinedToListItem,
-} from "@/app/lib/pusher-members";
+import { isPusherConfigured } from "@/app/lib/pusher-members";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   copyPendingBusinessInvitationLink,
@@ -56,7 +53,6 @@ import {
   type BusinessMemberListItem,
   type BusinessMemberPermission,
   type BusinessMemberRole,
-  type BusinessMembersResponse,
 } from "@/app/services/member/types";
 
 const LOGO = {
@@ -718,13 +714,35 @@ export function BusinessMembersPanel({
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  const listOptions = useMemo(
+    () => ({
+      page,
+      limit: MEMBERS_PAGE_SIZE,
+      search: debouncedSearch || undefined,
+    }),
+    [page, debouncedSearch],
+  );
+
   const membersQuery = useQuery({
-    queryKey: businessMemberQueryKeys.list(businessId),
-    queryFn: () => getBusinessMembers(businessId),
+    queryKey: businessMemberQueryKeys.list(businessId, listOptions),
+    queryFn: () => getBusinessMembers(businessId, listOptions),
     staleTime: 30_000,
+    placeholderData: (previous) => previous,
   });
 
   useEffect(() => {
@@ -735,74 +753,29 @@ export function BusinessMembersPanel({
     return subscribeBusinessMembers(businessId, (payload) => {
       if (payload.businessId !== businessId) return;
 
-      const activeMember = memberJoinedToListItem(payload);
-      const emailKey = activeMember.email.trim().toLowerCase();
-
-      queryClient.setQueryData<BusinessMembersResponse>(
-        businessMemberQueryKeys.list(businessId),
-        (previous) => {
-          if (!previous) {
-            return { members: [activeMember] };
-          }
-
-          let replacedPending = false;
-          const nextMembers: BusinessMemberListItem[] = [];
-
-          for (const row of previous.members) {
-            const sameInvite =
-              row.status === "pending" &&
-              (row.id === payload.invitationId ||
-                row.email.trim().toLowerCase() === emailKey);
-            const sameActive =
-              row.status === "active" &&
-              (row.id === activeMember.id ||
-                row.email.trim().toLowerCase() === emailKey);
-
-            if (sameInvite || sameActive) {
-              if (!replacedPending) {
-                nextMembers.push(activeMember);
-                replacedPending = true;
-              }
-              continue;
-            }
-
-            nextMembers.push(row);
-          }
-
-          if (!replacedPending) {
-            const ownerIndex = nextMembers.findIndex(
-              (row) => row.status === "owner",
-            );
-            const insertAt =
-              ownerIndex >= 0
-                ? (() => {
-                    let i = ownerIndex + 1;
-                    while (
-                      i < nextMembers.length &&
-                      nextMembers[i].status === "active"
-                    ) {
-                      i += 1;
-                    }
-                    return i;
-                  })()
-                : nextMembers.length;
-            nextMembers.splice(insertAt, 0, activeMember);
-          }
-
-          return { members: nextMembers };
-        },
-      );
+      void queryClient.invalidateQueries({
+        queryKey: businessMemberQueryKeys.lists(businessId),
+      });
 
       setDetailsMember((current) => {
         if (!current) return current;
+        const emailKey = payload.member.email.trim().toLowerCase();
         const same =
           (current.status === "pending" &&
             (current.id === payload.invitationId ||
               current.email.trim().toLowerCase() === emailKey)) ||
           (current.status === "active" &&
-            (current.id === activeMember.id ||
-              current.email.trim().toLowerCase() === emailKey));
-        return same ? activeMember : current;
+            current.email.trim().toLowerCase() === emailKey);
+        if (!same) return current;
+        return {
+          ...current,
+          id: payload.member.id,
+          userId: payload.member.userId,
+          status: "active",
+          name: payload.member.name?.trim() || current.name,
+          email: payload.member.email,
+          role: payload.member.role || current.role,
+        };
       });
     });
   }, [businessId, queryClient]);
@@ -817,7 +790,7 @@ export function BusinessMembersPanel({
       setDetailsMember(null);
       setMemberToRemove(null);
       await queryClient.invalidateQueries({
-        queryKey: businessMemberQueryKeys.list(businessId),
+        queryKey: businessMemberQueryKeys.lists(businessId),
       });
     },
     onError: (err: unknown) => {
@@ -834,7 +807,7 @@ export function BusinessMembersPanel({
     onSuccess: async (result) => {
       setDetailsActionMessage(result.message || "Invitation resent.");
       await queryClient.invalidateQueries({
-        queryKey: businessMemberQueryKeys.list(businessId),
+        queryKey: businessMemberQueryKeys.lists(businessId),
       });
     },
     onError: (err: unknown) => {
@@ -857,7 +830,7 @@ export function BusinessMembersPanel({
         setDetailsActionMessage(result.inviteUrl);
       }
       await queryClient.invalidateQueries({
-        queryKey: businessMemberQueryKeys.list(businessId),
+        queryKey: businessMemberQueryKeys.lists(businessId),
       });
     },
     onError: (err: unknown) => {
@@ -874,43 +847,23 @@ export function BusinessMembersPanel({
     "this teammate";
 
   const members = membersQuery.data?.members ?? [];
+  const meta = membersQuery.data?.meta;
+  const stats = membersQuery.data?.stats ?? {
+    activeCount: 0,
+    pendingCount: 0,
+    fullAccessCount: 0,
+    roleCount: 0,
+  };
   const isLoading = membersQuery.isLoading;
   const loadError = membersQuery.isError
     ? getApiErrorMessage(membersQuery.error, "Could not load members.")
     : null;
 
-  const stats = useMemo(() => {
-    const activeCount = members.filter((m) => m.status !== "pending").length;
-    const pendingCount = members.filter((m) => m.status === "pending").length;
-    const fullAccessCount = members.filter((m) => m.status === "owner").length;
-    const roleCount = new Set(
-      members.map((m) => m.role.trim().toLowerCase()).filter(Boolean),
-    ).size;
-    return { activeCount, pendingCount, fullAccessCount, roleCount };
-  }, [members]);
-
-  const filteredMembers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return members;
-    return members.filter((member) => {
-      const haystack = `${member.name} ${member.email} ${member.role}`.toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [members, searchQuery]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredMembers.length / MEMBERS_PAGE_SIZE),
-  );
+  const total = meta?.total ?? 0;
+  const totalPages = Math.max(1, meta?.totalPages ?? 1);
   const safePage = Math.min(page, totalPages);
-  const pageMembers = useMemo(() => {
-    const start = (safePage - 1) * MEMBERS_PAGE_SIZE;
-    return filteredMembers.slice(start, start + MEMBERS_PAGE_SIZE);
-  }, [filteredMembers, safePage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
+  const pageFrom = total === 0 ? 0 : (safePage - 1) * MEMBERS_PAGE_SIZE + 1;
+  const pageTo = Math.min(safePage * MEMBERS_PAGE_SIZE, total);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -1028,7 +981,7 @@ export function BusinessMembersPanel({
                 Try again
               </button>
             </div>
-          ) : members.length === 0 ? (
+          ) : total === 0 && !debouncedSearch ? (
             <div className="flex flex-col items-center px-6 py-16 text-center">
               <span className="relative mb-5 flex size-20 items-center justify-center rounded-[1.35rem] bg-[#e8f2ff] text-[#1877f2] shadow-[0_12px_30px_rgba(24,119,242,0.12)] ring-1 ring-[#bfdbfe]">
                 <Users className="size-9" strokeWidth={2} aria-hidden />
@@ -1067,8 +1020,8 @@ export function BusinessMembersPanel({
                   </span>
                   <div className="min-w-0">
                     <p className="m-0 text-sm font-bold text-[#0f172a]">
-                      {filteredMembers.length} Member
-                      {filteredMembers.length === 1 ? "" : "s"}
+                      {total} Member
+                      {total === 1 ? "" : "s"}
                     </p>
                     <p className="m-0 mt-0.5 text-xs font-medium text-slate-500">
                       Manage your team members and their access
@@ -1105,7 +1058,7 @@ export function BusinessMembersPanel({
                 </div>
               ) : null}
 
-              {filteredMembers.length === 0 ? (
+              {total === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <p className="m-0 text-sm font-semibold text-[#0f172a]">
                     No members match your search
@@ -1134,7 +1087,7 @@ export function BusinessMembersPanel({
                       </tr>
                     </thead>
                     <tbody>
-                      {pageMembers.map((member) => {
+                      {members.map((member) => {
                         const initials = memberInitials(member);
                         const canViewDetails = member.status !== "owner";
                         const canRemove =
@@ -1236,32 +1189,36 @@ export function BusinessMembersPanel({
                 </div>
               )}
 
-              {filteredMembers.length > 0 ? (
+              {total > 0 ? (
                 <div className="flex flex-col gap-3 border-t border-[#eef2f7] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs font-medium text-slate-500">
-                    Showing {pageMembers.length} of {filteredMembers.length}{" "}
+                    Showing {pageFrom}–{pageTo} of {total}{" "}
                     member
-                    {filteredMembers.length === 1 ? "" : "s"}
+                    {total === 1 ? "" : "s"}
                   </p>
-                  <div className="inline-flex items-center gap-1.5">
+                  <div className="inline-flex items-center gap-2">
                     <button
                       type="button"
                       aria-label="Previous page"
                       disabled={safePage <= 1}
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
                       className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf5] bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ChevronLeft className="size-4" aria-hidden />
                     </button>
-                    <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[#1877f2] text-xs font-bold text-white">
-                      {safePage}
+                    <span className="min-w-[4.5rem] text-center text-xs font-semibold text-slate-600">
+                      Page {safePage} of {totalPages}
                     </span>
                     <button
                       type="button"
                       aria-label="Next page"
                       disabled={safePage >= totalPages}
                       onClick={() =>
-                        setPage((current) => Math.min(totalPages, current + 1))
+                        setPage((current) =>
+                          Math.min(totalPages, current + 1),
+                        )
                       }
                       className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf5] bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -1286,7 +1243,7 @@ export function BusinessMembersPanel({
         onSuccess={() => {
           setDetailsActionMessage(null);
           void queryClient.invalidateQueries({
-            queryKey: businessMemberQueryKeys.list(businessId),
+            queryKey: businessMemberQueryKeys.lists(businessId),
           });
         }}
       />

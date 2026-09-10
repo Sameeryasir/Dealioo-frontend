@@ -23,6 +23,7 @@ function baseBusiness(overrides: Partial<AdminBusiness> = {}): AdminBusiness {
     metaConnected: false,
     metaUserId: "123456",
     metaConnectionStatus: "AUTHENTICATED",
+    googleAdsConnected: false,
     twilioConnected: false,
     twilioPhoneNumber: "+15550000",
     ...overrides,
@@ -48,12 +49,12 @@ describe("business setup validation", () => {
 });
 
 describe("getBusinessSetup", () => {
-  it("keeps 8 equal steps and percent math", () => {
+  it("keeps 9 equal steps and percent math", () => {
     const setup = getBusinessSetup(baseBusiness());
-    expect(setup.totalCount).toBe(8);
+    expect(setup.totalCount).toBe(9);
     expect(setup.completedCount).toBe(4);
-    expect(setup.remainingCount).toBe(4);
-    expect(setup.progressPercent).toBe(50);
+    expect(setup.remainingCount).toBe(5);
+    expect(setup.progressPercent).toBe(44);
     expect(setup.isComplete).toBe(false);
   });
 
@@ -66,10 +67,20 @@ describe("getBusinessSetup", () => {
     ).toBe(true);
   });
 
+  it("does not treat Untitled business as a real name", () => {
+    const setup = getBusinessSetup(baseBusiness({ name: "Untitled business" }));
+    expect(
+      setup.steps.find((step) => step.id === "business-information")?.done,
+    ).toBe(false);
+  });
+
   it("does not treat account ids as connected integrations", () => {
     const setup = getBusinessSetup(baseBusiness());
     expect(setup.steps.find((step) => step.id === "stripe")?.done).toBe(false);
     expect(setup.steps.find((step) => step.id === "meta-ads")?.done).toBe(false);
+    expect(setup.steps.find((step) => step.id === "google-ads")?.done).toBe(
+      false,
+    );
     expect(setup.steps.find((step) => step.id === "twilio-number")?.done).toBe(
       false,
     );
@@ -80,11 +91,15 @@ describe("getBusinessSetup", () => {
       baseBusiness({
         stripeConnected: true,
         metaConnected: true,
+        googleAdsConnected: true,
         twilioConnected: true,
       }),
     );
     expect(setup.steps.find((step) => step.id === "stripe")?.done).toBe(true);
     expect(setup.steps.find((step) => step.id === "meta-ads")?.done).toBe(true);
+    expect(setup.steps.find((step) => step.id === "google-ads")?.done).toBe(
+      true,
+    );
     expect(setup.steps.find((step) => step.id === "twilio-number")?.done).toBe(
       true,
     );
@@ -106,7 +121,7 @@ describe("getBusinessSetup", () => {
     );
   });
 
-  it("groups the 8 steps into Business Profile, Operations, Payments, Marketing", () => {
+  it("groups the 9 steps into Business Profile, Operations, Payments, Marketing", () => {
     const setup = getBusinessSetup(baseBusiness());
     expect(setup.groups.map((group) => group.label)).toEqual([
       "Business Profile",
@@ -125,6 +140,7 @@ describe("getBusinessSetup", () => {
         stripeConnected: true,
         twilioConnected: true,
         metaConnected: false,
+        googleAdsConnected: true,
         logoUrl: "https://cdn.example/logo.png",
       }),
     );

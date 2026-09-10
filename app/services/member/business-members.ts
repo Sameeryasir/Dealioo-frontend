@@ -135,6 +135,11 @@ function parseMemberItem(raw: unknown): BusinessMemberListItem | null {
 
 export async function getBusinessMembers(
   businessId: number,
+  options?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  },
 ): Promise<BusinessMembersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -143,23 +148,79 @@ export async function getBusinessMembers(
     throw new Error("Valid business id is required.");
   }
 
+  const page = options?.page ?? 1;
+  const limit = options?.limit ?? 8;
+  const search = options?.search?.trim() || undefined;
+
   const response = await authAxios.get<unknown>("/members", {
-    params: { businessId },
+    params: {
+      businessId,
+      page,
+      limit,
+      ...(search ? { search } : {}),
+    },
   });
 
-  const payload = response.data;
-  const membersRaw =
-    payload && typeof payload === "object"
-      ? (payload as Record<string, unknown>).members
-      : null;
+  const payload =
+    response.data && typeof response.data === "object"
+      ? (response.data as Record<string, unknown>)
+      : {};
 
+  const membersRaw = payload.members;
   const members = Array.isArray(membersRaw)
     ? membersRaw
         .map(parseMemberItem)
         .filter((item): item is BusinessMemberListItem => item != null)
     : [];
 
-  return { members };
+  const metaRaw =
+    payload.meta && typeof payload.meta === "object"
+      ? (payload.meta as Record<string, unknown>)
+      : {};
+  const total =
+    typeof metaRaw.total === "number" && Number.isFinite(metaRaw.total)
+      ? Math.max(0, Math.floor(metaRaw.total))
+      : members.length;
+  const safeLimit =
+    typeof metaRaw.limit === "number" && Number.isFinite(metaRaw.limit)
+      ? Math.max(1, Math.floor(metaRaw.limit))
+      : limit;
+  const safePage =
+    typeof metaRaw.page === "number" && Number.isFinite(metaRaw.page)
+      ? Math.max(1, Math.floor(metaRaw.page))
+      : page;
+  const totalPages =
+    typeof metaRaw.totalPages === "number" &&
+    Number.isFinite(metaRaw.totalPages)
+      ? Math.max(0, Math.floor(metaRaw.totalPages))
+      : total === 0
+        ? 0
+        : Math.ceil(total / safeLimit);
+
+  const statsRaw =
+    payload.stats && typeof payload.stats === "object"
+      ? (payload.stats as Record<string, unknown>)
+      : {};
+  const readCount = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(0, Math.floor(value))
+      : 0;
+
+  return {
+    members,
+    meta: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages,
+    },
+    stats: {
+      activeCount: readCount(statsRaw.activeCount),
+      pendingCount: readCount(statsRaw.pendingCount),
+      fullAccessCount: readCount(statsRaw.fullAccessCount),
+      roleCount: readCount(statsRaw.roleCount),
+    },
+  };
 }
 
 export type BusinessMembershipAccess = {

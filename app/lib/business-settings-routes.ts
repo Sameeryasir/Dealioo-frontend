@@ -38,7 +38,8 @@ export type BusinessSettingsFocus =
   | "branch"
   | "twilio"
   | "stripe"
-  | "meta";
+  | "meta"
+  | "google";
 
 export function businessSettingsHref(
   businessId: string | number,

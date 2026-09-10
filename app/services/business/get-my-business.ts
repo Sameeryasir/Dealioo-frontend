@@ -33,8 +33,11 @@ export type AdminBusiness = {
   metaUserId?: string | null;
   metaAdAccountId?: string | null;
   metaConnectionStatus?: string | null;
+  googleAdsConnected?: boolean | null;
   twilioConnected?: boolean | null;
   twilioPhoneNumber?: string | null;
+  setupProgressPercent?: number | null;
+  isOwner?: boolean | null;
   summary?: BusinessSummaryMetrics | null;
 };
 
@@ -194,14 +197,15 @@ export function parseBusinessFromApi(value: unknown): AdminBusiness | null {
 function coerceBusiness(value: unknown): AdminBusiness | null {
   if (!value || typeof value !== "object") return null;
   const o = value as Record<string, unknown>;
-  const name = o.name;
-  if (typeof name !== "string" || !name.trim()) return null;
-
   const parsedId = parseId(o.id);
+  if (parsedId == null || parsedId < 1) return null;
+
+  const rawName = pickString(o, "name", "name")?.trim() ?? "";
+  const name = rawName || "Untitled business";
 
   return {
     id: parsedId,
-    name: name.trim(),
+    name,
     slug: pickString(o, "slug", "slug") ?? null,
     description: pickString(o, "description", "description") ?? null,
     logoUrl: pickString(o, "logoUrl", "logo_url") ?? null,
@@ -224,9 +228,20 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
       pickString(o, "metaAdAccountId", "meta_ad_account_id") ?? null,
     metaConnectionStatus:
       pickString(o, "metaConnectionStatus", "meta_connection_status") ?? null,
+    googleAdsConnected: pickBoolean(
+      o,
+      "googleAdsConnected",
+      "google_ads_connected",
+    ),
     twilioConnected: pickBoolean(o, "twilioConnected", "twilio_connected"),
     twilioPhoneNumber:
       pickString(o, "twilioPhoneNumber", "twilio_phone_number") ?? null,
+    setupProgressPercent: pickNumber(
+      o,
+      "setupProgressPercent",
+      "setup_progress_percent",
+    ),
+    isOwner: pickBoolean(o, "isOwner", "is_owner"),
   };
 }
 
@@ -244,6 +259,7 @@ export type PaginatedMyBusinessesResponse = {
     limit: number;
     total: number;
     totalPages: number;
+    ownedTotal: number;
   };
 };
 
@@ -302,10 +318,18 @@ export async function fetchMyBusinesses(
           : total === 0
             ? 0
             : Math.ceil(total / limit);
+      const ownedTotal =
+        typeof rawMeta?.ownedTotal === "number" &&
+        Number.isFinite(rawMeta.ownedTotal)
+          ? rawMeta.ownedTotal
+          : typeof rawMeta?.owned_total === "number" &&
+              Number.isFinite(rawMeta.owned_total)
+            ? (rawMeta.owned_total as number)
+            : total;
 
       return {
         data,
-        meta: { page, limit, total, totalPages },
+        meta: { page, limit, total, totalPages, ownedTotal },
       };
     }
 
@@ -320,6 +344,7 @@ export async function fetchMyBusinesses(
           limit: data.length || MY_BUSINESSES_PAGE_SIZE,
           total: data.length,
           totalPages: data.length === 0 ? 0 : 1,
+          ownedTotal: data.length,
         },
       };
     }
@@ -332,22 +357,12 @@ export async function fetchMyBusinesses(
         limit: MY_BUSINESSES_PAGE_SIZE,
         total: one ? 1 : 0,
         totalPages: one ? 1 : 0,
+        ownedTotal: one ? 1 : 0,
       },
     };
   } catch (error) {
     console.error("Fetch my businesses error:", error);
     if (axios.isAxiosError(error)) {
-      if (error.response?.status === 404) {
-        return {
-          data: [],
-          meta: {
-            page: options.page ?? 1,
-            limit: options.limit ?? MY_BUSINESSES_PAGE_SIZE,
-            total: 0,
-            totalPages: 0,
-          },
-        };
-      }
       if (error.response?.data?.message != null) {
         throw new Error(
           parseApiMessage(
@@ -355,6 +370,9 @@ export async function fetchMyBusinesses(
             "Could not load businesses.",
           ),
         );
+      }
+      if (error.response?.status === 404) {
+        throw new Error("Business list endpoint was not found.");
       }
     }
     throw error;

@@ -35,6 +35,7 @@ export function useMyBusinessesQuery(options: UseMyRestaurantsQueryOptions = {})
     limit,
     total: 0,
     totalPages: 0,
+    ownedTotal: 0,
   };
 
   return {

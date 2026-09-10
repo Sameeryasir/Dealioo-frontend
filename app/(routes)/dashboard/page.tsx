@@ -18,9 +18,9 @@ import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
-import { AlertCircle, Filter, Megaphone, Plus, Users } from "lucide-react";
+import { AlertCircle, Filter, Megaphone, Plus, Search, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const WORKSPACE_FEATURES = [
   { label: "Campaigns", icon: Megaphone, tone: "blue" },
@@ -68,6 +68,8 @@ export default function DashboardPage() {
 function OwnerDashboardPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -80,9 +82,20 @@ function OwnerDashboardPage() {
     setIsClient(true);
     setUserName(getSetupUser()?.name ?? null);
     setUserRole(getUserRoleLabel());
-    // Invited Manager/Staff join an existing business — they must not start owner onboarding.
     setCanAddBusiness(!isInvitedTeamUser());
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = searchInput.trim();
+      setSearch((prev) => {
+        if (prev === next) return prev;
+        setPage(1);
+        return next;
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const {
     data: businesses,
@@ -91,9 +104,8 @@ function OwnerDashboardPage() {
     isFetching,
     error: errorMessage,
     refetch: loadBusinesses,
-  } = useMyBusinessesQuery({ page });
+  } = useMyBusinessesQuery({ page, search });
 
-  // If a business was deleted and fewer pages remain, snap back to a valid page.
   useEffect(() => {
     if (meta.totalPages > 0 && page > meta.totalPages) {
       setPage(meta.totalPages);
@@ -111,20 +123,16 @@ function OwnerDashboardPage() {
     refetch: refetchSubscription,
   } = useMyUserSubscription();
 
-  const sortedBusinesses = useMemo(() => {
-    const copy = [...businesses];
-    copy.sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-    );
-    return copy;
-  }, [businesses]);
-
   const isBusinessListLoading =
     businesses.length === 0 && (isLoading || isFetching) && !errorMessage;
   const showSkeleton = !isClient || isBusinessListLoading;
-  const hasAnyBusinesses = meta.total > 0;
+  const showEmptyState = !errorMessage && meta.total === 0 && !search;
+  const showNoSearchResults =
+    !errorMessage && meta.total === 0 && Boolean(search);
   const showToolbar = !errorMessage;
   const checkingPlan = subscriptionLoading || subscriptionFetching;
+
+  const ownedBusinessCount = meta.ownedTotal ?? meta.total;
 
   const handleAddBusiness = useCallback(async () => {
     setPlanCheckError(null);
@@ -154,7 +162,7 @@ function OwnerDashboardPage() {
     if (
       isStarterBusinessLimitReachedForSubscription(
         currentSubscription,
-        meta.total,
+        ownedBusinessCount,
       )
     ) {
       setStarterLimitOpen(true);
@@ -163,7 +171,7 @@ function OwnerDashboardPage() {
 
     router.push("/business/register");
   }, [
-    meta.total,
+    ownedBusinessCount,
     refetchSubscription,
     router,
     subscription,
@@ -230,8 +238,37 @@ function OwnerDashboardPage() {
                   </div>
                 </div>
 
-                {canAddBusiness ? (
-                  <div className="org-dashboard-panel-controls">
+                <div className="org-dashboard-panel-controls">
+                  <div className="org-dashboard-search">
+                    <Search
+                      className="org-dashboard-search-icon"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                    <input
+                      type="search"
+                      value={searchInput}
+                      onChange={(event) => setSearchInput(event.target.value)}
+                      placeholder="Search by name, city, or email"
+                      className="org-dashboard-search-input"
+                      aria-label="Search businesses"
+                    />
+                    {searchInput.trim() ? (
+                      <button
+                        type="button"
+                        className="org-dashboard-search-clear"
+                        aria-label="Clear search"
+                        onClick={() => {
+                          setSearchInput("");
+                          setSearch("");
+                          setPage(1);
+                        }}
+                      >
+                        <X className="size-3.5" strokeWidth={2.5} aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                  {canAddBusiness ? (
                     <button
                       type="button"
                       onClick={() => void handleAddBusiness()}
@@ -244,8 +281,8 @@ function OwnerDashboardPage() {
                         ? "Checking plan…"
                         : "Add business"}
                     </button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -285,7 +322,7 @@ function OwnerDashboardPage() {
                   message={errorMessage}
                   onRetry={() => loadBusinesses()}
                 />
-              ) : isClient && !hasAnyBusinesses ? (
+              ) : isClient && showEmptyState ? (
                 <div className="org-dashboard-first-run">
                   <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
                     {canAddBusiness ? (
@@ -311,10 +348,37 @@ function OwnerDashboardPage() {
                     )}
                   </div>
                 </div>
+              ) : showNoSearchResults ? (
+                <div className="org-dashboard-empty-search" role="status">
+                  <span className="org-dashboard-empty-search-icon" aria-hidden>
+                    <Search strokeWidth={2.25} />
+                  </span>
+                  <p className="org-dashboard-empty-search-title">
+                    No matching businesses
+                  </p>
+                  <p className="org-dashboard-empty-search-text">
+                    Nothing matched{" "}
+                    <span className="org-dashboard-empty-search-query">
+                      “{search}”
+                    </span>
+                    . Try another name, city, or email.
+                  </p>
+                  <button
+                    type="button"
+                    className="org-dashboard-empty-search-clear"
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearch("");
+                      setPage(1);
+                    }}
+                  >
+                    Clear search
+                  </button>
+                </div>
               ) : (
                 <>
                   <div className="org-dashboard-grid org-dashboard-grid--cards grid">
-                    {sortedBusinesses.map((business, index) => (
+                    {businesses.map((business, index) => (
                       <BusinessDashboardCard
                         key={business.id ?? `business-${index}`}
                         business={business}

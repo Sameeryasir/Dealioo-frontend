@@ -1,9 +1,3 @@
-/**
- * Change: Single calculator for Business Setup (8 equal steps + nextRecommendedStep).
- * Why: Stripe/Meta/Twilio are integrations, not profile fields — one source of truth for %.
- * Related: BusinessDashboardCard, BusinessSetupPopover, sanitize-business-list-item.ts
- * MCP Context 7: keep scoring equal-weight; do not mix with signup onboarding.
- */
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import type { AdminBusiness } from "@/app/services/business/get-my-business";
 
@@ -21,7 +15,8 @@ export type BusinessSetupStepId =
   | "branch"
   | "twilio-number"
   | "stripe"
-  | "meta-ads";
+  | "meta-ads"
+  | "google-ads";
 
 export type BusinessSetupStep = {
   id: BusinessSetupStepId;
@@ -70,7 +65,6 @@ const GROUP_LABELS: Record<BusinessSetupGroupId, string> = {
   marketing: "Marketing",
 };
 
-/** Useful actions first — logo last (cosmetic). */
 const RECOMMENDED_STEP_ORDER: BusinessSetupStepId[] = [
   "stripe",
   "twilio-number",
@@ -79,6 +73,7 @@ const RECOMMENDED_STEP_ORDER: BusinessSetupStepId[] = [
   "address",
   "branch",
   "meta-ads",
+  "google-ads",
   "business-logo",
 ];
 
@@ -110,6 +105,7 @@ export function getBusinessSetup(
     metaConnected?: boolean;
     stripeConnected?: boolean;
     twilioConnected?: boolean;
+    googleAdsConnected?: boolean;
   },
 ): BusinessSetup {
   const businessId =
@@ -131,13 +127,20 @@ export function getBusinessSetup(
   const twilioDone =
     overrides?.twilioConnected ??
     isExplicitlyConnected(business.twilioConnected);
+  const googleDone =
+    overrides?.googleAdsConnected ??
+    isExplicitlyConnected(business.googleAdsConnected);
+
+  const displayName = business.name?.trim() ?? "";
+  const nameForSetup =
+    displayName.toLowerCase() === "untitled business" ? "" : displayName;
 
   const steps: BusinessSetupStep[] = [
     {
       id: "business-information",
       label: "Business Information",
       ctaLabel: "Add business name",
-      done: hasNonEmptyText(business.name),
+      done: hasNonEmptyText(nameForSetup),
       href: general("info"),
       group: "business_profile",
     },
@@ -196,6 +199,14 @@ export function getBusinessSetup(
       ctaLabel: "Connect Meta",
       done: metaDone,
       href: integrations("meta"),
+      group: "marketing",
+    },
+    {
+      id: "google-ads",
+      label: "Google Ads Connected",
+      ctaLabel: "Connect Google Ads",
+      done: googleDone,
+      href: integrations("google"),
       group: "marketing",
     },
   ];

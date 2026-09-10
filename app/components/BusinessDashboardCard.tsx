@@ -56,11 +56,26 @@ export default function BusinessDashboardCard({
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;
   const { access, isFetched } = useBusinessMembershipPermissions(businessId);
+  const setup = getBusinessSetup(business);
+  const progress = setup.progressPercent;
+  const isReady = setup.isComplete;
+  const statusLabel = isReady
+    ? "Ready"
+    : progress >= 50
+      ? "In progress"
+      : "Needs setup";
+  const statusClass = isReady
+    ? "org-biz-card-status--ready"
+    : progress >= 50
+      ? "org-biz-card-status--active"
+      : "org-biz-card-status--needs-setup";
+
   const canDelete =
     businessId != null &&
     !isScannerUser() &&
-    isFetched &&
-    (access === "owner" || access === "super_admin");
+    (business.isOwner === true ||
+      (isFetched && (access === "owner" || access === "super_admin")));
+
   const dashboardHref =
     businessId != null
       ? isScannerUser()
@@ -71,10 +86,6 @@ export default function BusinessDashboardCard({
   const branches = branchCount ?? 0;
   const branchLabel =
     branches === 1 ? "1 branch" : `${branches} branches`;
-
-  const setup = getBusinessSetup(business);
-  const progress = setup.progressPercent;
-  const isReady = setup.isComplete;
 
   useEffect(() => {
     const target = Math.min(100, Math.max(0, Math.round(progress)));
@@ -258,9 +269,9 @@ export default function BusinessDashboardCard({
               <div className="org-biz-card-main">
                 <div className="org-biz-card-title-row">
                   <h2 className="org-biz-card-title">{name}</h2>
-                  <span className="org-biz-card-status org-biz-card-status--active">
+                  <span className={`org-biz-card-status ${statusClass}`}>
                     <span className="org-biz-card-status-dot" aria-hidden />
-                    Active
+                    {statusLabel}
                   </span>
                 </div>
               </div>

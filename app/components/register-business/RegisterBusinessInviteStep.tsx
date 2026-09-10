@@ -29,12 +29,17 @@ export default function RegisterBusinessInviteStep({
   const queryClient = useQueryClient();
 
   const membersQuery = useQuery({
-    queryKey: businessMemberQueryKeys.list(businessId),
-    queryFn: () => getBusinessMembers(businessId),
+    queryKey: businessMemberQueryKeys.list(businessId, {
+      page: 1,
+      limit: 100,
+    }),
+    queryFn: () =>
+      getBusinessMembers(businessId, { page: 1, limit: 100 }),
     staleTime: 30_000,
   });
 
   const members = membersQuery.data?.members ?? [];
+  const memberTotal = membersQuery.data?.meta.total ?? members.length;
 
   return (
     <div
@@ -93,7 +98,7 @@ export default function RegisterBusinessInviteStep({
                   variant="inline"
                   onSuccess={() => {
                     void queryClient.invalidateQueries({
-                      queryKey: businessMemberQueryKeys.list(businessId),
+                      queryKey: businessMemberQueryKeys.lists(businessId),
                     });
                   }}
                 />
@@ -106,7 +111,7 @@ export default function RegisterBusinessInviteStep({
                         <p className={inviteStyles.cardHint}>
                           {membersQuery.isLoading
                             ? "Loading members…"
-                            : `${members.length} member${members.length === 1 ? "" : "s"} on this business.`}
+                            : `${memberTotal} member${memberTotal === 1 ? "" : "s"} on this business.`}
                         </p>
                       </div>
                     </div>

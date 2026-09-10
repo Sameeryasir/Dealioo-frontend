@@ -70,4 +70,16 @@ export type BusinessMemberListItem = {
 
 export type BusinessMembersResponse = {
   members: BusinessMemberListItem[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  stats: {
+    activeCount: number;
+    pendingCount: number;
+    fullAccessCount: number;
+    roleCount: number;
+  };
 };
