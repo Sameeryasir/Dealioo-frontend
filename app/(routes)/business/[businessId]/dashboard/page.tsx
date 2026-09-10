@@ -4,6 +4,7 @@ import { BusinessActivityOverviewPanel } from "@/app/components/business/Busines
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function BusinessDashboardPage() {
   const router = useRouter();
@@ -28,12 +29,17 @@ export default function BusinessDashboardPage() {
     typeof businessIdParam === "string" && /^\d+$/.test(businessIdParam)
       ? Number(businessIdParam)
       : null;
+  const [canViewPerformance, setCanViewPerformance] = useState(false);
 
   useEffect(() => {
     if (!isScannerUser()) return;
     if (businessId == null) return;
     router.replace(`/business/${businessId}/dashboard/scanning`);
   }, [businessId, router]);
+
+  useEffect(() => {
+    setCanViewPerformance(isAdminOrSuperAdminUser());
+  }, []);
 
   const { data: restaurant } = useBusinessByIdQuery(businessId);
 
@@ -146,7 +152,7 @@ export default function BusinessDashboardPage() {
           </aside>
         ) : null}
 
-        {businessId != null ? (
+        {businessId != null && canViewPerformance ? (
           <section
             className="rounded-[1.35rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5"
             aria-label="Performance"

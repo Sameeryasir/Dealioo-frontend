@@ -2,9 +2,10 @@
 
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { BusinessBundleOpportunitiesPanel } from "@/app/components/business/BusinessBundleOpportunitiesPanel";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
-import { useParams } from "next/navigation";
-import { Suspense, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo } from "react";
 
 function BundleOpportunitiesPageBody({ businessId }: { businessId: number }) {
   return <BusinessBundleOpportunitiesPanel businessId={businessId} />;
@@ -12,13 +13,27 @@ function BundleOpportunitiesPageBody({ businessId }: { businessId: number }) {
 
 export default function BusinessBundleOpportunitiesPage() {
   const params = useParams();
+  const router = useRouter();
+
   const businessId = useMemo(
     () => parseRoutePositiveInt(params.businessId),
     [params.businessId],
   );
 
+  const canAccess = isAdminOrSuperAdminUser();
+
+  useEffect(() => {
+    if (!canAccess && businessId != null) {
+      router.replace(`/business/${businessId}/dashboard`);
+    }
+  }, [businessId, canAccess, router]);
+
   if (businessId == null) {
     return <InvalidRouteMessage />;
+  }
+
+  if (!canAccess) {
+    return null;
   }
 
   return (
