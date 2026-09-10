@@ -27,6 +27,7 @@ export function prependBusinessToMyListCache(
             limit: MY_RESTAURANTS_PAGE_SIZE,
             total: 1,
             totalPages: 1,
+            ownedTotal: 1,
           },
         };
       }
@@ -44,6 +45,9 @@ export function prependBusinessToMyListCache(
 
       const wasNew = !current.data.some((row) => row.id === business.id);
       const nextTotal = wasNew ? current.meta.total + 1 : current.meta.total;
+      const nextOwnedTotal = wasNew
+        ? current.meta.ownedTotal + 1
+        : current.meta.ownedTotal;
       const limit = current.meta.limit || MY_RESTAURANTS_PAGE_SIZE;
 
       return {
@@ -53,6 +57,7 @@ export function prependBusinessToMyListCache(
           page: 1,
           total: nextTotal,
           totalPages: nextTotal === 0 ? 0 : Math.ceil(nextTotal / limit),
+          ownedTotal: nextOwnedTotal,
         },
       };
     },

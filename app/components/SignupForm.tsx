@@ -45,7 +45,7 @@ export type SignupRegisterValues = Omit<SignupFormValues, "confirmPassword">;
 
 export type SignupInvitationContext = {
   token: string;
-  email: string;
+  emailMasked: string;
   businessName: string;
   role: string;
 };
@@ -137,7 +137,7 @@ export default function SignupForm({
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
   const [otpLoading, setOtpLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
-  const isInviteSignup = Boolean(invitation?.token && invitation.email);
+  const isInviteSignup = Boolean(invitation?.token);
   const totalSteps = isInviteSignup ? 2 : STEPS.length;
 
   const {
@@ -146,13 +146,12 @@ export default function SignupForm({
     watch,
     getValues,
     reset,
-    setValue,
     trigger,
     formState: { errors },
   } = useForm<SignupFormValues>({
     defaultValues: {
       name: "",
-      email: invitation?.email ?? "",
+      email: "",
       phone: "",
       password: "",
       confirmPassword: "",
@@ -185,11 +184,11 @@ export default function SignupForm({
   };
 
   useEffect(() => {
-    if (invitation?.email) {
+    if (invitation?.token) {
       clearSignupProgress();
       reset({
         name: "",
-        email: invitation.email,
+        email: "",
         phone: "",
         password: "",
         confirmPassword: "",
@@ -228,13 +227,8 @@ export default function SignupForm({
   }, [invitation, rememberCredentials, reset]);
 
   useEffect(() => {
-    if (invitation?.email) {
-      setValue("email", invitation.email);
-    }
-  }, [invitation?.email, setValue]);
-
-  useEffect(() => {
     if (!hydrated) return;
+    if (invitation?.token) return;
 
     saveSignupProgress({
       step,
@@ -249,6 +243,7 @@ export default function SignupForm({
     });
   }, [
     hydrated,
+    invitation?.token,
     step,
     nameValue,
     emailValue,
@@ -280,7 +275,7 @@ export default function SignupForm({
 
   const goNext = async () => {
     if (step === 0) {
-      const ok = await trigger(["name", "email"]);
+      const ok = await trigger(isInviteSignup ? ["name"] : ["name", "email"]);
       if (ok) setStep(1);
       return;
     }
@@ -464,34 +459,44 @@ export default function SignupForm({
                       <Mail className="h-4 w-4 text-brand-muted" aria-hidden />
                       Email Address
                     </label>
-                    <input
-                      id="signup-email"
-                      type="email"
-                      autoComplete="email"
-                      disabled={submitting || isInviteSignup}
-                      readOnly={isInviteSignup || ignoreAutofill}
-                      onFocus={() => {
-                        if (!isInviteSignup) setIgnoreAutofill(false);
-                      }}
-                      aria-invalid={!!errors.email}
-                      className={`${inputClass(!!errors.email)}${
-                        isInviteSignup ? " cursor-not-allowed bg-[#f8faff]" : ""
-                      }`}
-                      placeholder="name@company.com"
-                      {...register("email", {
-                        required: "Enter your email.",
-                        pattern: {
-                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                          message: "Enter a valid email.",
-                        },
-                      })}
-                    />
                     {isInviteSignup ? (
-                      <p className="mt-1.5 text-xs text-brand-muted">
-                        Email comes from your invitation and can&apos;t be changed.
-                      </p>
-                    ) : null}
-                    <FieldError message={errors.email?.message} />
+                      <>
+                        <div
+                          id="signup-email"
+                          className={`${inputClass(false)} cursor-not-allowed bg-[#f8faff] text-brand-ink`}
+                        >
+                          {invitation?.emailMasked || "Invitation email"}
+                        </div>
+                        <p className="mt-1.5 text-xs text-brand-muted">
+                          Email comes from your invitation and can&apos;t be
+                          changed.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          id="signup-email"
+                          type="email"
+                          autoComplete="email"
+                          disabled={submitting}
+                          readOnly={ignoreAutofill}
+                          onFocus={() => {
+                            setIgnoreAutofill(false);
+                          }}
+                          aria-invalid={!!errors.email}
+                          className={inputClass(!!errors.email)}
+                          placeholder="name@company.com"
+                          {...register("email", {
+                            required: "Enter your email.",
+                            pattern: {
+                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                              message: "Enter a valid email.",
+                            },
+                          })}
+                        />
+                        <FieldError message={errors.email?.message} />
+                      </>
+                    )}
                   </div>
                 </motion.div>
               ) : null}

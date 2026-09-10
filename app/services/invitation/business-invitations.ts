@@ -22,7 +22,7 @@ export type ValidateInvitationResponse = {
   valid: boolean;
   accountExists: boolean;
   businessName: string;
-  email: string;
+  emailMasked: string;
   role: string;
 };
 
@@ -190,7 +190,8 @@ export async function validateBusinessInvitation(
       accountExists: Boolean(data.accountExists),
       businessName:
         typeof data.businessName === "string" ? data.businessName : "",
-      email: typeof data.email === "string" ? data.email : "",
+      emailMasked:
+        typeof data.emailMasked === "string" ? data.emailMasked : "",
       role: typeof data.role === "string" ? data.role : "",
     };
   } catch (error) {

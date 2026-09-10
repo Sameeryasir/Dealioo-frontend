@@ -31,7 +31,7 @@ function SignupPageInner() {
   const [inviteReady, setInviteReady] = useState(false);
   const [invitation, setInvitation] = useState<{
     token: string;
-    email: string;
+    emailMasked: string;
     businessName: string;
     role: string;
   } | null>(null);
@@ -96,7 +96,7 @@ function SignupPageInner() {
 
         setInvitation({
           token: inviteToken,
-          email: result.email,
+          emailMasked: result.emailMasked,
           businessName: result.businessName,
           role: result.role,
         });
@@ -135,16 +135,17 @@ function SignupPageInner() {
             password: values.password,
             phone: values.phone,
           });
-          setCredentials(values.email, values.password);
+          const accountEmail = inviteResult.user.email || values.email;
+          setCredentials(accountEmail, values.password);
           setAuthTokens(inviteResult.token, inviteResult.refreshToken);
           setSetupUser(inviteResult.user);
           if (inviteResult.isNewCustomer) {
             trackProductLead("signup_form_invite", {
-              email: values.email,
+              email: accountEmail,
               phone: values.phone,
             });
             trackProductCompleteRegistration({
-              email: values.email,
+              email: accountEmail,
               phone: values.phone,
               externalId: String(inviteResult.user.id),
               isNewCustomer: true,
