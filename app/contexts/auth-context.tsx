@@ -4,6 +4,7 @@ import {
   AUTH_SESSION_CHANGED_EVENT,
   hasAuthSession,
 } from "@/app/lib/auth-session";
+import { MemberAccessRemovedListener } from "@/app/components/MemberAccessRemovedListener";
 import {
   createContext,
   useCallback,
@@ -49,7 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, isAuthReady, syncAuthSession],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {isAuthenticated ? <MemberAccessRemovedListener /> : null}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

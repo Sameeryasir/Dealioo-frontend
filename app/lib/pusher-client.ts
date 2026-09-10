@@ -40,6 +40,12 @@ import {
   pusherBusinessMembersChannel,
   type MemberJoinedPusherPayload,
 } from "@/app/lib/pusher-members";
+import {
+  PUSHER_MEMBER_ACCESS_REMOVED_EVENT,
+  parseMemberAccessRemovedPusherPayload,
+  pusherUserChannel,
+  type MemberAccessRemovedPusherPayload,
+} from "@/app/lib/pusher-member-access-removed";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
@@ -492,6 +498,23 @@ export function subscribeBusinessMembers(
     onJoined,
     parseMemberJoinedPusherPayload,
     `business-members-${businessId}`,
+  );
+}
+
+export function subscribeMemberAccessRemoved(
+  userId: number,
+  onRemoved: (payload: MemberAccessRemovedPusherPayload) => void,
+): () => void {
+  if (userId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherUserChannel(userId),
+    PUSHER_MEMBER_ACCESS_REMOVED_EVENT.REMOVED,
+    onRemoved,
+    parseMemberAccessRemovedPusherPayload,
+    `user-access-removed-${userId}`,
   );
 }
 
