@@ -32,6 +32,7 @@ type Props = {
 export default function BusinessDashboardCard({
   business,
   layout = "grid",
+  accentIndex = 0,
 }: Props) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -39,8 +40,7 @@ export default function BusinessDashboardCard({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const [isCountingProgress, setIsCountingProgress] = useState(true);
+  const [ringReady, setRingReady] = useState(false);
 
   const fullAddress = [city, state, country].filter(Boolean).join(", ");
   const cityState = [city, state]
@@ -88,53 +88,39 @@ export default function BusinessDashboardCard({
     branches === 1 ? "1 branch" : `${branches} branches`;
 
   useEffect(() => {
-    const target = Math.min(100, Math.max(0, Math.round(progress)));
     const prefersReducedMotion =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (prefersReducedMotion) {
-      setDisplayProgress(target);
-      setIsCountingProgress(false);
+      setRingReady(true);
       return;
     }
 
-    setDisplayProgress(0);
-    setIsCountingProgress(true);
-
-    const durationMs = 750 + target * 5;
-    const startMs = performance.now();
-    let frameId = 0;
-
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - startMs) / durationMs);
-      const eased = 1 - (1 - t) ** 3;
-      setDisplayProgress(Math.round(eased * target));
-      if (t < 1) {
-        frameId = requestAnimationFrame(tick);
-        return;
-      }
-      setDisplayProgress(target);
-      setIsCountingProgress(false);
+    // Paint empty ring first, then enable fill so CSS can ease to the target.
+    let innerFrame = 0;
+    const outerFrame = requestAnimationFrame(() => {
+      innerFrame = requestAnimationFrame(() => setRingReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(outerFrame);
+      cancelAnimationFrame(innerFrame);
     };
+  }, []);
 
-    frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
-  }, [progress]);
-
+  const displayProgress = Math.min(100, Math.max(0, Math.round(progress)));
   const ringView = 96;
   const ringCenter = ringView / 2;
   const circleRadius = 38;
   const circleStroke = 7;
   const circleCircumference = 2 * Math.PI * circleRadius;
-  const circleOffset =
-    circleCircumference -
-    (Math.min(100, Math.max(0, displayProgress)) / 100) * circleCircumference;
+  const circleOffset = ringReady
+    ? circleCircumference - (displayProgress / 100) * circleCircumference
+    : circleCircumference;
   const ringComplete = displayProgress >= 100;
 
-  const setupStatusText = isCountingProgress
-    ? "Calculating…"
-    : `${setup.completedCount} of ${setup.totalCount} complete`;
+  const setupStatusText = `${setup.completedCount} of ${setup.totalCount} complete`;
+  const enterDelayMs = Math.min(accentIndex, 8) * 45;
 
   const cardAriaLabel = `${name}${isReady ? ", ready" : ", in setup"}. Open dashboard.`;
 
@@ -253,6 +239,7 @@ export default function BusinessDashboardCard({
     <>
       <div
         className="org-biz-card org-biz-card--grid org-biz-card--with-delete group relative outline-none"
+        style={{ animationDelay: `${enterDelayMs}ms` }}
       >
         <div className="org-biz-card-inner">
           <div className="org-biz-card-head">
@@ -290,7 +277,7 @@ export default function BusinessDashboardCard({
                   <div
                     className="org-biz-card-progress-ring"
                     data-complete={ringComplete ? "true" : undefined}
-                    data-counting={isCountingProgress ? "true" : undefined}
+                    data-ready={ringReady ? "true" : undefined}
                     aria-label={`${displayProgress}% complete`}
                   >
                     <svg
@@ -340,7 +327,7 @@ export default function BusinessDashboardCard({
                   </div>
                   <div className="org-biz-card-progress-copy">
                     <p className="org-biz-card-setup-status">{setupStatusText}</p>
-                    {!isCountingProgress && setup.nextRecommendedStep ? (
+                    {setup.nextRecommendedStep ? (
                       <button
                         type="button"
                         data-setup-next

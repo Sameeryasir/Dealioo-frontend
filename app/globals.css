@@ -4621,6 +4621,24 @@ body {
 
   .org-biz-card--grid {
     @apply flex h-full min-h-[18.5rem] flex-col rounded-[1.35rem] p-5;
+    animation: org-biz-card-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes org-biz-card-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .org-biz-card--grid {
+      animation: none;
+    }
   }
 
   .org-biz-card--grid:hover {
@@ -4667,6 +4685,22 @@ body {
 
   .org-biz-card-avatar-img {
     @apply size-full object-contain object-center;
+    animation: org-biz-avatar-fade 0.35s ease both;
+  }
+
+  @keyframes org-biz-avatar-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .org-biz-card-avatar-img {
+      animation: none;
+    }
   }
 
   .org-biz-card-avatar-placeholder {
@@ -4879,7 +4913,7 @@ body {
   }
 
   .org-biz-card-progress-wrap .org-biz-card-bento-eyebrow svg {
-    color: #7c3aed;
+    color: #1777f2;
   }
 
   .org-biz-card-progress-wrap--interactive {
@@ -4935,11 +4969,7 @@ body {
   }
 
   .org-biz-card-progress-ring-fill {
-    transition: stroke-dashoffset 0.45s ease;
-  }
-
-  .org-biz-card-progress-ring[data-counting="true"] .org-biz-card-progress-ring-fill {
-    transition: stroke-dashoffset 0.2s ease;
+    transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .org-biz-card-progress-ring[data-complete="true"] .org-biz-card-progress-ring-track {
@@ -4953,11 +4983,11 @@ body {
 
   .org-biz-card-location-eyebrow,
   .org-biz-card-location-tile .org-biz-card-bento-eyebrow {
-    color: #f472b6 !important;
+    color: #1777f2 !important;
   }
 
   .org-biz-card-location-eyebrow svg {
-    color: #f472b6 !important;
+    color: #1777f2 !important;
   }
 
   .org-biz-setup-modal-root {
@@ -5153,7 +5183,7 @@ body {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #1877f2 0%, #833aba 55%, #ea5a8f 100%);
+    background: linear-gradient(90deg, #1877f2 0%, #3b8ef5 100%);
   }
 
   .org-biz-setup-popover-groups {
@@ -5172,13 +5202,13 @@ body {
     align-items: center;
     gap: 0.4rem;
     margin: 0 0 0.55rem;
-    color: #16a34a;
+    color: #1877f2;
     font-size: 0.78rem;
     font-weight: 800;
   }
 
   .org-biz-setup-status-label--remain {
-    color: #ea580c;
+    color: #3b82f6;
   }
 
   .org-biz-setup-popover-list {
@@ -5203,29 +5233,22 @@ body {
     text-align: left;
   }
 
-  .org-biz-setup-step-card--done.org-biz-setup-step-card--operations {
-    border-color: #dcfce7;
-    background: #f0fdf4;
-  }
-
-  .org-biz-setup-step-card--done.org-biz-setup-step-card--payments {
-    border-color: #ede9fe;
-    background: #f5f3ff;
-  }
-
+  .org-biz-setup-step-card--done.org-biz-setup-step-card--operations,
+  .org-biz-setup-step-card--done.org-biz-setup-step-card--payments,
   .org-biz-setup-step-card--done.org-biz-setup-step-card--marketing {
-    border-color: #dbeafe;
-    background: #eff6ff;
+    border-color: #e8edf5;
+    background: #f8fafc;
   }
 
   .org-biz-setup-step-card--todo {
     cursor: pointer;
-    border-color: #fdba74;
-    background: #fff7ed;
+    border-color: #dbeafe;
+    background: #f8fbff;
   }
 
   .org-biz-setup-step-card--todo:hover {
-    background: #ffedd5;
+    background: #eff6ff;
+    border-color: #bfdbfe;
   }
 
   .org-biz-setup-step-icon {
@@ -5240,32 +5263,22 @@ body {
     color: #1877f2;
   }
 
-  .org-biz-setup-step-icon--address,
-  .org-biz-setup-step-icon--branch,
-  .org-biz-setup-step-icon--business-information {
-    background: #dbeafe;
-    color: #1877f2;
+  .org-biz-setup-step-icon--twilio-number,
+  .org-biz-setup-step-icon--stripe,
+  .org-biz-setup-step-icon--meta-ads,
+  .org-biz-setup-step-icon--google-ads {
+    background: #ffffff;
+    color: inherit;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
   }
 
-  .org-biz-setup-step-icon--twilio-number {
-    background: #dcfce7;
-    color: #16a34a;
-  }
-
-  .org-biz-setup-step-icon--stripe {
-    background: #ede9fe;
-    color: #7c3aed;
-  }
-
-  .org-biz-setup-step-icon--meta-ads {
-    background: #dbeafe;
-    color: #1877f2;
-  }
-
-  .org-biz-setup-step-stripe {
-    font-size: 0.95rem;
-    font-weight: 800;
-    line-height: 1;
+  .org-biz-setup-step-icon--twilio-number svg,
+  .org-biz-setup-step-icon--stripe svg,
+  .org-biz-setup-step-icon--meta-ads svg,
+  .org-biz-setup-step-icon--google-ads svg {
+    display: block;
+    width: 1.05rem;
+    height: 1.05rem;
   }
 
   .org-biz-setup-step-copy {
@@ -5279,21 +5292,17 @@ body {
   .org-biz-setup-step-badge {
     width: fit-content;
     border-radius: 999px;
-    background: #dcfce7;
-    color: #15803d;
+    background: #eff6ff;
+    color: #1d4ed8;
     padding: 0.08rem 0.4rem;
     font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0.06em;
   }
 
-  .org-biz-setup-step-card--payments .org-biz-setup-step-badge {
-    background: #ede9fe;
-    color: #6d28d9;
-  }
-
+  .org-biz-setup-step-card--payments .org-biz-setup-step-badge,
   .org-biz-setup-step-card--marketing .org-biz-setup-step-badge {
-    background: #dbeafe;
+    background: #eff6ff;
     color: #1d4ed8;
   }
 
@@ -5318,15 +5327,15 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: #22c55e;
+    background: #1877f2;
     color: #ffffff;
   }
 
   .org-biz-setup-pending {
     flex-shrink: 0;
     border-radius: 999px;
-    background: #ffedd5;
-    color: #c2410c;
+    background: #eff6ff;
+    color: #1d4ed8;
     padding: 0.28rem 0.6rem;
     font-size: 0.68rem;
     font-weight: 800;
@@ -5340,7 +5349,7 @@ body {
     gap: 0.75rem 1rem;
     padding: 0.85rem 1rem;
     border-top: 1px solid #eef2f7;
-    background: #f8f5ff;
+    background: #f8fafc;
   }
 
   .org-biz-setup-footer-note {
@@ -5358,7 +5367,7 @@ body {
 
   .org-biz-setup-footer-note svg {
     margin-top: 0.1rem;
-    color: #7c3aed;
+    color: #1877f2;
   }
 
   .org-biz-setup-popover-cta {

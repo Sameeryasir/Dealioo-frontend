@@ -7,16 +7,19 @@ import type {
   BusinessSetupStepId,
 } from "@/app/lib/business-setup";
 import {
+  GoogleAdsLogo,
+  MetaLogo,
+  StripeLogo,
+} from "@/app/components/landing/LandingIntegrationLogos";
+import {
   Building2,
   Check,
   CheckCircle2,
   ClipboardCheck,
   Clock3,
   ImagePlus,
-  Infinity as InfinityIcon,
   Mail,
   MapPin,
-  Phone,
   Sparkles,
   X,
 } from "lucide-react";
@@ -47,6 +50,7 @@ const STEP_HINTS: Record<BusinessSetupStepId, string> = {
   "twilio-number": "Choose or add your Twilio number to continue.",
   stripe: "Connect Stripe to accept payments.",
   "meta-ads": "Connect Meta Ads to run campaigns.",
+  "google-ads": "Connect Google Ads to run campaigns.",
 };
 
 const GROUP_BADGE: Record<BusinessSetupGroupId, string | null> = {
@@ -56,25 +60,46 @@ const GROUP_BADGE: Record<BusinessSetupGroupId, string | null> = {
   marketing: "MARKETING",
 };
 
-const STEP_ICONS: Record<
-  BusinessSetupStepId,
-  ComponentType<{ className?: string; strokeWidth?: number }>
+const STEP_ICONS: Partial<
+  Record<
+    BusinessSetupStepId,
+    ComponentType<{ className?: string; strokeWidth?: number }>
+  >
 > = {
   "business-information": Building2,
   "business-logo": ImagePlus,
   "contact-details": Mail,
   address: MapPin,
   branch: Building2,
-  "twilio-number": Phone,
-  stripe: Building2,
-  "meta-ads": InfinityIcon,
 };
+
+function TwilioMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden role="img">
+      <circle cx="12" cy="12" r="12" fill="#F22F46" />
+      <circle cx="8.2" cy="8.2" r="2.15" fill="#fff" />
+      <circle cx="15.8" cy="8.2" r="2.15" fill="#fff" />
+      <circle cx="8.2" cy="15.8" r="2.15" fill="#fff" />
+      <circle cx="15.8" cy="15.8" r="2.15" fill="#fff" />
+    </svg>
+  );
+}
 
 function StepMark({ step }: { step: BusinessSetupStep }) {
   if (step.id === "stripe") {
-    return <span className="org-biz-setup-step-stripe">S</span>;
+    return <StripeLogo className="size-4" />;
+  }
+  if (step.id === "meta-ads") {
+    return <MetaLogo className="size-4" />;
+  }
+  if (step.id === "google-ads") {
+    return <GoogleAdsLogo className="size-4" />;
+  }
+  if (step.id === "twilio-number") {
+    return <TwilioMark className="size-4" />;
   }
   const Icon = STEP_ICONS[step.id];
+  if (!Icon) return null;
   return <Icon className="size-4" strokeWidth={2.25} />;
 }
 
