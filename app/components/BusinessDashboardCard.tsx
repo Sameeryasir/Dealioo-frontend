@@ -55,7 +55,8 @@ export default function BusinessDashboardCard({
     : countryLabel || "Add location";
   const businessId =
     typeof id === "number" && id >= 1 ? id : null;
-  const { access, isFetched } = useBusinessMembershipPermissions(businessId);
+  const { access, role: membershipRole, isFetched } =
+    useBusinessMembershipPermissions(businessId);
   const setup = getBusinessSetup(business);
   const progress = setup.progressPercent;
   const isReady = setup.isComplete;
@@ -69,6 +70,25 @@ export default function BusinessDashboardCard({
     : progress >= 50
       ? "org-biz-card-status--active"
       : "org-biz-card-status--needs-setup";
+
+  const isBusinessOwner =
+    business.isOwner === true ||
+    access === "owner" ||
+    access === "super_admin";
+  const invitedRoleLabel = (() => {
+    if (!isFetched || isBusinessOwner || access !== "member") return null;
+    const role = membershipRole?.trim();
+    if (!role) return null;
+    const normalized = role.toLowerCase();
+    if (
+      normalized !== "manager" &&
+      normalized !== "staff" &&
+      normalized !== "scanner"
+    ) {
+      return null;
+    }
+    return role;
+  })();
 
   const canDelete =
     businessId != null &&
@@ -208,6 +228,11 @@ export default function BusinessDashboardCard({
             <span className="org-biz-card-list-main">
               <span className="org-biz-card-list-top">
                 <span className="org-biz-card-title">{name}</span>
+                {invitedRoleLabel ? (
+                  <span className="org-biz-card-role" title="Your role">
+                    {invitedRoleLabel}
+                  </span>
+                ) : null}
               </span>
               <span className="org-biz-card-meta-inline">
                 <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
@@ -259,6 +284,11 @@ export default function BusinessDashboardCard({
                     <span className="org-biz-card-status-dot" aria-hidden />
                     {statusLabel}
                   </span>
+                  {invitedRoleLabel ? (
+                    <span className="org-biz-card-role" title="Your role">
+                      {invitedRoleLabel}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </Link>
@@ -267,7 +297,10 @@ export default function BusinessDashboardCard({
 
           <div className="org-biz-card-content">
             <div className="org-biz-card-bento">
-              <BusinessSetupPopover setup={setup}>
+              <BusinessSetupPopover
+                setup={setup}
+                canManageSetup={isBusinessOwner}
+              >
                 <span className="org-biz-card-bento-eyebrow">
                   <UserCog className="size-3" strokeWidth={2.5} aria-hidden />
                   Business setup
@@ -326,7 +359,7 @@ export default function BusinessDashboardCard({
                   </div>
                   <div className="org-biz-card-progress-copy">
                     <p className="org-biz-card-setup-status">{setupStatusText}</p>
-                    {setup.nextRecommendedStep ? (
+                    {isBusinessOwner && setup.nextRecommendedStep ? (
                       <button
                         type="button"
                         data-setup-next

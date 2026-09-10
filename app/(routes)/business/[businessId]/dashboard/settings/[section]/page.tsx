@@ -1,6 +1,7 @@
 "use client";
 
 import { BusinessSettingsPanel } from "@/app/components/business/BusinessSettingsPanel";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import {
   defaultBusinessSettingsSection,
   isBusinessSettingsSection,
@@ -20,6 +21,8 @@ export default function BusinessSettingsSectionPage() {
       ? Number(businessIdParam)
       : null;
 
+  const { isOwnerLike, isFetched } = useBusinessMembershipPermissions(businessId);
+
   const section: BusinessSettingsSection =
     typeof sectionParam === "string" &&
     isBusinessSettingsSection(sectionParam)
@@ -30,7 +33,12 @@ export default function BusinessSettingsSectionPage() {
     businessId != null && section === "account" ? "general" : section;
 
   useEffect(() => {
-    if (businessId == null) return;
+    if (businessId == null || !isFetched) return;
+
+    if (!isOwnerLike) {
+      router.replace(`/business/${businessId}/dashboard`);
+      return;
+    }
 
     if (sectionParam === "account") {
       router.replace(`/business/${businessId}/dashboard/settings/general`);
@@ -44,9 +52,10 @@ export default function BusinessSettingsSectionPage() {
       return;
     }
     router.replace(`/business/${businessId}/dashboard/settings/${section}`);
-  }, [businessId, router, section, sectionParam]);
+  }, [businessId, isFetched, isOwnerLike, router, section, sectionParam]);
 
   if (businessId == null) return null;
+  if (!isFetched || !isOwnerLike) return null;
 
   return (
     <BusinessSettingsPanel section={displaySection} businessId={businessId} />

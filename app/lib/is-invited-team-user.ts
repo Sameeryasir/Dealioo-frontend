@@ -7,7 +7,7 @@ function normalizeRoleName(roleName: string | null | undefined): string {
 
 function isInvitedTeamRoleName(roleName: string | null | undefined): boolean {
   const role = normalizeRoleName(roleName);
-  return role === "manager" || role === "staff";
+  return role === "manager" || role === "staff" || role === "member";
 }
 
 function getRoleNameFromAccessToken(): string | null {

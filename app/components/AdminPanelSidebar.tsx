@@ -231,7 +231,6 @@ export default function AdminPanelSidebar() {
           activeMatch: "prefix",
           permission: "chats",
         },
-        // Ad library + Website builder removed from sidebar for now.
         {
           href: businessId
             ? `${restaurantHomeHref}/history`
@@ -379,7 +378,6 @@ export default function AdminPanelSidebar() {
           )}
         </nav>
 
-        {/* Settings + Logout stay at the bottom of the rail. */}
         <div className="relative z-[2] mt-auto flex shrink-0 flex-col gap-0.5 border-t border-white/10 px-[0.7rem] pb-4 pt-3">
           {expanded ? (
             <p className="mb-1 px-2.5 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-white/40">
@@ -387,7 +385,7 @@ export default function AdminPanelSidebar() {
             </p>
           ) : null}
 
-          {isOwnerLike || can("settings") ? (
+          {isOwnerLike ? (
             <Link
               href={settingsHref}
               onClick={closeMobile}

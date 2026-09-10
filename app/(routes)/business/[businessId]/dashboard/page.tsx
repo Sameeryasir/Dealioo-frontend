@@ -16,10 +16,31 @@ import {
   Info,
   Link2,
   Megaphone,
+  MessageSquare,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+
+type MissingIntegration = "stripe" | "twilio" | "facebook" | "google";
+
+const INTEGRATION_FOCUS: Record<
+  MissingIntegration,
+  "stripe" | "twilio" | "meta" | "google"
+> = {
+  stripe: "stripe",
+  twilio: "twilio",
+  facebook: "meta",
+  google: "google",
+};
+
+const INTEGRATION_LABEL: Record<MissingIntegration, string> = {
+  stripe: "Stripe",
+  twilio: "Twilio",
+  facebook: "Meta (Facebook) Ads",
+  google: "Google Ads",
+};
 
 export default function BusinessDashboardPage() {
   const router = useRouter();
@@ -63,19 +84,27 @@ export default function BusinessDashboardPage() {
   });
 
   const stripeConnected = restaurant?.stripeConnected === true;
-  const metaConnected = Boolean(metaStatusQuery.data?.connected);
-  const integrationsLoading =
-    !restaurant || metaStatusQuery.isPending;
+  const twilioConnected = restaurant?.twilioConnected === true;
+  const metaConnected =
+    restaurant?.metaConnected === true ||
+    Boolean(metaStatusQuery.data?.connected);
+  const googleConnected = restaurant?.googleAdsConnected === true;
+  const integrationsLoading = !restaurant || metaStatusQuery.isPending;
 
   const missingIntegrations = useMemo(() => {
-    const missing: Array<"stripe" | "facebook"> = [];
+    const missing: MissingIntegration[] = [];
     if (!stripeConnected) missing.push("stripe");
+    if (!twilioConnected) missing.push("twilio");
     if (!metaConnected) missing.push("facebook");
+    if (!googleConnected) missing.push("google");
     return missing;
-  }, [stripeConnected, metaConnected]);
+  }, [stripeConnected, twilioConnected, metaConnected, googleConnected]);
 
   const showIntegrationsInfo =
-    businessId != null && !integrationsLoading && missingIntegrations.length > 0;
+    businessId != null &&
+    restaurant?.isOwner === true &&
+    !integrationsLoading &&
+    missingIntegrations.length > 0;
 
   if (isScannerUser()) return null;
 
@@ -85,19 +114,32 @@ export default function BusinessDashboardPage() {
       ? businessSettingsHref(businessId, "integrations", {
           focus:
             missingIntegrations.length === 1
-              ? missingIntegrations[0] === "stripe"
-                ? "stripe"
-                : "meta"
+              ? INTEGRATION_FOCUS[missingIntegrations[0]]
               : undefined,
         })
       : "/dashboard/settings/integrations";
 
-  const infoMessage =
-    missingIntegrations.length === 2
-      ? "Connect Stripe and your Meta (Facebook) Ads account to accept payments and see ad performance for this business."
-      : missingIntegrations[0] === "stripe"
-        ? "Connect Stripe to accept funnel and campaign payments for this business."
-        : "Connect Meta (Facebook) Ads to pull ad performance into Dealioo for this business.";
+  const infoMessage = (() => {
+    if (missingIntegrations.length === 0) return "";
+    if (missingIntegrations.length === 1) {
+      const only = missingIntegrations[0];
+      if (only === "stripe") {
+        return "Connect Stripe to accept funnel and campaign payments for this business.";
+      }
+      if (only === "twilio") {
+        return "Connect a Twilio number so this business can send SMS to guests.";
+      }
+      if (only === "facebook") {
+        return "Connect Meta (Facebook) Ads to pull ad performance into Dealioo for this business.";
+      }
+      return "Connect Google Ads to pull Google ad performance into Dealioo for this business.";
+    }
+    const labels = missingIntegrations.map((id) => INTEGRATION_LABEL[id]);
+    if (labels.length === 2) {
+      return `Connect ${labels[0]} and ${labels[1]} to finish setup for this business.`;
+    }
+    return `Connect ${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]} to finish setup for this business.`;
+  })();
 
   const isQuietBusiness =
     !activityChartQuery.isPending &&
@@ -108,50 +150,6 @@ export default function BusinessDashboardPage() {
   return (
     <section className="rd-premium w-full" aria-label="Business dashboard">
       <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
-        {showIntegrationsInfo ? (
-          <aside
-            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#e8edf5] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
-            role="status"
-            aria-label="Integrations needed"
-          >
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2] ring-1 ring-[#1877f2]/20">
-                <Info className="size-4" strokeWidth={2.25} aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
-                  Continue setup
-                </p>
-                <p className="m-0 mt-1 text-sm font-medium leading-relaxed text-slate-700">
-                  {infoMessage}
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {!stripeConnected ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
-                      <CreditCard className="size-3.5 text-[#635BFF]" aria-hidden />
-                      Stripe not connected
-                    </span>
-                  ) : null}
-                  {!metaConnected ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
-                      <Megaphone className="size-3.5 text-[#1877f2]" aria-hidden />
-                      Meta Ads not connected
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            <Link
-              href={integrationsHref}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0]"
-            >
-              <Link2 className="size-4" strokeWidth={2.25} aria-hidden />
-              Open Integrations
-            </Link>
-          </aside>
-        ) : null}
-
         {businessId != null && canViewPerformance ? (
           <section
             className="rounded-[1.35rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5"
@@ -182,6 +180,62 @@ export default function BusinessDashboardPage() {
               </Link>
             </div>
           </section>
+        ) : null}
+
+        {showIntegrationsInfo ? (
+          <aside
+            className="flex flex-col gap-3 rounded-[1.25rem] border border-[#e8edf5] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
+            role="status"
+            aria-label="Integrations needed"
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2] ring-1 ring-[#1877f2]/20">
+                <Info className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="m-0 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#1877f2]">
+                  Continue setup
+                </p>
+                <p className="m-0 mt-1 text-sm font-medium leading-relaxed text-slate-700">
+                  {infoMessage}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {!stripeConnected ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
+                      <CreditCard className="size-3.5 text-[#635BFF]" aria-hidden />
+                      Stripe not connected
+                    </span>
+                  ) : null}
+                  {!twilioConnected ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
+                      <MessageSquare className="size-3.5 text-[#F22F46]" aria-hidden />
+                      Twilio not connected
+                    </span>
+                  ) : null}
+                  {!metaConnected ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
+                      <Megaphone className="size-3.5 text-[#1877f2]" aria-hidden />
+                      Meta Ads not connected
+                    </span>
+                  ) : null}
+                  {!googleConnected ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
+                      <Target className="size-3.5 text-[#4285F4]" aria-hidden />
+                      Google Ads not connected
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href={integrationsHref}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0]"
+            >
+              <Link2 className="size-4" strokeWidth={2.25} aria-hidden />
+              Open Integrations
+            </Link>
+          </aside>
         ) : null}
 
         <section aria-label="Restaurant activity overview">

@@ -47,6 +47,7 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
   return {
     ...query,
     access,
+    role: query.data?.role ?? null,
     isOwnerLike,
     permissionList,
     can: (permission: BusinessMemberPermission | "google_ads") => {

@@ -40,6 +40,7 @@ import { createPortal } from "react-dom";
 type BusinessSetupPopoverProps = {
   setup: BusinessSetup;
   children: ReactNode;
+  canManageSetup?: boolean;
 };
 
 const STEP_HINTS: Record<BusinessSetupStepId, string> = {
@@ -99,20 +100,20 @@ function RemainingStepRow({
   step,
   onGo,
   stopCardNavigation,
+  canGo,
 }: {
   step: BusinessSetupStep;
   onGo: (href: string) => void;
   stopCardNavigation: (event: ReactMouseEvent | ReactPointerEvent) => void;
+  canGo: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      className="org-biz-setup-step-card org-biz-setup-step-card--todo"
-      onClick={(event) => {
-        stopCardNavigation(event);
-        onGo(step.href);
-      }}
-    >
+  const title =
+    step.label === "Twilio Number Selected"
+      ? "Select Twilio number"
+      : step.ctaLabel;
+
+  const body = (
+    <>
       <span
         className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
         aria-hidden
@@ -125,17 +126,36 @@ function RemainingStepRow({
             Necessary
           </span>
         ) : null}
-        <span className="org-biz-setup-step-title">
-          {step.label === "Twilio Number Selected"
-            ? "Select Twilio number"
-            : step.ctaLabel}
-        </span>
+        <span className="org-biz-setup-step-title">{title}</span>
         <span className="org-biz-setup-step-hint">{STEP_HINTS[step.id]}</span>
       </span>
-      <span className="org-biz-setup-pending">
-        Go
-        <ChevronRight className="size-3.5" strokeWidth={2.75} aria-hidden />
-      </span>
+      {canGo ? (
+        <span className="org-biz-setup-pending">
+          Go
+          <ChevronRight className="size-3.5" strokeWidth={2.75} aria-hidden />
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (!canGo) {
+    return (
+      <div className="org-biz-setup-step-card org-biz-setup-step-card--todo">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="org-biz-setup-step-card org-biz-setup-step-card--todo"
+      onClick={(event) => {
+        stopCardNavigation(event);
+        onGo(step.href);
+      }}
+    >
+      {body}
     </button>
   );
 }
@@ -169,6 +189,7 @@ function CompletedStepRow({ step }: { step: BusinessSetupStep }) {
 export function BusinessSetupPopover({
   setup,
   children,
+  canManageSetup = true,
 }: BusinessSetupPopoverProps) {
   const router = useRouter();
   const triggerId = useId();
@@ -323,6 +344,7 @@ export function BusinessSetupPopover({
                               step={step}
                               onGo={goTo}
                               stopCardNavigation={stopCardNavigation}
+                              canGo={canManageSetup}
                             />
                           </li>
                         ))}
