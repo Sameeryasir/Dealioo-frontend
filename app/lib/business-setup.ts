@@ -12,7 +12,6 @@ export type BusinessSetupStepId =
   | "business-logo"
   | "contact-details"
   | "address"
-  | "branch"
   | "twilio-number"
   | "stripe"
   | "meta-ads"
@@ -25,6 +24,7 @@ export type BusinessSetupStep = {
   href: string;
   group: BusinessSetupGroupId;
   ctaLabel: string;
+  necessary: boolean;
 };
 
 export type BusinessSetupGroup = {
@@ -42,6 +42,8 @@ export type BusinessSetupRecommendedStep = {
 
 export type BusinessSetup = {
   steps: BusinessSetupStep[];
+  coreSteps: BusinessSetupStep[];
+  laterSteps: BusinessSetupStep[];
   groups: BusinessSetupGroup[];
   completedCount: number;
   remainingCount: number;
@@ -71,11 +73,17 @@ const RECOMMENDED_STEP_ORDER: BusinessSetupStepId[] = [
   "contact-details",
   "business-information",
   "address",
-  "branch",
+  "business-logo",
   "meta-ads",
   "google-ads",
-  "business-logo",
 ];
+
+const NECESSARY_STEP_IDS = new Set<BusinessSetupStepId>([
+  "twilio-number",
+  "stripe",
+  "meta-ads",
+  "google-ads",
+]);
 
 export function hasNonEmptyText(value: string | null | undefined): boolean {
   return Boolean(value?.trim());
@@ -143,6 +151,7 @@ export function getBusinessSetup(
       done: hasNonEmptyText(nameForSetup),
       href: general("info"),
       group: "business_profile",
+      necessary: false,
     },
     {
       id: "business-logo",
@@ -151,6 +160,7 @@ export function getBusinessSetup(
       done: hasNonEmptyText(business.logoUrl),
       href: general("logo"),
       group: "business_profile",
+      necessary: false,
     },
     {
       id: "contact-details",
@@ -160,6 +170,7 @@ export function getBusinessSetup(
         hasNonEmptyText(business.email) && hasNonEmptyText(business.phoneNumber),
       href: general("contact"),
       group: "business_profile",
+      necessary: false,
     },
     {
       id: "address",
@@ -168,22 +179,16 @@ export function getBusinessSetup(
       done: hasMeaningfulAddress(business),
       href: general("address"),
       group: "business_profile",
-    },
-    {
-      id: "branch",
-      label: "At least one Branch",
-      ctaLabel: "Add a branch",
-      done: (business.branchCount ?? 0) > 0,
-      href: general("branch"),
-      group: "operations",
+      necessary: false,
     },
     {
       id: "twilio-number",
       label: "Twilio Number Selected",
       ctaLabel: "Select Twilio number",
       done: twilioDone,
-      href: general("twilio"),
+      href: integrations("twilio"),
       group: "operations",
+      necessary: true,
     },
     {
       id: "stripe",
@@ -192,6 +197,7 @@ export function getBusinessSetup(
       done: stripeDone,
       href: integrations("stripe"),
       group: "payments",
+      necessary: true,
     },
     {
       id: "meta-ads",
@@ -200,6 +206,7 @@ export function getBusinessSetup(
       done: metaDone,
       href: integrations("meta"),
       group: "marketing",
+      necessary: true,
     },
     {
       id: "google-ads",
@@ -208,18 +215,21 @@ export function getBusinessSetup(
       done: googleDone,
       href: integrations("google"),
       group: "marketing",
+      necessary: true,
     },
   ];
 
-  const completedCount = steps.filter((step) => step.done).length;
-  const totalCount = steps.length;
+  const coreSteps = steps;
+  const laterSteps: BusinessSetupStep[] = [];
+  const completedCount = coreSteps.filter((step) => step.done).length;
+  const totalCount = coreSteps.length;
   const remainingCount = Math.max(0, totalCount - completedCount);
   const progressPercent =
     totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
   const isComplete = remainingCount === 0 && totalCount > 0;
 
   const nextIncomplete = RECOMMENDED_STEP_ORDER.map((id) =>
-    steps.find((step) => step.id === id && !step.done),
+    coreSteps.find((step) => step.id === id && !step.done),
   ).find((step): step is BusinessSetupStep => Boolean(step));
 
   const nextRecommendedStep: BusinessSetupRecommendedStep | null =
@@ -235,11 +245,13 @@ export function getBusinessSetup(
   const groups: BusinessSetupGroup[] = GROUP_ORDER.map((groupId) => ({
     id: groupId,
     label: GROUP_LABELS[groupId],
-    steps: steps.filter((step) => step.group === groupId),
-  }));
+    steps: coreSteps.filter((step) => step.group === groupId),
+  })).filter((group) => group.steps.length > 0);
 
   return {
     steps,
+    coreSteps,
+    laterSteps,
     groups,
     completedCount,
     remainingCount,
@@ -248,4 +260,8 @@ export function getBusinessSetup(
     isComplete,
     nextRecommendedStep,
   };
+}
+
+export function isNecessarySetupStep(id: BusinessSetupStepId): boolean {
+  return NECESSARY_STEP_IDS.has(id);
 }

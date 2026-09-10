@@ -13,7 +13,11 @@ import {
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
-import { isStarterBusinessLimitReachedForSubscription } from "@/app/lib/plan-limits";
+import {
+  STARTER_MAX_BUSINESSES,
+  isStarterBusinessLimitReachedForSubscription,
+  isStarterSubscription,
+} from "@/app/lib/plan-limits";
 import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
@@ -133,6 +137,11 @@ function OwnerDashboardPage() {
   const checkingPlan = subscriptionLoading || subscriptionFetching;
 
   const ownedBusinessCount = meta.ownedTotal ?? meta.total;
+  const onStarterPlan = isStarterSubscription(subscription);
+  const starterLimitReached = isStarterBusinessLimitReachedForSubscription(
+    subscription,
+    ownedBusinessCount,
+  );
 
   const handleAddBusiness = useCallback(async () => {
     setPlanCheckError(null);
@@ -269,18 +278,27 @@ function OwnerDashboardPage() {
                     ) : null}
                   </div>
                   {canAddBusiness ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleAddBusiness()}
-                      disabled={checkingPlan && subscription == null}
-                      aria-busy={checkingPlan && subscription == null}
-                      className="org-dashboard-add-btn cursor-pointer disabled:cursor-wait disabled:opacity-70"
-                    >
-                      <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-                      {checkingPlan && subscription == null
-                        ? "Checking plan…"
-                        : "Add business"}
-                    </button>
+                    <div className="org-dashboard-add-wrap">
+                      <button
+                        type="button"
+                        onClick={() => void handleAddBusiness()}
+                        disabled={checkingPlan && subscription == null}
+                        aria-busy={checkingPlan && subscription == null}
+                        className="org-dashboard-add-btn cursor-pointer disabled:cursor-wait disabled:opacity-70"
+                      >
+                        <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+                        {checkingPlan && subscription == null
+                          ? "Checking plan…"
+                          : "Add business"}
+                      </button>
+                      {onStarterPlan ? (
+                        <p className="org-dashboard-starter-limit-hint">
+                          {starterLimitReached
+                            ? `Starter includes ${STARTER_MAX_BUSINESSES} business — upgrade to add more.`
+                            : `Starter includes ${STARTER_MAX_BUSINESSES} business.`}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               </div>

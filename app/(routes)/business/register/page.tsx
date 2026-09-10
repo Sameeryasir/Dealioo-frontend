@@ -3,13 +3,10 @@
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
-import RegisterBusinessCreateMetaAdAccountStep from "@/app/components/register-business/RegisterBusinessCreateMetaAdAccountStep";
-import RegisterBusinessCreateStripeAccountStep from "@/app/components/register-business/RegisterBusinessCreateStripeAccountStep";
 import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
+import RegisterBusinessGoogleConnectStep from "@/app/components/register-business/RegisterBusinessGoogleConnectStep";
 import RegisterBusinessInviteStep from "@/app/components/register-business/RegisterBusinessInviteStep";
-import RegisterBusinessMetaAdsQuestionStep from "@/app/components/register-business/RegisterBusinessMetaAdsQuestionStep";
 import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
-import RegisterBusinessStripeQuestionStep from "@/app/components/register-business/RegisterBusinessStripeQuestionStep";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
@@ -84,7 +81,7 @@ export default function RegisterBusinessPage() {
     null,
   );
   const [postCreateStep, setPostCreateStep] =
-    useState<PostCreateStep>("metaQuestion");
+    useState<PostCreateStep>("facebook");
 
   useEffect(() => {
     let cancelled = false;
@@ -214,24 +211,12 @@ export default function RegisterBusinessPage() {
     savePostCreateStep("facebook");
   }, [savePostCreateStep]);
 
-  const goToMetaQuestionStep = useCallback(() => {
-    savePostCreateStep("metaQuestion");
-  }, [savePostCreateStep]);
-
-  const goToMetaCreateStep = useCallback(() => {
-    savePostCreateStep("metaCreate");
-  }, [savePostCreateStep]);
-
-  const goToStripeQuestionStep = useCallback(() => {
-    savePostCreateStep("stripeQuestion");
-  }, [savePostCreateStep]);
-
-  const goToStripeCreateStep = useCallback(() => {
-    savePostCreateStep("stripeCreate");
-  }, [savePostCreateStep]);
-
   const goToStripeConnectStep = useCallback(() => {
     savePostCreateStep("stripe");
+  }, [savePostCreateStep]);
+
+  const goToGoogleConnectStep = useCallback(() => {
+    savePostCreateStep("google");
   }, [savePostCreateStep]);
 
   const goToInviteStep = useCallback(() => {
@@ -302,7 +287,7 @@ export default function RegisterBusinessPage() {
           name: pendingForm.name.trim(),
         };
         setCreatedBusiness(created);
-        savePostCreateStep("metaQuestion", created);
+        savePostCreateStep("facebook", created);
         setSubmitting(false);
       } catch (error) {
         const message =
@@ -320,54 +305,12 @@ export default function RegisterBusinessPage() {
     return <OnboardingPageLoading />;
   }
 
-  if (createdBusiness && postCreateStep === "metaQuestion") {
-    return (
-      <RegisterBusinessMetaAdsQuestionStep
-        onHasAccount={goToFacebookStep}
-        onNoAccount={goToMetaCreateStep}
-        onSkip={goToStripeQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "metaCreate") {
-    return (
-      <RegisterBusinessCreateMetaAdAccountStep
-        onContinue={goToFacebookStep}
-        onBack={goToMetaQuestionStep}
-        onSkip={goToStripeQuestionStep}
-      />
-    );
-  }
-
   if (createdBusiness && postCreateStep === "facebook") {
     return (
       <RegisterBusinessFacebookConnectStep
         businessId={createdBusiness.id}
         businessName={createdBusiness.name}
-        onContinue={goToStripeQuestionStep}
-        onBack={goToMetaQuestionStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "stripeQuestion") {
-    return (
-      <RegisterBusinessStripeQuestionStep
-        onHasAccount={goToStripeConnectStep}
-        onNoAccount={goToStripeCreateStep}
-        onSkip={goToInviteStep}
-        onBack={goToFacebookStep}
-      />
-    );
-  }
-
-  if (createdBusiness && postCreateStep === "stripeCreate") {
-    return (
-      <RegisterBusinessCreateStripeAccountStep
         onContinue={goToStripeConnectStep}
-        onBack={goToStripeQuestionStep}
-        onSkip={goToInviteStep}
       />
     );
   }
@@ -377,8 +320,19 @@ export default function RegisterBusinessPage() {
       <RegisterBusinessStripeConnectStep
         businessId={createdBusiness.id}
         businessName={createdBusiness.name}
+        onContinue={goToGoogleConnectStep}
+        onBack={goToFacebookStep}
+      />
+    );
+  }
+
+  if (createdBusiness && postCreateStep === "google") {
+    return (
+      <RegisterBusinessGoogleConnectStep
+        businessId={createdBusiness.id}
+        businessName={createdBusiness.name}
         onContinue={goToInviteStep}
-        onBack={goToStripeQuestionStep}
+        onBack={goToStripeConnectStep}
       />
     );
   }
@@ -389,7 +343,7 @@ export default function RegisterBusinessPage() {
         businessId={createdBusiness.id}
         businessName={createdBusiness.name}
         onContinue={goToDashboard}
-        onBack={goToStripeQuestionStep}
+        onBack={goToGoogleConnectStep}
       />
     );
   }

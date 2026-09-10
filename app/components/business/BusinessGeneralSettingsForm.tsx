@@ -726,7 +726,10 @@ export function BusinessGeneralSettingsForm({
           <BusinessMembersPanel businessId={businessId} embedded />
         ) : null}
         {previewSection === "integrations" ? (
-          <BusinessIntegrationsPanel businessId={businessId} />
+          <BusinessIntegrationsPanel
+            businessId={businessId}
+            focus={focus ?? undefined}
+          />
         ) : null}
       </div>
     </section>

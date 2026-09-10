@@ -97,7 +97,6 @@ export default function BusinessDashboardCard({
       return;
     }
 
-    // Paint empty ring first, then enable fill so CSS can ease to the target.
     let innerFrame = 0;
     const outerFrame = requestAnimationFrame(() => {
       innerFrame = requestAnimationFrame(() => setRingReady(true));

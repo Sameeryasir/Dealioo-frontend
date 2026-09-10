@@ -465,7 +465,11 @@ export function BusinessSettingsPanel({
         ? "settings-integration-stripe"
         : settingsFocus === "meta"
           ? "settings-integration-meta"
-          : "";
+          : settingsFocus === "google"
+            ? "settings-integration-google"
+            : settingsFocus === "twilio"
+              ? "settings-integration-twilio"
+              : "";
     if (!targetId) return;
     const timer = window.setTimeout(() => {
       document
@@ -473,7 +477,7 @@ export function BusinessSettingsPanel({
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [section, settingsFocus, integrationSetup, stripeStatusLoading, metaStatusLoading]);
+  }, [section, settingsFocus, integrationSetup, stripeStatusLoading, metaStatusLoading, googleStatusLoading]);
 
   useEffect(() => {
     if (businessId == null) return;

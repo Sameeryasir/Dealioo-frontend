@@ -2,7 +2,6 @@
 
 import type {
   BusinessSetup,
-  BusinessSetupGroupId,
   BusinessSetupStep,
   BusinessSetupStepId,
 } from "@/app/lib/business-setup";
@@ -15,6 +14,8 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   ClipboardCheck,
   Clock3,
   ImagePlus,
@@ -46,18 +47,10 @@ const STEP_HINTS: Record<BusinessSetupStepId, string> = {
   "business-logo": "Upload a logo so customers recognize you.",
   "contact-details": "Add email and phone so customers can reach you.",
   address: "Add your city and address to continue.",
-  branch: "Add at least one branch to continue.",
   "twilio-number": "Choose or add your Twilio number to continue.",
   stripe: "Connect Stripe to accept payments.",
   "meta-ads": "Connect Meta Ads to run campaigns.",
   "google-ads": "Connect Google Ads to run campaigns.",
-};
-
-const GROUP_BADGE: Record<BusinessSetupGroupId, string | null> = {
-  business_profile: null,
-  operations: "OPERATIONS",
-  payments: "PAYMENTS",
-  marketing: "MARKETING",
 };
 
 const STEP_ICONS: Partial<
@@ -70,7 +63,6 @@ const STEP_ICONS: Partial<
   "business-logo": ImagePlus,
   "contact-details": Mail,
   address: MapPin,
-  branch: Building2,
 };
 
 function TwilioMark({ className }: { className?: string }) {
@@ -103,6 +95,77 @@ function StepMark({ step }: { step: BusinessSetupStep }) {
   return <Icon className="size-4" strokeWidth={2.25} />;
 }
 
+function RemainingStepRow({
+  step,
+  onGo,
+  stopCardNavigation,
+}: {
+  step: BusinessSetupStep;
+  onGo: (href: string) => void;
+  stopCardNavigation: (event: ReactMouseEvent | ReactPointerEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="org-biz-setup-step-card org-biz-setup-step-card--todo"
+      onClick={(event) => {
+        stopCardNavigation(event);
+        onGo(step.href);
+      }}
+    >
+      <span
+        className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
+        aria-hidden
+      >
+        <StepMark step={step} />
+      </span>
+      <span className="org-biz-setup-step-copy">
+        {step.necessary ? (
+          <span className="org-biz-setup-step-badge org-biz-setup-step-badge--necessary">
+            Necessary
+          </span>
+        ) : null}
+        <span className="org-biz-setup-step-title">
+          {step.label === "Twilio Number Selected"
+            ? "Select Twilio number"
+            : step.ctaLabel}
+        </span>
+        <span className="org-biz-setup-step-hint">{STEP_HINTS[step.id]}</span>
+      </span>
+      <span className="org-biz-setup-pending">
+        Go
+        <ChevronRight className="size-3.5" strokeWidth={2.75} aria-hidden />
+      </span>
+    </button>
+  );
+}
+
+function CompletedStepRow({ step }: { step: BusinessSetupStep }) {
+  return (
+    <span
+      className={`org-biz-setup-step-card org-biz-setup-step-card--done org-biz-setup-step-card--${step.group}`}
+    >
+      <span
+        className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
+        aria-hidden
+      >
+        <StepMark step={step} />
+      </span>
+      <span className="org-biz-setup-step-copy">
+        {step.necessary ? (
+          <span className="org-biz-setup-step-badge org-biz-setup-step-badge--necessary">
+            Necessary
+          </span>
+        ) : null}
+        <span className="org-biz-setup-step-title">{step.label}</span>
+      </span>
+      <span className="org-biz-setup-step-check" aria-hidden>
+        <Check className="size-3" strokeWidth={3} />
+      </span>
+    </span>
+  );
+}
+
 export function BusinessSetupPopover({
   setup,
   children,
@@ -113,11 +176,13 @@ export function BusinessSetupPopover({
   const [mounted, setMounted] = useState(false);
 
   const isComplete = setup.isComplete;
-  const completedSteps = setup.steps.filter((step) => step.done);
-  const remainingSteps = setup.steps.filter((step) => !step.done);
+  const remainingCore = setup.coreSteps.filter((step) => !step.done);
+  const completedCore = setup.coreSteps.filter((step) => step.done);
+  const [completedOpen, setCompletedOpen] = useState(false);
 
   const close = useCallback(() => {
     setOpen(false);
+    setCompletedOpen(false);
   }, []);
 
   useEffect(() => {
@@ -200,7 +265,8 @@ export function BusinessSetupPopover({
                   Business setup complete
                 </p>
                 <p className="org-biz-setup-popover-subtitle">
-                  All {setup.totalCount} setup steps are done for this business.
+                  All {setup.totalCount} required setup steps are done for this
+                  business.
                 </p>
                 <p className="org-biz-setup-popover-complete-meta">
                   {setup.completedCount}/{setup.totalCount} ·{" "}
@@ -241,96 +307,64 @@ export function BusinessSetupPopover({
                 </header>
 
                 <div className="org-biz-setup-popover-groups">
-                  {completedSteps.length > 0 ? (
+                  {remainingCore.length > 0 ? (
                     <section
                       className="org-biz-setup-status-group"
-                      aria-label={`Completed (${completedSteps.length})`}
+                      aria-label={`Remaining (${remainingCore.length})`}
                     >
-                      <p className="org-biz-setup-status-label">
-                        <CheckCircle2 className="size-4" strokeWidth={2.4} />
-                        Completed ({completedSteps.length})
+                      <p className="org-biz-setup-status-label org-biz-setup-status-label--remain">
+                        <Clock3 className="size-4" strokeWidth={2.4} />
+                        Remaining ({remainingCore.length})
                       </p>
                       <ul className="org-biz-setup-popover-list">
-                        {completedSteps.map((step) => {
-                          const badge = GROUP_BADGE[step.group];
-                          return (
-                            <li key={step.id}>
-                              <span
-                                className={`org-biz-setup-step-card org-biz-setup-step-card--done org-biz-setup-step-card--${step.group}`}
-                              >
-                                <span
-                                  className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
-                                  aria-hidden
-                                >
-                                  <StepMark step={step} />
-                                </span>
-                                <span className="org-biz-setup-step-copy">
-                                  {badge ? (
-                                    <span className="org-biz-setup-step-badge">
-                                      {badge}
-                                    </span>
-                                  ) : null}
-                                  <span className="org-biz-setup-step-title">
-                                    {step.label}
-                                  </span>
-                                </span>
-                                <span
-                                  className="org-biz-setup-step-check"
-                                  aria-hidden
-                                >
-                                  <Check className="size-3" strokeWidth={3} />
-                                </span>
-                              </span>
-                            </li>
-                          );
-                        })}
+                        {remainingCore.map((step) => (
+                          <li key={step.id}>
+                            <RemainingStepRow
+                              step={step}
+                              onGo={goTo}
+                              stopCardNavigation={stopCardNavigation}
+                            />
+                          </li>
+                        ))}
                       </ul>
                     </section>
                   ) : null}
 
-                  {remainingSteps.length > 0 ? (
+                  {completedCore.length > 0 ? (
                     <section
                       className="org-biz-setup-status-group"
-                      aria-label={`Remaining (${remainingSteps.length})`}
+                      aria-label={`Completed (${completedCore.length})`}
                     >
-                      <p className="org-biz-setup-status-label org-biz-setup-status-label--remain">
-                        <Clock3 className="size-4" strokeWidth={2.4} />
-                        Remaining ({remainingSteps.length})
-                      </p>
-                      <ul className="org-biz-setup-popover-list">
-                        {remainingSteps.map((step) => (
-                          <li key={step.id}>
-                            <button
-                              type="button"
-                              className="org-biz-setup-step-card org-biz-setup-step-card--todo"
-                              onClick={(event) => {
-                                stopCardNavigation(event);
-                                goTo(step.href);
-                              }}
-                            >
-                              <span
-                                className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
-                                aria-hidden
-                              >
-                                <StepMark step={step} />
-                              </span>
-                              <span className="org-biz-setup-step-copy">
-                                <span className="org-biz-setup-step-title">
-                                  {step.label === "Twilio Number Selected"
-                                    ? "Select Twilio number"
-                                    : step.ctaLabel}
-                                </span>
-                                <span className="org-biz-setup-step-hint">
-                                  {STEP_HINTS[step.id]}
-                                </span>
-                              </span>
-                              <span className="org-biz-setup-pending">
-                                Pending
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                      <button
+                        type="button"
+                        className="org-biz-setup-status-label org-biz-setup-completed-summary"
+                        aria-expanded={completedOpen}
+                        onClick={(event) => {
+                          stopCardNavigation(event);
+                          setCompletedOpen((current) => !current);
+                        }}
+                      >
+                        <CheckCircle2 className="size-4" strokeWidth={2.4} />
+                        <span>Completed ({completedCore.length})</span>
+                        <ChevronDown
+                          className={`org-biz-setup-completed-chevron size-4${
+                            completedOpen
+                              ? " org-biz-setup-completed-chevron--open"
+                              : ""
+                          }`}
+                          strokeWidth={2.4}
+                          aria-hidden
+                        />
+                      </button>
+                      {completedOpen ? (
+                        <ul className="org-biz-setup-popover-list org-biz-setup-completed-list">
+                          {completedCore.map((step) => (
+                            <li key={step.id}>
+                              <CompletedStepRow step={step} />
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </section>
                   ) : null}
                 </div>
@@ -342,18 +376,6 @@ export function BusinessSetupPopover({
                       ? "Almost there! Complete the last step to finish your business setup."
                       : "Complete the remaining steps to finish your business setup."}
                   </p>
-                  {setup.nextRecommendedStep ? (
-                    <button
-                      type="button"
-                      className="org-biz-setup-popover-cta"
-                      onClick={(event) => {
-                        stopCardNavigation(event);
-                        goTo(setup.nextRecommendedStep!.href);
-                      }}
-                    >
-                      Next: {setup.nextRecommendedStep.ctaLabel} →
-                    </button>
-                  ) : null}
                 </footer>
               </>
             )}
@@ -383,7 +405,7 @@ export function BusinessSetupPopover({
       >
         {children}
       </div>
-      {mounted ? createPortal(modal, document.body) : null}
+      {modal ? createPortal(modal, document.body) : null}
     </>
   );
 }

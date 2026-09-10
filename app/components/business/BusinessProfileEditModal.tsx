@@ -18,6 +18,8 @@ import {
   buildBusinessAddressQuery,
   geocodeBusinessAddress,
   reverseGeocodeBusinessAddress,
+  searchBusinessLocations,
+  type BusinessLocationSearchResult,
 } from "@/app/lib/geocode-business-address";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
@@ -42,6 +44,7 @@ import {
   MapPin,
   MessageSquare,
   Phone,
+  Search,
   Store,
   Tag,
   X,
@@ -350,9 +353,16 @@ export function BusinessProfileEditModal({
     longitude: number;
   } | null>(null);
   const [mapGeocoding, setMapGeocoding] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState<
+    BusinessLocationSearchResult[]
+  >([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false);
   const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const locationSearchRef = useRef<HTMLDivElement>(null);
   const mapPinManualRef = useRef(false);
 
   useEffect(() => {
@@ -370,6 +380,9 @@ export function BusinessProfileEditModal({
     setActiveNav("details");
     mapPinManualRef.current = false;
     setMapPin(null);
+    setLocationSearch("");
+    setLocationResults([]);
+    setLocationSearchOpen(false);
     setTwilioDialogOpen(false);
   }, [open, business]);
 
@@ -426,6 +439,63 @@ export function BusinessProfileEditModal({
     },
     [],
   );
+
+  const applyLocationResult = useCallback(
+    (result: BusinessLocationSearchResult) => {
+      mapPinManualRef.current = true;
+      setMapPin({ latitude: result.latitude, longitude: result.longitude });
+      setForm((prev) => ({
+        ...prev,
+        city: result.city || prev.city,
+        state: result.state || prev.state,
+        postalCode: result.postalCode || prev.postalCode,
+        country: result.country || prev.country,
+      }));
+      setLocationSearch(result.label);
+      setLocationResults([]);
+      setLocationSearchOpen(false);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const query = locationSearch.trim();
+    if (query.length < 2) {
+      setLocationResults([]);
+      setLocationSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLocationSearching(true);
+    const timer = window.setTimeout(() => {
+      void searchBusinessLocations(query)
+        .then((results) => {
+          if (cancelled) return;
+          setLocationResults(results);
+        })
+        .finally(() => {
+          if (!cancelled) setLocationSearching(false);
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [open, locationSearch]);
+
+  useEffect(() => {
+    if (!open || !locationSearchOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!locationSearchRef.current?.contains(event.target as Node)) {
+        setLocationSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open, locationSearchOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -1133,9 +1203,80 @@ export function BusinessProfileEditModal({
                         {mapGeocoding
                           ? "Finding this address on the map…"
                           : mapPin
-                            ? "Pin shows the saved address. Click the map to move it."
-                            : "Enter an address above to place a pin on the map."}
+                            ? "Pin shows the saved address. Search or click the map to move it."
+                            : "Search for a place or enter an address above to place a pin."}
                       </p>
+
+                      <div ref={locationSearchRef} className="relative mb-3">
+                        <label className="sr-only" htmlFor="edit-business-location-search">
+                          Search location
+                        </label>
+                        <span className="relative block">
+                          <Search
+                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                          <input
+                            id="edit-business-location-search"
+                            type="search"
+                            className={`${inputClass} !pl-10`}
+                            placeholder="Search city, address, or place"
+                            value={locationSearch}
+                            onChange={(event) => {
+                              setLocationSearch(event.target.value);
+                              setLocationSearchOpen(true);
+                            }}
+                            onFocus={() => {
+                              if (locationResults.length > 0) {
+                                setLocationSearchOpen(true);
+                              }
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && locationResults[0]) {
+                                event.preventDefault();
+                                applyLocationResult(locationResults[0]);
+                              }
+                            }}
+                            autoComplete="off"
+                          />
+                        </span>
+
+                        {locationSearchOpen &&
+                        locationSearch.trim().length >= 2 ? (
+                          <div
+                            className="absolute left-0 right-0 z-20 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-[#E8EDF5] bg-white py-1 shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
+                            role="listbox"
+                          >
+                            {locationSearching ? (
+                              <p className="m-0 px-3 py-2.5 text-[0.78rem] text-slate-500">
+                                Searching…
+                              </p>
+                            ) : locationResults.length === 0 ? (
+                              <p className="m-0 px-3 py-2.5 text-[0.78rem] text-slate-500">
+                                No matching locations. Try another search.
+                              </p>
+                            ) : (
+                              locationResults.map((result) => (
+                                <button
+                                  key={result.id}
+                                  type="button"
+                                  className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[0.8rem] font-medium text-slate-800 transition hover:bg-[#F8FBFF]"
+                                  onClick={() => applyLocationResult(result)}
+                                >
+                                  <MapPin
+                                    className="mt-0.5 size-4 shrink-0 text-[#1877F2]"
+                                    strokeWidth={2.25}
+                                    aria-hidden
+                                  />
+                                  <span>{result.label}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+
                       <RegisterBusinessLocationMap
                         latitude={mapPin?.latitude ?? null}
                         longitude={mapPin?.longitude ?? null}

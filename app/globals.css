@@ -4431,6 +4431,14 @@ body {
     box-shadow: 0 4px 14px rgba(24, 119, 242, 0.22);
   }
 
+  .org-dashboard-add-wrap {
+    @apply flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end;
+  }
+
+  .org-dashboard-starter-limit-hint {
+    @apply m-0 max-w-[16rem] text-right text-[0.7rem] font-medium leading-snug text-slate-500;
+  }
+
   .org-dashboard-add-btn:hover {
     background: #0f5ed7;
     box-shadow: 0 6px 18px rgba(24, 119, 242, 0.28);
@@ -5211,6 +5219,42 @@ body {
     color: #3b82f6;
   }
 
+  .org-biz-setup-status-label--optional {
+    color: #64748b;
+  }
+
+  .org-biz-setup-completed-details {
+    border: 0;
+  }
+
+  .org-biz-setup-completed-summary {
+    width: 100%;
+    margin: 0 0 0.55rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+    font: inherit;
+    text-align: left;
+  }
+
+  .org-biz-setup-completed-chevron {
+    margin-left: auto;
+    color: #94a3b8;
+    transition: transform 0.18s ease;
+  }
+
+  .org-biz-setup-completed-chevron--open,
+  .org-biz-setup-completed-details[open] .org-biz-setup-completed-chevron {
+    transform: rotate(180deg);
+  }
+
+  .org-biz-setup-completed-list,
+  .org-biz-setup-completed-details .org-biz-setup-popover-list {
+    margin-top: 0;
+  }
+
   .org-biz-setup-popover-list {
     margin: 0;
     padding: 0;
@@ -5300,9 +5344,15 @@ body {
     letter-spacing: 0.06em;
   }
 
+  .org-biz-setup-step-badge--necessary {
+    background: #dbeafe;
+    color: #1d4ed8;
+    text-transform: uppercase;
+  }
+
   .org-biz-setup-step-card--payments .org-biz-setup-step-badge,
   .org-biz-setup-step-card--marketing .org-biz-setup-step-badge {
-    background: #eff6ff;
+    background: #dbeafe;
     color: #1d4ed8;
   }
 
@@ -5332,11 +5382,14 @@ body {
   }
 
   .org-biz-setup-pending {
+    display: inline-flex;
     flex-shrink: 0;
+    align-items: center;
+    gap: 0.1rem;
     border-radius: 999px;
     background: #eff6ff;
     color: #1d4ed8;
-    padding: 0.28rem 0.6rem;
+    padding: 0.28rem 0.45rem 0.28rem 0.6rem;
     font-size: 0.68rem;
     font-weight: 800;
   }

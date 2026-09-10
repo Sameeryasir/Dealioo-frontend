@@ -4,25 +4,23 @@ import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessFacebookConnectStep.module.css";
 import "@/app/components/register-business/register-business-responsive.css";
-import { MetaAdsPermissionConsent } from "@/app/components/facebook/MetaAdsPermissionConsent";
+import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
-import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
-import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
-import {
-  getDefaultSelectedMetaScopes,
-  type MetaSelectableScopeId,
-} from "@/app/lib/meta-ads-permissions";
+import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
+import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
   BarChart3,
   Loader2,
+  Megaphone,
+  Target,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
-export type RegisterBusinessFacebookConnectStepProps = {
+export type RegisterBusinessGoogleConnectStepProps = {
   businessId: number;
   businessName: string;
   onContinue: () => void;
@@ -30,76 +28,67 @@ export type RegisterBusinessFacebookConnectStepProps = {
   embedded?: boolean;
 };
 
-function FacebookLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden
-      className={className}
-    >
-      <path
-        fill="currentColor"
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-      />
-    </svg>
-  );
-}
+const BENEFITS = [
+  {
+    icon: Megaphone,
+    title: "Run Google campaigns",
+    description:
+      "Create and manage Search and Performance Max campaigns from Dealioo.",
+  },
+  {
+    icon: BarChart3,
+    title: "See ad performance",
+    description:
+      "Pull spend, clicks, and conversions next to your guest results.",
+  },
+  {
+    icon: Target,
+    title: "Track funnel outcomes",
+    description:
+      "Connect ads to Dealioo funnels so you know which clicks convert.",
+  },
+] as const;
 
-export default function RegisterBusinessFacebookConnectStep({
+export default function RegisterBusinessGoogleConnectStep({
   businessId,
   onContinue,
   onBack,
   embedded = false,
-}: RegisterBusinessFacebookConnectStepProps) {
+}: RegisterBusinessGoogleConnectStepProps) {
   const reduced = useReducedMotion();
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedScopes, setSelectedScopes] = useState<MetaSelectableScopeId[]>(
-    () => getDefaultSelectedMetaScopes(),
-  );
 
   const handleConnect = useCallback(async () => {
     setErrorMessage(null);
-
-    if (selectedScopes.length === 0) {
-      setErrorMessage("Select at least one permission before connecting.");
-      return;
-    }
-
     setConnecting(true);
 
     try {
       const token = getSetupAccessToken().trim();
       if (!token) {
-        throw new Error("You're signed out. Sign in again to connect Meta.");
+        throw new Error("You're signed out. Sign in again to connect Google Ads.");
       }
 
-      const result = await connectFacebookInPopup(
-        token,
-        businessId,
-        selectedScopes,
-      );
+      const result = await connectGoogleAdsInPopup(token, businessId);
       if (result.status === "connected") {
         onContinue();
         return;
       }
 
-      await abortFacebookConnect(businessId);
+      await abortGoogleAdsConnect(businessId);
       setErrorMessage(
-        "Meta connect was cancelled. You can try again or skip for now.",
+        "Google Ads connect was cancelled. You can try again or skip for now.",
       );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Could not connect Meta. Try again.",
+          : "Could not connect Google Ads. Try again.",
       );
     } finally {
       setConnecting(false);
     }
-  }, [businessId, onContinue, selectedScopes]);
+  }, [businessId, onContinue]);
 
   const content = (
     <div className={styles.layout}>
@@ -112,38 +101,44 @@ export default function RegisterBusinessFacebookConnectStep({
         <section className={styles.card}>
           <header className={styles.header}>
             <span className={styles.badge}>
-              <FacebookLogo className="h-4 w-4" />
+              <GoogleAdsLogo className="h-5 w-5" />
             </span>
             <h2 className={styles.title}>
               Connect{" "}
-              <span className="landing-hero-accent-blue">Meta Ads</span>
+              <span className="landing-hero-accent-blue">Google Ads</span>
             </h2>
             <p className={styles.subtitle}>
-              Connect Meta Ads to this business. Choose permissions below, then
-              continue in Meta — you can create or pick an ads account there.
+              Use Connect Google Ads to link an existing account or create one
+              in Google — Dealioo opens Google and saves the connection here.
             </p>
           </header>
 
-          <MetaAdsPermissionConsent
-            selectedScopes={selectedScopes}
-            onChange={setSelectedScopes}
-            disabled={connecting}
-          />
+          <h3 className={styles.sectionTitle}>
+            What connecting Google Ads unlocks:
+          </h3>
+
+          <ul className={styles.permissionList}>
+            {BENEFITS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.title} className={styles.permissionItem}>
+                  <span className={styles.permissionIcon} aria-hidden>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className={styles.permissionTitle}>{item.title}</p>
+                    <p className={styles.permissionText}>{item.description}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
           <div className={styles.privacyBox}>
             <p>
-              If Facebook says you previously linked Dealioo, tap{" "}
-              <strong>Edit settings</strong> to pick permissions — don’t use
-              Continue until you’ve reviewed them.
-            </p>
-          </div>
-
-          <div className={styles.privacyBox}>
-            <p>
-              <strong>Your Privacy Matters:</strong> We only use the permissions
-              you select to provide the features you&apos;ve requested. We never
-              post to your Facebook account or access personal information
-              beyond what&apos;s necessary for analytics.
+              <strong>Your Privacy Matters:</strong> We only use Google Ads
+              access to run and measure campaigns you manage in Dealioo. You can
+              disconnect anytime in Settings → Integrations.
             </p>
           </div>
 
@@ -158,17 +153,17 @@ export default function RegisterBusinessFacebookConnectStep({
             type="button"
             className={styles.connectBtn}
             onClick={() => void handleConnect()}
-            disabled={connecting || selectedScopes.length === 0}
+            disabled={connecting}
           >
             {connecting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Connecting Meta account…
+                Connecting Google Ads…
               </>
             ) : (
               <>
-                <FacebookLogo className="h-4 w-4" />
-                Connect Meta Ads
+                <GoogleAdsLogo className="h-4 w-4" />
+                Connect Google Ads
               </>
             )}
           </button>
@@ -199,19 +194,21 @@ export default function RegisterBusinessFacebookConnectStep({
         </section>
       </motion.div>
 
-      <aside className={styles.sidebar} aria-label="Why connect Meta Ads">
+      <aside className={styles.sidebar} aria-label="Why connect Google Ads">
         <div className={styles.sidebarInner}>
-          <p className={styles.sidebarEyebrow}>Why connect Meta Ads?</p>
+          <p className={styles.sidebarEyebrow}>Why connect Google Ads?</p>
           <div className={styles.sidebarBlock}>
-            <span className={styles.sidebarIcon} aria-hidden>
-              <BarChart3 className="h-4 w-4" />
-            </span>
-            <h3 className={styles.sidebarTitle}>Reporting</h3>
+            <h3 className={styles.sidebarTitle}>Reach more customers</h3>
             <p className={styles.sidebarText}>
-              Once connected, Dealioo can pull in ad performance data from
-              Facebook and Instagram. This means you can see your ad spend,
-              impressions, and clicks alongside Dealioo&apos;s own conversion
-              data — all in one place.
+              Google Ads helps people find your business when they search.
+              Connecting once lets Dealioo manage campaigns alongside Meta.
+            </p>
+          </div>
+          <div className={styles.sidebarBlock}>
+            <h3 className={styles.sidebarTitle}>What happens next</h3>
+            <p className={styles.sidebarText}>
+              After Google is linked, you can invite your team and finish setup
+              from the dashboard.
             </p>
           </div>
         </div>
@@ -227,22 +224,20 @@ export default function RegisterBusinessFacebookConnectStep({
     <div
       className={`landing-page ${bookStyles.shell}`}
       data-register-business-page
-      data-register-business-facebook
+      data-register-business-google
     >
       <Navbar />
 
       <div className={bookStyles.pageContent}>
         <div className={bookStyles.pageContentGrain} aria-hidden />
         <main
-          id="register-business-facebook"
+          id="register-business-google"
           className={`${bookStyles.main} ${styles.main}`}
         >
           <div className={`${bookStyles.formZone} ${styles.zone}`}>
             <div className={bookStyles.progressMeta}>
-              <span className={bookStyles.progressLabel}>
-                Connect Meta Ads
-              </span>
-              <span className={bookStyles.progressPct}>Optional</span>
+              <span className={bookStyles.progressLabel}>Connect Google Ads</span>
+              <span className={bookStyles.progressPct}>Necessary</span>
             </div>
 
             <div className={bookStyles.progressTrack} aria-hidden>

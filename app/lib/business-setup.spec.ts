@@ -49,13 +49,25 @@ describe("business setup validation", () => {
 });
 
 describe("getBusinessSetup", () => {
-  it("keeps 9 equal steps and percent math", () => {
+  it("scores 8 steps including logo and google ads", () => {
     const setup = getBusinessSetup(baseBusiness());
-    expect(setup.totalCount).toBe(9);
-    expect(setup.completedCount).toBe(4);
+    expect(setup.totalCount).toBe(8);
+    expect(setup.completedCount).toBe(3);
     expect(setup.remainingCount).toBe(5);
-    expect(setup.progressPercent).toBe(44);
+    expect(setup.progressPercent).toBe(38);
     expect(setup.isComplete).toBe(false);
+    expect(setup.steps.some((step) => step.id === "branch")).toBe(false);
+    expect(setup.laterSteps).toHaveLength(0);
+  });
+
+  it("marks twilio stripe meta and google as necessary", () => {
+    const setup = getBusinessSetup(baseBusiness());
+    for (const id of ["twilio-number", "stripe", "meta-ads", "google-ads"] as const) {
+      expect(setup.steps.find((step) => step.id === id)?.necessary).toBe(true);
+    }
+    expect(
+      setup.steps.find((step) => step.id === "business-logo")?.necessary,
+    ).toBe(false);
   });
 
   it("treats business information as name-only", () => {
@@ -93,6 +105,7 @@ describe("getBusinessSetup", () => {
         metaConnected: true,
         googleAdsConnected: true,
         twilioConnected: true,
+        logoUrl: "https://cdn.example/logo.png",
       }),
     );
     expect(setup.steps.find((step) => step.id === "stripe")?.done).toBe(true);
@@ -103,7 +116,7 @@ describe("getBusinessSetup", () => {
     expect(setup.steps.find((step) => step.id === "twilio-number")?.done).toBe(
       true,
     );
-    expect(setup.isComplete).toBe(false);
+    expect(setup.isComplete).toBe(true);
   });
 
   it("recommends Stripe before a missing logo", () => {
@@ -121,7 +134,7 @@ describe("getBusinessSetup", () => {
     );
   });
 
-  it("groups the 9 steps into Business Profile, Operations, Payments, Marketing", () => {
+  it("groups steps into Business Profile, Operations, Payments, Marketing", () => {
     const setup = getBusinessSetup(baseBusiness());
     expect(setup.groups.map((group) => group.label)).toEqual([
       "Business Profile",
@@ -129,8 +142,23 @@ describe("getBusinessSetup", () => {
       "Payments",
       "Marketing",
     ]);
-    expect(setup.groups.flatMap((group) => group.steps).map((step) => step.id)).toEqual(
-      setup.steps.map((step) => step.id),
+    expect(
+      setup.groups.flatMap((group) => group.steps).map((step) => step.id),
+    ).toEqual(setup.coreSteps.map((step) => step.id));
+  });
+
+  it("deep-links Twilio and Google to integrations", () => {
+    const setup = getBusinessSetup(
+      baseBusiness({
+        twilioConnected: false,
+        googleAdsConnected: false,
+      }),
+    );
+    expect(setup.steps.find((step) => step.id === "twilio-number")?.href).toContain(
+      "/settings/integrations?focus=twilio",
+    );
+    expect(setup.steps.find((step) => step.id === "google-ads")?.href).toContain(
+      "/settings/integrations?focus=google",
     );
   });
 

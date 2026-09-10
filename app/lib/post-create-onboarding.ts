@@ -1,13 +1,6 @@
 const STORAGE_KEY = "dealioo.post-create-onboarding";
 
-export type PostCreateStep =
-  | "metaQuestion"
-  | "metaCreate"
-  | "facebook"
-  | "stripeQuestion"
-  | "stripeCreate"
-  | "stripe"
-  | "invite";
+export type PostCreateStep = "facebook" | "stripe" | "google" | "invite";
 
 export type PostCreateOnboardingProgress = {
   businessId: number;
@@ -16,14 +9,29 @@ export type PostCreateOnboardingProgress = {
 };
 
 const STEPS = new Set<PostCreateStep>([
-  "metaQuestion",
-  "metaCreate",
   "facebook",
-  "stripeQuestion",
-  "stripeCreate",
   "stripe",
+  "google",
   "invite",
 ]);
+
+const LEGACY_STEP_MAP: Record<string, PostCreateStep> = {
+  metaQuestion: "facebook",
+  metaCreate: "facebook",
+  facebook: "facebook",
+  stripeQuestion: "stripe",
+  stripeCreate: "stripe",
+  stripe: "stripe",
+  google: "google",
+  invite: "invite",
+};
+
+function normalizeStep(step: unknown): PostCreateStep | null {
+  if (typeof step !== "string") return null;
+  const mapped = LEGACY_STEP_MAP[step];
+  if (!mapped || !STEPS.has(mapped)) return null;
+  return mapped;
+}
 
 export function readPostCreateOnboarding(): PostCreateOnboardingProgress | null {
   if (typeof window === "undefined") return null;
@@ -34,11 +42,11 @@ export function readPostCreateOnboarding(): PostCreateOnboardingProgress | null 
     const businessId = Number(parsed.businessId);
     const businessName =
       typeof parsed.businessName === "string" ? parsed.businessName.trim() : "";
-    const step = parsed.step;
+    const step = normalizeStep(parsed.step);
     if (!Number.isFinite(businessId) || businessId < 1 || !businessName) {
       return null;
     }
-    if (!step || !STEPS.has(step)) return null;
+    if (!step) return null;
     return { businessId, businessName, step };
   } catch {
     return null;

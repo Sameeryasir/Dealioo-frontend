@@ -93,3 +93,58 @@ export async function reverseGeocodeBusinessAddress(
     return null;
   }
 }
+
+export type BusinessLocationSearchResult = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+export async function searchBusinessLocations(
+  query: string,
+): Promise<BusinessLocationSearchResult[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("limit", "6");
+    url.searchParams.set("q", trimmed);
+    const response = await fetch(url.toString(), {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return [];
+    const results = (await response.json()) as Array<{
+      place_id: number | string;
+      display_name: string;
+      lat: string;
+      lon: string;
+      address?: NominatimAddress;
+    }>;
+    return results
+      .map((row) => {
+        const latitude = Number(row.lat);
+        const longitude = Number(row.lon);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return null;
+        }
+        const parts = addressFromNominatim(row.address);
+        return {
+          id: String(row.place_id),
+          label: row.display_name,
+          latitude,
+          longitude,
+          ...parts,
+        };
+      })
+      .filter((row): row is BusinessLocationSearchResult => row != null);
+  } catch {
+    return [];
+  }
+}

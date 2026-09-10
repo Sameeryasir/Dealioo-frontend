@@ -1,5 +1,7 @@
 "use client";
 
+import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
+import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
 import {
@@ -7,6 +9,7 @@ import {
   MetaLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
+import { useBusinessTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import {
   connectFacebookInPopup,
   consumeFacebookOAuthStatusSync,
@@ -21,6 +24,7 @@ import {
 } from "@/app/lib/meta-ads-permissions";
 import { connectStripeInPopup } from "@/app/lib/stripe-oauth-popup";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
 import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google-ads";
 import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
@@ -31,7 +35,6 @@ import {
 } from "@/app/services/integration-audit/get-integrations-status";
 import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
-import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import {
   AlertCircle,
   BarChart3,
@@ -42,7 +45,9 @@ import {
   LineChart,
   Loader2,
   Megaphone,
+  MessageSquare,
   MousePointerClick,
+  Phone,
   RefreshCw,
   Shield,
   Trash2,
@@ -53,11 +58,13 @@ import {
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
 type BusinessIntegrationsPanelProps = {
   businessId: number;
+  focus?: string;
 };
 
 const cardShellClass =
@@ -207,7 +214,20 @@ function GoogleGMark({ className }: { className?: string }) {
   );
 }
 
+function TwilioMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden role="img">
+      <circle cx="12" cy="12" r="12" fill="#F22F46" />
+      <circle cx="8.2" cy="8.2" r="2.15" fill="#fff" />
+      <circle cx="15.8" cy="8.2" r="2.15" fill="#fff" />
+      <circle cx="8.2" cy="15.8" r="2.15" fill="#fff" />
+      <circle cx="15.8" cy="15.8" r="2.15" fill="#fff" />
+    </svg>
+  );
+}
+
 function IntegrationCard({
+  id,
   accentColor,
   logo,
   title,
@@ -222,6 +242,7 @@ function IntegrationCard({
   error,
   footer,
 }: {
+  id?: string;
   accentColor: string;
   logo: ReactNode;
   title: string;
@@ -237,7 +258,7 @@ function IntegrationCard({
   footer?: ReactNode;
 }) {
   return (
-    <article className={cardShellClass}>
+    <article id={id} className={cardShellClass}>
       <span
         className={`absolute inset-y-0 left-0 w-1 ${accentColor}`}
         aria-hidden
@@ -286,6 +307,7 @@ function IntegrationCard({
 
 export function BusinessIntegrationsPanel({
   businessId,
+  focus = "",
 }: BusinessIntegrationsPanelProps) {
   const queryClient = useQueryClient();
   const [stripeBusy, setStripeBusy] = useState<ConnectStatus>("idle");
@@ -299,6 +321,7 @@ export function BusinessIntegrationsPanel({
   >(() => getDefaultSelectedMetaScopes());
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
+  const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
   const bumpAuditLogs = useCallback(
     () => setAuditRefreshKey((n) => n + 1),
@@ -337,6 +360,13 @@ export function BusinessIntegrationsPanel({
   const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
   const googleError = googleActionError ?? statusError;
 
+  const twilioQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
+    enabled: businessId > 0,
+  });
+  const twilioNumber = twilioQuery.selectedPhoneNumber?.trim() || "";
+  const twilioConnected = Boolean(twilioNumber);
+  const twilioLoading = twilioQuery.isPending;
+
   const refreshStatus = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: integrationsStatusQueryKey(businessId),
@@ -356,7 +386,6 @@ export function BusinessIntegrationsPanel({
     [bumpAuditLogs, refreshStatus],
   );
 
-  // Refresh when the OAuth popup finishes (postMessage + localStorage cross-tab).
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
@@ -395,9 +424,7 @@ export function BusinessIntegrationsPanel({
           parsed.phase === "complete" ? "complete" : "authenticated",
         );
         window.localStorage.removeItem(FACEBOOK_OAUTH_STATUS_SYNC_KEY);
-      } catch {
-        /* ignore bad payload */
-      }
+      } catch {}
     };
 
     const onAppVisible = () => {
@@ -577,9 +604,81 @@ export function BusinessIntegrationsPanel({
   const actionBtn =
     "inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-lg px-3 text-xs font-semibold disabled:opacity-60";
 
+  const normalizedFocus = focus.trim().toLowerCase();
+
+  useEffect(() => {
+    const targetId =
+      normalizedFocus === "stripe"
+        ? "settings-integration-stripe"
+        : normalizedFocus === "meta"
+          ? "settings-integration-meta"
+          : normalizedFocus === "google"
+            ? "settings-integration-google"
+            : normalizedFocus === "twilio"
+              ? "settings-integration-twilio"
+              : "";
+    if (!targetId) return;
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(targetId)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [normalizedFocus, statusLoading, twilioLoading]);
+
+  useEffect(() => {
+    if (normalizedFocus === "twilio" && !twilioConnected) {
+      setTwilioDialogOpen(true);
+    }
+  }, [normalizedFocus, twilioConnected]);
+
   return (
     <div className="flex flex-col gap-2.5">
       <IntegrationCard
+        id="settings-integration-twilio"
+        accentColor="bg-[#F22F46]"
+        logo={<TwilioMark className="size-6" />}
+        title="Twilio"
+        description="Choose the SMS number this business sends from."
+        featureToneClass="text-[#F22F46]"
+        features={[
+          { icon: MessageSquare, label: "SMS outreach" },
+          { icon: Phone, label: "Business number" },
+          { icon: RefreshCw, label: "Campaign messages" },
+        ]}
+        loading={twilioLoading}
+        connected={twilioConnected}
+        status={
+          twilioConnected ? (
+            <ConnectedStatus
+              icon={Phone}
+              iconClass="bg-[#FEE2E5] text-[#F22F46]"
+              detail={twilioNumber}
+            />
+          ) : (
+            <PromptStatus
+              icon={MessageSquare}
+              iconClass="text-[#F22F46]"
+              borderClass="border-[#F9C5CB]"
+              text="Select a Twilio number so this business can send SMS."
+            />
+          )
+        }
+        actions={
+          twilioLoading ? null : (
+            <button
+              type="button"
+              onClick={() => setTwilioDialogOpen(true)}
+              className={`${actionBtn} bg-[#F22F46] text-white`}
+            >
+              {twilioConnected ? "Change number" : "Select number"}
+            </button>
+          )
+        }
+      />
+
+      <IntegrationCard
+        id="settings-integration-stripe"
         accentColor="bg-[#635BFF]"
         logo={<StripeLogo className="size-6" />}
         title="Stripe"
@@ -633,6 +732,7 @@ export function BusinessIntegrationsPanel({
       />
 
       <IntegrationCard
+        id="settings-integration-meta"
         accentColor="bg-[#1877F2]"
         logo={<MetaLogo className="size-6" />}
         title="Meta Ads"
@@ -741,6 +841,7 @@ export function BusinessIntegrationsPanel({
       ) : null}
 
       <IntegrationCard
+        id="settings-integration-google"
         accentColor="bg-[#34A853]"
         logo={<GoogleAdsLogo className="size-6" />}
         title="Google Ads"
@@ -808,6 +909,30 @@ export function BusinessIntegrationsPanel({
       <IntegrationAuditLogsCard
         businessId={businessId}
         refreshKey={auditRefreshKey}
+      />
+
+      <ChooseNumberDialog
+        open={twilioDialogOpen}
+        businessId={businessId}
+        title="Choose a Twilio number"
+        description="Pick the SMS number this business will send from."
+        confirmLabel="Save number"
+        confirmingLabel="Saving number…"
+        onClose={() => setTwilioDialogOpen(false)}
+        onConfirmed={async (selected) => {
+          setTwilioDialogOpen(false);
+          toast.success(`Twilio number set to ${selected.phoneNumber}.`);
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
+          });
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.detail(businessId),
+          });
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.myLists(),
+          });
+          bumpAuditLogs();
+        }}
       />
     </div>
   );

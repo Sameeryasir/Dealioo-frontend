@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
@@ -29,15 +29,23 @@ function buildPinIcon() {
   });
 }
 
-const PIN_ICON = buildPinIcon();
+function clearLeafletContainer(root: HTMLElement | null) {
+  if (!root) return;
+  const leafletNode = root.querySelector(".leaflet-container") as
+    | (HTMLElement & { _leaflet_id?: number })
+    | null;
+  if (!leafletNode) return;
+  try {
+    delete leafletNode._leaflet_id;
+  } catch {}
+  leafletNode.innerHTML = "";
+}
 
 function refreshMapSize(map: L.Map) {
   try {
     if (!map.getContainer()?.isConnected) return;
     map.invalidateSize({ animate: false });
-  } catch {
-    /* map may already be torn down */
-  }
+  } catch {}
 }
 
 function MapViewportSync({
@@ -80,9 +88,7 @@ function MapViewportSync({
       if (!map.getContainer()?.isConnected) return;
       map.setView(center, zoom, { animate: true });
       refreshMapSize(map);
-    } catch {
-      /* map may already be torn down */
-    }
+    } catch {}
   }, [center, map, zoom]);
 
   return null;
@@ -110,6 +116,11 @@ export function RegisterBusinessLocationMap({
   dropPinMode = true,
   onDropPin,
 }: RegisterBusinessLocationMapProps) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
+  const pinIcon = useMemo(() => buildPinIcon(), []);
+
   const hasPin = latitude != null && longitude != null;
   const center: [number, number] = useMemo(
     () => (hasPin ? [latitude!, longitude!] : DEFAULT_CENTER),
@@ -117,23 +128,48 @@ export function RegisterBusinessLocationMap({
   );
   const zoom = hasPin ? 12 : 3;
 
+  useEffect(() => {
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      if (!cancelled) setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      setReady(false);
+      clearLeafletContainer(shellRef.current);
+      setMapKey((key) => key + 1);
+    };
+  }, []);
+
   return (
-    <div className="relative z-0 isolate h-64 w-full overflow-hidden rounded-xl border border-[#e8edf5]">
-      <MapContainer
-        center={center}
-        zoom={zoom}
-        scrollWheelZoom
-        className="!z-0 h-full w-full"
-        style={{ height: "256px", width: "100%", zIndex: 0 }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapViewportSync center={center} zoom={zoom} />
-        <DropPinHandler enabled={dropPinMode} onDropPin={onDropPin} />
-        {hasPin ? <Marker position={center} icon={PIN_ICON} /> : null}
-      </MapContainer>
+    <div
+      ref={shellRef}
+      className="relative z-0 isolate h-64 w-full overflow-hidden rounded-xl border border-[#e8edf5]"
+    >
+      {ready ? (
+        <MapContainer
+          key={mapKey}
+          center={center}
+          zoom={zoom}
+          scrollWheelZoom
+          className="!z-0 h-full w-full"
+          style={{ height: "256px", width: "100%", zIndex: 0 }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapViewportSync center={center} zoom={zoom} />
+          <DropPinHandler enabled={dropPinMode} onDropPin={onDropPin} />
+          {hasPin ? <Marker position={center} icon={pinIcon} /> : null}
+        </MapContainer>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-[#F8FAFC] text-sm text-slate-500">
+          Loading map…
+        </div>
+      )}
 
       {dropPinMode ? (
         <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-[#1877f2] px-3 py-1.5 text-xs font-semibold text-white shadow">

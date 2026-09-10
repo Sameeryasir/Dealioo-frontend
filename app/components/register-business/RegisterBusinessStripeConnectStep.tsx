@@ -195,8 +195,8 @@ export default function RegisterBusinessStripeConnectStep({
               <span className="landing-hero-accent-blue">Stripe</span>
             </h2>
             <p className={styles.subtitle}>
-              Connect Stripe to this business so Dealioo can send
-              customer payments to your Stripe account.
+              Use Connect Stripe to link an existing account or create a new
+              one — Dealioo opens Stripe and saves the connection here.
             </p>
           </header>
 
