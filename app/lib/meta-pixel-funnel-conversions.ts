@@ -47,11 +47,16 @@ export async function trackMetaPixelCompleteRegistration(
   });
 
   const businessId = options.businessId;
+  const hasServerAttribution = Boolean(
+    attribution.fbclid?.trim() ||
+      attribution.fbc?.trim() ||
+      attribution.fbp?.trim(),
+  );
   if (
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0 &&
-    Boolean(attribution.fbclid?.trim())
+    hasServerAttribution
   ) {
     try {
       await postFunnelMetaEvent({
@@ -72,15 +77,15 @@ export async function trackMetaPixelCompleteRegistration(
       });
     } catch (err) {
       console.warn(
-        "[Funnel Meta] CompleteRegistration backend save failed",
+        "[Funnel Meta] CompleteRegistration backend/CAPI failed",
         err,
       );
       releaseFunnelMetaEventKey(dedupeKey);
     }
   } else {
     console.warn(
-      "[Funnel Meta] CompleteRegistration skipped backend save — missing businessId",
-      { pixelId, businessId },
+      "[Funnel Meta] CompleteRegistration skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
+      { pixelId, businessId, hasServerAttribution },
     );
   }
 
@@ -141,11 +146,16 @@ export async function trackMetaPixelPurchaseSuccess(
       ? String(options.customerId)
       : paymentId;
 
+  const hasServerAttribution = Boolean(
+    attribution.fbclid?.trim() ||
+      attribution.fbc?.trim() ||
+      attribution.fbp?.trim(),
+  );
   if (
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0 &&
-    Boolean(attribution.fbclid?.trim())
+    hasServerAttribution
   ) {
     try {
       await postFunnelMetaEvent({
@@ -163,13 +173,13 @@ export async function trackMetaPixelPurchaseSuccess(
         customData: params,
       });
     } catch (err) {
-      console.warn("[Funnel Meta] Purchase backend save failed", err);
+      console.warn("[Funnel Meta] Purchase backend/CAPI failed", err);
       releaseFunnelMetaEventKey(dedupeKey);
     }
   } else {
     console.warn(
-      "[Funnel Meta] Purchase skipped backend save — missing businessId",
-      { pixelId, businessId },
+      "[Funnel Meta] Purchase skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
+      { pixelId, businessId, hasServerAttribution },
     );
   }
 

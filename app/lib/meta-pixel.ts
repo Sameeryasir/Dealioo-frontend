@@ -155,9 +155,14 @@ export function trackMetaPixelEvent(
   }
 
   const businessId = options.businessId;
+  const hasServerAttribution = Boolean(
+    attribution.fbclid?.trim() ||
+      attribution.fbc?.trim() ||
+      attribution.fbp?.trim(),
+  );
   if (
     !options.skipServer &&
-    Boolean(attribution.fbclid?.trim()) &&
+    hasServerAttribution &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -186,8 +191,8 @@ export function trackMetaPixelEvent(
     });
   } else if (!options.skipServer) {
     console.warn(
-      "[Funnel Meta] skipped backend save — missing businessId",
-      { eventName: name, pixelId: id, businessId },
+      "[Funnel Meta] skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
+      { eventName: name, pixelId: id, businessId, hasServerAttribution },
     );
   }
 

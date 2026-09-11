@@ -13,6 +13,8 @@ export type BusinessTracking = {
   createdAt: string;
   updatedAt: string;
   hasAccessToken: boolean;
+  hasCapiReady?: boolean;
+  capiCredentialSource?: "tracking_token" | "meta_oauth" | null;
 };
 
 export type UpsertBusinessTrackingInput = {

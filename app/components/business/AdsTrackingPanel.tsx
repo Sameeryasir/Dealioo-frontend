@@ -117,6 +117,13 @@ function TrackingCard({
 
 export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [pixelId, setPixelId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [hasAccessTokenSaved, setHasAccessTokenSaved] = useState(false);
+  const [hasCapiReady, setHasCapiReady] = useState(false);
+  const [capiCredentialSource, setCapiCredentialSource] = useState<
+    "tracking_token" | "meta_oauth" | null
+  >(null);
+  const [clearAccessToken, setClearAccessToken] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [gtmId, setGtmId] = useState("");
   const [signupConversionLabel, setSignupConversionLabel] = useState("");
@@ -263,7 +270,16 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         }
         if (saved) {
           nextIsActive = saved.isActive;
+          setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
+          setHasCapiReady(Boolean(saved.hasCapiReady));
+          setCapiCredentialSource(saved.capiCredentialSource ?? null);
+        } else {
+          setHasAccessTokenSaved(false);
+          setHasCapiReady(false);
+          setCapiCredentialSource(null);
         }
+        setAccessToken("");
+        setClearAccessToken(false);
       } catch {
         // Keep empty defaults when tracking has not been saved yet.
       }
@@ -343,9 +359,13 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     ],
   );
   const hasUnsavedChanges =
-    hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
+    hasLoadedSaved &&
+    (!isSameTrackingForm(currentForm, savedForm) ||
+      Boolean(accessToken.trim()) ||
+      clearAccessToken);
 
   const metaConnected = Boolean(pixelId.trim());
+  const capiReady = hasCapiReady || Boolean(accessToken.trim());
   const gtmConnected = Boolean(gtmId.trim());
   const trackingActive = isActive && metaConnected;
 
@@ -371,16 +391,30 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     setSaveError(null);
     setSaveSuccess(null);
     try {
-      await saveBusinessTracking(businessId, {
+      const saved = await saveBusinessTracking(businessId, {
         pixelId: payload.pixelId,
         googleTagManagerId: payload.gtmId,
         googleAdsSignupConversionLabel: payload.signupConversionLabel,
         googleAdsPurchaseConversionLabel: payload.purchaseConversionLabel,
         googleAdsLeadConversionLabel: payload.leadConversionLabel,
         isActive: payload.isActive,
+        ...(accessToken.trim()
+          ? { accessToken: accessToken.trim() }
+          : clearAccessToken
+            ? { accessToken: "" }
+            : {}),
       });
       setSavedForm(payload);
-      setSaveSuccess("Tracking IDs saved.");
+      setAccessToken("");
+      setClearAccessToken(false);
+      setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
+      setHasCapiReady(Boolean(saved.hasCapiReady));
+      setCapiCredentialSource(saved.capiCredentialSource ?? null);
+      setSaveSuccess(
+        saved.hasCapiReady
+          ? "Tracking saved. Server-side Meta conversions (CAPI) are ready."
+          : "Tracking IDs saved. Connect Meta Ads (or add a CAPI token) for server tracking.",
+      );
     } catch (err: unknown) {
       setSaveError(
         err instanceof Error ? err.message : "Could not save tracking IDs.",
@@ -524,6 +558,63 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             Filled automatically from Meta when available. You can edit or type
             a different Pixel ID manually. Leave empty if not used.
           </p>
+
+          <div className="mt-4 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#07111f]">
+                Server conversions (CAPI)
+              </p>
+              <ConnectionBadge connected={capiReady && metaConnected} />
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              {capiReady && metaConnected
+                ? capiCredentialSource === "tracking_token" ||
+                  hasAccessTokenSaved ||
+                  accessToken.trim()
+                  ? "Ready using your saved Conversions API access token."
+                  : "Ready using your connected Meta Ads login (same token used to load pixels)."
+                : "Needs a Pixel ID plus Meta Ads connected, or a dedicated Conversions API access token below. This is how Meta still gets purchases when the browser Pixel is blocked."}
+            </p>
+          </div>
+
+          <label className="mt-4 block text-sm font-semibold text-[#07111f]">
+            Conversions API access token (optional)
+            <span className="relative mt-1.5 block">
+              <input
+                type="password"
+                autoComplete="off"
+                value={accessToken}
+                onChange={(e) => {
+                  setAccessToken(e.target.value);
+                  if (e.target.value.trim()) setClearAccessToken(false);
+                }}
+                placeholder={
+                  hasAccessTokenSaved
+                    ? "Token saved — paste a new one to replace"
+                    : "Paste token from Meta Events Manager (optional)"
+                }
+                className={`${fieldClass} mt-0`}
+              />
+            </span>
+          </label>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-xs leading-relaxed text-slate-500">
+              Leave blank to use Meta Ads OAuth when connected. Only needed if
+              you want a dedicated system-user / Events Manager token.
+            </p>
+            {hasAccessTokenSaved ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setClearAccessToken(true);
+                  setAccessToken("");
+                }}
+                className="text-xs font-semibold text-rose-600 hover:underline"
+              >
+                {clearAccessToken ? "Will clear on save" : "Clear saved token"}
+              </button>
+            ) : null}
+          </div>
 
           <div className="mt-5 flex flex-col gap-3 border-t border-[#eef2f7] pt-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
             <button
