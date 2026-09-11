@@ -14,9 +14,7 @@ import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { useMyUserSubscription } from "@/app/hooks/use-my-user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import {
-  STARTER_MAX_BUSINESSES,
   isStarterBusinessLimitReachedForSubscription,
-  isStarterSubscription,
 } from "@/app/lib/plan-limits";
 import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
@@ -134,14 +132,8 @@ function OwnerDashboardPage() {
   const showNoSearchResults =
     !errorMessage && meta.total === 0 && Boolean(search);
   const showToolbar = !errorMessage;
-  const checkingPlan = subscriptionLoading || subscriptionFetching;
-
   const ownedBusinessCount = meta.ownedTotal ?? meta.total;
-  const onStarterPlan = isStarterSubscription(subscription);
-  const starterLimitReached = isStarterBusinessLimitReachedForSubscription(
-    subscription,
-    ownedBusinessCount,
-  );
+  const checkingPlan = subscriptionLoading || subscriptionFetching;
 
   const handleAddBusiness = useCallback(async () => {
     setPlanCheckError(null);
@@ -291,13 +283,6 @@ function OwnerDashboardPage() {
                           ? "Checking plan…"
                           : "Add business"}
                       </button>
-                      {onStarterPlan ? (
-                        <p className="org-dashboard-starter-limit-hint">
-                          {starterLimitReached
-                            ? `Starter includes ${STARTER_MAX_BUSINESSES} business — upgrade to add more.`
-                            : `Starter includes ${STARTER_MAX_BUSINESSES} business.`}
-                        </p>
-                      ) : null}
                     </div>
                   ) : null}
                 </div>

@@ -16070,9 +16070,7 @@ body:has(.rd-shell--app) {
   inset: 0;
   cursor: default;
   border: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(24, 119, 242, 0.18), transparent 55%),
-    rgba(7, 17, 31, 0.52);
+  background: rgba(7, 17, 31, 0.52);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -16084,12 +16082,11 @@ body:has(.rd-shell--app) {
   max-width: 40rem;
   overflow: hidden;
   border-radius: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: linear-gradient(165deg, #ffffff 0%, #f7faff 48%, #eef4ff 100%);
+  border: 1px solid #e8edf5;
+  background: #ffffff;
   box-shadow:
-    0 0 0 1px rgba(24, 119, 242, 0.06),
-    0 28px 56px rgba(15, 23, 42, 0.22),
-    0 8px 16px rgba(24, 119, 242, 0.08);
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 28px 56px rgba(15, 23, 42, 0.18);
   animation: starter-limit-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -16114,8 +16111,7 @@ body:has(.rd-shell--app) {
   transform: translateX(-50%);
   background: radial-gradient(
     ellipse at center,
-    rgba(24, 119, 242, 0.22) 0%,
-    rgba(24, 119, 242, 0.06) 45%,
+    rgba(15, 23, 42, 0.06) 0%,
     transparent 70%
   );
 }
@@ -16133,7 +16129,7 @@ body:has(.rd-shell--app) {
   justify-content: center;
   border-radius: 9999px;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.75);
+  background: #ffffff;
   color: #64748b;
   transition:
     background 0.15s ease,
@@ -16166,8 +16162,7 @@ body:has(.rd-shell--app) {
   border-radius: 9999px;
   background: radial-gradient(
     circle,
-    rgba(24, 119, 242, 0.2) 0%,
-    rgba(24, 119, 242, 0.05) 55%,
+    rgba(15, 23, 42, 0.06) 0%,
     transparent 70%
   );
   animation: starter-limit-pulse 2.8s ease-in-out infinite;
@@ -16193,11 +16188,11 @@ body:has(.rd-shell--app) {
   align-items: center;
   justify-content: center;
   border-radius: 1.15rem;
-  border: 1px solid rgba(24, 119, 242, 0.18);
-  background: linear-gradient(145deg, #ffffff 0%, #e8f2ff 100%);
-  color: #1877f2;
+  border: 1px solid #e8edf5;
+  background: #ffffff;
+  color: #0f172a;
   box-shadow:
-    0 10px 24px rgba(24, 119, 242, 0.18),
+    0 8px 20px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -16207,15 +16202,15 @@ body:has(.rd-shell--app) {
   align-items: center;
   gap: 0.35rem;
   border-radius: 9999px;
-  border: 1px solid rgba(24, 119, 242, 0.2);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e8edf5;
+  background: #ffffff;
   padding: 0.28rem 0.7rem;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1877f2;
-  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.08);
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .starter-limit-body {
@@ -16243,8 +16238,8 @@ body:has(.rd-shell--app) {
 .starter-limit-meter {
   margin-top: 1.25rem;
   border-radius: 1rem;
-  border: 1px solid #dbe7f8;
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e8edf5;
+  background: #ffffff;
   padding: 0.85rem 1rem;
   text-align: left;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -16262,7 +16257,7 @@ body:has(.rd-shell--app) {
 
 .starter-limit-meter-count {
   font-variant-numeric: tabular-nums;
-  color: #1877f2;
+  color: #0f172a;
 }
 
 .starter-limit-meter-track {
@@ -16270,15 +16265,15 @@ body:has(.rd-shell--app) {
   height: 0.4rem;
   overflow: hidden;
   border-radius: 9999px;
-  background: #e8eef8;
+  background: #eef2f7;
 }
 
 .starter-limit-meter-fill {
   height: 100%;
   width: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #4b9bf5 0%, #1877f2 55%, #0f5ed7 100%);
-  box-shadow: 0 0 12px rgba(24, 119, 242, 0.35);
+  background: #0f172a;
+  box-shadow: none;
 }
 
 .starter-limit-actions {
@@ -16337,18 +16332,17 @@ body:has(.rd-shell--app) {
 }
 
 .starter-limit-btn--primary {
-  background: linear-gradient(180deg, #2b86f5 0%, #1877f2 55%, #1468d9 100%);
-  color: #ffffff;
-  box-shadow:
-    0 8px 20px rgba(24, 119, 242, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .starter-limit-btn--primary:hover {
-  filter: brightness(1.04);
-  box-shadow:
-    0 10px 24px rgba(24, 119, 242, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  filter: none;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 /* --- Delete business dialog --- */

@@ -46,7 +46,6 @@ import {
   Phone,
   Search,
   Store,
-  Tag,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -577,33 +576,70 @@ export function BusinessProfileEditModal({
     return { checks, percent };
   }, [form]);
 
-  const canSave = useMemo(() => {
-    if (!form.name.trim()) return false;
-    if (!form.businessType.trim()) return false;
-    if (!form.currency.trim()) return false;
+  const getSaveBlockReason = useCallback((): {
+    message: string;
+    section: NavId;
+  } | null => {
+    if (!form.name.trim()) {
+      return {
+        message: "Please enter a business name.",
+        section: "details",
+      };
+    }
+    if (!form.businessType.trim()) {
+      return {
+        message: "Please select a business type.",
+        section: "details",
+      };
+    }
+    if (!form.currency.trim()) {
+      return {
+        message: "Please select a currency.",
+        section: "details",
+      };
+    }
     if (!form.phoneNumber.trim() || !isValidPhoneNumber(form.phoneNumber)) {
-      return false;
+      return {
+        message: "Please enter a valid phone number.",
+        section: "contact",
+      };
     }
     if (
       form.email.trim() &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
     ) {
-      return false;
+      return {
+        message: "Please enter a valid email address.",
+        section: "contact",
+      };
     }
-    if (!isValidOptionalHttpsWebsiteUrl(form.websiteUrl)) return false;
-    if (
-      validateBusinessLocation({
-        city: form.city,
-        state: form.state,
-        postalCode: form.postalCode,
-        country: form.country,
-      })
-    ) {
-      return false;
+    const websiteError = optionalHttpsWebsiteUrlMessage(form.websiteUrl);
+    if (websiteError) {
+      return { message: websiteError, section: "contact" };
+    }
+    const locationError = validateBusinessLocation({
+      city: form.city,
+      state: form.state,
+      postalCode: form.postalCode,
+      country: form.country,
+    });
+    if (locationError) {
+      return { message: locationError, section: "address" };
     }
     const branches = Number.parseInt(form.branchCount, 10);
-    if (!Number.isFinite(branches) || branches < 1) return false;
-    return hasChanges;
+    if (!Number.isFinite(branches) || branches < 1) {
+      return {
+        message: "Please enter at least 1 branch.",
+        section: "about",
+      };
+    }
+    if (!hasChanges) {
+      return {
+        message: "No changes to save.",
+        section: "details",
+      };
+    }
+    return null;
   }, [form, hasChanges]);
 
   const scrollToSection = (id: NavId) => {
@@ -637,24 +673,13 @@ export function BusinessProfileEditModal({
   };
 
   const handleSave = async () => {
-    if (!canSave || saving) return;
+    if (saving || isPending) return;
 
-    const websiteError = optionalHttpsWebsiteUrlMessage(form.websiteUrl);
-    if (websiteError) {
-      setFormError(websiteError);
-      toast.error(websiteError);
-      return;
-    }
-
-    const locationError = validateBusinessLocation({
-      city: form.city,
-      state: form.state,
-      postalCode: form.postalCode,
-      country: form.country,
-    });
-    if (locationError) {
-      setFormError(locationError);
-      toast.error(locationError);
+    const block = getSaveBlockReason();
+    if (block) {
+      setFormError(block.message);
+      toast.error(block.message);
+      scrollToSection(block.section);
       return;
     }
 
@@ -729,7 +754,7 @@ export function BusinessProfileEditModal({
             <button
               type="button"
               onClick={() => void handleSave()}
-              disabled={!canSave || saving || isPending}
+              disabled={saving || isPending}
               className="inline-flex h-10 min-w-[8.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#2F6BFF] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(47,107,255,0.28)] transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? (
@@ -924,53 +949,6 @@ export function BusinessProfileEditModal({
                             </option>
                           ))}
                         </select>
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field
-                        label="Industry"
-                        htmlFor="edit-business-country"
-                        error={locationFieldMessage("country", form.country)}
-                      >
-                        <div className="relative">
-                          <Building2
-                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B5CF6]"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          <input
-                            id="edit-business-country"
-                            className={`${inputClass} pl-10`}
-                            value={form.country}
-                            onChange={(e) =>
-                              patchForm({ country: e.target.value })
-                            }
-                            placeholder="e.g. Digital Marketing"
-                          />
-                        </div>
-                      </Field>
-                      <Field
-                        label="Business category"
-                        htmlFor="edit-business-city"
-                        error={locationFieldMessage("city", form.city)}
-                      >
-                        <div className="relative">
-                          <Tag
-                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B5CF6]"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          <input
-                            id="edit-business-city"
-                            className={`${inputClass} pl-10`}
-                            value={form.city}
-                            onChange={(e) =>
-                              patchForm({ city: e.target.value })
-                            }
-                            placeholder="e.g. Marketing Agency"
-                          />
-                        </div>
                       </Field>
                     </div>
 
