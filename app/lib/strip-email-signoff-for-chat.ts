@@ -1,18 +1,27 @@
 const URL_PATTERN = /https?:\/\/\S+/gi;
 
-const CTA_LINE_PATTERN =
-  /^(complete payment|view qr code|view your pass|open link|tap the link below)\b/i;
+const PAYMENT_CTA_LINE_PATTERN =
+  /^(complete payment|complete your payment|pay now|tap the link below)\b/i;
+
+const PASS_CTA_KEEP_PATTERN =
+  /^(View my pass|View your pass|View your pass online|Add to Google Wallet)\s*:\s*https?:\/\/\S+/i;
 
 export function stripEmailSignoffForChat(text: string): string {
   return text.replace(/\n*Best regards,\s*\nDealioo Team\s*$/i, "").trim();
 }
 
-/** Hides payment/pass links from owner-facing guest chat previews. */
+/** Hides payment/checkout links; keeps pass / wallet CTAs for staff. */
 export function stripAutomationLinksForChat(text: string): string {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   const cleaned: string[] = [];
 
   for (const rawLine of lines) {
+    const trimmedRaw = rawLine.trim();
+    if (PASS_CTA_KEEP_PATTERN.test(trimmedRaw)) {
+      cleaned.push(trimmedRaw);
+      continue;
+    }
+
     const withoutUrls = rawLine.replace(URL_PATTERN, "").trimEnd();
     const trimmed = withoutUrls.trim();
 
@@ -23,7 +32,7 @@ export function stripAutomationLinksForChat(text: string): string {
       continue;
     }
 
-    if (CTA_LINE_PATTERN.test(trimmed)) {
+    if (PAYMENT_CTA_LINE_PATTERN.test(trimmed)) {
       continue;
     }
 

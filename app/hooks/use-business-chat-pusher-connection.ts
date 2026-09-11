@@ -16,18 +16,12 @@ export function useBusinessChatPusherConnection(): PusherConnectionStatus {
 
   useEffect(() => {
     if (!isPusherConfigured()) {
-      console.warn("[Chat Pusher] Connection offline — env vars not set.");
       setStatus("offline");
       return;
     }
 
     getPusherClient();
-    console.log("[Chat Pusher] Connection hook started", {
-      status: getPusherConnectionStatus(),
-    });
-
     return subscribePusherConnectionStatus((next) => {
-      console.log("[Chat Pusher] Connection status changed", { status: next });
       setStatus(next);
     });
   }, []);

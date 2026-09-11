@@ -34,7 +34,7 @@ import type {
   CustomerConversationMessages,
 } from "@/app/services/chat/get-business-conversation";
 import {
-  getCustomerConversation,
+  getCustomerConversationMessages,
   syncCustomerConversationMessages,
 } from "@/app/services/chat/get-business-conversation";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
@@ -43,6 +43,17 @@ function yieldToNextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
   });
+}
+
+function getMinMessageId(messages: ConversationMessage[]): number | null {
+  let min: number | null = null;
+  for (const message of messages) {
+    if (typeof message.id !== "number" || message.id < 1) continue;
+    if (min == null || message.id < min) {
+      min = message.id;
+    }
+  }
+  return min;
 }
 
 function syncBatchHasMore(delta: CustomerConversationMessages): boolean {
@@ -211,12 +222,16 @@ export function useCustomerConversationQuery(
   );
 
   const fetchAndStoreConversation = useCallback(async () => {
-    const fresh = await getCustomerConversation(
-      businessId,
-      conversationId,
-      customerId,
-    );
+    const chats = await getCustomerConversationMessages(businessId, customerId);
+    const fresh: CustomerConversationDetail = {
+      conversationId: chats.conversationId,
+      customerId: chats.customerId,
+      customerName: null,
+      customerEmail: null,
+      messages: chats.messages,
+    };
     applyLatestWindow(fresh);
+    setHasOlderMessages(chats.hasMore === true);
     setError(null);
     messagesLoadedRef.current = true;
 
@@ -232,7 +247,7 @@ export function useCustomerConversationQuery(
     }
 
     return fresh;
-  }, [applyLatestWindow, conversationId, customerId, businessId]);
+  }, [applyLatestWindow, customerId, businessId]);
 
   const syncConversationFromApi = useCallback(
     async (cachedLastMessageId: number | null) => {
@@ -603,38 +618,77 @@ export function useCustomerConversationQuery(
     setLoadingOlder(true);
 
     try {
-      if (!CHAT_USE_INDEXED_DB) {
-        const startIndex = messageStartIndexRef.current;
-        if (startIndex <= 0) {
-          setHasOlderMessages(false);
-          return false;
-        }
-
-        const nextStart = Math.max(0, startIndex - CHAT_MESSAGE_SYNC_PAGE_SIZE);
-        const all = fullMessagesRef.current;
-        applyMessagePage({
+      if (CHAT_USE_INDEXED_DB) {
+        const page = await getStoredChatMessagesOlderPage(
+          businessId,
           customerId,
-          customerName: conversation?.customerName ?? null,
-          customerEmail: conversation?.customerEmail ?? null,
-          messages: all.slice(nextStart),
-          startIndex: nextStart,
-          hasOlder: nextStart > 0,
-        });
-        return true;
+          messageStartIndexRef.current,
+        );
+
+        if (page) {
+          applyMessagePage(page);
+          return true;
+        }
+      } else {
+        const startIndex = messageStartIndexRef.current;
+        if (startIndex > 0) {
+          const nextStart = Math.max(0, startIndex - CHAT_MESSAGE_SYNC_PAGE_SIZE);
+          const all = fullMessagesRef.current;
+          applyMessagePage({
+            customerId,
+            customerName: conversation?.customerName ?? null,
+            customerEmail: conversation?.customerEmail ?? null,
+            messages: all.slice(nextStart),
+            startIndex: nextStart,
+            hasOlder: nextStart > 0,
+          });
+          return true;
+        }
       }
 
-      const page = await getStoredChatMessagesOlderPage(
-        businessId,
-        customerId,
-        messageStartIndexRef.current,
-      );
-
-      if (!page) {
+      const oldestId = getMinMessageId(fullMessagesRef.current);
+      if (oldestId == null) {
         setHasOlderMessages(false);
         return false;
       }
 
-      applyMessagePage(page);
+      const older = await getCustomerConversationMessages(businessId, customerId, {
+        beforeMessageId: oldestId,
+      });
+
+      if (older.messages.length === 0) {
+        setHasOlderMessages(false);
+        return false;
+      }
+
+      let merged = fullMessagesRef.current;
+      for (const message of older.messages) {
+        merged = insertMessageIfAbsent(merged, message);
+      }
+      merged = sortConversationMessages(merged);
+      fullMessagesRef.current = merged;
+
+      if (CHAT_USE_INDEXED_DB) {
+        await saveChatConversation(businessId, customerId, {
+          customerId,
+          customerName: conversation?.customerName ?? null,
+          customerEmail: conversation?.customerEmail ?? null,
+          messages: merged,
+        });
+      }
+
+      const nextStart = Math.max(
+        0,
+        messageStartIndexRef.current - older.messages.length,
+      );
+      applyMessagePage({
+        customerId,
+        customerName: conversation?.customerName ?? null,
+        customerEmail: conversation?.customerEmail ?? null,
+        messages: merged.slice(nextStart),
+        startIndex: nextStart,
+        hasOlder: older.hasMore === true || nextStart > 0,
+      });
       return true;
     } finally {
       setLoadingOlder(false);

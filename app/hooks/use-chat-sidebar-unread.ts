@@ -1,6 +1,7 @@
 "use client";
 
 import { markRestaurantChatsRead } from "@/app/services/chat/mark-business-chats-read";
+import { getBusinessChatsUnread } from "@/app/services/chat/get-business-chats-unread";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import {
   readChatHasUnread,
@@ -71,6 +72,18 @@ export function useChatSidebarUnread(
     }
 
     persistUnread(userId, businessId, readChatHasUnread(userId, businessId));
+
+    let cancelled = false;
+    void getBusinessChatsUnread(businessId)
+      .then((result) => {
+        if (cancelled) return;
+        persistUnread(userId, businessId, result.hasUnread);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [businessId, userId, onChatsPage, persistUnread]);
 
   useBusinessConversationsPusher(businessId ?? 0, (payload) => {

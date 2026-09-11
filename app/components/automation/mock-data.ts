@@ -3,7 +3,6 @@ import {
   CreditCard,
   GitBranch,
   Mail,
-  MessageCircle,
   MessageSquare,
   Percent,
   Star,
@@ -52,13 +51,6 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     tone: "blue",
   },
   {
-    id: "delay",
-    label: "Delay",
-    section: "flow",
-    icon: Timer,
-    tone: "blue",
-  },
-  {
     id: "parallel_split",
     label: "Branch",
     section: "flow",
@@ -80,18 +72,21 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     tone: "violet",
   },
   {
-    id: "send_whatsapp",
-    label: "Send WhatsApp",
-    section: "actions",
-    icon: MessageCircle,
-    tone: "violet",
-  },
-  {
     id: "condition",
     label: "Condition",
     section: "conditions",
     icon: GitBranch,
     tone: "orange",
+  },
+];
+
+const LEGACY_ACTION_BLOCKS: BlockDefinition[] = [
+  {
+    id: "delay",
+    label: "Delay",
+    section: "flow",
+    icon: Timer,
+    tone: "blue",
   },
   {
     id: "create_coupon",
@@ -118,6 +113,8 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
 
 export function getBlockByKind(kind: WorkflowNode["kind"]): BlockDefinition {
   return (
-    AUTOMATION_BLOCKS.find((b) => b.id === kind) ?? AUTOMATION_BLOCKS[0]!
+    AUTOMATION_BLOCKS.find((b) => b.id === kind) ??
+    LEGACY_ACTION_BLOCKS.find((b) => b.id === kind) ??
+    AUTOMATION_BLOCKS[0]!
   );
 }

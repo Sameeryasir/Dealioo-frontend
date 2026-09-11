@@ -145,6 +145,7 @@ export async function getGuestConversation(
 export async function getCustomerConversationMessages(
   restaurantId: number,
   customerId: number,
+  options?: { beforeMessageId?: number; limit?: number },
 ): Promise<CustomerConversationMessages> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -156,8 +157,17 @@ export async function getCustomerConversationMessages(
     throw new Error("Valid customer id is required.");
   }
 
+  const q = new URLSearchParams();
+  if (options?.beforeMessageId != null && options.beforeMessageId > 0) {
+    q.set("beforeMessageId", String(options.beforeMessageId));
+  }
+  if (options?.limit != null && options.limit > 0) {
+    q.set("limit", String(options.limit));
+  }
+
+  const query = q.toString();
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages${query ? `?${query}` : ""}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

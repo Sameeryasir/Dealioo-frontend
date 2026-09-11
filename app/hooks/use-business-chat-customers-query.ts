@@ -18,7 +18,11 @@ import {
   type PaginatedChatCustomersResponse,
 } from "@/app/services/chat/get-business-chat-customers";
 
-export function useBusinessChatCustomersQuery(businessId: number) {
+export function useBusinessChatCustomersQuery(
+  businessId: number,
+  search = "",
+) {
+  const normalizedSearch = search.trim();
   const [data, setData] = useState<PaginatedChatCustomersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -32,20 +36,25 @@ export function useBusinessChatCustomersQuery(businessId: number) {
     loadedPageRef.current = 1;
     setData(null);
     setError(null);
-  }, [businessId]);
+  }, [businessId, normalizedSearch]);
 
   const fetchPage = useCallback(
     async (page: number) => {
       return getRestaurantChatCustomers(businessId, {
         page,
         limit: RESTAURANT_CHAT_PAGE_SIZE,
+        search: normalizedSearch || undefined,
       });
     },
-    [businessId],
+    [businessId, normalizedSearch],
   );
 
   const syncCustomersFromApi = useCallback(
     async (current: PaginatedChatCustomersResponse) => {
+      if (normalizedSearch) {
+        return;
+      }
+
       let afterConversationId = getLatestConversationIdByCreatedAt(current);
       if (!afterConversationId) {
         const fresh = await fetchPage(1);
@@ -83,7 +92,7 @@ export function useBusinessChatCustomersQuery(businessId: number) {
 
       setError(null);
     },
-    [businessId, fetchPage],
+    [businessId, fetchPage, normalizedSearch],
   );
 
   useEffect(() => {
@@ -198,13 +207,8 @@ export function useBusinessChatCustomersQuery(businessId: number) {
           }
           return next;
         });
-      } catch (error) {
-        console.warn("[Chat Pusher] Failed to apply conversation list update", {
-          businessId,
-          conversationId: payload.conversationId,
-          customerId: payload.customerId,
-          error,
-        });
+      } catch {
+        // Keep list stable if a live patch fails.
       }
     },
     [businessId],

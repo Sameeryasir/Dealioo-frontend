@@ -43,11 +43,12 @@ export type SyncChatMessagesThread = {
 
 export type SyncChatMessagesResponse = {
   data: SyncChatMessagesThread[];
+  hasMore?: boolean;
 };
 
 export async function getRestaurantChatCustomers(
   restaurantId: number,
-  options: { page?: number; limit?: number } = {},
+  options: { page?: number; limit?: number; search?: string } = {},
 ): Promise<PaginatedChatCustomersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -60,6 +61,10 @@ export async function getRestaurantChatCustomers(
     page: String(options.page ?? 1),
     limit: String(options.limit ?? RESTAURANT_CHAT_PAGE_SIZE),
   });
+  const search = options.search?.trim();
+  if (search) {
+    q.set("search", search);
+  }
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/conversation?${q.toString()}`,

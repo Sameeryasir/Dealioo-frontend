@@ -12,7 +12,6 @@ import {
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
-import { matchesSearch } from "./guest-chats/guest-chats-utils";
 
 // One-shot: wipe chat IndexedDB after fake-message cleanup so UI matches server.
 const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v8";
@@ -30,7 +29,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     hasMore,
     error,
     loadMore,
-  } = useBusinessChatCustomersQuery(businessId);
+  } = useBusinessChatCustomersQuery(businessId, search);
 
   const keepCustomerIdsKey = useMemo(
     () =>
@@ -99,28 +98,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     keepCustomerIdsKey,
   ]);
 
-  const filteredRows = useMemo(
-    () => rows.filter((row) => matchesSearch(row, search)),
-    [rows, search],
-  );
-
-  // Search only filters loaded rows — keep paging until a match appears or list ends.
-  useEffect(() => {
-    if (!search.trim() || loading || loadingMore || !hasMore) {
-      return;
-    }
-    if (filteredRows.length === 0 && rows.length > 0) {
-      loadMore();
-    }
-  }, [
-    search,
-    filteredRows.length,
-    rows.length,
-    hasMore,
-    loading,
-    loadingMore,
-    loadMore,
-  ]);
+  const filteredRows = rows;
 
   const selectedRow = useMemo(() => {
     if (selectedCustomerId == null) return null;
