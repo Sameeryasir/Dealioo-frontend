@@ -878,7 +878,9 @@ export function BusinessMembersPanel({
     if (member.id == null || member.id < 1) return;
     if (member.status === "owner") return;
     const role =
-      member.role === "Staff" || member.role === "Manager"
+      member.role === "Staff" ||
+      member.role === "Manager" ||
+      member.role === "Scanner"
         ? member.role
         : "Staff";
     setDetailsMember(null);

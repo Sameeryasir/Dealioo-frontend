@@ -9,6 +9,7 @@ import {
   Loader2,
   Mail,
   Megaphone,
+  ScanLine,
   Send,
   Shield,
   Sparkles,
@@ -319,6 +320,14 @@ const ROLE_OPTIONS: {
     icon: UserCog,
     accent: "bg-[#6366f1]",
     ring: "ring-indigo-300/40",
+  },
+  {
+    value: "Scanner",
+    label: "Scanner",
+    description: "In-store access to scan codes and view orders only.",
+    icon: ScanLine,
+    accent: "bg-[#0f766e]",
+    ring: "ring-teal-300/40",
   },
 ];
 

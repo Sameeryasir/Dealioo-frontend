@@ -1,4 +1,4 @@
-export const BUSINESS_MEMBER_ROLES = ["Manager", "Staff"] as const;
+export const BUSINESS_MEMBER_ROLES = ["Manager", "Staff", "Scanner"] as const;
 
 export type BusinessMemberRole = (typeof BUSINESS_MEMBER_ROLES)[number];
 

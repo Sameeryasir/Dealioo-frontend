@@ -51,8 +51,10 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
     "activity",
     "chats",
     "scanning",
+    "members",
   ],
   Staff: ["orders", "activity", "chats", "scanning"],
+  Scanner: ["scanning", "orders"],
 };
 
 export const CAMPAIGN_ACTION_OPTIONS: {
@@ -252,7 +254,17 @@ const STAFF_PERMISSION_VALUES = new Set<BusinessMemberPermission>(
   DEFAULT_PERMISSIONS_BY_ROLE.Staff,
 );
 
+const SCANNER_PERMISSION_VALUES = new Set<BusinessMemberPermission>(
+  DEFAULT_PERMISSIONS_BY_ROLE.Scanner,
+);
+
 export function getModulePermissionOptionsForRole(role: BusinessMemberRole) {
+  if (role === "Scanner") {
+    return MODULE_PERMISSION_OPTIONS.filter((option) =>
+      SCANNER_PERMISSION_VALUES.has(option.value),
+    );
+  }
+
   if (role === "Staff") {
     return MODULE_PERMISSION_OPTIONS.filter((option) =>
       STAFF_PERMISSION_VALUES.has(option.value),
@@ -279,6 +291,12 @@ export function roleSupportsGoogleCampaignModule(
 }
 
 export function getPermissionOptionsForRole(role: BusinessMemberRole) {
+  if (role === "Scanner") {
+    return PERMISSION_OPTIONS.filter((option) =>
+      SCANNER_PERMISSION_VALUES.has(option.value),
+    );
+  }
+
   if (role === "Staff") {
     return PERMISSION_OPTIONS.filter((option) =>
       STAFF_PERMISSION_VALUES.has(option.value),
