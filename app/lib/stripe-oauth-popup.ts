@@ -1,4 +1,5 @@
 import { connectStripe } from "@/app/services/stripe/connect-stripe";
+import { getStripeConnectionStatus } from "@/app/services/stripe/get-stripe-connection-status";
 
 export const STRIPE_CONNECT_COMPLETE_MESSAGE = "stripe-connect-complete" as const;
 export const STRIPE_CONNECT_CANCELLED_MESSAGE =
@@ -7,6 +8,12 @@ export const STRIPE_CONNECT_CANCELLED_MESSAGE =
 export type StripeOAuthResult =
   | { status: "connected" }
   | { status: "cancelled" };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 function openStripeConnectPopup(oauthUrl: string): Window | null {
   const width = 560;
@@ -21,8 +28,22 @@ function openStripeConnectPopup(oauthUrl: string): Window | null {
   );
 }
 
+async function isStripeConnectedForBusiness(
+  accessToken: string,
+  businessId: number,
+): Promise<boolean> {
+  try {
+    const status = await getStripeConnectionStatus(accessToken, businessId);
+    return Boolean(status.connected);
+  } catch {
+    return false;
+  }
+}
+
 function waitForStripeOAuthPopup(
   popup: Window,
+  accessToken: string,
+  businessId: number,
   timeoutMs = 10 * 60 * 1000,
 ): Promise<StripeOAuthResult> {
   return new Promise((resolve) => {
@@ -35,6 +56,16 @@ function waitForStripeOAuthPopup(
       window.clearTimeout(timeoutTimer);
       window.removeEventListener("message", onMessage);
       resolve(result);
+    };
+
+    const resolveFromServer = async () => {
+      await sleep(400);
+      if (settled) return;
+      const connected = await isStripeConnectedForBusiness(
+        accessToken,
+        businessId,
+      );
+      finish(connected ? { status: "connected" } : { status: "cancelled" });
     };
 
     const onMessage = (event: MessageEvent) => {
@@ -63,19 +94,24 @@ function waitForStripeOAuthPopup(
 
     window.addEventListener("message", onMessage);
 
+    let closedCheckStarted = false;
     const pollTimer = window.setInterval(() => {
-      if (popup.closed) {
-        finish({ status: "cancelled" });
-      }
+      if (!popup.closed || closedCheckStarted || settled) return;
+      closedCheckStarted = true;
+      window.clearInterval(pollTimer);
+      void resolveFromServer();
     }, 400);
 
     const timeoutTimer = window.setTimeout(() => {
-      try {
-        popup.close();
-      } catch {
-        /* ignore */
-      }
-      finish({ status: "cancelled" });
+      void (async () => {
+        try {
+          popup.close();
+        } catch {
+          /* ignore */
+        }
+        if (settled) return;
+        await resolveFromServer();
+      })();
     }, timeoutMs);
   });
 }
@@ -93,5 +129,5 @@ export async function connectStripeInPopup(
     );
   }
 
-  return waitForStripeOAuthPopup(popup);
+  return waitForStripeOAuthPopup(popup, accessToken, businessId);
 }

@@ -1,10 +1,17 @@
 import { connectGoogleAds } from "@/app/services/google-ads/connect-google-ads";
+import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-google-ads-connection-status";
 
 export const GOOGLE_OAUTH_COMPLETE_MESSAGE = "google-oauth-complete" as const;
 
 export type GoogleOAuthResult =
   | { status: "connected"; businessId: number }
   | { status: "cancelled" };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 function openGoogleConnectPopup(oauthUrl: string): Window | null {
   const width = 560;
@@ -26,8 +33,22 @@ function readBusinessIdFromMessage(data: object): number | null {
   return raw;
 }
 
+async function isGoogleConnectedForBusiness(
+  accessToken: string,
+  businessId: number,
+): Promise<boolean> {
+  try {
+    const status = await getGoogleAdsConnectionStatus(accessToken, businessId);
+    return Boolean(status.connected);
+  } catch {
+    return false;
+  }
+}
+
 function waitForGoogleOAuthPopup(
   popup: Window,
+  accessToken: string,
+  businessId: number,
   timeoutMs = 10 * 60 * 1000,
 ): Promise<GoogleOAuthResult> {
   return new Promise((resolve) => {
@@ -42,6 +63,20 @@ function waitForGoogleOAuthPopup(
       resolve(result);
     };
 
+    const resolveFromServer = async () => {
+      await sleep(400);
+      if (settled) return;
+      const connected = await isGoogleConnectedForBusiness(
+        accessToken,
+        businessId,
+      );
+      finish(
+        connected
+          ? { status: "connected", businessId }
+          : { status: "cancelled" },
+      );
+    };
+
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       const data = event.data;
@@ -50,32 +85,37 @@ function waitForGoogleOAuthPopup(
         return;
       }
 
-      const businessId = readBusinessIdFromMessage(data);
-      if (businessId == null) return;
+      const id = readBusinessIdFromMessage(data);
+      if (id == null) return;
 
       try {
         popup.close();
       } catch {
         /* popup may already be closed */
       }
-      finish({ status: "connected", businessId });
+      finish({ status: "connected", businessId: id });
     };
 
     window.addEventListener("message", onMessage);
 
+    let closedCheckStarted = false;
     const pollTimer = window.setInterval(() => {
-      if (popup.closed) {
-        finish({ status: "cancelled" });
-      }
+      if (!popup.closed || closedCheckStarted || settled) return;
+      closedCheckStarted = true;
+      window.clearInterval(pollTimer);
+      void resolveFromServer();
     }, 400);
 
     const timeoutTimer = window.setTimeout(() => {
-      try {
-        popup.close();
-      } catch {
-        /* ignore */
-      }
-      finish({ status: "cancelled" });
+      void (async () => {
+        try {
+          popup.close();
+        } catch {
+          /* ignore */
+        }
+        if (settled) return;
+        await resolveFromServer();
+      })();
     }, timeoutMs);
   });
 }
@@ -93,7 +133,7 @@ export async function connectGoogleAdsInPopup(
     );
   }
 
-  return waitForGoogleOAuthPopup(popup);
+  return waitForGoogleOAuthPopup(popup, accessToken, businessId);
 }
 
 export function notifyGoogleOAuthComplete(businessId: number): boolean {

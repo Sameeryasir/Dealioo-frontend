@@ -27,6 +27,7 @@ import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { abortGoogleAdsConnect } from "@/app/services/google-ads/abort-google-ads-connect";
 import { disconnectGoogleAds } from "@/app/services/google-ads/disconnect-google-ads";
+import { isGoogleAdsCustomerSelected } from "@/app/services/google-ads/get-google-ads-connection-status";
 import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import { disconnectFacebook } from "@/app/services/facebook/disconnect-facebook";
 import {
@@ -226,6 +227,33 @@ function TwilioMark({ className }: { className?: string }) {
   );
 }
 
+function IntegrationCardSkeleton() {
+  return (
+    <div
+      className={`${cardShellClass} animate-pulse`}
+      aria-hidden
+    >
+      <span className="absolute inset-y-0 left-0 w-1 bg-slate-200" />
+      <div className={cardRowClass}>
+        <span className="size-10 shrink-0 rounded-lg bg-slate-100" />
+        <div className="min-w-0 space-y-2">
+          <div className="h-3.5 w-28 rounded bg-slate-100" />
+          <div className="h-3 w-48 max-w-full rounded bg-slate-100" />
+          <div className="h-2.5 w-40 max-w-full rounded bg-slate-50" />
+        </div>
+        <div className={`${cardStatusClass} gap-2`}>
+          <span className="size-8 shrink-0 rounded-full bg-slate-100" />
+          <div className="space-y-1.5">
+            <div className="h-2 w-14 rounded bg-slate-100" />
+            <div className="h-3 w-24 rounded bg-slate-100" />
+          </div>
+        </div>
+        <div className="h-8 w-28 rounded-lg bg-slate-100 md:justify-self-end" />
+      </div>
+    </div>
+  );
+}
+
 function IntegrationCard({
   id,
   accentColor,
@@ -258,7 +286,10 @@ function IntegrationCard({
   footer?: ReactNode;
 }) {
   return (
-    <article id={id} className={cardShellClass}>
+    <article
+      id={id}
+      className={`${cardShellClass} transition-[opacity,transform,box-shadow] duration-300 ease-out`}
+    >
       <span
         className={`absolute inset-y-0 left-0 w-1 ${accentColor}`}
         aria-hidden
@@ -332,12 +363,14 @@ export function BusinessIntegrationsPanel({
     queryKey: integrationsStatusQueryKey(businessId),
     queryFn: () => getIntegrationsStatus(businessId),
     enabled: businessId > 0,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 30_000,
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
 
-  const statusLoading = statusQuery.isPending;
+  const statusInitialLoading = statusQuery.isLoading;
+  const statusRefreshing =
+    statusQuery.isFetching && !statusQuery.isLoading && Boolean(statusQuery.data);
   const statusError =
     statusQuery.error instanceof Error
       ? statusQuery.error.message
@@ -346,7 +379,6 @@ export function BusinessIntegrationsPanel({
         : null;
 
   const stripeConnected = Boolean(statusQuery.data?.stripe.connected);
-  const stripeError = stripeActionError ?? statusError;
 
   const metaConnected = Boolean(statusQuery.data?.facebook.connected);
   const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
@@ -355,17 +387,44 @@ export function BusinessIntegrationsPanel({
   const metaAdAccountId =
     statusQuery.data?.facebook.metaAdAccountId?.trim() || null;
   const metaNeedsAdAccount = metaConnected && !metaAdAccountId;
-  const metaError = metaActionError ?? statusError;
 
   const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
-  const googleError = googleActionError ?? statusError;
+  const googleCustomerSelected = isGoogleAdsCustomerSelected(
+    statusQuery.data?.googleAds.status,
+  );
+  const googleNeedsCustomer = googleConnected && !googleCustomerSelected;
 
   const twilioQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
     enabled: businessId > 0,
   });
   const twilioNumber = twilioQuery.selectedPhoneNumber?.trim() || "";
   const twilioConnected = Boolean(twilioNumber);
-  const twilioLoading = twilioQuery.isPending;
+  const twilioInitialLoading = twilioQuery.isLoading;
+  const twilioRefreshing =
+    twilioQuery.isFetching && !twilioQuery.isLoading && Boolean(twilioQuery.data);
+
+  const panelReady = !statusInitialLoading && !twilioInitialLoading;
+  const panelRefreshing = statusRefreshing || twilioRefreshing;
+  const loadError = statusError || twilioQuery.error;
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: integrationsStatusQueryKey(businessId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
+      }),
+    ]);
+    bumpAuditLogs();
+  }, [bumpAuditLogs, businessId, queryClient]);
+
+  const connectedCount = [
+    twilioConnected,
+    stripeConnected,
+    metaConnected && !metaNeedsAdAccount,
+    googleConnected && !googleNeedsCustomer,
+  ].filter(Boolean).length;
 
   const refreshStatus = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -381,6 +440,7 @@ export function BusinessIntegrationsPanel({
         setMetaConnectModalOpen(false);
         setMetaActionError(null);
         setMetaBusy("idle");
+        toast.success("Meta Ads connected.");
       }
     },
     [bumpAuditLogs, refreshStatus],
@@ -456,9 +516,11 @@ export function BusinessIntegrationsPanel({
       const result = await connectStripeInPopup(token, businessId);
       if (result.status === "connected") {
         await refreshStatus();
+        toast.success("Stripe connected.");
       } else {
         await abortStripeConnect(businessId);
         await refreshStatus();
+        setStripeActionError("Stripe connect was cancelled. You can try again.");
       }
       setStripeBusy("idle");
       bumpAuditLogs();
@@ -481,6 +543,7 @@ export function BusinessIntegrationsPanel({
       await refreshStatus();
       setStripeBusy("idle");
       bumpAuditLogs();
+      toast.success("Stripe removed.");
     } catch (e) {
       setStripeBusy("error");
       setStripeActionError(
@@ -525,6 +588,7 @@ export function BusinessIntegrationsPanel({
         setMetaConnectModalOpen(false);
         setMetaActionError(null);
         setMetaBusy("idle");
+        toast.success("Meta Ads connected.");
         return;
       }
       await abortFacebookConnect(businessId);
@@ -551,6 +615,7 @@ export function BusinessIntegrationsPanel({
       setShowMetaPermissions(false);
       setMetaBusy("idle");
       bumpAuditLogs();
+      toast.success("Meta Ads removed.");
     } catch (e) {
       setMetaBusy("error");
       setMetaActionError(
@@ -568,9 +633,13 @@ export function BusinessIntegrationsPanel({
       const result = await connectGoogleAdsInPopup(token, businessId);
       if (result.status === "connected") {
         await refreshStatus();
+        toast.success("Google Ads connected.");
       } else {
         await abortGoogleAdsConnect(businessId);
         await refreshStatus();
+        setGoogleActionError(
+          "Google Ads connect was cancelled. You can try again.",
+        );
       }
       setGoogleBusy("idle");
       bumpAuditLogs();
@@ -593,6 +662,7 @@ export function BusinessIntegrationsPanel({
       await refreshStatus();
       setGoogleBusy("idle");
       bumpAuditLogs();
+      toast.success("Google Ads removed.");
     } catch (e) {
       setGoogleBusy("error");
       setGoogleActionError(
@@ -607,6 +677,7 @@ export function BusinessIntegrationsPanel({
   const normalizedFocus = focus.trim().toLowerCase();
 
   useEffect(() => {
+    if (!panelReady) return;
     const targetId =
       normalizedFocus === "stripe"
         ? "settings-integration-stripe"
@@ -622,18 +693,108 @@ export function BusinessIntegrationsPanel({
       document
         .getElementById(targetId)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 120);
+    }, 160);
     return () => window.clearTimeout(timer);
-  }, [normalizedFocus, statusLoading, twilioLoading]);
+  }, [normalizedFocus, panelReady]);
 
   useEffect(() => {
+    if (!panelReady) return;
     if (normalizedFocus === "twilio" && !twilioConnected) {
       setTwilioDialogOpen(true);
     }
-  }, [normalizedFocus, twilioConnected]);
+  }, [normalizedFocus, panelReady, twilioConnected]);
+
+  if (!panelReady) {
+    return (
+      <div className="flex flex-col gap-2.5" aria-busy="true" aria-live="polite">
+        <div className="rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-28 animate-pulse rounded bg-slate-100" />
+              <div className="h-3.5 w-56 max-w-full animate-pulse rounded bg-slate-100" />
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[0.72rem] font-bold text-slate-500">
+              <Loader2 className="size-3 animate-spin" strokeWidth={2.5} />
+              Checking…
+            </span>
+          </div>
+        </div>
+        <IntegrationCardSkeleton />
+        <IntegrationCardSkeleton />
+        <IntegrationCardSkeleton />
+        <IntegrationCardSkeleton />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div
+      className="flex flex-col gap-2.5"
+      style={{
+        animation: "integrationsPanelIn 280ms ease-out",
+      }}
+    >
+      <style>{`
+        @keyframes integrationsPanelIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <div className="relative overflow-hidden rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+        {panelRefreshing ? (
+          <span
+            className="absolute inset-x-0 top-0 h-0.5 origin-left animate-pulse bg-[#1877F2]/70"
+            aria-hidden
+          />
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-500">
+              Connected platforms
+            </p>
+            <p className="m-0 mt-0.5 text-sm text-slate-600">
+              Link SMS, payments, and ad accounts for this business.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              disabled={panelRefreshing}
+              className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-[#E8EDF5] bg-white px-2.5 text-[0.7rem] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`size-3 ${panelRefreshing ? "animate-spin" : ""}`}
+                strokeWidth={2.25}
+              />
+              {panelRefreshing ? "Refreshing…" : "Refresh"}
+            </button>
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[0.72rem] font-bold text-slate-700 transition-colors duration-200">
+              {`${connectedCount} of 4 ready`}
+            </span>
+          </div>
+        </div>
+        {loadError ? (
+          <div
+            role="alert"
+            className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-[0.72rem] text-red-700"
+          >
+            <span className="inline-flex items-start gap-1.5">
+              <AlertCircle className="mt-px size-3.5 shrink-0" />
+              {loadError}
+            </span>
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              className="cursor-pointer rounded-md border border-red-200 bg-white px-2.5 py-1 text-[0.68rem] font-semibold text-red-700"
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+      </div>
+
       <IntegrationCard
         id="settings-integration-twilio"
         accentColor="bg-[#F22F46]"
@@ -646,7 +807,7 @@ export function BusinessIntegrationsPanel({
           { icon: Phone, label: "Business number" },
           { icon: RefreshCw, label: "Campaign messages" },
         ]}
-        loading={twilioLoading}
+        loading={false}
         connected={twilioConnected}
         status={
           twilioConnected ? (
@@ -665,15 +826,13 @@ export function BusinessIntegrationsPanel({
           )
         }
         actions={
-          twilioLoading ? null : (
-            <button
-              type="button"
-              onClick={() => setTwilioDialogOpen(true)}
-              className={`${actionBtn} bg-[#F22F46] text-white`}
-            >
-              {twilioConnected ? "Change number" : "Select number"}
-            </button>
-          )
+          <button
+            type="button"
+            onClick={() => setTwilioDialogOpen(true)}
+            className={`${actionBtn} bg-[#F22F46] text-white`}
+          >
+            {twilioConnected ? "Change number" : "Select number"}
+          </button>
         }
       />
 
@@ -689,9 +848,9 @@ export function BusinessIntegrationsPanel({
           { icon: FileText, label: "Invoices & history" },
           { icon: RefreshCw, label: "Automatic sync" },
         ]}
-        loading={statusLoading}
+        loading={false}
         connected={stripeConnected}
-        error={stripeError}
+        error={stripeActionError}
         status={
           stripeConnected ? (
             <ConnectedStatus
@@ -708,7 +867,7 @@ export function BusinessIntegrationsPanel({
           )
         }
         actions={
-          statusLoading ? null : stripeConnected ? (
+          stripeConnected ? (
             <button
               type="button"
               onClick={() => void handleDisconnectStripe()}
@@ -743,10 +902,10 @@ export function BusinessIntegrationsPanel({
           { icon: Users, label: "Audience insights" },
           { icon: RefreshCw, label: "Campaign tracking" },
         ]}
-        loading={statusLoading}
+        loading={false}
         connected={metaConnected}
         needsAdAccount={metaNeedsAdAccount}
-        error={metaError}
+        error={metaActionError}
         status={
           metaConnected ? (
             metaNeedsAdAccount ? (
@@ -778,7 +937,7 @@ export function BusinessIntegrationsPanel({
           )
         }
         actions={
-          statusLoading ? null : metaConnected ? (
+          metaConnected ? (
             <>
               {metaNeedsAdAccount ? (
                 <Link
@@ -836,7 +995,7 @@ export function BusinessIntegrationsPanel({
           grantedScopes={metaScopes}
           missingRequiredScopes={metaMissingScopes}
           connected={metaConnected}
-          loading={statusLoading}
+          loading={false}
         />
       ) : null}
 
@@ -852,15 +1011,31 @@ export function BusinessIntegrationsPanel({
           { icon: MousePointerClick, label: "Click tracking" },
           { icon: LineChart, label: "Campaign stats" },
         ]}
-        loading={statusLoading}
+        loading={false}
         connected={googleConnected}
-        error={googleError}
+        needsAdAccount={googleNeedsCustomer}
+        error={googleActionError}
         status={
           googleConnected ? (
-            <ConnectedStatus
-              icon={CalendarDays}
-              iconClass="bg-[#E8F5EE] text-[#188038]"
-            />
+            googleNeedsCustomer ? (
+              <ConnectedStatus
+                icon={Briefcase}
+                iconClass="bg-amber-50 text-amber-700"
+                label="Google linked"
+                detail="Ads account not selected"
+              />
+            ) : (
+              <ConnectedStatus
+                icon={CalendarDays}
+                iconClass="bg-[#E8F5EE] text-[#188038]"
+                label="Connected"
+                detail={
+                  googleCustomerSelected
+                    ? "Ads account ready"
+                    : "Google linked"
+                }
+              />
+            )
           ) : (
             <PromptStatus
               icon={BarChart3}
@@ -871,16 +1046,25 @@ export function BusinessIntegrationsPanel({
           )
         }
         actions={
-          statusLoading ? null : googleConnected ? (
-            <button
-              type="button"
-              onClick={() => void handleDisconnectGoogle()}
-              disabled={googleBusy === "loading"}
-              className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
-            >
-              <Trash2 className="size-3" strokeWidth={2.25} />
-              {googleBusy === "loading" ? "Removing…" : "Remove account"}
-            </button>
+          googleConnected ? (
+            <>
+              <Link
+                href={`/google/select-customer?businessId=${businessId}`}
+                className={`${actionBtn} border border-[#B7E0C4] bg-[#E8F5EE] text-[#188038] no-underline`}
+              >
+                <Briefcase className="size-3" strokeWidth={2.25} />
+                {googleNeedsCustomer ? "Choose Ads account" : "Change Ads account"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void handleDisconnectGoogle()}
+                disabled={googleBusy === "loading"}
+                className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
+              >
+                <Trash2 className="size-3" strokeWidth={2.25} />
+                {googleBusy === "loading" ? "Removing…" : "Remove account"}
+              </button>
+            </>
           ) : (
             <button
               type="button"
