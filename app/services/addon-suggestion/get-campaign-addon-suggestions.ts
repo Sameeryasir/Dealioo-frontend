@@ -139,7 +139,7 @@ export async function getCampaignAddonSuggestions(
                     timesPurchased,
                     visitCount: Math.max(
                       0,
-                      Math.round(Number(item.visitCount) || timesPurchased),
+                      Math.round(Number(item.visitCount) || 0),
                     ),
                     sharePercent: Math.max(
                       0,

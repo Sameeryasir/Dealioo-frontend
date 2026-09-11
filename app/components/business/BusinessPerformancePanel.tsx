@@ -35,13 +35,12 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  Equal,
   Info,
   Layers,
   Link2,
   Megaphone,
-  PackagePlus,
   PackageSearch,
+  ShoppingBag,
   Sparkles,
   Trophy,
   Users,
@@ -610,6 +609,7 @@ function BundleOpportunitiesSection({
               formatTitleCase(tip.addonName) || tip.addonName;
             const topStatus = tip.topStatus ?? "emerging";
             const isBest = globalIndex === 0 && topStatus === "clear";
+            const imageSrc = resolveUploadImageUrl(tip.imageUrl ?? null);
 
             return (
               <div
@@ -628,42 +628,55 @@ function BundleOpportunitiesSection({
                 />
 
                 <div className="px-3.5 py-3.5 pl-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-semibold tabular-nums ${
-                          isBest
-                            ? "bg-[#1877f2] text-white"
-                            : "bg-[#f1f5f9] text-slate-500"
-                        }`}
-                      >
-                        {globalIndex + 1}
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] font-semibold tabular-nums ${
+                        isBest
+                          ? "bg-[#1877f2] text-white"
+                          : "bg-[#EEF4FF] text-[#1877f2]"
+                      }`}
+                    >
+                      {globalIndex + 1}
+                    </span>
+                    {imageSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageSrc}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-[#e8edf5]"
+                        {...spacesImageEagerLoadProps}
+                      />
+                    ) : (
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2] ring-1 ring-[#e8edf5]">
+                        <Megaphone className="size-4" aria-hidden />
                       </span>
-                      {topStatus === "clear" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-[#1D4ED8]">
-                          <Trophy className="size-3" aria-hidden />
-                          Best
-                        </span>
-                      ) : topStatus === "tied" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-slate-600">
-                          <Equal className="size-3" aria-hidden />
-                          Tied
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-amber-700">
-                          <Sparkles className="size-3" aria-hidden />
-                          Early tip
-                        </span>
-                      )}
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <p className="m-0 truncate text-[0.95rem] font-semibold tracking-tight text-[#07111f]">
+                          {campaignLabel}
+                        </p>
+                        {topStatus === "clear" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-[#1D4ED8]">
+                            <Trophy className="size-3" aria-hidden />
+                            Best
+                          </span>
+                        ) : topStatus === "emerging" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-amber-700">
+                            <Sparkles className="size-3" aria-hidden />
+                            Early tip
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
-                  <p className="m-0 mt-3 truncate text-[0.95rem] font-semibold tracking-tight text-[#07111f]">
-                    {campaignLabel}
-                  </p>
-                  <p className="m-0 mt-1 flex items-start gap-1.5 line-clamp-2 text-[0.8rem] leading-snug text-slate-500">
-                    <Link2
-                      className="mt-0.5 size-3.5 shrink-0 text-slate-400"
+                  <p className="m-0 mt-2 flex items-start gap-1.5 line-clamp-2 text-[0.8rem] leading-snug text-slate-500">
+                    <Layers
+                      className="mt-0.5 size-3.5 shrink-0 text-[#1877f2]"
+                      strokeWidth={2.25}
                       aria-hidden
                     />
                     <span>
@@ -687,8 +700,9 @@ function BundleOpportunitiesSection({
 
                   <div className="mt-3 flex flex-col gap-2.5">
                     <p className="m-0 inline-flex items-center gap-1.5 text-[0.75rem] text-slate-500">
-                      <PackagePlus
-                        className="size-3.5 shrink-0 text-slate-400"
+                      <ShoppingBag
+                        className="size-3.5 shrink-0 text-[#1877f2]"
+                        strokeWidth={2.25}
                         aria-hidden
                       />
                       Bought together{" "}
@@ -1786,7 +1800,7 @@ export function BusinessPerformancePanel({
                               href={href}
                               className="flex items-center gap-3 text-inherit no-underline"
                             >
-                              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[0.7rem] font-semibold tabular-nums text-slate-500">
+                              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF] text-[0.65rem] font-semibold tabular-nums text-[#1877f2]">
                                 {index + 1}
                               </span>
                               {imageSrc ? (

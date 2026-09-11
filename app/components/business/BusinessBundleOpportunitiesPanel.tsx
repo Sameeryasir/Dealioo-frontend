@@ -138,22 +138,22 @@ function CampaignSuggestionsCard({
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#eef2f7] bg-[#f8fafc]">
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-center text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 #
               </th>
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-center text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 Add-on
               </th>
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-center text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 Share
               </th>
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-center text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 Lift
               </th>
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-center text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 Visits
               </th>
-              <th className="px-3 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <th className="px-3 py-2.5 text-left text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 Suggestion
               </th>
             </tr>
@@ -183,35 +183,35 @@ function CampaignSuggestionsCard({
                   key={`${campaign.campaignId}:${suggestion.addonName}:${index}`}
                   className="border-b border-[#eef2f7] last:border-b-0 transition hover:bg-[#fbfdff]"
                 >
-                  <td className="px-3 py-3 align-middle text-sm font-semibold tabular-nums text-[#1877f2]">
+                  <td className="px-3 py-3 text-center align-middle text-sm font-semibold tabular-nums text-[#1877f2]">
                     {suggestion.rank || index + 1}
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="px-3 py-3 text-center align-middle">
                     <span className="text-sm font-normal text-[#07111f]">
                       {addonLabel}
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
+                  <td className="px-3 py-3 text-center align-middle">
+                    <span className="inline-flex rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
                       {shareLabel}%
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="px-3 py-3 text-center align-middle">
                     {showLift ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-emerald-700">
+                      <span className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-emerald-700">
                         <TrendingUp className="size-3" aria-hidden />
                         {liftLabel}x
                       </span>
                     ) : (
-                      <span className="text-xs tabular-nums text-slate-400">
+                      <span className="inline-flex justify-center text-xs tabular-nums text-slate-400">
                         {liftLabel}x
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-3 align-middle text-sm tabular-nums text-slate-600">
+                  <td className="px-3 py-3 text-center align-middle text-sm tabular-nums text-slate-600">
                     {suggestion.visitCount}
                   </td>
-                  <td className="max-w-[220px] px-3 py-3 align-middle">
+                  <td className="max-w-[220px] px-3 py-3 text-left align-middle">
                     <p
                       className="m-0 cursor-pointer truncate text-xs leading-snug text-slate-500"
                       onMouseEnter={(event) => {

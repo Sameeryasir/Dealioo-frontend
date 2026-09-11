@@ -70,7 +70,6 @@ const COPY: Record<
 const VARIANT_STYLES: Record<
   CardVariant,
   {
-    header: string;
     iconWrap: string;
     hintBox: string;
     hintIcon: string;
@@ -78,33 +77,26 @@ const VARIANT_STYLES: Record<
   }
 > = {
   danger: {
-    header: "bg-gradient-to-br from-red-600 via-rose-600 to-red-700",
-    iconWrap: "bg-white/15 ring-white/25 text-white",
-    hintBox: "border-red-100 bg-red-50/80",
+    iconWrap: "bg-red-50 text-red-600 ring-red-100",
+    hintBox: "border-red-100 bg-red-50/70",
     hintIcon: "bg-red-600 text-white",
-    hintLabel: "text-red-700/90",
+    hintLabel: "text-red-700",
   },
   success: {
-    header: "bg-[#1877f2]",
-    iconWrap: "bg-white/20 ring-white/25 text-white",
-    hintBox: "border-[#f9a8d4]/70 bg-[#fdf2f8]",
-    hintIcon: "bg-[#f472b6] text-white",
-    hintLabel: "text-[#f472b6]",
+    iconWrap: "bg-[#eff6ff] text-[#1877f2] ring-[#bfdbfe]",
+    hintBox: "border-[#dbeafe] bg-[#eff6ff]",
+    hintIcon: "bg-[#1877f2] text-white",
+    hintLabel: "text-[#1877f2]",
   },
   warning: {
-    header: "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600",
-    iconWrap: "bg-white/15 ring-white/25 text-white",
-    hintBox: "border-amber-100 bg-amber-50/80",
+    iconWrap: "bg-amber-50 text-amber-700 ring-amber-100",
+    hintBox: "border-amber-100 bg-amber-50/70",
     hintIcon: "bg-amber-600 text-white",
-    hintLabel: "text-amber-800/90",
+    hintLabel: "text-amber-800",
   },
 };
 
-function HeaderIcon({
-  variant,
-}: {
-  variant: CardVariant;
-}) {
+function HeaderIcon({ variant }: { variant: CardVariant }) {
   const className = "size-9";
   if (variant === "success") {
     return <CheckCircle2 className={className} aria-hidden strokeWidth={2} />;
@@ -143,42 +135,31 @@ export function GuestPassUnavailableCard({
     <article
       role="alert"
       aria-live="assertive"
-      className="overflow-hidden rounded-3xl bg-white shadow-2xl shadow-zinc-900/12 ring-1 ring-zinc-200/90"
+      className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.06)]"
     >
-      <div className={`relative px-6 pb-8 pt-8 text-center text-white sm:px-8 ${styles.header}`}>
-        <div
-          className="pointer-events-none absolute -left-8 -top-8 size-36 rounded-full bg-white/10 blur-2xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-12 -right-6 size-40 rounded-full bg-black/15 blur-2xl"
-          aria-hidden
-        />
-
-        <p className="relative text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">
+      <div className="bg-[#1877f2] px-6 pb-8 pt-8 text-center text-white sm:px-8">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/85">
           {copy.badge}
         </p>
 
         <div
-          className={`relative mx-auto mt-4 flex size-[4.5rem] items-center justify-center rounded-2xl ring-1 ${styles.iconWrap}`}
+          className={`mx-auto mt-4 flex size-[4.5rem] items-center justify-center rounded-2xl ring-1 ${styles.iconWrap}`}
         >
           <HeaderIcon variant={copy.variant} />
         </div>
 
-        <h1 className="relative mt-5 text-2xl font-bold leading-tight tracking-tight">
+        <h1 className="mt-5 text-2xl font-bold leading-tight tracking-tight">
           {copy.title}
         </h1>
-        <p className="relative mt-2 text-sm font-medium text-white/85">
-          {copy.subtitle}
-        </p>
+        <p className="mt-2 text-sm font-medium text-white/90">{copy.subtitle}</p>
       </div>
 
-      <div className="px-6 py-7 sm:px-8">
-        <p className="text-center text-[15px] leading-relaxed text-zinc-600">
+      <div className="bg-[#f8faff] px-6 py-7 sm:px-8">
+        <p className="text-center text-[15px] leading-relaxed text-slate-600">
           {copy.message}
         </p>
 
-        <div className={`mt-6 rounded-2xl border px-4 py-4 ${styles.hintBox}`}>
+        <div className={`mt-6 rounded-2xl border bg-white px-4 py-4 ${styles.hintBox}`}>
           <div className="flex items-start gap-3 text-left">
             <span
               className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl ${styles.hintIcon}`}
@@ -191,7 +172,7 @@ export function GuestPassUnavailableCard({
               >
                 What to do next
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-700">
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
                 {copy.hint}
               </p>
             </div>

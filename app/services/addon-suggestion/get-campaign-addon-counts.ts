@@ -16,6 +16,7 @@ export type CampaignAddonCountsGroup = {
   campaignName: string;
   imageUrl: string | null;
   totalAddonPurchases: number;
+    totalAddonVisits: number;
   topStatus: CampaignAddonTopStatus;
   topAddonName: string | null;
   addons: CampaignAddonCountItem[];
@@ -94,7 +95,7 @@ export async function getCampaignAddonCounts(
                     times,
                     visitCount: Math.max(
                       0,
-                      Math.round(Number(item.visitCount) || times),
+                      Math.round(Number(item.visitCount) || 0),
                     ),
                   };
                 })
@@ -117,6 +118,10 @@ export async function getCampaignAddonCounts(
             totalAddonPurchases: Math.max(
               0,
               Math.round(Number(row.totalAddonPurchases) || 0),
+            ),
+            totalAddonVisits: Math.max(
+              0,
+              Math.round(Number(row.totalAddonVisits) || 0),
             ),
             topStatus,
             topAddonName: topAddonNameRaw || null,

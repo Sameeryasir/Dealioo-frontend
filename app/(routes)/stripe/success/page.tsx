@@ -2,10 +2,13 @@
 
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, ShieldCheck, XCircle } from "lucide-react";
 import Link from "next/link";
 
-import { STRIPE_CONNECT_CANCELLED_MESSAGE, STRIPE_CONNECT_COMPLETE_MESSAGE } from "@/app/lib/stripe-oauth-popup";
+import {
+  STRIPE_CONNECT_CANCELLED_MESSAGE,
+  STRIPE_CONNECT_COMPLETE_MESSAGE,
+} from "@/app/lib/stripe-oauth-popup";
 
 function StripeWordmark({ className }: { className?: string }) {
   return (
@@ -28,7 +31,6 @@ function StripeConnectSuccessInner() {
   const searchParams = useSearchParams();
   const oauthError = searchParams.get("error")?.trim() || null;
 
-  // Tell the Dealioo opener tab, then close this Stripe return window.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const opener = window.opener;
@@ -52,15 +54,20 @@ function StripeConnectSuccessInner() {
 
   if (oauthError) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-zinc-950 px-4 text-zinc-100">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/80 p-8 text-center">
-          <h1 className="text-xl font-semibold">Stripe connection cancelled</h1>
-          <p className="mt-2 text-sm text-zinc-400">
+      <main className="flex min-h-dvh items-center justify-center bg-[#f8faff] px-4">
+        <div className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-8 text-center shadow-[0_10px_28px_rgba(15,23,42,0.06)]">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+            <XCircle className="size-6" strokeWidth={2} aria-hidden />
+          </span>
+          <h1 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">
+            Stripe connection cancelled
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
             You can close this window and try again in Dealioo.
           </p>
           <button
             type="button"
-            className="mt-6 w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-900"
+            className="mt-6 w-full cursor-pointer rounded-xl bg-[#1877f2] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f5ed7]"
             onClick={() => window.close()}
           >
             Close
@@ -71,34 +78,34 @@ function StripeConnectSuccessInner() {
   }
 
   return (
-    <main className="relative isolate flex min-h-dvh items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12 text-zinc-100">
+    <main className="relative isolate flex min-h-dvh items-center justify-center overflow-hidden bg-[#f8faff] px-4 py-12">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(900px_circle_at_50%_-10%,rgba(99,91,255,0.35),transparent_55%),radial-gradient(700px_circle_at_50%_120%,rgba(16,185,129,0.18),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(900px_circle_at_50%_-10%,rgba(24,119,242,0.12),transparent_55%),radial-gradient(700px_circle_at_50%_120%,rgba(99,91,255,0.08),transparent_60%)]"
       />
 
       <div className="relative w-full max-w-xl">
-        <div className="rounded-3xl border border-white/10 bg-zinc-900/70 p-8 shadow-[0_30px_120px_-20px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-10">
+        <div className="rounded-3xl border border-[#e8edf5] bg-white p-8 shadow-[0_10px_28px_rgba(15,23,42,0.06)] sm:p-10">
           <div className="relative mx-auto mb-8 flex size-24 items-center justify-center sm:size-28">
-            <span className="relative flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/30">
+            <span className="relative flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200">
               <Check className="size-7" strokeWidth={3} aria-hidden />
             </span>
           </div>
 
           <div className="text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-wider text-emerald-300">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-wider text-emerald-700">
               <ShieldCheck className="size-3.5" strokeWidth={2.25} aria-hidden />
               Account connected
             </span>
 
-            <h1 className="mt-5 text-balance text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-5 text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
               You&rsquo;re ready to accept payments.
             </h1>
 
-            <p className="mx-auto mt-3 max-w-sm text-pretty text-sm leading-relaxed text-zinc-400 sm:text-base">
+            <p className="mx-auto mt-3 max-w-sm text-pretty text-sm leading-relaxed text-slate-500 sm:text-base">
               Your account is connected with{" "}
               <span className="inline-flex translate-y-[1px] items-baseline">
-                <StripeWordmark className="ml-px h-3.5 w-auto text-zinc-200" />
+                <StripeWordmark className="ml-px h-3.5 w-auto text-[#635BFF]" />
               </span>
               . You can close this window and continue in Dealioo.
             </p>
@@ -107,7 +114,7 @@ function StripeConnectSuccessInner() {
           <div className="mt-8 flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
             <Link
               href="/dashboard"
-              className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-zinc-900 shadow-[0_8px_30px_rgba(255,255,255,0.12)] ring-1 ring-zinc-200/40 transition-all hover:bg-zinc-100"
+              className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f5ed7]"
             >
               Go to Dashboard
               <ArrowRight className="size-4" strokeWidth={2.25} aria-hidden />
@@ -116,15 +123,15 @@ function StripeConnectSuccessInner() {
               href="https://dashboard.stripe.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-5 text-sm font-semibold text-zinc-100 hover:bg-white/[0.06]"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Open Stripe Dashboard
-              <ExternalLink className="size-4 text-zinc-400" strokeWidth={2} aria-hidden />
+              <ExternalLink className="size-4 text-slate-400" strokeWidth={2} aria-hidden />
             </a>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-zinc-500">
+        <p className="mt-6 text-center text-xs text-slate-500">
           You can safely close this tab — your Stripe account stays connected.
         </p>
       </div>
@@ -134,7 +141,7 @@ function StripeConnectSuccessInner() {
 
 export default function StripeConnectSuccessPage() {
   return (
-    <Suspense fallback={<main className="min-h-dvh bg-zinc-950" aria-hidden />}>
+    <Suspense fallback={<main className="min-h-dvh bg-[#f8faff]" aria-hidden />}>
       <StripeConnectSuccessInner />
     </Suspense>
   );

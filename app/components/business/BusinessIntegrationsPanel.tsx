@@ -81,10 +81,12 @@ function StatusBadge({
   loading,
   connected,
   needsAdAccount,
+  pendingLabel = "Ads account needed",
 }: {
   loading: boolean;
   connected: boolean;
   needsAdAccount?: boolean;
+  pendingLabel?: string;
 }) {
   if (loading) {
     return (
@@ -97,7 +99,7 @@ function StatusBadge({
   if (connected && needsAdAccount) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold text-amber-800">
-        Ads account needed
+        {pendingLabel}
       </span>
     );
   }
@@ -265,6 +267,7 @@ function IntegrationCard({
   loading,
   connected,
   needsAdAccount,
+  pendingLabel,
   status,
   actions,
   error,
@@ -280,6 +283,7 @@ function IntegrationCard({
   loading: boolean;
   connected: boolean;
   needsAdAccount?: boolean;
+  pendingLabel?: string;
   status: ReactNode;
   actions: ReactNode;
   error?: string | null;
@@ -310,6 +314,7 @@ function IntegrationCard({
               loading={loading}
               connected={connected}
               needsAdAccount={needsAdAccount}
+              pendingLabel={pendingLabel}
             />
           </div>
           <p className="m-0 mt-0.5 text-xs text-slate-500">{description}</p>
@@ -379,6 +384,9 @@ export function BusinessIntegrationsPanel({
         : null;
 
   const stripeConnected = Boolean(statusQuery.data?.stripe.connected);
+  const stripeNeedsSetup =
+    stripeConnected &&
+    (statusQuery.data?.stripe.status ?? "").toLowerCase() === "incomplete";
 
   const metaConnected = Boolean(statusQuery.data?.facebook.connected);
   const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
@@ -421,7 +429,7 @@ export function BusinessIntegrationsPanel({
 
   const connectedCount = [
     twilioConnected,
-    stripeConnected,
+    stripeConnected && !stripeNeedsSetup,
     metaConnected && !metaNeedsAdAccount,
     googleConnected && !googleNeedsCustomer,
   ].filter(Boolean).length;
@@ -533,7 +541,7 @@ export function BusinessIntegrationsPanel({
   };
 
   const handleDisconnectStripe = async () => {
-    if (!window.confirm("Remove Stripe from this business?")) return;
+    if (!window.confirm("Remove Stripe from this business? You can connect the same account again later.")) return;
     setStripeBusy("loading");
     setStripeActionError(null);
     try {
@@ -850,13 +858,24 @@ export function BusinessIntegrationsPanel({
         ]}
         loading={false}
         connected={stripeConnected}
+        needsAdAccount={stripeNeedsSetup}
+        pendingLabel="Setup needed"
         error={stripeActionError}
         status={
           stripeConnected ? (
-            <ConnectedStatus
-              icon={CalendarDays}
-              iconClass="bg-[#F3F0FF] text-[#635BFF]"
-            />
+            stripeNeedsSetup ? (
+              <ConnectedStatus
+                icon={Briefcase}
+                iconClass="bg-amber-50 text-amber-700"
+                label="Stripe linked"
+                detail="Finish setup in Stripe to accept charges"
+              />
+            ) : (
+              <ConnectedStatus
+                icon={CalendarDays}
+                iconClass="bg-[#F3F0FF] text-[#635BFF]"
+              />
+            )
           ) : (
             <PromptStatus
               icon={Shield}
