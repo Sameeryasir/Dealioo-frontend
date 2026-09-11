@@ -17,7 +17,6 @@ import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
 import type { ActivityMonthlyPoint } from "@/app/services/activity/get-business-activity";
 import {
-  ArrowRight,
   DollarSign,
   Megaphone,
   ScanLine,
@@ -25,7 +24,6 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
 
 const overviewCardClass =
@@ -129,7 +127,6 @@ function OverviewSkeleton() {
 }
 
 export function BusinessActivityOverviewPanel({
-  businessId,
   businessName,
   data,
   months,
@@ -180,10 +177,6 @@ export function BusinessActivityOverviewPanel({
   );
 
   const displayName = businessName?.trim() || "Your business";
-  const campaignsHref =
-    businessId != null
-      ? `/business/${businessId}/dashboard/campaigns`
-      : "/business/dashboard/campaigns";
 
   return (
     <article className={`${overviewCardClass} w-full`} aria-label="Business activity">
@@ -224,31 +217,6 @@ export function BusinessActivityOverviewPanel({
       ) : (
         <div className="px-3 py-4 sm:px-4 sm:py-5">
           <div className="space-y-5">
-            {isQuietBusiness ? (
-              <aside
-                className="flex flex-col gap-3 rounded-[1.15rem] border border-dashed border-[#c7d7f5] bg-[#f7faff] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                role="status"
-                aria-label="Get started"
-              >
-                <div className="min-w-0">
-                  <p className="m-0 text-sm font-semibold text-[#07111f]">
-                    No activity yet — that is normal for a new shop
-                  </p>
-                  <p className="m-0 mt-1 text-xs font-medium leading-relaxed text-slate-500">
-                    Publish a campaign and check guests in. These numbers fill
-                    in as real visits and payments happen.
-                  </p>
-                </div>
-                <Link
-                  href={campaignsHref}
-                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.2)] transition hover:bg-[#166fe0]"
-                >
-                  Create a campaign
-                  <ArrowRight className="size-4" strokeWidth={2.25} aria-hidden />
-                </Link>
-              </aside>
-            ) : null}
-
             <section
               className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
               aria-label="Business summary"

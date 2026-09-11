@@ -123,6 +123,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [capiCredentialSource, setCapiCredentialSource] = useState<
     "tracking_token" | "meta_oauth" | null
   >(null);
+  const [hasGoogleUploadReady, setHasGoogleUploadReady] = useState(false);
   const [clearAccessToken, setClearAccessToken] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [gtmId, setGtmId] = useState("");
@@ -273,10 +274,12 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
           setHasCapiReady(Boolean(saved.hasCapiReady));
           setCapiCredentialSource(saved.capiCredentialSource ?? null);
+          setHasGoogleUploadReady(Boolean(saved.hasGoogleUploadReady));
         } else {
           setHasAccessTokenSaved(false);
           setHasCapiReady(false);
           setCapiCredentialSource(null);
+          setHasGoogleUploadReady(false);
         }
         setAccessToken("");
         setClearAccessToken(false);
@@ -410,10 +413,11 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
       setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
       setHasCapiReady(Boolean(saved.hasCapiReady));
       setCapiCredentialSource(saved.capiCredentialSource ?? null);
+      setHasGoogleUploadReady(Boolean(saved.hasGoogleUploadReady));
       setSaveSuccess(
-        saved.hasCapiReady
-          ? "Tracking saved. Server-side Meta conversions (CAPI) are ready."
-          : "Tracking IDs saved. Connect Meta Ads (or add a CAPI token) for server tracking.",
+        saved.hasCapiReady || saved.hasGoogleUploadReady
+          ? "Tracking saved. Server-side ad conversions are ready where connected."
+          : "Tracking IDs saved. Connect Meta/Google Ads and add conversion labels for server tracking.",
       );
     } catch (err: unknown) {
       setSaveError(
@@ -742,9 +746,25 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             />
           </label>
           <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-            Your Google Ads tag ID (for example AW-18263528050). Loaded from
-            Google when available, or enter manually.
+            Your Google Ads tag ID (for example AW-18263528050). Use the Ads tag
+            ID here — not a GTM- container ID.
           </p>
+
+          <div className="mt-4 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#07111f]">
+                Server conversions (Google Ads upload)
+              </p>
+              <ConnectionBadge
+                connected={hasGoogleUploadReady && gtmConnected}
+              />
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              {hasGoogleUploadReady && gtmConnected
+                ? "Ready: browser gtag plus server uploadClickConversions using your connected Google Ads account."
+                : "Needs an AW- tag ID, at least one conversion label, and Google Ads connected in Settings. This is how Google still gets conversions when the browser tag is blocked."}
+            </p>
+          </div>
 
           <div className="mt-5 space-y-4 border-t border-[#eef2f7] pt-4">
             <p className="text-sm font-semibold text-[#07111f]">
@@ -752,9 +772,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             </p>
             <p className="text-xs leading-relaxed text-slate-500">
               Copy each label from Google Ads when you create a conversion
-              action. Dealioo stores events in{" "}
-              <span className="font-medium">google_funnel_events</span> and
-              sends them to Google with send_to = tag ID + label.
+              action. Browser sends gtag conversions; the server also uploads
+              click conversions with the same gclid when ads attribution is
+              present.
             </p>
 
             <label className="block text-sm font-medium text-[#07111f]">

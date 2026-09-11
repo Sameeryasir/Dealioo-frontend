@@ -1067,13 +1067,13 @@ export function AdSetSetupStep({
             <BuilderField label="Languages" hint="Comma-separated, e.g. en, es">
               <input value={languages} onChange={(e) => setLanguages(e.target.value)} className={inputClass} placeholder="en, es" />
             </BuilderField>
-            <BuilderField label="Interests" hint="Optional targeting hints for Meta.">
+            <BuilderField label="Interests" hint="Meta interest IDs or keywords (resolved on publish).">
               <input value={interests} onChange={(e) => setInterests(e.target.value)} className={inputClass} />
             </BuilderField>
-            <BuilderField label="Behaviors" hint="Optional.">
+            <BuilderField label="Behaviors" hint="Meta behavior IDs or keywords.">
               <input value={behaviors} onChange={(e) => setBehaviors(e.target.value)} className={inputClass} />
             </BuilderField>
-            <BuilderField label="Demographics" hint="Optional.">
+            <BuilderField label="Demographics" hint="Meta demographic / life-event IDs or keywords.">
               <input value={demographics} onChange={(e) => setDemographics(e.target.value)} className={inputClass} />
             </BuilderField>
             <BuilderField label="Custom audiences" hint="Meta audience IDs, comma-separated.">

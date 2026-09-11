@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { GoogleAdsTag } from "@/app/components/funnel/GoogleAdsTag";
+import { captureGoogleAdsGclidFromUrl } from "@/app/lib/google-ads-funnel-tracking";
 import { trackGoogleAdsPageView } from "@/app/lib/google-ads-tag";
 
 type FunnelGoogleAdsTrackingProps = {
@@ -20,11 +21,16 @@ export function FunnelGoogleAdsTracking({
   const id = googleAdsId?.trim() ?? "";
 
   useEffect(() => {
+    captureGoogleAdsGclidFromUrl();
+  }, []);
+
+  useEffect(() => {
     if (!id) return;
     if (businessId == null || !Number.isFinite(businessId) || businessId <= 0) {
       return;
     }
 
+    captureGoogleAdsGclidFromUrl();
     window.__rpGoogleAdsTagInitialized = id;
 
     trackGoogleAdsPageView({

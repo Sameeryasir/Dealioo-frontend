@@ -15,6 +15,7 @@ export type BusinessTracking = {
   hasAccessToken: boolean;
   hasCapiReady?: boolean;
   capiCredentialSource?: "tracking_token" | "meta_oauth" | null;
+  hasGoogleUploadReady?: boolean;
 };
 
 export type UpsertBusinessTrackingInput = {
