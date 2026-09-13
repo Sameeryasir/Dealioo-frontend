@@ -1,5 +1,7 @@
 import axios from "axios";
-import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
+import { getApiBaseUrl } from "@/app/lib/api";
+import { normalizeAuthEmail } from "@/app/lib/auth-password";
+import { throwAuthApiError } from "@/app/lib/auth-api-error";
 
 export type RegisterPayload = {
   name: string;
@@ -11,16 +13,18 @@ export type RegisterPayload = {
 
 export type RegisterResponse = {
   message: string;
-  /** Backend source of truth: only true when a new account was created. */
   isNewCustomer: boolean;
 };
 
-export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
+export async function registerUser(
+  payload: RegisterPayload,
+): Promise<RegisterResponse> {
   try {
     const response = await axios.post<RegisterResponse>(
       `${getApiBaseUrl()}/auth/register`,
       {
         ...payload,
+        email: normalizeAuthEmail(payload.email),
         role: payload.role ?? "Admin",
       },
       {
@@ -33,19 +37,11 @@ export async function registerUser(payload: RegisterPayload): Promise<RegisterRe
     const data = response.data;
     return {
       message: data.message,
-      // Default false if older servers omit the field — never invent "new".
       isNewCustomer: data.isNewCustomer === true,
     };
   } catch (error) {
     console.error("Register Error:", error);
-
-    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(
-        parseApiMessage(error.response.data.message, "Could not create account."),
-      );
-    }
-
-    throw error;
+    throwAuthApiError(error, "Could not create account.");
   }
 }
 

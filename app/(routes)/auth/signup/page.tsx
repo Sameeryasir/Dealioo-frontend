@@ -84,8 +84,14 @@ function SignupPageInner() {
         if (cancelled) return;
 
         if (!result.valid || result.accountExists) {
+          if (result.accountExists && inviteToken) {
+            router.replace(
+              `/auth/login?inviteToken=${encodeURIComponent(inviteToken)}&inviteNotice=account-exists`,
+            );
+            return;
+          }
           setErrorMessage(
-            result.accountExists
+            result.valid
               ? "An account already exists for this invitation. Please sign in."
               : "This invitation is no longer valid.",
           );
@@ -116,7 +122,7 @@ function SignupPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [inviteToken]);
+  }, [inviteToken, router]);
 
   const onRegister = useCallback(
     async (values: {

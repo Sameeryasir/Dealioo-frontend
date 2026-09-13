@@ -9,6 +9,11 @@ import OtpForm from "@/app/components/OtpForm";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { hasAuthSession } from "@/app/lib/auth-session";
+import {
+  isStrongEnoughPassword,
+  PASSWORD_RULE_MESSAGE,
+  passwordStrengthScore,
+} from "@/app/lib/auth-password";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import {
   clearSignupProgress,
@@ -96,12 +101,7 @@ function fieldRing(hasError: boolean) {
 }
 
 function passwordStrength(password: string) {
-  let score = 0;
-  if (password.length >= 8) score += 1;
-  if (/[A-Z]/.test(password)) score += 1;
-  if (/[0-9]/.test(password)) score += 1;
-  if (/[^A-Za-z0-9]/.test(password)) score += 1;
-  return score;
+  return passwordStrengthScore(password);
 }
 
 const STRENGTH_LABELS = ["Weak", "Fair", "Good", "Strong"] as const;
@@ -558,6 +558,9 @@ export default function SignupForm({
                             value: 8,
                             message: "Password must be at least 8 characters.",
                           },
+                          validate: (value) =>
+                            isStrongEnoughPassword(value) ||
+                            PASSWORD_RULE_MESSAGE,
                         })}
                       />
                       <button

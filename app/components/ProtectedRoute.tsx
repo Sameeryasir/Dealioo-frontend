@@ -68,11 +68,15 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
       try {
         const destination = await resolvePostAuthDestination(inviteToken);
         if (!cancelled) {
-          router.replace(destination);
+          router.replace(destination || "/dashboard");
         }
       } catch {
         if (!cancelled) {
-          router.replace("/dashboard");
+          router.replace(
+            inviteToken
+              ? `/accept-invitation?token=${encodeURIComponent(inviteToken)}`
+              : "/dashboard",
+          );
         }
       }
     }

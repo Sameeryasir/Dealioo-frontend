@@ -1,6 +1,8 @@
 import axios from "axios";
-import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
-import type { VerifyOtpResponse, VerifyOtpUser } from "@/app/services/auth/verify-otp";
+import { getApiBaseUrl } from "@/app/lib/api";
+import { normalizeAuthEmail } from "@/app/lib/auth-password";
+import { throwAuthApiError } from "@/app/lib/auth-api-error";
+import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
 export type LoginResponse = {
   message: string;
@@ -17,7 +19,7 @@ export async function login(
     const response = await axios.post<LoginResponse>(
       `${getApiBaseUrl()}/auth/login`,
       {
-        email,
+        email: normalizeAuthEmail(email),
         password,
       },
       {
@@ -30,14 +32,7 @@ export async function login(
     return response.data;
   } catch (error) {
     console.error("Login Error:", error);
-
-    if (axios.isAxiosError(error) && error.response?.data?.message != null) {
-      throw new Error(
-        parseApiMessage(error.response.data.message, "Could not sign in."),
-      );
-    }
-
-    throw error;
+    throwAuthApiError(error, "Could not sign in.");
   }
 }
 

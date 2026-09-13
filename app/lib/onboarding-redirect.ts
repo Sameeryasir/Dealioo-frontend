@@ -117,9 +117,7 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
     return "/dashboard";
   }
 
-  // Unknown / API flaky: prefer dashboard over wrongly forcing select-plan
-  // for users who already finished onboarding (e.g. testdeveloper).
-  return status ? "/auth/select-plan" : "/dashboard";
+  return "/dashboard";
 }
 
 export function resolveCompletedStepRedirect(

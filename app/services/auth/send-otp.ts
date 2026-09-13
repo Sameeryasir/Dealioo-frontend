@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
+import { normalizeAuthEmail } from "@/app/lib/auth-password";
 
 export type SendOtpResponse = {
   message: string;
@@ -10,7 +11,7 @@ export async function sendOtp(email: string): Promise<SendOtpResponse> {
     const response = await axios.post<SendOtpResponse>(
       `${getApiBaseUrl()}/auth/resend-otp`,
       {
-        email,
+        email: normalizeAuthEmail(email),
       },
       {
         headers: {

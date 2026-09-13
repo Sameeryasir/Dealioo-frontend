@@ -17,8 +17,17 @@ export function inviteSignupHref(inviteToken: string): string {
   return `/auth/signup?inviteToken=${encodeURIComponent(inviteToken.trim())}`;
 }
 
-export function inviteLoginHref(inviteToken: string): string {
-  return `/auth/login?inviteToken=${encodeURIComponent(inviteToken.trim())}`;
+export function inviteLoginHref(
+  inviteToken: string,
+  notice?: "account-exists",
+): string {
+  const params = new URLSearchParams({
+    inviteToken: inviteToken.trim(),
+  });
+  if (notice) {
+    params.set("inviteNotice", notice);
+  }
+  return `/auth/login?${params.toString()}`;
 }
 
 export function resolveInviteAuthHrefs(options: {

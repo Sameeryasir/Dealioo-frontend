@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
+import { normalizeAuthEmail } from "@/app/lib/auth-password";
 
 export type VerifyOtpUserRole = {
   id: number;
@@ -42,7 +43,6 @@ export type VerifyOtpResponse = {
   token: string;
   refreshToken: string;
   user: VerifyOtpUser;
-  /** Backend: true only on first email verification (new registration). */
   isNewCustomer: boolean;
 };
 
@@ -63,7 +63,7 @@ export async function verifyOtp(
     const response = await axios.post<VerifyOtpResponse>(
       `${getApiBaseUrl()}/auth/verify-otp`,
       {
-        email,
+        email: normalizeAuthEmail(email),
         otp,
       },
       {

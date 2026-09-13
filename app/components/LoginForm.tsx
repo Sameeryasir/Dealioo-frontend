@@ -3,6 +3,10 @@
 import OtpForm from "@/app/components/OtpForm";
 import GoogleAuthButton from "@/app/components/auth/GoogleAuthButton";
 import {
+  isStrongEnoughPassword,
+  PASSWORD_RULE_MESSAGE,
+} from "@/app/lib/auth-password";
+import {
   AlertCircle,
   Eye,
   EyeOff,
@@ -109,6 +113,9 @@ export default function LoginForm({
 
   const needsSignup =
     errorMessage != null && /sign up first/i.test(errorMessage);
+  const needsGoogle =
+    errorMessage != null &&
+    /uses Google sign-in|Continue with Google/i.test(errorMessage);
 
   const displayError =
     view === "credentials" ? errorMessage : localError;
@@ -230,6 +237,11 @@ export default function LoginForm({
                       Create your free account
                     </Link>
                   ) : null}
+                  {needsGoogle && view === "credentials" ? (
+                    <p className="m-0 text-sm font-medium text-red-700/90">
+                      Use the Google button below — email/password won&apos;t work for this account.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -325,6 +337,9 @@ export default function LoginForm({
                             value: 8,
                             message: "Password must be at least 8 characters.",
                           },
+                          validate: (value) =>
+                            isStrongEnoughPassword(value) ||
+                            PASSWORD_RULE_MESSAGE,
                         })}
                       />
                       <button
@@ -481,11 +496,19 @@ export default function LoginForm({
       <div className="auth-signup-mobile-dock">
         {view === "credentials" ? (
           <div className="flex w-full flex-col gap-3">
-            <GoogleAuthButton
-              disabled={submitting || forgotSubmitting}
-              mode="login"
-              label="Continue with Google"
-            />
+            <div
+              className={
+                needsGoogle
+                  ? "rounded-full ring-2 ring-[#1877f2] ring-offset-2"
+                  : undefined
+              }
+            >
+              <GoogleAuthButton
+                disabled={submitting || forgotSubmitting}
+                mode="login"
+                label="Continue with Google"
+              />
+            </div>
             <div className="auth-signup-actions">
               <button
                 type="button"
