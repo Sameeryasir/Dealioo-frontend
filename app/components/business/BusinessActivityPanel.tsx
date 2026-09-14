@@ -31,7 +31,7 @@ import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDial
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DASHBOARD_EVENT_BADGE,
   TABLE_HEAD_ICON_CLASS,
@@ -42,9 +42,11 @@ import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   ACTIVITY_ALL_MONTHS_ID,
   buildActivityMonthFilterOptions,
+  getActivityMonthRangeForKey,
   resolveActivityMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
+import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
 import {
   getRestaurantActivityEvents,
   getRestaurantActivitySummary,
@@ -538,6 +540,7 @@ export function BusinessActivityPanel({
 }: {
   businessId: number;
 }) {
+  const queryClient = useQueryClient();
   const baseHref = `/business/${businessId}/dashboard`;
 
   const [page, setPage] = useState(1);
@@ -565,10 +568,6 @@ export function BusinessActivityPanel({
   }, []);
 
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
-  const range = useMemo(
-    () => resolveActivityMonthRange(monthFilter, monthOptions),
-    [monthFilter, monthOptions],
-  );
 
   const hasActiveFilters =
     eventFilter !== "all" ||
@@ -582,20 +581,25 @@ export function BusinessActivityPanel({
       page,
       eventFilter,
       monthFilter,
-      range.from,
-      range.to,
       debouncedSearch,
     ],
-    queryFn: () =>
-      getRestaurantActivityEvents(businessId, {
+    queryFn: () => {
+      const liveRange =
+        getActivityMonthRangeForKey(monthFilter) ??
+        resolveActivityMonthRange(monthFilter, monthOptions);
+      return getRestaurantActivityEvents(businessId, {
         page,
         limit: RESTAURANT_ACTIVITY_PAGE_SIZE,
         eventType: eventFilter,
-        from: range.from,
-        to: range.to,
+        from: liveRange.from,
+        to: liveRange.to,
         search: debouncedSearch || undefined,
-      }),
+      });
+    },
     enabled: businessId > 0,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
     placeholderData: (previousData) => previousData,
   });
 
@@ -604,21 +608,38 @@ export function BusinessActivityPanel({
       "business-activity-summary",
       businessId,
       monthFilter,
-      range.from,
-      range.to,
     ],
-    queryFn: () =>
-      getRestaurantActivitySummary(businessId, {
-        from: range.from,
-        to: range.to,
-      }),
+    queryFn: () => {
+      const liveRange =
+        getActivityMonthRangeForKey(monthFilter) ??
+        resolveActivityMonthRange(monthFilter, monthOptions);
+      return getRestaurantActivitySummary(businessId, {
+        from: liveRange.from,
+        to: liveRange.to,
+      });
+    },
     enabled: businessId > 0,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+  });
+
+  useSidebarSectionLiveReload(businessId, "activity", () => {
+    setPage(1);
+    void queryClient.invalidateQueries({
+      queryKey: ["business-activity-events", businessId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["business-activity-summary", businessId],
+    });
   });
 
   const events = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta ?? null;
   const summary = summaryQuery.data ?? null;
-  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const initialLoading =
+    (eventsQuery.isLoading && eventsQuery.data == null) ||
+    (summaryQuery.isLoading && summaryQuery.data == null);
   const error = eventsQuery.error
     ? getApiErrorMessage(eventsQuery.error, "Could not load activity.")
     : summaryQuery.error
@@ -645,10 +666,10 @@ export function BusinessActivityPanel({
   }, [error]);
 
   const showEmpty =
-    !loading && !error && !hasActiveFilters && allEventsTotal === 0;
+    !initialLoading && !error && !hasActiveFilters && allEventsTotal === 0;
   const showFilteredEmpty =
-    !loading && !error && hasActiveFilters && totalEvents === 0;
-  const showTable = !loading && !error && events.length > 0;
+    !initialLoading && !error && hasActiveFilters && totalEvents === 0;
+  const showTable = !error && events.length > 0;
   const allCount = summary?.totalEvents ?? allEventsTotal;
 
   const activityHeader = (
@@ -731,7 +752,7 @@ export function BusinessActivityPanel({
             </div>
 
             <div className="rd-premium-panel__body">
-              {loading && events.length === 0 ? (
+              {initialLoading && events.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -913,7 +934,7 @@ export function BusinessActivityPanel({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={loading || page <= 1}
+                      disabled={initialLoading || page <= 1}
                       onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -924,7 +945,7 @@ export function BusinessActivityPanel({
                     </span>
                     <button
                       type="button"
-                      disabled={loading || page >= meta.totalPages}
+                      disabled={initialLoading || page >= meta.totalPages}
                       onClick={() =>
                         setPage((prev) =>
                           Math.min(meta.totalPages, prev + 1),

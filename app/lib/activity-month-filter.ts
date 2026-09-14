@@ -1,8 +1,3 @@
-/**
- * Month filter options for restaurant activity log.
- * Maps calendar months to API `from` / `to` ISO ranges.
- */
-
 export const ACTIVITY_MONTH_COUNT = 6;
 
 export const ACTIVITY_ALL_MONTHS_ID = "all";
@@ -83,7 +78,17 @@ export function getActivityMonthRangeForKey(
   const currentMonthKey = monthKeyFromDate(now);
   const end =
     monthKey === currentMonthKey
-      ? now
+      ? new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            23,
+            59,
+            59,
+            999,
+          ),
+        )
       : new Date(
           Date.UTC(parsed.year, parsed.month, 0, 23, 59, 59, 999),
         );
@@ -124,6 +129,17 @@ export function buildActivityMonthFilterOptions(
   monthCount = ACTIVITY_MONTH_COUNT,
 ): ActivityMonthFilterOption[] {
   const now = new Date();
+  const endOfTodayUtc = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    ),
+  );
   const options: ActivityMonthFilterOption[] = [];
 
   const allFrom = new Date(
@@ -134,7 +150,7 @@ export function buildActivityMonthFilterOptions(
     id: ACTIVITY_ALL_MONTHS_ID,
     label: `All months (last ${monthCount})`,
     from: allFrom.toISOString(),
-    to: now.toISOString(),
+    to: endOfTodayUtc.toISOString(),
   });
 
   for (let offset = 0; offset < monthCount; offset += 1) {
@@ -143,7 +159,7 @@ export function buildActivityMonthFilterOptions(
     );
     const end =
       offset === 0
-        ? now
+        ? endOfTodayUtc
         : new Date(
             Date.UTC(
               start.getUTCFullYear(),

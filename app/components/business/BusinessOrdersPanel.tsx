@@ -20,7 +20,7 @@ import Link from "next/link";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   TABLE_HEAD_ICON_CLASS,
@@ -39,6 +39,7 @@ import {
   type BusinessFunnelEvent,
 } from "@/app/services/funnel-event/get-business-registrations";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
+import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
 import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -794,6 +795,7 @@ export function BusinessOrdersPanel({
 }: {
   businessId: number;
 }) {
+  const queryClient = useQueryClient();
   const baseHref = `/business/${businessId}/dashboard`;
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -830,6 +832,12 @@ export function BusinessOrdersPanel({
     refetchOnMount: "always",
     refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
+  });
+
+  useSidebarSectionLiveReload(businessId, "orders", () => {
+    void queryClient.invalidateQueries({
+      queryKey: funnelQueryKeys.businessOrders(),
+    });
   });
 
   const events = eventsQuery.data?.data ?? [];

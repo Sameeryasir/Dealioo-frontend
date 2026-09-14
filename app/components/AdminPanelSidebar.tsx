@@ -7,6 +7,7 @@ import {
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
+import { useBusinessSidebarSectionUnread } from "@/app/hooks/use-sidebar-section-unread";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
@@ -99,10 +100,37 @@ export default function AdminPanelSidebar() {
     ? `${restaurantHomeHref}/chats`
     : "/dashboard/chats";
 
+  const ordersHref = businessId
+    ? `${restaurantHomeHref}/orders`
+    : "/dashboard/orders";
+  const activityHref = businessId
+    ? `${restaurantHomeHref}/activity`
+    : "/dashboard/activity";
+  const historyHref = businessId
+    ? `${restaurantHomeHref}/history`
+    : "/dashboard/history";
+
   const hasUnreadChats = useChatSidebarUnread(
     businessId != null ? Number(businessId) : null,
     businessId != null ? chatsHref : null,
   );
+
+  const sidebarUnread = useBusinessSidebarSectionUnread(
+    businessIdNumber,
+    {
+      orders: businessId != null ? ordersHref : null,
+      activity: businessId != null ? activityHref : null,
+      history: businessId != null ? historyHref : null,
+    },
+    {
+      orders: can("orders"),
+      activity: can("activity"),
+      history: isAdminOrSuperAdminUser(),
+    },
+  );
+  const unreadOrdersCount = sidebarUnread.orders;
+  const unreadActivityCount = sidebarUnread.activity;
+  const unreadHistoryCount = sidebarUnread.history;
 
   const settingsBasePath = businessId
     ? `/business/${businessId}/dashboard/settings`
@@ -144,18 +172,14 @@ export default function AdminPanelSidebar() {
           activeMatch: "exact",
         },
         {
-          href: businessId
-            ? `${restaurantHomeHref}/orders`
-            : "/dashboard/orders",
+          href: ordersHref,
           label: "Orders",
           icon: ShoppingBag,
           activeMatch: "prefix",
           permission: "orders",
         },
         {
-          href: businessId
-            ? `${restaurantHomeHref}/activity`
-            : "/dashboard/activity",
+          href: activityHref,
           label: "Activity",
           icon: Activity,
           activeMatch: "prefix",
@@ -232,9 +256,7 @@ export default function AdminPanelSidebar() {
           permission: "chats",
         },
         {
-          href: businessId
-            ? `${restaurantHomeHref}/history`
-            : "/dashboard/history",
+          href: historyHref,
           label: "History",
           icon: History,
           activeMatch: "prefix",
@@ -255,7 +277,16 @@ export default function AdminPanelSidebar() {
         return can(item.permission);
       });
     },
-    [restaurantHomeHref, businessId, chatsHref, can, isOwnerLike],
+    [
+      restaurantHomeHref,
+      businessId,
+      chatsHref,
+      ordersHref,
+      activityHref,
+      historyHref,
+      can,
+      isOwnerLike,
+    ],
   );
 
   return (
@@ -353,7 +384,13 @@ export default function AdminPanelSidebar() {
                 aria-label={
                   label === "Chats" && hasUnreadChats
                     ? `${label} (new message)`
-                    : label
+                    : label === "Orders" && unreadOrdersCount > 0
+                      ? `${label} (${unreadOrdersCount} new)`
+                      : label === "Activity" && unreadActivityCount > 0
+                        ? `${label} (${unreadActivityCount} new)`
+                        : label === "History" && unreadHistoryCount > 0
+                          ? `${label} (${unreadHistoryCount} new)`
+                          : label
                 }
                 aria-current={active ? "page" : undefined}
                 className={`rd-sidebar-item group ${
@@ -366,6 +403,21 @@ export default function AdminPanelSidebar() {
                 ) : null}
                 {label === "Chats" && hasUnreadChats ? (
                   <span className="rd-sidebar-unread" aria-hidden />
+                ) : null}
+                {label === "Orders" && unreadOrdersCount > 0 ? (
+                  <span className="rd-sidebar-unread-count" aria-hidden>
+                    {unreadOrdersCount > 99 ? "99+" : unreadOrdersCount}
+                  </span>
+                ) : null}
+                {label === "Activity" && unreadActivityCount > 0 ? (
+                  <span className="rd-sidebar-unread-count" aria-hidden>
+                    {unreadActivityCount > 99 ? "99+" : unreadActivityCount}
+                  </span>
+                ) : null}
+                {label === "History" && unreadHistoryCount > 0 ? (
+                  <span className="rd-sidebar-unread-count" aria-hidden>
+                    {unreadHistoryCount > 99 ? "99+" : unreadHistoryCount}
+                  </span>
                 ) : null}
                 {!expanded ? (
                   <span role="tooltip" className="rd-sidebar-tooltip">

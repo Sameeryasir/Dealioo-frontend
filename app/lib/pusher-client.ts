@@ -41,6 +41,12 @@ import {
   type MemberJoinedPusherPayload,
 } from "@/app/lib/pusher-members";
 import {
+  PUSHER_SIDEBAR_EVENT,
+  parseSidebarSectionUpdatedPayload,
+  pusherBusinessSidebarChannel,
+  type SidebarSectionUpdatedPusherPayload,
+} from "@/app/lib/pusher-sidebar";
+import {
   PUSHER_MEMBER_ACCESS_REMOVED_EVENT,
   parseMemberAccessRemovedPusherPayload,
   pusherUserChannel,
@@ -407,6 +413,23 @@ export function subscribeBusinessConversations(
     onUpdate,
     parseChatMessagePusherPayload,
     `business-conversations-${businessId}`,
+  );
+}
+
+export function subscribeBusinessSidebar(
+  businessId: number,
+  onUpdate: (payload: SidebarSectionUpdatedPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessSidebarChannel(businessId),
+    PUSHER_SIDEBAR_EVENT.SECTION_UPDATED,
+    onUpdate,
+    parseSidebarSectionUpdatedPayload,
+    `business-sidebar-${businessId}`,
   );
 }
 

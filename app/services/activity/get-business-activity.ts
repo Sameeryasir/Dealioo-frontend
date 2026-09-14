@@ -125,6 +125,7 @@ export async function getRestaurantActivityEvents(
     {
       method: "GET",
       headers: { Accept: "application/json" },
+      cache: "no-store",
     },
   );
 
@@ -157,6 +158,7 @@ export async function getRestaurantActivitySummary(
     {
       method: "GET",
       headers: { Accept: "application/json" },
+      cache: "no-store",
     },
   );
 

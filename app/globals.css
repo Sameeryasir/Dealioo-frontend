@@ -12012,6 +12012,33 @@ body:has(.rd-shell--app) {
   right: 0.75rem;
 }
 
+.rd-sidebar-unread-count {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  z-index: 2;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.28rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #0a1628;
+  color: #fff;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+.rd-sidebar--expanded .rd-sidebar-unread-count {
+  right: 0.55rem;
+  top: 0.35rem;
+}
+
 .rd-sidebar-tooltip {
   pointer-events: none;
   position: absolute;

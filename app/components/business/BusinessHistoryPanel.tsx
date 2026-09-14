@@ -14,7 +14,8 @@ import {
   type BusinessHistoryEventType,
   type HistoryCategory,
 } from "@/app/services/business-history/get-business-history";
-import { useQuery } from "@tanstack/react-query";
+import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -188,7 +189,7 @@ function formatDateParts(iso: string): { date: string; time: string } {
 function roleLabel(event: BusinessHistoryEvent): string {
   if (!event.actorName?.trim()) return "System";
   const role = event.actorRole?.trim();
-  if (!role) return "Admin";
+  if (!role) return "Team";
   return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -295,6 +296,7 @@ export function BusinessHistoryPanel({
 }: {
   businessId: number;
 }) {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState<HistoryCategory>("all");
   const [eventType, setEventType] = useState("");
@@ -344,6 +346,12 @@ export function BusinessHistoryPanel({
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     placeholderData: (previousData) => previousData,
+  });
+
+  useSidebarSectionLiveReload(businessId, "history", () => {
+    void queryClient.invalidateQueries({
+      queryKey: ["business-history", businessId],
+    });
   });
 
   const events = historyQuery.data?.data ?? [];
