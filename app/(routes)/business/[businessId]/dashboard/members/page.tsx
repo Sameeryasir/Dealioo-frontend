@@ -6,7 +6,7 @@ import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membe
 import { canViewBusinessMembers } from "@/app/lib/can-view-business-members";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 
 export default function BusinessMembersPage() {
   const params = useParams();
@@ -40,5 +40,9 @@ export default function BusinessMembersPage() {
     return null;
   }
 
-  return <BusinessMembersPanel businessId={businessId} />;
+  return (
+    <Suspense fallback={null}>
+      <BusinessMembersPanel businessId={businessId} />
+    </Suspense>
+  );
 }

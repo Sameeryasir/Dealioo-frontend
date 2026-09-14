@@ -12,8 +12,24 @@ export type MemberRoleUpdatedPusherPayload = {
   userId: number;
   previousRole: string;
   role: string;
+  grantedPermissions: string[];
+  removedPermissions: string[];
   updatedAt: string;
 };
+
+function parsePermissionList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const key = item.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
 
 export function parseMemberRoleUpdatedPusherPayload(
   data: unknown,
@@ -42,6 +58,8 @@ export function parseMemberRoleUpdatedPusherPayload(
   const role = typeof row.role === "string" ? row.role.trim() : "";
   const updatedAt =
     typeof row.updatedAt === "string" ? row.updatedAt.trim() : "";
+  const grantedPermissions = parsePermissionList(row.grantedPermissions);
+  const removedPermissions = parsePermissionList(row.removedPermissions);
 
   if (
     !Number.isFinite(businessId) ||
@@ -61,6 +79,8 @@ export function parseMemberRoleUpdatedPusherPayload(
     userId,
     previousRole: previousRole || role,
     role,
+    grantedPermissions,
+    removedPermissions,
     updatedAt,
   };
 }

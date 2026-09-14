@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
 import { normalizePaymentReminderWorkflowNodes } from "@/app/components/automation/builder/bundled-actions";
@@ -206,6 +207,13 @@ export function AutomationBuilderPage({
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [navPromptOpen, setNavPromptOpen] = useState(false);
   const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
+  const [pathDeletePending, setPathDeletePending] = useState<{
+    branchTarget: WorkflowBranchTarget | null;
+    title: string;
+    entryNodeIds: string[];
+    isContinueSection: boolean;
+  } | null>(null);
+  const [pathDeleting, setPathDeleting] = useState(false);
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
     null,
   );
@@ -1152,129 +1160,131 @@ export function AutomationBuilderPage({
   );
 
   const onDeletePath = useCallback(
-    async (payload: {
+    (payload: {
       branchTarget: WorkflowBranchTarget | null;
       title: string;
       entryNodeIds: string[];
       isContinueSection: boolean;
     }) => {
       if (!guardEdit()) return;
-
-      const label = payload.title.trim() || "this path";
-      if (
-        !window.confirm(
-          `Delete “${label}” and all steps on it? This cannot be undone.`,
-        )
-      ) {
-        return;
-      }
-
-      try {
-        let nodesToRemove: WorkflowNode[] = [];
-        let splitNode: WorkflowNode | null = null;
-        let nextSplitConfig: Record<string, unknown> | null = null;
-
-        if (payload.isContinueSection || payload.branchTarget == null) {
-          const idSet = new Set(payload.entryNodeIds);
-          nodesToRemove = nodes.filter((node) => idSet.has(node.id));
-          if (nodesToRemove.length === 0) {
-            toast.error("That group has no steps to remove.");
-            return;
-          }
-        } else {
-          nodesToRemove = collectNodesOnBranchPath(payload.branchTarget);
-          splitNode = findSplitOwningBranch(payload.branchTarget);
-          if (splitNode) {
-            const branches = parseParallelBranchesFromConfig(splitNode.config);
-            if (branches.length > 2) {
-              nextSplitConfig = {
-                ...splitNode.config,
-                isParallelSplit: true,
-                branches: branches.filter(
-                  (branch) => branch.id !== payload.branchTarget!.flowBranch,
-                ),
-              };
-            } else if (nodesToRemove.length === 0) {
-              toast.error(
-                "Keep at least two paths. Add another path before deleting this one.",
-              );
-              return;
-            }
-          } else if (nodesToRemove.length === 0) {
-            toast.error("Could not find that path.");
-            return;
-          }
-        }
-
-        for (const node of nodesToRemove) {
-          if (node.numericId != null) {
-            await deleteAutomationNode(node.numericId);
-          }
-        }
-
-        if (splitNode?.numericId != null && nextSplitConfig != null) {
-          await updateAutomationNode(splitNode.numericId, {
-            config: nextSplitConfig,
-          });
-        }
-
-        const removedIds = new Set(nodesToRemove.map((node) => node.id));
-        const removedNumericIds = new Set(
-          nodesToRemove
-            .map((node) => node.numericId)
-            .filter((id): id is number => id != null),
-        );
-
-        let remainingNodes = nodes.filter((node) => !removedIds.has(node.id));
-        if (splitNode != null && nextSplitConfig != null) {
-          remainingNodes = remainingNodes.map((node) =>
-            node.id === splitNode!.id
-              ? { ...node, config: nextSplitConfig! }
-              : node,
-          );
-        }
-
-        const remainingConnections = connections.filter(
-          (connection) =>
-            !removedNumericIds.has(connection.sourceNodeId) &&
-            !removedNumericIds.has(connection.targetNodeId),
-        );
-
-        setNodes(remainingNodes);
-
-        let nextConnections = remainingConnections;
-        if (isPositiveInt(automationNumericId) && remainingNodes.length > 0) {
-          const healed = await ensureMissingDesiredConnections(
-            automationNumericId,
-            remainingNodes,
-            remainingConnections,
-          );
-          nextConnections = [...remainingConnections, ...healed];
-        }
-        setConnections(nextConnections);
-
-        if (selectedId && removedIds.has(selectedId)) {
-          setSelectedId(null);
-        }
-        setActiveBranchTarget(null);
-        setIsFlowDirty(true);
-        toast.success(
-          payload.isContinueSection ? "Path section removed." : "Path removed.",
-        );
-      } catch (err) {
-        toastApiError(err, "Could not delete path.");
-      }
+      setPathDeletePending(payload);
     },
-    [
-      automationNumericId,
-      collectNodesOnBranchPath,
-      connections,
-      findSplitOwningBranch,
-      guardEdit,
-      nodes,
-      selectedId,
-    ],
+    [guardEdit],
   );
+
+  const confirmDeletePath = useCallback(async () => {
+    if (!pathDeletePending || pathDeleting) return;
+    const payload = pathDeletePending;
+    setPathDeleting(true);
+
+    try {
+      let nodesToRemove: WorkflowNode[] = [];
+      let splitNode: WorkflowNode | null = null;
+      let nextSplitConfig: Record<string, unknown> | null = null;
+
+      if (payload.isContinueSection || payload.branchTarget == null) {
+        const idSet = new Set(payload.entryNodeIds);
+        nodesToRemove = nodes.filter((node) => idSet.has(node.id));
+        if (nodesToRemove.length === 0) {
+          toast.error("That group has no steps to remove.");
+          return;
+        }
+      } else {
+        nodesToRemove = collectNodesOnBranchPath(payload.branchTarget);
+        splitNode = findSplitOwningBranch(payload.branchTarget);
+        if (splitNode) {
+          const branches = parseParallelBranchesFromConfig(splitNode.config);
+          if (branches.length > 2) {
+            nextSplitConfig = {
+              ...splitNode.config,
+              isParallelSplit: true,
+              branches: branches.filter(
+                (branch) => branch.id !== payload.branchTarget!.flowBranch,
+              ),
+            };
+          } else if (nodesToRemove.length === 0) {
+            toast.error(
+              "Keep at least two paths. Add another path before deleting this one.",
+            );
+            return;
+          }
+        } else if (nodesToRemove.length === 0) {
+          toast.error("Could not find that path.");
+          return;
+        }
+      }
+
+      for (const node of nodesToRemove) {
+        if (node.numericId != null) {
+          await deleteAutomationNode(node.numericId);
+        }
+      }
+
+      if (splitNode?.numericId != null && nextSplitConfig != null) {
+        await updateAutomationNode(splitNode.numericId, {
+          config: nextSplitConfig,
+        });
+      }
+
+      const removedIds = new Set(nodesToRemove.map((node) => node.id));
+      const removedNumericIds = new Set(
+        nodesToRemove
+          .map((node) => node.numericId)
+          .filter((id): id is number => id != null),
+      );
+
+      let remainingNodes = nodes.filter((node) => !removedIds.has(node.id));
+      if (splitNode != null && nextSplitConfig != null) {
+        remainingNodes = remainingNodes.map((node) =>
+          node.id === splitNode!.id
+            ? { ...node, config: nextSplitConfig! }
+            : node,
+        );
+      }
+
+      const remainingConnections = connections.filter(
+        (connection) =>
+          !removedNumericIds.has(connection.sourceNodeId) &&
+          !removedNumericIds.has(connection.targetNodeId),
+      );
+
+      setNodes(remainingNodes);
+
+      let nextConnections = remainingConnections;
+      if (isPositiveInt(automationNumericId) && remainingNodes.length > 0) {
+        const healed = await ensureMissingDesiredConnections(
+          automationNumericId,
+          remainingNodes,
+          remainingConnections,
+        );
+        nextConnections = [...remainingConnections, ...healed];
+      }
+      setConnections(nextConnections);
+
+      if (selectedId && removedIds.has(selectedId)) {
+        setSelectedId(null);
+      }
+      setActiveBranchTarget(null);
+      setIsFlowDirty(true);
+      setPathDeletePending(null);
+      toast.success(
+        payload.isContinueSection ? "Path section removed." : "Path removed.",
+      );
+    } catch (err) {
+      toastApiError(err, "Could not delete path.");
+    } finally {
+      setPathDeleting(false);
+    }
+  }, [
+    automationNumericId,
+    collectNodesOnBranchPath,
+    connections,
+    findSplitOwningBranch,
+    nodes,
+    pathDeletePending,
+    pathDeleting,
+    selectedId,
+  ]);
 
   const onReorderNodes = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -1544,7 +1554,7 @@ export function AutomationBuilderPage({
                   void onRenamePath(payload);
                 }}
                 onDeletePath={(payload) => {
-                  void onDeletePath(payload);
+                  onDeletePath(payload);
                 }}
               />
             }
@@ -1615,6 +1625,35 @@ export function AutomationBuilderPage({
         isLoading={activating}
         onClose={closeDeactivatePrompt}
         onDeactivate={() => void handleDeactivateFromPrompt()}
+      />
+      <DeleteConfirmationDialog
+        open={pathDeletePending != null}
+        itemName={pathDeletePending?.title.trim() || "this path"}
+        title="Delete this path?"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-[#1877f2]">
+              {pathDeletePending?.title.trim() || "this path"}
+            </span>{" "}
+            and all steps on it? This cannot be undone.
+          </>
+        }
+        confirmText="Delete path"
+        checkboxLabel={
+          pathDeletePending
+            ? `Are you sure you want to delete ${
+                pathDeletePending.title.trim() || "this path"
+              } and all steps on it?`
+            : "Are you sure you want to delete this path and all steps on it?"
+        }
+        isLoading={pathDeleting}
+        onConfirm={() => {
+          void confirmDeletePath();
+        }}
+        onCancel={() => {
+          if (!pathDeleting) setPathDeletePending(null);
+        }}
       />
     </motion.div>
   );

@@ -45,6 +45,8 @@ import {
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-business";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
+import { subscribeBusinessCampaignActivity } from "@/app/lib/pusher-client";
+import { isPusherConfigured } from "@/app/lib/pusher-campaign-activity";
 
 const CAMPAIGNS_FETCH_LIMIT = 200;
 const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
@@ -217,6 +219,20 @@ export function BusinessCampaignsPanel({
   const canDeleteCampaign = can("campaigns_delete");
 
   const loading = isLoading || (isFetching && campaigns.length === 0);
+
+  useEffect(() => {
+    if (!isPusherConfigured() || businessId < 1) {
+      return;
+    }
+
+    return subscribeBusinessCampaignActivity(businessId, (payload) => {
+      if (payload.businessId !== businessId) return;
+
+      void queryClient.invalidateQueries({
+        queryKey: funnelQueryKeys.campaigns(),
+      });
+    });
+  }, [businessId, queryClient]);
 
   useEffect(() => {
     setPage(1);

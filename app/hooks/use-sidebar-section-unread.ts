@@ -53,12 +53,40 @@ export type SidebarSectionLatestAts = {
   history: string | null;
 };
 
+export type SidebarSectionLatestDescriptions = {
+  orders: string | null;
+  activity: string | null;
+  history: string | null;
+};
+
 export type BusinessSidebarSectionUnreadState = {
   counts: SidebarSectionUnreadCounts;
   latestAt: SidebarSectionLatestAts;
+  latestDescriptions: SidebarSectionLatestDescriptions;
+  latestGuestJoined: {
+    customerId: number;
+    guestName: string;
+    guestEmail: string | null;
+    campaignName: string | null;
+    occurredAt: string;
+  } | null;
+  latestAccessUpdated: {
+    businessName: string;
+    previousRole: string;
+    role: string;
+    grantedPermissions: string[];
+    removedPermissions: string[];
+    updatedAt: string;
+  } | null;
 };
 
 const EMPTY_LATEST: SidebarSectionLatestAts = {
+  orders: null,
+  activity: null,
+  history: null,
+};
+
+const EMPTY_DESCRIPTIONS: SidebarSectionLatestDescriptions = {
   orders: null,
   activity: null,
   history: null,
@@ -78,6 +106,23 @@ export function useBusinessSidebarSectionUnread(
   });
   const [latestAt, setLatestAt] =
     useState<SidebarSectionLatestAts>(EMPTY_LATEST);
+  const [latestDescriptions, setLatestDescriptions] =
+    useState<SidebarSectionLatestDescriptions>(EMPTY_DESCRIPTIONS);
+  const [latestGuestJoined, setLatestGuestJoined] = useState<{
+    customerId: number;
+    guestName: string;
+    guestEmail: string | null;
+    campaignName: string | null;
+    occurredAt: string;
+  } | null>(null);
+  const [latestAccessUpdated, setLatestAccessUpdated] = useState<{
+    businessName: string;
+    previousRole: string;
+    role: string;
+    grantedPermissions: string[];
+    removedPermissions: string[];
+    updatedAt: string;
+  } | null>(null);
 
   const pathnameRef = useRef(pathname);
   const pathsRef = useRef(paths);
@@ -101,6 +146,7 @@ export function useBusinessSidebarSectionUnread(
       section: SidebarUnreadSection,
       count: number,
       sectionLatestAt: string | null = null,
+      sectionLatestDescription: string | null = null,
     ) => {
       const safe = Math.max(0, Math.floor(count));
       writeSectionUnreadCount(id, business, section, safe);
@@ -111,13 +157,20 @@ export function useBusinessSidebarSectionUnread(
         const next = safe > 0 ? sectionLatestAt : null;
         return prev[section] === next ? prev : { ...prev, [section]: next };
       });
+      setLatestDescriptions((prev) => {
+        const next =
+          safe > 0 && sectionLatestDescription
+            ? sectionLatestDescription
+            : null;
+        return prev[section] === next ? prev : { ...prev, [section]: next };
+      });
     },
     [],
   );
 
   const markReadIfViewing = useCallback(
     async (id: number, business: number, section: SidebarUnreadSection) => {
-      persist(id, business, section, 0, null);
+      persist(id, business, section, 0, null, null);
       try {
         await markSidebarSectionRead(business, section);
         writeSectionUnreadCount(id, business, section, 0);
@@ -137,7 +190,6 @@ export function useBusinessSidebarSectionUnread(
 
       for (const section of SECTIONS) {
         if (!enabledMap[section]) {
-          persist(id, business, section, 0, null);
           continue;
         }
         if (isOnSectionRoute(path, pathMap[section])) {
@@ -145,18 +197,10 @@ export function useBusinessSidebarSectionUnread(
         }
       }
 
-      const stillNeedServer = SECTIONS.some(
-        (section) =>
-          enabledMap[section] &&
-          !isOnSectionRoute(path, pathMap[section]),
-      );
-      if (!stillNeedServer) return;
-
       try {
         const result = await getBusinessSidebarUnread(business);
         for (const section of SECTIONS) {
           if (!enabledMap[section]) {
-            persist(id, business, section, 0, null);
             continue;
           }
           if (isOnSectionRoute(pathnameRef.current, pathsRef.current[section])) {
@@ -169,8 +213,11 @@ export function useBusinessSidebarSectionUnread(
             section,
             row?.unreadCount ?? 0,
             row?.latestAt ?? null,
+            row?.latestDescription ?? null,
           );
         }
+        setLatestGuestJoined(result.latestGuestJoined);
+        setLatestAccessUpdated(result.latestAccessUpdated);
       } catch {
       }
     },
@@ -199,6 +246,9 @@ export function useBusinessSidebarSectionUnread(
     if (businessId == null || businessId < 1 || userId == null) {
       setCounts({ orders: 0, activity: 0, history: 0 });
       setLatestAt(EMPTY_LATEST);
+      setLatestDescriptions(EMPTY_DESCRIPTIONS);
+      setLatestGuestJoined(null);
+      setLatestAccessUpdated(null);
       return;
     }
 
@@ -290,6 +340,12 @@ export function useBusinessSidebarSectionUnread(
       }
       return prev;
     });
+    if (payload.section === "history" && payload.description) {
+      setLatestDescriptions((prev) => ({
+        ...prev,
+        history: payload.description,
+      }));
+    }
     scheduleRefreshFromServer(user, business);
   });
 
@@ -304,6 +360,19 @@ export function useBusinessSidebarSectionUnread(
       activity: enabled.activity && !onActivityPage ? latestAt.activity : null,
       history: enabled.history && !onHistoryPage ? latestAt.history : null,
     },
+    latestDescriptions: {
+      orders: enabled.orders && !onOrdersPage ? latestDescriptions.orders : null,
+      activity:
+        enabled.activity && !onActivityPage
+          ? latestDescriptions.activity
+          : null,
+      history:
+        enabled.history && !onHistoryPage
+          ? latestDescriptions.history
+          : null,
+    },
+    latestGuestJoined,
+    latestAccessUpdated,
   };
 }
 

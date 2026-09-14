@@ -92,20 +92,35 @@ export function useChatSidebarUnread(
     );
 
     let cancelled = false;
-    void getBusinessChatsUnread(businessId)
-      .then((result) => {
-        if (cancelled) return;
-        persistUnread(
-          userId,
-          businessId,
-          result.hasUnread,
-          result.latestInboundAt ?? null,
-        );
-      })
-      .catch(() => {});
+    const refresh = () => {
+      if (cancelled || !hasAuthSession()) return;
+      void getBusinessChatsUnread(businessId)
+        .then((result) => {
+          if (cancelled) return;
+          persistUnread(
+            userId,
+            businessId,
+            result.hasUnread,
+            result.latestInboundAt ?? null,
+          );
+        })
+        .catch(() => {});
+    };
+
+    refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    const onFocus = () => refresh();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [businessId, userId, onChatsPage, persistUnread]);
 

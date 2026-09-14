@@ -16,6 +16,7 @@ export type DeleteConfirmationDialogProps = {
   confirmText?: string;
   checkboxLabel?: string;
   isLoading?: boolean;
+  zIndex?: number;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -28,6 +29,7 @@ export function DeleteConfirmationDialog({
   confirmText = "Delete",
   checkboxLabel,
   isLoading = false,
+  zIndex = 60,
   onConfirm,
   onCancel,
 }: DeleteConfirmationDialogProps) {
@@ -73,7 +75,8 @@ export function DeleteConfirmationDialog({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
+          style={{ zIndex }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -150,9 +153,9 @@ export function DeleteConfirmationDialog({
 
               <label
                 htmlFor={checkboxId}
-                className="mt-3.5 flex cursor-pointer items-start gap-3 rounded-xl border border-[#dbeafe] bg-gradient-to-br from-[#f8fbff] to-[#f4f8ff] px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition hover:border-[#1877f2]/45 hover:shadow-[0_6px_16px_rgba(24,119,242,0.08)]"
+                className="mt-3.5 flex cursor-pointer items-center gap-3"
               >
-                <span className="relative mt-0.5 flex size-4.5 shrink-0 items-center justify-center">
+                <span className="relative flex size-4.5 shrink-0 items-center justify-center">
                   <input
                     id={checkboxId}
                     type="checkbox"
@@ -165,7 +168,7 @@ export function DeleteConfirmationDialog({
                     <Check className="size-3" strokeWidth={3} aria-hidden />
                   </span>
                 </span>
-                <span className="text-[0.82rem] font-bold leading-snug text-[#07111f] sm:text-[0.85rem]">
+                <span className="text-[0.82rem] font-bold leading-none text-[#07111f] sm:text-[0.85rem]">
                   {resolvedCheckboxLabel}
                 </span>
               </label>
@@ -176,7 +179,7 @@ export function DeleteConfirmationDialog({
                 type="button"
                 disabled={isLoading}
                 onClick={onCancel}
-                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-xl border border-[#e8edf5] bg-white px-4 text-[0.8rem] font-bold text-slate-600 shadow-sm transition hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-xl border border-[#1877f2] bg-white px-4 text-[0.8rem] font-bold text-[#1877f2] shadow-sm transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>

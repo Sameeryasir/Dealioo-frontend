@@ -15,6 +15,7 @@ export type SidebarSectionUpdatedPusherPayload = {
   section: "orders" | "activity" | "history";
   occurredAt: string;
   actorUserId: number | null;
+  description: string | null;
 };
 
 export function parseSidebarSectionUpdatedPayload(
@@ -31,6 +32,11 @@ export function parseSidebarSectionUpdatedPayload(
     actorRaw == null || actorRaw === ""
       ? null
       : Number(actorRaw);
+  const descriptionRaw = row.description;
+  const description =
+    typeof descriptionRaw === "string" && descriptionRaw.trim()
+      ? descriptionRaw.trim()
+      : null;
 
   if (
     !Number.isFinite(businessId) ||
@@ -51,5 +57,6 @@ export function parseSidebarSectionUpdatedPayload(
       actorUserId != null && Number.isFinite(actorUserId) && actorUserId > 0
         ? actorUserId
         : null,
+    description,
   };
 }

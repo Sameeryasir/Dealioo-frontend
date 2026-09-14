@@ -4,6 +4,7 @@ import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import {
   GoogleAdsLogo,
   MetaLogo,
@@ -359,6 +360,10 @@ export function BusinessIntegrationsPanel({
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
   const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
+  const [disconnectTarget, setDisconnectTarget] = useState<
+    "stripe" | "meta" | "google" | null
+  >(null);
+  const [disconnecting, setDisconnecting] = useState(false);
   const bumpAuditLogs = useCallback(
     () => setAuditRefreshKey((n) => n + 1),
     [],
@@ -541,22 +546,87 @@ export function BusinessIntegrationsPanel({
   };
 
   const handleDisconnectStripe = async () => {
-    if (!window.confirm("Remove Stripe from this business? You can connect the same account again later.")) return;
-    setStripeBusy("loading");
-    setStripeActionError(null);
+    setDisconnectTarget("stripe");
+  };
+
+  const handleDisconnectMeta = async () => {
+    setDisconnectTarget("meta");
+  };
+
+  const handleDisconnectGoogle = async () => {
+    setDisconnectTarget("google");
+  };
+
+  const confirmDisconnectIntegration = async () => {
+    if (disconnectTarget == null || disconnecting) return;
+    const target = disconnectTarget;
+    setDisconnecting(true);
+
+    if (target === "stripe") {
+      setStripeBusy("loading");
+      setStripeActionError(null);
+      try {
+        const token = getSetupAccessToken().trim();
+        if (!token) throw new Error("You're signed out. Sign in again.");
+        await disconnectStripe(token, businessId);
+        await refreshStatus();
+        setStripeBusy("idle");
+        bumpAuditLogs();
+        toast.success("Stripe removed.");
+        setDisconnectTarget(null);
+      } catch (e) {
+        setStripeBusy("error");
+        setStripeActionError(
+          e instanceof Error ? e.message : "Could not remove Stripe.",
+        );
+      } finally {
+        setDisconnecting(false);
+      }
+      return;
+    }
+
+    if (target === "meta") {
+      setMetaBusy("loading");
+      setMetaActionError(null);
+      try {
+        const token = getSetupAccessToken().trim();
+        if (!token) throw new Error("You're signed out. Sign in again.");
+        await disconnectFacebook(token, businessId);
+        await refreshStatus();
+        setShowMetaPermissions(false);
+        setMetaBusy("idle");
+        bumpAuditLogs();
+        toast.success("Meta Ads removed.");
+        setDisconnectTarget(null);
+      } catch (e) {
+        setMetaBusy("error");
+        setMetaActionError(
+          e instanceof Error ? e.message : "Could not remove Meta Ads.",
+        );
+      } finally {
+        setDisconnecting(false);
+      }
+      return;
+    }
+
+    setGoogleBusy("loading");
+    setGoogleActionError(null);
     try {
       const token = getSetupAccessToken().trim();
       if (!token) throw new Error("You're signed out. Sign in again.");
-      await disconnectStripe(token, businessId);
+      await disconnectGoogleAds(token, businessId);
       await refreshStatus();
-      setStripeBusy("idle");
+      setGoogleBusy("idle");
       bumpAuditLogs();
-      toast.success("Stripe removed.");
+      toast.success("Google Ads removed.");
+      setDisconnectTarget(null);
     } catch (e) {
-      setStripeBusy("error");
-      setStripeActionError(
-        e instanceof Error ? e.message : "Could not remove Stripe.",
+      setGoogleBusy("error");
+      setGoogleActionError(
+        e instanceof Error ? e.message : "Could not remove Google Ads.",
       );
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -611,27 +681,6 @@ export function BusinessIntegrationsPanel({
     }
   };
 
-  const handleDisconnectMeta = async () => {
-    if (!window.confirm("Remove Meta Ads from this business?")) return;
-    setMetaBusy("loading");
-    setMetaActionError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) throw new Error("You're signed out. Sign in again.");
-      await disconnectFacebook(token, businessId);
-      await refreshStatus();
-      setShowMetaPermissions(false);
-      setMetaBusy("idle");
-      bumpAuditLogs();
-      toast.success("Meta Ads removed.");
-    } catch (e) {
-      setMetaBusy("error");
-      setMetaActionError(
-        e instanceof Error ? e.message : "Could not remove Meta Ads.",
-      );
-    }
-  };
-
   const handleConnectGoogle = async () => {
     setGoogleBusy("loading");
     setGoogleActionError(null);
@@ -655,26 +704,6 @@ export function BusinessIntegrationsPanel({
       setGoogleBusy("error");
       setGoogleActionError(
         e instanceof Error ? e.message : "Could not connect Google Ads.",
-      );
-    }
-  };
-
-  const handleDisconnectGoogle = async () => {
-    if (!window.confirm("Remove Google Ads from this business?")) return;
-    setGoogleBusy("loading");
-    setGoogleActionError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) throw new Error("You're signed out. Sign in again.");
-      await disconnectGoogleAds(token, businessId);
-      await refreshStatus();
-      setGoogleBusy("idle");
-      bumpAuditLogs();
-      toast.success("Google Ads removed.");
-    } catch (e) {
-      setGoogleBusy("error");
-      setGoogleActionError(
-        e instanceof Error ? e.message : "Could not remove Google Ads.",
       );
     }
   };
@@ -1135,6 +1164,70 @@ export function BusinessIntegrationsPanel({
             queryKey: businessQueryKeys.myLists(),
           });
           bumpAuditLogs();
+        }}
+      />
+
+      <DeleteConfirmationDialog
+        open={disconnectTarget != null}
+        itemName={
+          disconnectTarget === "stripe"
+            ? "Stripe"
+            : disconnectTarget === "meta"
+              ? "Meta Ads"
+              : disconnectTarget === "google"
+                ? "Google Ads"
+                : "this integration"
+        }
+        title={
+          disconnectTarget === "stripe"
+            ? "Remove Stripe?"
+            : disconnectTarget === "meta"
+              ? "Remove Meta Ads?"
+              : disconnectTarget === "google"
+                ? "Remove Google Ads?"
+                : "Remove this integration?"
+        }
+        description={
+          disconnectTarget === "stripe" ? (
+            <>
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-[#1877f2]">Stripe</span> from
+              this business? You can connect the same account again later.
+            </>
+          ) : disconnectTarget === "meta" ? (
+            <>
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-[#1877f2]">Meta Ads</span> from
+              this business? This cannot be undone until you reconnect.
+            </>
+          ) : (
+            <>
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-[#1877f2]">Google Ads</span>{" "}
+              from this business? This cannot be undone until you reconnect.
+            </>
+          )
+        }
+        confirmText={
+          disconnectTarget === "stripe"
+            ? "Remove Stripe"
+            : disconnectTarget === "meta"
+              ? "Remove Meta Ads"
+              : "Remove Google Ads"
+        }
+        checkboxLabel={
+          disconnectTarget === "stripe"
+            ? "Are you sure you want to remove Stripe from this business?"
+            : disconnectTarget === "meta"
+              ? "Are you sure you want to remove Meta Ads from this business?"
+              : "Are you sure you want to remove Google Ads from this business?"
+        }
+        isLoading={disconnecting}
+        onConfirm={() => {
+          void confirmDisconnectIntegration();
+        }}
+        onCancel={() => {
+          if (!disconnecting) setDisconnectTarget(null);
         }}
       />
     </div>

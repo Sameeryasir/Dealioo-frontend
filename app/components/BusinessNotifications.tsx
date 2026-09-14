@@ -7,12 +7,25 @@ import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
 import { useBusinessSidebarSectionUnread } from "@/app/hooks/use-sidebar-section-unread";
 import {
   clearMemberRoleUpdatedNotification,
+  formatMemberRoleUpdatedBody,
   MEMBER_ROLE_UPDATED_NOTIFY_EVENT,
   readMemberRoleUpdatedNotification,
   writeMemberRoleUpdatedNotification,
   type MemberRoleUpdatedNotification,
 } from "@/app/lib/member-role-updated-notification-storage";
-import { subscribeMemberRoleUpdated } from "@/app/lib/pusher-client";
+import {
+  clearGuestJoinedNotification,
+  formatGuestJoinedBody,
+  GUEST_JOINED_NOTIFY_EVENT,
+  readGuestJoinedNotification,
+  writeGuestJoinedNotification,
+  type GuestJoinedNotification,
+} from "@/app/lib/guest-joined-notification-storage";
+import { markAccessNotifyRead } from "@/app/services/sidebar-unread/get-business-sidebar-unread";
+import {
+  subscribeBusinessGuestJoined,
+  subscribeMemberRoleUpdated,
+} from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-member-role-updated";
 import {
   playNotificationChime,
@@ -28,6 +41,7 @@ import {
   MessageSquare,
   ShoppingBag,
   UserCog,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -36,7 +50,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type NotifyRow = {
-  id: "orders" | "activity" | "history" | "chats" | "access";
+  id: "orders" | "activity" | "history" | "chats" | "access" | "guest";
   title: string;
   body: string;
   href: string;
@@ -54,6 +68,8 @@ export default function BusinessNotifications() {
   const chimeReadyRef = useRef(false);
   const [accessNotify, setAccessNotify] =
     useState<MemberRoleUpdatedNotification | null>(null);
+  const [guestNotify, setGuestNotify] =
+    useState<GuestJoinedNotification | null>(null);
 
   const businessIdParam = params?.businessId;
   const businessId =
@@ -76,6 +92,7 @@ export default function BusinessNotifications() {
   useEffect(() => {
     if (businessIdNumber == null || businessIdNumber < 1) {
       setAccessNotify(null);
+      setGuestNotify(null);
       return;
     }
 
@@ -83,11 +100,13 @@ export default function BusinessNotifications() {
       const userId = getSetupUser()?.id;
       if (userId == null || userId < 1) {
         setAccessNotify(null);
+        setGuestNotify(null);
         return;
       }
       setAccessNotify(
         readMemberRoleUpdatedNotification(userId, businessIdNumber),
       );
+      setGuestNotify(readGuestJoinedNotification(userId, businessIdNumber));
     };
 
     sync();
@@ -103,11 +122,23 @@ export default function BusinessNotifications() {
       sync();
     };
 
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        sync();
+      }
+    };
+
     window.addEventListener(MEMBER_ROLE_UPDATED_NOTIFY_EVENT, onChanged);
+    window.addEventListener(GUEST_JOINED_NOTIFY_EVENT, onChanged);
     window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener(MEMBER_ROLE_UPDATED_NOTIFY_EVENT, onChanged);
+      window.removeEventListener(GUEST_JOINED_NOTIFY_EVENT, onChanged);
       window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [businessIdNumber]);
 
@@ -124,7 +155,7 @@ export default function BusinessNotifications() {
       return;
     }
 
-    return subscribeMemberRoleUpdated(userId, (payload) => {
+    const unsubRole = subscribeMemberRoleUpdated(userId, (payload) => {
       if (Number(payload.userId) !== Number(userId)) {
         return;
       }
@@ -139,10 +170,40 @@ export default function BusinessNotifications() {
         businessName: payload.businessName,
         previousRole: payload.previousRole,
         role: payload.role,
+        grantedPermissions: Array.isArray(payload.grantedPermissions)
+          ? payload.grantedPermissions
+          : [],
+        removedPermissions: Array.isArray(payload.removedPermissions)
+          ? payload.removedPermissions
+          : [],
         updatedAt: payload.updatedAt,
       });
       playNotificationChime();
     });
+
+    const unsubGuest = subscribeBusinessGuestJoined(
+      businessIdNumber,
+      (payload) => {
+        if (Number(payload.businessId) !== businessIdNumber) {
+          return;
+        }
+        writeGuestJoinedNotification(userId, payload);
+        setGuestNotify({
+          businessId: payload.businessId,
+          customerId: payload.customerId,
+          guestName: payload.guestName,
+          guestEmail: payload.guestEmail,
+          campaignName: payload.campaignName,
+          updatedAt: payload.occurredAt,
+        });
+        playNotificationChime();
+      },
+    );
+
+    return () => {
+      unsubRole();
+      unsubGuest();
+    };
   }, [businessIdNumber]);
 
   const { can, access, isFetched: membershipFetched } =
@@ -154,6 +215,7 @@ export default function BusinessNotifications() {
   const canOrders = can("orders");
   const canActivity = can("activity");
   const canChats = can("chats");
+  const canProgram = can("campaigns");
 
   const homeHref = businessId
     ? `/business/${businessId}/dashboard`
@@ -162,6 +224,8 @@ export default function BusinessNotifications() {
   const activityHref = `${homeHref}/activity`;
   const historyHref = `${homeHref}/history`;
   const chatsHref = `${homeHref}/chats`;
+  const programHref = `${homeHref}/program`;
+  const membersSelfDetailsHref = `${homeHref}/members?openSelfDetails=1`;
 
   const sectionUnread = useBusinessSidebarSectionUnread(
     businessIdNumber,
@@ -171,11 +235,53 @@ export default function BusinessNotifications() {
       history: businessId != null && canHistory ? historyHref : null,
     },
     {
-      orders: Boolean(businessId) && canOrders,
-      activity: Boolean(businessId) && canActivity,
-      history: Boolean(businessId) && canHistory,
+      orders: Boolean(businessId) && membershipFetched && canOrders,
+      activity: Boolean(businessId) && membershipFetched && canActivity,
+      history: Boolean(businessId) && membershipFetched && canHistory,
     },
   );
+
+  useEffect(() => {
+    if (businessIdNumber == null || businessIdNumber < 1) return;
+
+    const userId = getSetupUser()?.id;
+    if (userId == null || userId < 1) return;
+
+    const latestGuest = sectionUnread.latestGuestJoined;
+    if (canProgram && latestGuest) {
+      writeGuestJoinedNotification(userId, {
+        businessId: businessIdNumber,
+        customerId: latestGuest.customerId,
+        guestName: latestGuest.guestName,
+        guestEmail: latestGuest.guestEmail,
+        campaignName: latestGuest.campaignName,
+        updatedAt: latestGuest.occurredAt,
+      });
+      setGuestNotify(readGuestJoinedNotification(userId, businessIdNumber));
+    }
+
+    const latestAccess = sectionUnread.latestAccessUpdated;
+    if (latestAccess) {
+      writeMemberRoleUpdatedNotification(userId, {
+        businessId: businessIdNumber,
+        businessName: latestAccess.businessName,
+        userId,
+        previousRole: latestAccess.previousRole,
+        role: latestAccess.role,
+        grantedPermissions: latestAccess.grantedPermissions,
+        removedPermissions: latestAccess.removedPermissions,
+        updatedAt: latestAccess.updatedAt,
+      });
+      setAccessNotify(
+        readMemberRoleUpdatedNotification(userId, businessIdNumber),
+      );
+    }
+  }, [
+    businessIdNumber,
+    canProgram,
+    sectionUnread.latestAccessUpdated,
+    sectionUnread.latestGuestJoined,
+  ]);
 
   const chatUnread = useChatSidebarUnread(
     businessId != null && canChats ? businessIdNumber : null,
@@ -189,20 +295,28 @@ export default function BusinessNotifications() {
     const next: NotifyRow[] = [];
 
     if (accessNotify) {
-      const roleChanged =
-        accessNotify.previousRole.trim().toLowerCase() !==
-        accessNotify.role.trim().toLowerCase();
       next.push({
         id: "access",
         title: "Access updated",
-        body: roleChanged
-          ? `Your role was changed to ${accessNotify.role}.`
-          : "Your permissions for this business were updated.",
-        href: homeHref,
+        body: formatMemberRoleUpdatedBody(accessNotify),
+        href: membersSelfDetailsHref,
         countLabel: null,
         Icon: UserCog,
         iconClass: styles.notifyIconRose,
         latestAtMs: Date.parse(accessNotify.updatedAt) || Date.now(),
+      });
+    }
+
+    if (canProgram && guestNotify) {
+      next.push({
+        id: "guest",
+        title: "New guest",
+        body: formatGuestJoinedBody(guestNotify),
+        href: programHref,
+        countLabel: null,
+        Icon: Users,
+        iconClass: styles.notifyIconBlue,
+        latestAtMs: Date.parse(guestNotify.updatedAt) || Date.now(),
       });
     }
 
@@ -242,15 +356,14 @@ export default function BusinessNotifications() {
 
     if (canHistory && sectionUnread.counts.history > 0) {
       const n = sectionUnread.counts.history;
+      const specific =
+        sectionUnread.latestDescriptions.history?.trim() || null;
       next.push({
         id: "history",
         title: "History",
-        body:
-          n === 1
-            ? "You have 1 new history entry."
-            : `You have ${n} new history entries.`,
+        body: specific ?? "New team activity was logged.",
         href: historyHref,
-        countLabel: n > 99 ? "99+" : String(n),
+        countLabel: n > 1 ? (n > 99 ? "99+" : String(n)) : null,
         Icon: History,
         iconClass: styles.notifyIconOrange,
         latestAtMs: Date.parse(sectionUnread.latestAt.history ?? "") || 0,
@@ -280,22 +393,27 @@ export default function BusinessNotifications() {
     canChats,
     canHistory,
     canOrders,
+    canProgram,
     chatUnread.latestAt,
     chatsHref,
+    guestNotify,
     hasUnreadChats,
     historyHref,
-    homeHref,
+    membersSelfDetailsHref,
     ordersHref,
+    programHref,
     sectionUnread.counts.activity,
     sectionUnread.counts.history,
     sectionUnread.counts.orders,
     sectionUnread.latestAt.activity,
     sectionUnread.latestAt.history,
     sectionUnread.latestAt.orders,
+    sectionUnread.latestDescriptions.history,
   ]);
 
   const badgeTotal =
     (accessNotify ? 1 : 0) +
+    (canProgram && guestNotify ? 1 : 0) +
     (canOrders ? sectionUnread.counts.orders : 0) +
     (canActivity ? sectionUnread.counts.activity : 0) +
     (canHistory ? sectionUnread.counts.history : 0) +
@@ -333,6 +451,18 @@ export default function BusinessNotifications() {
         clearMemberRoleUpdatedNotification(userId, businessIdNumber);
       }
       setAccessNotify(null);
+      void markAccessNotifyRead(businessIdNumber).catch(() => {});
+    }
+    if (row.id === "guest" && businessIdNumber != null) {
+      const userId = getSetupUser()?.id;
+      if (userId != null && userId > 0) {
+        clearGuestJoinedNotification(
+          userId,
+          businessIdNumber,
+          guestNotify?.updatedAt,
+        );
+      }
+      setGuestNotify(null);
     }
     setOpen(false);
     router.push(row.href);

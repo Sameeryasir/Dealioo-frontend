@@ -257,6 +257,9 @@ export default function AdminPanelSidebar() {
         if (!item.permission) return true;
         if (item.permission === "owner") return isOwnerLike;
         if (item.permission === "meta_ads") {
+          if (item.label === "Meta") {
+            return true;
+          }
           return can("meta_ads");
         }
         if (item.permission === "google_ads") {

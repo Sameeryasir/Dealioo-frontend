@@ -193,10 +193,6 @@ export function CampaignAdsPanel({
       );
       return;
     }
-    if (!can("meta_campaigns_create")) {
-      setAdStatsError("You do not have permission to create Meta campaigns.");
-      return;
-    }
 
     setResumeDraftLoading(true);
     try {
@@ -231,7 +227,7 @@ export function CampaignAdsPanel({
     } finally {
       setResumeDraftLoading(false);
     }
-  }, [businessId, campaignName, metaOauthScopes, can]);
+  }, [businessId, campaignName, metaOauthScopes]);
 
   const handleDraftPickerSelect = useCallback(
     (action: MetaDraftPickerAction) => {
@@ -274,17 +270,14 @@ export function CampaignAdsPanel({
         ? "needs_account"
         : "ready";
 
-  const canCreateMetaCampaign =
-    hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_create");
+  const canCreateMetaCampaign = hasMetaAdsManagementScope(metaOauthScopes);
   const canDeleteMetaCampaign =
     hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_delete");
   const createCampaignBlockedReason = !hasMetaAdsManagementScope(
     metaOauthScopes,
   )
     ? "Analytics is available with Read advertising data. To create campaigns, reconnect Meta and also grant Manage advertising campaigns."
-    : !can("meta_campaigns_create")
-      ? "You do not have permission to create Meta campaigns."
-      : null;
+    : null;
 
   const handleConfirmDeleteCampaign = useCallback(async () => {
     if (!campaignPendingDelete) return;
@@ -293,7 +286,7 @@ export function CampaignAdsPanel({
     setDeletingCampaignId(campaign.id);
     setAdStatsError(null);
     try {
-      await deleteFacebookCampaign(businessId, campaign.id);
+      await deleteFacebookCampaign(businessId, campaign.id, campaign.name);
       setAdStats((prev) =>
         prev
           ? {

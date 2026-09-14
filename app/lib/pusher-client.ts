@@ -57,6 +57,17 @@ import {
   parseMemberRoleUpdatedPusherPayload,
   type MemberRoleUpdatedPusherPayload,
 } from "@/app/lib/pusher-member-role-updated";
+import {
+  PUSHER_CAMPAIGN_ACTIVITY_EVENT,
+  parseCampaignActivityPusherPayload,
+  pusherBusinessActivityChannel,
+  type CampaignActivityPusherPayload,
+} from "@/app/lib/pusher-campaign-activity";
+import {
+  PUSHER_GUEST_JOINED_EVENT,
+  parseGuestJoinedPusherPayload,
+  type GuestJoinedPusherPayload,
+} from "@/app/lib/pusher-guest-joined";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
@@ -526,6 +537,40 @@ export function subscribeBusinessMembers(
     onJoined,
     parseMemberJoinedPusherPayload,
     `business-members-${businessId}`,
+  );
+}
+
+export function subscribeBusinessCampaignActivity(
+  businessId: number,
+  onUpdated: (payload: CampaignActivityPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessActivityChannel(businessId),
+    PUSHER_CAMPAIGN_ACTIVITY_EVENT.UPDATED,
+    onUpdated,
+    parseCampaignActivityPusherPayload,
+    `business-campaign-activity-${businessId}`,
+  );
+}
+
+export function subscribeBusinessGuestJoined(
+  businessId: number,
+  onJoined: (payload: GuestJoinedPusherPayload) => void,
+): () => void {
+  if (businessId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherBusinessActivityChannel(businessId),
+    PUSHER_GUEST_JOINED_EVENT.JOINED,
+    onJoined,
+    parseGuestJoinedPusherPayload,
+    `business-guest-joined-${businessId}`,
   );
 }
 

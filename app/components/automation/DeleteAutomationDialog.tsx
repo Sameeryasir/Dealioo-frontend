@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 
 export function DeleteAutomationDialog({
   open,
@@ -15,19 +15,23 @@ export function DeleteAutomationDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const name = automationName.trim() || "this automation";
+
   return (
-    <ConfirmDialog
+    <DeleteConfirmationDialog
       open={open}
-      titleId="delete-automation-title"
-      title="Delete automation?"
+      itemName={name}
+      title="Delete this automation?"
       description={
         <>
-          <span className="font-semibold text-[#1877f2]">{automationName}</span>{" "}
-          will be removed permanently. This cannot be undone.
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-[#1877f2]">{name}</span>? This
+          cannot be undone.
         </>
       }
+      confirmText="Delete automation"
+      checkboxLabel={`Are you sure you want to delete ${name}?`}
       isLoading={isDeleting}
-      loadingLabel="Deleting…"
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

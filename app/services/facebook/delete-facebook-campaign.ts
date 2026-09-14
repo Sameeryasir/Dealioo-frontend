@@ -4,9 +4,16 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 export async function deleteFacebookCampaign(
   restaurantId: number,
   metaCampaignId: string,
+  campaignName?: string,
 ): Promise<{ deleted: true; metaCampaignId: string }> {
+  const params = new URLSearchParams();
+  const trimmedName = campaignName?.trim();
+  if (trimmedName) {
+    params.set("campaignName", trimmedName);
+  }
+  const query = params.toString();
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/meta/${encodeURIComponent(metaCampaignId)}`,
+    `${getApiBaseUrl()}/facebook-campaigns/business/${encodeURIComponent(String(restaurantId))}/meta/${encodeURIComponent(metaCampaignId)}${query ? `?${query}` : ""}`,
     { method: "DELETE" },
   );
 

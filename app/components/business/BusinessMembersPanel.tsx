@@ -33,8 +33,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { InviteMemberModal } from "@/app/components/business/InviteMemberModal";
 import { Skeleton } from "@/app/components/skeleton";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
@@ -724,8 +725,14 @@ export function BusinessMembersPanel({
   embedded?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const canManageMembers = isAdminOrSuperAdminUser();
   const loggedInUserId = getSetupUser()?.id ?? null;
+  const openSelfDetailsRequested =
+    searchParams.get("openSelfDetails") === "1";
+  const openSelfDetailsHandledRef = useRef(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editInvite, setEditInvite] = useState<{
     kind: "pending" | "active";
@@ -758,6 +765,22 @@ export function BusinessMembersPanel({
     setPage(1);
   }, [debouncedSearch]);
 
+  useEffect(() => {
+    if (!openSelfDetailsRequested) {
+      openSelfDetailsHandledRef.current = false;
+      return;
+    }
+    if (openSelfDetailsHandledRef.current) return;
+
+    const email = getSetupUser()?.email?.trim() ?? "";
+    if (!email) return;
+    if (debouncedSearch.toLowerCase() === email.toLowerCase()) return;
+
+    setSearchQuery(email);
+    setDebouncedSearch(email);
+    setPage(1);
+  }, [debouncedSearch, openSelfDetailsRequested]);
+
   const listOptions = useMemo(
     () => ({
       page,
@@ -773,6 +796,40 @@ export function BusinessMembersPanel({
     staleTime: 30_000,
     placeholderData: (previous) => previous,
   });
+
+  useEffect(() => {
+    if (!openSelfDetailsRequested) return;
+    if (openSelfDetailsHandledRef.current) return;
+    if (membersQuery.isLoading || membersQuery.isFetching) return;
+    if (loggedInUserId == null || loggedInUserId < 1) return;
+
+    const members = membersQuery.data?.members ?? [];
+    const selfMember = members.find(
+      (member) =>
+        Number(member.userId) === Number(loggedInUserId) && member.userId > 0,
+    );
+    if (!selfMember) return;
+
+    openSelfDetailsHandledRef.current = true;
+    setDetailsActionMessage(null);
+    setDetailsMember(selfMember);
+    setSearchQuery("");
+    setDebouncedSearch("");
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("openSelfDetails");
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [
+    loggedInUserId,
+    membersQuery.data?.members,
+    membersQuery.isFetching,
+    membersQuery.isLoading,
+    openSelfDetailsRequested,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   useEffect(() => {
     if (!isPusherConfigured() || businessId < 1) {
@@ -1335,33 +1392,38 @@ export function BusinessMembersPanel({
         }}
       />
 
-      <ConfirmDialog
+      <DeleteConfirmationDialog
         open={memberToRemove != null}
-        titleId="remove-member-confirm-title"
+        itemName={removeTargetLabel}
         zIndex={90}
-        title={isPendingInvite ? "Remove access?" : "Remove member?"}
+        title={isPendingInvite ? "Remove this access?" : "Remove this member?"}
         description={
           isPendingInvite ? (
             <>
-              Cancel the invitation for{" "}
-              <span className="font-semibold text-[#07111f]">
+              Are you sure you want to cancel the invitation for{" "}
+              <span className="font-semibold text-[#1877f2]">
                 {removeTargetLabel}
               </span>
-              ? They will no longer be able to join with this invite.
+              ? They will no longer be able to join with this invite. This
+              cannot be undone.
             </>
           ) : (
             <>
-              Remove{" "}
-              <span className="font-semibold text-[#07111f]">
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-[#1877f2]">
                 {removeTargetLabel}
               </span>{" "}
-              from this business? They will lose access immediately.
+              from this business? They will lose access immediately. This cannot
+              be undone.
             </>
           )
         }
-        tone="danger"
-        confirmLabel={isPendingInvite ? "Remove access" : "Remove"}
-        loadingLabel="Removing…"
+        confirmText={isPendingInvite ? "Remove access" : "Remove member"}
+        checkboxLabel={
+          isPendingInvite
+            ? `Are you sure you want to cancel the invitation for ${removeTargetLabel}?`
+            : `Are you sure you want to remove ${removeTargetLabel} from this business?`
+        }
         isLoading={
           memberToRemove?.id != null && removingMemberId === memberToRemove.id
         }
