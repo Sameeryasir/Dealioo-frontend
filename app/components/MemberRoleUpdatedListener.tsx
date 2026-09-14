@@ -3,7 +3,6 @@
 import { useAuth } from "@/app/contexts/auth-context";
 import { subscribeMemberRoleUpdated } from "@/app/lib/pusher-client";
 import { writeMemberRoleUpdatedNotification } from "@/app/lib/member-role-updated-notification-storage";
-import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { isPusherConfigured } from "@/app/lib/pusher-member-role-updated";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
@@ -40,7 +39,6 @@ export function MemberRoleUpdatedListener() {
       toast.dismiss();
 
       writeMemberRoleUpdatedNotification(userId, payload);
-      playNotificationChime();
     });
   }, [isAuthReady, isAuthenticated, queryClient]);
 

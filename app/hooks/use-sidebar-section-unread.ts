@@ -10,6 +10,7 @@ import {
 import { getBusinessSidebarUnread } from "@/app/services/sidebar-unread/get-business-sidebar-unread";
 import { markSidebarSectionRead } from "@/app/services/sidebar-unread/mark-sidebar-section-read";
 import { useBusinessSidebarPusher } from "@/app/hooks/use-business-sidebar-pusher";
+import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -283,12 +284,14 @@ export function useBusinessSidebarSectionUnread(
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
+    const unsubReconnect = subscribePusherReconnect(() => run());
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
+      unsubReconnect();
       if (refreshTimerRef.current != null) {
         window.clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = null;
@@ -346,6 +349,11 @@ export function useBusinessSidebarSectionUnread(
         history: payload.description,
       }));
     }
+    setCounts((prev) => {
+      const next = prev[payload.section] + 1;
+      writeSectionUnreadCount(user, business, payload.section, next);
+      return { ...prev, [payload.section]: next };
+    });
     scheduleRefreshFromServer(user, business);
   });
 

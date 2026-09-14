@@ -8,6 +8,7 @@ import {
   writeChatHasUnread,
 } from "@/app/lib/chat-unread-storage";
 import { getSetupUser } from "@/app/lib/setup-user";
+import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
@@ -115,12 +116,14 @@ export function useChatSidebarUnread(
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
+    const unsubReconnect = subscribePusherReconnect(() => refresh());
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
+      unsubReconnect();
     };
   }, [businessId, userId, onChatsPage, persistUnread]);
 

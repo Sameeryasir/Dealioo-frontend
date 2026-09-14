@@ -65,7 +65,7 @@ export default function BusinessNotifications() {
   const params = useParams();
   const [open, setOpen] = useState(false);
   const prevBadgeTotalRef = useRef<number | null>(null);
-  const chimeReadyRef = useRef(false);
+  const badgeHydratedRef = useRef(false);
   const [accessNotify, setAccessNotify] =
     useState<MemberRoleUpdatedNotification | null>(null);
   const [guestNotify, setGuestNotify] =
@@ -80,13 +80,8 @@ export default function BusinessNotifications() {
     businessId != null ? Number.parseInt(businessId, 10) : null;
 
   useEffect(() => {
-    chimeReadyRef.current = false;
     prevBadgeTotalRef.current = null;
-    if (businessId == null) return;
-    const timer = window.setTimeout(() => {
-      chimeReadyRef.current = true;
-    }, 2500);
-    return () => window.clearTimeout(timer);
+    badgeHydratedRef.current = false;
   }, [businessId]);
 
   useEffect(() => {
@@ -178,7 +173,6 @@ export default function BusinessNotifications() {
           : [],
         updatedAt: payload.updatedAt,
       });
-      playNotificationChime();
     });
 
     const unsubGuest = subscribeBusinessGuestJoined(
@@ -196,7 +190,6 @@ export default function BusinessNotifications() {
           campaignName: payload.campaignName,
           updatedAt: payload.occurredAt,
         });
-        playNotificationChime();
       },
     );
 
@@ -422,16 +415,26 @@ export default function BusinessNotifications() {
   useEffect(() => {
     if (businessId == null) {
       prevBadgeTotalRef.current = null;
+      badgeHydratedRef.current = false;
       return;
     }
+
+    if (!membershipFetched) {
+      return;
+    }
+
     const prev = prevBadgeTotalRef.current;
+    if (!badgeHydratedRef.current) {
+      prevBadgeTotalRef.current = badgeTotal;
+      badgeHydratedRef.current = true;
+      return;
+    }
+
     prevBadgeTotalRef.current = badgeTotal;
-    if (!chimeReadyRef.current) return;
-    if (prev == null) return;
-    if (badgeTotal > prev) {
+    if (prev != null && badgeTotal > prev) {
       playNotificationChime();
     }
-  }, [badgeTotal, businessId]);
+  }, [badgeTotal, businessId, membershipFetched]);
 
   useEffect(() => {
     if (!open) return;

@@ -6,6 +6,7 @@ import {
 } from "@/app/lib/auth-session";
 import { MemberAccessRemovedListener } from "@/app/components/MemberAccessRemovedListener";
 import { MemberRoleUpdatedListener } from "@/app/components/MemberRoleUpdatedListener";
+import { NotificationChimeBootstrap } from "@/app/components/NotificationChimeBootstrap";
 import {
   createContext,
   useCallback,
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <NotificationChimeBootstrap />
       {isAuthenticated ? <MemberAccessRemovedListener /> : null}
       {isAuthenticated ? <MemberRoleUpdatedListener /> : null}
     </AuthContext.Provider>
