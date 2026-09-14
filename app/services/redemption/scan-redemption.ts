@@ -285,6 +285,14 @@ export type GuestActiveDeal = {
   qrToken?: string;
 };
 
+export type GuestAvailableBusinessDeal = {
+  id: number;
+  campaignName: string;
+  price: number | string | null;
+  imageUrl: string | null;
+  campaignType: "prepaid" | "postpaid" | null;
+};
+
 export type GuestProfile = {
   customerId: number;
   customerName: string;
@@ -299,6 +307,8 @@ export type GuestProfile = {
     redeemedAt: string;
   }>;
   activeDeals: GuestActiveDeal[];
+  availableBusinessDeals: GuestAvailableBusinessDeal[];
+  publishedBusinessDealCount: number;
 };
 
 export type GuestPreviousRedemption = {
@@ -389,6 +399,8 @@ export async function getGuestProfile(
   return {
     ...profile,
     activeDeals: profile.activeDeals ?? [],
+    availableBusinessDeals: profile.availableBusinessDeals ?? [],
+    publishedBusinessDealCount: profile.publishedBusinessDealCount ?? 0,
   };
 }
 

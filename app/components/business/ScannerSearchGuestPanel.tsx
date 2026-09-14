@@ -44,10 +44,6 @@ import {
   type CustomerSearchResult,
 } from "@/app/services/customer/search-customers";
 import {
-  fetchFunnelsByRestaurant,
-  type RestaurantFunnelDeal,
-} from "@/app/services/funnel/get-funnels-by-business";
-import {
   purchaseScannerDeals,
   type ScannerPurchasedDeal,
 } from "@/app/services/funnel/purchase-scanner-deals";
@@ -58,6 +54,7 @@ import {
   redeemExpectedOfferAmount,
   scanRedemptionQr,
   type GuestActiveDeal,
+  type GuestAvailableBusinessDeal,
   type GuestPreviousRedemption,
   type GuestProfile,
   type RedeemableReward,
@@ -393,7 +390,7 @@ function BusinessDealCheckboxRow({
   disabled,
   onToggle,
 }: {
-  deal: RestaurantFunnelDeal;
+  deal: GuestAvailableBusinessDeal;
   checked: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -629,8 +626,6 @@ export function ScannerSearchGuestPanel({
   const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
     null,
   );
-  const [businessDeals, setBusinessDeals] = useState<RestaurantFunnelDeal[]>([]);
-  const [loadingBusinessDeals, setLoadingBusinessDeals] = useState(false);
   const [selectedFunnelIds, setSelectedFunnelIds] = useState<number[]>([]);
   const [guestDealTab, setGuestDealTab] = useState<"all" | "paid" | "unpaid">(
     "all",
@@ -709,7 +704,6 @@ export function ScannerSearchGuestPanel({
       setPurchaseStep(null);
       setPendingDealAmount(null);
       setPurchaseSuccess(null);
-      setBusinessDeals([]);
       setPreviousRedemptions([]);
       setPreviousRedemptionsMeta(null);
       setPreviousRedemptionsPage(1);
@@ -781,39 +775,6 @@ export function ScannerSearchGuestPanel({
     };
   }, [businessId, selectedProfile, previousRedemptionsPage]);
 
-  useEffect(() => {
-    if (!selectedProfile) return;
-
-    let cancelled = false;
-    const loadBusinessDeals = async () => {
-      setLoadingBusinessDeals(true);
-      try {
-        const rows = await fetchFunnelsByRestaurant(businessId);
-        if (!cancelled) {
-          setBusinessDeals(rows);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setBusinessDeals([]);
-          setErrorMessage(
-            err instanceof Error
-              ? err.message
-              : "Could not load business deals.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingBusinessDeals(false);
-        }
-      }
-    };
-
-    void loadBusinessDeals();
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, selectedProfile?.customerId]);
-
   const activeDeals = useMemo(
     () => (selectedProfile?.activeDeals ?? []).map(normalizeDeal),
     [selectedProfile],
@@ -857,34 +818,12 @@ export function ScannerSearchGuestPanel({
     [activeDeals, selectedDealIds],
   );
 
-  const guestFunnelIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const deal of activeDeals) {
-      if (deal.funnelId != null && deal.funnelId > 0) {
-        ids.add(deal.funnelId);
-      }
-    }
-    return ids;
-  }, [activeDeals]);
-
-  const guestDealNames = useMemo(() => {
-    const names = new Set<string>();
-    for (const deal of activeDeals) {
-      const name = deal.campaignName.trim().toLowerCase();
-      if (name) names.add(name);
-    }
-    return names;
-  }, [activeDeals]);
-
   const availableBusinessDeals = useMemo(
-    () =>
-      businessDeals.filter((deal) => {
-        if (guestFunnelIds.has(deal.id)) return false;
-        const name = deal.campaignName.trim().toLowerCase();
-        return !name || !guestDealNames.has(name);
-      }),
-    [businessDeals, guestDealNames, guestFunnelIds],
+    () => selectedProfile?.availableBusinessDeals ?? [],
+    [selectedProfile],
   );
+  const publishedBusinessDealCount =
+    selectedProfile?.publishedBusinessDealCount ?? 0;
 
   const selectedBusinessDeals = useMemo(
     () =>
@@ -933,7 +872,6 @@ export function ScannerSearchGuestPanel({
   const toggleBusinessDealSelection = useCallback(
     (funnelId: number) => {
       if (purchasing || confirmingRedemption) return;
-      if (guestFunnelIds.has(funnelId)) return;
       setSelectedDealIds([]);
 
       const deal = availableBusinessDeals.find((row) => row.id === funnelId);
@@ -950,7 +888,7 @@ export function ScannerSearchGuestPanel({
           : [...current, funnelId],
       );
     },
-    [availableBusinessDeals, confirmingRedemption, guestFunnelIds, purchasing],
+    [availableBusinessDeals, confirmingRedemption, purchasing],
   );
 
   const handlePurchaseDeals = useCallback(
@@ -1527,7 +1465,6 @@ export function ScannerSearchGuestPanel({
                         setPurchaseStep(null);
                         setPendingDealAmount(null);
                         setPurchaseSuccess(null);
-                        setBusinessDeals([]);
                         setPreviousRedemptions([]);
                         setPreviousRedemptionsMeta(null);
                         setPreviousRedemptionsPage(1);
@@ -1892,18 +1829,7 @@ export function ScannerSearchGuestPanel({
                       </div>
 
                       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 sm:px-5">
-                        {loadingBusinessDeals ? (
-                          <div className="flex flex-1 items-center gap-2 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-600">
-                            <Loader2
-                              className="size-4 animate-spin text-[#1877f2]"
-                              aria-hidden
-                            />
-                            Loading business deals…
-                          </div>
-                        ) : null}
-
-                        {!loadingBusinessDeals &&
-                        availableBusinessDeals.length > 0 ? (
+                        {availableBusinessDeals.length > 0 ? (
                           <div className="flex min-h-0 flex-1 flex-col">
                             <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
                               {availableBusinessDeals.map((deal) => (
@@ -1943,18 +1869,20 @@ export function ScannerSearchGuestPanel({
                               </button>
                             </div>
                           </div>
-                        ) : null}
-
-                        {!loadingBusinessDeals &&
-                        availableBusinessDeals.length === 0 ? (
+                        ) : (
                           <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
                             <p className="m-0 text-[0.84rem] font-semibold text-slate-600">
-                              {businessDeals.length === 0
-                                ? "No active deals for this business."
-                                : "All active deals are already on this guest."}
+                              {publishedBusinessDealCount === 0
+                                ? "No published deals for this business."
+                                : "All published deals are already on this guest."}
+                            </p>
+                            <p className="m-0 mt-1 text-[0.72rem] font-medium text-slate-400">
+                              {publishedBusinessDealCount === 0
+                                ? "Publish a campaign to attach deals here."
+                                : "Counter attach collects payment without creating a new pass."}
                             </p>
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </motion.section>
                   </div>
