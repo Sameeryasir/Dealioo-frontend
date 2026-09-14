@@ -18,7 +18,6 @@ import {
   Download,
   Loader2,
   Mail,
-  MoreHorizontal,
   Phone,
   Search,
   UserRound,
@@ -132,8 +131,8 @@ function CustomersTableSkeleton() {
     <div className="overflow-x-auto" aria-busy="true">
       <table className="min-w-full border-collapse">
         <thead>
-          <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <tr className="border-b border-[#e8edf5] bg-white">
+            {Array.from({ length: 5 }).map((_, i) => (
               <th key={i} className="whitespace-nowrap px-4 py-3 text-left">
                 <Skeleton className="h-3 w-14" />
               </th>
@@ -144,9 +143,7 @@ function CustomersTableSkeleton() {
           {Array.from({ length: 6 }).map((_, index) => (
             <tr
               key={index}
-              className={`border-b border-[#f1f5f9] last:border-b-0 ${
-                index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
-              }`}
+              className="border-b border-[#f1f5f9] bg-white last:border-b-0"
             >
               <td className="px-5 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
@@ -168,9 +165,6 @@ function CustomersTableSkeleton() {
               </td>
               <td className="px-4 py-3.5">
                 <Skeleton className="h-4 w-24" />
-              </td>
-              <td className="px-4 py-3.5">
-                <Skeleton className="size-8 rounded-lg" />
               </td>
             </tr>
           ))}
@@ -225,13 +219,6 @@ function JoiningTrendChart({
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2.5">
-            <span className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#f4f8ff] px-3 text-xs font-bold text-[#1877f2] ring-1 ring-[#bfdbfe]">
-              <Users className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-              <span className="leading-none">
-                {guestsLabel.toLocaleString()} guest
-                {guestsLabel === 1 ? "" : "s"}
-              </span>
-            </span>
             {!trendQuery.isLoading && !trendQuery.isError ? (
               <div className="flex h-14 min-w-[5.5rem] flex-col items-center justify-center rounded-2xl border border-[#e8edf5] bg-white px-3.5 text-center shadow-sm">
                 <p className="text-xl font-extrabold tabular-nums leading-none text-[#07111f]">
@@ -519,7 +506,7 @@ export function BusinessProgramCustomersPanel({
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
+                  <tr className="border-b border-[#e8edf5] bg-white">
                     <th className="whitespace-nowrap px-5 py-3 text-left align-middle">
                       <TableColumnHeader
                         icon={UserRound}
@@ -560,23 +547,13 @@ export function BusinessProgramCustomersPanel({
                         labelClassName="text-[#1877f2]"
                       />
                     </th>
-                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
-                      <TableColumnHeader
-                        icon={MoreHorizontal}
-                        label="Actions"
-                        iconClassName="text-[#1877f2]"
-                        labelClassName="text-[#1877f2]"
-                      />
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCustomers.map((customer, index) => (
                     <tr
                       key={customer.id}
-                      className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f0f5ff] ${
-                        index % 2 === 1 ? "bg-[#fafbfc]" : "bg-white"
-                      }`}
+                      className="border-b border-[#f1f5f9] bg-white last:border-b-0"
                     >
                       <td className="px-5 py-3.5 align-middle">
                         <div className="flex min-w-0 items-center gap-3">
@@ -617,15 +594,6 @@ export function BusinessProgramCustomersPanel({
                         <span className="text-sm font-normal leading-none text-slate-700">
                           {formatJoiningDate(customer.joiningDate)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3.5 align-middle">
-                        <button
-                          type="button"
-                          aria-label={`Actions for ${customer.name}`}
-                          className="inline-flex size-8 items-center justify-center rounded-lg border border-[#e8edf5] text-slate-400 transition hover:border-[#1877f2]/40 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
-                        >
-                          <MoreHorizontal className="size-4" aria-hidden />
-                        </button>
                       </td>
                     </tr>
                   ))}
