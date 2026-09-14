@@ -2,7 +2,8 @@
 
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { BusinessHistoryPanel } from "@/app/components/business/BusinessHistoryPanel";
-import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { canViewBusinessHistory } from "@/app/lib/can-view-business-history";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -16,19 +17,26 @@ export default function BusinessHistoryPage() {
     [params.businessId],
   );
 
-  const canAccess = isAdminOrSuperAdminUser();
+  const { access, isFetched } = useBusinessMembershipPermissions(
+    businessId ?? null,
+  );
+  const canAccess = canViewBusinessHistory({
+    membershipAccess: access,
+    membershipLoaded: isFetched,
+  });
 
   useEffect(() => {
+    if (!isFetched) return;
     if (!canAccess && businessId != null) {
       router.replace(`/business/${businessId}/dashboard`);
     }
-  }, [businessId, canAccess, router]);
+  }, [businessId, canAccess, isFetched, router]);
 
   if (businessId == null) {
     return <InvalidRouteMessage />;
   }
 
-  if (!canAccess) {
+  if (!isFetched || !canAccess) {
     return null;
   }
 

@@ -103,6 +103,32 @@ export async function updateBusinessInvitation(input: {
   }
 }
 
+export async function cancelBusinessInvitation(input: {
+  businessId: number;
+  invitationId: number;
+}): Promise<{ message: string }> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+
+  try {
+    const response = await authAxios.delete<unknown>(
+      `/businesses/${input.businessId}/invitations/${input.invitationId}`,
+    );
+    const data = (response.data ?? {}) as Record<string, unknown>;
+    return {
+      message:
+        typeof data.message === "string"
+          ? data.message
+          : "Invitation cancelled successfully.",
+    };
+  } catch (error) {
+    throw new Error(
+      readApiErrorMessage(error, "Could not cancel the invitation."),
+    );
+  }
+}
+
 export async function resendBusinessInvitation(input: {
   businessId: number;
   invitationId: number;

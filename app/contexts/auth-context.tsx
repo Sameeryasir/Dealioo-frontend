@@ -5,6 +5,7 @@ import {
   hasAuthSession,
 } from "@/app/lib/auth-session";
 import { MemberAccessRemovedListener } from "@/app/components/MemberAccessRemovedListener";
+import { MemberRoleUpdatedListener } from "@/app/components/MemberRoleUpdatedListener";
 import {
   createContext,
   useCallback,
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       {isAuthenticated ? <MemberAccessRemovedListener /> : null}
+      {isAuthenticated ? <MemberRoleUpdatedListener /> : null}
     </AuthContext.Provider>
   );
 }

@@ -233,8 +233,9 @@ export function AutomationListPage({
   const campaignId = route.campaignId ?? campaignIdProp;
   const funnelId = funnelIdProp ?? route.funnelId;
   const { can } = useBusinessMembershipPermissions(businessId ?? null);
-  const canCreateAutomation = can("campaigns_create");
-  const canDeleteAutomation = can("campaigns_delete");
+  const canCreateAutomation = can("automations_create");
+  const canDeleteAutomation = can("automations_delete");
+  const canEditAutomation = can("automations_edit");
 
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -247,7 +248,6 @@ export function AutomationListPage({
   const [deleting, setDeleting] = useState(false);
   const [editTarget, setEditTarget] = useState<AutomationListItem | null>(null);
   const [savingDetails, setSavingDetails] = useState(false);
-  const canEditAutomation = canCreateAutomation;
 
   const {
     data: items,

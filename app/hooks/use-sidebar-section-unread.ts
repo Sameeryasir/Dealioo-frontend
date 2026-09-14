@@ -47,11 +47,28 @@ export type SidebarSectionUnreadCounts = {
   history: number;
 };
 
+export type SidebarSectionLatestAts = {
+  orders: string | null;
+  activity: string | null;
+  history: string | null;
+};
+
+export type BusinessSidebarSectionUnreadState = {
+  counts: SidebarSectionUnreadCounts;
+  latestAt: SidebarSectionLatestAts;
+};
+
+const EMPTY_LATEST: SidebarSectionLatestAts = {
+  orders: null,
+  activity: null,
+  history: null,
+};
+
 export function useBusinessSidebarSectionUnread(
   businessId: number | null,
   paths: SidebarSectionPaths,
   enabled: SidebarSectionEnabled,
-): SidebarSectionUnreadCounts {
+): BusinessSidebarSectionUnreadState {
   const pathname = usePathname();
   const [userId, setUserId] = useState<number | null>(() => resolveUserId());
   const [counts, setCounts] = useState<SidebarSectionUnreadCounts>({
@@ -59,6 +76,8 @@ export function useBusinessSidebarSectionUnread(
     activity: 0,
     history: 0,
   });
+  const [latestAt, setLatestAt] =
+    useState<SidebarSectionLatestAts>(EMPTY_LATEST);
 
   const pathnameRef = useRef(pathname);
   const pathsRef = useRef(paths);
@@ -81,19 +100,24 @@ export function useBusinessSidebarSectionUnread(
       business: number,
       section: SidebarUnreadSection,
       count: number,
+      sectionLatestAt: string | null = null,
     ) => {
       const safe = Math.max(0, Math.floor(count));
       writeSectionUnreadCount(id, business, section, safe);
       setCounts((prev) =>
         prev[section] === safe ? prev : { ...prev, [section]: safe },
       );
+      setLatestAt((prev) => {
+        const next = safe > 0 ? sectionLatestAt : null;
+        return prev[section] === next ? prev : { ...prev, [section]: next };
+      });
     },
     [],
   );
 
   const markReadIfViewing = useCallback(
     async (id: number, business: number, section: SidebarUnreadSection) => {
-      persist(id, business, section, 0);
+      persist(id, business, section, 0, null);
       try {
         await markSidebarSectionRead(business, section);
         writeSectionUnreadCount(id, business, section, 0);
@@ -113,7 +137,7 @@ export function useBusinessSidebarSectionUnread(
 
       for (const section of SECTIONS) {
         if (!enabledMap[section]) {
-          persist(id, business, section, 0);
+          persist(id, business, section, 0, null);
           continue;
         }
         if (isOnSectionRoute(path, pathMap[section])) {
@@ -132,13 +156,20 @@ export function useBusinessSidebarSectionUnread(
         const result = await getBusinessSidebarUnread(business);
         for (const section of SECTIONS) {
           if (!enabledMap[section]) {
-            persist(id, business, section, 0);
+            persist(id, business, section, 0, null);
             continue;
           }
           if (isOnSectionRoute(pathnameRef.current, pathsRef.current[section])) {
             continue;
           }
-          persist(id, business, section, result[section]?.unreadCount ?? 0);
+          const row = result[section];
+          persist(
+            id,
+            business,
+            section,
+            row?.unreadCount ?? 0,
+            row?.latestAt ?? null,
+          );
         }
       } catch {
       }
@@ -167,6 +198,7 @@ export function useBusinessSidebarSectionUnread(
   useEffect(() => {
     if (businessId == null || businessId < 1 || userId == null) {
       setCounts({ orders: 0, activity: 0, history: 0 });
+      setLatestAt(EMPTY_LATEST);
       return;
     }
 
@@ -231,8 +263,10 @@ export function useBusinessSidebarSectionUnread(
     if (payload.businessId !== business) return;
     if (!enabledRef.current[payload.section]) return;
 
-    // Acting user already knows — never bump their badge.
-    if (payload.actorUserId != null && payload.actorUserId === user) {
+    if (
+      payload.actorUserId != null &&
+      Number(payload.actorUserId) === Number(user)
+    ) {
       return;
     }
 
@@ -246,14 +280,30 @@ export function useBusinessSidebarSectionUnread(
       return;
     }
 
-    // Trust the server count (no optimistic +1) so actor-exclusion stays exact.
+    setLatestAt((prev) => {
+      const prevMs = prev[payload.section]
+        ? Date.parse(prev[payload.section] as string)
+        : 0;
+      const nextMs = Date.parse(payload.occurredAt);
+      if (Number.isFinite(nextMs) && nextMs >= prevMs) {
+        return { ...prev, [payload.section]: payload.occurredAt };
+      }
+      return prev;
+    });
     scheduleRefreshFromServer(user, business);
   });
 
   return {
-    orders: enabled.orders && !onOrdersPage ? counts.orders : 0,
-    activity: enabled.activity && !onActivityPage ? counts.activity : 0,
-    history: enabled.history && !onHistoryPage ? counts.history : 0,
+    counts: {
+      orders: enabled.orders && !onOrdersPage ? counts.orders : 0,
+      activity: enabled.activity && !onActivityPage ? counts.activity : 0,
+      history: enabled.history && !onHistoryPage ? counts.history : 0,
+    },
+    latestAt: {
+      orders: enabled.orders && !onOrdersPage ? latestAt.orders : null,
+      activity: enabled.activity && !onActivityPage ? latestAt.activity : null,
+      history: enabled.history && !onHistoryPage ? latestAt.history : null,
+    },
   };
 }
 
@@ -263,7 +313,7 @@ export function useSidebarSectionUnread(
   pathPrefix: string | null,
   enabled = true,
 ): boolean {
-  const counts = useBusinessSidebarSectionUnread(
+  const state = useBusinessSidebarSectionUnread(
     businessId,
     {
       orders: section === "orders" ? pathPrefix : null,
@@ -276,5 +326,5 @@ export function useSidebarSectionUnread(
       history: section === "history" && enabled,
     },
   );
-  return counts[section] > 0;
+  return state.counts[section] > 0;
 }

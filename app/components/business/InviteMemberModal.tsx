@@ -1,39 +1,24 @@
 "use client";
 
 import {
-  AlertCircle,
-  Briefcase,
-  Check,
-  ChevronDown,
-  KeyRound,
-  Loader2,
-  Mail,
-  Megaphone,
-  ScanLine,
-  Send,
-  Shield,
-  Sparkles,
-  UserCog,
-  UserPlus,
-  X,
-} from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useMutation } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { standardEase } from "@/app/lib/motion";
-import {
+  AUTOMATION_ACTION_OPTIONS,
+  AUTOMATIONS_MODULE_ACCENT,
   CAMPAIGN_ACTION_OPTIONS,
   CAMPAIGNS_MODULE_ACCENT,
+  FUNNELS_MODULE_ACCENT,
   GOOGLE_CAMPAIGN_ACTION_OPTIONS,
   GOOGLE_CAMPAIGNS_MODULE_ACCENT,
   META_CAMPAIGN_ACTION_OPTIONS,
   META_CAMPAIGNS_MODULE_ACCENT,
   getDefaultPermissionsForRole,
   getModulePermissionOptionsForRole,
+  getSelectedAutomationActions,
   getSelectedCampaignActions,
   getSelectedGoogleCampaignActions,
   getSelectedMetaCampaignActions,
+  roleSupportsAutomationModule,
   roleSupportsCampaignModule,
+  roleSupportsFunnelModule,
   roleSupportsGoogleCampaignModule,
   roleSupportsMetaCampaignModule,
   type PermissionAccent,
@@ -45,15 +30,40 @@ import {
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { inviteBusinessMember, updateActiveBusinessMember, updatePendingBusinessInvitation } from "@/app/services/member/business-members";
 import {
+  AUTOMATION_ACTION_PERMISSIONS,
   CAMPAIGN_ACTION_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
   META_CAMPAIGN_ACTION_PERMISSIONS,
+  type AutomationActionPermission,
   type BusinessMemberPermission,
   type BusinessMemberRole,
   type CampaignActionPermission,
   type GoogleCampaignActionPermission,
   type MetaCampaignActionPermission,
 } from "@/app/services/member/types";
+import {
+  AlertCircle,
+  Briefcase,
+  Check,
+  ChevronDown,
+  Filter,
+  KeyRound,
+  Loader2,
+  Mail,
+  Megaphone,
+  ScanLine,
+  Send,
+  Shield,
+  Sparkles,
+  UserCog,
+  UserPlus,
+  Workflow,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { standardEase } from "@/app/lib/motion";
 
 type MemberAccessEdit = {
   kind: "pending" | "active";
@@ -373,6 +383,7 @@ export function InviteMemberForm({
   const [campaignsExpanded, setCampaignsExpanded] = useState(true);
   const [metaCampaignsExpanded, setMetaCampaignsExpanded] = useState(true);
   const [googleCampaignsExpanded, setGoogleCampaignsExpanded] = useState(true);
+  const [automationsExpanded, setAutomationsExpanded] = useState(true);
 
   useEffect(() => {
     if (!editInvite) return;
@@ -437,6 +448,8 @@ export function InviteMemberForm({
   const showCampaignModule = roleSupportsCampaignModule(role);
   const showMetaCampaignModule = roleSupportsMetaCampaignModule(role);
   const showGoogleCampaignModule = roleSupportsGoogleCampaignModule(role);
+  const showAutomationModule = roleSupportsAutomationModule(role);
+  const showFunnelModule = roleSupportsFunnelModule(role);
   const selectedCampaignActions = useMemo(
     () => getSelectedCampaignActions(permissions),
     [permissions],
@@ -449,10 +462,16 @@ export function InviteMemberForm({
     () => getSelectedGoogleCampaignActions(permissions),
     [permissions],
   );
+  const selectedAutomationActions = useMemo(
+    () => getSelectedAutomationActions(permissions),
+    [permissions],
+  );
   const campaignsModuleEnabled = selectedCampaignActions.length > 0;
   const metaCampaignsModuleEnabled = selectedMetaCampaignActions.length > 0;
   const googleCampaignsModuleEnabled =
     selectedGoogleCampaignActions.length > 0;
+  const automationsModuleEnabled = selectedAutomationActions.length > 0;
+  const funnelsModuleEnabled = permissions.includes("funnels_edit");
 
   const canSubmit =
     email.trim().length > 0 &&
@@ -465,6 +484,7 @@ export function InviteMemberForm({
     setCampaignsExpanded(true);
     setMetaCampaignsExpanded(true);
     setGoogleCampaignsExpanded(true);
+    setAutomationsExpanded(true);
   };
 
   const stripLegacyCampaignFlags = (
@@ -628,6 +648,51 @@ export function InviteMemberForm({
     });
   };
 
+  const setAutomationModuleEnabled = (enabled: boolean) => {
+    setPermissions((current) => {
+      const withoutAutomationKeys = current.filter(
+        (item) =>
+          !(AUTOMATION_ACTION_PERMISSIONS as readonly string[]).includes(item),
+      );
+      if (!enabled) {
+        return withoutAutomationKeys;
+      }
+      return [...withoutAutomationKeys, ...AUTOMATION_ACTION_PERMISSIONS];
+    });
+    if (enabled) {
+      setAutomationsExpanded(true);
+    }
+  };
+
+  const toggleAutomationAction = (action: AutomationActionPermission) => {
+    setPermissions((current) => {
+      const selected = new Set(getSelectedAutomationActions(current));
+      if (selected.has(action)) {
+        selected.delete(action);
+      } else {
+        selected.add(action);
+      }
+      const withoutAutomationKeys = current.filter(
+        (item) =>
+          !(AUTOMATION_ACTION_PERMISSIONS as readonly string[]).includes(item),
+      );
+      return [
+        ...withoutAutomationKeys,
+        ...AUTOMATION_ACTION_PERMISSIONS.filter((key) => selected.has(key)),
+      ];
+    });
+  };
+
+  const setFunnelModuleEnabled = (enabled: boolean) => {
+    setPermissions((current) => {
+      const withoutFunnel = current.filter((item) => item !== "funnels_edit");
+      if (!enabled) {
+        return withoutFunnel;
+      }
+      return [...withoutFunnel, "funnels_edit"];
+    });
+  };
+
   const selectAllPermissions = () => {
     const moduleValues = modulePermissionOptions.map((option) => option.value);
     const next: BusinessMemberPermission[] = [...moduleValues];
@@ -639,6 +704,12 @@ export function InviteMemberForm({
     }
     if (showGoogleCampaignModule) {
       next.push(...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS);
+    }
+    if (showAutomationModule) {
+      next.push(...AUTOMATION_ACTION_PERMISSIONS);
+    }
+    if (showFunnelModule) {
+      next.push("funnels_edit");
     }
     setPermissions(next);
   };
@@ -916,6 +987,47 @@ export function InviteMemberForm({
                   accent="google"
                 />
               </PermissionModuleCard>
+            ) : null}
+
+            {showAutomationModule ? (
+              <PermissionModuleCard
+                icon={Workflow}
+                accent={AUTOMATIONS_MODULE_ACCENT}
+                label="Automations"
+                description="Create, update, and delete automations."
+                enabled={automationsModuleEnabled}
+                disabled={inviteMutation.isPending}
+                expandable
+                expanded={automationsExpanded}
+                onToggleExpand={() =>
+                  setAutomationsExpanded((current) => !current)
+                }
+                onToggleEnabled={() =>
+                  setAutomationModuleEnabled(!automationsModuleEnabled)
+                }
+              >
+                <ModuleActionPicker
+                  options={AUTOMATION_ACTION_OPTIONS}
+                  selected={selectedAutomationActions}
+                  disabled={inviteMutation.isPending}
+                  onToggle={toggleAutomationAction}
+                  accent="blue"
+                />
+              </PermissionModuleCard>
+            ) : null}
+
+            {showFunnelModule ? (
+              <PermissionModuleCard
+                icon={Filter}
+                accent={FUNNELS_MODULE_ACCENT}
+                label="Funnels"
+                description="Update campaign funnel pages and settings."
+                enabled={funnelsModuleEnabled}
+                disabled={inviteMutation.isPending}
+                onToggleEnabled={() =>
+                  setFunnelModuleEnabled(!funnelsModuleEnabled)
+                }
+              />
             ) : null}
 
             {modulePermissionOptions.map((option) => {

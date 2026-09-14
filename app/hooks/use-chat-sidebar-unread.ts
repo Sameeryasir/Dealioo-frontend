@@ -22,13 +22,19 @@ function resolveUserId(): number | null {
   return typeof id === "number" && id > 0 ? id : null;
 }
 
+export type ChatSidebarUnreadState = {
+  hasUnread: boolean;
+  latestAt: string | null;
+};
+
 export function useChatSidebarUnread(
   businessId: number | null,
   chatsPathPrefix: string | null,
-): boolean {
+): ChatSidebarUnreadState {
   const pathname = usePathname();
   const [userId, setUserId] = useState<number | null>(() => resolveUserId());
   const [hasUnread, setHasUnread] = useState(false);
+  const [latestAt, setLatestAt] = useState<string | null>(null);
   const pathnameRef = useRef(pathname);
   const chatsPrefixRef = useRef(chatsPathPrefix);
   const businessIdRef = useRef(businessId);
@@ -46,8 +52,14 @@ export function useChatSidebarUnread(
   }, []);
 
   const persistUnread = useCallback(
-    (id: number, restaurant: number, unread: boolean) => {
+    (
+      id: number,
+      restaurant: number,
+      unread: boolean,
+      inboundAt: string | null = null,
+    ) => {
       setHasUnread(unread);
+      setLatestAt(unread ? inboundAt : null);
       writeChatHasUnread(id, restaurant, unread);
     },
     [],
@@ -56,6 +68,7 @@ export function useChatSidebarUnread(
   useEffect(() => {
     if (businessId == null || businessId < 1 || userId == null) {
       setHasUnread(false);
+      setLatestAt(null);
       return;
     }
 
@@ -64,20 +77,30 @@ export function useChatSidebarUnread(
     }
 
     if (onChatsPage) {
-      persistUnread(userId, businessId, false);
+      persistUnread(userId, businessId, false, null);
       void markRestaurantChatsRead(businessId)
         .then(() => writeChatHasUnread(userId, businessId, false))
         .catch(() => {});
       return;
     }
 
-    persistUnread(userId, businessId, readChatHasUnread(userId, businessId));
+    persistUnread(
+      userId,
+      businessId,
+      readChatHasUnread(userId, businessId),
+      null,
+    );
 
     let cancelled = false;
     void getBusinessChatsUnread(businessId)
       .then((result) => {
         if (cancelled) return;
-        persistUnread(userId, businessId, result.hasUnread);
+        persistUnread(
+          userId,
+          businessId,
+          result.hasUnread,
+          result.latestInboundAt ?? null,
+        );
       })
       .catch(() => {});
 
@@ -97,8 +120,15 @@ export function useChatSidebarUnread(
     const path = pathnameRef.current;
     if (isOnChatsRoute(path, prefix)) return;
 
-    persistUnread(user, business, true);
+    const sentAt =
+      typeof payload.message.sentAt === "string"
+        ? payload.message.sentAt
+        : new Date().toISOString();
+    persistUnread(user, business, true, sentAt);
   });
 
-  return hasUnread && !onChatsPage;
+  return {
+    hasUnread: hasUnread && !onChatsPage,
+    latestAt: hasUnread && !onChatsPage ? latestAt : null,
+  };
 }

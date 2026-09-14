@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Copy,
   Eye,
+  Filter,
   Hourglass,
   Loader2,
   LockOpen,
@@ -26,6 +27,7 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Workflow,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -35,13 +37,15 @@ import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { InviteMemberModal } from "@/app/components/business/InviteMemberModal";
 import { Skeleton } from "@/app/components/skeleton";
-import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
+import { getSetupUser } from "@/app/lib/setup-user";
 import { standardEase } from "@/app/lib/motion";
 import { getPermissionLabel } from "@/app/lib/member-permissions";
 import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-members";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
+  cancelPendingBusinessInvitation,
   copyPendingBusinessInvitationLink,
   getBusinessMembers,
   removeBusinessMember,
@@ -277,6 +281,31 @@ function getMemberPermissionVisuals(
         icon: isView ? Eye : isCreate ? Plus : isDelete ? Trash2 : Megaphone,
         iconBg: "bg-[#e8f2ff]",
         iconColor: "text-[#1877f2]",
+      });
+      continue;
+    }
+
+    if (permission.startsWith("automations_")) {
+      const isCreate = permission === "automations_create";
+      const isEdit = permission === "automations_edit";
+      const isDelete = permission === "automations_delete";
+      items.push({
+        key: permission,
+        label: getPermissionLabel(permission),
+        icon: isCreate ? Plus : isDelete ? Trash2 : isEdit ? Pencil : Workflow,
+        iconBg: "bg-[#ede9fe]",
+        iconColor: "text-[#7c3aed]",
+      });
+      continue;
+    }
+
+    if (permission === "funnels_edit") {
+      items.push({
+        key: permission,
+        label: "Update funnel",
+        icon: Filter,
+        iconBg: "bg-[#ecfdf5]",
+        iconColor: "text-[#059669]",
       });
       continue;
     }
@@ -695,8 +724,8 @@ export function BusinessMembersPanel({
   embedded?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const { can: canPermission } = useBusinessMembershipPermissions(businessId);
-  const canManageMembers = canPermission("members");
+  const canManageMembers = isAdminOrSuperAdminUser();
+  const loggedInUserId = getSetupUser()?.id ?? null;
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editInvite, setEditInvite] = useState<{
     kind: "pending" | "active";
@@ -781,9 +810,20 @@ export function BusinessMembersPanel({
   }, [businessId, queryClient]);
 
   const removeMutation = useMutation({
-    mutationFn: (memberId: number) => removeBusinessMember(memberId),
-    onMutate: (memberId) => {
-      setRemovingMemberId(memberId);
+    mutationFn: (member: BusinessMemberListItem) => {
+      if (member.id == null || member.id < 1) {
+        return Promise.reject(new Error("Missing member id."));
+      }
+      if (member.status === "pending") {
+        return cancelPendingBusinessInvitation({
+          businessId,
+          invitationId: member.id,
+        });
+      }
+      return removeBusinessMember(member.id);
+    },
+    onMutate: (member) => {
+      setRemovingMemberId(member.id ?? null);
       setActionError(null);
     },
     onSuccess: async () => {
@@ -913,7 +953,9 @@ export function BusinessMembersPanel({
                 Members
               </h1>
               <p className="mt-0.5 text-sm font-medium text-slate-500">
-                Invite teammates, assign roles, and control access
+                {canManageMembers
+                  ? "Invite teammates, assign roles, and control access"
+                  : "See who is on this business and review their access"}
               </p>
             </div>
           </div>
@@ -931,7 +973,7 @@ export function BusinessMembersPanel({
           ) : null}
         </div>
 
-        {!isLoading && !loadError ? (
+        {canManageMembers && !isLoading && !loadError ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MembersKpiCard
               title="Total Members"
@@ -992,11 +1034,12 @@ export function BusinessMembersPanel({
                 </span>
               </span>
               <p className="text-base font-bold text-[#07111f]">
-                Build your team
+                {canManageMembers ? "Build your team" : "No other members yet"}
               </p>
               <p className="mt-1 max-w-sm text-sm leading-relaxed text-slate-500">
-                You are the only member right now. Invite managers or staff to
-                collaborate on campaigns, orders, and daily operations.
+                {canManageMembers
+                  ? "You are the only member right now. Invite managers or staff to collaborate on campaigns, orders, and daily operations."
+                  : "When teammates join this business, they will show up here. You can open Details to see their role and access."}
               </p>
               {canManageMembers ? (
                 <button
@@ -1026,7 +1069,9 @@ export function BusinessMembersPanel({
                       {total === 1 ? "" : "s"}
                     </p>
                     <p className="m-0 mt-0.5 text-xs font-medium text-slate-500">
-                      Manage your team members and their access
+                      {canManageMembers
+                        ? "Manage your team members and their access"
+                        : "People with access to this business"}
                     </p>
                   </div>
                 </div>
@@ -1091,7 +1136,13 @@ export function BusinessMembersPanel({
                     <tbody>
                       {members.map((member) => {
                         const initials = memberInitials(member);
-                        const canViewDetails = member.status !== "owner";
+                        const isLoggedInMember =
+                          loggedInUserId != null &&
+                          Number(member.userId) === Number(loggedInUserId) &&
+                          member.userId > 0;
+                        const canViewDetails = canManageMembers
+                          ? member.status !== "owner"
+                          : isLoggedInMember;
                         const canRemove =
                           canManageMembers &&
                           member.status !== "owner" &&
@@ -1320,7 +1371,7 @@ export function BusinessMembersPanel({
         }}
         onConfirm={() => {
           if (memberToRemove?.id == null) return;
-          removeMutation.mutate(memberToRemove.id);
+          removeMutation.mutate(memberToRemove);
         }}
       />
     </>

@@ -4,6 +4,7 @@ import { authAxios } from "@/app/lib/auth-axios";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { isPositiveInt } from "@/app/lib/numbers";
 import {
+  cancelBusinessInvitation,
   copyBusinessInvitationLink,
   createBusinessInvitation,
   resendBusinessInvitation,
@@ -326,6 +327,13 @@ export async function copyPendingBusinessInvitationLink(input: {
   invitationId: number;
 }): Promise<{ message: string; invitationId: number; inviteUrl: string }> {
   return copyBusinessInvitationLink(input);
+}
+
+export async function cancelPendingBusinessInvitation(input: {
+  businessId: number;
+  invitationId: number;
+}): Promise<{ message: string }> {
+  return cancelBusinessInvitation(input);
 }
 
 export async function removeBusinessMember(

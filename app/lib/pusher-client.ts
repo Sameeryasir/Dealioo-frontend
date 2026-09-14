@@ -52,6 +52,11 @@ import {
   pusherUserChannel,
   type MemberAccessRemovedPusherPayload,
 } from "@/app/lib/pusher-member-access-removed";
+import {
+  PUSHER_MEMBER_ROLE_UPDATED_EVENT,
+  parseMemberRoleUpdatedPusherPayload,
+  type MemberRoleUpdatedPusherPayload,
+} from "@/app/lib/pusher-member-role-updated";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 
 export type PusherConnectionStatus = "live" | "reconnecting" | "offline";
@@ -538,6 +543,23 @@ export function subscribeMemberAccessRemoved(
     onRemoved,
     parseMemberAccessRemovedPusherPayload,
     `user-access-removed-${userId}`,
+  );
+}
+
+export function subscribeMemberRoleUpdated(
+  userId: number,
+  onUpdated: (payload: MemberRoleUpdatedPusherPayload) => void,
+): () => void {
+  if (userId < 1) {
+    return () => {};
+  }
+
+  return subscribeChannelEvent(
+    pusherUserChannel(userId),
+    PUSHER_MEMBER_ROLE_UPDATED_EVENT.UPDATED,
+    onUpdated,
+    parseMemberRoleUpdatedPusherPayload,
+    `user-role-updated-${userId}`,
   );
 }
 

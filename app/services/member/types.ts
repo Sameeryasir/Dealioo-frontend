@@ -27,6 +27,15 @@ export const GOOGLE_CAMPAIGN_ACTION_PERMISSIONS = [
 export type GoogleCampaignActionPermission =
   (typeof GOOGLE_CAMPAIGN_ACTION_PERMISSIONS)[number];
 
+export const AUTOMATION_ACTION_PERMISSIONS = [
+  "automations_create",
+  "automations_edit",
+  "automations_delete",
+] as const;
+
+export type AutomationActionPermission =
+  (typeof AUTOMATION_ACTION_PERMISSIONS)[number];
+
 export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
   "campaigns_view",
@@ -37,6 +46,8 @@ export const BUSINESS_MEMBER_PERMISSIONS = [
   ...META_CAMPAIGN_ACTION_PERMISSIONS,
   "google_campaigns_view",
   ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
+  ...AUTOMATION_ACTION_PERMISSIONS,
+  "funnels_edit",
   "orders",
   "activity",
   "chats",

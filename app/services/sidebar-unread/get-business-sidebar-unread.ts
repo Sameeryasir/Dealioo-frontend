@@ -8,6 +8,7 @@ export type SidebarSectionUnreadResponse = {
   hasUnread: boolean;
   unreadCount: number;
   lastViewedAt: string | null;
+  latestAt: string | null;
 };
 
 export type BusinessSidebarUnreadResponse = {
@@ -25,6 +26,7 @@ function normalizeSection(
     unreadCount,
     lastViewedAt:
       typeof value?.lastViewedAt === "string" ? value.lastViewedAt : null,
+    latestAt: typeof value?.latestAt === "string" ? value.latestAt : null,
   };
 }
 

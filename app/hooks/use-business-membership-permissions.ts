@@ -7,12 +7,11 @@ import {
   hasAnyGoogleCampaignPermission,
   hasAnyMetaCampaignPermission,
 } from "@/app/lib/member-permissions";
-import {
-  getMyBusinessMembershipAccess,
-} from "@/app/services/member/business-members";
+import { getMyBusinessMembershipAccess } from "@/app/services/member/business-members";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import type { BusinessMemberPermission } from "@/app/services/member/types";
 import {
+  AUTOMATION_ACTION_PERMISSIONS,
   BUSINESS_MEMBER_PERMISSIONS,
   CAMPAIGN_ACTION_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
@@ -26,6 +25,7 @@ const FULL_PERMISSIONS: BusinessMemberPermission[] = [
 const CAMPAIGN_ACTION_SET = new Set<string>(CAMPAIGN_ACTION_PERMISSIONS);
 const META_ACTION_SET = new Set<string>(META_CAMPAIGN_ACTION_PERMISSIONS);
 const GOOGLE_ACTION_SET = new Set<string>(GOOGLE_CAMPAIGN_ACTION_PERMISSIONS);
+const AUTOMATION_ACTION_SET = new Set<string>(AUTOMATION_ACTION_PERMISSIONS);
 
 export function useBusinessMembershipPermissions(businessId: number | null) {
   const enabled = isPositiveInt(businessId);
@@ -91,6 +91,10 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
         return (
           permissionSet.has(permission) || permissionSet.has("campaigns")
         );
+      }
+
+      if (AUTOMATION_ACTION_SET.has(permission)) {
+        return permissionSet.has(permission);
       }
 
       return permissionSet.has(permission as BusinessMemberPermission);

@@ -50,18 +50,56 @@ function validateSmsNode(node: WorkflowNode): boolean {
   return false;
 }
 
-function isParallelSplitMarker(node: WorkflowNode): boolean {
+function isUntilStyleWait(config: Record<string, unknown>): boolean {
+  const waitMode = String(config.waitMode ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    waitMode === "until_customer_visited" ||
+    waitMode === "until_visit_date"
+  ) {
+    return true;
+  }
+  if (waitMode === "until_time") {
+    return hasText(config.time) || hasText(config.untilTime);
+  }
+  if (waitMode === "until_day_of_week") {
+    const hasDay =
+      hasText(config.dayOfWeek) ||
+      hasText(config.weekday) ||
+      hasText(config.untilDayOfWeek) ||
+      hasText(config.untilLabel);
+    return hasDay && (hasText(config.time) || hasText(config.untilTime));
+  }
+
+  const untilLabel = String(config.untilLabel ?? "")
+    .trim()
+    .toLowerCase();
+  if (!untilLabel) {
+    return false;
+  }
+  if (untilLabel.includes("visit date")) {
+    return true;
+  }
   return (
-    node.kind === "parallel_split" ||
-    node.config?.isParallelSplit === true
+    hasText(config.time) ||
+    hasText(config.untilTime) ||
+    untilLabel.includes(" am") ||
+    untilLabel.includes(" pm") ||
+    untilLabel.includes("at ")
   );
 }
 
 function validateWaitNode(node: WorkflowNode): boolean {
-  if (isParallelSplitMarker(node)) {
+  if (isParallelSplitWorkflowNode(node)) {
     return true;
   }
-  return resolveWaitDelayMinutesFromConfig(node.config) > 0;
+  const config = node.config ?? {};
+  // "Wait until" clock/day waits have no numeric delay — still complete.
+  if (isUntilStyleWait(config)) {
+    return true;
+  }
+  return resolveWaitDelayMinutesFromConfig(config) > 0;
 }
 
 function validateConditionNode(node: WorkflowNode): boolean {
@@ -133,8 +171,20 @@ function activationMessageForNode(node: WorkflowNode): string {
     case "send_whatsapp":
       return `Message text is required. "${nodeLabel(node)}" is incomplete.`;
     case "wait":
-    case "delay":
+    case "delay": {
+      const waitConfig = node.config ?? {};
+      const waitMode = String(waitConfig.waitMode ?? "")
+        .trim()
+        .toLowerCase();
+      if (
+        waitMode.startsWith("until_") ||
+        hasText(waitConfig.untilLabel) ||
+        hasText(waitConfig.untilTime)
+      ) {
+        return `"${nodeLabel(node)}" needs a complete wait-until time (or day) before activating.`;
+      }
       return `Wait needs a delay greater than 0. "${nodeLabel(node)}" is incomplete.`;
+    }
     case "condition":
       return `Condition is required — choose a condition on "${nodeLabel(node)}".`;
     default:

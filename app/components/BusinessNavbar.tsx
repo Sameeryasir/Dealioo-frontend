@@ -1,5 +1,6 @@
 "use client";
 
+import BusinessNotifications from "@/app/components/BusinessNotifications";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
@@ -14,7 +15,6 @@ import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 const ORG_DASHBOARD_HREF = "/dashboard";
 const PROFILE_HREF = "/dashboard/profile";
 
-/** Exact business home only — e.g. /business/14/dashboard (not automations/campaigns/…). */
 const BUSINESS_DASHBOARD_HOME = /^\/business\/\d+\/dashboard\/?$/;
 
 export default function BusinessNavbar() {
@@ -26,7 +26,6 @@ export default function BusinessNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRootRef = useRef<HTMLDivElement>(null);
 
-  // Switch business only on the business dashboard home page.
   const showSwitchBusiness = useMemo(() => {
     const normalized = (pathname ?? "").replace(/^\/restaurant\//, "/business/");
     return BUSINESS_DASHBOARD_HOME.test(normalized);
@@ -107,6 +106,8 @@ export default function BusinessNavbar() {
             id="automation-builder-topbar-actions-host"
             className="automation-builder-topbar-actions-host flex items-center"
           />
+
+          <BusinessNotifications />
 
           <div ref={menuRootRef} className="rd-topbar-account-menu">
             <button

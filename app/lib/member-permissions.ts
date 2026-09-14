@@ -2,12 +2,15 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Eye,
+  Filter,
   Megaphone,
   MessageSquare,
   ScanLine,
   ShoppingBag,
+  Workflow,
 } from "lucide-react";
 import type {
+  AutomationActionPermission,
   BusinessMemberPermission,
   BusinessMemberRole,
   CampaignActionPermission,
@@ -15,6 +18,7 @@ import type {
   MetaCampaignActionPermission,
 } from "@/app/services/member/types";
 import {
+  AUTOMATION_ACTION_PERMISSIONS,
   CAMPAIGN_ACTION_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
   META_CAMPAIGN_ACTION_PERMISSIONS,
@@ -27,6 +31,8 @@ export const BUSINESS_MEMBER_PERMISSIONS = [
   "meta_campaigns",
   ...META_CAMPAIGN_ACTION_PERMISSIONS,
   ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
+  ...AUTOMATION_ACTION_PERMISSIONS,
+  "funnels_edit",
   "orders",
   "activity",
   "chats",
@@ -47,6 +53,10 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
     "meta_campaigns_delete",
     "google_campaigns_create",
     "google_campaigns_delete",
+    "automations_create",
+    "automations_edit",
+    "automations_delete",
+    "funnels_edit",
     "orders",
     "activity",
     "chats",
@@ -80,6 +90,15 @@ export const GOOGLE_CAMPAIGN_ACTION_OPTIONS: {
 }[] = [
   { value: "google_campaigns_create", label: "Create" },
   { value: "google_campaigns_delete", label: "Delete" },
+];
+
+export const AUTOMATION_ACTION_OPTIONS: {
+  value: AutomationActionPermission;
+  label: string;
+}[] = [
+  { value: "automations_create", label: "Create" },
+  { value: "automations_edit", label: "Update" },
+  { value: "automations_delete", label: "Delete" },
 ];
 
 export type PermissionAccent = {
@@ -157,6 +176,18 @@ export const GOOGLE_CAMPAIGNS_MODULE_ACCENT: PermissionAccent = {
   iconBg: "bg-[#fff8e1]",
   iconColor: "text-[#FBBC04]",
   toggleOn: "bg-[#FBBC04]",
+};
+
+export const AUTOMATIONS_MODULE_ACCENT: PermissionAccent = {
+  iconBg: "bg-[#ede9fe]",
+  iconColor: "text-[#7c3aed]",
+  toggleOn: "bg-[#7c3aed]",
+};
+
+export const FUNNELS_MODULE_ACCENT: PermissionAccent = {
+  iconBg: "bg-[#ecfdf5]",
+  iconColor: "text-[#059669]",
+  toggleOn: "bg-[#059669]",
 };
 
 export const PERMISSION_OPTIONS: {
@@ -247,6 +278,31 @@ export const PERMISSION_OPTIONS: {
     description: "Delete Google Ads campaigns.",
     icon: Megaphone,
   },
+  {
+    value: "automations_create",
+    label: "Create",
+    description: "Create automations for this business.",
+    icon: Workflow,
+  },
+  {
+    value: "automations_edit",
+    label: "Update",
+    description: "Update and activate automations.",
+    icon: Workflow,
+  },
+  {
+    value: "automations_delete",
+    label: "Delete",
+    description: "Delete automations.",
+    icon: Workflow,
+  },
+  {
+    value: "funnels_edit",
+    label: "Update funnel",
+    description: "Update campaign funnel pages and settings.",
+    icon: Filter,
+    accent: FUNNELS_MODULE_ACCENT,
+  },
   ...MODULE_PERMISSION_OPTIONS,
 ];
 
@@ -290,6 +346,16 @@ export function roleSupportsGoogleCampaignModule(
   return role === "Manager";
 }
 
+export function roleSupportsAutomationModule(
+  role: BusinessMemberRole,
+): boolean {
+  return role === "Manager";
+}
+
+export function roleSupportsFunnelModule(role: BusinessMemberRole): boolean {
+  return role === "Manager";
+}
+
 export function getPermissionOptionsForRole(role: BusinessMemberRole) {
   if (role === "Scanner") {
     return PERMISSION_OPTIONS.filter((option) =>
@@ -326,6 +392,13 @@ export function getPermissionLabel(permission: string): string {
   );
   if (googleAction) {
     return `Google ${googleAction.label}`;
+  }
+
+  const automationAction = AUTOMATION_ACTION_OPTIONS.find(
+    (option) => option.value === permission,
+  );
+  if (automationAction) {
+    return `Automations ${automationAction.label}`;
   }
 
   return (
@@ -381,6 +454,14 @@ export function hasAnyGoogleCampaignPermission(
   );
 }
 
+export function hasAnyAutomationPermission(
+  permissions: readonly string[],
+): boolean {
+  return AUTOMATION_ACTION_PERMISSIONS.some((key) =>
+    permissions.includes(key),
+  );
+}
+
 export function getSelectedCampaignActions(
   permissions: readonly BusinessMemberPermission[],
 ): CampaignActionPermission[] {
@@ -410,6 +491,14 @@ export function getSelectedGoogleCampaignActions(
   permissions: readonly BusinessMemberPermission[],
 ): GoogleCampaignActionPermission[] {
   return GOOGLE_CAMPAIGN_ACTION_PERMISSIONS.filter((key) =>
+    permissions.includes(key),
+  );
+}
+
+export function getSelectedAutomationActions(
+  permissions: readonly BusinessMemberPermission[],
+): AutomationActionPermission[] {
+  return AUTOMATION_ACTION_PERMISSIONS.filter((key) =>
     permissions.includes(key),
   );
 }

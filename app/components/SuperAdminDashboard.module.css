@@ -964,8 +964,9 @@
   inset: 0;
   z-index: 120;
   border: none;
-  background: rgba(11, 31, 58, 0.42);
+  background: rgba(15, 23, 42, 0.2);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .drawerPanel {
@@ -986,8 +987,10 @@
   border-left: 1px solid var(--nd-line);
   border-radius: 1.25rem 0 0 1.25rem;
   background: #fff;
-  box-shadow: -20px 0 48px rgba(76, 29, 149, 0.12);
+  box-shadow: -16px 0 40px rgba(15, 23, 42, 0.1);
   overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .drawerHead {
@@ -996,8 +999,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1.2rem 1.2rem 0.85rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%);
+  border-bottom: 1px solid #eef2f7;
+  background: #ffffff;
 }
 
 .drawerBrand {
@@ -1014,8 +1017,8 @@
   width: 2.45rem;
   height: 2.45rem;
   border-radius: 999px;
-  background: rgba(24, 119, 242, 0.28);
-  color: #93c5fd;
+  background: #e8f2ff;
+  color: #1877f2;
   flex-shrink: 0;
 }
 
@@ -1029,14 +1032,14 @@
   font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: #07111f;
 }
 
 .drawerSub {
   margin: 0.2rem 0 0;
   font-size: 0.78rem;
   line-height: 1.4;
-  color: rgba(255, 255, 255, 0.55);
+  color: #64748b;
 }
 
 .drawerEmpty {
@@ -1053,15 +1056,15 @@
   height: 2rem;
   border: 0;
   border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.75);
+  background: #f1f5f9;
+  color: #64748b;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .drawerClose:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: #e2e8f0;
+  color: #07111f;
 }
 
 .drawerToolbar {

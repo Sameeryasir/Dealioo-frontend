@@ -163,11 +163,8 @@ export function SuperAdminNotifications({
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
     };
   }, [open]);
 
@@ -218,7 +215,7 @@ export function SuperAdminNotifications({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => setOpen(false)}
           />
         ) : null}
@@ -232,7 +229,7 @@ export function SuperAdminNotifications({
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className={styles.drawerHead}>
               <div className={styles.drawerBrand}>

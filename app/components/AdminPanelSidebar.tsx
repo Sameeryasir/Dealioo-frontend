@@ -6,9 +6,9 @@ import {
   MetaLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
-import { useChatSidebarUnread } from "@/app/hooks/use-chat-sidebar-unread";
-import { useBusinessSidebarSectionUnread } from "@/app/hooks/use-sidebar-section-unread";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { canViewBusinessHistory } from "@/app/lib/can-view-business-history";
+import { canViewBusinessMembers } from "@/app/lib/can-view-business-members";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import type { BusinessMemberPermission } from "@/app/services/member/types";
@@ -58,6 +58,7 @@ type NavItem = {
   activeMatch: "exact" | "prefix";
   permission?: BusinessMemberPermission | "owner" | "google_ads";
   adminOnly?: boolean;
+  showWhen?: boolean;
 };
 
 export default function AdminPanelSidebar() {
@@ -76,8 +77,16 @@ export default function AdminPanelSidebar() {
       : null;
   const businessIdNumber =
     businessId != null ? Number.parseInt(businessId, 10) : null;
-  const { can, isOwnerLike } =
+  const { can, isOwnerLike, access, isFetched: membershipFetched } =
     useBusinessMembershipPermissions(businessIdNumber);
+  const canViewHistory = canViewBusinessHistory({
+    membershipAccess: access,
+    membershipLoaded: membershipFetched,
+  });
+  const canViewMembers = canViewBusinessMembers({
+    membershipAccess: access,
+    membershipLoaded: membershipFetched,
+  });
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -109,28 +118,6 @@ export default function AdminPanelSidebar() {
   const historyHref = businessId
     ? `${restaurantHomeHref}/history`
     : "/dashboard/history";
-
-  const hasUnreadChats = useChatSidebarUnread(
-    businessId != null ? Number(businessId) : null,
-    businessId != null ? chatsHref : null,
-  );
-
-  const sidebarUnread = useBusinessSidebarSectionUnread(
-    businessIdNumber,
-    {
-      orders: businessId != null ? ordersHref : null,
-      activity: businessId != null ? activityHref : null,
-      history: businessId != null ? historyHref : null,
-    },
-    {
-      orders: can("orders"),
-      activity: can("activity"),
-      history: isAdminOrSuperAdminUser(),
-    },
-  );
-  const unreadOrdersCount = sidebarUnread.orders;
-  const unreadActivityCount = sidebarUnread.activity;
-  const unreadHistoryCount = sidebarUnread.history;
 
   const settingsBasePath = businessId
     ? `/business/${businessId}/dashboard/settings`
@@ -237,7 +224,7 @@ export default function AdminPanelSidebar() {
           label: "Members",
           icon: UserPlus,
           activeMatch: "prefix",
-          permission: "owner",
+          showWhen: canViewMembers,
         },
         {
           href: businessId
@@ -260,11 +247,12 @@ export default function AdminPanelSidebar() {
           label: "History",
           icon: History,
           activeMatch: "prefix",
-          adminOnly: true,
+          showWhen: canViewHistory,
         },
       ];
 
       return items.filter((item) => {
+        if (item.showWhen === false) return false;
         if (item.adminOnly && !isAdminOrSuperAdminUser()) return false;
         if (!item.permission) return true;
         if (item.permission === "owner") return isOwnerLike;
@@ -286,6 +274,8 @@ export default function AdminPanelSidebar() {
       historyHref,
       can,
       isOwnerLike,
+      canViewHistory,
+      canViewMembers,
     ],
   );
 
@@ -381,17 +371,7 @@ export default function AdminPanelSidebar() {
                 key={href}
                 href={href}
                 onClick={closeMobile}
-                aria-label={
-                  label === "Chats" && hasUnreadChats
-                    ? `${label} (new message)`
-                    : label === "Orders" && unreadOrdersCount > 0
-                      ? `${label} (${unreadOrdersCount} new)`
-                      : label === "Activity" && unreadActivityCount > 0
-                        ? `${label} (${unreadActivityCount} new)`
-                        : label === "History" && unreadHistoryCount > 0
-                          ? `${label} (${unreadHistoryCount} new)`
-                          : label
-                }
+                aria-label={label}
                 aria-current={active ? "page" : undefined}
                 className={`rd-sidebar-item group ${
                   active ? "rd-sidebar-item--active" : ""
@@ -400,24 +380,6 @@ export default function AdminPanelSidebar() {
                 {iconNode}
                 {expanded ? (
                   <span className="rd-sidebar-item-label">{label}</span>
-                ) : null}
-                {label === "Chats" && hasUnreadChats ? (
-                  <span className="rd-sidebar-unread" aria-hidden />
-                ) : null}
-                {label === "Orders" && unreadOrdersCount > 0 ? (
-                  <span className="rd-sidebar-unread-count" aria-hidden>
-                    {unreadOrdersCount > 99 ? "99+" : unreadOrdersCount}
-                  </span>
-                ) : null}
-                {label === "Activity" && unreadActivityCount > 0 ? (
-                  <span className="rd-sidebar-unread-count" aria-hidden>
-                    {unreadActivityCount > 99 ? "99+" : unreadActivityCount}
-                  </span>
-                ) : null}
-                {label === "History" && unreadHistoryCount > 0 ? (
-                  <span className="rd-sidebar-unread-count" aria-hidden>
-                    {unreadHistoryCount > 99 ? "99+" : unreadHistoryCount}
-                  </span>
                 ) : null}
                 {!expanded ? (
                   <span role="tooltip" className="rd-sidebar-tooltip">

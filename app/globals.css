@@ -11331,9 +11331,9 @@ body:has(.rd-shell--app) {
   z-index: 30;
   flex-shrink: 0;
   border-bottom: 1px solid #e8edf5;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .rd-topbar-inner {

@@ -6,6 +6,7 @@ import { isPositiveInt } from "@/app/lib/numbers";
 export type BusinessChatsUnreadResponse = {
   hasUnread: boolean;
   chatsLastViewedAt: string | null;
+  latestInboundAt: string | null;
 };
 
 export async function getBusinessChatsUnread(
@@ -32,5 +33,12 @@ export async function getBusinessChatsUnread(
     );
   }
 
-  return (await res.json()) as BusinessChatsUnreadResponse;
+  const raw = (await res.json()) as Partial<BusinessChatsUnreadResponse>;
+  return {
+    hasUnread: Boolean(raw.hasUnread),
+    chatsLastViewedAt:
+      typeof raw.chatsLastViewedAt === "string" ? raw.chatsLastViewedAt : null,
+    latestInboundAt:
+      typeof raw.latestInboundAt === "string" ? raw.latestInboundAt : null,
+  };
 }
