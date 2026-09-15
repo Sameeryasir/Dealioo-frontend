@@ -4,8 +4,14 @@ export type BusinessMemberRole = (typeof BUSINESS_MEMBER_ROLES)[number];
 
 export const CAMPAIGN_ACTION_PERMISSIONS = [
   "campaigns_create",
+  "campaigns_update",
   "campaigns_edit",
   "campaigns_delete",
+] as const;
+
+export const CAMPAIGN_WORKSPACE_PERMISSIONS = [
+  "campaigns_guests",
+  "campaigns_orders",
 ] as const;
 
 export type CampaignActionPermission =
@@ -40,16 +46,19 @@ export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
   "campaigns_view",
   ...CAMPAIGN_ACTION_PERMISSIONS,
+  ...CAMPAIGN_WORKSPACE_PERMISSIONS,
   "meta_ads",
   "meta_campaigns",
   "meta_campaigns_view",
   ...META_CAMPAIGN_ACTION_PERMISSIONS,
   "google_campaigns_view",
   ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
+  "automations",
   ...AUTOMATION_ACTION_PERMISSIONS,
   "funnels_edit",
   "orders",
   "activity",
+  "history",
   "chats",
   "scanning",
   "members",

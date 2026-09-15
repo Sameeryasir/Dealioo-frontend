@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Clock,
   Eye,
   Filter,
   Megaphone,
@@ -20,6 +21,7 @@ import type {
 import {
   AUTOMATION_ACTION_PERMISSIONS,
   CAMPAIGN_ACTION_PERMISSIONS,
+  CAMPAIGN_WORKSPACE_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
   META_CAMPAIGN_ACTION_PERMISSIONS,
 } from "@/app/services/member/types";
@@ -27,14 +29,17 @@ import {
 export const BUSINESS_MEMBER_PERMISSIONS = [
   "campaigns",
   ...CAMPAIGN_ACTION_PERMISSIONS,
+  ...CAMPAIGN_WORKSPACE_PERMISSIONS,
   "meta_ads",
   "meta_campaigns",
   ...META_CAMPAIGN_ACTION_PERMISSIONS,
   ...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
+  "automations",
   ...AUTOMATION_ACTION_PERMISSIONS,
   "funnels_edit",
   "orders",
   "activity",
+  "history",
   "chats",
   "scanning",
   "members",
@@ -49,21 +54,24 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
     "campaigns_create",
     "campaigns_edit",
     "campaigns_delete",
+    "campaigns_guests",
+    "campaigns_orders",
     "meta_campaigns_create",
     "meta_campaigns_delete",
     "google_campaigns_create",
     "google_campaigns_delete",
+    "automations",
     "automations_create",
     "automations_edit",
     "automations_delete",
     "funnels_edit",
     "orders",
     "activity",
+    "history",
     "chats",
     "scanning",
-    "members",
   ],
-  Staff: ["orders", "activity", "chats", "scanning"],
+  Staff: ["orders", "activity", "history", "chats", "scanning"],
   Scanner: ["scanning", "orders"],
 };
 
@@ -71,8 +79,8 @@ export const CAMPAIGN_ACTION_OPTIONS: {
   value: CampaignActionPermission;
   label: string;
 }[] = [
-  { value: "campaigns_edit", label: "Edit" },
   { value: "campaigns_create", label: "Create" },
+  { value: "campaigns_edit", label: "Edit" },
   { value: "campaigns_delete", label: "Delete" },
 ];
 
@@ -134,6 +142,17 @@ export const MODULE_PERMISSION_OPTIONS: {
       iconBg: "bg-[#dbeafe]",
       iconColor: "text-[#2563eb]",
       toggleOn: "bg-[#2563eb]",
+    },
+  },
+  {
+    value: "history",
+    label: "History",
+    description: "See what changed in this business over time.",
+    icon: Clock,
+    accent: {
+      iconBg: "bg-[#e0e7ff]",
+      iconColor: "text-[#4f46e5]",
+      toggleOn: "bg-[#4f46e5]",
     },
   },
   {
@@ -217,10 +236,28 @@ export const PERMISSION_OPTIONS: {
     icon: Megaphone,
   },
   {
+    value: "campaigns_update",
+    label: "Update",
+    description: "Update campaign details and settings.",
+    icon: Megaphone,
+  },
+  {
     value: "campaigns_edit",
     label: "Edit",
-    description: "Update existing marketing campaigns.",
+    description: "Edit existing marketing campaigns.",
     icon: Megaphone,
+  },
+  {
+    value: "campaigns_guests",
+    label: "Campaign guests",
+    description: "See guests who joined this campaign.",
+    icon: Eye,
+  },
+  {
+    value: "campaigns_orders",
+    label: "Campaign orders",
+    description: "See orders placed through this campaign.",
+    icon: ShoppingBag,
   },
   {
     value: "campaigns_delete",
@@ -279,6 +316,12 @@ export const PERMISSION_OPTIONS: {
     icon: Megaphone,
   },
   {
+    value: "automations",
+    label: "Automation",
+    description: "Access campaign automations.",
+    icon: Workflow,
+  },
+  {
     value: "automations_create",
     label: "Create",
     description: "Create automations for this business.",
@@ -298,8 +341,8 @@ export const PERMISSION_OPTIONS: {
   },
   {
     value: "funnels_edit",
-    label: "Update funnel",
-    description: "Update campaign funnel pages and settings.",
+    label: "Funnel",
+    description: "Access campaign funnel pages.",
     icon: Filter,
     accent: FUNNELS_MODULE_ACCENT,
   },
@@ -373,6 +416,9 @@ export function getPermissionOptionsForRole(role: BusinessMemberRole) {
 }
 
 export function getPermissionLabel(permission: string): string {
+  if (permission === "campaigns_update") {
+    return "Campaigns Edit";
+  }
   const campaignAction = CAMPAIGN_ACTION_OPTIONS.find(
     (option) => option.value === permission,
   );
@@ -394,11 +440,8 @@ export function getPermissionLabel(permission: string): string {
     return `Google ${googleAction.label}`;
   }
 
-  const automationAction = AUTOMATION_ACTION_OPTIONS.find(
-    (option) => option.value === permission,
-  );
-  if (automationAction) {
-    return `Automations ${automationAction.label}`;
+  if (permission === "automations" || permission.startsWith("automations_")) {
+    return "Automation";
   }
 
   return (
@@ -419,6 +462,11 @@ export function hasAnyCampaignPermission(
   if (
     permissions.includes("campaigns") ||
     permissions.includes("campaigns_view")
+  ) {
+    return true;
+  }
+  if (
+    CAMPAIGN_WORKSPACE_PERMISSIONS.some((key) => permissions.includes(key))
   ) {
     return true;
   }
@@ -457,6 +505,9 @@ export function hasAnyGoogleCampaignPermission(
 export function hasAnyAutomationPermission(
   permissions: readonly string[],
 ): boolean {
+  if (permissions.includes("automations")) {
+    return true;
+  }
   return AUTOMATION_ACTION_PERMISSIONS.some((key) =>
     permissions.includes(key),
   );

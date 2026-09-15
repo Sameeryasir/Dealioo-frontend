@@ -7,11 +7,14 @@ import { usePathname } from "next/navigation";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import BusinessNotifications from "@/app/components/BusinessNotifications";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import {
   CAMPAIGN_DASHBOARD_TABS,
   campaignDashboardHref,
   campaignDashboardTabFromPathname,
+  type CampaignDashboardTabId,
 } from "@/app/lib/campaign-dashboard-tab";
+import { hasAnyAutomationPermission } from "@/app/lib/member-permissions";
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;
@@ -43,6 +46,8 @@ export default function CampaignHeader({
   embedded = false,
 }: CampaignHeaderProps) {
   const pathname = usePathname();
+  const { can, permissionList, isOwnerLike } =
+    useBusinessMembershipPermissions(businessId);
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
   const offerLine = offer?.trim() ?? "";
   const priceText = useMemo(() => {
@@ -81,7 +86,19 @@ export default function CampaignHeader({
 
   const immersiveChrome = embedded;
 
-  const tabButtons = CAMPAIGN_DASHBOARD_TABS.map(({ id, label }) => {
+  const visibleTabs = CAMPAIGN_DASHBOARD_TABS.filter(({ id }) => {
+    if (isOwnerLike || id === "overview") return true;
+    const tabAccess: Record<CampaignDashboardTabId, boolean> = {
+      overview: true,
+      guests: can("campaigns_guests"),
+      orders: can("campaigns_orders"),
+      funnel: can("funnels_edit"),
+      automations: hasAnyAutomationPermission(permissionList),
+    };
+    return tabAccess[id];
+  });
+
+  const tabButtons = visibleTabs.map(({ id, label }) => {
     const active = id === activeTabId;
     const immersiveTabActive =
       "border-b-2 border-[#1877f2] text-slate-900";

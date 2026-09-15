@@ -2,32 +2,18 @@
 
 import {
   AlertCircle,
-  BarChart3,
-  Briefcase,
   CalendarDays,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
-  Eye,
-  Filter,
   Loader2,
-  Megaphone,
-  MessageSquare,
   Pencil,
-  Plus,
   RefreshCw,
-  ScanLine,
   Search,
-  Shield,
-  ShieldCheck,
-  ShoppingBag,
   Trash2,
   UserPlus,
   Users,
-  Workflow,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,11 +21,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { InviteMemberModal } from "@/app/components/business/InviteMemberModal";
+import { InvitePermissionSections } from "@/app/components/business/BusinessPermissionsMatrix";
 import { Skeleton } from "@/app/components/skeleton";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { standardEase } from "@/app/lib/motion";
-import { getPermissionLabel } from "@/app/lib/member-permissions";
 import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-members";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -159,172 +145,13 @@ function formatMemberDate(value?: string) {
   });
 }
 
-type MemberPermissionVisual = {
-  key: string;
-  label: string;
-  icon: LucideIcon;
-  iconBg: string;
-  iconColor: string;
-};
-
-function getMemberPermissionVisuals(
+function memberInviteRole(
   member: BusinessMemberListItem,
-): MemberPermissionVisual[] {
-  if (
-    member.status === "owner" ||
-    member.permissions.includes(FULL_ACCESS_PERMISSION)
-  ) {
-    return [
-      {
-        key: "full_access",
-        label: "Full access",
-        icon: CheckCircle2,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      },
-    ];
+): BusinessMemberRole {
+  if (member.role === "Staff" || member.role === "Scanner") {
+    return member.role;
   }
-
-  const items: MemberPermissionVisual[] = [];
-  const campaignActionLabels: string[] = [];
-
-  for (const permission of member.permissions) {
-    if (permission === "campaigns" || permission.startsWith("campaigns_")) {
-      if (permission === "campaigns") {
-        campaignActionLabels.push("Full");
-      } else if (permission === "campaigns_view") {
-        campaignActionLabels.push("View");
-      } else if (permission === "campaigns_create") {
-        campaignActionLabels.push("Create");
-      } else if (permission === "campaigns_edit") {
-        campaignActionLabels.push("Edit");
-      } else if (permission === "campaigns_delete") {
-        campaignActionLabels.push("Delete");
-      }
-      continue;
-    }
-
-    if (
-      permission === "meta_ads" ||
-      permission === "meta_campaigns" ||
-      permission.startsWith("meta_campaigns_")
-    ) {
-      const isView =
-        permission === "meta_ads" || permission === "meta_campaigns_view";
-      const isCreate =
-        permission === "meta_campaigns" ||
-        permission === "meta_campaigns_create";
-      const isDelete = permission === "meta_campaigns_delete";
-      items.push({
-        key: permission,
-        label: getPermissionLabel(permission),
-        icon: isView ? Eye : isCreate ? Plus : isDelete ? Trash2 : Megaphone,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-
-    if (permission.startsWith("google_campaigns_")) {
-      const isView = permission === "google_campaigns_view";
-      const isCreate = permission === "google_campaigns_create";
-      const isDelete = permission === "google_campaigns_delete";
-      items.push({
-        key: permission,
-        label: getPermissionLabel(permission),
-        icon: isView ? Eye : isCreate ? Plus : isDelete ? Trash2 : Megaphone,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-
-    if (permission.startsWith("automations_")) {
-      const isCreate = permission === "automations_create";
-      const isEdit = permission === "automations_edit";
-      const isDelete = permission === "automations_delete";
-      items.push({
-        key: permission,
-        label: getPermissionLabel(permission),
-        icon: isCreate ? Plus : isDelete ? Trash2 : isEdit ? Pencil : Workflow,
-        iconBg: "bg-[#ede9fe]",
-        iconColor: "text-[#7c3aed]",
-      });
-      continue;
-    }
-
-    if (permission === "funnels_edit") {
-      items.push({
-        key: permission,
-        label: "Update funnel",
-        icon: Filter,
-        iconBg: "bg-[#ecfdf5]",
-        iconColor: "text-[#059669]",
-      });
-      continue;
-    }
-
-    if (permission === "orders") {
-      items.push({
-        key: permission,
-        label: "Orders",
-        icon: ShoppingBag,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-    if (permission === "activity") {
-      items.push({
-        key: permission,
-        label: "Activity",
-        icon: BarChart3,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-    if (permission === "chats") {
-      items.push({
-        key: permission,
-        label: "Chats",
-        icon: MessageSquare,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-    if (permission === "scanning") {
-      items.push({
-        key: permission,
-        label: "Scanning",
-        icon: ScanLine,
-        iconBg: "bg-[#e8f2ff]",
-        iconColor: "text-[#1877f2]",
-      });
-      continue;
-    }
-
-    items.push({
-      key: permission,
-      label: getPermissionLabel(permission),
-      icon: Shield,
-      iconBg: "bg-[#e8f2ff]",
-      iconColor: "text-[#1877f2]",
-    });
-  }
-
-  if (campaignActionLabels.length > 0) {
-    items.push({
-      key: "campaigns_grouped",
-      label: campaignActionLabels.join(" · "),
-      icon: Megaphone,
-      iconBg: "bg-[#e8f2ff]",
-      iconColor: "text-[#1877f2]",
-    });
-  }
-
-  return items;
+  return "Manager";
 }
 
 function MemberDetailsModal({
@@ -379,12 +206,10 @@ function MemberDetailsModal({
   const isPending = member.status === "pending";
   const canManageInvite =
     canManageMembers && isPending && member.id != null && member.id > 0;
-  const permissionVisuals = getMemberPermissionVisuals(member);
-  const permissionCount =
+  const hasFullAccess =
     member.status === "owner" ||
-    member.permissions.includes(FULL_ACCESS_PERMISSION)
-      ? permissionVisuals.length
-      : member.permissions.length;
+    member.permissions.includes(FULL_ACCESS_PERMISSION);
+  const permissionCount = hasFullAccess ? 1 : member.permissions.length;
   const showDates = Boolean(member.invitedAt || member.expiresAt);
 
   return (
@@ -424,6 +249,9 @@ function MemberDetailsModal({
                       className="truncate text-lg font-bold tracking-tight text-[#07111f]"
                     >
                       {member.name}
+                      <span className="ml-2 text-sm font-medium text-[#07111f]">
+                        {teamRoleLabel(member)}
+                      </span>
                     </p>
                     <p className="mt-0.5 truncate text-sm text-slate-500">
                       {member.email}
@@ -438,41 +266,6 @@ function MemberDetailsModal({
                 >
                   <X className="size-4" strokeWidth={2.25} aria-hidden />
                 </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-[#e8edf5] bg-white px-3.5 py-3">
-                  <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                    Role
-                  </p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
-                      <Briefcase
-                        className="size-3.5"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </span>
-                    <span className="truncate text-sm font-medium text-[#07111f]">
-                      {member.role}
-                    </span>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-[#e8edf5] bg-white px-3.5 py-3">
-                  <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                    Status
-                  </p>
-                  <div className="mt-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(member.status)}`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${statusDotClass(member.status)}`}
-                      />
-                      {memberStatusLabel(member.status)}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {isPending ? (
@@ -536,45 +329,25 @@ function MemberDetailsModal({
               <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2]">
-                      <ShieldCheck
-                        className="size-3.5"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </span>
-                    <p className="m-0 truncate text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#1877f2]">
+                    <p className="m-0 truncate text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#07111f]">
                       Access &amp; permissions
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-[#f8fafc] px-2.5 py-1 text-[0.68rem] font-semibold text-[#1877f2] ring-1 ring-[#e8edf5]">
+                  <span className="shrink-0 rounded-full bg-[#f8fafc] px-2.5 py-1 text-[0.68rem] font-semibold text-[#07111f] ring-1 ring-[#e8edf5]">
                     {permissionCount} permission
                     {permissionCount === 1 ? "" : "s"}
                   </span>
                 </div>
 
-                {permissionVisuals.length > 0 ? (
-                  <div className="mt-3.5 flex flex-wrap gap-2">
-                    {permissionVisuals.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <span
-                          key={item.key}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.75rem] font-medium text-[#334155]"
-                        >
-                          <span
-                            className={`inline-flex size-5 shrink-0 items-center justify-center rounded-md ${item.iconBg} ${item.iconColor}`}
-                          >
-                            <Icon
-                              className="size-3"
-                              strokeWidth={2.25}
-                              aria-hidden
-                            />
-                          </span>
-                          {item.label}
-                        </span>
-                      );
-                    })}
+                {hasFullAccess || member.permissions.length > 0 ? (
+                  <div className="mt-3.5">
+                    <InvitePermissionSections
+                      role={memberInviteRole(member)}
+                      permissions={member.permissions}
+                      allOn={hasFullAccess}
+                      grantedOnly
+                      showToggles={false}
+                    />
                   </div>
                 ) : (
                   <p className="m-0 mt-3 text-sm text-slate-500">No access set</p>

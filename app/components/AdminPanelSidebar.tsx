@@ -7,8 +7,6 @@ import {
 } from "@/app/components/landing/LandingIntegrationLogos";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import { canViewBusinessHistory } from "@/app/lib/can-view-business-history";
-import { canViewBusinessMembers } from "@/app/lib/can-view-business-members";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import type { BusinessMemberPermission } from "@/app/services/member/types";
@@ -77,16 +75,8 @@ export default function AdminPanelSidebar() {
       : null;
   const businessIdNumber =
     businessId != null ? Number.parseInt(businessId, 10) : null;
-  const { can, isOwnerLike, access, isFetched: membershipFetched } =
+  const { can, isOwnerLike } =
     useBusinessMembershipPermissions(businessIdNumber);
-  const canViewHistory = canViewBusinessHistory({
-    membershipAccess: access,
-    membershipLoaded: membershipFetched,
-  });
-  const canViewMembers = canViewBusinessMembers({
-    membershipAccess: access,
-    membershipLoaded: membershipFetched,
-  });
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -224,7 +214,7 @@ export default function AdminPanelSidebar() {
           label: "Team",
           icon: UserPlus,
           activeMatch: "prefix",
-          showWhen: canViewMembers,
+          permission: "members",
         },
         {
           href: businessId
@@ -247,7 +237,7 @@ export default function AdminPanelSidebar() {
           label: "History",
           icon: History,
           activeMatch: "prefix",
-          showWhen: canViewHistory,
+          permission: "history",
         },
       ];
 
@@ -257,9 +247,6 @@ export default function AdminPanelSidebar() {
         if (!item.permission) return true;
         if (item.permission === "owner") return isOwnerLike;
         if (item.permission === "meta_ads") {
-          if (item.label === "Meta") {
-            return true;
-          }
           return can("meta_ads");
         }
         if (item.permission === "google_ads") {
@@ -277,8 +264,6 @@ export default function AdminPanelSidebar() {
       historyHref,
       can,
       isOwnerLike,
-      canViewHistory,
-      canViewMembers,
     ],
   );
 
@@ -402,7 +387,7 @@ export default function AdminPanelSidebar() {
             </p>
           ) : null}
 
-          {isOwnerLike ? (
+          {isOwnerLike || can("settings") ? (
             <Link
               href={settingsHref}
               onClick={closeMobile}

@@ -16,6 +16,7 @@ import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
 import { isMembersPath } from "@/app/lib/members-route";
 import { isMetaAdsPath } from "@/app/lib/meta-ads-route";
 import { isProgramPath } from "@/app/lib/program-route";
+import { BusinessDashboardPermissionGuard } from "@/app/components/BusinessDashboardPermissionGuard";
 
 function DashboardShellInner({ children }: { children: ReactNode }) {
   const { expanded } = useSidebarExpand();
@@ -84,7 +85,9 @@ function DashboardShellInner({ children }: { children: ReactNode }) {
                   : "rd-main-scroll--sidebar-collapsed"
             }`}
           >
-            {children}
+            <BusinessDashboardPermissionGuard>
+              {children}
+            </BusinessDashboardPermissionGuard>
           </main>
         </div>
       </div>

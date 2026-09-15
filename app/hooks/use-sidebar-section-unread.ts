@@ -41,6 +41,7 @@ export type SidebarSectionEnabled = {
   orders: boolean;
   activity: boolean;
   history: boolean;
+  guest?: boolean;
 };
 
 export type SidebarSectionUnreadCounts = {
@@ -239,7 +240,9 @@ export function useBusinessSidebarSectionUnread(
             row?.latestDescription ?? null,
           );
         }
-        setLatestGuestJoined(result.latestGuestJoined);
+        setLatestGuestJoined(
+          enabledMap.guest === false ? null : result.latestGuestJoined,
+        );
         setLatestAccessUpdated(result.latestAccessUpdated);
       } catch {
       }
@@ -402,7 +405,7 @@ export function useBusinessSidebarSectionUnread(
           ? latestDescriptions.history
           : null,
     },
-    latestGuestJoined,
+    latestGuestJoined: enabled.guest === false ? null : latestGuestJoined,
     latestAccessUpdated,
     markAllSectionsRead,
   };

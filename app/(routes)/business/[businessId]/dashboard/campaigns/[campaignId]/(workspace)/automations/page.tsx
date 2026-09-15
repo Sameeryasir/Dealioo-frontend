@@ -2,10 +2,12 @@
 
 import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
+import { hasAnyAutomationPermission } from "@/app/lib/member-permissions";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 export default function CampaignAutomationsPage() {
   const router = useRouter();
@@ -19,6 +21,17 @@ export default function CampaignAutomationsPage() {
     [params.campaignId],
   );
   const { funnelId } = useCampaignFunnelId(campaignId);
+  const { permissionList, isFetched, isOwnerLike } =
+    useBusinessMembershipPermissions(businessId ?? null);
+  const canAccess =
+    isOwnerLike || hasAnyAutomationPermission(permissionList);
+
+  useEffect(() => {
+    if (!isFetched || campaignId == null || businessId == null) return;
+    if (!canAccess) {
+      router.replace(`/business/${businessId}/dashboard/campaigns/${campaignId}`);
+    }
+  }, [businessId, campaignId, canAccess, isFetched, router]);
 
   const openAutomationBuilder = useCallback(
     (automationId: string, bootstrapping = false) => {
@@ -42,6 +55,10 @@ export default function CampaignAutomationsPage() {
 
   if (businessId == null || campaignId == null) {
     return <InvalidRouteMessage />;
+  }
+
+  if (!isFetched || !canAccess) {
+    return null;
   }
 
   return (

@@ -3,7 +3,6 @@
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import { canViewBusinessMembers } from "@/app/lib/can-view-business-members";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
@@ -17,13 +16,10 @@ export default function BusinessMembersPage() {
     [params.businessId],
   );
 
-  const { access, isFetched } = useBusinessMembershipPermissions(
+  const { can, isFetched, isOwnerLike } = useBusinessMembershipPermissions(
     businessId ?? null,
   );
-  const canAccess = canViewBusinessMembers({
-    membershipAccess: access,
-    membershipLoaded: isFetched,
-  });
+  const canAccess = isOwnerLike || can("members");
 
   useEffect(() => {
     if (!isFetched) return;

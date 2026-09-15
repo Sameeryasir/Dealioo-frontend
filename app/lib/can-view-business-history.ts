@@ -1,7 +1,7 @@
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 
 export function canViewBusinessHistory(options: {
-  membershipAccess?: "owner" | "member" | "super_admin" | null;
+  canHistory: boolean;
   membershipLoaded?: boolean;
 }): boolean {
   if (isAdminOrSuperAdminUser()) {
@@ -10,8 +10,5 @@ export function canViewBusinessHistory(options: {
   if (!options.membershipLoaded) {
     return false;
   }
-  const access = options.membershipAccess;
-  return (
-    access === "owner" || access === "member" || access === "super_admin"
-  );
+  return options.canHistory;
 }

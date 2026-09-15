@@ -21,7 +21,7 @@ export default function BusinessSettingsSectionPage() {
       ? Number(businessIdParam)
       : null;
 
-  const { isOwnerLike, isFetched } = useBusinessMembershipPermissions(businessId);
+  const { isOwnerLike, isFetched, can } = useBusinessMembershipPermissions(businessId);
 
   const section: BusinessSettingsSection =
     typeof sectionParam === "string" &&
@@ -32,10 +32,12 @@ export default function BusinessSettingsSectionPage() {
   const displaySection: BusinessSettingsSection =
     businessId != null && section === "account" ? "general" : section;
 
+  const canAccessSettings = isOwnerLike || can("settings");
+
   useEffect(() => {
     if (businessId == null || !isFetched) return;
 
-    if (!isOwnerLike) {
+    if (!canAccessSettings) {
       router.replace(`/business/${businessId}/dashboard`);
       return;
     }
@@ -52,10 +54,10 @@ export default function BusinessSettingsSectionPage() {
       return;
     }
     router.replace(`/business/${businessId}/dashboard/settings/${section}`);
-  }, [businessId, isFetched, isOwnerLike, router, section, sectionParam]);
+  }, [businessId, canAccessSettings, isFetched, router, section, sectionParam]);
 
   if (businessId == null) return null;
-  if (!isFetched || !isOwnerLike) return null;
+  if (!isFetched || !canAccessSettings) return null;
 
   return (
     <BusinessSettingsPanel section={displaySection} businessId={businessId} />

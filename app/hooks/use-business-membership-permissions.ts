@@ -34,7 +34,8 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
     queryKey: businessMemberQueryKeys.me(businessId ?? 0),
     queryFn: () => getMyBusinessMembershipAccess(businessId as number),
     enabled,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const access = query.data?.access ?? "member";
@@ -76,6 +77,13 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
       }
 
       if (CAMPAIGN_ACTION_SET.has(permission)) {
+        if (permission === "campaigns_edit" || permission === "campaigns_update") {
+          return (
+            permissionSet.has("campaigns_edit") ||
+            permissionSet.has("campaigns_update") ||
+            permissionSet.has("campaigns")
+          );
+        }
         return (
           permissionSet.has(permission) || permissionSet.has("campaigns")
         );
@@ -93,8 +101,11 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
         );
       }
 
-      if (AUTOMATION_ACTION_SET.has(permission)) {
-        return permissionSet.has(permission);
+      if (AUTOMATION_ACTION_SET.has(permission) || permission === "automations") {
+        return (
+          permissionSet.has("automations") ||
+          AUTOMATION_ACTION_PERMISSIONS.some((key) => permissionSet.has(key))
+        );
       }
 
       return permissionSet.has(permission as BusinessMemberPermission);

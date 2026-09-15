@@ -81,6 +81,17 @@ export default function BusinessNotifications() {
   const businessIdNumber =
     businessId != null ? Number.parseInt(businessId, 10) : null;
 
+  const { can, isFetched: membershipFetched } =
+    useBusinessMembershipPermissions(businessIdNumber);
+  const canHistory = canViewBusinessHistory({
+    canHistory: can("history"),
+    membershipLoaded: membershipFetched,
+  });
+  const canOrders = can("orders");
+  const canActivity = can("activity");
+  const canChats = can("chats");
+  const canProgram = can("campaigns") || can("campaigns_guests");
+
   useEffect(() => {
     prevBadgeTotalRef.current = null;
     badgeHydratedRef.current = false;
@@ -103,7 +114,11 @@ export default function BusinessNotifications() {
       setAccessNotify(
         readMemberRoleUpdatedNotification(userId, businessIdNumber),
       );
-      setGuestNotify(readGuestJoinedNotification(userId, businessIdNumber));
+      setGuestNotify(
+        canProgram
+          ? readGuestJoinedNotification(userId, businessIdNumber)
+          : null,
+      );
     };
 
     sync();
@@ -137,13 +152,16 @@ export default function BusinessNotifications() {
       window.removeEventListener("focus", sync);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [businessIdNumber]);
+  }, [businessIdNumber, canProgram]);
 
   useEffect(() => {
     if (businessIdNumber == null || businessIdNumber < 1) {
       return;
     }
     if (!isPusherConfigured()) {
+      return;
+    }
+    if (!membershipFetched) {
       return;
     }
 
@@ -178,41 +196,29 @@ export default function BusinessNotifications() {
       playNotificationChime();
     });
 
-    const unsubGuest = subscribeBusinessGuestJoined(
-      businessIdNumber,
-      (payload) => {
-        if (Number(payload.businessId) !== businessIdNumber) {
-          return;
-        }
-        writeGuestJoinedNotification(userId, payload);
-        setGuestNotify({
-          businessId: payload.businessId,
-          customerId: payload.customerId,
-          guestName: payload.guestName,
-          guestEmail: payload.guestEmail,
-          campaignName: payload.campaignName,
-          updatedAt: payload.occurredAt,
-        });
-        playNotificationChime();
-      },
-    );
+    const unsubGuest = canProgram
+      ? subscribeBusinessGuestJoined(businessIdNumber, (payload) => {
+          if (Number(payload.businessId) !== businessIdNumber) {
+            return;
+          }
+          writeGuestJoinedNotification(userId, payload);
+          setGuestNotify({
+            businessId: payload.businessId,
+            customerId: payload.customerId,
+            guestName: payload.guestName,
+            guestEmail: payload.guestEmail,
+            campaignName: payload.campaignName,
+            updatedAt: payload.occurredAt,
+          });
+          playNotificationChime();
+        })
+      : () => {};
 
     return () => {
       unsubRole();
       unsubGuest();
     };
-  }, [businessIdNumber]);
-
-  const { can, access, isFetched: membershipFetched } =
-    useBusinessMembershipPermissions(businessIdNumber);
-  const canHistory = canViewBusinessHistory({
-    membershipAccess: access,
-    membershipLoaded: membershipFetched,
-  });
-  const canOrders = can("orders");
-  const canActivity = can("activity");
-  const canChats = can("chats");
-  const canProgram = can("campaigns");
+  }, [businessIdNumber, canProgram, membershipFetched]);
 
   const homeHref = businessId
     ? `/business/${businessId}/dashboard`
@@ -235,6 +241,7 @@ export default function BusinessNotifications() {
       orders: Boolean(businessId) && membershipFetched && canOrders,
       activity: Boolean(businessId) && membershipFetched && canActivity,
       history: Boolean(businessId) && membershipFetched && canHistory,
+      guest: Boolean(businessId) && membershipFetched && canProgram,
     },
   );
 

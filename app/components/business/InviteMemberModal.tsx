@@ -3,7 +3,7 @@
 import {
   getDefaultPermissionsForRole,
   getModulePermissionOptionsForRole,
-  hasAnyCampaignPermission,
+  hasAnyAutomationPermission,
   roleSupportsAutomationModule,
   roleSupportsCampaignModule,
   roleSupportsFunnelModule,
@@ -16,6 +16,7 @@ import { inviteBusinessMember, updateActiveBusinessMember, updatePendingBusiness
 import {
   AUTOMATION_ACTION_PERMISSIONS,
   CAMPAIGN_ACTION_PERMISSIONS,
+  CAMPAIGN_WORKSPACE_PERMISSIONS,
   GOOGLE_CAMPAIGN_ACTION_PERMISSIONS,
   META_CAMPAIGN_ACTION_PERMISSIONS,
   type BusinessMemberPermission,
@@ -24,14 +25,11 @@ import {
 import {
   AlertCircle,
   Briefcase,
-  Check,
   KeyRound,
   Loader2,
   Mail,
   ScanLine,
   Send,
-  Shield,
-  Sparkles,
   UserCog,
   UserPlus,
   X,
@@ -58,8 +56,6 @@ const ROLE_OPTIONS: {
   description: string;
   icon: typeof Briefcase;
   accent: string;
-  ring: string;
-  recommended?: boolean;
 }[] = [
   {
     value: "Manager",
@@ -68,8 +64,6 @@ const ROLE_OPTIONS: {
       "Full access to manage campaigns, orders, customers, and team performance.",
     icon: Briefcase,
     accent: "bg-[#1877f2]",
-    ring: "ring-[#1877f2]/25",
-    recommended: true,
   },
   {
     value: "Staff",
@@ -77,7 +71,6 @@ const ROLE_OPTIONS: {
     description: "Limited access to assigned tasks and customer interactions.",
     icon: UserCog,
     accent: "bg-[#6366f1]",
-    ring: "ring-indigo-300/40",
   },
   {
     value: "Scanner",
@@ -85,9 +78,9 @@ const ROLE_OPTIONS: {
     description: "In-store access to scan codes and view orders only.",
     icon: ScanLine,
     accent: "bg-[#0f766e]",
-    ring: "ring-teal-300/40",
   },
 ];
+
 
 function resetInviteFormState(
   setEmail: (value: string) => void,
@@ -218,19 +211,34 @@ export function InviteMemberForm({
   const togglePermission = (permission: BusinessMemberPermission) => {
     setPermissions((current) => {
       const base = stripLegacyCampaignFlags(current);
-      const isOn = base.includes(permission);
-      const automationKeys = new Set<string>(AUTOMATION_ACTION_PERMISSIONS);
+      const automationBundle: BusinessMemberPermission[] = [
+        "automations",
+        ...AUTOMATION_ACTION_PERMISSIONS,
+      ];
 
-      if (!isOn && automationKeys.has(permission) && !hasAnyCampaignPermission(base)) {
-        return base;
+      if (permission === "automations") {
+        if (hasAnyAutomationPermission(base)) {
+          return base.filter((item) => !automationBundle.includes(item));
+        }
+        return [...base, ...automationBundle];
       }
 
-      if (isOn) {
-        const next = base.filter((item) => item !== permission);
-        if (!hasAnyCampaignPermission(next)) {
-          return next.filter((item) => !automationKeys.has(item));
+      if (permission === "campaigns_edit") {
+        const isOn =
+          base.includes("campaigns_edit") ||
+          base.includes("campaigns_update");
+        if (isOn) {
+          return base.filter(
+            (item) =>
+              item !== "campaigns_edit" && item !== "campaigns_update",
+          );
         }
-        return next;
+        return [...base, "campaigns_edit"];
+      }
+
+      const isOn = base.includes(permission);
+      if (isOn) {
+        return base.filter((item) => item !== permission);
       }
 
       return [...base, permission];
@@ -241,7 +249,7 @@ export function InviteMemberForm({
     const moduleValues = modulePermissionOptions.map((option) => option.value);
     const next: BusinessMemberPermission[] = [...moduleValues];
     if (showCampaignModule) {
-      next.push(...CAMPAIGN_ACTION_PERMISSIONS);
+      next.push(...CAMPAIGN_ACTION_PERMISSIONS, ...CAMPAIGN_WORKSPACE_PERMISSIONS);
     }
     if (showMetaCampaignModule) {
       next.push(...META_CAMPAIGN_ACTION_PERMISSIONS);
@@ -250,13 +258,10 @@ export function InviteMemberForm({
       next.push(...GOOGLE_CAMPAIGN_ACTION_PERMISSIONS);
     }
     if (showAutomationModule) {
-      next.push(...AUTOMATION_ACTION_PERMISSIONS);
+      next.push("automations", ...AUTOMATION_ACTION_PERMISSIONS);
     }
     if (showFunnelModule) {
       next.push("funnels_edit");
-    }
-    if (role === "Manager") {
-      next.push("members", "settings");
     }
     setPermissions(next);
   };
@@ -292,13 +297,9 @@ export function InviteMemberForm({
               <UserPlus className="size-5 sm:size-6" strokeWidth={2.25} />
             </span>
             <div className="min-w-0 flex-1 pr-1">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#bfdbfe] sm:px-2.5 sm:py-1 sm:text-[0.68rem]">
-                <Sparkles className="size-3" aria-hidden />
-                {isEdit ? (isActiveEdit ? "Member access" : "Pending invite") : "Team invite"}
-              </div>
               <h2
                 id="invite-member-title"
-                className="mt-1.5 text-lg font-extrabold tracking-tight text-[#07111f] sm:mt-2 sm:text-xl"
+                className="text-lg font-extrabold tracking-tight text-[#07111f] sm:text-xl"
               >
                 {isEdit
                   ? isActiveEdit
@@ -364,58 +365,48 @@ export function InviteMemberForm({
         </div>
 
         <div>
-          <span className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-slate-700">
-            <Shield className="size-3.5 text-[#1877f2]" aria-hidden />
+          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-700">
             Choose role
           </span>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+          <ul className="m-0 list-none space-y-3 p-0">
             {ROLE_OPTIONS.map((option) => {
               const selected = role === option.value;
               const Icon = option.icon;
-
               return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleRoleChange(option.value)}
-                  disabled={inviteMutation.isPending}
-                  className={`group relative cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-all duration-200 sm:rounded-2xl sm:p-4 ${
-                    selected
-                      ? `border-[#1877f2] bg-[#f4f8ff] shadow-[0_10px_24px_rgba(24,119,242,0.12)] ring-2 ${option.ring}`
-                      : "border-[#e8edf5] bg-white hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span
-                      className={`flex size-9 items-center justify-center rounded-lg ${option.accent} text-white shadow-md sm:size-10 sm:rounded-xl`}
-                    >
-                      <Icon
-                        className="size-4 sm:size-5"
-                        strokeWidth={2.25}
+                <li key={option.value}>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange(option.value)}
+                    disabled={inviteMutation.isPending}
+                    className="flex w-full cursor-pointer items-start gap-2.5 rounded-md p-0 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="flex h-8 shrink-0 items-center gap-2.5">
+                      <span
+                        className={`size-2.5 shrink-0 rounded-full ${
+                          selected ? "bg-[#1877f2]" : "bg-[#cbd5e1]"
+                        }`}
                         aria-hidden
                       />
+                      <span
+                        className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-white ${option.accent}`}
+                        aria-hidden
+                      >
+                        <Icon className="size-4" strokeWidth={2.25} />
+                      </span>
                     </span>
-                    {selected ? (
-                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#1877f2] text-white sm:size-6">
-                        <Check className="size-3 sm:size-3.5" strokeWidth={3} aria-hidden />
+                    <span>
+                      <span className="block text-sm font-semibold text-[#07111f]">
+                        {option.label}
                       </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-2.5 text-sm font-bold text-[#07111f] sm:mt-3">
-                    {option.label}
-                    {option.recommended ? (
-                      <span className="ml-2 inline-flex rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#1877f2]">
-                        Recommended
+                      <span className="mt-0.5 block text-sm leading-relaxed text-[#64748b]">
+                        {option.description}
                       </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-1 text-[0.7rem] leading-relaxed text-slate-500 sm:text-xs">
-                    {option.description}
-                  </p>
-                </button>
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
 
         <div>

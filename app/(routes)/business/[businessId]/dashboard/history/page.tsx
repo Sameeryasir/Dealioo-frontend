@@ -17,11 +17,11 @@ export default function BusinessHistoryPage() {
     [params.businessId],
   );
 
-  const { access, isFetched } = useBusinessMembershipPermissions(
+  const { can, isFetched } = useBusinessMembershipPermissions(
     businessId ?? null,
   );
   const canAccess = canViewBusinessHistory({
-    membershipAccess: access,
+    canHistory: can("history"),
     membershipLoaded: isFetched,
   });
 
