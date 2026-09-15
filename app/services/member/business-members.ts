@@ -112,6 +112,13 @@ function parseMemberItem(raw: unknown): BusinessMemberListItem | null {
         ? row.invited_at
         : undefined;
 
+  const joinedAt =
+    typeof row.joinedAt === "string"
+      ? row.joinedAt
+      : typeof row.joined_at === "string"
+        ? row.joined_at
+        : invitedAt;
+
   const expiresAt =
     typeof row.expiresAt === "string"
       ? row.expiresAt
@@ -129,6 +136,7 @@ function parseMemberItem(raw: unknown): BusinessMemberListItem | null {
     role,
     status,
     permissions,
+    joinedAt,
     invitedAt,
     expiresAt,
   };

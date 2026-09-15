@@ -7,6 +7,7 @@ import {
   readChatHasUnread,
   writeChatHasUnread,
 } from "@/app/lib/chat-unread-storage";
+import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,6 +27,7 @@ function resolveUserId(): number | null {
 export type ChatSidebarUnreadState = {
   hasUnread: boolean;
   latestAt: string | null;
+  markAllChatsRead: () => Promise<void>;
 };
 
 export function useChatSidebarUnread(
@@ -65,6 +67,18 @@ export function useChatSidebarUnread(
     },
     [],
   );
+
+  const markAllChatsRead = useCallback(async () => {
+    const business = businessIdRef.current;
+    const user = userIdRef.current;
+    if (business == null || business < 1 || user == null) return;
+    persistUnread(user, business, false, null);
+    try {
+      await markRestaurantChatsRead(business);
+      writeChatHasUnread(user, business, false);
+    } catch {
+    }
+  }, [persistUnread]);
 
   useEffect(() => {
     if (businessId == null || businessId < 1 || userId == null) {
@@ -142,11 +156,13 @@ export function useChatSidebarUnread(
       typeof payload.message.sentAt === "string"
         ? payload.message.sentAt
         : new Date().toISOString();
+    playNotificationChime();
     persistUnread(user, business, true, sentAt);
   });
 
   return {
     hasUnread: hasUnread && !onChatsPage,
     latestAt: hasUnread && !onChatsPage ? latestAt : null,
+    markAllChatsRead,
   };
 }

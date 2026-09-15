@@ -75,6 +75,7 @@ export type BusinessMemberListItem = {
   role: string;
   status: BusinessMemberStatus;
   permissions: ListedMemberPermission[];
+  joinedAt?: string;
   invitedAt?: string;
   expiresAt?: string;
 };

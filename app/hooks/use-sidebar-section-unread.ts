@@ -1,6 +1,7 @@
 "use client";
 
 import { hasAuthSession } from "@/app/lib/auth-session";
+import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   readSectionUnreadCount,
@@ -79,6 +80,7 @@ export type BusinessSidebarSectionUnreadState = {
     removedPermissions: string[];
     updatedAt: string;
   } | null;
+  markAllSectionsRead: () => Promise<void>;
 };
 
 const EMPTY_LATEST: SidebarSectionLatestAts = {
@@ -180,6 +182,26 @@ export function useBusinessSidebarSectionUnread(
     },
     [persist],
   );
+
+  const markAllSectionsRead = useCallback(async () => {
+    const business = businessIdRef.current;
+    const user = userIdRef.current;
+    if (business == null || business < 1 || user == null) return;
+
+    const enabledMap = enabledRef.current;
+    const toClear = SECTIONS.filter((section) => enabledMap[section]);
+    for (const section of toClear) {
+      persist(user, business, section, 0, null, null);
+    }
+    setLatestGuestJoined(null);
+    setLatestAccessUpdated(null);
+
+    await Promise.all(
+      toClear.map((section) =>
+        markSidebarSectionRead(business, section).catch(() => null),
+      ),
+    );
+  }, [persist]);
 
   const refreshFromServer = useCallback(
     async (id: number, business: number) => {
@@ -354,6 +376,7 @@ export function useBusinessSidebarSectionUnread(
       writeSectionUnreadCount(user, business, payload.section, next);
       return { ...prev, [payload.section]: next };
     });
+    playNotificationChime();
     scheduleRefreshFromServer(user, business);
   });
 
@@ -381,6 +404,7 @@ export function useBusinessSidebarSectionUnread(
     },
     latestGuestJoined,
     latestAccessUpdated,
+    markAllSectionsRead,
   };
 }
 

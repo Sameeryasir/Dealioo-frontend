@@ -58,7 +58,7 @@ const billingNav: NavItem[] = [
 
 const organizationNav: NavItem[] = [
   { id: "general", label: "Business profile", icon: Building2, tone: "blue" },
-  { id: "members", label: "Members", icon: Users, tone: "green" },
+  { id: "members", label: "Team", icon: Users, tone: "green" },
   { id: "integrations", label: "Integrations", icon: Link2, tone: "pink" },
   { id: "usage", label: "Usage", icon: BarChart3, tone: "orange" },
   { id: "scanning", label: "Scanning", icon: ScanLine, tone: "blue" },
@@ -68,7 +68,7 @@ const sectionTitles: Record<SectionId, string> = {
   account: "Account",
   billing: "Subscription & Billing",
   general: "Business profile",
-  members: "Members",
+  members: "Team",
   integrations: "Integrations",
   usage: "Usage",
   scanning: "Scanning",

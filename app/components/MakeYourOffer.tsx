@@ -21,6 +21,8 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { setOffer, setOkayimageUrl, setPrice } from "@/app/store/campaignSlice";
 import {
+  CAMPAIGN_DESCRIPTION_MAX_LENGTH,
+  CAMPAIGN_OFFER_MAX_LENGTH,
   campaignDescriptionValidationMessage,
   offerNameValidationMessage,
   offerPriceValidationMessage,
@@ -353,8 +355,9 @@ export default function MakeYourOffer({
                 type="text"
                 autoComplete="off"
                 value={offerName}
+                maxLength={CAMPAIGN_OFFER_MAX_LENGTH}
                 onChange={(e) => {
-                  const v = e.target.value;
+                  const v = e.target.value.slice(0, CAMPAIGN_OFFER_MAX_LENGTH);
                   setOfferName(v);
                   dispatch(setOffer(v));
                   if (nameErr) setNameErr(offerNameValidationMessage(v));
@@ -369,6 +372,9 @@ export default function MakeYourOffer({
                 placeholder="e.g. Free appetizer with entrée"
               />
             </div>
+            <p className="mt-1 text-right text-[0.7rem] text-slate-400">
+              {offerName.length}/{CAMPAIGN_OFFER_MAX_LENGTH}
+            </p>
             {nameErr ? (
               <p className="mt-1.5 text-sm text-red-600" role="alert">
                 {nameErr}
@@ -392,8 +398,12 @@ export default function MakeYourOffer({
                 name="campaignDescription"
                 rows={3}
                 value={description}
+                maxLength={CAMPAIGN_DESCRIPTION_MAX_LENGTH}
                 onChange={(e) => {
-                  const v = e.target.value;
+                  const v = e.target.value.slice(
+                    0,
+                    CAMPAIGN_DESCRIPTION_MAX_LENGTH,
+                  );
                   setDescription(v);
                   if (descErr) {
                     setDescErr(campaignDescriptionValidationMessage(v));
@@ -411,6 +421,9 @@ export default function MakeYourOffer({
                 placeholder="What customers get"
               />
             </div>
+            <p className="mt-1 text-right text-[0.7rem] text-slate-400">
+              {description.length}/{CAMPAIGN_DESCRIPTION_MAX_LENGTH}
+            </p>
             {descErr ? (
               <p className="mt-1.5 text-sm text-red-600" role="alert">
                 {descErr}

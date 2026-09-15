@@ -56,8 +56,8 @@ const campaignsCardClass =
   "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
 
 const campaignsGridClass =
-  "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4";
-const campaignCardWrapClass = "min-w-0";
+  "grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4";
+const campaignCardWrapClass = "min-w-0 w-full max-w-[25.5rem]";
 
 function getEmptyFilterMessage(
   statusFilter: StatusFilter,
@@ -546,6 +546,7 @@ export function BusinessCampaignsPanel({
             queryKey: [...funnelQueryKeys.campaigns(), businessId],
           });
         }}
+        onDeleteRequest={setCampaignPendingDelete}
       />
 
       <DeleteConfirmationDialog

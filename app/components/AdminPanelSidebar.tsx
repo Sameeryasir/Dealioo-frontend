@@ -221,7 +221,7 @@ export default function AdminPanelSidebar() {
           href: businessId
             ? `${restaurantHomeHref}/members`
             : "/dashboard/members",
-          label: "Members",
+          label: "Team",
           icon: UserPlus,
           activeMatch: "prefix",
           showWhen: canViewMembers,

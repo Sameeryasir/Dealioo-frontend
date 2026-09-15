@@ -179,7 +179,7 @@ export default function CampaignFunnelCard({
   }, [previewOpen, updatePreviewPosition, closePreview]);
 
   return (
-    <div className="org-campaign-card group relative flex w-full max-w-none flex-col overflow-hidden">
+    <div className="org-campaign-card group relative flex w-full max-w-[25.5rem] flex-col overflow-hidden">
       {showActionsMenu ? (
         <div ref={anchorRef} className="absolute right-2.5 top-2.5 z-20">
           <button
@@ -300,7 +300,7 @@ export default function CampaignFunnelCard({
                   setPreviewOpen(true);
                 }
               }}
-              className={`org-campaign-card-image-trigger relative shrink-0 ${
+              className={`org-campaign-card-image-trigger relative mt-1.5 shrink-0 ${
                 canPreviewImage ? "cursor-zoom-in" : "cursor-default"
               }`}
             >
@@ -312,25 +312,23 @@ export default function CampaignFunnelCard({
               />
             </span>
             <div className="org-campaign-card-copy min-w-0 flex-1">
-              <div className="flex flex-wrap items-start gap-2">
-                <h3 className="org-campaign-card-title m-0 line-clamp-2 min-w-0 flex-1 text-[0.95rem] font-extrabold leading-snug sm:text-[1rem]">
-                  {title}
-                </h3>
-                {funnel.published === true ||
-                funnel.status?.trim().toLowerCase() === "published" ? (
-                  <span className="org-campaign-card-status org-campaign-card-status--published">
-                    <span className="org-campaign-card-status-dot" aria-hidden />
-                    Published
-                  </span>
-                ) : (
-                  <span className="org-campaign-card-status org-campaign-card-status--unpublished">
-                    <span className="org-campaign-card-status-dot" aria-hidden />
-                    Unpublished
-                  </span>
-                )}
-              </div>
+              <h3 className="org-campaign-card-title m-0 line-clamp-2 min-w-0 text-[0.95rem] font-extrabold leading-snug sm:text-[1rem]">
+                {title}
+              </h3>
+              {funnel.published === true ||
+              funnel.status?.trim().toLowerCase() === "published" ? (
+                <span className="org-campaign-card-status org-campaign-card-status--published mt-1.5">
+                  <span className="org-campaign-card-status-dot" aria-hidden />
+                  Published
+                </span>
+              ) : (
+                <span className="org-campaign-card-status org-campaign-card-status--unpublished mt-1.5">
+                  <span className="org-campaign-card-status-dot" aria-hidden />
+                  Unpublished
+                </span>
+              )}
               {description ? (
-                <p className="org-campaign-card-desc m-0 mt-1.5 line-clamp-3 text-[0.68rem] leading-relaxed sm:text-[0.72rem]">
+                <p className="org-campaign-card-desc m-0 mt-1.5 line-clamp-3 text-left text-[0.68rem] leading-relaxed sm:text-[0.72rem]">
                   {description}
                 </p>
               ) : null}
@@ -338,7 +336,7 @@ export default function CampaignFunnelCard({
           </div>
 
           {showOfferBar ? (
-            <div className="org-campaign-card-offer-bar mt-3 inline-flex max-w-full items-center gap-1.5">
+            <div className="org-campaign-card-offer-bar mt-3 mr-auto inline-flex max-w-full items-center gap-1.5">
               <Tag className="size-3 shrink-0" strokeWidth={2.25} aria-hidden />
               <span className="line-clamp-1">
                 Offer: {offerName}
@@ -346,26 +344,28 @@ export default function CampaignFunnelCard({
             </div>
           ) : null}
 
-          <div className="org-campaign-card-footer mt-auto flex items-end justify-between gap-2 pt-3">
-            {priceText ? (
-              <p className="org-campaign-card-price m-0 text-[1.35rem] font-extrabold leading-none sm:text-[1.45rem]">
-                {priceText}
-              </p>
-            ) : campaignTypeLabel ? (
-              <span className="org-campaign-card-type inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.04em]">
-                {campaignTypeLabel}
-              </span>
-            ) : (
-              <span className="org-campaign-card-meta text-[0.72rem] font-medium">
-                No price set
-              </span>
-            )}
-            {created ? (
-              <p className="org-campaign-card-date m-0 inline-flex items-center gap-1 text-[0.65rem] font-medium sm:text-[0.68rem]">
-                <CalendarDays className="size-3 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                {created}
-              </p>
-            ) : null}
+          <div className="mt-auto w-full pt-4">
+            <div className="org-campaign-card-footer flex items-end justify-between gap-2 border-t border-[#e8eef7] pt-3">
+              {priceText ? (
+                <p className="org-campaign-card-price m-0 text-[1.35rem] font-extrabold leading-none sm:text-[1.45rem]">
+                  {priceText}
+                </p>
+              ) : campaignTypeLabel ? (
+                <span className="org-campaign-card-type inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.04em]">
+                  {campaignTypeLabel}
+                </span>
+              ) : (
+                <span className="org-campaign-card-meta text-[0.72rem] font-medium">
+                  No price set
+                </span>
+              )}
+              {created ? (
+                <p className="org-campaign-card-date m-0 inline-flex items-center gap-1 text-[0.65rem] font-medium sm:text-[0.68rem]">
+                  <CalendarDays className="size-3 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                  {created}
+                </p>
+              ) : null}
+            </div>
           </div>
         </article>
       </Link>

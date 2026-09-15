@@ -6,12 +6,15 @@ export function parseOfferPrice(raw: string): number {
   return n;
 }
 
+export const CAMPAIGN_OFFER_MAX_LENGTH = 50;
+
 export function isValidOfferName(raw: string): boolean {
   const trimmed = raw.trim();
-  return trimmed.length >= 2 && trimmed.length <= 120;
+  return (
+    trimmed.length >= 2 && trimmed.length <= CAMPAIGN_OFFER_MAX_LENGTH
+  );
 }
 
-/** Campaign create flow: price must be a non-negative number with up to 2 decimals. */
 export function isValidOfferPrice(raw: string): boolean {
   const trimmed = raw.trim();
   if (!trimmed) return false;
@@ -24,7 +27,9 @@ export function offerNameValidationMessage(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return "Enter an offer name.";
   if (trimmed.length < 2) return "Offer name must be at least 2 characters.";
-  if (trimmed.length > 120) return "Offer name must be 120 characters or less.";
+  if (trimmed.length > CAMPAIGN_OFFER_MAX_LENGTH) {
+    return `Offer name must be ${CAMPAIGN_OFFER_MAX_LENGTH} characters or less.`;
+  }
   return null;
 }
 
@@ -37,14 +42,16 @@ export function offerPriceValidationMessage(raw: string): string | null {
   return null;
 }
 
+export const CAMPAIGN_DESCRIPTION_MAX_LENGTH = 80;
+
 export function campaignDescriptionValidationMessage(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return "Enter a campaign description.";
   if (trimmed.length < 10) {
     return "Description must be at least 10 characters.";
   }
-  if (trimmed.length > 2000) {
-    return "Description must be 2000 characters or less.";
+  if (trimmed.length > CAMPAIGN_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${CAMPAIGN_DESCRIPTION_MAX_LENGTH} characters or less.`;
   }
   return null;
 }

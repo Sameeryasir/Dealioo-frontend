@@ -4,15 +4,14 @@ import {
   AlertCircle,
   Check,
   CircleDollarSign,
+  CloudUpload,
   FileText,
   Gift,
   ImageIcon,
-  ImagePlus,
   Loader2,
   Megaphone,
-  Pencil,
   Radio,
-  Upload,
+  Trash2,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -28,7 +27,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { parseOfferPrice, campaignDescriptionValidationMessage } from "@/app/lib/campaign-form";
+import {
+  CAMPAIGN_DESCRIPTION_MAX_LENGTH,
+  CAMPAIGN_OFFER_MAX_LENGTH,
+  campaignDescriptionValidationMessage,
+  offerNameValidationMessage,
+  parseOfferPrice,
+} from "@/app/lib/campaign-form";
 import { upsertCampaignInQueryClient } from "@/app/lib/campaign-query-cache";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { parseCampaignFromApi } from "@/app/services/funnel/get-campaigns-by-business";
@@ -38,6 +43,8 @@ import {
 } from "@/app/services/funnel/update-campaign";
 import { getAutomations } from "@/app/services/automation/automation-api";
 import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
+
+const CAMPAIGN_NAME_MAX_LENGTH = 100;
 
 function resolveCampaignStatus(
   campaign: Funnel,
@@ -51,28 +58,42 @@ function resolveCampaignStatus(
 }
 
 const inputClassName =
-  "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:text-slate-400 hover:border-[#bfdbfe] focus:border-[#1877f2]/55 focus:bg-white focus:ring-2 focus:ring-[#1877f2]/18 disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60";
 
-function FieldLabel({
+function FieldHeader({
   icon: Icon,
   htmlFor,
-  children,
+  label,
+  required,
+  count,
 }: {
   icon: LucideIcon;
-  htmlFor: string;
-  children: ReactNode;
+  htmlFor?: string;
+  label: string;
+  required?: boolean;
+  count?: string;
 }) {
   return (
-    <label
-      htmlFor={htmlFor}
-      className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-700"
-    >
-      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
-        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-      </span>
-      {children}
-    </label>
+    <div className="mb-1.5 flex items-center justify-between gap-2">
+      <label
+        htmlFor={htmlFor}
+        className="flex items-center gap-2 text-sm font-semibold text-[#07111f]"
+      >
+        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+          <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+        </span>
+        {label}
+        {required ? <span className="text-red-500">*</span> : null}
+      </label>
+      {count ? (
+        <span className="text-[0.7rem] font-medium text-slate-400">{count}</span>
+      ) : null}
+    </div>
   );
+}
+
+function FieldHint({ children }: { children: ReactNode }) {
+  return <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{children}</p>;
 }
 
 function parsePrice(raw: number | string | undefined): string {
@@ -86,11 +107,13 @@ export function EditCampaignModal({
   campaign,
   onOpenChange,
   onSaved,
+  onDeleteRequest,
 }: {
   open: boolean;
   campaign: Funnel | null | undefined;
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void | Promise<void>;
+  onDeleteRequest?: (campaign: Funnel) => void;
 }) {
   const queryClient = useQueryClient();
   const titleId = useId();
@@ -117,12 +140,20 @@ export function EditCampaignModal({
   useEffect(() => {
     if (!open || !campaign) return;
     setCampaignName(campaign.campaignName?.trim() ?? "");
-    setOffer(campaign.offer?.trim() ?? "");
-    setDescription(campaign.description?.trim() ?? "");
+    setOffer(
+      (campaign.offer?.trim() ?? "").slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
+    );
+    setDescription(
+      (campaign.description?.trim() ?? "").slice(
+        0,
+        CAMPAIGN_DESCRIPTION_MAX_LENGTH,
+      ),
+    );
     setPrice(parsePrice(campaign.price));
     setStatus(resolveCampaignStatus(campaign));
     setImageFile(null);
-    setPreviewUrl(campaign.imageUrl?.trim() || null);
+    const image = campaign.imageUrl?.trim() || null;
+    setPreviewUrl(image);
     setError(null);
     setIsSaving(false);
     setIsDragging(false);
@@ -161,6 +192,10 @@ export function EditCampaignModal({
 
   const applyImageFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be 5MB or smaller.");
+      return;
+    }
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
     }
@@ -168,6 +203,17 @@ export function EditCampaignModal({
     objectUrlRef.current = nextUrl;
     setImageFile(file);
     setPreviewUrl(nextUrl);
+    setError(null);
+  };
+
+  const clearPreviewImage = () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    setImageFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleDragOver = (e: DragEvent) => {
@@ -194,6 +240,23 @@ export function EditCampaignModal({
     try {
       setError(null);
       setIsSaving(true);
+      const trimmedName = campaignName.trim();
+      if (!trimmedName) {
+        setError("Enter a campaign name.");
+        setIsSaving(false);
+        return;
+      }
+      if (trimmedName.length > CAMPAIGN_NAME_MAX_LENGTH) {
+        setError(`Campaign name must be ${CAMPAIGN_NAME_MAX_LENGTH} characters or less.`);
+        setIsSaving(false);
+        return;
+      }
+      const offerError = offerNameValidationMessage(offer);
+      if (offerError) {
+        setError(offerError);
+        setIsSaving(false);
+        return;
+      }
       const descriptionError = campaignDescriptionValidationMessage(description);
       if (descriptionError) {
         setError(descriptionError);
@@ -219,7 +282,7 @@ export function EditCampaignModal({
 
       const updatedBody = await updateCampaign({
         campaignId: campaign.id,
-        campaignName: campaignName.trim(),
+        campaignName: trimmedName,
         websiteUrl: campaign.websiteUrl?.trim() ?? "",
         offer: offer.trim(),
         description: description.trim(),
@@ -231,7 +294,7 @@ export function EditCampaignModal({
         parseCampaignFromApi(updatedBody) ??
         ({
           ...campaign,
-          campaignName: campaignName.trim(),
+          campaignName: trimmedName,
           offer: offer.trim(),
           description: description.trim(),
           price: parseOfferPrice(price),
@@ -265,294 +328,362 @@ export function EditCampaignModal({
 
   return createPortal(
     <>
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#07111f]/55 p-3 backdrop-blur-[6px] sm:p-4"
-      role="presentation"
-      onClick={() => {
-        if (!isSaving) onOpenChange(false);
-      }}
-    >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="relative flex max-h-[min(92vh,44rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.35rem] border border-[#e2eaf5] bg-white shadow-[0_28px_64px_rgba(7,17,31,0.3)]"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-[#07111f]/45 p-3 backdrop-blur-[4px] sm:p-5"
+        role="presentation"
+        onClick={() => {
+          if (!isSaving) onOpenChange(false);
+        }}
       >
-        <div className="relative shrink-0 overflow-hidden border-b border-[#e8f0fb] bg-gradient-to-b from-[#f4f8ff] to-white px-5 py-4">
-          <div
-            className="pointer-events-none absolute -right-8 -top-10 size-36 rounded-full bg-[#1877f2]/10 blur-2xl"
-            aria-hidden
-          />
-          <div className="relative flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)]">
-                <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2
-                  id={titleId}
-                  className="text-base font-extrabold tracking-tight text-[#07111f]"
-                >
-                  Edit campaign
-                </h2>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                  Update name, description, offer, price, status, and image
-                </p>
-              </div>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="relative flex max-h-[min(94dvh,58rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_28px_64px_rgba(7,17,31,0.28)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
+            <div className="min-w-0">
+              <h2
+                id={titleId}
+                className="text-lg font-extrabold tracking-tight text-[#07111f]"
+              >
+                Edit campaign
+              </h2>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Update your campaign details and offer image
+              </p>
             </div>
             <button
               type="button"
               aria-label="Close"
               disabled={isSaving}
               onClick={() => onOpenChange(false)}
-              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-[#1877f2] hover:shadow-sm disabled:opacity-50"
+              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
             >
               <X className="size-4" strokeWidth={2} aria-hidden />
             </button>
           </div>
-        </div>
 
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={(e) => void handleSubmit(e)}
-        >
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-[#fafbfd] px-5 py-4">
-            <div>
-              <FieldLabel htmlFor="edit-campaign-name" icon={Megaphone}>
-                Campaign name
-              </FieldLabel>
-              <input
-                id="edit-campaign-name"
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-                className={inputClassName}
-                placeholder="Campaign name"
-                disabled={isSaving}
-                required
-              />
-            </div>
-
-            <div>
-              <FieldLabel htmlFor="edit-campaign-description" icon={FileText}>
-                Description
-              </FieldLabel>
-              <textarea
-                id="edit-campaign-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className={`${inputClassName} min-h-[6rem] resize-none leading-relaxed`}
-                placeholder="Describe what customers get and why they should care."
-                disabled={isSaving}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_7.25rem]">
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(e) => void handleSubmit(e)}
+          >
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
               <div>
-                <FieldLabel htmlFor="edit-campaign-offer" icon={Gift}>
-                  Offer
-                </FieldLabel>
+                <FieldHeader
+                  icon={Megaphone}
+                  htmlFor="edit-campaign-name"
+                  label="Campaign name"
+                  required
+                  count={`${campaignName.length}/${CAMPAIGN_NAME_MAX_LENGTH}`}
+                />
                 <input
-                  id="edit-campaign-offer"
-                  value={offer}
-                  onChange={(e) => setOffer(e.target.value)}
+                  id="edit-campaign-name"
+                  value={campaignName}
+                  onChange={(e) =>
+                    setCampaignName(
+                      e.target.value.slice(0, CAMPAIGN_NAME_MAX_LENGTH),
+                    )
+                  }
+                  maxLength={CAMPAIGN_NAME_MAX_LENGTH}
                   className={inputClassName}
-                  placeholder="Offer name"
+                  placeholder="Campaign name"
                   disabled={isSaving}
                   required
                 />
+                <FieldHint>Give your campaign a clear and catchy name.</FieldHint>
               </div>
+
               <div>
-                <FieldLabel htmlFor="edit-campaign-price" icon={CircleDollarSign}>
-                  Price
-                </FieldLabel>
-                <input
-                  id="edit-campaign-price"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  inputMode="decimal"
-                  className={inputClassName}
-                  placeholder="0.00"
+                <FieldHeader
+                  icon={FileText}
+                  htmlFor="edit-campaign-description"
+                  label="Description"
+                  count={`${description.length}/${CAMPAIGN_DESCRIPTION_MAX_LENGTH}`}
+                />
+                <textarea
+                  id="edit-campaign-description"
+                  value={description}
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value.slice(0, CAMPAIGN_DESCRIPTION_MAX_LENGTH),
+                    )
+                  }
+                  rows={3}
+                  maxLength={CAMPAIGN_DESCRIPTION_MAX_LENGTH}
+                  className={`${inputClassName} min-h-[5rem] resize-none leading-relaxed`}
+                  placeholder="Describe your campaign"
                   disabled={isSaving}
                   required
                 />
+                <FieldHint>
+                  Describe your campaign, what&apos;s included, and why it&apos;s
+                  special.
+                </FieldHint>
               </div>
-            </div>
 
-            <div>
-              <FieldLabel htmlFor="edit-campaign-status" icon={Radio}>
-                Status
-              </FieldLabel>
-              <div
-                id="edit-campaign-status"
-                role="radiogroup"
-                aria-label="Campaign status"
-                className="grid grid-cols-2 gap-2"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={status === "published"}
-                  disabled={isSaving}
-                  onClick={() => setStatus("published")}
-                  className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    status === "published"
-                      ? "border-[#bbf7d0] bg-[#dcfce7] text-[#15803d] shadow-sm ring-2 ring-[#86efac]/40"
-                      : "border-[#dbeafe] bg-white text-slate-600 hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
-                  }`}
-                >
-                  <span
-                    className={`size-2 rounded-full ${
-                      status === "published" ? "bg-[#15803d]" : "bg-slate-300"
-                    }`}
-                    aria-hidden
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.35fr_0.85fr]">
+                <div>
+                  <FieldHeader
+                    icon={Gift}
+                    htmlFor="edit-campaign-offer"
+                    label="Offer"
+                    required
+                    count={`${offer.length}/${CAMPAIGN_OFFER_MAX_LENGTH}`}
                   />
-                  Published
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={status === "unpublished"}
-                  disabled={isSaving}
-                  onClick={() => setStatus("unpublished")}
-                  className={`inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    status === "unpublished"
-                      ? "border-[#e2e8f0] bg-[#f1f5f9] text-slate-700 shadow-sm ring-2 ring-slate-200/80"
-                      : "border-[#dbeafe] bg-white text-slate-600 hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
-                  }`}
-                >
-                  <span
-                    className={`size-2 rounded-full ${
-                      status === "unpublished" ? "bg-slate-500" : "bg-slate-300"
-                    }`}
-                    aria-hidden
+                  <input
+                    id="edit-campaign-offer"
+                    value={offer}
+                    onChange={(e) =>
+                      setOffer(
+                        e.target.value.slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
+                      )
+                    }
+                    maxLength={CAMPAIGN_OFFER_MAX_LENGTH}
+                    className={inputClassName}
+                    placeholder="Offer name"
+                    disabled={isSaving}
+                    required
                   />
-                  Unpublished
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <FieldLabel htmlFor="edit-campaign-image" icon={ImageIcon}>
-                Offer image
-              </FieldLabel>
-              <input
-                ref={fileInputRef}
-                id="edit-campaign-image"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-
-              {previewUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white shadow-[0_10px_24px_rgba(24,119,242,0.08)] ring-1 ring-[#1877f2]/5">
-                  <div className="relative aspect-[16/9] w-full bg-[#eef4fb]">
-                    <img
-                      src={previewUrl}
-                      alt="Campaign offer preview"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-[#07111f]/85 via-[#0a1628]/40 to-transparent px-3 pb-3 pt-12">
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-white/95">
-                        <ImageIcon className="size-3.5 text-[#93c5fd]" aria-hidden />
-                        Current offer image
-                      </p>
-                      <button
-                        type="button"
-                        disabled={isSaving}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#07111f] shadow-md transition hover:bg-[#eef5ff] disabled:opacity-50"
-                      >
-                        <Upload className="size-3.5 text-[#1877f2]" aria-hidden />
-                        Replace
-                      </button>
-                    </div>
-                  </div>
+                  <FieldHint>
+                    Enter the special offer or headline for this campaign.
+                  </FieldHint>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  aria-label="Upload offer image"
-                  disabled={isSaving}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-                    isDragging
-                      ? "scale-[1.01] border-[#1877f2] bg-[#eef5ff] shadow-md ring-2 ring-[#1877f2]/15"
-                      : "border-[#dbeafe] bg-white hover:border-[#1877f2]/45 hover:bg-[#f4f8ff]"
-                  }`}
+                <div>
+                  <FieldHeader
+                    icon={CircleDollarSign}
+                    htmlFor="edit-campaign-price"
+                    label="Price"
+                    required
+                  />
+                  <input
+                    id="edit-campaign-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    inputMode="decimal"
+                    className={inputClassName}
+                    placeholder="0.00"
+                    disabled={isSaving}
+                    required
+                  />
+                  <FieldHint>Set the offer price (e.g. 22.00).</FieldHint>
+                </div>
+              </div>
+
+              <div>
+                <FieldHeader
+                  icon={Radio}
+                  htmlFor="edit-campaign-status"
+                  label="Status"
+                  required
+                />
+                <div
+                  id="edit-campaign-status"
+                  role="radiogroup"
+                  aria-label="Campaign status"
+                  className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
                 >
-                  <span
-                    className={`flex size-12 items-center justify-center rounded-xl shadow-sm transition-colors ${
-                      isDragging
-                        ? "bg-[#1877f2] text-white"
-                        : "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#dbeafe]"
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={status === "published"}
+                    disabled={isSaving}
+                    onClick={() => setStatus("published")}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      status === "published"
+                        ? "border-[#86efac] bg-[#f0fdf4] ring-1 ring-[#86efac]/50"
+                        : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
                     }`}
                   >
-                    <ImagePlus className="size-6" strokeWidth={1.5} aria-hidden />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-[#07111f]">
-                      {isDragging ? "Drop image here" : "Upload offer image"}
+                    <span
+                      className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                        status === "published"
+                          ? "border-[#16a34a] bg-[#16a34a]"
+                          : "border-slate-300 bg-white"
+                      }`}
+                      aria-hidden
+                    >
+                      {status === "published" ? (
+                        <span className="size-1.5 rounded-full bg-white" />
+                      ) : null}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">
-                      Drag & drop or click to browse · PNG, JPG, WebP
+                    <span>
+                      <span className="block text-sm font-bold text-[#07111f]">
+                        Published
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Visible to customers.
+                      </span>
                     </span>
-                  </span>
-                  <span className="rounded-full bg-[#1877f2] px-3.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(24,119,242,0.25)]">
-                    Browse files
-                  </span>
-                </button>
-              )}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={status === "unpublished"}
+                    disabled={isSaving}
+                    onClick={() => setStatus("unpublished")}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      status === "unpublished"
+                        ? "border-slate-300 bg-slate-50 ring-1 ring-slate-200"
+                        : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                        status === "unpublished"
+                          ? "border-slate-500 bg-slate-500"
+                          : "border-slate-300 bg-white"
+                      }`}
+                      aria-hidden
+                    >
+                      {status === "unpublished" ? (
+                        <span className="size-1.5 rounded-full bg-white" />
+                      ) : null}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-[#07111f]">
+                        Unpublished
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Hidden from customers.
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <FieldHeader
+                  icon={ImageIcon}
+                  htmlFor="edit-campaign-image"
+                  label="Offer image"
+                />
+                <input
+                  ref={fileInputRef}
+                  id="edit-campaign-image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {previewUrl ? (
+                    <div className="relative overflow-hidden rounded-xl border border-[#e2e8f0] bg-[#f8fafc]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewUrl}
+                        alt="Campaign offer preview"
+                        className="aspect-[4/3] h-full max-h-44 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Remove image"
+                        disabled={isSaving}
+                        onClick={clearPreviewImage}
+                        className="absolute right-2 top-2 inline-flex size-8 cursor-pointer items-center justify-center rounded-full bg-white text-red-500 shadow-md transition hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex aspect-[4/3] max-h-44 items-center justify-center rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc] text-xs text-slate-400">
+                      No image selected
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    aria-label="Upload offer image"
+                    disabled={isSaving}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`flex min-h-[11rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isDragging
+                        ? "border-[#1877f2] bg-[#eef5ff]"
+                        : "border-[#dbeafe] bg-white hover:border-[#1877f2]/50 hover:bg-[#f8fbff]"
+                    }`}
+                  >
+                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+                      <CloudUpload className="size-5" strokeWidth={2} aria-hidden />
+                    </span>
+                    <span className="text-sm font-semibold text-[#07111f]">
+                      Upload a new image
+                    </span>
+                    <span className="text-xs font-medium text-[#1877f2]">
+                      Drag & drop, or click to browse
+                    </span>
+                    <span className="text-[0.7rem] text-slate-400">
+                      JPG, PNG, WebP (Max 5MB)
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {error ? (
+                <p
+                  className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+                  role="alert"
+                >
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  {error}
+                </p>
+              ) : null}
             </div>
 
-            {error ? (
-              <p
-                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
-                role="alert"
-              >
-                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {error}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex shrink-0 justify-end gap-2 border-t border-[#e8f0fb] bg-white px-5 py-3.5">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => onOpenChange(false)}
-              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] hover:text-[#1877f2] disabled:opacity-50"
-            >
-              <X className="size-4" aria-hidden />
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSaving ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
+            <div className="flex shrink-0 flex-col gap-3 border-t border-[#eef2f7] bg-white px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              {onDeleteRequest ? (
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => {
+                    onDeleteRequest(campaign);
+                    onOpenChange(false);
+                  }}
+                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-50 px-3.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                >
+                  <Trash2 className="size-4" strokeWidth={2.25} aria-hidden />
+                  Delete Campaign
+                </button>
               ) : (
-                <Check className="size-4" aria-hidden />
+                <span />
               )}
-              {isSaving ? "Saving…" : "Save changes"}
-            </button>
-          </div>
-        </form>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => onOpenChange(false)}
+                  className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[#e2e8f0] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSaving ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                  )}
+                  {isSaving ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-    <UnpublishCampaignBlockedDialog
-      open={unpublishBlockedOpen}
-      activeCount={activeAutomationCount}
-      onClose={() => setUnpublishBlockedOpen(false)}
-    />
+      <UnpublishCampaignBlockedDialog
+        open={unpublishBlockedOpen}
+        activeCount={activeAutomationCount}
+        onClose={() => setUnpublishBlockedOpen(false)}
+      />
     </>,
     document.body,
   );

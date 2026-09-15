@@ -4752,6 +4752,11 @@ body {
 
   .org-campaign-card-desc {
     color: #64748b;
+    text-align: left;
+  }
+
+  .org-campaign-card-copy {
+    text-align: left;
   }
 
   .org-campaign-card-offer-bar {
@@ -4760,9 +4765,10 @@ body {
     border-radius: 9999px;
     border: 1px solid #dbeafe;
     background: #eff6ff;
-    padding: 0.45rem 0.75rem;
+    padding: 0.32rem 0.7rem;
     font-size: 0.68rem;
     font-weight: 600;
+    line-height: 1.25;
     color: #1877f2;
   }
 

@@ -36,6 +36,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   Bell,
+  Check,
   ChevronRight,
   History,
   MessageSquare,
@@ -46,7 +47,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type NotifyRow = {
@@ -70,6 +71,7 @@ export default function BusinessNotifications() {
     useState<MemberRoleUpdatedNotification | null>(null);
   const [guestNotify, setGuestNotify] =
     useState<GuestJoinedNotification | null>(null);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
 
   const businessIdParam = params?.businessId;
   const businessId =
@@ -173,6 +175,7 @@ export default function BusinessNotifications() {
           : [],
         updatedAt: payload.updatedAt,
       });
+      playNotificationChime();
     });
 
     const unsubGuest = subscribeBusinessGuestJoined(
@@ -190,6 +193,7 @@ export default function BusinessNotifications() {
           campaignName: payload.campaignName,
           updatedAt: payload.occurredAt,
         });
+        playNotificationChime();
       },
     );
 
@@ -430,8 +434,9 @@ export default function BusinessNotifications() {
       return;
     }
 
+    const increased = prev != null && badgeTotal > prev;
     prevBadgeTotalRef.current = badgeTotal;
-    if (prev != null && badgeTotal > prev) {
+    if (increased) {
       playNotificationChime();
     }
   }, [badgeTotal, businessId, membershipFetched]);
@@ -470,6 +475,56 @@ export default function BusinessNotifications() {
     setOpen(false);
     router.push(row.href);
   };
+
+  const markAllAsRead = useCallback(async () => {
+    if (businessIdNumber == null || businessIdNumber < 1 || markingAllRead) {
+      return;
+    }
+    if (badgeTotal <= 0) return;
+
+    setMarkingAllRead(true);
+    try {
+      const userId = getSetupUser()?.id;
+      if (userId != null && userId > 0) {
+        if (accessNotify) {
+          clearMemberRoleUpdatedNotification(userId, businessIdNumber);
+        }
+        if (guestNotify) {
+          clearGuestJoinedNotification(
+            userId,
+            businessIdNumber,
+            guestNotify.updatedAt,
+          );
+        }
+      }
+      setAccessNotify(null);
+      setGuestNotify(null);
+
+      await Promise.all([
+        accessNotify
+          ? markAccessNotifyRead(businessIdNumber).catch(() => null)
+          : Promise.resolve(null),
+        sectionUnread.markAllSectionsRead(),
+        canChats && hasUnreadChats
+          ? chatUnread.markAllChatsRead()
+          : Promise.resolve(),
+      ]);
+
+      prevBadgeTotalRef.current = 0;
+    } finally {
+      setMarkingAllRead(false);
+    }
+  }, [
+    accessNotify,
+    badgeTotal,
+    businessIdNumber,
+    canChats,
+    chatUnread,
+    guestNotify,
+    hasUnreadChats,
+    markingAllRead,
+    sectionUnread,
+  ]);
 
   if (businessId == null) return null;
 
@@ -549,6 +604,23 @@ export default function BusinessNotifications() {
                 onClick={() => setOpen(false)}
               >
                 <X className="size-5" />
+              </button>
+            </div>
+
+            <div className={styles.drawerToolbar}>
+              <p className={styles.drawerSub} style={{ margin: 0 }}>
+                {badgeTotal > 0
+                  ? `${badgeTotal > 99 ? "99+" : badgeTotal} unread`
+                  : "All caught up"}
+              </p>
+              <button
+                type="button"
+                className={styles.drawerMarkAll}
+                onClick={() => void markAllAsRead()}
+                disabled={markingAllRead || badgeTotal <= 0}
+              >
+                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                {markingAllRead ? "Marking…" : "Mark all as read"}
               </button>
             </div>
 

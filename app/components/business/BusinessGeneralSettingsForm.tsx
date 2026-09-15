@@ -64,7 +64,7 @@ const PREVIEW_TITLES: Record<
     subtitle: "Manage your business information and settings",
   },
   members: {
-    title: "Members",
+    title: "Team",
     subtitle: "Invite teammates and manage access for this business",
   },
   integrations: {

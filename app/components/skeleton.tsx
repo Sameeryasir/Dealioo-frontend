@@ -61,7 +61,7 @@ export function BusinessCardSkeleton() {
 }
 
 const campaignCardShell =
-  "org-campaign-card relative flex w-full flex-col overflow-hidden sm:max-w-none";
+  "org-campaign-card relative flex w-full max-w-[25.5rem] flex-col overflow-hidden";
 
 export function CampaignFunnelCardSkeleton() {
   return (

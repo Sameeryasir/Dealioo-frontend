@@ -11,9 +11,7 @@ import {
   Copy,
   Eye,
   Filter,
-  Hourglass,
   Loader2,
-  LockOpen,
   Megaphone,
   MessageSquare,
   Pencil,
@@ -60,15 +58,6 @@ import {
   type BusinessMemberRole,
 } from "@/app/services/member/types";
 
-const LOGO = {
-  blue: "#0B69FC",
-  pink: "#F83071",
-  orange: "#FD7137",
-  purple: "#AD20E3",
-  green: "#00B34C",
-  yellow: "#FCB825",
-} as const;
-
 const MEMBERS_PAGE_SIZE = 8;
 
 function memberInitials(member: BusinessMemberListItem): string {
@@ -87,7 +76,6 @@ function memberInitials(member: BusinessMemberListItem): string {
   return (email.charAt(0) || "?").toUpperCase();
 }
 
-/** Same colorful initials as activity log / guest roster / chat. */
 const AVATAR_TONES = [
   "bg-[#7c3aed] text-white",
   "bg-[#16a34a] text-white",
@@ -128,57 +116,6 @@ function memberStatusLabel(status: BusinessMemberListItem["status"]) {
   return "Active";
 }
 
-function MembersKpiCard({
-  title,
-  value,
-  hint,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  value: number;
-  hint: string;
-  icon: LucideIcon;
-  tone: "blue" | "purple" | "orange" | "green";
-}) {
-  const tones = {
-    blue: {
-      title: "text-[#1877f2]",
-      iconWrap: "bg-[#e8f2ff] text-[#1877f2]",
-    },
-    purple: {
-      title: "text-[#7c3aed]",
-      iconWrap: "bg-[#f3e8ff] text-[#7c3aed]",
-    },
-    orange: {
-      title: "text-[#ea580c]",
-      iconWrap: "bg-[#fff4e8] text-[#ea580c]",
-    },
-    green: {
-      title: "text-[#16a34a]",
-      iconWrap: "bg-[#e9f9ef] text-[#16a34a]",
-    },
-  } as const;
-  const palette = tones[tone];
-
-  return (
-    <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center gap-2.5">
-        <span
-          className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${palette.iconWrap}`}
-        >
-          <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-        </span>
-        <p className={`m-0 text-xs font-semibold ${palette.title}`}>{title}</p>
-      </div>
-      <p className="m-0 mt-3 text-3xl font-extrabold tracking-tight text-[#0f172a]">
-        {value}
-      </p>
-      <p className="m-0 mt-1 text-xs font-medium text-slate-500">{hint}</p>
-    </div>
-  );
-}
-
 function MembersTableSkeleton() {
   return (
     <div className="space-y-3 p-5">
@@ -194,6 +131,22 @@ function MembersTableSkeleton() {
       ))}
     </div>
   );
+}
+
+function formatJoinedDate(value?: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function teamRoleLabel(member: BusinessMemberListItem): string {
+  if (member.status === "owner") return "Admin (Owner)";
+  return member.role?.trim() || "Member";
 }
 
 function formatMemberDate(value?: string) {
@@ -457,7 +410,6 @@ function MemberDetailsModal({
             className="relative flex max-h-[min(94vh,100dvh)] w-full max-w-[40rem] flex-col overflow-hidden rounded-t-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_24px_64px_rgba(15,23,42,0.22)] sm:max-h-[min(92vh,46rem)] sm:rounded-[1.35rem]"
             onClick={(event) => event.stopPropagation()}
           >
-            {/* --- Fixed white header (not in scroll) --- */}
             <div className="shrink-0 border-b border-[#eef2f7] bg-white px-5 pt-5 pb-4 sm:px-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3.5">
@@ -580,7 +532,6 @@ function MemberDetailsModal({
               ) : null}
             </div>
 
-            {/* --- Scrollable permissions only --- */}
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
               <div className="rounded-2xl border border-[#e8edf5] bg-white px-4 py-4">
                 <div className="flex items-center justify-between gap-2">
@@ -631,7 +582,6 @@ function MemberDetailsModal({
               </div>
             </div>
 
-            {/* --- Fixed footer --- */}
             <div className="flex shrink-0 flex-col gap-2.5 border-t border-[#eef2f8] bg-white px-5 py-4 sm:px-6">
               {actionMessage ? (
                 <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2 text-xs font-medium text-[#1877f2]">
@@ -945,12 +895,6 @@ export function BusinessMembersPanel({
 
   const members = membersQuery.data?.members ?? [];
   const meta = membersQuery.data?.meta;
-  const stats = membersQuery.data?.stats ?? {
-    activeCount: 0,
-    pendingCount: 0,
-    fullAccessCount: 0,
-    roleCount: 0,
-  };
   const isLoading = membersQuery.isLoading;
   const loadError = membersQuery.isError
     ? getApiErrorMessage(membersQuery.error, "Could not load members.")
@@ -996,74 +940,51 @@ export function BusinessMembersPanel({
 
   return (
     <>
-      <section className={embedded ? "space-y-4" : "space-y-5"}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#2563eb]"
-              aria-hidden
-            >
-              <Users className="size-5" strokeWidth={2.25} />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-xl font-extrabold tracking-tight text-[#0f172a] sm:text-2xl">
-                Members
-              </h1>
-              <p className="mt-0.5 text-sm font-medium text-slate-500">
-                {canManageMembers
-                  ? "Invite teammates, assign roles, and control access"
-                  : "See who is on this business and review their access"}
-              </p>
-            </div>
+      <section className={embedded ? "space-y-5" : "space-y-6"}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#0f172a] sm:text-[1.75rem]">
+              Team
+            </h1>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              {isLoading
+                ? "Loading workspace access…"
+                : `${total} ${total === 1 ? "person has" : "people have"} access to this workspace`}
+            </p>
           </div>
 
-          {canManageMembers ? (
-            <button
-              type="button"
-              onClick={openInviteModal}
-              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(37,99,235,0.25)] transition hover:opacity-90"
-              style={{ background: LOGO.blue }}
-            >
-              <Plus className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
-              Invite member
-            </button>
-          ) : null}
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
+            {!isLoading && !loadError ? (
+              <label className="relative block w-full sm:max-w-[15rem] sm:flex-1 lg:w-56 lg:flex-none">
+                <span className="sr-only">Search people</span>
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search people"
+                  className="h-10 w-full rounded-xl border border-[#e2e8f0] bg-white py-2 pl-9 pr-3 text-sm text-[#0f172a] outline-none transition placeholder:text-slate-400 focus:border-[#cbd5e1] focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+            ) : null}
+
+            {canManageMembers ? (
+              <button
+                type="button"
+                onClick={openInviteModal}
+                className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.22)] transition hover:bg-[#166fe0]"
+              >
+                <UserPlus className="size-4 shrink-0" strokeWidth={2.25} aria-hidden />
+                Invite Person
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        {canManageMembers && !isLoading && !loadError ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MembersKpiCard
-              title="Total Members"
-              value={stats.activeCount}
-              hint="Active users in this business"
-              icon={Users}
-              tone="blue"
-            />
-            <MembersKpiCard
-              title="Roles"
-              value={stats.roleCount}
-              hint="Different roles assigned"
-              icon={Shield}
-              tone="purple"
-            />
-            <MembersKpiCard
-              title="Pending Invites"
-              value={stats.pendingCount}
-              hint="Awaiting acceptance"
-              icon={Hourglass}
-              tone="orange"
-            />
-            <MembersKpiCard
-              title="Full Access"
-              value={stats.fullAccessCount}
-              hint="Members with full access"
-              icon={LockOpen}
-              tone="green"
-            />
-          </div>
-        ) : null}
-
-        <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white">
           {isLoading ? (
             <MembersTableSkeleton />
           ) : loadError ? (
@@ -1095,59 +1016,22 @@ export function BusinessMembersPanel({
               </p>
               <p className="mt-1 max-w-sm text-sm leading-relaxed text-slate-500">
                 {canManageMembers
-                  ? "You are the only member right now. Invite managers or staff to collaborate on campaigns, orders, and daily operations."
-                  : "When teammates join this business, they will show up here. You can open Details to see their role and access."}
+                  ? "Invite people to collaborate on campaigns, orders, and daily operations."
+                  : "When teammates join this business, they will show up here."}
               </p>
               {canManageMembers ? (
                 <button
                   type="button"
                   onClick={openInviteModal}
-                  className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl px-5 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
-                  style={{
-                    background: LOGO.blue,
-                    boxShadow: "0 10px 24px rgba(11,105,252,0.22)",
-                  }}
+                  className="mt-5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-bold text-white shadow-lg shadow-[#1877f2]/25 transition hover:bg-[#166fe0]"
                 >
                   <UserPlus className="size-4" strokeWidth={2.25} aria-hidden />
-                  Invite your first member
+                  Invite Person
                 </button>
               ) : null}
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-3 border-b border-[#eef2f7] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]">
-                    <Users className="size-4" strokeWidth={2.25} aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="m-0 text-sm font-bold text-[#0f172a]">
-                      {total} Member
-                      {total === 1 ? "" : "s"}
-                    </p>
-                    <p className="m-0 mt-0.5 text-xs font-medium text-slate-500">
-                      {canManageMembers
-                        ? "Manage your team members and their access"
-                        : "People with access to this business"}
-                    </p>
-                  </div>
-                </div>
-                <label className="relative block w-full sm:max-w-[16rem]">
-                  <span className="sr-only">Search members</span>
-                  <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
-                    aria-hidden
-                  />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search members..."
-                    className="h-10 w-full rounded-xl border border-[#e8edf5] bg-white py-2 pl-9 pr-3 text-sm text-[#0f172a] outline-none transition placeholder:text-slate-400 focus:border-[#bfdbfe] focus:ring-2 focus:ring-[#dbeafe]"
-                  />
-                </label>
-              </div>
-
               {actionError ? (
                 <div
                   role="alert"
@@ -1165,7 +1049,7 @@ export function BusinessMembersPanel({
               {total === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <p className="m-0 text-sm font-semibold text-[#0f172a]">
-                    No members match your search
+                    No people match your search
                   </p>
                   <p className="m-0 mt-1 text-xs text-slate-500">
                     Try a different name, email, or role.
@@ -1176,17 +1060,17 @@ export function BusinessMembersPanel({
                   <table className="min-w-full border-collapse">
                     <thead>
                       <tr className="border-b border-[#eef2f7]">
-                        <th className="whitespace-nowrap px-5 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
-                          Member
+                        <th className="whitespace-nowrap px-5 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+                          Name
                         </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
-                          Role
-                        </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
                           Status
                         </th>
-                        <th className="whitespace-nowrap px-5 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
-                          Actions
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+                          Joined
+                        </th>
+                        <th className="whitespace-nowrap px-5 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+                          Role
                         </th>
                       </tr>
                     </thead>
@@ -1200,18 +1084,23 @@ export function BusinessMembersPanel({
                         const canViewDetails = canManageMembers
                           ? member.status !== "owner"
                           : isLoggedInMember;
-                        const canRemove =
-                          canManageMembers &&
-                          member.status !== "owner" &&
-                          member.id != null &&
-                          member.id > 0;
-                        const isRemoving =
-                          canRemove && removingMemberId === member.id;
+                        const canOpenRow =
+                          canViewDetails ||
+                          (canManageMembers && member.status === "owner");
 
                         return (
                           <tr
                             key={`${member.status}-${member.email}-${member.id ?? "owner"}`}
-                            className="border-b border-[#f1f5f9] transition-colors last:border-b-0 hover:bg-[#f8fbff]"
+                            className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 ${
+                              canOpenRow
+                                ? "cursor-pointer hover:bg-[#f8fafc]"
+                                : "hover:bg-[#fafafa]"
+                            }`}
+                            onClick={() => {
+                              if (!canViewDetails) return;
+                              setDetailsActionMessage(null);
+                              setDetailsMember(member);
+                            }}
                           >
                             <td className="px-5 py-4 align-middle">
                               <div className="flex min-w-0 items-center gap-3">
@@ -1221,9 +1110,16 @@ export function BusinessMembersPanel({
                                   {initials}
                                 </span>
                                 <div className="min-w-0 leading-tight">
-                                  <p className="truncate text-sm font-bold text-[#0f172a]">
-                                    {member.name}
-                                  </p>
+                                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <p className="truncate text-sm font-bold text-[#0f172a]">
+                                      {member.name}
+                                    </p>
+                                    {isLoggedInMember ? (
+                                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500">
+                                        You
+                                      </span>
+                                    ) : null}
+                                  </div>
                                   <p className="mt-0.5 truncate text-[0.72rem] font-medium text-slate-400">
                                     {member.email}
                                   </p>
@@ -1231,65 +1127,21 @@ export function BusinessMembersPanel({
                               </div>
                             </td>
                             <td className="px-4 py-4 align-middle">
-                              <span className="text-sm font-normal text-[#0f172a]">
-                                {member.role}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 align-middle">
                               <span
-                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(member.status)}`}
+                                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(member.status)}`}
                               >
-                                <span
-                                  className={`size-1.5 rounded-full ${statusDotClass(member.status)}`}
-                                />
                                 {memberStatusLabel(member.status)}
                               </span>
                             </td>
-                            <td className="px-5 py-4 align-middle text-right">
-                              {canViewDetails || canRemove ? (
-                                <div className="inline-flex items-center justify-end gap-2">
-                                  {canViewDetails ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setDetailsActionMessage(null);
-                                        setDetailsMember(member);
-                                      }}
-                                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                                    >
-                                      <Eye className="size-3.5" aria-hidden />
-                                      Details
-                                    </button>
-                                  ) : null}
-                                  {canRemove ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setMemberToRemove(member)}
-                                      disabled={
-                                        isRemoving || removeMutation.isPending
-                                      }
-                                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {isRemoving ? (
-                                        <Loader2
-                                          className="size-3.5 animate-spin"
-                                          aria-hidden
-                                        />
-                                      ) : (
-                                        <Trash2
-                                          className="size-3.5"
-                                          aria-hidden
-                                        />
-                                      )}
-                                      {member.status === "pending"
-                                        ? "Remove access"
-                                        : "Remove"}
-                                    </button>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                <span className="text-sm text-slate-300">—</span>
+                            <td className="px-4 py-4 align-middle text-sm font-medium text-slate-500">
+                              {formatJoinedDate(
+                                member.joinedAt ?? member.invitedAt,
                               )}
+                            </td>
+                            <td className="px-5 py-4 align-middle">
+                              <span className="inline-flex rounded-full border border-[#e2e8f0] bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                                {teamRoleLabel(member)}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -1303,8 +1155,7 @@ export function BusinessMembersPanel({
                 <div className="flex flex-col gap-3 border-t border-[#eef2f7] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs font-medium text-slate-500">
                     Showing {pageFrom}–{pageTo} of {total}{" "}
-                    member
-                    {total === 1 ? "" : "s"}
+                    {total === 1 ? "person" : "people"}
                   </p>
                   <div className="inline-flex items-center gap-2">
                     <button
