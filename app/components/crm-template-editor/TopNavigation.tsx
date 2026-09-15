@@ -5,6 +5,7 @@ import {
   Eye,
   Globe,
   GlobeLock,
+  Link2,
   Loader2,
   Save,
 } from "lucide-react";
@@ -28,6 +29,8 @@ export type TopNavigationProps = {
   onUnpublish?: () => void;
   published?: boolean;
   onPreview?: () => void;
+  onTrackingLink?: () => void;
+  trackingLinkDisabled?: boolean;
   isSaving?: boolean;
   saveError?: string | null;
   embedded?: boolean;
@@ -57,6 +60,8 @@ export function TopNavigation({
   onUnpublish,
   published = false,
   onPreview,
+  onTrackingLink,
+  trackingLinkDisabled = false,
   isSaving = false,
   saveError,
   embedded = false,
@@ -66,6 +71,23 @@ export function TopNavigation({
   const campaignLine = campaignName ? campaignName : "Your campaign";
   const compact = embedded || docked;
   const ctaClass = compact ? compactPrimaryActionClass : primaryActionClass;
+
+  const trackingLinkButton = onTrackingLink ? (
+    <button
+      type="button"
+      onClick={onTrackingLink}
+      disabled={trackingLinkDisabled || isSaving}
+      title={
+        trackingLinkDisabled
+          ? "Save the funnel first to generate a tracking link"
+          : "Get link for Facebook / Google ads"
+      }
+      className={ghostActionClass}
+    >
+      <Link2 className="size-3.5" aria-hidden />
+      Tracking link
+    </button>
+  ) : null;
 
   const publishControls =
     onPublish || onUnpublish ? (
@@ -119,14 +141,17 @@ export function TopNavigation({
           </p>
         </div>
 
-        <div className="editor-panel-top-foot flex flex-nowrap items-center gap-1.5 overflow-x-auto">
-          {publishControls}
+        <div className="editor-panel-top-foot flex flex-col gap-1.5">
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+            {trackingLinkButton}
+            {publishControls}
+          </div>
           <button
             type="button"
             onClick={onSave}
             disabled={isSaving}
             title="Save changes (Ctrl+S)"
-            className={compactPrimaryActionClass}
+            className={`${compactPrimaryActionClass} w-full`}
           >
             {isSaving ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -179,6 +204,12 @@ export function TopNavigation({
           <Eye className="size-3.5" />
           Preview
         </motion.button>
+      ) : null}
+
+      {trackingLinkButton ? (
+        <motion.div variants={headerActionItemVariants}>
+          {trackingLinkButton}
+        </motion.div>
       ) : null}
 
       {publishControls ? (

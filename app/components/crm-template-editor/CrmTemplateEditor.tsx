@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { CanvasWorkspace } from "@/app/components/crm-template-editor/CanvasWorkspace";
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
@@ -9,17 +11,20 @@ import { EditorLeftSidebar } from "@/app/components/crm-template-editor/EditorLe
 import { EditorShell } from "@/app/components/crm-template-editor/EditorShell";
 import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPanel";
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
+import { FunnelTrackingLinkDialog } from "@/app/components/campaign/FunnelTrackingLinkDialog";
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
 import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
 import {
+  buildFunnelLandingTrackingUrl,
   buildFunnelPaymentConfirmationPath,
   buildFunnelPublicPath,
   openFunnelDesignPreview,
   resolveFunnelRouteId,
 } from "@/app/lib/funnel-public-path";
+import { automationEase } from "@/app/lib/motion";
 import {
   parseCampaignPrice,
   type CampaignPricing,
@@ -139,6 +144,9 @@ export function CrmTemplateEditor({
   const [isDirty, setIsDirty] = useState(false);
   const [pendingNavId, setPendingNavId] = useState<TemplatePageId | null>(null);
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [trackingCopyDone, setTrackingCopyDone] = useState(false);
+  const [trackingPortalReady, setTrackingPortalReady] = useState(false);
   const editSnapshotRef = useRef<TemplatePagesState | null>(null);
 
   const activePage = pages[activeId];
@@ -287,6 +295,56 @@ export function CrmTemplateEditor({
       offer: campaignOffer?.trim() || null,
     };
   }, [campaignPrice, campaignOffer]);
+
+  const landingTrackingUrl = useMemo(() => {
+    return buildFunnelLandingTrackingUrl({
+      funnelId,
+      campaignId,
+      businessId: previewBusinessId,
+      price: campaignPrice,
+      campaignType:
+        campaignType === "prepaid" || campaignType === "postpaid"
+          ? campaignType
+          : undefined,
+    });
+  }, [funnelId, campaignId, previewBusinessId, campaignPrice, campaignType]);
+
+  const campaignTitleForTracking =
+    campaignName?.trim() || campaignOffer?.trim() || "Campaign";
+
+  useEffect(() => {
+    setTrackingPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!trackingDialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTrackingDialogOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [trackingDialogOpen]);
+
+  const handleOpenTrackingLink = useCallback(() => {
+    setTrackingCopyDone(false);
+    setTrackingDialogOpen(true);
+  }, []);
+
+  const handleCopyTrackingUrl = useCallback(async () => {
+    if (!landingTrackingUrl) return;
+    try {
+      await navigator.clipboard.writeText(landingTrackingUrl);
+      setTrackingCopyDone(true);
+      window.setTimeout(() => setTrackingCopyDone(false), 2000);
+    } catch {
+      setTrackingCopyDone(false);
+    }
+  }, [landingTrackingUrl]);
 
   const aiPagePayload = useMemo((): Record<string, unknown> | undefined => {
     if (campaignId == null || campaignId < 1) return undefined;
@@ -590,6 +648,7 @@ export function CrmTemplateEditor({
               onUnpublish={() => void handleSetPublished(false)}
               published={published}
               onPreview={previewRouteId != null ? handlePreview : undefined}
+              onTrackingLink={handleOpenTrackingLink}
               isSaving={saveStatus === "saving"}
               saveError={saveError}
             />
@@ -644,6 +703,7 @@ export function CrmTemplateEditor({
                   onPublish={() => void handleSetPublished(true)}
                   onUnpublish={() => void handleSetPublished(false)}
                   published={published}
+                  onTrackingLink={handleOpenTrackingLink}
                   isSaving={saveStatus === "saving"}
                   saveError={saveError}
                   embedded
@@ -699,6 +759,86 @@ export function CrmTemplateEditor({
       activeDesignTemplateId={activeDesignTemplateId}
       onApplyDesign={applyFunnelPageDesign}
     />
+
+    {trackingPortalReady
+      ? createPortal(
+          <AnimatePresence>
+            {trackingDialogOpen ? (
+              <motion.div
+                key="funnel-tracking-link-dialog"
+                className="fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                role="presentation"
+              >
+                <button
+                  type="button"
+                  aria-label="Close dialog"
+                  onClick={() => setTrackingDialogOpen(false)}
+                  className="absolute inset-0 cursor-default bg-slate-900/25 backdrop-blur-[2px]"
+                />
+
+                {campaignId != null && landingTrackingUrl && funnelId != null && funnelId >= 1 ? (
+                  <FunnelTrackingLinkDialog
+                    campaignTitle={campaignTitleForTracking}
+                    funnelLive={published}
+                    landingTrackingUrl={landingTrackingUrl}
+                    funnelId={funnelId}
+                    copyDone={trackingCopyDone}
+                    onClose={() => setTrackingDialogOpen(false)}
+                    onCopy={() => void handleCopyTrackingUrl()}
+                  />
+                ) : (
+                  <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="tracking-link-dialog-title"
+                    className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_20px_50px_-16px_rgba(15,23,42,0.18)]"
+                    initial={{ opacity: 0, scale: 0.96, y: 18 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                    transition={{ duration: 0.28, ease: automationEase }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Ad tracking link
+                      </p>
+                      <h2
+                        id="tracking-link-dialog-title"
+                        className="mt-2 text-xl font-semibold text-slate-900"
+                      >
+                        Tracking link unavailable
+                      </h2>
+                    </div>
+                    <div className="px-5 py-4 sm:px-6">
+                      <div className="flex items-start gap-2.5 rounded-xl border border-amber-100 bg-amber-50/80 px-3.5 py-3 text-sm text-amber-800">
+                        <span className="mt-1.5 size-2 shrink-0 rounded-full bg-amber-400" />
+                        <p>
+                          Save this funnel first so a tracking link can be built
+                          for your ads.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
+                      <button
+                        type="button"
+                        onClick={() => setTrackingDialogOpen(false)}
+                        className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>,
+          document.body,
+        )
+      : null}
     </>
   );
 }
