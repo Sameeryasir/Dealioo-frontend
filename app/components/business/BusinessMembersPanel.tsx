@@ -28,6 +28,7 @@ import { getSetupUser } from "@/app/lib/setup-user";
 import { standardEase } from "@/app/lib/motion";
 import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-members";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   cancelPendingBusinessInvitation,
@@ -457,6 +458,9 @@ export function BusinessMembersPanel({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const canManageMembers = isAdminOrSuperAdminUser();
+  const { can, isOwnerLike, isFetched: membershipFetched, role, permissionList } =
+    useBusinessMembershipPermissions(businessId);
+  const canViewTeam = canManageMembers || isOwnerLike || can("members");
   const loggedInUserId = getSetupUser()?.id ?? null;
   const openSelfDetailsRequested =
     searchParams.get("openSelfDetails") === "1";
@@ -499,6 +503,7 @@ export function BusinessMembersPanel({
       return;
     }
     if (openSelfDetailsHandledRef.current) return;
+    if (!canViewTeam) return;
 
     const email = getSetupUser()?.email?.trim() ?? "";
     if (!email) return;
@@ -507,7 +512,7 @@ export function BusinessMembersPanel({
     setSearchQuery(email);
     setDebouncedSearch(email);
     setPage(1);
-  }, [debouncedSearch, openSelfDetailsRequested]);
+  }, [canViewTeam, debouncedSearch, openSelfDetailsRequested]);
 
   const listOptions = useMemo(
     () => ({
@@ -523,13 +528,43 @@ export function BusinessMembersPanel({
     queryFn: () => getBusinessMembers(businessId, listOptions),
     staleTime: 30_000,
     placeholderData: (previous) => previous,
+    enabled: membershipFetched && canViewTeam,
   });
 
   useEffect(() => {
     if (!openSelfDetailsRequested) return;
     if (openSelfDetailsHandledRef.current) return;
-    if (membersQuery.isLoading || membersQuery.isFetching) return;
     if (loggedInUserId == null || loggedInUserId < 1) return;
+
+    const clearSelfDetailsQuery = () => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete("openSelfDetails");
+      const query = nextParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    };
+
+    if (!canViewTeam) {
+      if (!membershipFetched) return;
+      const setupUser = getSetupUser();
+      if (!setupUser) return;
+
+      openSelfDetailsHandledRef.current = true;
+      setDetailsActionMessage(null);
+      setDetailsMember({
+        id: null,
+        userId: setupUser.id,
+        name: setupUser.name,
+        email: setupUser.email,
+        role: role?.trim() || "Staff",
+        status: "active",
+        permissions: permissionList,
+      });
+      return;
+    }
+
+    if (membersQuery.isLoading || membersQuery.isFetching) return;
 
     const members = membersQuery.data?.members ?? [];
     const selfMember = members.find(
@@ -543,18 +578,18 @@ export function BusinessMembersPanel({
     setDetailsMember(selfMember);
     setSearchQuery("");
     setDebouncedSearch("");
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("openSelfDetails");
-    const query = nextParams.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    clearSelfDetailsQuery();
   }, [
+    canViewTeam,
     loggedInUserId,
     membersQuery.data?.members,
     membersQuery.isFetching,
     membersQuery.isLoading,
+    membershipFetched,
     openSelfDetailsRequested,
     pathname,
+    permissionList,
+    role,
     router,
     searchParams,
   ]);
@@ -715,6 +750,29 @@ export function BusinessMembersPanel({
     });
     setInviteOpen(true);
   };
+
+  if (membershipFetched && !canViewTeam) {
+    return (
+      <MemberDetailsModal
+        member={detailsMember}
+        open={detailsMember != null}
+        onClose={() => {
+          setDetailsMember(null);
+          setDetailsActionMessage(null);
+          router.replace(`/business/${businessId}/dashboard`);
+        }}
+        isRemoving={false}
+        canManageMembers={false}
+        isResending={false}
+        isCopying={false}
+        actionMessage={detailsActionMessage}
+        onResend={() => undefined}
+        onCopyLink={() => undefined}
+        onEditInvite={() => undefined}
+        onRemove={() => undefined}
+      />
+    );
+  }
 
   return (
     <>

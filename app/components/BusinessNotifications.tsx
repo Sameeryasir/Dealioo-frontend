@@ -22,6 +22,7 @@ import {
   type GuestJoinedNotification,
 } from "@/app/lib/guest-joined-notification-storage";
 import { markAccessNotifyRead } from "@/app/services/sidebar-unread/get-business-sidebar-unread";
+import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import {
   subscribeBusinessGuestJoined,
   subscribeMemberRoleUpdated,
@@ -48,6 +49,7 @@ import {
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 type NotifyRow = {
@@ -63,6 +65,7 @@ type NotifyRow = {
 
 export default function BusinessNotifications() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useParams();
   const [open, setOpen] = useState(false);
   const prevBadgeTotalRef = useRef<number | null>(null);
@@ -467,6 +470,9 @@ export default function BusinessNotifications() {
       }
       setAccessNotify(null);
       void markAccessNotifyRead(businessIdNumber).catch(() => {});
+      void queryClient.invalidateQueries({
+        queryKey: businessMemberQueryKeys.me(businessIdNumber),
+      });
     }
     if (row.id === "guest" && businessIdNumber != null) {
       const userId = getSetupUser()?.id;

@@ -4,12 +4,13 @@ import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
 
 export default function BusinessMembersPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const businessId = useMemo(
     () => parseRoutePositiveInt(params.businessId),
@@ -19,7 +20,8 @@ export default function BusinessMembersPage() {
   const { can, isFetched, isOwnerLike } = useBusinessMembershipPermissions(
     businessId ?? null,
   );
-  const canAccess = isOwnerLike || can("members");
+  const viewingOwnAccess = searchParams.get("openSelfDetails") === "1";
+  const canAccess = isOwnerLike || can("members") || viewingOwnAccess;
 
   useEffect(() => {
     if (!isFetched) return;
