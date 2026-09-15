@@ -38,6 +38,7 @@ import {
 } from "@/app/services/member/business-members";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import {
+  BUSINESS_MEMBER_PERMISSIONS,
   FULL_ACCESS_PERMISSION,
   type BusinessMemberListItem,
   type BusinessMemberPermission,
@@ -209,7 +210,11 @@ function MemberDetailsModal({
   const hasFullAccess =
     member.status === "owner" ||
     member.permissions.includes(FULL_ACCESS_PERMISSION);
-  const permissionCount = hasFullAccess ? 1 : member.permissions.length;
+  const grantedPermissions = member.permissions.filter(
+    (permission): permission is BusinessMemberPermission =>
+      (BUSINESS_MEMBER_PERMISSIONS as readonly string[]).includes(permission),
+  );
+  const permissionCount = hasFullAccess ? 1 : grantedPermissions.length;
   const showDates = Boolean(member.invitedAt || member.expiresAt);
 
   return (
@@ -339,11 +344,11 @@ function MemberDetailsModal({
                   </span>
                 </div>
 
-                {hasFullAccess || member.permissions.length > 0 ? (
+                {hasFullAccess || grantedPermissions.length > 0 ? (
                   <div className="mt-3.5">
                     <InvitePermissionSections
                       role={memberInviteRole(member)}
-                      permissions={member.permissions}
+                      permissions={grantedPermissions}
                       allOn={hasFullAccess}
                       grantedOnly
                       showToggles={false}
