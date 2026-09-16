@@ -184,10 +184,8 @@ export function BusinessCampaignsPanel({
 }) {
   const queryClient = useQueryClient();
   const skipPostCreateNavRef = useRef(false);
-  const keepCreateFlowOpenRef = useRef(false);
 
-  const [showCreateFlow, setShowCreateFlow] = useState(false);
-  const [createOpen, setCreateOpen] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -268,18 +266,16 @@ export function BusinessCampaignsPanel({
 
   const hasActiveFilters =
     statusFilter !== "all" || searchQuery.trim().length > 0;
-  const showToolbar = !showCreateFlow && !error;
+  const showToolbar = !error;
   const showListChrome = !loading && !error;
   const showNoCampaignsForFilter =
-    showListChrome && !showCreateFlow && filteredCampaigns.length === 0;
-  const showGrid =
-    showListChrome && !showCreateFlow && pagedCampaigns.length > 0;
+    showListChrome && filteredCampaigns.length === 0;
+  const showGrid = showListChrome && pagedCampaigns.length > 0;
   const emptyFilterMessage = getEmptyFilterMessage(statusFilter, searchQuery);
 
   function openCreateFlow() {
     if (!canCreateCampaign) return;
     setCreateOpen(true);
-    setShowCreateFlow(true);
     setSubmitError(null);
   }
 
@@ -389,28 +385,6 @@ export function BusinessCampaignsPanel({
     </div>
   ) : null;
 
-  const createCampaignsPanel = (
-    <CreateCampaigns
-      variant="inline"
-      open={createOpen}
-      businessId={businessId}
-      defaultWebsiteUrl={business?.websiteUrl}
-      onOpenChange={(next) => {
-        setCreateOpen(next);
-        if (!next) {
-          keepCreateFlowOpenRef.current = false;
-          const skipDashboardNav = skipPostCreateNavRef.current;
-          if (skipDashboardNav) {
-            skipPostCreateNavRef.current = false;
-          }
-          setShowCreateFlow(false);
-          if (skipDashboardNav) return;
-        }
-      }}
-      onComplete={handleCreateComplete}
-    />
-  );
-
   async function handleCreateComplete(payload: {
     campaignName: string;
     websiteUrl: string;
@@ -424,7 +398,6 @@ export function BusinessCampaignsPanel({
   }) {
     setSubmitError(null);
     setAlertDismissed(false);
-    keepCreateFlowOpenRef.current = true;
     try {
       const createdBody = await createCampaign({
         businessId,
@@ -467,6 +440,7 @@ export function BusinessCampaignsPanel({
                 ? parseOfferPrice(payload.offerPrice)
                 : undefined,
               campaignType: payload.campaignType,
+              campaignCategory: payload.campaignCategory,
               published: true,
               status: "published",
               createdAt: nowIso,
@@ -514,12 +488,9 @@ export function BusinessCampaignsPanel({
             );
           });
       }
-      setShowCreateFlow(false);
       setCreateOpen(false);
-      keepCreateFlowOpenRef.current = false;
       return campaignId ?? undefined;
     } catch (e) {
-      keepCreateFlowOpenRef.current = false;
       setSubmitError(
         e instanceof Error ? e.message : "Could not create campaign.",
       );
@@ -547,6 +518,22 @@ export function BusinessCampaignsPanel({
           });
         }}
         onDeleteRequest={setCampaignPendingDelete}
+      />
+
+      <CreateCampaigns
+        open={createOpen}
+        businessId={businessId}
+        defaultWebsiteUrl={business?.websiteUrl}
+        onOpenChange={(next) => {
+          setCreateOpen(next);
+          if (!next) {
+            const skipDashboardNav = skipPostCreateNavRef.current;
+            if (skipDashboardNav) {
+              skipPostCreateNavRef.current = false;
+            }
+          }
+        }}
+        onComplete={handleCreateComplete}
       />
 
       <DeleteConfirmationDialog
@@ -588,11 +575,9 @@ export function BusinessCampaignsPanel({
 
           <div
             className={
-              showCreateFlow
-                ? "rd-premium-panel__body rd-premium-panel__body--center !overflow-x-hidden !overflow-y-auto items-stretch sm:items-center px-3 py-3 sm:px-6 sm:py-5"
-                : showNoCampaignsForFilter
-                  ? "rd-premium-panel__body rd-premium-panel__body--center px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
-                  : "rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
+              showNoCampaignsForFilter
+                ? "rd-premium-panel__body rd-premium-panel__body--center px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
+                : "rd-premium-panel__body px-2.5 pt-4 pb-4 sm:px-3 sm:pt-5 sm:pb-5"
             }
           >
             {loading ? (
@@ -609,10 +594,6 @@ export function BusinessCampaignsPanel({
                 message={error}
                 onRetry={() => void refetch()}
               />
-            ) : showCreateFlow ? (
-              <div className="flex w-full min-w-0 max-w-4xl justify-center">
-                {createCampaignsPanel}
-              </div>
             ) : showGrid ? (
               <motion.div
                 key={`campaigns-page-${page}-${statusFilter}-${searchQuery}`}

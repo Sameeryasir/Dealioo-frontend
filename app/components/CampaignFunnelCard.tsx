@@ -307,7 +307,7 @@ export default function CampaignFunnelCard({
               <BusinessProfileImage
                 src={funnel.imageUrl}
                 variant="campaign"
-                className="org-campaign-card-avatar rounded-full"
+                className="org-campaign-card-avatar"
                 aria-hidden={hasImage}
               />
             </span>
@@ -336,9 +336,9 @@ export default function CampaignFunnelCard({
           </div>
 
           {showOfferBar ? (
-            <div className="org-campaign-card-offer-bar mt-3 mr-auto inline-flex max-w-full items-center gap-1.5">
+            <div className="org-campaign-card-offer-bar mt-3 ml-auto inline-flex max-w-full items-center gap-1.5">
               <Tag className="size-3 shrink-0" strokeWidth={2.25} aria-hidden />
-              <span className="line-clamp-1">
+              <span className="break-words whitespace-normal">
                 Offer: {offerName}
               </span>
             </div>

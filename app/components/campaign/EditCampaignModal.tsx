@@ -3,18 +3,12 @@
 import {
   AlertCircle,
   Check,
-  CircleDollarSign,
   CloudUpload,
-  FileText,
-  Gift,
-  ImageIcon,
   Loader2,
   Megaphone,
-  Radio,
   Trash2,
   X,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import {
   type ChangeEvent,
   type DragEvent,
@@ -27,6 +21,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
+import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
+import {
+  CAMPAIGN_CATEGORY_OPTIONS,
+  isCampaignCategory,
+  type CampaignCategory,
+} from "@/app/lib/campaign-category";
 import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
@@ -35,16 +36,15 @@ import {
   parseOfferPrice,
 } from "@/app/lib/campaign-form";
 import { upsertCampaignInQueryClient } from "@/app/lib/campaign-query-cache";
+import { getAutomations } from "@/app/services/automation/automation-api";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { parseCampaignFromApi } from "@/app/services/funnel/get-campaigns-by-business";
 import {
   type CampaignPublicationStatus,
   updateCampaign,
 } from "@/app/services/funnel/update-campaign";
-import { getAutomations } from "@/app/services/automation/automation-api";
-import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
 
-const CAMPAIGN_NAME_MAX_LENGTH = 100;
+const CAMPAIGN_NAME_MAX_LENGTH = 30;
 
 function resolveCampaignStatus(
   campaign: Funnel,
@@ -61,13 +61,11 @@ const inputClassName =
   "w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60";
 
 function FieldHeader({
-  icon: Icon,
   htmlFor,
   label,
   required,
   count,
 }: {
-  icon: LucideIcon;
   htmlFor?: string;
   label: string;
   required?: boolean;
@@ -77,11 +75,8 @@ function FieldHeader({
     <div className="mb-1.5 flex items-center justify-between gap-2">
       <label
         htmlFor={htmlFor}
-        className="flex items-center gap-2 text-sm font-semibold text-[#07111f]"
+        className="text-sm font-semibold text-[#07111f]"
       >
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
-          <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-        </span>
         {label}
         {required ? <span className="text-red-500">*</span> : null}
       </label>
@@ -119,6 +114,8 @@ export function EditCampaignModal({
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [campaignName, setCampaignName] = useState("");
+  const [campaignCategory, setCampaignCategory] =
+    useState<CampaignCategory | "">("");
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -139,7 +136,14 @@ export function EditCampaignModal({
 
   useEffect(() => {
     if (!open || !campaign) return;
-    setCampaignName(campaign.campaignName?.trim() ?? "");
+    setCampaignName(
+      (campaign.campaignName?.trim() ?? "").slice(0, CAMPAIGN_NAME_MAX_LENGTH),
+    );
+    setCampaignCategory(
+      isCampaignCategory(campaign.campaignCategory)
+        ? campaign.campaignCategory
+        : "",
+    );
     setOffer(
       (campaign.offer?.trim() ?? "").slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
     );
@@ -251,6 +255,11 @@ export function EditCampaignModal({
         setIsSaving(false);
         return;
       }
+      if (!isCampaignCategory(campaignCategory)) {
+        setError("Select a campaign category.");
+        setIsSaving(false);
+        return;
+      }
       const offerError = offerNameValidationMessage(offer);
       if (offerError) {
         setError(offerError);
@@ -288,6 +297,7 @@ export function EditCampaignModal({
         description: description.trim(),
         price: parseOfferPrice(price),
         status,
+        campaignCategory,
         image: imageFile,
       });
       const updatedCampaign =
@@ -295,6 +305,7 @@ export function EditCampaignModal({
         ({
           ...campaign,
           campaignName: trimmedName,
+          campaignCategory,
           offer: offer.trim(),
           description: description.trim(),
           price: parseOfferPrice(price),
@@ -346,8 +357,13 @@ export function EditCampaignModal({
             <div className="min-w-0">
               <h2
                 id={titleId}
-                className="text-lg font-extrabold tracking-tight text-[#07111f]"
+                className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-[#07111f]"
               >
+                <Megaphone
+                  className="size-5 shrink-0 text-[#1877f2]"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
                 Edit campaign
               </h2>
               <p className="mt-0.5 text-sm text-slate-500">
@@ -372,7 +388,6 @@ export function EditCampaignModal({
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
               <div>
                 <FieldHeader
-                  icon={Megaphone}
                   htmlFor="edit-campaign-name"
                   label="Campaign name"
                   required
@@ -397,7 +412,32 @@ export function EditCampaignModal({
 
               <div>
                 <FieldHeader
-                  icon={FileText}
+                  htmlFor="edit-campaign-category"
+                  label="Category"
+                  required
+                />
+                <BusinessOptionSelect
+                  id="edit-campaign-category"
+                  value={campaignCategory}
+                  options={[...CAMPAIGN_CATEGORY_OPTIONS]}
+                  placeholder="Select a category"
+                  ariaLabel="Campaign category"
+                  disabled={isSaving}
+                  menuZIndex={90}
+                  triggerClassName={`${inputClassName} flex items-center justify-between gap-2`}
+                  onChange={(nextValue) =>
+                    setCampaignCategory(
+                      (nextValue || "") as CampaignCategory | "",
+                    )
+                  }
+                />
+                <FieldHint>
+                  Helps guests find the right kind of offer.
+                </FieldHint>
+              </div>
+
+              <div>
+                <FieldHeader
                   htmlFor="edit-campaign-description"
                   label="Description"
                   count={`${description.length}/${CAMPAIGN_DESCRIPTION_MAX_LENGTH}`}
@@ -426,7 +466,6 @@ export function EditCampaignModal({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.35fr_0.85fr]">
                 <div>
                   <FieldHeader
-                    icon={Gift}
                     htmlFor="edit-campaign-offer"
                     label="Offer"
                     required
@@ -452,7 +491,6 @@ export function EditCampaignModal({
                 </div>
                 <div>
                   <FieldHeader
-                    icon={CircleDollarSign}
                     htmlFor="edit-campaign-price"
                     label="Price"
                     required
@@ -476,7 +514,6 @@ export function EditCampaignModal({
 
               <div>
                 <FieldHeader
-                  icon={Radio}
                   htmlFor="edit-campaign-status"
                   label="Status"
                   required
@@ -558,7 +595,6 @@ export function EditCampaignModal({
 
               <div>
                 <FieldHeader
-                  icon={ImageIcon}
                   htmlFor="edit-campaign-image"
                   label="Offer image"
                 />
@@ -609,9 +645,7 @@ export function EditCampaignModal({
                         : "border-[#dbeafe] bg-white hover:border-[#1877f2]/50 hover:bg-[#f8fbff]"
                     }`}
                   >
-                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
-                      <CloudUpload className="size-5" strokeWidth={2} aria-hidden />
-                    </span>
+                    <CloudUpload className="size-5 text-[#1877f2]" strokeWidth={2} aria-hidden />
                     <span className="text-sm font-semibold text-[#07111f]">
                       Upload a new image
                     </span>

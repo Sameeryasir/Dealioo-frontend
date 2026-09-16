@@ -68,7 +68,7 @@ export function CampaignFunnelCardSkeleton() {
     <article className={campaignCardShell} aria-hidden>
       <div className="flex min-h-[11.5rem] flex-col p-3.5 pt-3 sm:p-4 sm:pt-3.5">
         <div className="flex items-start gap-3 pr-8">
-          <Skeleton className="size-[4.25rem] shrink-0 rounded-full bg-[#f8fafc] sm:size-[4.75rem]" />
+          <Skeleton className="size-[4.25rem] shrink-0 rounded-[0.85rem] bg-[#f8fafc] sm:size-[4.75rem]" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <Skeleton className="h-4 w-3/4 bg-[#f8fafc]" />
             <Skeleton className="h-2.5 w-full bg-[#f8fafc]" />
