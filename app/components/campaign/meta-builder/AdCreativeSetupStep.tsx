@@ -39,12 +39,12 @@ import {
   getFacebookPages,
   type FacebookPage,
 } from "@/app/services/facebook/get-facebook-pages";
+import { FacebookPageEngagementPreviewCard } from "@/app/components/campaign/meta-builder/FacebookPageEngagementPreviewCard";
 import {
   getFacebookAdAccounts,
   type FacebookAdAccount,
 } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
-import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-account";
 import { uploadFacebookCampaignImage } from "@/app/services/facebook/upload-facebook-campaign-image";
 import { uploadFacebookCampaignVideo } from "@/app/services/facebook/upload-facebook-campaign-video";
 
@@ -148,7 +148,6 @@ export function AdCreativeSetupStep({
   const [adAccounts, setAdAccounts] = useState<FacebookAdAccount[]>([]);
   const [selectedAdAccountId, setSelectedAdAccountId] = useState("");
   const [adAccountsLoading, setAdAccountsLoading] = useState(true);
-  const [switchingAccount, setSwitchingAccount] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -308,8 +307,13 @@ export function AdCreativeSetupStep({
         if (token) {
           const status = await getFacebookConnectionStatus(token, businessId);
           if (cancelled) return;
-          if (status.metaAdAccountId) {
-            setSelectedAdAccountId(status.metaAdAccountId);
+          const connectedId = status.metaAdAccountId?.trim() || "";
+          if (connectedId) {
+            const matched =
+              accounts.find((account) => account.id === connectedId) ??
+              accounts.find((account) => account.accountId === connectedId) ??
+              null;
+            setSelectedAdAccountId(matched?.id ?? connectedId);
             return;
           }
         }
@@ -327,23 +331,10 @@ export function AdCreativeSetupStep({
     };
   }, [businessId]);
 
-  const selectedAdAccount = adAccounts.find((a) => a.id === selectedAdAccountId);
-
-  const handleAdAccountChange = async (nextId: string) => {
-    if (!nextId || nextId === selectedAdAccountId) return;
-    setSwitchingAccount(true);
-    setLocalError(null);
-    try {
-      await setFacebookAdAccount(businessId, nextId);
-      setSelectedAdAccountId(nextId);
-    } catch (err) {
-      setLocalError(
-        err instanceof Error ? err.message : "Could not switch ad account.",
-      );
-    } finally {
-      setSwitchingAccount(false);
-    }
-  };
+  const selectedAdAccount =
+    adAccounts.find((a) => a.id === selectedAdAccountId) ??
+    adAccounts.find((a) => a.accountId === selectedAdAccountId) ??
+    null;
 
   const buildWorkingSnapshot = (
     overrides?: Partial<AdCreativeStepData>,
@@ -600,43 +591,39 @@ export function AdCreativeSetupStep({
 
       <BuilderCard
         title="Account & identity"
-        description="Choose the Meta ad account and Facebook Page for this ad."
+        description="Your connected Meta ad account and the Facebook Page for this ad."
       >
         <BuilderField
           label="Ad account"
-          hint="Campaigns are billed to this Meta ad account."
+          hint="Campaigns are billed to this connected Meta ad account."
         >
-          <div className="relative">
-            {selectedAdAccount ? (
+          {adAccountsLoading ? (
+            <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+              Loading connected Meta ad account…
+            </p>
+          ) : selectedAdAccount ? (
+            <div className="flex items-center gap-3 rounded-xl border border-[#e8edf5] bg-white px-3 py-2.5">
               <span
-                className="pointer-events-none absolute left-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-[#1877f2] text-[11px] font-bold text-white"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-xs font-bold text-white"
                 aria-hidden
               >
                 {adAccountLabel(selectedAdAccount).charAt(0).toUpperCase()}
               </span>
-            ) : null}
-            <select
-              value={selectedAdAccountId}
-              onChange={(e) => void handleAdAccountChange(e.target.value)}
-              disabled={adAccountsLoading || switchingAccount || adAccounts.length === 0}
-              className={`${inputClass} ${selectedAdAccount ? "pl-11" : ""}`}
-            >
-              {adAccounts.length === 0 ? (
-                <option value="">
-                  {adAccountsLoading ? "Loading accounts…" : "No ad accounts"}
-                </option>
-              ) : (
-                adAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {adAccountLabel(account)}
-                  </option>
-                ))
-              )}
-            </select>
-            {switchingAccount ? (
-              <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-slate-400" />
-            ) : null}
-          </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">
+                  {adAccountLabel(selectedAdAccount)}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Connected Meta ad account
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
+              No Meta ad account is connected for this business. Connect one in
+              Settings → Integrations.
+            </p>
+          )}
         </BuilderField>
 
         <BuilderField label="Ad name" required error={fieldErrors.name}>
@@ -684,6 +671,12 @@ export function AdCreativeSetupStep({
               <option value="">No pages</option>
             </select>
           )}
+          {facebookPageId.trim() ? (
+            <FacebookPageEngagementPreviewCard
+              businessId={businessId}
+              pageId={facebookPageId}
+            />
+          ) : null}
         </BuilderField>
 
       </BuilderCard>

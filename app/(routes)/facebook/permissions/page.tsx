@@ -172,6 +172,39 @@ function FacebookPermissionsSummaryInner() {
                 </p>
               ) : null}
             </section>
+            {status.capabilities ? (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                  Capabilities
+                </h2>
+                <ul className="mt-2 space-y-1.5 text-sm text-zinc-700">
+                  <li>
+                    Campaign management{" "}
+                    {status.capabilities.campaignManagement
+                      ? "Enabled ✓"
+                      : "Unavailable"}
+                  </li>
+                  <li>
+                    Facebook Page selection{" "}
+                    {status.capabilities.pageSelection
+                      ? "Enabled ✓"
+                      : "Unavailable"}
+                  </li>
+                  <li>
+                    Facebook Page information{" "}
+                    {status.capabilities.pageInformation
+                      ? "Enabled ✓"
+                      : "Unavailable"}
+                  </li>
+                  <li>
+                    Advertising analytics{" "}
+                    {status.capabilities.advertisingAnalytics
+                      ? "Enabled ✓"
+                      : "Unavailable"}
+                  </li>
+                </ul>
+              </section>
+            ) : null}
           </div>
         ) : null}
 

@@ -49,9 +49,9 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     id: "pages_read_engagement",
     title: "pages_read_engagement",
     description:
-      "Uses the Facebook Page you already chose as the identity for your ads (name, profile picture, and Page ID). This is Meta’s pages_read_engagement permission (Page association for ads — not Page posts, comments, or followers).",
+      "Uses the Facebook Page you already chose as the identity for your ads, and loads that Page’s details in campaign creation so you can verify the correct Page will represent your advertisement. This is Meta’s pages_read_engagement permission.",
     tooltip:
-      "Needed so ads publish from your business Facebook Page. Selecting this also selects ads_management and pages_show_list.",
+      "Needed so ads publish from your business Facebook Page and so Dealioo can show Page identity details in the campaign builder. Selecting this also selects ads_management and pages_show_list.",
     defaultSelected: false,
   },
 ];

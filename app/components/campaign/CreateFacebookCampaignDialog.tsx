@@ -20,6 +20,7 @@ import {
   getFacebookPages,
   type FacebookPage,
 } from "@/app/services/facebook/get-facebook-pages";
+import { FacebookPageEngagementPreviewCard } from "@/app/components/campaign/meta-builder/FacebookPageEngagementPreviewCard";
 import { uploadFacebookCampaignImage } from "@/app/services/facebook/upload-facebook-campaign-image";
 import { uploadFacebookCampaignVideo } from "@/app/services/facebook/upload-facebook-campaign-video";
 
@@ -622,6 +623,12 @@ export function CreateFacebookCampaignDialog({
                   );
                 })()}
               </label>
+              {facebookPageId.trim() ? (
+                <FacebookPageEngagementPreviewCard
+                  businessId={businessId}
+                  pageId={facebookPageId}
+                />
+              ) : null}
               <label className="block text-sm">
                 <span className="font-medium text-zinc-800">
                   Instagram account ID (optional)

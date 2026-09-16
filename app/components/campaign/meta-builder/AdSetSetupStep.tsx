@@ -58,6 +58,7 @@ import {
   getFacebookPages,
   type FacebookPage,
 } from "@/app/services/facebook/get-facebook-pages";
+import { FacebookPageEngagementPreviewCard } from "@/app/components/campaign/meta-builder/FacebookPageEngagementPreviewCard";
 import {
   DEFAULT_META_ACCOUNT_CURRENCY,
   formatMetaAccountMoney,
@@ -676,6 +677,12 @@ export function AdSetSetupStep({
                 />
               </div>
             )}
+            {facebookPageId.trim() ? (
+              <FacebookPageEngagementPreviewCard
+                businessId={businessId}
+                pageId={facebookPageId}
+              />
+            ) : null}
           </BuilderField>
         ) : null}
 

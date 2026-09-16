@@ -86,6 +86,7 @@ export async function parseApiErrorMessage(
   try {
     const errBody = (await res.json()) as {
       message?: unknown;
+      code?: string;
       metaError?: { message?: string; error_user_msg?: string };
     };
     const metaMessage =
@@ -93,6 +94,17 @@ export async function parseApiErrorMessage(
       errBody?.metaError?.message?.trim();
     if (metaMessage) {
       return metaMessage;
+    }
+    if (
+      errBody &&
+      typeof errBody.message === "object" &&
+      errBody.message !== null &&
+      "message" in errBody.message
+    ) {
+      return parseApiMessage(
+        (errBody.message as { message?: unknown }).message,
+        fallback,
+      );
     }
     return parseApiMessage(errBody?.message, fallback);
   } catch {

@@ -38,7 +38,7 @@ const META_PERMISSIONS = [
   {
     permission: "pages_read_engagement",
     purpose:
-      "Access the Facebook Page you select so ads created in Dealioo can run from that Page. Requested automatically with ads_management.",
+      "Read the Facebook Page you select (name, picture, about, category, and contact details) so you can verify the correct Page will represent your ads in Dealioo before publishing. Requested with ads_management.",
   },
   {
     permission: "public_profile",
