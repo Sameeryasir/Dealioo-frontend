@@ -20,7 +20,7 @@ const PAGE_SCOPES_WITH_ADS_MANAGEMENT: MetaSelectableScopeId[] = [
 export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
   {
     id: "ads_read",
-    title: "Read advertising data",
+    title: "ads_read",
     description:
       "View your Meta ad accounts, campaigns, ads, and performance reports (spend, clicks, impressions, and insights) inside Dealioo.",
     tooltip:
@@ -29,29 +29,29 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
   },
   {
     id: "ads_management",
-    title: "Manage advertising campaigns",
+    title: "ads_management",
     description:
       "Create, read, delete, and publish Meta campaigns, ad sets, creatives, and ads from Dealioo’s campaign builder.",
     tooltip:
-      "Required to build and publish ads in Dealioo. Selecting this also selects Show Facebook Pages (pages_show_list) and Read Facebook Page data (pages_read_engagement).",
+      "Required to build and publish ads in Dealioo. Selecting this also selects pages_show_list and pages_read_engagement.",
     defaultSelected: false,
   },
   {
     id: "pages_show_list",
-    title: "Show Facebook Pages",
+    title: "pages_show_list",
     description:
       "Lists Facebook Pages you manage in Dealioo’s Page picker so you can choose which Page will run your ads. This is Meta’s pages_show_list permission (list Pages only — it does not attach a Page to ads).",
     tooltip:
-      "Needed to show your Page list. Selecting this also selects campaign management and Read Facebook Page data.",
+      "Needed to show your Page list. Selecting this also selects ads_management and pages_read_engagement.",
     defaultSelected: false,
   },
   {
     id: "pages_read_engagement",
-    title: "Read Facebook Page data",
+    title: "pages_read_engagement",
     description:
       "Uses the Facebook Page you already chose as the identity for your ads (name, profile picture, and Page ID). This is Meta’s pages_read_engagement permission (Page association for ads — not Page posts, comments, or followers).",
     tooltip:
-      "Needed so ads publish from your business Facebook Page. Selecting this also selects campaign management and Show Facebook Pages.",
+      "Needed so ads publish from your business Facebook Page. Selecting this also selects ads_management and pages_show_list.",
     defaultSelected: false,
   },
 ];

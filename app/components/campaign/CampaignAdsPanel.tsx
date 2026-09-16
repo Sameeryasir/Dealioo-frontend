@@ -189,7 +189,7 @@ export function CampaignAdsPanel({
   const openCreateOrResume = useCallback(async () => {
     if (!hasMetaAdsManagementScope(metaOauthScopes)) {
       setAdStatsError(
-        "Analytics is available with Read advertising data. To create campaigns, reconnect Meta and also grant Manage advertising campaigns.",
+        "Analytics is available with ads_read. To create campaigns, reconnect Meta and also grant ads_management.",
       );
       return;
     }
@@ -276,7 +276,7 @@ export function CampaignAdsPanel({
   const createCampaignBlockedReason = !hasMetaAdsManagementScope(
     metaOauthScopes,
   )
-    ? "Analytics is available with Read advertising data. To create campaigns, reconnect Meta and also grant Manage advertising campaigns."
+    ? "Analytics is available with ads_read. To create campaigns, reconnect Meta and also grant ads_management."
     : null;
 
   const handleConfirmDeleteCampaign = useCallback(async () => {

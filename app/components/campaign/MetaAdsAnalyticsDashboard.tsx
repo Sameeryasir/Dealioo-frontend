@@ -1036,7 +1036,7 @@ export function MetaAdsAnalyticsDashboard({
                           {canCreateCampaign
                             ? "Create a Meta campaign with the guided builder, or run ads in Ads Manager."
                             : (createCampaignBlockedReason ??
-                              "Your Meta connection only has ads_read. Reconnect and grant Manage advertising campaigns to create ads.")}
+                              "Your Meta connection only has ads_read. Reconnect and grant ads_management to create ads.")}
                         </p>
                         <button
                           type="button"
