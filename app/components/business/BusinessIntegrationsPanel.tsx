@@ -2,7 +2,6 @@
 
 import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
-import { FacebookPermissionsPanel } from "@/app/components/facebook/FacebookPermissionsPanel";
 import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import {
@@ -39,23 +38,8 @@ import { abortStripeConnect } from "@/app/services/stripe/abort-stripe-connect";
 import { disconnectStripe } from "@/app/services/stripe/disconnect-stripe";
 import {
   AlertCircle,
-  BarChart3,
-  Briefcase,
-  CalendarDays,
-  Check,
-  FileText,
-  LineChart,
   Loader2,
-  Megaphone,
-  MessageSquare,
-  MousePointerClick,
-  Phone,
   RefreshCw,
-  Shield,
-  Trash2,
-  Users,
-  Wallet,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -106,8 +90,7 @@ function StatusBadge({
   }
   if (connected) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-700">
-        <Check className="size-2.5" strokeWidth={2.75} />
+      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-700">
         Connected
       </span>
     );
@@ -123,76 +106,71 @@ function FeatureRow({
   items,
   toneClass,
 }: {
-  items: Array<{ icon: LucideIcon; label: string }>;
+  items: string[];
   toneClass: string;
 }) {
   return (
     <ul className={`mt-1.5 flex flex-wrap gap-x-3 gap-y-1 ${toneClass}`}>
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <li
-            key={item.label}
-            className="inline-flex items-center gap-1 text-[0.65rem] font-medium"
-          >
-            <Icon className="size-3 shrink-0" strokeWidth={2.1} />
-            {item.label}
-          </li>
-        );
-      })}
+      {items.map((label) => (
+        <li key={label} className="text-[0.65rem] font-medium">
+          {label}
+        </li>
+      ))}
     </ul>
   );
 }
 
-function ConnectedStatus({
-  iconClass,
-  icon: Icon,
-  label = "Connected",
-  detail = "Account linked",
-}: {
-  iconClass: string;
-  icon: LucideIcon;
-  label?: string;
-  detail?: string;
-}) {
+const META_DISPLAY_SCOPES = [
+  "ads_read",
+  "ads_management",
+  "pages_show_list",
+  "pages_read_engagement",
+] as const;
+
+/** Show only granted Meta OAuth scope ids (no extra product copy). */
+function CompactGrantedPermissions({ scopes }: { scopes: string[] }) {
+  const granted = new Set(
+    scopes.map((scope) => scope.trim()).filter(Boolean),
+  );
+  // NOTE: If status omits scopes, fall back to the usual read scope.
+  if (granted.size === 0) {
+    granted.add("ads_read");
+  }
+
+  const rows = META_DISPLAY_SCOPES.filter((scope) => granted.has(scope));
+  if (rows.length === 0) return null;
+
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-full ${iconClass}`}
-      >
-        <Icon className="size-3.5" />
-      </span>
-      <div>
-        <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-400">
-          {label}
-        </p>
-        <p className="m-0 text-xs font-semibold text-slate-800">{detail}</p>
-      </div>
+    <div className="min-w-0">
+      <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+        Permissions granted
+      </p>
+      <p className="m-0 mt-0.5 font-mono text-[0.72rem] leading-snug text-slate-700">
+        {rows.join(" · ")}
+      </p>
     </div>
   );
 }
 
-function PromptStatus({
-  iconClass,
-  borderClass,
-  icon: Icon,
-  text,
+function ConnectedStatus({
+  label = "Connected",
+  detail = "Account linked",
 }: {
-  iconClass: string;
-  borderClass: string;
-  icon: LucideIcon;
-  text: string;
+  label?: string;
+  detail?: string;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed ${borderClass} ${iconClass}`}
-      >
-        <Icon className="size-3.5" />
-      </span>
-      <p className="m-0 text-xs leading-snug text-slate-500">{text}</p>
+    <div className="min-w-0">
+      <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="m-0 text-xs font-semibold text-slate-800">{detail}</p>
     </div>
   );
+}
+
+function PromptStatus({ text }: { text: string }) {
+  return <p className="m-0 text-xs leading-snug text-slate-500">{text}</p>;
 }
 
 function GoogleGMark({ className }: { className?: string }) {
@@ -279,7 +257,7 @@ function IntegrationCard({
   logo: ReactNode;
   title: string;
   description: string;
-  features: Array<{ icon: LucideIcon; label: string }>;
+  features: string[];
   featureToneClass: string;
   loading: boolean;
   connected: boolean;
@@ -334,7 +312,7 @@ function IntegrationCard({
         </p>
       ) : null}
       {footer ? (
-        <div className="border-t border-[#EEF2F7] bg-[#F8FBFF] px-4 py-3.5">
+        <div className="border-t border-[#EEF2F7] px-4 py-2">
           {footer}
         </div>
       ) : null}
@@ -351,7 +329,6 @@ export function BusinessIntegrationsPanel({
   const [stripeActionError, setStripeActionError] = useState<string | null>(null);
   const [metaBusy, setMetaBusy] = useState<ConnectStatus>("idle");
   const [metaActionError, setMetaActionError] = useState<string | null>(null);
-  const [showMetaPermissions, setShowMetaPermissions] = useState(false);
   const [metaConnectModalOpen, setMetaConnectModalOpen] = useState(false);
   const [selectedMetaScopes, setSelectedMetaScopes] = useState<
     MetaSelectableScopeId[]
@@ -395,8 +372,6 @@ export function BusinessIntegrationsPanel({
 
   const metaConnected = Boolean(statusQuery.data?.facebook.connected);
   const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
-  const metaMissingScopes =
-    statusQuery.data?.facebook.missingRequiredScopes ?? [];
   const metaAdAccountId =
     statusQuery.data?.facebook.metaAdAccountId?.trim() || null;
   const metaNeedsAdAccount = metaConnected && !metaAdAccountId;
@@ -840,26 +815,17 @@ export function BusinessIntegrationsPanel({
         description="Choose the SMS number this business sends from."
         featureToneClass="text-[#F22F46]"
         features={[
-          { icon: MessageSquare, label: "SMS outreach" },
-          { icon: Phone, label: "Business number" },
-          { icon: RefreshCw, label: "Campaign messages" },
+          "SMS outreach",
+          "Business number",
+          "Campaign messages",
         ]}
         loading={false}
         connected={twilioConnected}
         status={
           twilioConnected ? (
-            <ConnectedStatus
-              icon={Phone}
-              iconClass="bg-[#FEE2E5] text-[#F22F46]"
-              detail={twilioNumber}
-            />
+            <ConnectedStatus detail={twilioNumber} />
           ) : (
-            <PromptStatus
-              icon={MessageSquare}
-              iconClass="text-[#F22F46]"
-              borderClass="border-[#F9C5CB]"
-              text="Select a Twilio number so this business can send SMS."
-            />
+            <PromptStatus text="Select a Twilio number so this business can send SMS." />
           )
         }
         actions={
@@ -881,9 +847,9 @@ export function BusinessIntegrationsPanel({
         description="Accept payments from campaigns and funnels."
         featureToneClass="text-[#635BFF]"
         features={[
-          { icon: Shield, label: "Secure payments" },
-          { icon: FileText, label: "Invoices & history" },
-          { icon: RefreshCw, label: "Automatic sync" },
+          "Secure payments",
+          "Invoices & history",
+          "Automatic sync",
         ]}
         loading={false}
         connected={stripeConnected}
@@ -894,24 +860,14 @@ export function BusinessIntegrationsPanel({
           stripeConnected ? (
             stripeNeedsSetup ? (
               <ConnectedStatus
-                icon={Briefcase}
-                iconClass="bg-amber-50 text-amber-700"
                 label="Stripe linked"
                 detail="Finish setup in Stripe to accept charges"
               />
             ) : (
-              <ConnectedStatus
-                icon={CalendarDays}
-                iconClass="bg-[#F3F0FF] text-[#635BFF]"
-              />
+              <ConnectedStatus />
             )
           ) : (
-            <PromptStatus
-              icon={Shield}
-              iconClass="text-[#635BFF]"
-              borderClass="border-[#D9D4FF]"
-              text="Connect Stripe to accept payments from campaigns and funnels."
-            />
+            <PromptStatus text="Connect Stripe to accept payments from campaigns and funnels." />
           )
         }
         actions={
@@ -922,7 +878,6 @@ export function BusinessIntegrationsPanel({
               disabled={stripeBusy === "loading"}
               className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
             >
-              <Trash2 className="size-3" strokeWidth={2.25} />
               {stripeBusy === "loading" ? "Removing…" : "Remove account"}
             </button>
           ) : (
@@ -946,9 +901,9 @@ export function BusinessIntegrationsPanel({
         description="Run and track Meta ad campaigns."
         featureToneClass="text-[#1877F2]"
         features={[
-          { icon: BarChart3, label: "Ad performance" },
-          { icon: Users, label: "Audience insights" },
-          { icon: RefreshCw, label: "Campaign tracking" },
+          "Ad performance",
+          "Audience insights",
+          "Campaign tracking",
         ]}
         loading={false}
         connected={metaConnected}
@@ -958,15 +913,11 @@ export function BusinessIntegrationsPanel({
           metaConnected ? (
             metaNeedsAdAccount ? (
               <ConnectedStatus
-                icon={Briefcase}
-                iconClass="bg-amber-50 text-amber-700"
                 label="Meta linked"
                 detail="Ads account not selected"
               />
             ) : (
               <ConnectedStatus
-                icon={CalendarDays}
-                iconClass="bg-[#E8F1FF] text-[#1877F2]"
                 label="Connected"
                 detail={
                   metaAdAccountId
@@ -976,12 +927,7 @@ export function BusinessIntegrationsPanel({
               />
             )
           ) : (
-            <PromptStatus
-              icon={Megaphone}
-              iconClass="text-[#1877F2]"
-              borderClass="border-[#C5D8F6]"
-              text="Connect your Meta Ads account to start running and tracking campaigns."
-            />
+            <PromptStatus text="Connect your Meta Ads account to start running and tracking campaigns." />
           )
         }
         actions={
@@ -992,25 +938,15 @@ export function BusinessIntegrationsPanel({
                   href={`/facebook/select-ad-account?businessId=${businessId}`}
                   className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
                 >
-                  <Briefcase className="size-3" strokeWidth={2.25} />
                   Choose ad account
                 </Link>
               ) : null}
-              <button
-                type="button"
-                onClick={() => setShowMetaPermissions((open) => !open)}
-                className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2]`}
-              >
-                <Shield className="size-3" strokeWidth={2.25} />
-                {showMetaPermissions ? "Hide permissions" : "Show permissions"}
-              </button>
               <button
                 type="button"
                 onClick={() => void handleDisconnectMeta()}
                 disabled={metaBusy === "loading"}
                 className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
               >
-                <Trash2 className="size-3" strokeWidth={2.25} />
                 {metaBusy === "loading" ? "Removing…" : "Remove account"}
               </button>
             </>
@@ -1026,8 +962,12 @@ export function BusinessIntegrationsPanel({
             </button>
           )
         }
+        footer={
+          metaConnected ? (
+            <CompactGrantedPermissions scopes={metaScopes} />
+          ) : null
+        }
       />
-
       <MetaConnectPermissionsModal
         open={metaConnectModalOpen}
         selectedScopes={selectedMetaScopes}
@@ -1038,15 +978,6 @@ export function BusinessIntegrationsPanel({
         onContinue={() => void handleConnectMeta()}
       />
 
-      {showMetaPermissions ? (
-        <FacebookPermissionsPanel
-          grantedScopes={metaScopes}
-          missingRequiredScopes={metaMissingScopes}
-          connected={metaConnected}
-          loading={false}
-        />
-      ) : null}
-
       <IntegrationCard
         id="settings-integration-google"
         accentColor="bg-[#34A853]"
@@ -1055,9 +986,9 @@ export function BusinessIntegrationsPanel({
         description="Pull spend, clicks, and campaign stats from Google Ads."
         featureToneClass="text-[#188038]"
         features={[
-          { icon: Wallet, label: "Spend insights" },
-          { icon: MousePointerClick, label: "Click tracking" },
-          { icon: LineChart, label: "Campaign stats" },
+          "Spend insights",
+          "Click tracking",
+          "Campaign stats",
         ]}
         loading={false}
         connected={googleConnected}
@@ -1067,15 +998,11 @@ export function BusinessIntegrationsPanel({
           googleConnected ? (
             googleNeedsCustomer ? (
               <ConnectedStatus
-                icon={Briefcase}
-                iconClass="bg-amber-50 text-amber-700"
                 label="Google linked"
                 detail="Ads account not selected"
               />
             ) : (
               <ConnectedStatus
-                icon={CalendarDays}
-                iconClass="bg-[#E8F5EE] text-[#188038]"
                 label="Connected"
                 detail={
                   googleCustomerSelected
@@ -1085,12 +1012,7 @@ export function BusinessIntegrationsPanel({
               />
             )
           ) : (
-            <PromptStatus
-              icon={BarChart3}
-              iconClass="text-[#188038]"
-              borderClass="border-[#B7E0C4]"
-              text="Connect your Google Ads account to import data and monitor performance."
-            />
+            <PromptStatus text="Connect your Google Ads account to import data and monitor performance." />
           )
         }
         actions={
@@ -1100,7 +1022,6 @@ export function BusinessIntegrationsPanel({
                 href={`/google/select-customer?businessId=${businessId}`}
                 className={`${actionBtn} border border-[#B7E0C4] bg-[#E8F5EE] text-[#188038] no-underline`}
               >
-                <Briefcase className="size-3" strokeWidth={2.25} />
                 {googleNeedsCustomer ? "Choose Ads account" : "Change Ads account"}
               </Link>
               <button
@@ -1109,7 +1030,6 @@ export function BusinessIntegrationsPanel({
                 disabled={googleBusy === "loading"}
                 className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
               >
-                <Trash2 className="size-3" strokeWidth={2.25} />
                 {googleBusy === "loading" ? "Removing…" : "Remove account"}
               </button>
             </>
@@ -1121,10 +1041,7 @@ export function BusinessIntegrationsPanel({
               className={`${actionBtn} gap-1.5 bg-[#34A853] text-white`}
             >
               {googleBusy === "loading" ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Connecting…
-                </>
+                "Connecting…"
               ) : (
                 <>
                   <span className="flex size-4 items-center justify-center rounded-full bg-white">

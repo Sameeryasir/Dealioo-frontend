@@ -2,11 +2,6 @@
 
 import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { Skeleton } from "@/app/components/skeleton";
-import {
-  GoogleAdsLogo,
-  MetaLogo,
-  StripeLogo,
-} from "@/app/components/landing/LandingIntegrationLogos";
 import { formatRelativeTimeAgo } from "@/app/lib/datetime";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -16,15 +11,7 @@ import {
   type IntegrationAuditLogItem,
 } from "@/app/services/integration-audit/get-integration-audit-logs";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Calendar,
-  Check,
-  CircleAlert,
-  Clock,
-  RefreshCw,
-  Unlink,
-  type LucideIcon,
-} from "lucide-react";
+import { Calendar, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type IntegrationAuditLogsCardProps = {
@@ -147,49 +134,6 @@ function eventCopy(
   );
 }
 
-function EventGlyph({ eventType }: { eventType: string }) {
-  if (eventType === "oauth_failed") {
-    return <EventIconWrap className="bg-[#fee2e2] text-[#dc2626]" icon={CircleAlert} />;
-  }
-  if (eventType.endsWith("_disconnected") || eventType === "oauth_aborted") {
-    return <EventIconWrap className="bg-slate-100 text-slate-500" icon={Unlink} />;
-  }
-  if (
-    eventType === "stripe_connected" ||
-    eventType === "meta_connected" ||
-    eventType === "google_ads_connected"
-  ) {
-    return <EventIconWrap className="bg-[#dcfce7] text-[#16a34a]" icon={Check} />;
-  }
-  return <EventIconWrap className="bg-[#dbeafe] text-[#1d4ed8]" icon={Clock} />;
-}
-
-function EventIconWrap({
-  className,
-  icon: Icon,
-}: {
-  className: string;
-  icon: LucideIcon;
-}) {
-  return (
-    <span
-      className={`flex size-8 shrink-0 items-center justify-center rounded-full ${className}`}
-    >
-      <Icon className="size-4" strokeWidth={2.4} aria-hidden />
-    </span>
-  );
-}
-
-function PlatformMark({ provider }: { provider: string }) {
-  return (
-    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-black/[0.06]">
-      {provider === "stripe" ? <StripeLogo className="size-5" /> : null}
-      {provider === "facebook" ? <MetaLogo className="size-5" /> : null}
-      {provider === "google_ads" ? <GoogleAdsLogo className="size-5" /> : null}
-    </span>
-  );
-}
-
 function formatAbsoluteTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -276,47 +220,44 @@ function CompactLogRow({ item }: { item: IntegrationAuditLogItem }) {
   const details = detailEntries(item.metadata).slice(0, 2);
 
   return (
-    <li className="flex items-start gap-3 border-b border-[#f1f5f9] px-4 py-3 last:border-0 sm:px-5">
-      <EventGlyph eventType={item.eventType} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="m-0 text-sm font-semibold tracking-tight text-slate-900">
-              {copy.title}
+    <li className="border-b border-[#f1f5f9] px-4 py-3 last:border-0 sm:px-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="m-0 text-sm font-semibold tracking-tight text-slate-900">
+            {copy.title}
+          </p>
+          <p className="m-0 mt-0.5 text-[0.75rem] text-slate-500">
+            {copy.subtitle}
+          </p>
+          {details.length > 0 ? (
+            <div className="mt-1.5 space-y-1">
+              {details.map((entry) => (
+                <p key={entry.key} className="m-0 text-[0.72rem] leading-snug text-slate-500">
+                  <span className="font-semibold text-slate-600">{entry.label}:</span>{" "}
+                  <span className="text-slate-700">{entry.value}</span>
+                  {entry.hint ? (
+                    <span className="block text-[0.68rem] text-slate-400">
+                      {entry.hint}
+                    </span>
+                  ) : null}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {item.errorMessage ? (
+            <p className="m-0 mt-1.5 text-[0.72rem] leading-relaxed">
+              <span className="font-semibold text-red-600">Error:</span>{" "}
+              <span className="text-red-700">{item.errorMessage}</span>
             </p>
-            <p className="m-0 mt-0.5 text-[0.75rem] text-slate-500">
-              {copy.subtitle}
-            </p>
-            {details.length > 0 ? (
-              <div className="mt-1.5 space-y-1">
-                {details.map((entry) => (
-                  <p key={entry.key} className="m-0 text-[0.72rem] leading-snug text-slate-500">
-                    <span className="font-semibold text-slate-600">{entry.label}:</span>{" "}
-                    <span className="text-slate-700">{entry.value}</span>
-                    {entry.hint ? (
-                      <span className="block text-[0.68rem] text-slate-400">
-                        {entry.hint}
-                      </span>
-                    ) : null}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            {item.errorMessage ? (
-              <p className="m-0 mt-1.5 text-[0.72rem] leading-relaxed">
-                <span className="font-semibold text-red-600">Error:</span>{" "}
-                <span className="text-red-700">{item.errorMessage}</span>
-              </p>
-            ) : null}
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="m-0 whitespace-nowrap text-[0.72rem] font-medium text-slate-600">
-              {formatAbsoluteTime(item.createdAt)}
-            </p>
-            <p className="m-0 mt-0.5 whitespace-nowrap text-[0.68rem] text-slate-400">
-              {formatRelativeTimeAgo(item.createdAt)}
-            </p>
-          </div>
+          ) : null}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="m-0 whitespace-nowrap text-[0.72rem] font-medium text-slate-600">
+            {formatAbsoluteTime(item.createdAt)}
+          </p>
+          <p className="m-0 mt-0.5 whitespace-nowrap text-[0.68rem] text-slate-400">
+            {formatRelativeTimeAgo(item.createdAt)}
+          </p>
         </div>
       </div>
     </li>
@@ -329,35 +270,28 @@ function LogRow({ item }: { item: IntegrationAuditLogItem }) {
   return (
     <tr className="border-b border-[#f1f5f9] last:border-0">
       <td className="px-4 py-3.5 align-top first:pl-5">
-        <div className="flex items-start gap-3">
-          <EventGlyph eventType={item.eventType} />
-          <div className="min-w-0">
-            <p className="m-0 text-sm font-semibold tracking-tight text-slate-900">
-              {copy.title}
-            </p>
-            <p className="m-0 mt-0.5 text-[0.78rem] leading-relaxed text-slate-500">
-              {copy.subtitle}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="m-0 text-sm font-semibold tracking-tight text-slate-900">
+            {copy.title}
+          </p>
+          <p className="m-0 mt-0.5 text-[0.78rem] leading-relaxed text-slate-500">
+            {copy.subtitle}
+          </p>
         </div>
       </td>
       <td className="px-4 py-3.5 align-top">
         <DetailsBlock item={item} />
       </td>
       <td className="px-4 py-3.5 align-top">
-        <div className="flex items-center gap-2.5">
-          <PlatformMark provider={item.provider} />
-          <p className="m-0 text-sm font-semibold text-slate-900">
-            {providerLabel(item.provider)}
-          </p>
-        </div>
+        <p className="m-0 text-sm font-semibold text-slate-900">
+          {providerLabel(item.provider)}
+        </p>
       </td>
       <td className="px-4 py-3.5 align-top last:pr-5">
-        <p className="m-0 inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-slate-700">
-          <Calendar className="size-3.5 text-slate-400" aria-hidden />
+        <p className="m-0 whitespace-nowrap text-sm font-medium text-slate-700">
           {formatAbsoluteTime(item.createdAt)}
         </p>
-        <p className="m-0 mt-1 pl-5 text-[0.72rem] text-slate-400">
+        <p className="m-0 mt-1 text-[0.72rem] text-slate-400">
           {formatRelativeTimeAgo(item.createdAt)}
         </p>
       </td>
@@ -588,7 +522,6 @@ function TableSkeleton() {
           key={i}
           className="flex items-center gap-4 border-b border-[#f1f5f9] px-5 py-4 last:border-0"
         >
-          <Skeleton funnel className="size-9 shrink-0 rounded-full" />
           <Skeleton funnel className="h-4 w-48" />
           <Skeleton funnel className="ml-auto h-4 w-28" />
           <Skeleton funnel className="h-4 w-24" />

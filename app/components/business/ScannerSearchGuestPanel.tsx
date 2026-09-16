@@ -97,7 +97,7 @@ function SearchHeroCard({
   onSearch: () => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1838,7 +1838,7 @@ export function ScannerSearchGuestPanel({
         </div>
       ) : (
         <div className="w-full overflow-y-auto overscroll-contain px-4 py-4 pb-6 sm:px-5 sm:py-5">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
             {!selectedProfile &&
             !loadingProfile &&
             activeQuery.length === 0 &&
@@ -1853,7 +1853,7 @@ export function ScannerSearchGuestPanel({
             ) : null}
 
             {!selectedProfile && searching && !showTable ? (
-              <div className="mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-10 text-sm font-medium text-slate-600">
+              <div className="mx-auto flex w-full max-w-4xl items-center justify-center gap-2 rounded-[1.1rem] border border-[#e8edf5] bg-white px-4 py-10 text-sm font-medium text-slate-600">
                 <Loader2
                   className="size-4 animate-spin text-[#1877f2]"
                   aria-hidden
@@ -1863,7 +1863,7 @@ export function ScannerSearchGuestPanel({
             ) : null}
 
             {errorMessage && !showGuestNotFound ? (
-              <div className="mx-auto w-full max-w-2xl rounded-[1.1rem] border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#dc2626]">
+              <div className="mx-auto w-full max-w-4xl rounded-[1.1rem] border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#dc2626]">
                 {errorMessage}
               </div>
             ) : null}

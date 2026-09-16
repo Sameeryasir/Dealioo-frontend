@@ -214,7 +214,7 @@ function ScannerIdleState({
   onManualEntry?: () => void;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -241,8 +241,8 @@ function ScannerIdleState({
           ) : null}
         </div>
 
-        <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)] lg:items-center lg:gap-7 sm:px-7 sm:py-7">
-          <div className="max-w-sm">
+        <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-8 sm:px-7 sm:py-7">
+          <div className="min-w-0">
             <p className="m-0 text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[#1877f2]">
               Counter scan mode
             </p>
@@ -272,7 +272,7 @@ function ScannerIdleState({
               type="button"
               onClick={onStart}
               aria-label="Start camera and scan guest pass"
-              className="group relative w-full max-w-[18rem] cursor-pointer overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)] transition hover:ring-2 hover:ring-[#1877f2]/35"
+              className="group relative w-full max-w-[20rem] cursor-pointer overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)] transition hover:ring-2 hover:ring-[#1877f2]/35"
             >
               <div className="relative aspect-[4/5] w-full sm:aspect-square">
                 <span
@@ -400,7 +400,7 @@ function ScannerIdleState({
 
 function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-4xl">
       <div className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f8ff] px-3 py-1.5 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
@@ -420,7 +420,7 @@ function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
         </div>
 
         <div className="px-5 py-5 sm:px-8 sm:py-6">
-          <div className="relative mx-auto max-w-md overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)]">
+          <div className="relative mx-auto w-full max-w-xl overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)]">
             <div
               id="qr-reader"
               className="min-h-[320px] overflow-hidden [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover"
@@ -823,7 +823,7 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-3xl pb-6">
+      <div className="mx-auto w-full max-w-4xl pb-4">
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}

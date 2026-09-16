@@ -2,15 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  AlertCircle,
-  Briefcase,
-  Check,
-  ChevronRight,
-  Loader2,
-  Lock,
-  Save,
-} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MetaLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import {
@@ -21,14 +12,6 @@ import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-ac
 import { notifyFacebookOAuthComplete } from "@/app/lib/facebook-oauth-popup";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { integrationsStatusQueryKey } from "@/app/services/integration-audit/get-integrations-status";
-
-const ACCOUNT_THEME = {
-  Icon: Briefcase,
-  iconWrap: "bg-[#e8f1ff]",
-  iconColor: "text-[#1877F2]",
-  currencyWrap: "bg-[#e8f1ff]",
-  currencyText: "text-[#1877F2]",
-} as const;
 
 function isActiveAccountStatus(status: number | null): boolean {
   // Meta Marketing API: 1 = ACTIVE
@@ -139,39 +122,21 @@ function SelectAdAccountInner() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[#f5f6f8] px-4 py-10">
       <div className="w-full max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(15,23,42,0.1)]">
-        <div
-          className="relative overflow-hidden px-6 pb-8 pt-9 text-center text-white"
-          style={{
-            background:
-              "linear-gradient(160deg, #1a73e8 0%, #1877F2 45%, #0d65d9 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 opacity-30"
-            style={{
-              background:
-                "radial-gradient(120% 80% at 20% 120%, #0a4fb8 0%, transparent 55%), radial-gradient(100% 70% at 80% 130%, #063d91 0%, transparent 50%)",
-            }}
-            aria-hidden
-          />
-          <span className="relative mx-auto flex size-14 items-center justify-center rounded-full bg-white text-[#0081FB] shadow-sm">
-            <MetaLogo className="size-8" monochrome />
-          </span>
-          <p className="relative mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-white/90">
-            Meta Ads
-          </p>
-          <h1 className="relative mt-1 text-[22px] font-bold tracking-tight">
-            Choose your ad account
-          </h1>
-        </div>
-
         <div className="space-y-6 px-5 py-7 sm:px-7 sm:py-8">
+          <div className="text-center">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e8f1ff] text-[#0081FB]">
+              <MetaLogo className="size-8" monochrome />
+            </span>
+            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-[#1877F2]">
+              Meta Ads
+            </p>
+            <h1 className="mt-1 text-[22px] font-bold tracking-tight text-[#1c1e21]">
+              Choose your ad account
+            </h1>
+          </div>
+
           {loading ? (
-            <p className="flex items-center justify-center gap-2 py-10 text-sm text-[#65676b]">
-              <Loader2
-                className="size-4 animate-spin text-[#1877F2]"
-                aria-hidden
-              />
+            <p className="py-10 text-center text-sm text-[#65676b]">
               Fetching ads account…
             </p>
           ) : null}
@@ -184,7 +149,6 @@ function SelectAdAccountInner() {
             >
               {accounts.map((account) => {
                 const selected = selectedId === account.id;
-                const { Icon } = ACCOUNT_THEME;
                 const active = isActiveAccountStatus(account.accountStatus);
                 const currency = account.currency?.trim() || null;
 
@@ -201,27 +165,18 @@ function SelectAdAccountInner() {
                           : "border-[#dadde1] bg-white hover:bg-[#f7f8fa]"
                       }`}
                     >
+                      {/* Simple radio — CSS only */}
                       <span
                         className={`mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
                           selected
-                            ? "border-[#1877F2] bg-[#1877F2] text-white"
+                            ? "border-[#1877F2] bg-[#1877F2]"
                             : "border-[#ccd0d5] bg-white"
                         }`}
                         aria-hidden
                       >
                         {selected ? (
-                          <Check className="size-3" strokeWidth={3} />
+                          <span className="size-1.5 rounded-full bg-white" />
                         ) : null}
-                      </span>
-
-                      <span
-                        className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${ACCOUNT_THEME.iconWrap}`}
-                        aria-hidden
-                      >
-                        <Icon
-                          className={`size-5 ${ACCOUNT_THEME.iconColor}`}
-                          strokeWidth={2}
-                        />
                       </span>
 
                       <span className="min-w-0 flex-1">
@@ -236,9 +191,7 @@ function SelectAdAccountInner() {
                             </span>
                           </span>
                           {currency ? (
-                            <span
-                              className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${ACCOUNT_THEME.currencyWrap} ${ACCOUNT_THEME.currencyText}`}
-                            >
+                            <span className="shrink-0 rounded-md bg-[#e8f1ff] px-2 py-0.5 text-[11px] font-bold text-[#1877F2]">
                               {currency}
                             </span>
                           ) : null}
@@ -275,10 +228,9 @@ function SelectAdAccountInner() {
 
           {error ? (
             <p
-              className="m-0 flex items-start gap-2 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
+              className="m-0 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
               role="alert"
             >
-              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
               {error}
             </p>
           ) : null}
@@ -288,32 +240,20 @@ function SelectAdAccountInner() {
               type="button"
               onClick={() => void handleSave()}
               disabled={saving || !selectedId || loading}
-              className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877F2] text-[15px] font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40 disabled:cursor-not-allowed disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
+              className="flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#1877F2] text-[15px] font-bold text-white transition hover:bg-[#166fe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40 disabled:cursor-not-allowed disabled:bg-[#e4e6eb] disabled:text-[#bcc0c4]"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Saving…
-                </>
-              ) : (
-                <>
-                  <Save className="size-4" aria-hidden />
-                  Save ad account
-                </>
-              )}
+              {saving ? "Saving…" : "Save ad account"}
             </button>
 
             <button
               type="button"
               onClick={handleSkip}
-              className="flex w-full cursor-pointer items-center justify-center gap-1 text-[14px] font-semibold text-[#1877F2] hover:underline"
+              className="flex w-full cursor-pointer items-center justify-center text-[14px] font-semibold text-[#1877F2] hover:underline"
             >
-              Skip for now
-              <ChevronRight className="size-4" aria-hidden />
+              Skip for now &gt;
             </button>
 
-            <p className="m-0 flex items-center justify-center gap-1.5 pt-2 text-[11px] text-[#8a8d91]">
-              <Lock className="size-3 shrink-0" aria-hidden />
+            <p className="m-0 pt-2 text-center text-[11px] text-[#8a8d91]">
               Your information is secure and only used to connect your Meta
               account.
             </p>

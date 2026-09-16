@@ -492,7 +492,7 @@ export function ScannerCreateGuestPanel({
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-5xl pb-6">
+      <div className="mx-auto w-full max-w-4xl pb-6">
         {purchaseSuccess ? (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -539,7 +539,7 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {createdGuestId && !purchaseSuccess ? (
-          <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-4 sm:px-5 sm:py-5">
+          <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-4 sm:px-5 sm:py-5">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -645,7 +645,7 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {!createdGuestId && !purchaseSuccess ? (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
