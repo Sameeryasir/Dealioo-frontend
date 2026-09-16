@@ -16,6 +16,7 @@ import {
 } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { Skeleton } from "@/app/components/skeleton";
+import { DEFAULT_META_AD_STATS_DATE_PRESET } from "@/app/lib/meta-ad-stats-date-preset";
 
 function MetaAdsPanelSkeleton() {
   return (
@@ -187,13 +188,6 @@ export function CampaignAdsPanel({
   );
 
   const openCreateOrResume = useCallback(async () => {
-    if (!hasMetaAdsManagementScope(metaOauthScopes)) {
-      setAdStatsError(
-        "Analytics is available with ads_read. To create campaigns, reconnect Meta and also grant ads_management.",
-      );
-      return;
-    }
-
     setResumeDraftLoading(true);
     try {
       const drafts = await listMetaCampaignDrafts(businessId);
@@ -227,7 +221,7 @@ export function CampaignAdsPanel({
     } finally {
       setResumeDraftLoading(false);
     }
-  }, [businessId, campaignName, metaOauthScopes]);
+  }, [businessId, campaignName]);
 
   const handleDraftPickerSelect = useCallback(
     (action: MetaDraftPickerAction) => {
@@ -273,11 +267,6 @@ export function CampaignAdsPanel({
   const canCreateMetaCampaign = hasMetaAdsManagementScope(metaOauthScopes);
   const canDeleteMetaCampaign =
     hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_delete");
-  const createCampaignBlockedReason = !hasMetaAdsManagementScope(
-    metaOauthScopes,
-  )
-    ? "Analytics is available with ads_read. To create campaigns, reconnect Meta and also grant ads_management."
-    : null;
 
   const handleConfirmDeleteCampaign = useCallback(async () => {
     if (!campaignPendingDelete) return;
@@ -468,7 +457,6 @@ export function CampaignAdsPanel({
     [businessId, invalidateDrafts, loadStats],
   );
 
-  // Full dashboard skeleton until Meta connection + first stats API respond.
   const showSkeleton =
     connectionPhase === "loading" ||
     (connectionPhase === "ready" && adStats === null && !adStatsError);
@@ -480,7 +468,7 @@ export function CampaignAdsPanel({
   const emptyStats: FacebookAdCampaignStats = {
     adAccountName: null,
     currency: null,
-    datePreset: "last_30d",
+    datePreset: DEFAULT_META_AD_STATS_DATE_PRESET,
     campaigns: [],
     dailyInsights: [],
     breakdowns: null,
@@ -531,7 +519,6 @@ export function CampaignAdsPanel({
             onCampaignSearchChange={setCampaignSearchInput}
             onCampaignPageChange={setCampaignPage}
             canCreateCampaign={canCreateMetaCampaign}
-            createCampaignBlockedReason={createCampaignBlockedReason}
             onCreateCampaign={() => {
               void openCreateOrResume();
             }}

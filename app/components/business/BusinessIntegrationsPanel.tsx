@@ -127,12 +127,10 @@ const META_DISPLAY_SCOPES = [
   "pages_read_engagement",
 ] as const;
 
-/** Show only granted Meta OAuth scope ids (no extra product copy). */
 function CompactGrantedPermissions({ scopes }: { scopes: string[] }) {
   const granted = new Set(
     scopes.map((scope) => scope.trim()).filter(Boolean),
   );
-  // NOTE: If status omits scopes, fall back to the usual read scope.
   if (granted.size === 0) {
     granted.add("ads_read");
   }
@@ -568,7 +566,6 @@ export function BusinessIntegrationsPanel({
         if (!token) throw new Error("You're signed out. Sign in again.");
         await disconnectFacebook(token, businessId);
         await refreshStatus();
-        setShowMetaPermissions(false);
         setMetaBusy("idle");
         bumpAuditLogs();
         toast.success("Meta Ads removed.");

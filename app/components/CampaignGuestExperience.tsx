@@ -17,6 +17,7 @@ import {
   formatMetaDeliveryStatus,
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
+import { formatMetaAdStatsDatePresetLabel } from "@/app/lib/meta-ad-stats-date-preset";
 import { connectFacebookInPopup } from "@/app/lib/facebook-oauth-popup";
 import { abortFacebookConnect } from "@/app/services/facebook/abort-facebook-connect";
 import {
@@ -335,7 +336,8 @@ export default function CampaignGuestExperience({
                 adStats.campaigns.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-zinc-500">
-                      Your Meta campaigns (last 30 days)
+                      Your Meta campaigns (
+                      {formatMetaAdStatsDatePresetLabel(adStats.datePreset)})
                       {adStats.adAccountName
                         ? `, ${adStats.adAccountName}`
                         : ""}

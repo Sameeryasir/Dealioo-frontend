@@ -54,6 +54,7 @@ import {
   formatMetaSpend,
   pickPrimaryMetaAction,
 } from "@/app/lib/format-meta-ads";
+import { formatMetaAdStatsDatePresetLabel } from "@/app/lib/meta-ad-stats-date-preset";
 import type {
   FacebookAdBreakdownRow,
   FacebookAdCampaign,
@@ -67,7 +68,6 @@ type MetaAdsAnalyticsDashboardProps = {
   adsManagerUrl: string;
   onCreateCampaign: () => void;
   canCreateCampaign?: boolean;
-  createCampaignBlockedReason?: string | null;
   onRefresh: () => void;
   onDeleteCampaign: (campaign: FacebookAdCampaign) => void;
   canDeleteCampaign?: boolean;
@@ -370,7 +370,6 @@ export function MetaAdsAnalyticsDashboard({
   adsManagerUrl,
   onCreateCampaign,
   canCreateCampaign = true,
-  createCampaignBlockedReason = null,
   onRefresh,
   onDeleteCampaign,
   canDeleteCampaign = true,
@@ -647,26 +646,24 @@ export function MetaAdsAnalyticsDashboard({
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Track spend and performance for your linked Meta ads account.
               </p>
+              <p className="mt-2 inline-flex rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.75rem] font-semibold text-[#1877f2] ring-1 ring-[#dbeafe]">
+                {formatMetaAdStatsDatePresetLabel(stats.datePreset)}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
-          <button
-            type="button"
-            onClick={onCreateCampaign}
-            disabled={!canCreateCampaign}
-            title={
-              !canCreateCampaign
-                ? (createCampaignBlockedReason ??
-                  "ads_management permission is required to create campaigns")
-                : undefined
-            }
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-[#c3c7cd] disabled:hover:bg-[#c3c7cd]"
-          >
-            <Plus className="size-4" aria-hidden />
-            Create campaign
-          </button>
+          {canCreateCampaign ? (
+            <button
+              type="button"
+              onClick={onCreateCampaign}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5]"
+            >
+              <Plus className="size-4" aria-hidden />
+              Create campaign
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onRefresh}
@@ -710,18 +707,6 @@ export function MetaAdsAnalyticsDashboard({
           >
             Try again
           </button>
-        </div>
-      ) : null}
-
-      {!canCreateCampaign && createCampaignBlockedReason ? (
-        <div
-          className="rounded-2xl border border-amber-200/80 bg-amber-50 px-5 py-4"
-          role="status"
-        >
-          <p className="flex items-start gap-2 text-sm font-medium text-amber-900">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {createCampaignBlockedReason}
-          </p>
         </div>
       ) : null}
 
@@ -1033,26 +1018,19 @@ export function MetaAdsAnalyticsDashboard({
                           No campaigns yet
                         </p>
                         <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-                          {canCreateCampaign
-                            ? "Create a Meta campaign with the guided builder, or run ads in Ads Manager."
-                            : (createCampaignBlockedReason ??
-                              "Your Meta connection only has ads_read. Reconnect and grant ads_management to create ads.")}
+                          Create a Meta campaign with the guided builder, or run
+                          ads in Ads Manager.
                         </p>
-                        <button
-                          type="button"
-                          onClick={onCreateCampaign}
-                          disabled={!canCreateCampaign}
-                          title={
-                            !canCreateCampaign
-                              ? (createCampaignBlockedReason ??
-                                "ads_management permission is required to create campaigns")
-                              : undefined
-                          }
-                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-[#c3c7cd] disabled:hover:bg-[#c3c7cd]"
-                        >
-                          <Plus className="size-4" aria-hidden />
-                          Create campaign
-                        </button>
+                        {canCreateCampaign ? (
+                          <button
+                            type="button"
+                            onClick={onCreateCampaign}
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5]"
+                          >
+                            <Plus className="size-4" aria-hidden />
+                            Create campaign
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ) : (
