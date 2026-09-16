@@ -4,7 +4,6 @@ import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
-import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import {
   locationFieldMessage,
@@ -31,23 +30,14 @@ import { updateBusiness } from "@/app/services/business/update-business";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
-  Building2,
   Camera,
   Check,
-  ChevronDown,
   ExternalLink,
-  FileText,
-  Globe,
   Lightbulb,
   Loader2,
-  Mail,
   MapPin,
-  MessageSquare,
-  Phone,
-  Search,
   Store,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -98,53 +88,30 @@ type NavId =
   | "address"
   | "about";
 
-// Same icon palette as BusinessGeneralSettingsForm (profile page).
-const ICON = {
-  blue: { wrap: "bg-[#E8F1FF]", ink: "text-[#2F6BFF]" },
-  green: { wrap: "bg-[#E8F8EF]", ink: "text-[#22C55E]" },
-  pink: { wrap: "bg-[#FDE8F0]", ink: "text-[#E11D48]" },
-  orange: { wrap: "bg-[#FFF1E6]", ink: "text-[#F97316]" },
-  yellow: { wrap: "bg-[#FFF8E8]", ink: "text-[#FCB825]" },
-  purple: { wrap: "bg-[#F3E8FF]", ink: "text-[#8B5CF6]" },
-  slate: { wrap: "bg-[#F1F5F9]", ink: "text-[#64748B]" },
-} as const;
-
-type IconTone = keyof typeof ICON;
-
 const NAV: {
   id: NavId;
   label: string;
   hint: string;
-  icon: LucideIcon;
-  tone: IconTone;
 }[] = [
   {
     id: "details",
     label: "Business details",
     hint: "Basic information",
-    icon: Building2,
-    tone: "blue",
   },
   {
     id: "contact",
     label: "Contact information",
     hint: "How customers reach you",
-    icon: Phone,
-    tone: "green",
   },
   {
     id: "address",
     label: "Business address",
     hint: "Physical location",
-    icon: MapPin,
-    tone: "orange",
   },
   {
     id: "about",
     label: "About your business",
     hint: "Description & story",
-    icon: FileText,
-    tone: "slate",
   },
 ];
 
@@ -358,7 +325,6 @@ export function BusinessProfileEditModal({
   >([]);
   const [locationSearching, setLocationSearching] = useState(false);
   const [locationSearchOpen, setLocationSearchOpen] = useState(false);
-  const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const locationSearchRef = useRef<HTMLDivElement>(null);
@@ -382,7 +348,6 @@ export function BusinessProfileEditModal({
     setLocationSearch("");
     setLocationResults([]);
     setLocationSearchOpen(false);
-    setTwilioDialogOpen(false);
   }, [open, business]);
 
   useEffect(() => {
@@ -524,7 +489,6 @@ export function BusinessProfileEditModal({
   const displayLogo = filePreviewUrl ?? logoSrc;
   const shortLabel =
     formatTitleCase(form.name.trim()).split(/\s+/)[0] || "Biz";
-  const twilioNumber = business?.twilioPhoneNumber?.trim() || "";
   const websiteHref = form.websiteUrl.trim();
 
   const patchForm = useCallback((patch: Partial<FormSnapshot>) => {
@@ -729,7 +693,6 @@ export function BusinessProfileEditModal({
       aria-labelledby="business-profile-edit-title"
     >
       <div className="flex h-full w-full max-w-[72rem] flex-col overflow-hidden bg-[#F4F7FB] shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:h-[min(92dvh,56rem)] sm:rounded-2xl sm:ring-1 sm:ring-black/5">
-        {/* --- Top bar --- */}
         <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-[#E8EDF5] bg-white px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
@@ -779,29 +742,21 @@ export function BusinessProfileEditModal({
         </header>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[15.5rem_minmax(0,1fr)_15.5rem]">
-          {/* --- Left nav --- */}
           <aside className="hidden min-h-0 flex-col border-r border-[#E8EDF5] bg-white lg:flex">
             <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
               {NAV.map((item) => {
-                const Icon = item.icon;
                 const active = activeNav === item.id;
-                const tone = ICON[item.tone];
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => scrollToSection(item.id)}
-                    className={`flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
+                    className={`flex w-full cursor-pointer items-center rounded-xl px-3 py-2.5 text-left transition ${
                       active
                         ? "bg-[#EFF6FF] text-[#1D4ED8] ring-1 ring-[#BFDBFE]"
                         : "text-slate-700 hover:bg-[#F8FAFC]"
                     }`}
                   >
-                    <span
-                      className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tone.wrap} ${tone.ink}`}
-                    >
-                      <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-                    </span>
                     <span className="min-w-0">
                       <span className="block text-[0.8rem] font-bold leading-tight">
                         {item.label}
@@ -819,8 +774,6 @@ export function BusinessProfileEditModal({
               })}
             </nav>
           </aside>
-
-          {/* --- Main form --- */}
           <div
             ref={scrollRef}
             className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5"
@@ -992,52 +945,10 @@ export function BusinessProfileEditModal({
                           onChange={(value) =>
                             patchForm({ phoneNumber: value })
                           }
+                          variant="boxed"
                           wrapClassName="!gap-1 [&_input]:!text-sm [&_input]:!font-medium"
                         />
                       </div>
-                    </Field>
-
-                    <Field
-                      label="Twilio number (optional)"
-                      htmlFor="edit-business-twilio"
-                    >
-                      <div className="relative">
-                        <MessageSquare
-                          className="pointer-events-none absolute left-3 top-1/2 z-[1] size-4 -translate-y-1/2 text-[#8B5CF6]"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
-                        <button
-                          id="edit-business-twilio"
-                          type="button"
-                          onClick={() => setTwilioDialogOpen(true)}
-                          disabled={saving}
-                          className={`${inputClass} flex cursor-pointer items-center gap-2 pl-10 pr-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
-                          aria-label={
-                            twilioNumber
-                              ? `Change Twilio number (${twilioNumber})`
-                              : "Choose a Twilio number"
-                          }
-                        >
-                          <span
-                            className={`min-w-0 flex-1 truncate ${
-                              twilioNumber
-                                ? "font-medium text-slate-900"
-                                : "font-normal text-slate-400"
-                            }`}
-                          >
-                            {twilioNumber || "Choose a Twilio number"}
-                          </span>
-                          <ChevronDown
-                            className="size-4 shrink-0 text-slate-400"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                        </button>
-                      </div>
-                      <p className="m-0 mt-1.5 text-[0.7rem] text-slate-500">
-                        Pick the SMS number this business will send from.
-                      </p>
                     </Field>
 
                     <Field
@@ -1045,24 +956,17 @@ export function BusinessProfileEditModal({
                       htmlFor="edit-business-email"
                       required
                     >
-                      <div className="relative">
-                        <Mail
-                          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B5CF6]"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
-                        <input
-                          id="edit-business-email"
-                          type="email"
-                          className={`${inputClass} pl-10`}
-                          value={form.email}
-                          onChange={(e) =>
-                            patchForm({ email: e.target.value })
-                          }
-                          autoComplete="email"
-                          placeholder="business@email.com"
-                        />
-                      </div>
+                      <input
+                        id="edit-business-email"
+                        type="email"
+                        className={inputClass}
+                        value={form.email}
+                        onChange={(e) =>
+                          patchForm({ email: e.target.value })
+                        }
+                        autoComplete="email"
+                        placeholder="business@email.com"
+                      />
                     </Field>
 
                     <Field
@@ -1071,15 +975,15 @@ export function BusinessProfileEditModal({
                       error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
                     >
                       <div className="relative">
-                        <Globe
-                          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B5CF6]"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
                         <input
                           id="edit-business-website"
                           type="url"
-                          className={`${inputClass} pl-10 pr-10`}
+                          className={`${inputClass}${
+                            websiteHref &&
+                            isValidOptionalHttpsWebsiteUrl(websiteHref)
+                              ? " pr-10"
+                              : ""
+                          }`}
                           value={form.websiteUrl}
                           onChange={(e) =>
                             patchForm({ websiteUrl: e.target.value })
@@ -1190,15 +1094,10 @@ export function BusinessProfileEditModal({
                           Search location
                         </label>
                         <span className="relative block">
-                          <Search
-                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
                           <input
                             id="edit-business-location-search"
                             type="search"
-                            className={`${inputClass} !pl-10`}
+                            className={inputClass}
                             placeholder="Search city, address, or place"
                             value={locationSearch}
                             onChange={(event) => {
@@ -1305,8 +1204,6 @@ export function BusinessProfileEditModal({
               </div>
             )}
           </div>
-
-          {/* --- Right rail --- */}
           <aside className="hidden min-h-0 flex-col gap-3 overflow-y-auto border-l border-[#E8EDF5] bg-[#F8FAFC] p-3 lg:flex">
             <section className="rounded-2xl border border-[#E8EDF5] bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.03)]">
               <CompletionRing percent={completion.percent} />
@@ -1360,26 +1257,6 @@ export function BusinessProfileEditModal({
   return createPortal(
     <>
       {modal}
-      <ChooseNumberDialog
-        open={twilioDialogOpen}
-        businessId={businessId}
-        overlayClassName="z-[100]"
-        title="Choose a Twilio number"
-        description="Pick the SMS number this business will send from."
-        confirmLabel="Save number"
-        confirmingLabel="Saving number…"
-        onClose={() => setTwilioDialogOpen(false)}
-        onConfirmed={async (selected) => {
-          setTwilioDialogOpen(false);
-          toast.success(`Twilio number set to ${selected.phoneNumber}.`);
-          await queryClient.invalidateQueries({
-            queryKey: businessQueryKeys.detail(businessId),
-          });
-          await queryClient.invalidateQueries({
-            queryKey: businessQueryKeys.myLists(),
-          });
-        }}
-      />
     </>,
     document.body,
   );

@@ -13,9 +13,6 @@ function getAllowedDevOrigins(): string[] {
       /* ignore invalid FRONTEND_URL */
     }
   }
-  // Keep prior tunnel host so older bookmarks still hydrate.
-  origins.add("washday-grooving-maximize.ngrok-free.dev");
-  origins.add("grimacing-antler-ensure.ngrok-free.dev");
   return [...origins];
 }
 

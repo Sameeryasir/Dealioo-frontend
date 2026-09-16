@@ -14,20 +14,11 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
-  Briefcase,
   Check,
   ChevronRight,
-  FileText,
-  Globe,
-  Globe2,
   Link2,
   Loader2,
-  Mail,
-  MapPin,
-  MapPinned,
-  MessageSquare,
   Pencil,
-  Phone,
   Shield,
   Store,
   Target,
@@ -162,37 +153,30 @@ function ToneIcon({
 function DetailField({
   label,
   htmlFor,
-  icon,
-  tone,
   error,
   children,
   className = "",
 }: {
   label: string;
   htmlFor: string;
-  icon: LucideIcon;
-  tone: IconTone;
   error?: string | null;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`flex items-start gap-3 py-0.5 ${className}`}>
-      <ToneIcon icon={icon} tone={tone} size="sm" shape="round" />
-      <div className="min-w-0 flex-1">
-        <label
-          htmlFor={htmlFor}
-          className="m-0 block text-[0.68rem] font-medium text-slate-400"
-        >
-          {label}
-        </label>
-        <div className="mt-0.5">{children}</div>
-        {error ? (
-          <p className="m-0 mt-0.5 text-[0.65rem] text-red-600" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </div>
+    <div className={`min-w-0 py-0.5 ${className}`}>
+      <label
+        htmlFor={htmlFor}
+        className="m-0 block text-[0.72rem] font-bold text-slate-700"
+      >
+        {label}
+      </label>
+      <div className="mt-0.5">{children}</div>
+      {error ? (
+        <p className="m-0 mt-0.5 text-[0.65rem] text-red-600" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -212,13 +196,13 @@ function BusinessLogoAvatar({
 
   return (
     <div className="relative size-[5.75rem] shrink-0 xl:size-[6.5rem]">
-      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff]">
+      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff]">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
             alt=""
-            className="h-full w-full object-contain p-1"
+            className="h-full w-full object-cover"
           />
         ) : (
           <span
@@ -275,7 +259,6 @@ const GENERAL_FOCUS_IDS: Record<string, string> = {
   contact: "business-settings-email",
   address: "business-settings-address",
   branch: "business-settings-branch",
-  twilio: "business-settings-twilio",
 };
 
 export function BusinessGeneralSettingsForm({
@@ -315,11 +298,7 @@ export function BusinessGeneralSettingsForm({
     const targetId = GENERAL_FOCUS_IDS[key];
     if (!targetId) return;
     const timer = window.setTimeout(() => {
-      const el =
-        document.getElementById(targetId) ??
-        (key === "twilio"
-          ? document.getElementById("business-details")
-          : null);
+      const el = document.getElementById(targetId);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       if (el instanceof HTMLInputElement) {
         el.focus();
@@ -340,7 +319,6 @@ export function BusinessGeneralSettingsForm({
   const countryLabel = displayOrDash(form.country);
   const postalLabel = displayOrDash(form.postalCode);
   const displayName = formatTitleCase(form.name.trim() || "Your business");
-  const twilioNumber = business?.twilioPhoneNumber?.trim() || "";
 
   const openEditModal = () => setEditOpen(true);
 
@@ -443,7 +421,6 @@ export function BusinessGeneralSettingsForm({
 
   const profileMain = (
     <>
-          {/* Overview card — matches business profile mock */}
           <section className="shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5">
             <div className="flex items-start gap-4 sm:gap-5">
               <div
@@ -504,26 +481,19 @@ export function BusinessGeneralSettingsForm({
             id="business-details"
             className="scroll-mt-24 shrink-0 rounded-2xl border border-[#E8EDF5] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] xl:px-6 xl:py-5"
           >
-            <header className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#F3E8FF] text-[#8B5CF6]">
-                <FileText className="size-4" strokeWidth={2.25} aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h3 className="m-0 text-[1.05rem] font-bold text-[#0F172A]">
-                  Business details
-                </h3>
-                <p className="m-0 mt-0.5 text-[0.8rem] text-slate-500">
-                  Core information about your business
-                </p>
-              </div>
+            <header className="min-w-0">
+              <h3 className="m-0 text-[1.05rem] font-bold text-[#0F172A]">
+                Business details
+              </h3>
+              <p className="m-0 mt-0.5 text-[0.8rem] text-slate-500">
+                Core information about your business
+              </p>
             </header>
 
             <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
               <DetailField
                 label="Business name"
                 htmlFor="business-settings-name"
-                icon={Briefcase}
-                tone="purple"
               >
                 <p id="business-settings-name" className={`${fieldInputClass} m-0`}>
                   {displayOrDash(form.name)}
@@ -533,8 +503,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Business type"
                 htmlFor="business-settings-type"
-                icon={Store}
-                tone="blue"
               >
                 <p id="business-settings-type" className={`${fieldInputClass} m-0`}>
                   {displayOrDash(business?.businessType ?? "")}
@@ -544,8 +512,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Currency"
                 htmlFor="business-settings-currency"
-                icon={Target}
-                tone="green"
               >
                 <p
                   id="business-settings-currency"
@@ -558,8 +524,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Phone number"
                 htmlFor="business-settings-phone"
-                icon={Phone}
-                tone="green"
               >
                 <p id="business-settings-phone" className={`${fieldInputClass} m-0`}>
                   {displayOrDash(form.phoneNumber)}
@@ -569,8 +533,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Email address"
                 htmlFor="business-settings-email"
-                icon={Mail}
-                tone="orange"
               >
                 <p id="business-settings-email" className={`${fieldInputClass} m-0`}>
                   {displayOrDash(form.email)}
@@ -580,8 +542,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Website"
                 htmlFor="business-settings-website"
-                icon={Globe2}
-                tone="blue"
               >
                 {websiteHref && isValidOptionalHttpsWebsiteUrl(websiteHref) ? (
                   <a
@@ -607,8 +567,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="City"
                 htmlFor="business-settings-city"
-                icon={MapPin}
-                tone="blue"
               >
                 <p id="business-settings-city" className={`${fieldInputClass} m-0`}>
                   {cityLabel}
@@ -618,8 +576,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="State"
                 htmlFor="business-settings-state"
-                icon={MapPinned}
-                tone="purple"
               >
                 <p id="business-settings-state" className={`${fieldInputClass} m-0`}>
                   {stateLabel}
@@ -629,8 +585,6 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Country"
                 htmlFor="business-settings-country"
-                icon={Globe}
-                tone="green"
               >
                 <p id="business-settings-country" className={`${fieldInputClass} m-0`}>
                   {countryLabel}
@@ -640,32 +594,15 @@ export function BusinessGeneralSettingsForm({
               <DetailField
                 label="Postal code"
                 htmlFor="business-settings-address"
-                icon={Mail}
-                tone="pink"
               >
                 <p id="business-settings-postal" className={`${fieldInputClass} m-0`}>
                   {postalLabel}
                 </p>
               </DetailField>
 
-              {twilioNumber ? (
-                <DetailField
-                  label="Twilio number"
-                  htmlFor="business-settings-twilio"
-                  icon={MessageSquare}
-                  tone="purple"
-                >
-                  <p id="business-settings-twilio" className={`${fieldInputClass} m-0`}>
-                    {twilioNumber}
-                  </p>
-                </DetailField>
-              ) : null}
-
               <DetailField
                 label="Business description"
                 htmlFor="business-settings-description"
-                icon={FileText}
-                tone="yellow"
                 className="sm:col-span-2"
               >
                 <p

@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BarChart3,
-  ChevronDown,
-  Flag,
-  List,
-  Megaphone,
-  Shield,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, Shield } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import {
   META_ADS_PERMISSION_OPTIONS,
@@ -22,32 +14,6 @@ type MetaAdsPermissionConsentProps = {
   onChange: (scopes: MetaSelectableScopeId[]) => void;
   disabled?: boolean;
   variant?: "default" | "compact";
-};
-
-const PERMISSION_VISUALS: Record<
-  MetaSelectableScopeId,
-  { Icon: LucideIcon; iconWrap: string; iconColor: string }
-> = {
-  ads_read: {
-    Icon: BarChart3,
-    iconWrap: "bg-[#e8f1ff]",
-    iconColor: "text-[#1877F2]",
-  },
-  ads_management: {
-    Icon: Megaphone,
-    iconWrap: "bg-[#eaf8ef]",
-    iconColor: "text-[#22c55e]",
-  },
-  pages_show_list: {
-    Icon: List,
-    iconWrap: "bg-[#f3e8ff]",
-    iconColor: "text-[#7c3aed]",
-  },
-  pages_read_engagement: {
-    Icon: Flag,
-    iconWrap: "bg-[#fff4e5]",
-    iconColor: "text-[#ea580c]",
-  },
 };
 
 export function MetaAdsPermissionConsent({
@@ -76,8 +42,6 @@ export function MetaAdsPermissionConsent({
         <ul className="m-0 list-none space-y-2 p-0 sm:space-y-2.5" role="list">
           {META_ADS_PERMISSION_OPTIONS.map((opt) => {
             const checked = selected.has(opt.id);
-            const visual = PERMISSION_VISUALS[opt.id];
-            const { Icon } = visual;
             const checkboxId = `meta-perm-compact-${opt.id}`;
 
             return (
@@ -98,15 +62,6 @@ export function MetaAdsPermissionConsent({
                     onChange={() => toggle(opt.id)}
                     className="mt-1 size-3.5 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed sm:size-4"
                   />
-                  <span
-                    className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md sm:size-9 sm:rounded-lg ${visual.iconWrap}`}
-                    aria-hidden
-                  >
-                    <Icon
-                      className={`size-3.5 sm:size-4 ${visual.iconColor}`}
-                      strokeWidth={2}
-                    />
-                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-semibold leading-snug text-slate-900 sm:text-[15px]">
                       {opt.title}
@@ -161,8 +116,6 @@ export function MetaAdsPermissionConsent({
         {META_ADS_PERMISSION_OPTIONS.map((opt) => {
           const checked = selected.has(opt.id);
           const expanded = expandedId === opt.id;
-          const visual = PERMISSION_VISUALS[opt.id];
-          const { Icon } = visual;
           const checkboxId = `meta-perm-${opt.id}`;
 
           return (
@@ -183,13 +136,6 @@ export function MetaAdsPermissionConsent({
                     onChange={() => toggle(opt.id)}
                     className="mt-1 size-4 shrink-0 cursor-pointer rounded-[3px] border-[#ccd0d5] accent-[#1877F2] disabled:cursor-not-allowed"
                   />
-
-                  <span
-                    className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${visual.iconWrap}`}
-                    aria-hidden
-                  >
-                    <Icon className={`size-5 ${visual.iconColor}`} strokeWidth={2} />
-                  </span>
 
                   <label
                     htmlFor={checkboxId}

@@ -30,6 +30,7 @@ import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-members";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
+import { toast } from "sonner";
 import {
   cancelPendingBusinessInvitation,
   copyPendingBusinessInvitationLink,
@@ -91,12 +92,12 @@ function statusBadgeClass(status: BusinessMemberListItem["status"]) {
   if (status === "pending") {
     return "bg-[#fff4e8] text-[#c05600] ring-1 ring-[#fed7aa]";
   }
-  return "bg-[#e9f9ef] text-[#15803d] ring-1 ring-[#bbf7d0]";
+  return "bg-[#e8f1ff] text-[#1877f2] ring-1 ring-[#bfdbfe]";
 }
 
 function statusDotClass(status: BusinessMemberListItem["status"]) {
   if (status === "pending") return "bg-[#ea580c]";
-  return "bg-[#16a34a]";
+  return "bg-[#1877f2]";
 }
 
 function memberStatusLabel(status: BusinessMemberListItem["status"]) {
@@ -168,7 +169,6 @@ function MemberDetailsModal({
   onEditInvite,
   isResending,
   isCopying,
-  actionMessage,
 }: {
   member: BusinessMemberListItem | null;
   open: boolean;
@@ -181,7 +181,6 @@ function MemberDetailsModal({
   onEditInvite: () => void;
   isResending: boolean;
   isCopying: boolean;
-  actionMessage: string | null;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -362,21 +361,15 @@ function MemberDetailsModal({
             </div>
 
             <div className="flex shrink-0 flex-col gap-2.5 border-t border-[#eef2f8] bg-white px-5 py-4 sm:px-6">
-              {actionMessage ? (
-                <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2 text-xs font-medium text-[#1877f2]">
-                  {actionMessage}
-                </p>
-              ) : null}
-
               {canManageInvite || canEditAccess ? (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                   {canManageInvite ? (
                     <>
                       <button
                         type="button"
                         onClick={onResend}
                         disabled={isResending || isCopying || isRemoving}
-                        className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#dbe7ff] bg-[#f5f9ff] px-4 text-sm font-semibold text-[#1877f2] transition hover:bg-[#eef4ff] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#dbe7ff] bg-[#f5f9ff] px-3 text-sm font-semibold text-[#1877f2] transition hover:bg-[#eef4ff] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isResending ? (
                           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -389,7 +382,7 @@ function MemberDetailsModal({
                         type="button"
                         onClick={onCopyLink}
                         disabled={isResending || isCopying || isRemoving}
-                        className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-3 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isCopying ? (
                           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -405,7 +398,7 @@ function MemberDetailsModal({
                       type="button"
                       onClick={onEditInvite}
                       disabled={isResending || isCopying || isRemoving}
-                      className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                      className="inline-flex h-11 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e8edf5] bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Pencil className="size-4" aria-hidden />
                       Edit access
@@ -478,9 +471,6 @@ export function BusinessMembersPanel({
   const [memberToRemove, setMemberToRemove] =
     useState<BusinessMemberListItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [detailsActionMessage, setDetailsActionMessage] = useState<
-    string | null
-  >(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -551,7 +541,6 @@ export function BusinessMembersPanel({
       if (!setupUser) return;
 
       openSelfDetailsHandledRef.current = true;
-      setDetailsActionMessage(null);
       setDetailsMember({
         id: null,
         userId: setupUser.id,
@@ -574,7 +563,6 @@ export function BusinessMembersPanel({
     if (!selfMember) return;
 
     openSelfDetailsHandledRef.current = true;
-    setDetailsActionMessage(null);
     setDetailsMember(selfMember);
     setSearchQuery("");
     setDebouncedSearch("");
@@ -665,13 +653,13 @@ export function BusinessMembersPanel({
     mutationFn: (invitationId: number) =>
       resendPendingBusinessInvitation({ businessId, invitationId }),
     onSuccess: async (result) => {
-      setDetailsActionMessage(result.message || "Invitation resent.");
+      toast.success(result.message || "Invitation resent.");
       await queryClient.invalidateQueries({
         queryKey: businessMemberQueryKeys.lists(businessId),
       });
     },
     onError: (err: unknown) => {
-      setDetailsActionMessage(
+      toast.error(
         getApiErrorMessage(err, "Could not resend the invitation."),
       );
     },
@@ -683,18 +671,18 @@ export function BusinessMembersPanel({
     onSuccess: async (result) => {
       try {
         await navigator.clipboard.writeText(result.inviteUrl);
-        setDetailsActionMessage(
+        toast.success(
           "Invite link copied. Previous emailed links no longer work.",
         );
       } catch {
-        setDetailsActionMessage(result.inviteUrl);
+        toast.message(result.inviteUrl);
       }
       await queryClient.invalidateQueries({
         queryKey: businessMemberQueryKeys.lists(businessId),
       });
     },
     onError: (err: unknown) => {
-      setDetailsActionMessage(
+      toast.error(
         getApiErrorMessage(err, "Could not create an invite link."),
       );
     },
@@ -758,14 +746,12 @@ export function BusinessMembersPanel({
         open={detailsMember != null}
         onClose={() => {
           setDetailsMember(null);
-          setDetailsActionMessage(null);
           router.replace(`/business/${businessId}/dashboard`);
         }}
         isRemoving={false}
         canManageMembers={false}
         isResending={false}
         isCopying={false}
-        actionMessage={detailsActionMessage}
         onResend={() => undefined}
         onCopyLink={() => undefined}
         onEditInvite={() => undefined}
@@ -934,7 +920,6 @@ export function BusinessMembersPanel({
                             }`}
                             onClick={() => {
                               if (!canViewDetails) return;
-                              setDetailsActionMessage(null);
                               setDetailsMember(member);
                             }}
                           >
@@ -1038,7 +1023,6 @@ export function BusinessMembersPanel({
         businessId={businessId}
         editInvite={editInvite}
         onSuccess={() => {
-          setDetailsActionMessage(null);
           void queryClient.invalidateQueries({
             queryKey: businessMemberQueryKeys.lists(businessId),
           });
@@ -1050,7 +1034,6 @@ export function BusinessMembersPanel({
         open={detailsMember != null}
         onClose={() => {
           setDetailsMember(null);
-          setDetailsActionMessage(null);
         }}
         isRemoving={
           detailsMember?.id != null && removingMemberId === detailsMember.id
@@ -1058,15 +1041,12 @@ export function BusinessMembersPanel({
         canManageMembers={canManageMembers}
         isResending={resendMutation.isPending}
         isCopying={copyLinkMutation.isPending}
-        actionMessage={detailsActionMessage}
         onResend={() => {
           if (detailsMember?.id == null) return;
-          setDetailsActionMessage(null);
           resendMutation.mutate(detailsMember.id);
         }}
         onCopyLink={() => {
           if (detailsMember?.id == null) return;
-          setDetailsActionMessage(null);
           copyLinkMutation.mutate(detailsMember.id);
         }}
         onEditInvite={() => {
