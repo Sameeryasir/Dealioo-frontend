@@ -7,15 +7,12 @@ import {
   Check,
   CheckCircle2,
   CreditCard,
-  Gift,
-  IdCard,
   Loader2,
   Mail,
   Megaphone,
   Phone,
   Plus,
   ShieldCheck,
-  Sparkles,
   UserPlus,
   UserRound,
 } from "lucide-react";
@@ -27,13 +24,13 @@ import { standardEase } from "@/app/lib/motion";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { createCustomer } from "@/app/services/customer/create-customer";
 import {
-  fetchFunnelsByRestaurant,
-  type RestaurantFunnelDeal,
-} from "@/app/services/funnel/get-funnels-by-business";
-import {
   purchaseScannerDeals,
   type ScannerPurchasedDeal,
 } from "@/app/services/funnel/purchase-scanner-deals";
+import {
+  getGuestProfile,
+  type GuestAvailableBusinessDeal,
+} from "@/app/services/redemption/scan-redemption";
 
 function formatDealPrice(price: number | string | null): string | null {
   if (price == null || price === "") return null;
@@ -55,7 +52,7 @@ function DealCheckboxRow({
   disabled,
   onToggle,
 }: {
-  deal: RestaurantFunnelDeal;
+  deal: GuestAvailableBusinessDeal;
   checked: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -69,15 +66,11 @@ function DealCheckboxRow({
         type="button"
         disabled={disabled}
         onClick={onToggle}
-        className={`flex w-full items-start gap-3 rounded-[1.1rem] border px-4 py-3.5 text-left transition ${
+        className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${
           disabled
             ? "cursor-not-allowed opacity-60"
             : "cursor-pointer hover:bg-[#f8fafc]"
-        } ${
-          checked
-            ? "border-[#1877f2]/45 bg-[#f4f8ff] ring-1 ring-[#1877f2]/15"
-            : "border-[#e8edf5] bg-white hover:border-[#dbeafe]"
-        }`}
+        } ${checked ? "bg-[#f4f8ff]" : "bg-transparent"}`}
       >
         <span
           className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition ${
@@ -89,7 +82,7 @@ function DealCheckboxRow({
         >
           {checked ? <Check className="size-3" strokeWidth={3} /> : null}
         </span>
-        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e8f1ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e8f1ff] text-[#1877f2]">
           {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -105,19 +98,18 @@ function DealCheckboxRow({
           <span className="block font-extrabold text-[#0e182b]">
             {deal.campaignName}
           </span>
-          <span className="mt-0.5 block text-[0.76rem] font-medium text-slate-500">
-            Special offer for guests
+          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {priceLabel ? (
+              <span className="text-[0.76rem] font-bold text-emerald-700">
+                {priceLabel}
+              </span>
+            ) : null}
+            {deal.campaignType === "postpaid" ? (
+              <span className="text-[0.72rem] font-semibold text-slate-500">
+                Postpaid
+              </span>
+            ) : null}
           </span>
-          {priceLabel ? (
-            <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-700 ring-1 ring-emerald-100">
-              {priceLabel}
-            </span>
-          ) : null}
-          {deal.campaignType === "postpaid" ? (
-            <span className="mt-2 ml-1.5 inline-flex rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[0.72rem] font-bold text-[#4b5563] ring-1 ring-[#e5e7eb]">
-              Postpaid
-            </span>
-          ) : null}
         </span>
       </button>
     </li>
@@ -193,7 +185,7 @@ export function ScannerCreateGuestPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdGuestId, setCreatedGuestId] = useState<number | null>(null);
   const [createdGuestName, setCreatedGuestName] = useState("");
-  const [deals, setDeals] = useState<RestaurantFunnelDeal[]>([]);
+  const [deals, setDeals] = useState<GuestAvailableBusinessDeal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
   const [selectedFunnelIds, setSelectedFunnelIds] = useState<number[]>([]);
   const [purchaseStep, setPurchaseStep] = useState<
@@ -224,14 +216,21 @@ export function ScannerCreateGuestPanel({
   };
 
   const loadDeals = useCallback(async () => {
+    if (createdGuestId == null) return;
+
     setLoadingDeals(true);
     setErrorMessage(null);
 
     try {
-      const rows = await fetchFunnelsByRestaurant(businessId);
+      const profile = await getGuestProfile(businessId, createdGuestId);
+      const rows = profile?.availableBusinessDeals ?? [];
       setDeals(rows);
       if (rows.length === 0) {
-        setErrorMessage("No deals are set up for this restaurant yet.");
+        setErrorMessage(
+          (profile?.publishedBusinessDealCount ?? 0) === 0
+            ? "No published deals for this business."
+            : "All published deals are already on this guest.",
+        );
       }
     } catch (err) {
       setDeals([]);
@@ -241,7 +240,7 @@ export function ScannerCreateGuestPanel({
     } finally {
       setLoadingDeals(false);
     }
-  }, [businessId]);
+  }, [businessId, createdGuestId]);
 
   useEffect(() => {
     if (createdGuestId == null) return;
@@ -540,120 +539,56 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {createdGuestId && !purchaseSuccess ? (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-4 sm:px-5 sm:py-5">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: standardEase }}
               className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
             >
-              <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3 sm:px-6">
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-                  </span>
-                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-[#0e182b]">
-                    Profile created
+              <div className="flex items-center gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.9rem] font-extrabold text-white">
+                  {guestInitials(createdGuestName || "Guest")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="m-0 truncate text-[1.05rem] font-extrabold text-[#0e182b]">
+                    {createdGuestName || "Guest"}
+                  </p>
+                  <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                    Guest #{createdGuestId} · profile created
                   </p>
                 </div>
-                <p className="m-0 text-[0.72rem] font-bold text-slate-400">
-                  Guest #{createdGuestId}
-                </p>
               </div>
 
-              <div className="grid gap-4 px-5 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                <div className="flex min-w-0 items-start gap-4">
-                  <div className="relative shrink-0">
-                    <span className="flex size-16 items-center justify-center rounded-full bg-[#1877f2] text-[1.05rem] font-extrabold text-white shadow-[0_10px_24px_rgba(24,119,242,0.3)]">
-                      {guestInitials(createdGuestName || "Guest")}
-                    </span>
-                    <span className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white">
-                      <Check className="size-3.5" strokeWidth={3} aria-hidden />
-                    </span>
-                  </div>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#e8f1ff] px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[#1877f2] ring-1 ring-[#dbeafe]">
-                      <CheckCircle2 className="size-3.5" aria-hidden />
-                      Ready for deals
-                    </p>
-                    <p className="m-0 mt-2 truncate text-[1.25rem] font-extrabold tracking-tight text-[#0e182b]">
-                      {createdGuestName || "Guest"}
-                    </p>
-                    <p className="m-0 mt-1 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
-                      You&apos;ve created the guest profile successfully. Attach
-                      deals below to complete the purchase.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className="relative mx-auto hidden w-full max-w-[9rem] lg:block"
-                  aria-hidden
-                >
-                  <div className="rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fbff] p-4 shadow-sm">
-                    <IdCard className="mx-auto size-10 text-[#1877f2]/70" />
-                    <div className="mt-3 space-y-1.5">
-                      <span className="mx-auto block h-1.5 w-16 rounded-full bg-[#dbeafe]" />
-                      <span className="mx-auto block h-1.5 w-12 rounded-full bg-[#e2e8f0]" />
-                    </div>
-                  </div>
-                  <Sparkles className="absolute -right-1 -top-1 size-4 text-[#1877f2]/50" />
-                  <Sparkles className="absolute -bottom-1 left-0 size-3.5 text-slate-300" />
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
-              <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1877f2]/55" />
-                    <span className="relative inline-flex size-2 rounded-full bg-[#1877f2]" />
-                  </span>
-                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 sm:px-6">
+                <div>
+                  <h3 className="m-0 text-[0.98rem] font-extrabold text-[#0e182b]">
                     Attach deals
+                  </h3>
+                  <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                    Choose offers for this guest.
                   </p>
                 </div>
-                <p className="m-0 text-[0.7rem] font-medium text-white/55">
-                  Step 2 of 3
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#e8edf5] px-5 py-4 sm:px-6">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
-                    <Gift className="size-5" strokeWidth={2.15} aria-hidden />
-                  </span>
-                  <div>
-                    <h3 className="m-0 text-[0.98rem] font-extrabold text-[#0e182b]">
-                      Select deals to attach
-                    </h3>
-                    <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
-                      Choose one or more offers to attach to this guest.
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#dbeafe]">
-                  Selected {selectedFunnelIds.length} of {deals.length}
+                <span className="text-[0.72rem] font-semibold tabular-nums text-slate-500">
+                  {selectedFunnelIds.length} of {deals.length} selected
                 </span>
               </div>
 
-              <div className="p-5 sm:p-6">
+              <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6">
                 {loadingDeals ? (
-                  <div className="flex flex-col items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-[#f8fafc] py-12 text-center">
+                  <div className="flex flex-col items-center gap-3 py-10 text-center">
                     <Loader2
-                      className="size-8 animate-spin text-[#1877f2]"
+                      className="size-7 animate-spin text-[#1877f2]"
                       aria-hidden
                     />
                     <p className="m-0 text-[0.82rem] font-medium text-slate-600">
-                      Loading available deals…
+                      Loading deals…
                     </p>
                   </div>
                 ) : null}
 
                 {!loadingDeals && deals.length > 0 ? (
-                  <ul className="space-y-2.5">
+                  <ul className="divide-y divide-[#f1f5f9]">
                     {deals.map((deal) => (
                       <DealCheckboxRow
                         key={deal.id}
@@ -667,22 +602,22 @@ export function ScannerCreateGuestPanel({
                 ) : null}
 
                 {!loadingDeals && deals.length === 0 && !errorMessage ? (
-                  <p className="rounded-[1.1rem] border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-5 text-center text-[0.8rem] font-semibold text-slate-600">
+                  <p className="px-1 py-5 text-center text-[0.8rem] font-semibold text-slate-600">
                     No deals available for this restaurant.
                   </p>
                 ) : null}
 
                 {errorMessage ? (
-                  <p className="mt-3 rounded-[1.1rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
+                  <p className="mt-2 rounded-xl bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
                     {errorMessage}
                   </p>
                 ) : null}
 
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#e8edf5] pt-5">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e8edf5] pt-4">
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-4 py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:border-[#dbeafe] hover:bg-[#f8fafc]"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-4 py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:bg-[#f8fafc]"
                   >
                     <ArrowLeft className="size-4" aria-hidden />
                     Back
@@ -698,14 +633,14 @@ export function ScannerCreateGuestPanel({
                       }
                       setPurchaseStep("confirm");
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Continue
                     <ArrowRight className="size-4" aria-hidden />
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         ) : null}
 
@@ -717,19 +652,18 @@ export function ScannerCreateGuestPanel({
               transition={{ duration: 0.4, ease: standardEase }}
               className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
             >
-              <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
+              <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3 sm:px-6">
                 <div className="flex items-center gap-2.5">
                   <span className="relative flex size-2">
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                    <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                   </span>
-                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
+                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-[#0e182b]">
                     New guest
                   </p>
                 </div>
-                <p className="m-0 hidden items-center gap-1.5 text-[0.7rem] font-medium text-white/55 sm:inline-flex">
+                <p className="m-0 hidden text-[0.7rem] font-medium text-slate-400 sm:inline-flex">
                   Counter create mode
-                  <Sparkles className="size-3.5 text-white/45" aria-hidden />
                 </p>
               </div>
 

@@ -2,11 +2,9 @@
 
 import {
   ArrowLeft,
-  Briefcase,
   CheckCircle2,
   ChevronRight,
   Clock,
-  CreditCard,
   FileText,
   Gift,
   History,
@@ -14,17 +12,16 @@ import {
   Mail,
   Megaphone,
   Phone,
-  Plus,
   ScanLine,
   Search,
   ShieldCheck,
-  UserCheck,
   UserRound,
   Users,
   Wallet,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -45,7 +42,6 @@ import {
 } from "@/app/services/customer/search-customers";
 import {
   purchaseScannerDeals,
-  type ScannerPurchasedDeal,
 } from "@/app/services/funnel/purchase-scanner-deals";
 import {
   getGuestProfile,
@@ -58,7 +54,6 @@ import {
   type GuestPreviousRedemption,
   type GuestProfile,
   type RedeemableReward,
-  type ScanRedemptionSuccess,
 } from "@/app/services/redemption/scan-redemption";
 
 const thClass =
@@ -90,66 +85,6 @@ const SEARCH_STEPS = [
   },
 ] as const;
 
-/** Curved blue halftone dots for the guest profile header (bottom-right). */
-function GuestHeaderDotPattern() {
-  const width = 320;
-  const height = 220;
-  // Origin sits on the bottom-right corner so arcs hug that edge.
-  const originX = width;
-  const originY = height;
-  const dots: Array<{
-    cx: number;
-    cy: number;
-    r: number;
-    opacity: number;
-    key: string;
-  }> = [];
-
-  const rings = 18;
-  for (let ring = 1; ring <= rings; ring += 1) {
-    const radius = ring * 10.5;
-    const count = Math.max(10, Math.round(ring * 2.6));
-    const fade = 1 - ring / (rings + 1.2);
-    const baseR = 1.05 + fade * 1.65;
-
-    for (let i = 0; i <= count; i += 1) {
-      // Quarter-circle sweep from left → up (into the card from bottom-right).
-      const t = i / count;
-      const angle = Math.PI + (Math.PI / 2) * t;
-      const cx = originX + Math.cos(angle) * radius;
-      const cy = originY + Math.sin(angle) * radius;
-      if (cx < -6 || cy < -6 || cx > width + 2 || cy > height + 2) continue;
-      dots.push({
-        key: `${ring}-${i}`,
-        cx,
-        cy,
-        r: baseR * (0.65 + fade * 0.4),
-        opacity: 0.14 + fade * 0.48,
-      });
-    }
-  }
-
-  return (
-    <svg
-      className="pointer-events-none absolute right-0 bottom-0 h-full w-[min(52%,20rem)] text-[#1877f2]"
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="xMaxYMax slice"
-      fill="currentColor"
-      aria-hidden
-    >
-      {dots.map((dot) => (
-        <circle
-          key={dot.key}
-          cx={dot.cx}
-          cy={dot.cy}
-          r={dot.r}
-          opacity={dot.opacity}
-        />
-      ))}
-    </svg>
-  );
-}
-
 function SearchHeroCard({
   query,
   searching,
@@ -169,19 +104,19 @@ function SearchHeroCard({
         transition={{ duration: 0.4, ease: standardEase }}
         className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
       >
-        <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
-            <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
+            <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-[#0e182b]">
               Guest lookup
             </p>
           </div>
-          <p className="m-0 hidden items-center gap-1.5 text-[0.7rem] font-medium text-white/55 sm:inline-flex">
+          <p className="m-0 hidden items-center gap-1.5 text-[0.7rem] font-medium text-slate-400 sm:inline-flex">
             Counter search mode
-            <ScanLine className="size-3.5 text-white/45" aria-hidden />
+            <ScanLine className="size-3.5 text-slate-400" aria-hidden />
           </p>
         </div>
 
@@ -321,19 +256,17 @@ function guestInitials(name: string): string {
 }
 
 const GUEST_AVATAR_TONES = [
-  "bg-[#1877f2] text-white",
   "bg-[#7c3aed] text-white",
-  "bg-[#0d9488] text-white",
+  "bg-[#16a34a] text-white",
+  "bg-[#2563eb] text-white",
   "bg-[#db2777] text-white",
+  "bg-[#0f766e] text-white",
   "bg-[#d97706] text-white",
+  "bg-[#e11d48] text-white",
 ] as const;
 
-function guestAvatarTone(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash + seed.charCodeAt(i) * (i + 1)) % 997;
-  }
-  return GUEST_AVATAR_TONES[hash % GUEST_AVATAR_TONES.length];
+function guestAvatarTone(index: number): string {
+  return GUEST_AVATAR_TONES[index % GUEST_AVATAR_TONES.length] ?? GUEST_AVATAR_TONES[0];
 }
 
 function formatDealPrice(price: number | string | null): string | null {
@@ -404,13 +337,9 @@ function BusinessDealCheckboxRow({
         type="button"
         disabled={disabled}
         onClick={onToggle}
-        className={`group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 text-left transition duration-150 ${
+        className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition duration-150 ${
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-        } ${
-          checked
-            ? "border-[#1877f2]/45 bg-[#f7faff] ring-1 ring-[#1877f2]/15"
-            : "border-[#e8edf5] bg-white hover:border-[#dbe3ef] hover:bg-[#fafbfc]"
-        }`}
+        } ${checked ? "bg-[#f7faff]" : "bg-transparent hover:bg-[#fafbfc]"}`}
       >
         <span
           className={`flex size-[1.15rem] shrink-0 items-center justify-center rounded-full border-2 transition ${
@@ -424,7 +353,7 @@ function BusinessDealCheckboxRow({
             <span className="size-1.5 rounded-full bg-white" />
           ) : null}
         </span>
-        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#eef5ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#eef5ff] text-[#1877f2]">
           {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -620,9 +549,6 @@ export function ScannerSearchGuestPanel({
     null | "completeOrder" | "enterSubtotal" | "enterExtra"
   >(null);
   const [confirmingRedemption, setConfirmingRedemption] = useState(false);
-  const [redeemSuccess, setRedeemSuccess] = useState<ScanRedemptionSuccess | null>(
-    null,
-  );
   const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
     null,
   );
@@ -637,9 +563,6 @@ export function ScannerSearchGuestPanel({
     null,
   );
   const [purchasing, setPurchasing] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState<
-    ScannerPurchasedDeal[] | null
-  >(null);
   const idempotencyKeyRef = useRef("");
   const purchaseIdempotencyKeyRef = useRef("");
 
@@ -698,12 +621,10 @@ export function ScannerSearchGuestPanel({
       setGuestNotInDatabaseQuery(null);
       setSelectedDealIds([]);
       setRedeemStep(null);
-      setRedeemSuccess(null);
       setSelectedFunnelIds([]);
       setGuestDealTab("all");
       setPurchaseStep(null);
       setPendingDealAmount(null);
-      setPurchaseSuccess(null);
       setPreviousRedemptions([]);
       setPreviousRedemptionsMeta(null);
       setPreviousRedemptionsPage(1);
@@ -926,7 +847,12 @@ export function ScannerSearchGuestPanel({
         setPurchaseStep(null);
         setPendingDealAmount(null);
         setSelectedFunnelIds([]);
-        setPurchaseSuccess(purchased);
+        toast.success("Deals attached", {
+          description:
+            purchased.length === 1
+              ? `${purchased[0].campaignName} added for this guest.`
+              : `${purchased.length} deals added for this guest.`,
+        });
 
         const profile = await getGuestProfile(
           businessId,
@@ -994,7 +920,9 @@ export function ScannerSearchGuestPanel({
           setRedeemStep(null);
           setPendingRedeemAmount(null);
           setSelectedDealIds([]);
-          setRedeemSuccess(result);
+          toast.success("Redeemed successfully", {
+            description: `${result.campaignName} · ${formatDateTimeShort(result.redeemedAt)}`,
+          });
 
           const profile = await getGuestProfile(
             businessId,
@@ -1352,14 +1280,14 @@ export function ScannerSearchGuestPanel({
                             onClick={() => void handleSelectGuest(guest)}
                           >
                             <td className={tdClass}>
-                              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#e8f1ff] text-[0.72rem] font-bold tabular-nums text-[#1877f2]">
+                              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#f1f5f9] text-[0.72rem] font-bold tabular-nums text-[#0e182b]">
                                 {rowNumber}
                               </span>
                             </td>
                             <td className={tdClass}>
                               <div className="flex min-w-0 items-center gap-3">
                                 <span
-                                  className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${guestAvatarTone(displayName)}`}
+                                  className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${guestAvatarTone(index)}`}
                                 >
                                   {initials}
                                 </span>
@@ -1443,39 +1371,31 @@ export function ScannerSearchGuestPanel({
               transition={{ duration: 0.32, ease: standardEase }}
               className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
             >
-              <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7">
-                <div className="relative flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.18em]">
-                      <span className="text-slate-400">Guest</span>
-                      <span className="text-slate-300"> · </span>
-                      <span className="text-[#1877f2]">Guest profile</span>
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProfile(null);
-                        setSelectedDealIds([]);
-                        setRedeemStep(null);
-                        setRedeemSuccess(null);
-                        setPendingRedeemAmount(null);
-                        setSelectedFunnelIds([]);
-                        setPurchaseStep(null);
-                        setPendingDealAmount(null);
-                        setPurchaseSuccess(null);
-                        setPreviousRedemptions([]);
-                        setPreviousRedemptionsMeta(null);
-                        setPreviousRedemptionsPage(1);
-                        idempotencyKeyRef.current = "";
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2 text-[0.72rem] font-bold text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-                    >
-                      <ArrowLeft className="size-3.5" aria-hidden />
-                      Back to results
-                    </button>
-                  </div>
+              <div className="relative shrink-0 border-b border-[#eef2f7] bg-white px-5 py-3.5 sm:px-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="m-0 text-[0.8rem] font-bold text-[#0e182b]">
+                    Guest profile
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedProfile(null);
+                      setSelectedDealIds([]);
+                      setRedeemStep(null);
+                      setPendingRedeemAmount(null);
+                      setSelectedFunnelIds([]);
+                      setPurchaseStep(null);
+                      setPendingDealAmount(null);
+                      setPreviousRedemptions([]);
+                      setPreviousRedemptionsMeta(null);
+                      setPreviousRedemptionsPage(1);
+                      idempotencyKeyRef.current = "";
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-2 text-[0.72rem] font-bold text-slate-700 transition hover:bg-[#f8fafc]"
+                  >
+                    <ArrowLeft className="size-3.5" aria-hidden />
+                    Back to results
+                  </button>
                 </div>
               </div>
 
@@ -1483,160 +1403,54 @@ export function ScannerSearchGuestPanel({
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: standardEase }}
-                  className="px-5 pt-5 sm:px-7 sm:pt-6"
+                  transition={{ duration: 0.35, ease: standardEase }}
+                  className="border-b border-[#eef2f7] px-5 py-5 sm:px-7"
                 >
-                  <div className="relative overflow-hidden rounded-2xl border border-[#dbeafe] bg-[#f0f6ff] p-5 shadow-[0_10px_28px_rgba(24,119,242,0.08)] sm:p-6">
-                    <GuestHeaderDotPattern />
-                    <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-                        <span className="flex size-[4.25rem] shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[1.25rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.28)] sm:size-[4.5rem] sm:text-[1.35rem]">
-                          {guestInitials(selectedProfile.customerName)}
-                        </span>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2.5">
-                            <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.65rem]">
-                              {selectedProfile.customerName}
-                            </h2>
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
-                              <span className="flex size-4 items-center justify-center rounded-full bg-[#1877f2] text-white">
-                                <UserCheck className="size-2.5" strokeWidth={2.75} aria-hidden />
-                              </span>
-                              Ready to Redeem
-                            </span>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <span className="inline-flex max-w-[18rem] items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-[0.78rem] font-medium text-slate-600 sm:max-w-[22rem]">
-                              <Mail
-                                className="size-3.5 shrink-0 text-[#1877f2]"
-                                aria-hidden
-                              />
-                              <span className="truncate">
-                                {selectedProfile.email}
-                              </span>
-                            </span>
-                            {selectedProfile.phone ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-[0.78rem] font-medium text-slate-600">
-                                <Phone
-                                  className="size-3.5 shrink-0 text-[#1877f2]"
-                                  aria-hidden
-                                />
-                                {selectedProfile.phone}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.95rem] font-extrabold text-white">
+                        {guestInitials(selectedProfile.customerName)}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#0e182b]">
+                          {selectedProfile.customerName}
+                        </h2>
+                        <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500">
+                          {selectedProfile.email}
+                          {selectedProfile.phone
+                            ? ` · ${selectedProfile.phone}`
+                            : ""}
+                        </p>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
-                            <Gift className="size-4" aria-hidden />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
-                              Guest Deals
-                            </p>
-                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
-                              {activeDeals.length}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
-                            <CreditCard className="size-4" aria-hidden />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
-                              Paid
-                            </p>
-                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
-                              {prepaidDeals.length}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex min-w-[7.5rem] items-center gap-2.5 rounded-xl border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:min-w-[8.5rem] sm:px-3.5">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
-                            <ShieldCheck className="size-4" aria-hidden />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate-500">
-                              Redeemed
-                            </p>
-                            <p className="m-0 mt-0.5 text-[1.15rem] font-extrabold leading-none tabular-nums text-[#07111f]">
-                              {previousRedemptionsMeta?.total ??
-                                selectedProfile.previouslyRedeemedCount}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.76rem] font-semibold text-slate-600">
+                      <span>
+                        <span className="tabular-nums text-[#0e182b]">
+                          {activeDeals.length}
+                        </span>{" "}
+                        guest deals
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span>
+                        <span className="tabular-nums text-[#0e182b]">
+                          {prepaidDeals.length}
+                        </span>{" "}
+                        paid
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span>
+                        <span className="tabular-nums text-[#0e182b]">
+                          {previousRedemptionsMeta?.total ??
+                            selectedProfile.previouslyRedeemedCount}
+                        </span>{" "}
+                        redeemed
+                      </span>
                     </div>
                   </div>
                 </motion.div>
 
                 <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
-                  {redeemSuccess ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-[#ecfdf5] px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
-                    >
-                      <CheckCircle2
-                        className="mt-0.5 size-5 shrink-0 text-emerald-600"
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="m-0 text-sm font-extrabold text-emerald-900">
-                          Redeemed successfully
-                        </p>
-                        <p className="m-0 mt-0.5 text-sm text-emerald-800">
-                          {redeemSuccess.campaignName} ·{" "}
-                          {formatDateTimeShort(redeemSuccess.redeemedAt)}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setRedeemSuccess(null)}
-                        className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-                      >
-                        Dismiss
-                      </button>
-                    </motion.div>
-                  ) : null}
-
-                  {purchaseSuccess ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3 rounded-[1.2rem] border border-[#86efac] bg-[#ecfdf5] px-4 py-4 shadow-[0_10px_28px_rgba(16,185,129,0.12)]"
-                    >
-                      <CheckCircle2
-                        className="mt-0.5 size-5 shrink-0 text-emerald-600"
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="m-0 text-sm font-extrabold text-emerald-900">
-                          Deals attached
-                        </p>
-                        <p className="m-0 mt-0.5 text-sm text-emerald-800">
-                          {purchaseSuccess.length === 1
-                            ? purchaseSuccess[0].campaignName
-                            : `${purchaseSuccess.length} deals`}{" "}
-                          added for this guest.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPurchaseSuccess(null)}
-                        className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-                      >
-                        Dismiss
-                      </button>
-                    </motion.div>
-                  ) : null}
-
                   <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
                     <motion.section
                       initial={{ opacity: 0, y: 14 }}
@@ -1646,33 +1460,15 @@ export function ScannerSearchGuestPanel({
                         delay: 0.06,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white"
                     >
                       <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1877f2]">
-                              <Gift className="size-[1.05rem]" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
-                                Guest deals
-                              </h3>
-                              <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                                Redeem deals already attached to this guest.
-                              </p>
-                            </div>
-                          </div>
-                          <p className="m-0 inline-flex shrink-0 items-center gap-1 text-[0.74rem] font-semibold text-[#1877f2]">
-                            Redeem one guest deal at a time
-                            <span
-                              className="flex size-4 items-center justify-center rounded-full bg-[#e8f2ff] text-[0.58rem] font-extrabold text-[#1877f2]"
-                              aria-hidden
-                            >
-                              i
-                            </span>
-                          </p>
-                        </div>
+                        <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0f172a]">
+                          Guest deals
+                        </h3>
+                        <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                          Redeem deals already on this guest.
+                        </p>
                       </div>
 
                       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5">
@@ -1801,37 +1597,21 @@ export function ScannerSearchGuestPanel({
                         delay: 0.12,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
+                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white"
                     >
                       <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1877f2]">
-                              <Briefcase
-                                className="size-[1.05rem]"
-                                aria-hidden
-                              />
-                            </span>
-                            <div className="min-w-0">
-                              <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
-                                Business deals
-                              </h3>
-                              <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                                Active campaigns you can attach to this guest.
-                              </p>
-                            </div>
-                          </div>
-                          <p className="m-0 inline-flex shrink-0 items-center gap-1 text-[0.74rem] font-semibold text-[#1877f2]">
-                            Attach new deal
-                            <Plus className="size-3.5" strokeWidth={2.5} aria-hidden />
-                          </p>
-                        </div>
+                        <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0f172a]">
+                          Business deals
+                        </h3>
+                        <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                          Published campaigns you can attach.
+                        </p>
                       </div>
 
                       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 sm:px-5">
                         {availableBusinessDeals.length > 0 ? (
                           <div className="flex min-h-0 flex-1 flex-col">
-                            <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
+                            <ul className="min-h-0 flex-1 divide-y divide-[#f1f5f9] overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
                               {availableBusinessDeals.map((deal) => (
                                 <BusinessDealCheckboxRow
                                   key={deal.id}
