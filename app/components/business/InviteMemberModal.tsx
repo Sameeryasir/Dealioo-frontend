@@ -398,7 +398,7 @@ export function InviteMemberForm({
                       <span className="block text-sm font-semibold text-[#07111f]">
                         {option.label}
                       </span>
-                      <span className="mt-0.5 block text-sm leading-relaxed text-[#64748b]">
+                      <span className="mt-0.5 block whitespace-nowrap text-sm leading-relaxed text-[#64748b]">
                         {option.description}
                       </span>
                     </span>
