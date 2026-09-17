@@ -24,6 +24,7 @@ export type RegisterBusinessGoogleConnectStepProps = {
   businessId: number;
   businessName: string;
   onContinue: () => void;
+  onSkip?: () => void;
   onBack?: () => void;
   embedded?: boolean;
 };
@@ -52,6 +53,7 @@ const BENEFITS = [
 export default function RegisterBusinessGoogleConnectStep({
   businessId,
   onContinue,
+  onSkip,
   onBack,
   embedded = false,
 }: RegisterBusinessGoogleConnectStepProps) {
@@ -185,7 +187,7 @@ export default function RegisterBusinessGoogleConnectStep({
             <button
               type="button"
               className={styles.skipBtn}
-              onClick={onContinue}
+              onClick={onSkip ?? onContinue}
               disabled={connecting}
             >
               Skip for now
@@ -207,8 +209,8 @@ export default function RegisterBusinessGoogleConnectStep({
           <div className={styles.sidebarBlock}>
             <h3 className={styles.sidebarTitle}>What happens next</h3>
             <p className={styles.sidebarText}>
-              After Google is linked, you can invite your team and finish setup
-              from the dashboard.
+              After Google is linked, you can connect Twilio for SMS, or skip
+              and finish setup from the dashboard.
             </p>
           </div>
         </div>

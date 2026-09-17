@@ -140,6 +140,10 @@ export function useSearchTwilioAvailableToBuyMutation(businessId: number) {
       areaCode?: string;
       areaName?: string;
       contains?: string;
+      voice?: boolean;
+      sms?: boolean;
+      mms?: boolean;
+      fax?: boolean;
       limit?: number;
     }) => searchTwilioAvailableToBuyNumbers(businessId, params),
   });

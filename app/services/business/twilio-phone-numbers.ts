@@ -36,10 +36,14 @@ export type TwilioAvailableToBuyNumber = {
   locality: string | null;
   region: string | null;
   isoCountry: string | null;
+  numberType?: "Local" | "Mobile";
+  addressRequirement?: string;
+  monthlyFee?: string | null;
   capabilities: {
     sms: boolean;
     mms: boolean;
     voice: boolean;
+    fax?: boolean;
   };
 };
 
@@ -199,6 +203,10 @@ export async function searchTwilioAvailableToBuyNumbers(
     areaCode?: string;
     areaName?: string;
     contains?: string;
+    voice?: boolean;
+    sms?: boolean;
+    mms?: boolean;
+    fax?: boolean;
     limit?: number;
   } = {},
 ): Promise<TwilioAvailableToBuyResponse> {
@@ -210,12 +218,19 @@ export async function searchTwilioAvailableToBuyNumbers(
   }
 
   const query = new URLSearchParams();
-  const country = params.country?.trim() || params.countryCode?.trim();
+  const country = (
+    params.country?.trim() ||
+    params.countryCode?.trim() ||
+    ""
+  ).toUpperCase();
   if (country) {
     query.set("country", country);
   }
-  if (params.areaCode?.trim()) {
-    query.set("areaCode", params.areaCode.trim());
+
+  const supportsAreaCode = country === "US" || country === "CA";
+  const areaCode = params.areaCode?.trim() || "";
+  if (supportsAreaCode && /^\d{3}$/.test(areaCode)) {
+    query.set("areaCode", areaCode);
   }
   if (params.areaName?.trim()) {
     query.set("areaName", params.areaName.trim());
@@ -223,6 +238,10 @@ export async function searchTwilioAvailableToBuyNumbers(
   if (params.contains?.trim()) {
     query.set("contains", params.contains.trim());
   }
+  if (params.voice) query.set("voice", "true");
+  if (params.sms) query.set("sms", "true");
+  if (params.mms) query.set("mms", "true");
+  if (params.fax) query.set("fax", "true");
   if (typeof params.limit === "number" && Number.isFinite(params.limit)) {
     query.set("limit", String(params.limit));
   }

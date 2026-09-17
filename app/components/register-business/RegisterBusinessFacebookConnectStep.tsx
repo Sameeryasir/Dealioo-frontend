@@ -26,6 +26,7 @@ export type RegisterBusinessFacebookConnectStepProps = {
   businessId: number;
   businessName: string;
   onContinue: () => void;
+  onSkip?: () => void;
   onBack?: () => void;
   embedded?: boolean;
 };
@@ -50,6 +51,7 @@ function FacebookLogo({ className }: { className?: string }) {
 export default function RegisterBusinessFacebookConnectStep({
   businessId,
   onContinue,
+  onSkip,
   onBack,
   embedded = false,
 }: RegisterBusinessFacebookConnectStepProps) {
@@ -190,7 +192,7 @@ export default function RegisterBusinessFacebookConnectStep({
             <button
               type="button"
               className={styles.skipBtn}
-              onClick={onContinue}
+              onClick={onSkip ?? onContinue}
               disabled={connecting}
             >
               Skip for now

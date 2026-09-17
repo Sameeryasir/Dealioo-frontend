@@ -1,41 +1,36 @@
 "use client";
 
-import { ChevronDown, Search } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   getCountries,
   getCountryCallingCode,
   type Country,
 } from "react-phone-number-input";
-import flags from "react-phone-number-input/flags";
 import en from "react-phone-number-input/locale/en.json";
 
 const labels = en as Record<string, string>;
-
-const PRIORITY_COUNTRIES: Country[] = [
-  "US",
-  "CA",
-  "GB",
-  "AU",
-  "IE",
-  "NZ",
-  "DE",
-  "FR",
-  "ES",
-  "IT",
-  "NL",
-  "MX",
-  "BR",
-  "IN",
-  "SG",
-  "JP",
-];
 
 type TwilioBuyCountryPickerProps = {
   value: Country;
   disabled?: boolean;
   onChange: (country: Country) => void;
 };
+
+function countryFlagEmoji(iso: string): string {
+  const code = iso.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return "";
+  return String.fromCodePoint(
+    ...[...code].map((char) => 127397 + char.charCodeAt(0)),
+  );
+}
+
+function formatCountryOption(code: Country): string {
+  const name = labels[code] || code;
+  const calling = getCountryCallingCode(code);
+  const flag = countryFlagEmoji(code);
+  return `${flag} (+${calling}) ${name} - ${code}`;
+}
 
 export function TwilioBuyCountryPicker({
   value,
@@ -44,41 +39,41 @@ export function TwilioBuyCountryPicker({
 }: TwilioBuyCountryPickerProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [highlightIndex, setHighlightIndex] = useState(0);
 
   const allCountries = useMemo(() => {
-    const priority = new Set(PRIORITY_COUNTRIES);
-    const rest = (getCountries() as Country[])
-      .filter((code) => !priority.has(code))
-      .sort((a, b) =>
-        (labels[a] || a).localeCompare(labels[b] || b, "en", {
-          sensitivity: "base",
-        }),
-      );
-    return [...PRIORITY_COUNTRIES.filter((c) => getCountries().includes(c)), ...rest];
+    return (getCountries() as Country[]).sort((a, b) =>
+      (labels[a] || a).localeCompare(labels[b] || b, "en", {
+        sensitivity: "base",
+      }),
+    );
   }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return allCountries;
+    if (!q || !open) return allCountries;
 
-    const digits = q.replace(/^\+/, "");
+    const digits = q.replace(/^\+/, "").replace(/[^\d]/g, "");
 
     const scored = allCountries
       .map((code) => {
         const name = (labels[code] || code).toLowerCase();
         const iso = code.toLowerCase();
         const calling = getCountryCallingCode(code);
+        const display = formatCountryOption(code).toLowerCase();
 
         let score = -1;
         if (name.startsWith(q)) score = 0;
         else if (iso.startsWith(q)) score = 1;
-        else if (calling.startsWith(digits)) score = 2;
+        else if (digits && calling.startsWith(digits)) score = 2;
         else if (name.includes(q)) score = 3;
         else if (iso.includes(q)) score = 4;
-        else if (calling.includes(digits)) score = 5;
+        else if (digits && calling.includes(digits)) score = 5;
+        else if (display.includes(q)) score = 6;
 
         return score >= 0 ? { code, score, name } : null;
       })
@@ -86,7 +81,7 @@ export function TwilioBuyCountryPicker({
 
     scored.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
     return scored.map((row) => row.code);
-  }, [allCountries, query]);
+  }, [allCountries, open, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -96,116 +91,148 @@ export function TwilioBuyCountryPicker({
         setQuery("");
       }
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        setQuery("");
-      }
-    };
     document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
   useEffect(() => {
-    if (open) {
-      searchRef.current?.focus();
-    }
-  }, [open]);
+    if (!open) return;
+    const selectedIndex = filtered.indexOf(value);
+    setHighlightIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  }, [query, open, filtered, value]);
 
-  const SelectedFlag = flags[value];
-  const selectedName = labels[value] || value;
-  const selectedCalling = `+${getCountryCallingCode(value)}`;
+  useEffect(() => {
+    if (!open) return;
+    optionRefs.current[highlightIndex]?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [highlightIndex, open]);
+
+  const selectedLabel = formatCountryOption(value);
+  const inputValue = open && query.length > 0 ? query : selectedLabel;
+
+  function selectCountry(code: Country) {
+    onChange(code);
+    setOpen(false);
+    setQuery("");
+    inputRef.current?.blur();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (disabled) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (!open) {
+        setOpen(true);
+        setQuery("");
+        return;
+      }
+      setHighlightIndex((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)));
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightIndex((i) => Math.max(i - 1, 0));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const choice = filtered[highlightIndex];
+      if (open && choice) selectCountry(choice);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      setQuery("");
+    }
+  }
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-controls={listId}
-        onClick={() => {
-          if (disabled) return;
-          setOpen((current) => !current);
-          setQuery("");
-        }}
-        className="mt-1.5 flex h-10 w-full items-center gap-2 rounded-xl border border-[#e4e4e4] bg-[#fafafa] px-3 text-left text-[0.88rem] outline-none hover:bg-white focus:border-[#ccc] focus:bg-white disabled:opacity-60"
+    <div ref={rootRef} className="relative mt-1.5">
+      <div
+        className={`flex h-11 items-stretch overflow-hidden rounded-lg border bg-white transition-[box-shadow,border-color] ${
+          open
+            ? "border-[#60a5fa] shadow-[0_0_0_3px_rgba(59,130,246,0.25)]"
+            : "border-[#d0d7e2] hover:border-[#b8c2d1]"
+        } ${disabled ? "opacity-60" : ""}`}
       >
-        <span className="flex size-5 shrink-0 items-center overflow-hidden rounded-sm">
-          {SelectedFlag ? <SelectedFlag title={selectedName} /> : null}
+        <input
+          ref={inputRef}
+          type="text"
+          disabled={disabled}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          autoComplete="off"
+          spellCheck={false}
+          value={inputValue}
+          placeholder="Search countries"
+          onFocus={() => {
+            if (disabled) return;
+            setOpen(true);
+            setQuery("");
+            requestAnimationFrame(() => {
+              inputRef.current?.select();
+            });
+          }}
+          onChange={(e) => {
+            setOpen(true);
+            setQuery(e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          className="h-full min-w-0 flex-1 bg-transparent px-3 text-[0.9rem] text-[#1e293b] outline-none placeholder:text-[#94a3b8]"
+        />
+        <span
+          className="flex w-10 shrink-0 items-center justify-center border-l border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
+          aria-hidden
+        >
+          <Search className="size-4" />
         </span>
-        <span className="min-w-0 flex-1 truncate font-medium text-[#222]">
-          {selectedName}
-        </span>
-        <span className="shrink-0 text-[0.75rem] text-[#888]">
-          {value} · {selectedCalling}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-[#888]" aria-hidden />
-      </button>
+      </div>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] overflow-hidden rounded-xl border border-[#e4e4e4] bg-white shadow-xl">
-          <div className="flex items-center gap-2 border-b border-[#f0f0f0] px-3 py-2">
-            <Search className="size-3.5 shrink-0 text-[#999]" aria-hidden />
-            <input
-              ref={searchRef}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search country name or code"
-              className="h-8 w-full bg-transparent text-[0.85rem] outline-none placeholder:text-[#aaa]"
-            />
-          </div>
-          <ul
-            id={listId}
-            role="listbox"
-            className="max-h-56 overflow-auto py-1"
-          >
-            {filtered.length === 0 ? (
-              <li className="px-3 py-3 text-[0.8rem] text-[#888]">
-                No countries match that search.
-              </li>
-            ) : (
-              filtered.map((code) => {
-                const FlagIcon = flags[code];
-                const name = labels[code] || code;
-                const calling = `+${getCountryCallingCode(code)}`;
-                const selected = code === value;
-                return (
-                  <li key={code}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[0.85rem] hover:bg-[#f7f7f7] ${
-                        selected ? "bg-[#fafafa] font-semibold" : ""
-                      }`}
-                      onClick={() => {
-                        onChange(code);
-                        setOpen(false);
-                        setQuery("");
-                      }}
-                    >
-                      <span className="flex size-5 shrink-0 items-center overflow-hidden rounded-sm">
-                        {FlagIcon ? <FlagIcon title={name} /> : null}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[#222]">
-                        {name}
-                      </span>
-                      <span className="shrink-0 text-[0.72rem] text-[#888]">
-                        {code} · {calling}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-56 overflow-auto rounded-lg border border-[#d0d7e2] bg-white py-1 shadow-[0_8px_24px_rgba(15,23,42,0.12)]"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2.5 text-[0.85rem] text-[#64748b]">
+              No countries found
+            </li>
+          ) : (
+            filtered.map((code, index) => {
+              const label = formatCountryOption(code);
+              const selected = code === value;
+              const highlighted = index === highlightIndex;
+              return (
+                <li key={code} role="option" aria-selected={selected}>
+                  <button
+                    type="button"
+                    ref={(el) => {
+                      optionRefs.current[index] = el;
+                    }}
+                    className={`flex w-full items-center px-3 py-2 text-left text-[0.9rem] ${
+                      highlighted || selected
+                        ? "bg-[#e8f3fc] text-[#1d4ed8]"
+                        : "text-[#1e293b] hover:bg-[#e8f3fc] hover:text-[#1d4ed8]"
+                    }`}
+                    onMouseEnter={() => setHighlightIndex(index)}
+                    onClick={() => selectCountry(code)}
+                  >
+                    <span className="truncate">{label}</span>
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
       ) : null}
     </div>
   );

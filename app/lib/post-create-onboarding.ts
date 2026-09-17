@@ -1,6 +1,22 @@
 const STORAGE_KEY = "dealioo.post-create-onboarding";
 
-export type PostCreateStep = "facebook" | "stripe" | "google" | "invite";
+export type PostCreateStep =
+  | "facebookWhy"
+  | "facebookQuestion"
+  | "facebookCreate"
+  | "facebook"
+  | "stripeWhy"
+  | "stripeQuestion"
+  | "stripeCreate"
+  | "stripe"
+  | "googleWhy"
+  | "googleQuestion"
+  | "googleCreate"
+  | "google"
+  | "twilioWhy"
+  | "twilioQuestion"
+  | "twilioCreate"
+  | "twilio";
 
 export type PostCreateOnboardingProgress = {
   businessId: number;
@@ -9,21 +25,44 @@ export type PostCreateOnboardingProgress = {
 };
 
 const STEPS = new Set<PostCreateStep>([
+  "facebookWhy",
+  "facebookQuestion",
+  "facebookCreate",
   "facebook",
+  "stripeWhy",
+  "stripeQuestion",
+  "stripeCreate",
   "stripe",
+  "googleWhy",
+  "googleQuestion",
+  "googleCreate",
   "google",
-  "invite",
+  "twilioWhy",
+  "twilioQuestion",
+  "twilioCreate",
+  "twilio",
 ]);
 
 const LEGACY_STEP_MAP: Record<string, PostCreateStep> = {
-  metaQuestion: "facebook",
-  metaCreate: "facebook",
+  metaQuestion: "facebookQuestion",
+  metaCreate: "facebookCreate",
   facebook: "facebook",
-  stripeQuestion: "stripe",
-  stripeCreate: "stripe",
+  facebookWhy: "facebookWhy",
+  facebookQuestion: "facebookQuestion",
+  facebookCreate: "facebookCreate",
+  stripeQuestion: "stripeQuestion",
+  stripeCreate: "stripeCreate",
   stripe: "stripe",
+  stripeWhy: "stripeWhy",
   google: "google",
-  invite: "invite",
+  googleWhy: "googleWhy",
+  googleQuestion: "googleQuestion",
+  googleCreate: "googleCreate",
+  twilio: "twilio",
+  twilioWhy: "twilioWhy",
+  twilioQuestion: "twilioQuestion",
+  twilioCreate: "twilioCreate",
+  invite: "twilioWhy",
 };
 
 function normalizeStep(step: unknown): PostCreateStep | null {

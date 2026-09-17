@@ -29,6 +29,7 @@ export type RegisterBusinessStripeConnectStepProps = {
   businessId: number;
   businessName: string;
   onContinue: () => void;
+  onSkip?: () => void;
   onBack?: () => void;
   embedded?: boolean;
 };
@@ -57,6 +58,7 @@ const BENEFITS = [
 export default function RegisterBusinessStripeConnectStep({
   businessId,
   onContinue,
+  onSkip,
   onBack,
   embedded = false,
 }: RegisterBusinessStripeConnectStepProps) {
@@ -326,7 +328,7 @@ export default function RegisterBusinessStripeConnectStep({
             <button
               type="button"
               className={styles.skipBtn}
-              onClick={onContinue}
+              onClick={onSkip ?? onContinue}
               disabled={connecting}
             >
               Skip for now

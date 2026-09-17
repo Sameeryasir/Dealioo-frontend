@@ -7,13 +7,12 @@ import {
   usePurchaseBusinessTwilioPhoneNumberMutation,
   useSearchTwilioAvailableToBuyMutation,
 } from "@/app/hooks/use-business-twilio-phone-numbers-query";
-import { countryDisplayName } from "@/app/lib/resolve-twilio-country";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import type {
   TwilioAvailableToBuyNumber,
   TwilioPhoneNumberOption,
 } from "@/app/services/business/twilio-phone-numbers";
-import { Loader2, X } from "lucide-react";
+import { ImageIcon, Info, Loader2, MessageSquare, Phone, Printer, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -36,6 +35,24 @@ type ChooseNumberDialogProps = {
 };
 
 type NumberTab = "owned" | "buy";
+
+function formatBuyNumberDisplay(phoneNumber: string): string {
+  try {
+    const parsed = parsePhoneNumber(phoneNumber);
+    if (parsed) return parsed.formatInternational();
+  } catch {
+  }
+  return phoneNumber;
+}
+
+function formatBuyNumberPlace(option: TwilioAvailableToBuyNumber): string {
+  const parts = [option.locality, option.region].filter(Boolean);
+  const place = parts.join(", ");
+  const country = option.isoCountry?.trim() || "";
+  if (place && country) return `${place} ${country}`;
+  if (place) return place;
+  return country;
+}
 
 function searchDefaultsFromAccountPhone(phone: string | null | undefined): {
   country: Country;
@@ -66,14 +83,14 @@ function searchDefaultsFromAccountPhone(phone: string | null | undefined): {
 }
 
 function emptySearchMessage(country: Country, areaCode: string): string {
-  const name = countryDisplayName(country);
-  if (areaCode) {
-    return `No SMS-capable numbers available in ${name} for area code ${areaCode}. Try another area code, or clear it to see more.`;
+  const area =
+    supportsTwilioAreaCodeFilter(country) && /^\d{3}$/.test(areaCode.trim())
+      ? areaCode.trim()
+      : "";
+  if (area) {
+    return `We couldn't find any numbers that matched your search for area code ${area}. Try another area code or clear it.`;
   }
-  if (country === "PK") {
-    return `Twilio typically does not sell local SMS numbers in ${name}. Try United States or Canada instead.`;
-  }
-  return `No SMS-capable numbers available in ${name} for this Twilio account right now. Try another country${supportsTwilioAreaCodeFilter(country) ? " or area code" : ""}.`;
+  return "We couldn't find any numbers that matched your search. Try another country or, for the US/Canada, change the area code.";
 }
 
 export function ChooseNumberDialog({
@@ -93,6 +110,9 @@ export function ChooseNumberDialog({
   const chargeAckId = useId();
   const accountDefaultsAppliedRef = useRef(false);
   const searchRequestIdRef = useRef(0);
+  const areaCodeSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [tab, setTab] = useState<NumberTab>("owned");
   const [localError, setLocalError] = useState<string | null>(null);
   const [selectedSid, setSelectedSid] = useState("");
@@ -132,27 +152,23 @@ export function ChooseNumberDialog({
     setBuyResults([]);
     setHasSearched(true);
 
-    const area = areaCodeSupported ? nextAreaCode.trim() : "";
-    if (area && !/^\d{3}$/.test(area)) {
-      setLocalError(
-        "Area code must be exactly 3 digits (e.g. 415), or leave it blank.",
-      );
+    const supportsArea = supportsTwilioAreaCodeFilter(nextCountry);
+    const trimmedArea = nextAreaCode.trim();
+    const area =
+      supportsArea && /^\d{3}$/.test(trimmedArea) ? trimmedArea : "";
+    if (supportsArea && trimmedArea.length > 0 && trimmedArea.length < 3) {
       return;
     }
 
     try {
       const result = await searchMutation.mutateAsync({
         country: nextCountry,
-        areaCode: area || undefined,
+        ...(area ? { areaCode: area } : {}),
         limit: 20,
       });
       if (requestId !== searchRequestIdRef.current) return;
       setBuyResults(result.numbers);
-      if (result.numbers.length === 0) {
-        setLocalError(emptySearchMessage(nextCountry, area));
-      }
     } catch {
-      // Error shown via searchMutation.error
     }
   }
 
@@ -160,6 +176,10 @@ export function ChooseNumberDialog({
     if (!open) {
       accountDefaultsAppliedRef.current = false;
       searchRequestIdRef.current += 1;
+      if (areaCodeSearchTimerRef.current) {
+        clearTimeout(areaCodeSearchTimerRef.current);
+        areaCodeSearchTimerRef.current = null;
+      }
       setLocalError(null);
       setSelectedSid("");
       setTab("owned");
@@ -227,12 +247,13 @@ export function ChooseNumberDialog({
 
   if (!open || typeof document === "undefined") return null;
 
-  const busy =
+  const formLocked =
     isLoading ||
     isBusy ||
     associateMutation.isPending ||
-    purchaseMutation.isPending ||
-    searchMutation.isPending;
+    purchaseMutation.isPending;
+  const searching = searchMutation.isPending;
+  const busy = formLocked || searching;
 
   const selected = numbers.find((n) => n.sid === selectedSid) ?? null;
   const error =
@@ -266,7 +287,6 @@ export function ChooseNumberDialog({
       });
       await onConfirmed(selected);
     } catch {
-      // Error shown via associateMutation.error
     }
   }
 
@@ -292,7 +312,6 @@ export function ChooseNumberDialog({
         friendlyName: null,
       });
     } catch {
-      // Error shown via purchaseMutation.error
     }
   }
 
@@ -307,19 +326,23 @@ export function ChooseNumberDialog({
       }}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-[#e8e8e8] bg-white p-5 shadow-xl"
+        className={`flex max-h-[min(90vh,820px)] w-full flex-col overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white p-5 shadow-xl sm:p-6 ${
+          tab === "buy" ? "max-w-3xl" : "max-w-md"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2
               id={titleId}
-              className="text-[1.05rem] font-semibold text-[#1a1a1a]"
+              className="text-[1.25rem] font-bold tracking-tight text-[#0f172a]"
             >
-              {title}
+              {tab === "buy" ? "Buy a Number" : title}
             </h2>
             <p className="mt-1 text-[0.82rem] leading-relaxed text-[#666]">
-              {description}
+              {tab === "buy"
+                ? "Search by country, then pick a number to buy on your Twilio account."
+                : description}
             </p>
           </div>
           {dismissible ? (
@@ -372,7 +395,7 @@ export function ChooseNumberDialog({
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-0.5">
           {tab === "owned" ? (
             isLoading ? (
               <div className="flex items-center gap-2 py-6 text-[0.85rem] text-[#666]">
@@ -384,7 +407,7 @@ export function ChooseNumberDialog({
                 No numbers on this account yet. Use Buy new.
               </p>
             ) : (
-              <div className="max-h-56 overflow-auto rounded-xl border border-[#e8e8e8]">
+              <div className="max-h-[min(50vh,360px)] overflow-auto rounded-xl border border-[#e8e8e8]">
                 {numbers.map((option) => {
                   const active = selectedSid === option.sid;
                   return (
@@ -415,41 +438,50 @@ export function ChooseNumberDialog({
             )
           ) : (
             <div className="space-y-3">
-              <p className="rounded-xl bg-[#fff8f8] px-3 py-2 text-[0.78rem] leading-relaxed text-[#7a3a3a]">
-                Buying a number is charged by Twilio to your Twilio account — not
-                by Dealioo. Pick a country, optionally an area code, then buy.
-              </p>
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-[0.78rem] leading-relaxed text-sky-950"
+              >
+                <Info
+                  className="mt-0.5 size-3.5 shrink-0 text-sky-600"
+                  aria-hidden
+                />
+                <p className="m-0">
+                  Buying a number is charged by Twilio to your Twilio account —
+                  not by Dealioo. Pick a country, optionally an area code, then
+                  buy.
+                </p>
+              </div>
 
               <div
-                className={`grid gap-2 ${areaCodeSupported ? "grid-cols-2" : "grid-cols-1"}`}
+                className={`grid gap-3 ${areaCodeSupported ? "grid-cols-2" : "grid-cols-1"}`}
               >
                 <label className="block min-w-0">
-                  <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
+                  <span className="text-[0.85rem] font-medium text-[#334155]">
                     Country
                   </span>
                   <TwilioBuyCountryPicker
                     value={country}
-                    disabled={busy}
+                    disabled={formLocked}
                     onChange={(next) => {
                       clearSearchErrors();
-                      setCountry(next);
-                      const nextArea = supportsTwilioAreaCodeFilter(next)
-                        ? areaCode
-                        : "";
-                      if (!supportsTwilioAreaCodeFilter(next)) {
-                        setAreaCode("");
+                      if (areaCodeSearchTimerRef.current) {
+                        clearTimeout(areaCodeSearchTimerRef.current);
+                        areaCodeSearchTimerRef.current = null;
                       }
-                      void runNumberSearch(next, nextArea);
+                      setCountry(next);
+                      setAreaCode("");
+                      void runNumberSearch(next, "");
                     }}
                   />
                   <span className="mt-1 block text-[0.7rem] text-[#888]">
-                    Search by name or code
+                    Search by country name or code
                   </span>
                 </label>
 
                 {areaCodeSupported ? (
                   <label className="block min-w-0">
-                    <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
+                    <span className="text-[0.85rem] font-medium text-[#334155]">
                       Area code
                     </span>
                     <input
@@ -461,78 +493,169 @@ export function ChooseNumberDialog({
                           .slice(0, 3);
                         clearSearchErrors();
                         setAreaCode(next);
-                        if (next.length === 0 || next.length === 3) {
-                          void runNumberSearch(country, next);
+                        if (areaCodeSearchTimerRef.current) {
+                          clearTimeout(areaCodeSearchTimerRef.current);
                         }
+                        areaCodeSearchTimerRef.current = setTimeout(() => {
+                          areaCodeSearchTimerRef.current = null;
+                          if (next.length === 0 || next.length === 3) {
+                            void runNumberSearch(country, next);
+                          }
+                        }, 350);
                       }}
-                      disabled={busy}
+                      disabled={formLocked}
                       inputMode="numeric"
-                      placeholder="415"
-                      className="mt-1.5 h-10 w-full rounded-xl border border-[#e4e4e4] bg-[#fafafa] px-3 text-[0.88rem] outline-none focus:border-[#ccc] focus:bg-white"
+                      placeholder="e.g. 415"
+                      className="mt-1.5 h-11 w-full rounded-lg border border-[#d0d7e2] bg-white px-3 text-[0.9rem] text-[#1e293b] outline-none transition-[box-shadow,border-color] placeholder:text-[#94a3b8] hover:border-[#b8c2d1] focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.25)]"
                     />
                     <span className="mt-1 block text-[0.7rem] text-[#888]">
-                      Optional · US/Canada only
+                      Enter the area code you want in your number
                     </span>
                   </label>
                 ) : null}
               </div>
 
               {!areaCodeSupported ? (
-                <p className="text-[0.72rem] text-[#888]">
+                <p className="mt-2 text-[0.72rem] text-[#888]">
                   Area code filtering is for US and Canada. For other countries,
-                  available SMS numbers (including mobile) are listed below.
+                  available numbers (including mobile) are listed below.
                 </p>
               ) : null}
 
               {searchMutation.isPending ? (
                 <div className="flex items-center gap-2 py-3 text-[0.85rem] text-[#666]">
                   <Loader2 className="size-4 animate-spin" />
-                  Searching available numbers…
+                  Searching numbers…
                 </div>
               ) : null}
 
               {buyResults.length > 0 ? (
-                <div className="max-h-48 overflow-auto rounded-xl border border-[#e8e8e8]">
-                  {buyResults.map((option) => {
-                    const active = selectedBuyNumber === option.phoneNumber;
-                    const place = [option.locality, option.region]
-                      .filter(Boolean)
-                      .join(", ");
-                    return (
-                      <button
-                        key={option.phoneNumber}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          setSelectedBuyNumber(option.phoneNumber);
-                          setChargeAcknowledged(false);
-                          setLocalError(null);
-                        }}
-                        className={`flex w-full flex-col border-b border-[#f0f0f0] px-3 py-2.5 text-left last:border-b-0 ${
-                          active ? "bg-[#fafafa]" : "hover:bg-[#fafafa]"
-                        }`}
-                      >
-                        <span
-                          className={`text-[0.88rem] ${
-                            active ? "font-semibold text-[#111]" : "text-[#333]"
-                          }`}
-                        >
-                          {option.phoneNumber}
-                        </span>
-                        {place ? (
-                          <span className="mt-0.5 text-[0.72rem] text-[#888]">
-                            {place}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+                <div className="mt-1 max-h-[min(50vh,420px)] overflow-auto rounded-xl border border-[#e2e8f0]">
+                  <table className="w-full min-w-[720px] border-collapse text-left">
+                    <thead className="sticky top-0 z-[1] bg-[#f8fafc]">
+                      <tr className="border-b border-[#e2e8f0] text-[0.72rem] font-semibold text-[#64748b]">
+                        <th className="px-3 py-2.5 font-semibold">Number</th>
+                        <th className="px-3 py-2.5 font-semibold">Type</th>
+                        <th className="px-3 py-2.5 font-semibold" colSpan={4}>
+                          <div className="mb-1">Capabilities</div>
+                          <div className="grid grid-cols-4 gap-1 text-[0.65rem] font-medium text-[#94a3b8]">
+                            <span className="flex justify-center" title="Voice">
+                              <Phone className="size-3.5" aria-hidden />
+                            </span>
+                            <span className="flex justify-center" title="SMS">
+                              <MessageSquare className="size-3.5" aria-hidden />
+                            </span>
+                            <span className="flex justify-center" title="MMS">
+                              <ImageIcon className="size-3.5" aria-hidden />
+                            </span>
+                            <span className="flex justify-center" title="Fax">
+                              <Printer className="size-3.5" aria-hidden />
+                            </span>
+                          </div>
+                        </th>
+                        <th className="px-3 py-2.5 font-semibold">
+                          Address Requirement
+                        </th>
+                        <th className="px-3 py-2.5 font-semibold">
+                          Monthly fee
+                        </th>
+                        <th className="px-3 py-2.5 font-semibold">
+                          <span className="sr-only">Buy</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {buyResults.map((option) => {
+                        const active = selectedBuyNumber === option.phoneNumber;
+                        const place = formatBuyNumberPlace(option);
+                        const caps = option.capabilities;
+                        return (
+                          <tr
+                            key={option.phoneNumber}
+                            className={`border-b border-[#f1f5f9] last:border-b-0 ${
+                              active ? "bg-[#f8fafc]" : "bg-white"
+                            }`}
+                          >
+                            <td className="px-3 py-3 align-top">
+                              <div className="text-[0.92rem] font-semibold text-[#0f172a]">
+                                {formatBuyNumberDisplay(option.phoneNumber)}
+                              </div>
+                              {place ? (
+                                <div className="mt-0.5 text-[0.75rem] text-[#64748b]">
+                                  {place}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="px-3 py-3 align-middle text-[0.85rem] text-[#334155]">
+                              {option.numberType || "Local"}
+                            </td>
+                            <td className="px-3 py-3 align-middle" colSpan={4}>
+                              <div className="grid grid-cols-4 gap-1 text-[#0f172a]">
+                                <span className="flex justify-center">
+                                  {caps.voice ? (
+                                    <Phone className="size-4" aria-label="Voice" />
+                                  ) : (
+                                    <span className="size-4" />
+                                  )}
+                                </span>
+                                <span className="flex justify-center">
+                                  {caps.sms ? (
+                                    <MessageSquare className="size-4" aria-label="SMS" />
+                                  ) : (
+                                    <span className="size-4" />
+                                  )}
+                                </span>
+                                <span className="flex justify-center">
+                                  {caps.mms ? (
+                                    <ImageIcon className="size-4" aria-label="MMS" />
+                                  ) : (
+                                    <span className="size-4" />
+                                  )}
+                                </span>
+                                <span className="flex justify-center">
+                                  {caps.fax ? (
+                                    <Printer className="size-4" aria-label="Fax" />
+                                  ) : (
+                                    <span className="size-4" />
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-middle text-[0.85rem] text-[#334155]">
+                              {option.addressRequirement || "None"}
+                            </td>
+                            <td className="px-3 py-3 align-middle text-[0.9rem] font-semibold text-[#0f172a]">
+                              {option.monthlyFee || "—"}
+                            </td>
+                            <td className="px-3 py-3 align-middle">
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => {
+                                  setSelectedBuyNumber(option.phoneNumber);
+                                  setChargeAcknowledged(false);
+                                  setLocalError(null);
+                                }}
+                                className={`rounded-md border px-3 py-1.5 text-[0.8rem] font-medium ${
+                                  active
+                                    ? "border-[#0f172a] bg-[#0f172a] text-white"
+                                    : "border-[#cbd5e1] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+                                }`}
+                              >
+                                {active ? "Selected" : "Buy"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               ) : hasSearched &&
                 !searchMutation.isPending &&
                 !error ? (
-                <p className="text-[0.8rem] text-[#888]">
-                  No numbers to show yet.
+                <p className="py-6 text-center text-[0.85rem] leading-relaxed text-[#64748b]">
+                  {emptySearchMessage(country, areaCode)}
                 </p>
               ) : null}
 
@@ -564,10 +687,10 @@ export function ChooseNumberDialog({
         </div>
 
         {error ? (
-          <p className="mt-3 text-[0.78rem] text-red-600">{error}</p>
+          <p className="mt-3 shrink-0 text-[0.78rem] text-red-600">{error}</p>
         ) : null}
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-5 flex shrink-0 justify-end gap-2">
           {dismissible ? (
             <button
               type="button"
