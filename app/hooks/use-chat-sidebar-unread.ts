@@ -1,6 +1,7 @@
 "use client";
 
 import { getBusinessChatsUnread } from "@/app/services/chat/get-business-chats-unread";
+import { markRestaurantChatsRead } from "@/app/services/chat/mark-business-chats-read";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import {
   readChatHasUnread,
@@ -75,6 +76,10 @@ export function useChatSidebarUnread(
     if (business == null || business < 1 || user == null) return;
     persistUnread(user, business, false, null);
     writeChatHasUnread(user, business, false);
+    try {
+      await markRestaurantChatsRead(business);
+    } catch {
+    }
   }, [persistUnread]);
 
   useEffect(() => {
@@ -146,16 +151,17 @@ export function useChatSidebarUnread(
 
     const prefix = chatsPrefixRef.current;
     const path = pathnameRef.current;
+    const sentAt =
+      typeof payload.message.sentAt === "string"
+        ? payload.message.sentAt
+        : new Date().toISOString();
+
     if (isOnChatsRoute(path, prefix)) {
       persistUnread(user, business, false, null);
       writeChatHasUnread(user, business, false);
       return;
     }
 
-    const sentAt =
-      typeof payload.message.sentAt === "string"
-        ? payload.message.sentAt
-        : new Date().toISOString();
     playNotificationChime();
     persistUnread(user, business, true, sentAt);
   });
