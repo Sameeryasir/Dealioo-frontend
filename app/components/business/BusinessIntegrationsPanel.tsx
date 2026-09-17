@@ -1,6 +1,7 @@
 "use client";
 
 import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
+import { ConnectTwilioCredentialsDialog } from "@/app/components/business/ConnectTwilioCredentialsDialog";
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
@@ -9,7 +10,10 @@ import {
   MetaLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
-import { useBusinessTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
+import {
+  useBusinessTwilioPhoneNumbersQuery,
+  useDisconnectBusinessTwilioCredentialsMutation,
+} from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import {
   connectFacebookInPopup,
   consumeFacebookOAuthStatusSync,
@@ -57,10 +61,7 @@ const cardShellClass =
   "relative overflow-hidden rounded-xl border border-[#E8EDF5] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.04)]";
 
 const cardRowClass =
-  "grid items-center gap-3 py-3 pl-4 pr-3.5 md:grid-cols-[auto_minmax(0,1.2fr)_minmax(9.5rem,0.75fr)_auto]";
-
-const cardStatusClass =
-  "flex min-w-0 items-center gap-2 border-t border-[#EEF2F7] pt-2 md:border-l md:border-t-0 md:pl-3.5 md:pt-0";
+  "grid items-center gap-3 py-3 pl-4 pr-3.5 md:grid-cols-[auto_minmax(0,1fr)_auto]";
 
 function StatusBadge({
   loading,
@@ -105,14 +106,24 @@ function StatusBadge({
 function FeatureRow({
   items,
   toneClass,
+  connectedTag,
 }: {
   items: string[];
   toneClass: string;
+  connectedTag?: string | null;
 }) {
   return (
-    <ul className={`mt-1.5 flex flex-wrap gap-x-3 gap-y-1 ${toneClass}`}>
+    <ul className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      {connectedTag ? (
+        <li
+          className={`inline-flex max-w-full items-center truncate rounded-full border border-current/20 bg-current/5 px-2 py-0.5 text-[0.65rem] font-semibold ${toneClass}`}
+          title={connectedTag}
+        >
+          {connectedTag}
+        </li>
+      ) : null}
       {items.map((label) => (
-        <li key={label} className="text-[0.65rem] font-medium">
+        <li key={label} className={`text-[0.65rem] font-medium ${toneClass}`}>
           {label}
         </li>
       ))}
@@ -148,27 +159,6 @@ function CompactGrantedPermissions({ scopes }: { scopes: string[] }) {
       </p>
     </div>
   );
-}
-
-function ConnectedStatus({
-  label = "Connected",
-  detail = "Account linked",
-}: {
-  label?: string;
-  detail?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className="m-0 text-xs font-semibold text-slate-800">{detail}</p>
-    </div>
-  );
-}
-
-function PromptStatus({ text }: { text: string }) {
-  return <p className="m-0 text-xs leading-snug text-slate-500">{text}</p>;
 }
 
 function GoogleGMark({ className }: { className?: string }) {
@@ -219,13 +209,7 @@ function IntegrationCardSkeleton() {
           <div className="h-3.5 w-28 rounded bg-slate-100" />
           <div className="h-3 w-48 max-w-full rounded bg-slate-100" />
           <div className="h-2.5 w-40 max-w-full rounded bg-slate-50" />
-        </div>
-        <div className={`${cardStatusClass} gap-2`}>
-          <span className="size-8 shrink-0 rounded-full bg-slate-100" />
-          <div className="space-y-1.5">
-            <div className="h-2 w-14 rounded bg-slate-100" />
-            <div className="h-3 w-24 rounded bg-slate-100" />
-          </div>
+          <div className="h-3 w-32 max-w-full rounded bg-slate-100" />
         </div>
         <div className="h-8 w-28 rounded-lg bg-slate-100 md:justify-self-end" />
       </div>
@@ -245,7 +229,7 @@ function IntegrationCard({
   connected,
   needsAdAccount,
   pendingLabel,
-  status,
+  connectedTag,
   actions,
   error,
   footer,
@@ -261,7 +245,7 @@ function IntegrationCard({
   connected: boolean;
   needsAdAccount?: boolean;
   pendingLabel?: string;
-  status: ReactNode;
+  connectedTag?: string | null;
   actions: ReactNode;
   error?: string | null;
   footer?: ReactNode;
@@ -295,9 +279,12 @@ function IntegrationCard({
             />
           </div>
           <p className="m-0 mt-0.5 text-xs text-slate-500">{description}</p>
-          <FeatureRow items={features} toneClass={featureToneClass} />
+          <FeatureRow
+            items={features}
+            toneClass={featureToneClass}
+            connectedTag={connectedTag}
+          />
         </div>
-        <div className={cardStatusClass}>{status}</div>
         <div className="flex flex-col gap-1.5 md:min-w-[9.75rem]">{actions}</div>
       </div>
       {error ? (
@@ -334,11 +321,15 @@ export function BusinessIntegrationsPanel({
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
   const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
+  const [twilioCredentialsDialogOpen, setTwilioCredentialsDialogOpen] =
+    useState(false);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
   const [disconnectTarget, setDisconnectTarget] = useState<
-    "stripe" | "meta" | "google" | null
+    "stripe" | "meta" | "google" | "twilio" | null
   >(null);
   const [disconnecting, setDisconnecting] = useState(false);
+  const disconnectTwilioMutation =
+    useDisconnectBusinessTwilioCredentialsMutation(businessId);
   const bumpAuditLogs = useCallback(
     () => setAuditRefreshKey((n) => n + 1),
     [],
@@ -364,17 +355,23 @@ export function BusinessIntegrationsPanel({
         : null;
 
   const stripeConnected = Boolean(statusQuery.data?.stripe.connected);
+  const stripeAccountName =
+    statusQuery.data?.stripe.stripeAccountName?.trim() || null;
   const stripeNeedsSetup =
     stripeConnected &&
     (statusQuery.data?.stripe.status ?? "").toLowerCase() === "incomplete";
 
   const metaConnected = Boolean(statusQuery.data?.facebook.connected);
   const metaScopes = statusQuery.data?.facebook.metaOauthScopes ?? [];
+  const metaAdAccountName =
+    statusQuery.data?.facebook.metaAdAccountName?.trim() || null;
   const metaAdAccountId =
     statusQuery.data?.facebook.metaAdAccountId?.trim() || null;
   const metaNeedsAdAccount = metaConnected && !metaAdAccountId;
 
   const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
+  const googleCustomerName =
+    statusQuery.data?.googleAds.googleCustomerName?.trim() || null;
   const googleCustomerSelected = isGoogleAdsCustomerSelected(
     statusQuery.data?.googleAds.status,
   );
@@ -384,7 +381,8 @@ export function BusinessIntegrationsPanel({
     enabled: businessId > 0,
   });
   const twilioNumber = twilioQuery.selectedPhoneNumber?.trim() || "";
-  const twilioConnected = Boolean(twilioNumber);
+  const twilioCredentialsConnected = Boolean(twilioQuery.credentialsConnected);
+  const twilioConnected = twilioCredentialsConnected || Boolean(twilioNumber);
   const twilioInitialLoading = twilioQuery.isLoading;
   const twilioRefreshing =
     twilioQuery.isFetching && !twilioQuery.isLoading && Boolean(twilioQuery.data);
@@ -530,10 +528,34 @@ export function BusinessIntegrationsPanel({
     setDisconnectTarget("google");
   };
 
+  const handleDisconnectTwilio = async () => {
+    setDisconnectTarget("twilio");
+  };
+
   const confirmDisconnectIntegration = async () => {
     if (disconnectTarget == null || disconnecting) return;
     const target = disconnectTarget;
     setDisconnecting(true);
+
+    if (target === "twilio") {
+      try {
+        const result = await disconnectTwilioMutation.mutateAsync();
+        bumpAuditLogs();
+        toast.success(
+          result?.inboundWebhookCleared
+            ? "Twilio removed. Your number stays on Twilio; Dealioo no longer receives replies."
+            : "Twilio removed from this business. Your number stays on your Twilio account.",
+        );
+        setDisconnectTarget(null);
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not remove Twilio.",
+        );
+      } finally {
+        setDisconnecting(false);
+      }
+      return;
+    }
 
     if (target === "stripe") {
       setStripeBusy("loading");
@@ -709,9 +731,13 @@ export function BusinessIntegrationsPanel({
   useEffect(() => {
     if (!panelReady) return;
     if (normalizedFocus === "twilio" && !twilioConnected) {
-      setTwilioDialogOpen(true);
+      if (twilioCredentialsConnected) {
+        setTwilioDialogOpen(true);
+      } else {
+        setTwilioCredentialsDialogOpen(true);
+      }
     }
-  }, [normalizedFocus, panelReady, twilioConnected]);
+  }, [normalizedFocus, panelReady, twilioConnected, twilioCredentialsConnected]);
 
   if (!panelReady) {
     return (
@@ -809,30 +835,43 @@ export function BusinessIntegrationsPanel({
         accentColor="bg-[#F22F46]"
         logo={<TwilioMark className="size-6" />}
         title="Twilio"
-        description="Choose the SMS number this business sends from."
+        description="Connect your Twilio account to send SMS from your own number."
         featureToneClass="text-[#F22F46]"
         features={[
+          "Own Twilio account",
           "SMS outreach",
-          "Business number",
           "Campaign messages",
         ]}
         loading={false}
         connected={twilioConnected}
-        status={
-          twilioConnected ? (
-            <ConnectedStatus detail={twilioNumber} />
-          ) : (
-            <PromptStatus text="Select a Twilio number so this business can send SMS." />
-          )
-        }
+        connectedTag={twilioNumber || null}
         actions={
-          <button
-            type="button"
-            onClick={() => setTwilioDialogOpen(true)}
-            className={`${actionBtn} bg-[#F22F46] text-white`}
-          >
-            {twilioConnected ? "Change number" : "Select number"}
-          </button>
+          twilioCredentialsConnected ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setTwilioDialogOpen(true)}
+                className={`${actionBtn} bg-[#F22F46] text-white`}
+              >
+                {twilioNumber ? "Change number" : "Select number"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDisconnectTwilio()}
+                className={`${actionBtn} border border-red-200 bg-red-50 text-red-600`}
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setTwilioCredentialsDialogOpen(true)}
+              className={`${actionBtn} bg-[#F22F46] text-white`}
+            >
+              Connect Twilio
+            </button>
+          )
         }
       />
 
@@ -853,19 +892,8 @@ export function BusinessIntegrationsPanel({
         needsAdAccount={stripeNeedsSetup}
         pendingLabel="Setup needed"
         error={stripeActionError}
-        status={
-          stripeConnected ? (
-            stripeNeedsSetup ? (
-              <ConnectedStatus
-                label="Stripe linked"
-                detail="Finish setup in Stripe to accept charges"
-              />
-            ) : (
-              <ConnectedStatus />
-            )
-          ) : (
-            <PromptStatus text="Connect Stripe to accept payments from campaigns and funnels." />
-          )
+        connectedTag={
+          stripeConnected && stripeAccountName ? stripeAccountName : null
         }
         actions={
           stripeConnected ? (
@@ -906,26 +934,8 @@ export function BusinessIntegrationsPanel({
         connected={metaConnected}
         needsAdAccount={metaNeedsAdAccount}
         error={metaActionError}
-        status={
-          metaConnected ? (
-            metaNeedsAdAccount ? (
-              <ConnectedStatus
-                label="Meta linked"
-                detail="Ads account not selected"
-              />
-            ) : (
-              <ConnectedStatus
-                label="Connected"
-                detail={
-                  metaAdAccountId
-                    ? `Ad account ${metaAdAccountId.replace(/^act_/, "")}`
-                    : "Account linked"
-                }
-              />
-            )
-          ) : (
-            <PromptStatus text="Connect your Meta Ads account to start running and tracking campaigns." />
-          )
+        connectedTag={
+          metaConnected && metaAdAccountName ? metaAdAccountName : null
         }
         actions={
           metaConnected ? (
@@ -991,26 +1001,10 @@ export function BusinessIntegrationsPanel({
         connected={googleConnected}
         needsAdAccount={googleNeedsCustomer}
         error={googleActionError}
-        status={
-          googleConnected ? (
-            googleNeedsCustomer ? (
-              <ConnectedStatus
-                label="Google linked"
-                detail="Ads account not selected"
-              />
-            ) : (
-              <ConnectedStatus
-                label="Connected"
-                detail={
-                  googleCustomerSelected
-                    ? "Ads account ready"
-                    : "Google linked"
-                }
-              />
-            )
-          ) : (
-            <PromptStatus text="Connect your Google Ads account to import data and monitor performance." />
-          )
+        connectedTag={
+          googleConnected && googleCustomerSelected && googleCustomerName
+            ? googleCustomerName
+            : null
         }
         actions={
           googleConnected ? (
@@ -1057,11 +1051,35 @@ export function BusinessIntegrationsPanel({
         refreshKey={auditRefreshKey}
       />
 
+      <ConnectTwilioCredentialsDialog
+        open={twilioCredentialsDialogOpen}
+        businessId={businessId}
+        onClose={() => setTwilioCredentialsDialogOpen(false)}
+        onConnected={async (result) => {
+          setTwilioCredentialsDialogOpen(false);
+          toast.success(
+            result.accountSidMasked
+              ? `Twilio connected (${result.accountSidMasked}).`
+              : "Twilio connected.",
+          );
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
+          });
+          await queryClient.invalidateQueries({
+            queryKey: businessQueryKeys.detail(businessId),
+          });
+          bumpAuditLogs();
+          if (!result.selectedPhoneNumber) {
+            setTwilioDialogOpen(true);
+          }
+        }}
+      />
+
       <ChooseNumberDialog
         open={twilioDialogOpen}
         businessId={businessId}
         title="Choose a Twilio number"
-        description="Pick the SMS number this business will send from."
+        description="Pick a number you own, or search for one to buy on your Twilio account."
         confirmLabel="Save number"
         confirmingLabel="Saving number…"
         onClose={() => setTwilioDialogOpen(false)}
@@ -1090,7 +1108,9 @@ export function BusinessIntegrationsPanel({
               ? "Meta Ads"
               : disconnectTarget === "google"
                 ? "Google Ads"
-                : "this integration"
+                : disconnectTarget === "twilio"
+                  ? "Twilio"
+                  : "this integration"
         }
         title={
           disconnectTarget === "stripe"
@@ -1099,7 +1119,9 @@ export function BusinessIntegrationsPanel({
               ? "Remove Meta Ads?"
               : disconnectTarget === "google"
                 ? "Remove Google Ads?"
-                : "Remove this integration?"
+                : disconnectTarget === "twilio"
+                  ? "Remove Twilio?"
+                  : "Remove this integration?"
         }
         description={
           disconnectTarget === "stripe" ? (
@@ -1114,6 +1136,14 @@ export function BusinessIntegrationsPanel({
               <span className="font-semibold text-[#1877f2]">Meta Ads</span> from
               this business? This cannot be undone until you reconnect.
             </>
+          ) : disconnectTarget === "twilio" ? (
+            <>
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-[#F22F46]">Twilio</span> from
+              this business? SMS sending stops until you reconnect. Your phone
+              number stays on your Twilio account — we only disconnect Dealioo
+              and stop inbound replies here.
+            </>
           ) : (
             <>
               Are you sure you want to remove{" "}
@@ -1127,14 +1157,18 @@ export function BusinessIntegrationsPanel({
             ? "Remove Stripe"
             : disconnectTarget === "meta"
               ? "Remove Meta Ads"
-              : "Remove Google Ads"
+              : disconnectTarget === "twilio"
+                ? "Remove Twilio"
+                : "Remove Google Ads"
         }
         checkboxLabel={
           disconnectTarget === "stripe"
             ? "Are you sure you want to remove Stripe from this business?"
             : disconnectTarget === "meta"
               ? "Are you sure you want to remove Meta Ads from this business?"
-              : "Are you sure you want to remove Google Ads from this business?"
+              : disconnectTarget === "twilio"
+                ? "Are you sure you want to remove Twilio from this business?"
+                : "Are you sure you want to remove Google Ads from this business?"
         }
         isLoading={disconnecting}
         onConfirm={() => {

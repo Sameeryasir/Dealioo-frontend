@@ -27,10 +27,7 @@ import {
   saveBusinessOnboardingDraft,
   uploadBusinessDraftLogo,
 } from "@/app/services/onboarding/business-draft";
-import { RegisterBusinessTwilioNumberField } from "@/app/components/register-business/RegisterBusinessTwilioNumberField";
 import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
-import { useAvailableTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
-import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -58,7 +55,6 @@ import {
   Trash2,
   TrendingUp,
   Upload,
-  WandSparkles,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from "react";
@@ -261,10 +257,7 @@ export type RegisterBusinessFormValues = {
 export type RegisterBusinessFormProps = {
   submitting: boolean;
   errorMessage: string | null;
-  onCreateBusiness: (
-    data: RegisterBusinessFormValues,
-    twilio: TwilioPhoneNumberOption,
-  ) => Promise<void>;
+  onCreateBusiness: (data: RegisterBusinessFormValues) => Promise<void>;
 };
 
 const DEFAULT_VALUES: RegisterBusinessFormValues = {
@@ -375,24 +368,6 @@ function AboutStoreArt({ className }: { className?: string }) {
         d="M251 138c9-14 4-26 0-32-2 7-7 16 0 32Z"
         fill="#10B981"
       />
-    </svg>
-  );
-}
-
-function NumberAsideArt({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 200 280"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <ellipse cx="100" cy="258" rx="62" ry="12" fill="rgba(15,23,42,0.22)" />
-      <rect x="48" y="24" width="104" height="210" rx="22" fill="#FFFFFF" />
-      <rect x="60" y="46" width="80" height="148" rx="10" fill="rgba(224,231,255,0.95)" />
-      <rect x="84" y="206" width="32" height="8" rx="4" fill="rgba(196,181,253,0.95)" />
-      <circle cx="100" cy="36" r="3.5" fill="rgba(148,163,184,0.85)" />
     </svg>
   );
 }
@@ -774,7 +749,6 @@ export default function RegisterBusinessForm({
   const [draftReady, setDraftReady] = useState(true);
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [selectedTwilioSid, setSelectedTwilioSid] = useState("");
   const [mapPin, setMapPin] = useState<{
     latitude: number;
     longitude: number;
@@ -794,7 +768,6 @@ export default function RegisterBusinessForm({
   const currentStep = REGISTER_BUSINESS_STEPS[stepIndex];
   const stepUi = REGISTER_BUSINESS_STEP_UI[currentStep.id as RegisterBusinessStepId];
   const progress = ((stepIndex + 1) / REGISTER_BUSINESS_STEPS.length) * 100;
-  const isNumberStep = currentStep.id === "number";
   const isLocationStep = currentStep.id === "location";
 
   useEffect(() => {
@@ -927,28 +900,6 @@ export default function RegisterBusinessForm({
     setStepError(null);
   }, []);
 
-  const {
-    numbers: twilioNumbers,
-    allAssigned: twilioAllAssigned,
-    isLoading: twilioLoading,
-    error: twilioLoadError,
-  } = useAvailableTwilioPhoneNumbersQuery({ enabled: isNumberStep });
-
-  useEffect(() => {
-    if (!isNumberStep) return;
-    if (twilioNumbers.length === 0) {
-      if (selectedTwilioSid) setSelectedTwilioSid("");
-      return;
-    }
-    if (
-      selectedTwilioSid &&
-      twilioNumbers.some((number) => number.sid === selectedTwilioSid)
-    ) {
-      return;
-    }
-    setSelectedTwilioSid(twilioNumbers[0]?.sid ?? "");
-  }, [isNumberStep, selectedTwilioSid, twilioNumbers]);
-
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -973,9 +924,7 @@ export default function RegisterBusinessForm({
           logoUrl: draft.logoUrl ?? prev.logoUrl,
         }));
         const stepId = draft.step;
-        const idx = REGISTER_BUSINESS_STEPS.findIndex(
-          (s) => s.id === stepId && s.id !== "number",
-        );
+        const idx = REGISTER_BUSINESS_STEPS.findIndex((s) => s.id === stepId);
         if (idx >= 0) setStepIndex(idx);
       } catch {
       } finally {
@@ -991,7 +940,6 @@ export default function RegisterBusinessForm({
 
   useEffect(() => {
     if (!draftReady || skipNextAutosaveRef.current) return;
-    if (currentStep.id === "number") return;
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
 
     draftTimerRef.current = setTimeout(() => {
@@ -1091,8 +1039,6 @@ export default function RegisterBusinessForm({
             postalCode: snapshot.postalCode,
             country: snapshot.country,
           });
-        case "number":
-          return null;
         default:
           return null;
       }
@@ -1101,7 +1047,7 @@ export default function RegisterBusinessForm({
   );
 
   const goNext = useCallback(() => {
-    if (isNumberStep) return;
+    if (isLocationStep) return;
 
     const validationError = validateStep();
     if (validationError) {
@@ -1110,7 +1056,7 @@ export default function RegisterBusinessForm({
     }
     setStepError(null);
     setStepIndex((index) => index + 1);
-  }, [isNumberStep, validateStep]);
+  }, [isLocationStep, validateStep]);
 
   const goBack = useCallback(() => {
     setStepError(null);
@@ -1118,34 +1064,31 @@ export default function RegisterBusinessForm({
   }, []);
 
   const handleCreateBusiness = useCallback(async () => {
-    const selected = twilioNumbers.find((n) => n.sid === selectedTwilioSid);
-    if (!selected) {
-      setStepError("Select a Twilio phone number to create your business.");
+    const validationError = validateStep();
+    if (validationError) {
+      setStepError(validationError);
       return;
     }
     setStepError(null);
-    await onCreateBusiness(
-      {
-        ...values,
-        branchCount: 1,
-        logoFile: values.logoFile ?? null,
-        logoUrl: values.logoUrl ?? null,
-      },
-      selected,
-    );
-  }, [onCreateBusiness, selectedTwilioSid, twilioNumbers, values]);
+    await onCreateBusiness({
+      ...values,
+      branchCount: 1,
+      logoFile: values.logoFile ?? null,
+      logoUrl: values.logoUrl ?? null,
+    });
+  }, [onCreateBusiness, validateStep, values]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== "Enter" || event.shiftKey) return;
-      if (isNumberStep) return;
+      if (isLocationStep) return;
       if (currentStep.id === "about" && event.target instanceof HTMLTextAreaElement) {
         return;
       }
       event.preventDefault();
       void goNext();
     },
-    [currentStep.id, goNext, isNumberStep],
+    [currentStep.id, goNext, isLocationStep],
   );
 
   return (
@@ -1163,8 +1106,7 @@ export default function RegisterBusinessForm({
             className={`${bookStyles.formZone}${
               currentStep.id === "basics" ||
               currentStep.id === "about" ||
-              currentStep.id === "location" ||
-              currentStep.id === "number"
+              currentStep.id === "location"
                 ? ` ${logoStyles.basicsZone}`
                 : ""
             }`}
@@ -1458,16 +1400,25 @@ export default function RegisterBusinessForm({
                       <button
                         type="button"
                         className={logoStyles.basicsNext}
-                        onClick={() => goNext()}
-                        disabled={submitting}
+                        onClick={() => void handleCreateBusiness()}
+                        disabled={submitting || logoUploading}
                       >
-                        Continue
-                        <ArrowRight className="size-4" strokeWidth={2.5} aria-hidden />
+                        {submitting ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                            Creating business…
+                          </>
+                        ) : (
+                          <>
+                            Create business
+                            <ArrowRight className="size-4" strokeWidth={2.5} aria-hidden />
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
-              ) : currentStep.id === "basics" || currentStep.id === "about" ? (
+              ) : (
                 <div
                   className={`${logoStyles.basicsSheet}${
                     currentStep.id === "about" ? ` ${logoStyles.basicsSheetAbout}` : ""
@@ -1802,123 +1753,6 @@ export default function RegisterBusinessForm({
                         </div>
                       </>
                     )}
-                  </aside>
-                </div>
-              ) : (
-                <div className={logoStyles.basicsSheet}>
-                  <div className={logoStyles.basicsForm}>
-                    <span className={logoStyles.basicsBadge} aria-hidden>
-                      {currentStep.number}
-                    </span>
-                    <h2 className={logoStyles.basicsTitle}>
-                      {stepUi.lead}
-                      <span className={logoStyles.basicsAccent}>
-                        {stepUi.accent}
-                      </span>
-                    </h2>
-                    <p className={logoStyles.basicsSubtitle}>{stepUi.subtitle}</p>
-
-                    <div className={logoStyles.basicsFields}>
-                      {twilioAllAssigned && !twilioLoading ? (
-                        <div className={logoStyles.numberInfoCard} role="status">
-                          <span className={logoStyles.numberInfoIcon} aria-hidden>
-                            <Shield className="size-4" strokeWidth={2.25} />
-                          </span>
-                          <p className={logoStyles.numberInfoText}>
-                            All numbers are assigned
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <RegisterBusinessTwilioNumberField
-                            brand
-                            numbers={twilioNumbers}
-                            selectedSid={selectedTwilioSid}
-                            isLoading={twilioLoading}
-                            disabled={submitting}
-                            onSelect={(sid) => {
-                              setSelectedTwilioSid(sid);
-                              setStepError(null);
-                            }}
-                          />
-
-                          <div className={logoStyles.numberInfoCard}>
-                            <span
-                              className={logoStyles.numberInfoIcon}
-                              aria-hidden
-                            >
-                              <Shield className="size-4" strokeWidth={2.25} />
-                            </span>
-                            <p className={logoStyles.numberInfoText}>
-                              Your business is created only after you connect a
-                              Twilio number. This number will be used for SMS
-                              notifications and communications.
-                            </p>
-                          </div>
-                        </>
-                      )}
-
-                      {twilioLoadError ? (
-                        <p className={logoStyles.logoHelp} role="status">
-                          {twilioLoadError}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    {(stepError || errorMessage) && (
-                      <div className={logoStyles.basicsError} role="alert">
-                        <AlertCircle className="size-4 shrink-0" aria-hidden />
-                        <span>{stepError ?? errorMessage}</span>
-                      </div>
-                    )}
-
-                    <div className={logoStyles.basicsActions}>
-                      <button
-                        type="button"
-                        className={logoStyles.basicsBack}
-                        onClick={goBack}
-                        disabled={submitting}
-                      >
-                        <ArrowLeft className="size-4" strokeWidth={2.5} aria-hidden />
-                        Back
-                      </button>
-                      <button
-                        type="button"
-                        className={logoStyles.basicsNext}
-                        onClick={() => void handleCreateBusiness()}
-                        disabled={
-                          submitting ||
-                          twilioLoading ||
-                          twilioAllAssigned ||
-                          !selectedTwilioSid ||
-                          twilioNumbers.length === 0
-                        }
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" aria-hidden />
-                            Creating business…
-                          </>
-                        ) : (
-                          <>
-                            <WandSparkles className="size-4" strokeWidth={2.25} aria-hidden />
-                            Create business
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <p className={logoStyles.numberSecureNote}>
-                      <Shield className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                      We use industry-standard security to keep your data safe
-                    </p>
-                  </div>
-
-                  <aside
-                    className={`${logoStyles.basicsAside} ${logoStyles.numberAside}`}
-                    aria-label="Twilio number preview"
-                  >
-                    <NumberAsideArt className={logoStyles.numberAsideArt} />
                   </aside>
                 </div>
               )}

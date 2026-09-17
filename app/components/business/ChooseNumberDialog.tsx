@@ -1,22 +1,29 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Loader2, Phone, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
-import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
+import { TwilioBuyCountryPicker, supportsTwilioAreaCodeFilter } from "@/app/components/business/TwilioBuyCountryPicker";
 import {
   useAssociateBusinessTwilioPhoneNumberMutation,
-  useAvailableTwilioPhoneNumbersQuery,
   useBusinessTwilioPhoneNumbersQuery,
+  usePurchaseBusinessTwilioPhoneNumberMutation,
+  useSearchTwilioAvailableToBuyMutation,
 } from "@/app/hooks/use-business-twilio-phone-numbers-query";
-import { automationEase } from "@/app/lib/motion";
+import { countryDisplayName } from "@/app/lib/resolve-twilio-country";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
-import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
+import type {
+  TwilioAvailableToBuyNumber,
+  TwilioPhoneNumberOption,
+} from "@/app/services/business/twilio-phone-numbers";
+import { Loader2, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  parsePhoneNumber,
+  type Country,
+} from "react-phone-number-input";
 
 type ChooseNumberDialogProps = {
   open: boolean;
-  businessId?: number | null;
+  businessId: number;
   isBusy?: boolean;
   title?: string;
   description?: string;
@@ -28,17 +35,54 @@ type ChooseNumberDialogProps = {
   onConfirmed: (selected: TwilioPhoneNumberOption) => void | Promise<void>;
 };
 
-function formatNumberLabel(n: TwilioPhoneNumberOption): string {
-  return n.phoneNumber;
+type NumberTab = "owned" | "buy";
+
+function searchDefaultsFromAccountPhone(phone: string | null | undefined): {
+  country: Country;
+  areaCode: string;
+} {
+  const raw = phone?.trim() || "";
+  if (!raw) {
+    return { country: "US", areaCode: "" };
+  }
+
+  try {
+    const parsed = parsePhoneNumber(raw);
+    if (!parsed?.country) {
+      return { country: "US", areaCode: "" };
+    }
+
+    const country = parsed.country as Country;
+    const national = String(parsed.nationalNumber || "");
+    const areaCode =
+      supportsTwilioAreaCodeFilter(country) && /^\d{10}$/.test(national)
+        ? national.slice(0, 3)
+        : "";
+
+    return { country, areaCode };
+  } catch {
+    return { country: "US", areaCode: "" };
+  }
+}
+
+function emptySearchMessage(country: Country, areaCode: string): string {
+  const name = countryDisplayName(country);
+  if (areaCode) {
+    return `No SMS-capable numbers available in ${name} for area code ${areaCode}. Try another area code, or clear it to see more.`;
+  }
+  if (country === "PK") {
+    return `Twilio typically does not sell local SMS numbers in ${name}. Try United States or Canada instead.`;
+  }
+  return `No SMS-capable numbers available in ${name} for this Twilio account right now. Try another country${supportsTwilioAreaCodeFilter(country) ? " or area code" : ""}.`;
 }
 
 export function ChooseNumberDialog({
   open,
-  businessId = null,
+  businessId,
   isBusy = false,
-  title = "Choose a number",
-  description = "Pick the SMS number this business will send from.",
-  confirmLabel = "Save & continue",
+  title = "Twilio number",
+  description = "Pick a number you own, or search for one to buy.",
+  confirmLabel = "Save",
   confirmingLabel = "Saving…",
   dismissible = true,
   overlayClassName = "z-[70]",
@@ -46,369 +90,524 @@ export function ChooseNumberDialog({
   onConfirmed,
 }: ChooseNumberDialogProps) {
   const titleId = useId();
-  const listboxId = useId();
+  const chargeAckId = useId();
+  const accountDefaultsAppliedRef = useRef(false);
+  const searchRequestIdRef = useRef(0);
+  const [tab, setTab] = useState<NumberTab>("owned");
   const [localError, setLocalError] = useState<string | null>(null);
   const [selectedSid, setSelectedSid] = useState("");
-  const hasBusiness = typeof businessId === "number" && businessId >= 1;
+  const [country, setCountry] = useState<Country>("US");
+  const [areaCode, setAreaCode] = useState("");
+  const [buyResults, setBuyResults] = useState<TwilioAvailableToBuyNumber[]>(
+    [],
+  );
+  const [selectedBuyNumber, setSelectedBuyNumber] = useState("");
+  const [chargeAcknowledged, setChargeAcknowledged] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const businessQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
-    enabled: open && hasBusiness,
-  });
-  const availableQuery = useAvailableTwilioPhoneNumbersQuery({
-    enabled: open && !hasBusiness,
+    enabled: open && businessId >= 1,
   });
 
-  const numbers = hasBusiness ? businessQuery.numbers : availableQuery.numbers;
-  const selectedPhoneSid = hasBusiness
-    ? businessQuery.selectedPhoneSid
-    : availableQuery.selectedPhoneSid;
-  const selectedPhoneNumber = hasBusiness
-    ? businessQuery.selectedPhoneNumber
-    : availableQuery.selectedPhoneNumber;
-  const isLoading = hasBusiness
-    ? businessQuery.isLoading
-    : availableQuery.isLoading;
-  const loadError = hasBusiness ? businessQuery.error : availableQuery.error;
+  const numbers = businessQuery.numbers;
+  const selectedPhoneSid = businessQuery.selectedPhoneSid;
+  const selectedPhoneNumber = businessQuery.selectedPhoneNumber;
+  const isLoading = businessQuery.isLoading;
+  const loadError = businessQuery.error;
 
-  const associateMutation = useAssociateBusinessTwilioPhoneNumberMutation(
-    hasBusiness ? (businessId as number) : 0,
-  );
+  const associateMutation =
+    useAssociateBusinessTwilioPhoneNumberMutation(businessId);
+  const searchMutation = useSearchTwilioAvailableToBuyMutation(businessId);
+  const purchaseMutation =
+    usePurchaseBusinessTwilioPhoneNumberMutation(businessId);
 
-  const {
-    open: menuOpen,
-    setOpen: setMenuOpen,
-    mounted,
-    anchorRef,
-    menuRef,
-    menuPosition,
-    menuStyle,
-  } = useAnchoredMenu({
-    width: "anchor",
-    align: "left",
-    estimatedHeight: 240,
-    placement: "flip",
-  });
+  const areaCodeSupported = supportsTwilioAreaCodeFilter(country);
+
+  async function runNumberSearch(nextCountry: Country, nextAreaCode: string) {
+    const requestId = ++searchRequestIdRef.current;
+    setLocalError(null);
+    if (searchMutation.error) searchMutation.reset();
+    setSelectedBuyNumber("");
+    setChargeAcknowledged(false);
+    setBuyResults([]);
+    setHasSearched(true);
+
+    const area = areaCodeSupported ? nextAreaCode.trim() : "";
+    if (area && !/^\d{3}$/.test(area)) {
+      setLocalError(
+        "Area code must be exactly 3 digits (e.g. 415), or leave it blank.",
+      );
+      return;
+    }
+
+    try {
+      const result = await searchMutation.mutateAsync({
+        country: nextCountry,
+        areaCode: area || undefined,
+        limit: 20,
+      });
+      if (requestId !== searchRequestIdRef.current) return;
+      setBuyResults(result.numbers);
+      if (result.numbers.length === 0) {
+        setLocalError(emptySearchMessage(nextCountry, area));
+      }
+    } catch {
+      // Error shown via searchMutation.error
+    }
+  }
 
   useEffect(() => {
     if (!open) {
-      setMenuOpen(false);
+      accountDefaultsAppliedRef.current = false;
+      searchRequestIdRef.current += 1;
       setLocalError(null);
       setSelectedSid("");
+      setTab("owned");
+      setCountry("US");
+      setAreaCode("");
+      setBuyResults([]);
+      setSelectedBuyNumber("");
+      setChargeAcknowledged(false);
+      setHasSearched(false);
+      searchMutation.reset();
+      associateMutation.reset();
+      purchaseMutation.reset();
+      return;
+    }
+    setLocalError(null);
+    searchMutation.reset();
+    associateMutation.reset();
+    purchaseMutation.reset();
+    setSelectedSid(selectedPhoneSid?.trim() || numbers[0]?.sid || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when dialog opens/closes
+  }, [open, selectedPhoneSid, numbers]);
+
+  useEffect(() => {
+    if (!open || isLoading || accountDefaultsAppliedRef.current) {
       return;
     }
 
-    setMenuOpen(false);
-    setLocalError(null);
-    const preselected =
-      selectedPhoneSid?.trim() || numbers[0]?.sid || "";
-    setSelectedSid(preselected);
-  }, [open, selectedPhoneSid, numbers, setMenuOpen]);
+    const accountPhone =
+      selectedPhoneNumber?.trim() ||
+      numbers.find((n) => n.sid === selectedPhoneSid)?.phoneNumber ||
+      numbers[0]?.phoneNumber ||
+      null;
+
+    const defaults = searchDefaultsFromAccountPhone(accountPhone);
+    accountDefaultsAppliedRef.current = true;
+    setCountry(defaults.country);
+    setAreaCode(defaults.areaCode);
+    void runNumberSearch(defaults.country, defaults.areaCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per open after numbers load
+  }, [open, isLoading, selectedPhoneNumber, selectedPhoneSid, numbers]);
 
   useEffect(() => {
-    if (!open || associateMutation.isPending || isBusy || !dismissible) {
+    if (
+      !open ||
+      associateMutation.isPending ||
+      purchaseMutation.isPending ||
+      isBusy ||
+      !dismissible
+    ) {
       return;
     }
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !menuOpen) onClose();
+      if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [
     open,
     associateMutation.isPending,
+    purchaseMutation.isPending,
     isBusy,
     onClose,
-    menuOpen,
     dismissible,
   ]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  const saving = hasBusiness && associateMutation.isPending;
-  const busy = isLoading || saving || isBusy;
+  const busy =
+    isLoading ||
+    isBusy ||
+    associateMutation.isPending ||
+    purchaseMutation.isPending ||
+    searchMutation.isPending;
+
   const selected = numbers.find((n) => n.sid === selectedSid) ?? null;
-  const currentOnBusinessSid = selectedPhoneSid?.trim() || null;
-  const currentLabel =
-    selectedPhoneNumber?.trim() ||
-    numbers.find((n) => n.sid === currentOnBusinessSid)?.phoneNumber ||
-    null;
   const error =
     localError ||
     loadError ||
-    (hasBusiness && associateMutation.error
-      ? getApiErrorMessage(
-          associateMutation.error,
-          "Could not associate phone number.",
-        )
+    (associateMutation.error
+      ? getApiErrorMessage(associateMutation.error, "Could not save number.")
+      : null) ||
+    (searchMutation.error
+      ? getApiErrorMessage(searchMutation.error, "Could not search numbers.")
+      : null) ||
+    (purchaseMutation.error
+      ? getApiErrorMessage(purchaseMutation.error, "Could not buy number.")
       : null);
 
-  async function handleConfirm() {
+  function clearSearchErrors() {
+    setLocalError(null);
+    if (searchMutation.error) searchMutation.reset();
+  }
+
+  async function handleConfirmOwned() {
     if (!selected) {
-      setLocalError("Select a phone number to continue.");
+      setLocalError("Select a number.");
       return;
     }
-
     setLocalError(null);
-    setMenuOpen(false);
     try {
-      if (hasBusiness) {
-        await associateMutation.mutateAsync({
-          phoneSid: selected.sid,
-          phoneNumber: selected.phoneNumber,
-        });
-      }
+      await associateMutation.mutateAsync({
+        phoneSid: selected.sid,
+        phoneNumber: selected.phoneNumber,
+      });
       await onConfirmed(selected);
     } catch {
+      // Error shown via associateMutation.error
     }
   }
 
-  const triggerDisabled = busy || isLoading || numbers.length === 0;
+  async function handleBuySelected() {
+    if (!selectedBuyNumber) {
+      setLocalError("Select a number to buy.");
+      return;
+    }
+    if (!chargeAcknowledged) {
+      setLocalError(
+        "Confirm that Twilio will charge your account before buying.",
+      );
+      return;
+    }
+    setLocalError(null);
+    try {
+      const purchased = await purchaseMutation.mutateAsync({
+        phoneNumber: selectedBuyNumber,
+      });
+      await onConfirmed({
+        sid: purchased.twilioPhoneSid,
+        phoneNumber: purchased.twilioPhoneNumber,
+        friendlyName: null,
+      });
+    } catch {
+      // Error shown via purchaseMutation.error
+    }
+  }
 
-  const menu =
-    menuOpen && menuPosition ? (
-      <div ref={menuRef}>
-        <motion.ul
-          id={listboxId}
-          role="listbox"
-          aria-label="Phone numbers"
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22, ease: automationEase }}
-          style={menuStyle}
-          className="max-h-60 overflow-auto rounded-xl border border-zinc-200/90 bg-white py-1.5 shadow-xl ring-1 ring-zinc-950/[0.06]"
-        >
-          {numbers.map((option, index) => {
-            const isSelected = selectedSid === option.sid;
-            const isCurrent = currentOnBusinessSid === option.sid;
-            return (
-              <motion.li
-                key={option.sid}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 0.18,
-                  delay: index * 0.03,
-                  ease: automationEase,
-                }}
-              >
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => {
-                    setSelectedSid(option.sid);
-                    setLocalError(null);
-                    setMenuOpen(false);
-                  }}
-                  className={`flex w-full cursor-pointer items-start gap-2.5 px-3 py-2.5 text-left transition ${
-                    isSelected
-                      ? "bg-[#e8f2ff] text-[#0f5ed7]"
-                      : "text-zinc-800 hover:bg-[#f8faff]"
-                  }`}
-                >
-                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center">
-                    {isSelected ? (
-                      <Check
-                        className="size-4 text-[#1877f2]"
-                        strokeWidth={2.5}
-                        aria-hidden
-                      />
-                    ) : null}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">
-                      {option.phoneNumber}
-                    </span>
-                    {isCurrent ? (
-                      <span
-                        className={`mt-0.5 block truncate text-xs ${
-                          isSelected ? "text-[#1877f2]/80" : "text-zinc-500"
-                        }`}
-                      >
-                        In use now
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              </motion.li>
-            );
-          })}
-        </motion.ul>
-      </div>
-    ) : null;
-
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4 ${overlayClassName}`}
+      className={`fixed inset-0 flex items-center justify-center bg-black/40 p-4 ${overlayClassName}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      onClick={() => {
+        if (!busy && dismissible) onClose();
+      }}
     >
-      <button
-        type="button"
-        aria-label="Close dialog"
-        disabled={busy || !dismissible}
-        onClick={() => {
-          if (dismissible) onClose();
-        }}
-        className="absolute inset-0 cursor-default bg-zinc-900/55 backdrop-blur-[3px]"
-      />
-
-      <div className="relative w-full max-w-xl overflow-visible rounded-2xl border border-zinc-200/90 bg-white shadow-2xl shadow-zinc-900/10 ring-1 ring-black/5 sm:max-w-2xl">
-        {dismissible ? (
-          <button
-            type="button"
-            aria-label="Close"
-            disabled={busy}
-            onClick={onClose}
-            className="absolute right-3 top-3 flex size-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-[#e8f2ff] hover:text-[#1877f2] disabled:opacity-50 sm:right-5 sm:top-5"
-          >
-            <X className="size-5" strokeWidth={2.25} aria-hidden />
-          </button>
-        ) : null}
-
-        <div className="px-6 pb-6 pt-6 sm:px-8 sm:pt-8">
-          <div className="flex gap-4 pr-10">
-            <span
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2] text-white shadow-md shadow-[#1877f2]/30"
-              aria-hidden
+      <div
+        className="w-full max-w-md rounded-2xl border border-[#e8e8e8] bg-white p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2
+              id={titleId}
+              className="text-[1.05rem] font-semibold text-[#1a1a1a]"
             >
-              <Phone className="size-6" strokeWidth={2} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2
-                id={titleId}
-                className="text-lg font-semibold leading-snug tracking-tight text-zinc-900 sm:text-xl"
-              >
-                {title}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-500 sm:text-[0.95rem]">
-                {description}
-              </p>
-            </div>
-          </div>
-
-          {!isLoading && currentLabel ? (
-            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#1877f2]/25 bg-[#e8f2ff] px-3.5 py-3">
-              <span
-                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white"
-                aria-hidden
-              >
-                <Check className="size-3.5" strokeWidth={2.5} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#1877f2]">
-                  In use right now
-                </p>
-                <p className="mt-0.5 truncate text-sm font-semibold text-[#0f5ed7]">
-                  {currentLabel}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="mt-4">
-            <label
-              id={`${listboxId}-label`}
-              className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-zinc-500"
-            >
-              Phone number
-            </label>
-
-            <div ref={anchorRef} className="relative">
-              <button
-                type="button"
-                disabled={triggerDisabled}
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-expanded={menuOpen}
-                aria-haspopup="listbox"
-                aria-controls={listboxId}
-                aria-labelledby={`${listboxId}-label`}
-                className="flex h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-[#e8edf5] bg-white px-4 text-left shadow-sm outline-none transition hover:border-[#1877f2]/35 hover:bg-[#f8faff] focus-visible:border-[#1877f2]/45 focus-visible:ring-4 focus-visible:ring-[#1877f2]/12 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f2ff] text-[#1877f2]"
-                  aria-hidden
-                >
-                  {isLoading ? (
-                    <Loader2 className="size-4 animate-spin" strokeWidth={2.25} />
-                  ) : (
-                    <Phone className="size-4" strokeWidth={2.25} />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  {isLoading ? (
-                    <span className="block text-sm font-medium text-zinc-500">
-                      Loading numbers…
-                    </span>
-                  ) : selected ? (
-                    <span className="block truncate text-sm font-semibold text-zinc-900">
-                      {selected.phoneNumber}
-                    </span>
-                  ) : (
-                    <span className="block text-sm font-medium text-zinc-500">
-                      {numbers.length === 0
-                        ? "No numbers found"
-                        : "Select a number"}
-                    </span>
-                  )}
-                </span>
-                <motion.span
-                  animate={{ rotate: menuOpen ? 180 : 0 }}
-                  transition={{ duration: 0.22, ease: automationEase }}
-                  className={`shrink-0 ${menuOpen ? "text-[#1877f2]" : "text-zinc-400"}`}
-                >
-                  <ChevronDown className="size-4" aria-hidden strokeWidth={2.5} />
-                </motion.span>
-              </button>
-            </div>
-
-            {mounted
-              ? createPortal(
-                  <AnimatePresence>{menu}</AnimatePresence>,
-                  document.body,
-                )
-              : null}
-
-            {!isLoading && selected ? (
-              <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-                Selected:{" "}
-                <span className="font-semibold text-[#1877f2]">
-                  {formatNumberLabel(selected)}
-                </span>
-              </p>
-            ) : null}
-          </div>
-
-          {error ? (
-            <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-              {error}
+              {title}
+            </h2>
+            <p className="mt-1 text-[0.82rem] leading-relaxed text-[#666]">
+              {description}
             </p>
-          ) : null}
-        </div>
-
-        <div className="flex justify-end gap-2 rounded-b-2xl border-t border-zinc-100 bg-zinc-50/90 px-6 py-5 sm:px-8">
+          </div>
           {dismissible ? (
             <button
               type="button"
-              disabled={busy}
               onClick={onClose}
-              className="h-11 cursor-pointer rounded-xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+              disabled={busy}
+              className="rounded-full p-1 text-[#888] hover:bg-[#f4f4f4] hover:text-[#333]"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-4 flex gap-1 rounded-lg bg-[#f4f4f4] p-1">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setTab("owned");
+              setLocalError(null);
+              searchMutation.reset();
+              associateMutation.reset();
+              purchaseMutation.reset();
+            }}
+            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
+              tab === "owned"
+                ? "bg-white text-[#222] shadow-sm"
+                : "text-[#666]"
+            }`}
+          >
+            Yours
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setTab("buy");
+              setLocalError(null);
+              searchMutation.reset();
+              associateMutation.reset();
+              purchaseMutation.reset();
+            }}
+            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
+              tab === "buy" ? "bg-white text-[#222] shadow-sm" : "text-[#666]"
+            }`}
+          >
+            Buy new
+          </button>
+        </div>
+
+        <div className="mt-4">
+          {tab === "owned" ? (
+            isLoading ? (
+              <div className="flex items-center gap-2 py-6 text-[0.85rem] text-[#666]">
+                <Loader2 className="size-4 animate-spin" />
+                Loading numbers…
+              </div>
+            ) : numbers.length === 0 ? (
+              <p className="py-4 text-[0.85rem] text-[#666]">
+                No numbers on this account yet. Use Buy new.
+              </p>
+            ) : (
+              <div className="max-h-56 overflow-auto rounded-xl border border-[#e8e8e8]">
+                {numbers.map((option) => {
+                  const active = selectedSid === option.sid;
+                  return (
+                    <button
+                      key={option.sid}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setSelectedSid(option.sid);
+                        setLocalError(null);
+                      }}
+                      className={`flex w-full items-center justify-between border-b border-[#f0f0f0] px-3 py-2.5 text-left text-[0.88rem] last:border-b-0 ${
+                        active
+                          ? "bg-[#fafafa] font-semibold text-[#111]"
+                          : "text-[#333] hover:bg-[#fafafa]"
+                      }`}
+                    >
+                      <span>{option.phoneNumber}</span>
+                      {active ? (
+                        <span className="text-[0.72rem] text-[#888]">
+                          Selected
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            <div className="space-y-3">
+              <p className="rounded-xl bg-[#fff8f8] px-3 py-2 text-[0.78rem] leading-relaxed text-[#7a3a3a]">
+                Buying a number is charged by Twilio to your Twilio account — not
+                by Dealioo. Pick a country, optionally an area code, then buy.
+              </p>
+
+              <div
+                className={`grid gap-2 ${areaCodeSupported ? "grid-cols-2" : "grid-cols-1"}`}
+              >
+                <label className="block min-w-0">
+                  <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
+                    Country
+                  </span>
+                  <TwilioBuyCountryPicker
+                    value={country}
+                    disabled={busy}
+                    onChange={(next) => {
+                      clearSearchErrors();
+                      setCountry(next);
+                      const nextArea = supportsTwilioAreaCodeFilter(next)
+                        ? areaCode
+                        : "";
+                      if (!supportsTwilioAreaCodeFilter(next)) {
+                        setAreaCode("");
+                      }
+                      void runNumberSearch(next, nextArea);
+                    }}
+                  />
+                  <span className="mt-1 block text-[0.7rem] text-[#888]">
+                    Search by name or code
+                  </span>
+                </label>
+
+                {areaCodeSupported ? (
+                  <label className="block min-w-0">
+                    <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
+                      Area code
+                    </span>
+                    <input
+                      type="text"
+                      value={areaCode}
+                      onChange={(e) => {
+                        const next = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 3);
+                        clearSearchErrors();
+                        setAreaCode(next);
+                        if (next.length === 0 || next.length === 3) {
+                          void runNumberSearch(country, next);
+                        }
+                      }}
+                      disabled={busy}
+                      inputMode="numeric"
+                      placeholder="415"
+                      className="mt-1.5 h-10 w-full rounded-xl border border-[#e4e4e4] bg-[#fafafa] px-3 text-[0.88rem] outline-none focus:border-[#ccc] focus:bg-white"
+                    />
+                    <span className="mt-1 block text-[0.7rem] text-[#888]">
+                      Optional · US/Canada only
+                    </span>
+                  </label>
+                ) : null}
+              </div>
+
+              {!areaCodeSupported ? (
+                <p className="text-[0.72rem] text-[#888]">
+                  Area code filtering is for US and Canada. For other countries,
+                  available SMS numbers (including mobile) are listed below.
+                </p>
+              ) : null}
+
+              {searchMutation.isPending ? (
+                <div className="flex items-center gap-2 py-3 text-[0.85rem] text-[#666]">
+                  <Loader2 className="size-4 animate-spin" />
+                  Searching available numbers…
+                </div>
+              ) : null}
+
+              {buyResults.length > 0 ? (
+                <div className="max-h-48 overflow-auto rounded-xl border border-[#e8e8e8]">
+                  {buyResults.map((option) => {
+                    const active = selectedBuyNumber === option.phoneNumber;
+                    const place = [option.locality, option.region]
+                      .filter(Boolean)
+                      .join(", ");
+                    return (
+                      <button
+                        key={option.phoneNumber}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          setSelectedBuyNumber(option.phoneNumber);
+                          setChargeAcknowledged(false);
+                          setLocalError(null);
+                        }}
+                        className={`flex w-full flex-col border-b border-[#f0f0f0] px-3 py-2.5 text-left last:border-b-0 ${
+                          active ? "bg-[#fafafa]" : "hover:bg-[#fafafa]"
+                        }`}
+                      >
+                        <span
+                          className={`text-[0.88rem] ${
+                            active ? "font-semibold text-[#111]" : "text-[#333]"
+                          }`}
+                        >
+                          {option.phoneNumber}
+                        </span>
+                        {place ? (
+                          <span className="mt-0.5 text-[0.72rem] text-[#888]">
+                            {place}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : hasSearched &&
+                !searchMutation.isPending &&
+                !error ? (
+                <p className="text-[0.8rem] text-[#888]">
+                  No numbers to show yet.
+                </p>
+              ) : null}
+
+              {selectedBuyNumber ? (
+                <label
+                  htmlFor={chargeAckId}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#e8e8e8] bg-[#fafafa] px-3 py-2.5"
+                >
+                  <input
+                    id={chargeAckId}
+                    type="checkbox"
+                    checked={chargeAcknowledged}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setChargeAcknowledged(e.target.checked);
+                      setLocalError(null);
+                    }}
+                    className="mt-0.5 size-4 shrink-0 accent-[#F22F46]"
+                  />
+                  <span className="text-[0.78rem] leading-relaxed text-[#444]">
+                    I understand Twilio will charge my Twilio account for{" "}
+                    <span className="font-semibold">{selectedBuyNumber}</span>,
+                    and Dealioo will use it for SMS.
+                  </span>
+                </label>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {error ? (
+          <p className="mt-3 text-[0.78rem] text-red-600">{error}</p>
+        ) : null}
+
+        <div className="mt-5 flex justify-end gap-2">
+          {dismissible ? (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="rounded-xl border border-[#e4e4e4] bg-white px-3.5 py-2 text-[0.8rem] font-semibold text-[#444]"
             >
               Cancel
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled={busy || !selected}
-            onClick={() => void handleConfirm()}
-            className="h-11 cursor-pointer rounded-xl bg-[#1877f2] px-6 text-sm font-semibold text-white shadow-sm shadow-[#1877f2]/25 transition hover:bg-[#166fe5] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving || isBusy ? confirmingLabel : confirmLabel}
-          </button>
+          {tab === "owned" ? (
+            <button
+              type="button"
+              onClick={() => void handleConfirmOwned()}
+              disabled={busy || !selected}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#F22F46] px-3.5 py-2 text-[0.8rem] font-semibold text-white disabled:opacity-70"
+            >
+              {associateMutation.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : null}
+              {associateMutation.isPending || isBusy
+                ? confirmingLabel
+                : confirmLabel}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleBuySelected()}
+              disabled={busy || !selectedBuyNumber || !chargeAcknowledged}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#F22F46] px-3.5 py-2 text-[0.8rem] font-semibold text-white disabled:opacity-70"
+            >
+              {purchaseMutation.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : null}
+              {purchaseMutation.isPending ? "Buying…" : "Buy & use"}
+            </button>
+          )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

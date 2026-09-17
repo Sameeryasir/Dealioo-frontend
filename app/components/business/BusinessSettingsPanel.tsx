@@ -22,10 +22,7 @@ import {
 import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
 import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
-import {
-  getAvailableTwilioPhoneNumbers,
-  getBusinessTwilioPhoneNumbers,
-} from "@/app/services/business/twilio-phone-numbers";
+import { getBusinessTwilioPhoneNumbers } from "@/app/services/business/twilio-phone-numbers";
 import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
@@ -104,11 +101,6 @@ export function BusinessSettingsPanel({
     void queryClient.prefetchQuery({
       queryKey: businessQueryKeys.twilioPhoneNumbers(businessId),
       queryFn: () => getBusinessTwilioPhoneNumbers(businessId),
-      staleTime: 5 * 60_000,
-    });
-    void queryClient.prefetchQuery({
-      queryKey: businessQueryKeys.availableTwilioPhoneNumbers(),
-      queryFn: () => getAvailableTwilioPhoneNumbers(),
       staleTime: 5 * 60_000,
     });
   }, [businessId, queryClient, section]);

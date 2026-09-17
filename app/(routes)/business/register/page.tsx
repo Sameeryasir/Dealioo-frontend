@@ -25,7 +25,6 @@ import {
 } from "@/app/services/business/get-my-business";
 import { registerBusiness } from "@/app/services/business/register-business";
 import { invalidateOnboardingStatusCache } from "@/app/services/onboarding/get-onboarding-status";
-import type { TwilioPhoneNumberOption } from "@/app/services/business/twilio-phone-numbers";
 import {
   clearPostCreateOnboarding,
   readPostCreateOnboarding,
@@ -224,10 +223,7 @@ export default function RegisterBusinessPage() {
   }, [savePostCreateStep]);
 
   const onCreateBusiness = useCallback(
-    async (
-      pendingForm: RegisterBusinessFormValues,
-      selected: TwilioPhoneNumberOption,
-    ) => {
+    async (pendingForm: RegisterBusinessFormValues) => {
       setErrorMessage(null);
       setSubmitting(true);
       try {
@@ -246,8 +242,6 @@ export default function RegisterBusinessPage() {
           postalCode: pendingForm.postalCode,
           country: pendingForm.country,
           branchCount: pendingForm.branchCount,
-          twilioPhoneSid: selected.sid,
-          twilioPhoneNumber: selected.phoneNumber,
         });
 
         const businessId =
@@ -272,8 +266,8 @@ export default function RegisterBusinessPage() {
             postalCode: pendingForm.postalCode.trim() || null,
             country: pendingForm.country.trim() || null,
             branchCount: pendingForm.branchCount,
-            twilioConnected: true,
-            twilioPhoneNumber: selected.phoneNumber,
+            twilioConnected: false,
+            twilioPhoneNumber: null,
           };
 
         prependBusinessToMyListCache(queryClient, businessForCache);

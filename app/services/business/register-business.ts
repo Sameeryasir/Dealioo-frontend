@@ -27,8 +27,6 @@ export type RegisterBusinessPayload = {
   postalCode?: string;
   country?: string;
   branchCount: number;
-  twilioPhoneSid: string;
-  twilioPhoneNumber: string;
 };
 
 export type RegisterBusinessResponse = {
@@ -100,9 +98,6 @@ export async function registerBusiness(
   if (!payload.phoneNumber.trim()) {
     throw new Error("Phone number is required.");
   }
-  if (!payload.twilioPhoneSid.trim() || !payload.twilioPhoneNumber.trim()) {
-    throw new Error("A Twilio number is required before creating a business.");
-  }
   if (!Number.isFinite(payload.branchCount) || payload.branchCount < 1) {
     throw new Error("Branch count must be at least 1.");
   }
@@ -111,8 +106,6 @@ export async function registerBusiness(
   formData.append("name", payload.name.trim());
   formData.append("phoneNumber", payload.phoneNumber.trim());
   formData.append("branchCount", String(payload.branchCount));
-  formData.append("twilioPhoneSid", payload.twilioPhoneSid.trim());
-  formData.append("twilioPhoneNumber", payload.twilioPhoneNumber.trim());
 
   const businessType = optionalString(payload.businessType);
   if (!businessType) {

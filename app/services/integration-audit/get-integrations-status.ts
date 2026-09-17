@@ -5,6 +5,8 @@ export type IntegrationsStatus = {
   stripe: {
     connected: boolean;
     status: string | null;
+    stripeAccountId: string | null;
+    stripeAccountName: string | null;
   };
   facebook: {
     connected: boolean;
@@ -12,12 +14,15 @@ export type IntegrationsStatus = {
     metaOauthScopes: string[];
     missingRequiredScopes: string[];
     metaAdAccountId: string | null;
+    metaAdAccountName: string | null;
   };
   googleAds: {
     connected: boolean;
     status: string | null;
     googleOauthScopes: string[];
     missingRequiredScopes: string[];
+    googleCustomerId: string | null;
+    googleCustomerName: string | null;
   };
 };
 
@@ -51,6 +56,8 @@ export async function getIntegrationsStatus(
     stripe: {
       connected: Boolean(json.stripe?.connected),
       status: json.stripe?.status ?? null,
+      stripeAccountId: json.stripe?.stripeAccountId?.trim() || null,
+      stripeAccountName: json.stripe?.stripeAccountName?.trim() || null,
     },
     facebook: {
       connected: Boolean(json.facebook?.connected),
@@ -58,12 +65,15 @@ export async function getIntegrationsStatus(
       metaOauthScopes: json.facebook?.metaOauthScopes ?? [],
       missingRequiredScopes: json.facebook?.missingRequiredScopes ?? [],
       metaAdAccountId: json.facebook?.metaAdAccountId?.trim() || null,
+      metaAdAccountName: json.facebook?.metaAdAccountName?.trim() || null,
     },
     googleAds: {
       connected: Boolean(json.googleAds?.connected),
       status: json.googleAds?.status ?? null,
       googleOauthScopes: json.googleAds?.googleOauthScopes ?? [],
       missingRequiredScopes: json.googleAds?.missingRequiredScopes ?? [],
+      googleCustomerId: json.googleAds?.googleCustomerId?.trim() || null,
+      googleCustomerName: json.googleAds?.googleCustomerName?.trim() || null,
     },
   };
 }
