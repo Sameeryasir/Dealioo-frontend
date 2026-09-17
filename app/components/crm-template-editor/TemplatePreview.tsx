@@ -248,54 +248,104 @@ export function TemplatePreview({
           );
         }
 
-        await trackFunnelEvent({
+        const tracked = await trackFunnelEvent({
           eventType: "signup",
           funnelId: trackingFunnelId,
           customerId: customer.id,
           visitorId: getOrCreateVisitorId(),
         });
 
-        await trackMetaPixelCompleteRegistration({
-          pixelId: metaPixelId,
-          businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
-          funnelId: trackingFunnelId,
-          email,
-          phone,
-          customerId: customer.id,
-        });
+        const signupStatus = tracked.signupStatus ?? "new";
+        const isFreshSignup = signupStatus === "new";
 
-        const resolvedGoogleBusinessId =
-          googleAdsBusinessId ?? metaBusinessId ?? resolvedCheckoutBusinessId;
-
-        if (googleAdsTagId?.trim() && resolvedGoogleBusinessId != null) {
-          await trackGoogleAdsSignupSuccess({
-            googleAdsId: googleAdsTagId,
-            businessId: resolvedGoogleBusinessId,
+        if (isFreshSignup) {
+          await trackMetaPixelCompleteRegistration({
+            pixelId: metaPixelId,
+            businessId: metaBusinessId ?? resolvedCheckoutBusinessId,
             funnelId: trackingFunnelId,
-            customerId: customer.id,
             email,
             phone,
+            customerId: customer.id,
           });
 
-          if (googleAdsLeadConversionLabel?.trim()) {
-            trackGoogleAdsConversion({
+          const resolvedGoogleBusinessId =
+            googleAdsBusinessId ?? metaBusinessId ?? resolvedCheckoutBusinessId;
+
+          if (googleAdsTagId?.trim() && resolvedGoogleBusinessId != null) {
+            await trackGoogleAdsSignupSuccess({
               googleAdsId: googleAdsTagId,
-              conversionLabel: googleAdsLeadConversionLabel,
               businessId: resolvedGoogleBusinessId,
               funnelId: trackingFunnelId,
-              dedupeKey: `lead|${googleAdsTagId}|${googleAdsLeadConversionLabel}|${trackingFunnelId}|${customer.id}`,
+              customerId: customer.id,
+              email,
+              phone,
             });
-          }
-          if (googleAdsSignupConversionLabel?.trim()) {
-            trackGoogleAdsConversion({
-              googleAdsId: googleAdsTagId,
-              conversionLabel: googleAdsSignupConversionLabel,
-              businessId: resolvedGoogleBusinessId,
-              funnelId: trackingFunnelId,
-              dedupeKey: `signup|${googleAdsTagId}|${googleAdsSignupConversionLabel}|${trackingFunnelId}|${customer.id}`,
-            });
+
+            if (googleAdsLeadConversionLabel?.trim()) {
+              trackGoogleAdsConversion({
+                googleAdsId: googleAdsTagId,
+                conversionLabel: googleAdsLeadConversionLabel,
+                businessId: resolvedGoogleBusinessId,
+                funnelId: trackingFunnelId,
+                dedupeKey: `lead|${googleAdsTagId}|${googleAdsLeadConversionLabel}|${trackingFunnelId}|${customer.id}`,
+              });
+            }
+            if (googleAdsSignupConversionLabel?.trim()) {
+              trackGoogleAdsConversion({
+                googleAdsId: googleAdsTagId,
+                conversionLabel: googleAdsSignupConversionLabel,
+                businessId: resolvedGoogleBusinessId,
+                funnelId: trackingFunnelId,
+                dedupeKey: `signup|${googleAdsTagId}|${googleAdsSignupConversionLabel}|${trackingFunnelId}|${customer.id}`,
+              });
+            }
           }
         }
+
+        if (signupStatus === "already_paid") {
+          toast.success("You're already registered for this offer.", {
+            duration: 2800,
+          });
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 900);
+          });
+
+          if (
+            !skipPaymentStep &&
+            resolvedCheckoutBusinessId != null &&
+            resolvedCheckoutBusinessId >= 1
+          ) {
+            const checkout = await createCheckoutSession({
+              customerId: customer.id,
+              funnelId: trackingFunnelId,
+              businessId: resolvedCheckoutBusinessId,
+              campaignId: checkoutCampaignId,
+            });
+            clearFunnelLockedStep(trackingFunnelId);
+            forceFunnelLockedStep(trackingFunnelId, "payment");
+            router.replace(checkoutUrlToAppPath(checkout.checkoutUrl));
+            return;
+          }
+
+          if (signupNextAsLink) {
+            clearFunnelLockedStep(trackingFunnelId);
+            forceFunnelLockedStep(
+              trackingFunnelId,
+              skipPaymentStep ? "confirmation" : "payment",
+            );
+            router.replace(signupNextAsLink);
+          }
+          return;
+        }
+
+        const successToast =
+          signupStatus === "returning_continue"
+            ? skipPaymentStep
+              ? "Welcome back — continuing."
+              : "Welcome back — continuing to your checkout."
+            : skipPaymentStep
+              ? "You're all set — continuing."
+              : "You're all set — continuing to payment.";
 
         if (
           signupSubmitFlow &&
@@ -309,7 +359,7 @@ export function TemplatePreview({
             businessId: resolvedCheckoutBusinessId,
             campaignId: checkoutCampaignId,
           });
-          toast.success("You're all set — continuing to payment.", {
+          toast.success(successToast, {
             duration: 2400,
           });
           await new Promise<void>((resolve) => {
@@ -321,14 +371,9 @@ export function TemplatePreview({
           return;
         }
 
-        toast.success(
-          skipPaymentStep
-            ? "You're all set — continuing."
-            : "You're all set — continuing to payment.",
-          {
-            duration: 2400,
-          },
-        );
+        toast.success(successToast, {
+          duration: 2400,
+        });
         await new Promise<void>((resolve) => {
           window.setTimeout(resolve, 1000);
         });

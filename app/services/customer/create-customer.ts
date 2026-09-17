@@ -5,6 +5,7 @@ export type CreateCustomerPayload = {
   email: string;
   phone: string;
   rejectDuplicateEmail?: boolean;
+  rejectDuplicatePhone?: boolean;
   businessId?: number;
 };
 
@@ -60,6 +61,9 @@ export async function createCustomer(
       phone: payload.phone.trim(),
       ...(payload.rejectDuplicateEmail
         ? { rejectDuplicateEmail: true }
+        : {}),
+      ...(payload.rejectDuplicatePhone
+        ? { rejectDuplicatePhone: true }
         : {}),
       ...(payload.businessId != null && payload.businessId > 0
         ? { businessId: payload.businessId }

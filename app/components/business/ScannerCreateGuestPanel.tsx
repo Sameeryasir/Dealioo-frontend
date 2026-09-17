@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import {
+  BookMeetingPhoneInput,
+  isValidPhoneNumber,
+} from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
 import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
@@ -159,15 +163,6 @@ const CREATE_FIELDS = [
     autoComplete: "email",
     icon: Mail,
   },
-  {
-    id: "guest-phone" as const,
-    label: "Phone",
-    hint: "Guest phone number",
-    placeholder: "(555) 123-4567",
-    type: "tel" as const,
-    autoComplete: "tel",
-    icon: Phone,
-  },
 ] as const;
 
 const inputClassName =
@@ -270,16 +265,37 @@ export function ScannerCreateGuestPanel({
     setCreatedGuestId(null);
     setPurchaseSuccess(null);
 
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName) {
+      setErrorMessage("Please enter the guest name.");
+      setSubmitting(false);
+      return;
+    }
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMessage("Please enter a valid email address.");
+      setSubmitting(false);
+      return;
+    }
+    if (!trimmedPhone || !isValidPhoneNumber(trimmedPhone)) {
+      setErrorMessage("Please enter a valid phone number.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const result = await createCustomer({
-        name,
-        email,
-        phone,
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
         rejectDuplicateEmail: true,
+        rejectDuplicatePhone: true,
         businessId,
       });
       setCreatedGuestId(result.id);
-      setCreatedGuestName(name.trim());
+      setCreatedGuestName(trimmedName);
       setName("");
       setEmail("");
       setPhone("");
@@ -687,17 +703,9 @@ export function ScannerCreateGuestPanel({
                   >
                     {CREATE_FIELDS.map((field) => {
                       const value =
-                        field.id === "guest-name"
-                          ? name
-                          : field.id === "guest-email"
-                            ? email
-                            : phone;
+                        field.id === "guest-name" ? name : email;
                       const onChange =
-                        field.id === "guest-name"
-                          ? setName
-                          : field.id === "guest-email"
-                            ? setEmail
-                            : setPhone;
+                        field.id === "guest-name" ? setName : setEmail;
 
                       return (
                         <div key={field.id} className="min-w-0">
@@ -730,6 +738,32 @@ export function ScannerCreateGuestPanel({
                       );
                     })}
 
+                    <div className="min-w-0">
+                      <label
+                        htmlFor="guest-phone"
+                        className="mb-1.5 block text-[0.72rem] font-bold text-slate-600"
+                      >
+                        Phone
+                        <span className="ml-1.5 font-medium text-slate-400">
+                          · Guest phone number
+                        </span>
+                      </label>
+                      <div className="rounded-full border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition focus-within:border-[#1877f2]/45 focus-within:ring-2 focus-within:ring-[#1877f2]/15">
+                        <div className="flex items-center gap-3">
+                          <Phone
+                            className="size-4 shrink-0 text-slate-400"
+                            aria-hidden
+                          />
+                          <BookMeetingPhoneInput
+                            value={phone}
+                            onChange={setPhone}
+                            variant="boxed"
+                            wrapClassName="min-w-0 flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     {errorMessage ? (
                       <p className="rounded-[1.1rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
                         {errorMessage}
@@ -761,7 +795,7 @@ export function ScannerCreateGuestPanel({
                           className="size-3.5 text-slate-400"
                           aria-hidden
                         />
-                        Secure create · Your data is protected
+                        Unique email and phone required
                       </p>
                       <p className="m-0 text-[0.72rem] font-medium text-slate-400">
                         Name, email, and phone required

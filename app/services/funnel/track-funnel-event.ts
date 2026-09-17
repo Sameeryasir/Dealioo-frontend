@@ -18,9 +18,22 @@ export type TrackPaymentEvent = {
 
 export type TrackFunnelEventPayload = TrackSignupEvent | TrackPaymentEvent;
 
+export type FunnelSignupStatus =
+  | "new"
+  | "returning_continue"
+  | "already_paid";
+
+export type TrackFunnelEventResult = {
+  id?: number;
+  funnelId?: number;
+  eventType?: string;
+  customerId?: number | null;
+  signupStatus?: FunnelSignupStatus;
+};
+
 export async function trackFunnelEvent(
   payload: TrackFunnelEventPayload,
-): Promise<void> {
+): Promise<TrackFunnelEventResult> {
   const res = await fetch(`${getApiBaseUrl()}/funnel-event/track`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -31,4 +44,7 @@ export async function trackFunnelEvent(
     const text = await res.text().catch(() => "");
     throw new Error(text || `Funnel event track failed (${res.status})`);
   }
+
+  const data = (await res.json().catch(() => ({}))) as TrackFunnelEventResult;
+  return data ?? {};
 }

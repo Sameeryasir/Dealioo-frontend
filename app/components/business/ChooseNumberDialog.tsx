@@ -107,7 +107,6 @@ export function ChooseNumberDialog({
   onConfirmed,
 }: ChooseNumberDialogProps) {
   const titleId = useId();
-  const chargeAckId = useId();
   const accountDefaultsAppliedRef = useRef(false);
   const searchRequestIdRef = useRef(0);
   const areaCodeSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -122,7 +121,6 @@ export function ChooseNumberDialog({
     [],
   );
   const [selectedBuyNumber, setSelectedBuyNumber] = useState("");
-  const [chargeAcknowledged, setChargeAcknowledged] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   const businessQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
@@ -148,7 +146,6 @@ export function ChooseNumberDialog({
     setLocalError(null);
     if (searchMutation.error) searchMutation.reset();
     setSelectedBuyNumber("");
-    setChargeAcknowledged(false);
     setBuyResults([]);
     setHasSearched(true);
 
@@ -187,7 +184,6 @@ export function ChooseNumberDialog({
       setAreaCode("");
       setBuyResults([]);
       setSelectedBuyNumber("");
-      setChargeAcknowledged(false);
       setHasSearched(false);
       searchMutation.reset();
       associateMutation.reset();
@@ -293,12 +289,6 @@ export function ChooseNumberDialog({
   async function handleBuySelected() {
     if (!selectedBuyNumber) {
       setLocalError("Select a number to buy.");
-      return;
-    }
-    if (!chargeAcknowledged) {
-      setLocalError(
-        "Confirm that Twilio will charge your account before buying.",
-      );
       return;
     }
     setLocalError(null);
@@ -447,9 +437,9 @@ export function ChooseNumberDialog({
                   aria-hidden
                 />
                 <p className="m-0">
-                  Buying a number is charged by Twilio to your Twilio account —
-                  not by Dealioo. Pick a country, optionally an area code, then
-                  buy.
+                  Twilio will charge your Twilio account for any number you buy
+                  here — not Dealioo. Search by country (and area code when
+                  available), pick a number, then tap Buy &amp; use.
                 </p>
               </div>
 
@@ -633,7 +623,6 @@ export function ChooseNumberDialog({
                                 disabled={busy}
                                 onClick={() => {
                                   setSelectedBuyNumber(option.phoneNumber);
-                                  setChargeAcknowledged(false);
                                   setLocalError(null);
                                 }}
                                 className={`rounded-md border px-3 py-1.5 text-[0.8rem] font-medium ${
@@ -657,30 +646,6 @@ export function ChooseNumberDialog({
                 <p className="py-6 text-center text-[0.85rem] leading-relaxed text-[#64748b]">
                   {emptySearchMessage(country, areaCode)}
                 </p>
-              ) : null}
-
-              {selectedBuyNumber ? (
-                <label
-                  htmlFor={chargeAckId}
-                  className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#e8e8e8] bg-[#fafafa] px-3 py-2.5"
-                >
-                  <input
-                    id={chargeAckId}
-                    type="checkbox"
-                    checked={chargeAcknowledged}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setChargeAcknowledged(e.target.checked);
-                      setLocalError(null);
-                    }}
-                    className="mt-0.5 size-4 shrink-0 accent-[#F22F46]"
-                  />
-                  <span className="text-[0.78rem] leading-relaxed text-[#444]">
-                    I understand Twilio will charge my Twilio account for{" "}
-                    <span className="font-semibold">{selectedBuyNumber}</span>,
-                    and Dealioo will use it for SMS.
-                  </span>
-                </label>
               ) : null}
             </div>
           )}
@@ -719,7 +684,7 @@ export function ChooseNumberDialog({
             <button
               type="button"
               onClick={() => void handleBuySelected()}
-              disabled={busy || !selectedBuyNumber || !chargeAcknowledged}
+              disabled={busy || !selectedBuyNumber}
               className="inline-flex items-center gap-2 rounded-xl bg-[#F22F46] px-3.5 py-2 text-[0.8rem] font-semibold text-white disabled:opacity-70"
             >
               {purchaseMutation.isPending ? (
