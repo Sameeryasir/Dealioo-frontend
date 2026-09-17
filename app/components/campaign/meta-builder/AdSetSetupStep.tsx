@@ -39,7 +39,6 @@ import {
 import { AdSetLocationsBox } from "@/app/components/campaign/meta-builder/AdSetLocationsBox";
 import {
   BuilderCard,
-  BuilderCollapsible,
   BuilderErrorAlert,
   BuilderField,
   BuilderFooter,
@@ -291,7 +290,9 @@ export function AdSetSetupStep({
   }, [campaignData.objective, initialData?.optimizationGoal]);
 
   const needsPromotedObject =
-    optimizationGoal === "OFFSITE_CONVERSIONS" || optimizationGoal === "VALUE";
+    optimizationGoal === "OFFSITE_CONVERSIONS" ||
+    optimizationGoal === "VALUE" ||
+    optimizationGoal === "LANDING_PAGE_VIEWS";
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
@@ -480,7 +481,11 @@ export function AdSetSetupStep({
         setLocalError("Select a Dataset (Meta Pixel) before continuing.");
         return;
       }
-      if (!customEventType.trim()) {
+      if (
+        (optimizationGoal === "OFFSITE_CONVERSIONS" ||
+          optimizationGoal === "VALUE") &&
+        !customEventType.trim()
+      ) {
         setFieldErrors({ customEventType: "Select a conversion event." });
         setLocalError("Select a conversion event before continuing.");
         return;
@@ -689,21 +694,11 @@ export function AdSetSetupStep({
         <BuilderField
           label="Performance goal"
           hint={
-            <>
-              {campaignData.objective === "OUTCOME_LEADS"
-                ? "Set your goal, such as maximising leads. "
-                : campaignData.objective === "OUTCOME_ENGAGEMENT"
-                  ? "How you measure success for your ads. "
-                  : "Set your goal, such as maximising conversions or conversion value. "}
-              <a
-                href="https://www.facebook.com/business/help/410857036421635"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-[#1877f2] no-underline hover:underline"
-              >
-                About performance goals
-              </a>
-            </>
+            campaignData.objective === "OUTCOME_LEADS"
+              ? "Set your goal, such as maximising leads."
+              : campaignData.objective === "OUTCOME_ENGAGEMENT"
+                ? "How you measure success for your ads."
+                : "Set your goal, such as maximising conversions or conversion value."
           }
         >
           <BuilderPerformanceGoalSelect
@@ -754,24 +749,13 @@ export function AdSetSetupStep({
           )}
         </BuilderField>
 
-        {!isAwarenessObjective ? (
+        {!isAwarenessObjective &&
+        (optimizationGoal === "OFFSITE_CONVERSIONS" ||
+          optimizationGoal === "VALUE") ? (
           <BuilderField
             label="Conversion event"
-            required={needsPromotedObject}
-            hint={
-              <>
-                The action that you want people to take when they see your
-                ads.{" "}
-                <a
-                  href="https://www.facebook.com/business/help/244599159112157"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-[#1877f2] no-underline hover:underline"
-                >
-                  About conversion events
-                </a>
-              </>
-            }
+            required
+            hint="The action that you want people to take when they see your ads."
             error={fieldErrors.customEventType}
           >
             <BuilderSelect
@@ -1066,31 +1050,6 @@ export function AdSetSetupStep({
             </select>
           </label>
         </div>
-        <BuilderCollapsible
-          title="Advanced audience targeting"
-          description="Interests, behaviors, and custom audiences, optional."
-        >
-          <div className="space-y-4">
-            <BuilderField label="Languages" hint="Comma-separated, e.g. en, es">
-              <input value={languages} onChange={(e) => setLanguages(e.target.value)} className={inputClass} placeholder="en, es" />
-            </BuilderField>
-            <BuilderField label="Interests" hint="Meta interest IDs or keywords (resolved on publish).">
-              <input value={interests} onChange={(e) => setInterests(e.target.value)} className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Behaviors" hint="Meta behavior IDs or keywords.">
-              <input value={behaviors} onChange={(e) => setBehaviors(e.target.value)} className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Demographics" hint="Meta demographic / life-event IDs or keywords.">
-              <input value={demographics} onChange={(e) => setDemographics(e.target.value)} className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Custom audiences" hint="Meta audience IDs, comma-separated.">
-              <input value={customAudiences} onChange={(e) => setCustomAudiences(e.target.value)} className={inputClass} />
-            </BuilderField>
-            <BuilderField label="Excluded custom audiences" hint="People to exclude from this ad set.">
-              <input value={excludedCustomAudiences} onChange={(e) => setExcludedCustomAudiences(e.target.value)} className={inputClass} />
-            </BuilderField>
-          </div>
-        </BuilderCollapsible>
       </BuilderCard>
 
       <BuilderCard

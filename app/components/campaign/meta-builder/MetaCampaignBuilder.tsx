@@ -26,6 +26,7 @@ import {
   normalizeMetaCurrencyCode,
 } from "@/app/lib/meta-account-currency";
 import { defaultOptimizationGoalForObjective } from "@/app/lib/meta-adset-builder-helpers";
+import { getMetaPublishReadyError } from "@/app/lib/meta-publish-ready";
 import { getFacebookAdAccounts } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { AdCreativeSetupStep } from "@/app/components/campaign/meta-builder/AdCreativeSetupStep";
@@ -712,8 +713,13 @@ export function MetaCampaignBuilder({
   ]);
 
   const handlePublish = useCallback(async () => {
-    if (!draftId || !campaignData || !adSetData || !adCreativeData) {
-      setError("Complete all steps before publishing.");
+    const readyError = getMetaPublishReadyError(
+      campaignData,
+      adSetData,
+      adCreativeData,
+    );
+    if (readyError || !draftId) {
+      setError(readyError ?? "Complete all steps before publishing.");
       return;
     }
 
@@ -1071,7 +1077,7 @@ export function MetaCampaignBuilder({
             <BuilderLoadingBanner message="Saving draft…" />
           ) : null}
 
-          {publishing ? (
+          {publishing && currentStep !== 4 ? (
             <BuilderLoadingBanner
               message={`Publishing to Meta… ${
                 publishStep

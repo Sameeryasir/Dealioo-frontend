@@ -410,7 +410,12 @@ export function AdCreativeSetupStep({
       } else {
         const nextCards = carouselCards.map((card, i) =>
           i === target
-            ? { ...card, imageUrl: resolved, mediaType: "image" as const }
+            ? {
+                ...card,
+                imageUrl: resolved,
+                videoUrl: undefined,
+                mediaType: "image" as const,
+              }
             : card,
         );
         setCarouselCards(nextCards);
@@ -503,8 +508,8 @@ export function AdCreativeSetupStep({
         return;
       }
       for (const [i, card] of carouselCards.entries()) {
-        if (!card.imageUrl?.trim() && !card.videoUrl?.trim()) {
-          errors[`carousel_${i}_media`] = `Card ${i + 1}: upload an image or video.`;
+        if (!card.imageUrl?.trim()) {
+          errors[`carousel_${i}_media`] = `Card ${i + 1}: upload an image.`;
         }
       }
     }
@@ -572,7 +577,12 @@ export function AdCreativeSetupStep({
       facebookPageId: facebookPageId.trim(),
       status,
       creativeFormat,
-      carouselCards,
+      carouselCards: carouselCards.map((card) => ({
+        ...card,
+        imageUrl: card.imageUrl?.trim() || undefined,
+        videoUrl: undefined,
+        mediaType: "image" as const,
+      })),
       primaryText: primaryText.trim(),
       urlParameters: urlParameters.trim() || undefined,
       pixelId: pixelId.trim() || undefined,
