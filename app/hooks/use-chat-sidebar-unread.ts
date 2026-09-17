@@ -1,12 +1,12 @@
 "use client";
 
-import { markRestaurantChatsRead } from "@/app/services/chat/mark-business-chats-read";
 import { getBusinessChatsUnread } from "@/app/services/chat/get-business-chats-unread";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import {
   readChatHasUnread,
   writeChatHasUnread,
 } from "@/app/lib/chat-unread-storage";
+import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
 import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation";
 import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
 
 function isOnChatsRoute(pathname: string, chatsPathPrefix: string | null): boolean {
+  if (isGuestChatsPath(pathname)) return true;
   if (!chatsPathPrefix) return false;
   return pathname === chatsPathPrefix || pathname.startsWith(`${chatsPathPrefix}/`);
 }
@@ -73,11 +74,7 @@ export function useChatSidebarUnread(
     const user = userIdRef.current;
     if (business == null || business < 1 || user == null) return;
     persistUnread(user, business, false, null);
-    try {
-      await markRestaurantChatsRead(business);
-      writeChatHasUnread(user, business, false);
-    } catch {
-    }
+    writeChatHasUnread(user, business, false);
   }, [persistUnread]);
 
   useEffect(() => {
@@ -93,9 +90,7 @@ export function useChatSidebarUnread(
 
     if (onChatsPage) {
       persistUnread(userId, businessId, false, null);
-      void markRestaurantChatsRead(businessId)
-        .then(() => writeChatHasUnread(userId, businessId, false))
-        .catch(() => {});
+      writeChatHasUnread(userId, businessId, false);
       return;
     }
 
@@ -122,7 +117,7 @@ export function useChatSidebarUnread(
         .catch(() => {});
     };
 
-    refresh();
+    const initialRefresh = window.setTimeout(refresh, 500);
     const timer = window.setInterval(refresh, 15_000);
     const onFocus = () => refresh();
     const onVisibility = () => {
@@ -134,6 +129,7 @@ export function useChatSidebarUnread(
 
     return () => {
       cancelled = true;
+      window.clearTimeout(initialRefresh);
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
@@ -150,7 +146,11 @@ export function useChatSidebarUnread(
 
     const prefix = chatsPrefixRef.current;
     const path = pathnameRef.current;
-    if (isOnChatsRoute(path, prefix)) return;
+    if (isOnChatsRoute(path, prefix)) {
+      persistUnread(user, business, false, null);
+      writeChatHasUnread(user, business, false);
+      return;
+    }
 
     const sentAt =
       typeof payload.message.sentAt === "string"

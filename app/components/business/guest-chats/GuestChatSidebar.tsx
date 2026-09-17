@@ -24,6 +24,7 @@ export function GuestChatSidebar({
   rows,
   filteredRows,
   selectedCustomerId,
+  unreadByCustomerId,
   search,
   onSearchChange,
   onSelect,
@@ -37,6 +38,7 @@ export function GuestChatSidebar({
   rows: ChatCustomer[];
   filteredRows: ChatCustomer[];
   selectedCustomerId: number | null;
+  unreadByCustomerId: Record<number, number>;
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (customerId: number) => void;
@@ -124,6 +126,7 @@ export function GuestChatSidebar({
                     row={row}
                     businessId={businessId}
                     selected={selectedCustomerId === row.customerId}
+                    unreadCount={unreadByCustomerId[row.customerId] ?? 0}
                     onSelect={() => onSelect(row.customerId)}
                   />
                 </motion.div>

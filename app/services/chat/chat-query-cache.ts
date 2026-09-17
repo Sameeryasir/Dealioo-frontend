@@ -80,9 +80,12 @@ function sanitizeStoredMessage(message: ConversationMessage): ConversationMessag
 }
 
 function sanitizeStoredCustomerRow(row: ChatCustomer): ChatCustomer {
+  const unreadRaw = Number(row.unreadCount);
   return {
     ...row,
     lastMessagePreview: sanitizeChatMessagePreview(row.lastMessagePreview),
+    unreadCount:
+      Number.isFinite(unreadRaw) && unreadRaw > 0 ? Math.floor(unreadRaw) : 0,
   };
 }
 
@@ -119,6 +122,7 @@ function buildChatCustomerRow(
     lastMessageAt: payload.lastMessageAt,
     lastAutomationName: existing?.lastAutomationName ?? null,
     createdAt: existing?.createdAt ?? payload.lastMessageAt,
+    unreadCount: existing?.unreadCount ?? 0,
   });
 }
 
@@ -182,7 +186,8 @@ function isSameChatCustomerSidebarRow(
     left.lastMessageAt === right.lastMessageAt &&
     left.lastMessagePreview === right.lastMessagePreview &&
     left.messageCount === right.messageCount &&
-    left.lastMessageChannel === right.lastMessageChannel
+    left.lastMessageChannel === right.lastMessageChannel &&
+    left.unreadCount === right.unreadCount
   );
 }
 
@@ -489,4 +494,21 @@ export function patchChatCustomersAfterSend(
   };
 
   return patchChatCustomersFromPusher(prev, payload, page);
+}
+
+export function setChatCustomerUnreadCount(
+  prev: PaginatedChatCustomersResponse | undefined,
+  customerId: number,
+  unreadCount: number,
+): PaginatedChatCustomersResponse | undefined {
+  if (!prev) return prev;
+  const nextUnread = Math.max(0, Math.floor(unreadCount));
+  let changed = false;
+  const data = prev.data.map((row) => {
+    if (row.customerId !== customerId) return row;
+    if (row.unreadCount === nextUnread) return row;
+    changed = true;
+    return { ...row, unreadCount: nextUnread };
+  });
+  return changed ? { ...prev, data } : prev;
 }

@@ -47,7 +47,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -65,9 +66,11 @@ type NotifyRow = {
 
 export default function BusinessNotifications() {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const params = useParams();
   const [open, setOpen] = useState(false);
+  const onGuestChats = isGuestChatsPath(pathname);
   const prevBadgeTotalRef = useRef<number | null>(null);
   const badgeHydratedRef = useRef(false);
   const [accessNotify, setAccessNotify] =
@@ -446,10 +449,10 @@ export default function BusinessNotifications() {
 
     const increased = prev != null && badgeTotal > prev;
     prevBadgeTotalRef.current = badgeTotal;
-    if (increased) {
+    if (increased && !onGuestChats) {
       playNotificationChime();
     }
-  }, [badgeTotal, businessId, membershipFetched]);
+  }, [badgeTotal, businessId, membershipFetched, onGuestChats]);
 
   useEffect(() => {
     if (!open) return;

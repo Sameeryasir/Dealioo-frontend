@@ -18,6 +18,7 @@ export type ChatCustomer = {
   lastMessageAt: string;
   lastAutomationName: string | null;
   createdAt: string;
+  unreadCount: number;
 };
 
 export type PaginatedChatCustomersResponse = {

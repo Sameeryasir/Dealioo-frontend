@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBusinessChatCustomersQuery } from "@/app/hooks/use-business-chat-customers-query";
+import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
 import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
 import {
   clearConversationMessageDatabasesForBusiness,
@@ -9,11 +10,11 @@ import {
   pruneConversationMessageDatabases,
   warmRestaurantConversationMessageCache,
 } from "@/app/services/chat/chat-indexed-db";
+import { markConversationRead } from "@/app/services/chat/mark-conversation-read";
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
 
-// One-shot: wipe chat IndexedDB after fake-message cleanup so UI matches server.
 const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v8";
 
 export function BusinessChatsPanel({ businessId }: { businessId: number }) {
@@ -21,6 +22,11 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [mobileShowList, setMobileShowList] = useState(true);
   const [idbReady, setIdbReady] = useState(!CHAT_USE_INDEXED_DB);
+  const [liveUnreadByCustomerId, setLiveUnreadByCustomerId] = useState<
+    Record<number, number>
+  >({});
+  const selectedCustomerIdRef = useRef(selectedCustomerId);
+  selectedCustomerIdRef.current = selectedCustomerId;
 
   const {
     rows,
@@ -31,6 +37,60 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     loadMore,
   } = useBusinessChatCustomersQuery(businessId, search);
 
+  const rowsByCustomerId = useMemo(() => {
+    const map = new Map<number, (typeof rows)[number]>();
+    for (const row of rows) {
+      map.set(row.customerId, row);
+    }
+    return map;
+  }, [rows]);
+
+  const unreadByCustomerId = useMemo(() => {
+    const merged: Record<number, number> = {};
+    for (const row of rows) {
+      const live = liveUnreadByCustomerId[row.customerId];
+      merged[row.customerId] =
+        typeof live === "number" ? live : (row.unreadCount ?? 0);
+    }
+    for (const [customerId, live] of Object.entries(liveUnreadByCustomerId)) {
+      const id = Number(customerId);
+      if (!merged[id] && live > 0) {
+        merged[id] = live;
+      }
+    }
+    return merged;
+  }, [rows, liveUnreadByCustomerId]);
+
+  useBusinessConversationsPusher(businessId, (payload) => {
+    if (payload.businessId !== businessId) return;
+    if (payload.message.direction !== "inbound") return;
+    const customerId = payload.customerId;
+    if (customerId < 1) return;
+
+    if (selectedCustomerIdRef.current === customerId) {
+      const conversationId =
+        payload.conversationId ||
+        rowsByCustomerId.get(customerId)?.conversationId ||
+        0;
+      setLiveUnreadByCustomerId((prev) => {
+        if (!prev[customerId]) return prev;
+        const next = { ...prev };
+        delete next[customerId];
+        return next;
+      });
+      if (conversationId > 0) {
+        void markConversationRead(businessId, conversationId).catch(() => {});
+      }
+      return;
+    }
+
+    setLiveUnreadByCustomerId((prev) => {
+      const serverCount = rowsByCustomerId.get(customerId)?.unreadCount ?? 0;
+      const current = prev[customerId] ?? serverCount;
+      return { ...prev, [customerId]: current + 1 };
+    });
+  });
+
   const keepCustomerIdsKey = useMemo(
     () =>
       rows
@@ -40,7 +100,6 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     [rows],
   );
 
-  // --- Clear stale per-conversation IndexedDBs once (fake guests 204–223, etc.) ---
   useEffect(() => {
     if (businessId < 1 || !CHAT_USE_INDEXED_DB) {
       setIdbReady(true);
@@ -73,7 +132,6 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     };
   }, [businessId]);
 
-  // After the full guest list is loaded, drop any message DBs for guests that no longer exist.
   useEffect(() => {
     if (!CHAT_USE_INDEXED_DB || !idbReady || loading || loadingMore || hasMore) {
       return;
@@ -111,6 +169,15 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     if (CHAT_USE_INDEXED_DB) {
       prefetchConversationMessageCache(businessId, customerId);
     }
+    const conversationId =
+      rowsByCustomerId.get(customerId)?.conversationId ?? 0;
+    setLiveUnreadByCustomerId((prev) => {
+      const next = { ...prev, [customerId]: 0 };
+      return next;
+    });
+    if (conversationId > 0) {
+      void markConversationRead(businessId, conversationId).catch(() => {});
+    }
     setSelectedCustomerId(customerId);
     setMobileShowList(false);
   }
@@ -129,6 +196,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
             rows={rows}
             filteredRows={filteredRows}
             selectedCustomerId={selectedCustomerId}
+            unreadByCustomerId={unreadByCustomerId}
             search={search}
             onSearchChange={setSearch}
             onSelect={handleSelectGuest}
