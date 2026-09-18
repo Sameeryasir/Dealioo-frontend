@@ -1,5 +1,7 @@
 "use client";
 
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import {
   buildCheckInsMonthlyData,
   buildMembersMonthlyData,
@@ -14,8 +16,17 @@ import { CheckInsBarChart } from "@/app/components/business/CheckInsBarChart";
 import { Skeleton } from "@/app/components/skeleton";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
+import {
+  buildActivityMonthKey,
+  currentActivityDateKey,
+  formatActivityDateLabel,
+  formatActivityMonthLabel,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
 import { formatCents } from "@/app/lib/money";
-import type { ActivityMonthlyPoint } from "@/app/services/activity/get-business-activity";
+import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
+import { useQuery } from "@tanstack/react-query";
 import {
   DollarSign,
   Megaphone,
@@ -24,7 +35,7 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
@@ -95,8 +106,8 @@ function OverviewKpiTile({
 function OverviewSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true" aria-label="Loading activity">
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
             className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
@@ -127,56 +138,90 @@ function OverviewSkeleton() {
 }
 
 export function BusinessActivityOverviewPanel({
-  businessName,
-  data,
-  months,
-  activeCampaigns = 0,
-  totalOrders = 0,
-  totalMembers = 0,
-  todayRevenueCents = 0,
-  isLoading,
-  isQuietBusiness = false,
+  businessId,
 }: {
   businessId?: number | null;
   businessName?: string;
-  data: ActivityMonthlyPoint[];
-  months: number;
-  activeCampaigns?: number;
-  totalOrders?: number;
-  totalMembers?: number;
-  todayRevenueCents?: number;
-  isLoading?: boolean;
-  isQuietBusiness?: boolean;
 }) {
-  const chartData = data;
-  const displayActiveCampaigns = activeCampaigns;
-  const displayTotalOrders = totalOrders;
-  const displayTotalMembers = totalMembers;
-  const displayTodayRevenueCents = todayRevenueCents;
-
-  const totals = useMemo(() => sumActivityFromMonthly(chartData), [chartData]);
-  const checkInsMonthly = useMemo(
-    () => buildCheckInsMonthlyData(chartData),
-    [chartData],
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  });
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") return resolveActivityDateRange(dateFilter);
+    return (
+      getActivityMonthRangeForKey(monthFilter) ??
+      resolveActivityDateRange(currentActivityDateKey())
+    );
+  }, [calendarMode, dateFilter, monthFilter]);
+  const periodQuery = useQuery({
+    queryKey: [
+      "business-dashboard-activity",
+      businessId,
+      periodRange.from,
+      periodRange.to,
+    ],
+    enabled: businessId != null && businessId > 0,
+    staleTime: 15_000,
+    queryFn: () =>
+      getRestaurantActivityMonthly(businessId!, {
+        from: periodRange.from,
+        to: periodRange.to,
+      }),
+  });
+  const periodLabel =
+    calendarMode === "day"
+      ? formatActivityDateLabel(dateFilter)
+      : formatActivityMonthLabel(monthFilter);
+  const visibleData = useMemo(
+    () => periodQuery.data?.data ?? [],
+    [periodQuery.data?.data],
   );
-  const revenueMonthly = useMemo(
-    () => buildRevenueMonthlyData(chartData),
-    [chartData],
+  const displayActiveCampaigns = periodQuery.data?.activeCampaigns ?? 0;
+  const periodPaidCents = visibleData.reduce(
+    (sum, row) => sum + (row.paidRevenueCents ?? 0),
+    0,
   );
-  const ordersMonthly = useMemo(
-    () => buildOrdersMonthlyData(chartData),
-    [chartData],
+  const isQuietBusiness =
+    !periodQuery.isPending &&
+    displayActiveCampaigns === 0 &&
+    (periodQuery.data?.totalOrders ?? 0) === 0 &&
+    (periodQuery.data?.totalMembers ?? 0) === 0;
+  const visibleTotals = useMemo(
+    () => sumActivityFromMonthly(visibleData),
+    [visibleData],
   );
-  const membersMonthly = useMemo(
-    () => buildMembersMonthlyData(chartData),
-    [chartData],
+  const visibleCheckIns = useMemo(
+    () => buildCheckInsMonthlyData(visibleData),
+    [visibleData],
   );
-  const newMembersInPeriod = useMemo(
-    () => membersMonthly.reduce((sum, row) => sum + row.value, 0),
-    [membersMonthly],
+  const visibleRevenue = useMemo(
+    () => buildRevenueMonthlyData(visibleData),
+    [visibleData],
   );
-
-  const displayName = businessName?.trim() || "Your business";
+  const visibleOrders = useMemo(
+    () => buildOrdersMonthlyData(visibleData),
+    [visibleData],
+  );
+  const visibleMembers = useMemo(
+    () => buildMembersMonthlyData(visibleData),
+    [visibleData],
+  );
+  const visibleNewMembers = useMemo(
+    () => visibleMembers.reduce((sum, row) => sum + row.value, 0),
+    [visibleMembers],
+  );
+  const periodOrders = visibleData.reduce(
+    (sum, row) => sum + (row.orders ?? 0),
+    0,
+  );
+  const periodMembers = visibleData.reduce(
+    (sum, row) => sum + (row.members ?? 0),
+    0,
+  );
+  const periodLoading = periodQuery.isPending;
 
   return (
     <article className={`${overviewCardClass} w-full`} aria-label="Business activity">
@@ -200,17 +245,48 @@ export function BusinessActivityOverviewPanel({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.2)]">
-              {displayName}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
-              Last {months} months
-            </span>
+            <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+              <button
+                type="button"
+                onClick={() => setCalendarMode("month")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "month"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMode("day")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "day"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Day
+              </button>
+            </div>
+            {calendarMode === "month" ? (
+              <ActivityMonthCalendarPicker
+                value={monthFilter}
+                onChange={setMonthFilter}
+                compact
+                showAllMonths={false}
+              />
+            ) : (
+              <PerformanceDateCalendar
+                value={dateFilter}
+                onChange={setDateFilter}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {isLoading ? (
+      {periodLoading ? (
         <div className="px-2.5 py-4 sm:px-3 sm:py-5">
           <OverviewSkeleton />
         </div>
@@ -218,7 +294,7 @@ export function BusinessActivityOverviewPanel({
         <div className="px-3 py-4 sm:px-4 sm:py-5">
           <div className="space-y-5">
             <section
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5"
               aria-label="Business summary"
             >
               <OverviewKpiTile
@@ -231,43 +307,35 @@ export function BusinessActivityOverviewPanel({
               />
               <OverviewKpiTile
                 label="Total orders"
-                value={displayTotalOrders}
-                hint={isQuietBusiness ? "Waiting on first payment" : "Paid payments"}
+                value={periodOrders}
+                hint={periodLabel}
                 icon={ShoppingBag}
                 iconBg={DASHBOARD_KPI_ICON.orange}
                 hoverTone="orange"
               />
               <OverviewKpiTile
                 label="Total members"
-                value={displayTotalMembers}
-                hint={isQuietBusiness ? "Guests appear after signup" : "From customers"}
+                value={periodMembers}
+                hint={periodLabel}
                 icon={Users}
                 iconBg={DASHBOARD_KPI_ICON.pink}
                 hoverTone="pink"
               />
               <OverviewKpiTile
                 label="QR check-ins"
-                value={totals.checkIns}
+                value={visibleTotals.checkIns}
                 hint="Visits and redemptions"
                 icon={ScanLine}
                 iconBg={DASHBOARD_KPI_ICON.blue}
                 hoverTone="blue"
               />
               <OverviewKpiTile
-                label="Revenue"
-                value={formatCents(totals.revenueCents, "usd")}
-                hint={`Last ${months} months`}
+                label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
+                value={formatCents(periodPaidCents, "usd")}
+                hint={periodLabel}
                 icon={DollarSign}
-                iconBg={DASHBOARD_KPI_ICON.pink}
-                hoverTone="pink"
-              />
-              <OverviewKpiTile
-                label="Today's revenue"
-                value={formatCents(displayTodayRevenueCents, "usd")}
-                hint="Paid today"
-                icon={DollarSign}
-                iconBg={DASHBOARD_KPI_ICON.orange}
-                hoverTone="orange"
+                iconBg={calendarMode === "day" ? DASHBOARD_KPI_ICON.orange : DASHBOARD_KPI_ICON.pink}
+                hoverTone={calendarMode === "day" ? "orange" : "pink"}
               />
             </section>
 
@@ -278,39 +346,43 @@ export function BusinessActivityOverviewPanel({
                 </h2>
                 <p className="m-0 mt-1 text-[0.78rem] font-medium text-slate-500">
                   {isQuietBusiness
-                    ? "Charts stay flat until guests engage — then monthly trends show up here."
-                    : `Monthly trends for the last ${months} months.`}
+                    ? "Charts stay flat until guests engage — then trends show up here."
+                    : calendarMode === "day"
+                      ? `Activity on ${periodLabel}.`
+                      : `Activity in ${periodLabel}.`}
                 </p>
               </div>
               <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
                 <div className="min-h-[300px]">
-                  <CheckInsBarChart data={checkInsMonthly} months={months} />
+                  <CheckInsBarChart data={visibleCheckIns} caption={periodLabel} />
                 </div>
                 <div className="min-h-[300px]">
                   <BusinessRevenueMiniChart
-                    data={revenueMonthly}
-                    totalRevenueCents={totals.revenueCents}
-                    months={months}
+                    data={visibleRevenue}
+                    totalRevenueCents={visibleTotals.revenueCents}
+                    months={1}
+                    caption={periodLabel}
                   />
                 </div>
                 <div className="min-h-[300px]">
                   <BusinessMonthlyBarChart
                     title="Orders"
                     subtitle="Paid payments"
-                    data={ordersMonthly}
+                    data={visibleOrders}
                     dataKey="value"
                     seriesName="Orders"
                     accent="orange"
                     barFill={OVERVIEW_CHART_COLORS.orange}
                     legendColor={OVERVIEW_CHART_COLORS.orange}
-                    months={months}
+                    caption={periodLabel}
                   />
                 </div>
                 <div className="min-h-[300px]">
                   <BusinessMembersMiniChart
-                    data={membersMonthly}
-                    total={newMembersInPeriod}
-                    months={months}
+                    data={visibleMembers}
+                    total={visibleNewMembers}
+                    months={1}
+                    caption={periodLabel}
                   />
                 </div>
               </div>

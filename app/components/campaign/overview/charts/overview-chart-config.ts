@@ -44,14 +44,44 @@ export const OVERVIEW_BAR_CHART_MARGIN = {
   bottom: 8,
 };
 
+export function overviewAxisInterval(pointCount: number): number {
+  if (pointCount <= 8) return 0;
+  return Math.max(0, Math.ceil(pointCount / 8) - 1);
+}
+
 export function shortenMonthAxisLabel(label: string): string {
-  return label.split(" ")[0] ?? label;
+  const [first, second] = label.split(" ");
+  if (second && /^\d{1,2}$/.test(second)) return second;
+  if (second && /^(AM|PM)$/i.test(second)) {
+    return `${first ?? ""}${second[0]?.toLowerCase() ?? ""}`;
+  }
+  return first ?? label;
 }
 
 export function formatMonthLabel(monthKey: string): string {
-  const [yearRaw, monthRaw] = monthKey.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
+  const hourMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})$/.exec(monthKey);
+  if (hourMatch) {
+    const hour = Number(hourMatch[4]);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12} ${suffix}`;
+  }
+  const parts = monthKey.split("-");
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (
+    parts.length >= 3 &&
+    Number.isFinite(year) &&
+    Number.isFinite(month) &&
+    Number.isFinite(day)
+  ) {
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(year, month - 1, day)));
+  }
   if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
     return monthKey;
   }
@@ -157,7 +187,6 @@ export function buildAnalyticsMonthlySeries(
   }));
 }
 
-/** Revenue series from funnel monthly stats (`value` = cents). */
 export function buildRevenueMonthlySeries(
   points: FunnelStatsMonthlyPoint[],
 ): MonthlyMetricPoint[] {

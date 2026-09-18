@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Funnel monthly revenue mini chart for campaign overview.
- * Why: Fill the 4th behavior slot with paid revenue trend (no extra API).
- * Related: FunnelOverviewPanel, get-funnel-stats-monthly, fee/payment flow.
- */
-
 import {
   Area,
   CartesianGrid,
@@ -27,6 +21,7 @@ import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -49,17 +44,16 @@ export function FunnelRevenueMiniChart({
   data,
   totalRevenueCents,
   currency = "usd",
+  caption,
 }: {
-  /** Monthly points; `value` is revenue in minor units (cents). */
   data: MonthlyMetricPoint[];
   totalRevenueCents: number;
   currency?: string | null;
+  caption?: string;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.orange;
   const gradient = useLineChartGradient(strokeColor);
   const currencyCode = currency?.trim() || "usd";
-
-  // Why: chart axis/tooltip read better in major units; totals stay in cents for money helpers.
   const chartData = data.map((row) => ({
     ...row,
     value: row.value / 100,
@@ -67,8 +61,8 @@ export function FunnelRevenueMiniChart({
 
   return (
     <OverviewChartShell
-      title="Revenue by month"
-      subtitle={`Funnel paid revenue, last ${OVERVIEW_MONTH_COUNT} months`}
+      title={caption ? "Revenue" : "Revenue by month"}
+      subtitle={caption ?? `Funnel paid revenue, last ${OVERVIEW_MONTH_COUNT} months`}
       minHeightClass="min-h-0"
       className="h-full"
       accent="orange"
@@ -89,7 +83,7 @@ export function FunnelRevenueMiniChart({
                 tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
                 axisLine={false}
                 tickLine={false}
-                interval={0}
+                interval={overviewAxisInterval(data.length)}
                 tickFormatter={shortenMonthAxisLabel}
                 height={30}
                 dy={4}

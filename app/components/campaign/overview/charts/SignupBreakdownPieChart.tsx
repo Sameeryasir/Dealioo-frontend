@@ -61,7 +61,13 @@ function PieCenterLabel({
   );
 }
 
-export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
+export function SignupBreakdownPieChart({
+  data,
+  caption,
+}: {
+  data: ChartNameValue[];
+  caption?: string;
+}) {
   const hasData = hasSignupBreakdownData(data);
   const gradients = usePieChartGradients();
   const total = useMemo(
@@ -92,7 +98,7 @@ export function SignupBreakdownPieChart({ data }: { data: ChartNameValue[] }) {
   return (
     <OverviewChartShell
       title="Signup breakdown"
-      subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months combined`}
+      subtitle={caption ?? `Month view, last ${OVERVIEW_MONTH_COUNT} months combined`}
       minHeightClass="min-h-0"
       accent="orange"
     >

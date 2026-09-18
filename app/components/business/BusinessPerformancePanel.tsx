@@ -2,6 +2,7 @@
 
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
 import {
   ACTIVITY_ALL_MONTHS_ID,
@@ -29,6 +30,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   ChartColumn,
@@ -65,7 +67,16 @@ import {
   YAxis,
 } from "recharts";
 
-const CHART_COLORS = ["#1877f2", "#7c3aed", "#059669"];
+const CHART_COLORS = [
+  OVERVIEW_CHART_COLORS.blue,
+  OVERVIEW_CHART_COLORS.green,
+  OVERVIEW_CHART_COLORS.orange,
+];
+const CAMPAIGN_TONES = [
+  { soft: "bg-[#e8f2ff]", ink: "text-[#1877f2]", line: "bg-[#1877f2]" },
+  { soft: "bg-[#ecfdf5]", ink: "text-[#34a853]", line: "bg-[#34a853]" },
+  { soft: "bg-[#fff7ed]", ink: "text-[#f77737]", line: "bg-[#f77737]" },
+] as const;
 const PERFORMANCE_CHART_HEIGHT_PX = 360;
 
 function PerformanceChartMount({ children }: { children: ReactNode }) {
@@ -204,8 +215,8 @@ function formatConversionRate(views: number, paidOrders: number): string {
 }
 
 function scoreTone(score: number): string {
-  if (score >= 85) return "bg-emerald-50 text-emerald-700";
-  if (score >= 70) return "bg-[#EEF4FF] text-[#1D4ED8]";
+  if (score >= 85) return "bg-[#ecfdf5] text-[#34a853]";
+  if (score >= 70) return "bg-[#e8f2ff] text-[#1877f2]";
   return "bg-slate-100 text-slate-600";
 }
 
@@ -224,7 +235,7 @@ function KpiHealthFooter({
 }) {
   if (changePercent == null && previousValue === 0 && currentValue > 0) {
     return (
-      <p className="m-0 text-xs text-emerald-600">
+      <p className="m-0 text-xs text-[#34a853]">
         <span className="font-semibold">New</span> vs. {comparisonLabel}
       </p>
     );
@@ -247,7 +258,7 @@ function KpiHealthFooter({
 
   const improving = changePercent > 0;
   const Icon = improving ? ArrowUpRight : ArrowDownRight;
-  const tone = improving ? "text-emerald-600" : "text-rose-600";
+  const tone = improving ? "text-[#34a853]" : "text-[#e1306c]";
   const healthLabel = monthInProgress
     ? improving
       ? "Ahead so far"
@@ -300,7 +311,7 @@ function PerformanceKpiCard({
         <div className="min-w-0 flex-1">
           <p className="m-0 flex items-center gap-1 text-[0.78rem] font-medium text-slate-500">
             {title}
-            <span title={hint} className="inline-flex text-slate-300">
+            <span title={hint} className="inline-flex cursor-pointer text-slate-300">
               <Info className="size-3.5" aria-hidden />
               <span className="sr-only">{hint}</span>
             </span>
@@ -466,7 +477,7 @@ function BundleOpportunitiesSection({
               Bundle opportunities
             </h2>
             {campaignCount > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1877f2]">
                 <Megaphone className="size-3" aria-hidden />
                 {campaignCount} campaign{campaignCount === 1 ? "" : "s"}
               </span>
@@ -483,7 +494,7 @@ function BundleOpportunitiesSection({
               aria-label="Previous bundle opportunities page"
               disabled={page <= 0}
               onClick={() => setPage((current) => Math.max(0, current - 1))}
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="size-4" aria-hidden />
             </button>
@@ -497,7 +508,7 @@ function BundleOpportunitiesSection({
               onClick={() =>
                 setPage((current) => Math.min(totalPages - 1, current + 1))
               }
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronRight className="size-4" aria-hidden />
             </button>
@@ -524,6 +535,7 @@ function BundleOpportunitiesSection({
         <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
           {pageTips.map((tip, index) => {
             const globalIndex = page * pageSize + index;
+            const tone = CAMPAIGN_TONES[globalIndex % CAMPAIGN_TONES.length]!;
             const campaignLabel =
               formatTitleCase(tip.campaignName) || tip.campaignName;
             const addonLabel =
@@ -534,8 +546,9 @@ function BundleOpportunitiesSection({
             return (
               <div
                 key={`${tip.campaignName}:${tip.addonName}:${globalIndex}`}
-                className="flex h-full flex-col rounded-2xl border border-[#e8edf5] bg-white p-4"
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-4"
               >
+                <span className={`mb-3 block h-1 w-10 rounded-full ${tone.line}`} aria-hidden />
                 <div className="flex min-w-0 items-center gap-3">
                   {imageSrc ? (
                     <img
@@ -560,14 +573,14 @@ function BundleOpportunitiesSection({
                   </div>
                 </div>
                 <p className="m-0 mt-4 text-sm text-slate-500">
-                  <span className="font-semibold tabular-nums text-[#07111f]">
+                  <span className={`font-semibold tabular-nums ${tone.ink}`}>
                     {tip.timesPurchased}
                   </span>{" "}
                   {tip.timesPurchased === 1 ? "time" : "times"} together
                 </p>
                 <Link
                   href={tipHref(tip.campaignId)}
-                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#1877f2] no-underline"
+                  className={`mt-3 inline-flex items-center gap-1 text-sm font-semibold no-underline ${tone.ink}`}
                 >
                   View details
                   <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
@@ -636,9 +649,10 @@ function ConversionPerformanceSection({
       </div>
 
       <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-        {campaigns.map((campaign) => {
+        {campaigns.map((campaign, index) => {
           const name =
             formatTitleCase(campaign.campaignName) || campaign.campaignName;
+          const tone = CAMPAIGN_TONES[index % CAMPAIGN_TONES.length]!;
           const isBest = campaign.campaignId === bestCampaignId;
           const rateLabel = formatConversionRate(
             campaign.viewCount,
@@ -649,20 +663,21 @@ function ConversionPerformanceSection({
           return (
             <div
               key={campaign.campaignId}
-              className="rounded-xl border border-[#e8edf5] bg-[#fbfdff] px-3.5 py-3"
+              className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white px-3.5 py-3"
             >
+              <span className={`mb-2 block h-1 w-10 rounded-full ${tone.line}`} aria-hidden />
               <div className="flex items-start justify-between gap-2">
                 <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
                   {name}
                 </p>
                 {isBest ? (
-                  <span className="shrink-0 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold text-[#1D4ED8]">
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${tone.soft} ${tone.ink}`}>
                     Best converter
                   </span>
                 ) : null}
               </div>
 
-              <p className="m-0 mt-2 text-xl font-semibold tabular-nums tracking-tight text-[#07111f]">
+              <p className={`m-0 mt-2 text-xl font-semibold tabular-nums tracking-tight ${tone.ink}`}>
                 {hasViews ? rateLabel : "No views yet"}
               </p>
               <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-400">
@@ -824,7 +839,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 Campaign Performance
               </h2>
               {chartCampaigns.length > 0 ? (
-                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold text-[#1D4ED8]">
+                <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-semibold text-[#1877f2]">
                   Top 3
                 </span>
               ) : null}
@@ -837,7 +852,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <Link
               href={`/business/${businessId}/dashboard/campaigns`}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[#dbe7ff] bg-white px-3 text-[0.75rem] font-semibold text-[#1877f2] no-underline shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/40 hover:bg-[#EEF4FF]"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[#dbe7ff] bg-white px-3 text-[0.75rem] font-semibold text-[#1877f2] no-underline shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:border-[#1877f2]/40 hover:bg-[#e8f2ff]"
             >
               View all campaigns
               <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
@@ -1285,6 +1300,13 @@ export function BusinessPerformancePanel({
         <header className={`${panelCardClass} px-4 py-4 sm:px-5`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
+              <Link
+                href={`/business/${businessId}/dashboard`}
+                className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-[#1877f2] no-underline"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden />
+                Back to dashboard
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2]">
                   <ChartColumn className="size-4" strokeWidth={2.25} aria-hidden />
@@ -1315,8 +1337,8 @@ export function BusinessPerformancePanel({
               query.isPending ? "—" : formatCents(totalEarningsCents, "USD")
             }
             icon={CircleDollarSign}
-            iconWrapClass="bg-[#EEF4FF]"
-            iconClass="text-[#1D4ED8]"
+            iconWrapClass="bg-[#e8f2ff]"
+            iconClass="text-[#1877f2]"
             footer={
               query.isPending ? null : (
                 <KpiHealthFooter
@@ -1334,8 +1356,8 @@ export function BusinessPerformancePanel({
             hint={`Paid deal payments for the month. ${monthHint}`}
             value={query.isPending ? "—" : String(totalOrderCount)}
             icon={Link2}
-            iconWrapClass="bg-[#F3E8FF]"
-            iconClass="text-[#7C3AED]"
+            iconWrapClass="bg-[#fff7ed]"
+            iconClass="text-[#f77737]"
             footer={
               query.isPending ? null : (
                 <KpiHealthFooter
@@ -1355,8 +1377,8 @@ export function BusinessPerformancePanel({
               query.isPending ? "—" : String(totalUniqueCustomerCount)
             }
             icon={Users}
-            iconWrapClass="bg-[#ECFDF5]"
-            iconClass="text-[#059669]"
+            iconWrapClass="bg-[#fdf2f8]"
+            iconClass="text-[#e1306c]"
             footer={
               query.isPending ? null : (
                 <KpiHealthFooter
@@ -1381,8 +1403,8 @@ export function BusinessPerformancePanel({
                   : "No paid campaigns yet"
             }
             icon={Trophy}
-            iconWrapClass="bg-[#FFF7ED]"
-            iconClass="text-[#EA580C]"
+            iconWrapClass="bg-[#ecfdf5]"
+            iconClass="text-[#34a853]"
             footer={
               query.isPending ? null : (
                 <p className="m-0 text-xs text-slate-500">
@@ -1516,7 +1538,7 @@ export function BusinessPerformancePanel({
                           <td className="px-4 py-3.5 sm:px-5">
                             <Link
                               href={href}
-                              className="flex items-center gap-3 text-inherit no-underline"
+                              className="flex cursor-pointer items-center gap-3 text-inherit no-underline"
                             >
                               {imageSrc ? (
                                 <img
@@ -1561,7 +1583,7 @@ export function BusinessPerformancePanel({
                           <td className="px-3 py-3.5 text-right">
                             <Link
                               href={href}
-                              className="inline-flex items-center gap-0.5 text-[0.75rem] font-semibold text-[#1877f2] no-underline"
+                              className="inline-flex cursor-pointer items-center gap-0.5 text-[0.75rem] font-semibold text-[#1877f2] no-underline"
                             >
                               Open
                               <ArrowUpRight className="size-3" aria-hidden />

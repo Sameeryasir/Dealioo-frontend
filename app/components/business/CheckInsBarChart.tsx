@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,9 +13,10 @@ import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/O
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
-  OVERVIEW_BAR_CHART_MARGIN,
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyCheckInsPoint } from "@/app/components/business/business-activity-chart-config";
@@ -23,22 +24,24 @@ import type { MonthlyCheckInsPoint } from "@/app/components/business/business-ac
 export function CheckInsBarChart({
   data,
   months = OVERVIEW_MONTH_COUNT,
+  caption,
 }: {
   data: MonthlyCheckInsPoint[];
   months?: number;
+  caption?: string;
 }) {
   const checkInTotal = data.reduce((sum, row) => sum + row.checkIns, 0);
 
   return (
     <OverviewChartShell
       title="QR check-ins"
-      subtitle={`Month view, last ${months} months`}
+      subtitle={caption ?? `Month view, last ${months} months`}
       minHeightClass="min-h-[300px]"
       accent="blue"
     >
       <div className="h-[250px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN}>
+          <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
             <CartesianGrid
               strokeDasharray="4 6"
               stroke="#e8edf5"
@@ -47,9 +50,9 @@ export function CheckInsBarChart({
             <XAxis
               dataKey="label"
               tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
-              axisLine={{ stroke: "#e8edf5" }}
+              axisLine={false}
               tickLine={false}
-              interval={0}
+              interval={overviewAxisInterval(data.length)}
               tickFormatter={shortenMonthAxisLabel}
               height={34}
               dy={6}
@@ -61,18 +64,27 @@ export function CheckInsBarChart({
               tickLine={false}
               width={36}
             />
-            <Tooltip
-              content={<OverviewChartTooltip />}
-              cursor={{ fill: "rgba(24,119,242,0.06)", radius: 8 }}
-            />
-            <Bar
+            <Tooltip content={<OverviewChartTooltip />} />
+            <Line
+              type="monotone"
               dataKey="checkIns"
               name="QR check-ins"
-              fill={OVERVIEW_CHART_COLORS.blue}
-              radius={[8, 8, 2, 2]}
-              maxBarSize={42}
+              stroke={OVERVIEW_CHART_COLORS.blue}
+              strokeWidth={3}
+              dot={{
+                r: 3.5,
+                fill: "#ffffff",
+                stroke: OVERVIEW_CHART_COLORS.blue,
+                strokeWidth: 2.5,
+              }}
+              activeDot={{
+                r: 6,
+                fill: OVERVIEW_CHART_COLORS.blue,
+                stroke: "#ffffff",
+                strokeWidth: 3,
+              }}
             />
-          </BarChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
 

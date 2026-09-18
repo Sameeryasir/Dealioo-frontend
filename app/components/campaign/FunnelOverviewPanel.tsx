@@ -14,6 +14,8 @@ import {
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AnalyticsMetricMiniChart } from "@/app/components/campaign/overview/charts/AnalyticsMetricMiniChart";
 import { FunnelRevenueMiniChart } from "@/app/components/campaign/overview/charts/FunnelRevenueMiniChart";
@@ -23,19 +25,27 @@ import {
   buildSignupBreakdownFromMonthly,
   buildSignupsPaymentsMonthlyData,
   computeConversionRateFromMonthly,
-  OVERVIEW_MONTH_COUNT,
   sumAnalyticsFromMonthly,
   sumStatsFromMonthly,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { SignupBreakdownPieChart } from "@/app/components/campaign/overview/charts/SignupBreakdownPieChart";
 import { SignupsPaymentsBarChart } from "@/app/components/campaign/overview/charts/SignupsPaymentsBarChart";
 import { Skeleton } from "@/app/components/skeleton";
-import { useAnalyticsOverviewMonthly } from "@/app/hooks/use-analytics-overview-monthly";
-import { useFunnelStatsMonthly } from "@/app/hooks/use-funnel-stats-monthly";
+import {
+  buildActivityMonthKey,
+  currentActivityDateKey,
+  formatActivityDateLabel,
+  formatActivityMonthLabel,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { formatCents } from "@/app/lib/money";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import { getAnalyticsOverviewMonthly } from "@/app/services/funnel/get-analytics-overview-monthly";
+import { getFunnelStatsMonthly } from "@/app/services/funnel/get-funnel-stats-monthly";
+import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -107,7 +117,7 @@ function OverviewSkeleton() {
   return (
     <div className="funnel-overview-content" aria-busy="true" aria-label="Loading stats">
       <div className="funnel-overview-kpi-grid">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 7 }).map((_, i) => (
           <div
             key={i}
             className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
@@ -188,7 +198,6 @@ function NoFunnelEmptyState({
 }
 
 export function FunnelOverviewPanel({
-  campaignName,
   funnelId,
   isFunnelIdLoading = false,
   onCreateFunnel,
@@ -201,22 +210,62 @@ export function FunnelOverviewPanel({
   onCreateFunnel?: () => void;
   embedded?: boolean;
 }) {
-  const {
-    monthly: statsMonthly,
-    isLoading: isStatsMonthlyLoading,
-    error: statsMonthlyError,
-  } = useFunnelStatsMonthly(funnelId);
-  const {
-    monthly: analyticsMonthly,
-    isLoading: isAnalyticsMonthlyLoading,
-    error: analyticsMonthlyError,
-  } = useAnalyticsOverviewMonthly(funnelId);
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  });
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") return resolveActivityDateRange(dateFilter);
+    return (
+      getActivityMonthRangeForKey(monthFilter) ??
+      resolveActivityDateRange(currentActivityDateKey())
+    );
+  }, [calendarMode, dateFilter, monthFilter]);
+  const periodLabel =
+    calendarMode === "day"
+      ? formatActivityDateLabel(dateFilter)
+      : formatActivityMonthLabel(monthFilter);
+  const statsQuery = useQuery({
+    queryKey: [
+      "funnel-stats-range",
+      funnelId,
+      periodRange.from,
+      periodRange.to,
+    ],
+    enabled: funnelId != null && funnelId > 0,
+    staleTime: 15_000,
+    queryFn: () =>
+      getFunnelStatsMonthly(funnelId!, {
+        from: periodRange.from,
+        to: periodRange.to,
+      }),
+  });
+  const analyticsQuery = useQuery({
+    queryKey: [
+      "funnel-analytics-range",
+      funnelId,
+      periodRange.from,
+      periodRange.to,
+    ],
+    enabled: funnelId != null && funnelId > 0,
+    staleTime: 15_000,
+    queryFn: () =>
+      getAnalyticsOverviewMonthly(funnelId!, {
+        from: periodRange.from,
+        to: periodRange.to,
+      }),
+  });
+  const statsMonthly = statsQuery.data;
+  const analyticsMonthly = analyticsQuery.data;
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   const showSkeleton =
-    isFunnelIdLoading || isStatsMonthlyLoading || isAnalyticsMonthlyLoading;
+    isFunnelIdLoading ||
+    (funnelId != null && (statsQuery.isPending || analyticsQuery.isPending));
   const showNoFunnelMessage = !showSkeleton && funnelId == null;
 
   const statsPoints = useMemo(() => {
@@ -236,11 +285,15 @@ export function FunnelOverviewPanel({
   useEffect(() => {
     if (showSkeleton) return;
 
-    const message = statsMonthlyError ?? analyticsMonthlyError;
+    const message = statsQuery.isError
+      ? "Could not load funnel stats for this period."
+      : analyticsQuery.isError
+        ? "Could not load behavior analytics for this period."
+        : null;
     if (message && !alertDismissed) {
       setAlertMessage(message);
     }
-  }, [statsMonthlyError, analyticsMonthlyError, showSkeleton, alertDismissed]);
+  }, [statsQuery.isError, analyticsQuery.isError, showSkeleton, alertDismissed]);
 
   useEffect(() => {
     setAlertDismissed(false);
@@ -304,7 +357,6 @@ export function FunnelOverviewPanel({
     [statsPoints],
   );
 
-  const displayName = campaignName?.trim() ? campaignName : "Campaign";
   const hasMonthlyCharts = signupsPaymentsMonthly.length > 0;
 
   const performanceBandClass = embedded
@@ -320,16 +372,44 @@ export function FunnelOverviewPanel({
         <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
           Campaign performance
         </span>
-        <div className="funnel-overview-performance-band__meta">
-          <span
-            className="inline-flex max-w-full items-center rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-[0_4px_12px_rgba(24,119,242,0.2)]"
-            title={displayName}
-          >
-            {displayName}
-          </span>
-          <span className="inline-flex items-center rounded-full bg-[#f4f7fb] px-2.5 py-1 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-[#e8edf5]">
-            Last {OVERVIEW_MONTH_COUNT} months
-          </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+            <button
+              type="button"
+              onClick={() => setCalendarMode("month")}
+              className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                calendarMode === "month"
+                  ? "bg-[#1877f2] text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalendarMode("day")}
+              className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                calendarMode === "day"
+                  ? "bg-[#1877f2] text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              Day
+            </button>
+          </div>
+          {calendarMode === "month" ? (
+            <ActivityMonthCalendarPicker
+              value={monthFilter}
+              onChange={setMonthFilter}
+              compact
+              showAllMonths={false}
+            />
+          ) : (
+            <PerformanceDateCalendar
+              value={dateFilter}
+              onChange={setDateFilter}
+            />
+          )}
         </div>
       </div>
 
@@ -359,7 +439,7 @@ export function FunnelOverviewPanel({
                 <OverviewKpiTile
                   label="Signups"
                   value={monthlyStatsTotals.signups}
-                  hint="Total"
+                  hint={periodLabel}
                   icon={UserPlus}
                   iconBg={DASHBOARD_KPI_ICON.green}
                   hoverTone="green"
@@ -369,7 +449,7 @@ export function FunnelOverviewPanel({
                 <OverviewKpiTile
                   label="Payments"
                   value={monthlyStatsTotals.payments}
-                  hint="Completed"
+                  hint={periodLabel}
                   icon={Users}
                   iconBg={DASHBOARD_KPI_ICON.blue}
                   hoverTone="blue"
@@ -382,7 +462,7 @@ export function FunnelOverviewPanel({
                     monthlyStatsTotals.revenue,
                     statsMonthly?.currency ?? "usd",
                   )}
-                  hint="Earned"
+                  hint={periodLabel}
                   icon={DollarSign}
                   iconBg={DASHBOARD_KPI_ICON.pink}
                   hoverTone="pink"
@@ -392,53 +472,19 @@ export function FunnelOverviewPanel({
                 <OverviewKpiTile
                   label="Conversion"
                   value={`${conversionRate.toFixed(1)}%`}
-                  hint="Rate"
+                  hint={periodLabel}
                   icon={TrendingUp}
                   iconBg={DASHBOARD_KPI_ICON.orange}
                   hoverTone="orange"
                 />
               </motion.div>
-            </motion.section>
-
-            {hasMonthlyCharts ? (
-              <motion.section
-                className="rd-premium-section"
-                aria-label="Conversion charts"
-                variants={funnelPanelItem}
-              >
-                <div className="rd-premium-section-head">
-                  <h2>Conversion trends</h2>
-                </div>
-                <div className="funnel-overview-chart-grid">
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <SignupsPaymentsBarChart data={signupsPaymentsMonthly} />
-                  </motion.div>
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <SignupBreakdownPieChart data={signupBreakdownMonthly} />
-                  </motion.div>
-                </div>
-              </motion.section>
-            ) : null}
-
-            {analyticsTotals ? (
-              <motion.section
-                className="rd-premium-section"
-                aria-label="Behavior analytics"
-                variants={funnelPanelItem}
-              >
-                <div className="rd-premium-section-head">
-                  <h2>Behavior analytics</h2>
-                </div>
-
-                <motion.div
-                  className="funnel-overview-kpi-grid funnel-overview-kpi-grid--three"
-                  variants={funnelPanelStagger}
-                >
+              {analyticsTotals ? (
+                <>
                   <motion.div variants={funnelPanelItem}>
                     <OverviewKpiTile
                       label="Page views"
                       value={analyticsTotals.pageViews}
-                      hint="Funnel pages opened"
+                      hint={periodLabel}
                       icon={Eye}
                       iconBg={DASHBOARD_KPI_ICON.blue}
                       hoverTone="blue"
@@ -448,7 +494,7 @@ export function FunnelOverviewPanel({
                     <OverviewKpiTile
                       label="Button clicks"
                       value={analyticsTotals.buttonClicks}
-                      hint="CTA buttons tapped"
+                      hint={periodLabel}
                       icon={MousePointerClick}
                       iconBg={DASHBOARD_KPI_ICON.pink}
                       hoverTone="pink"
@@ -458,50 +504,80 @@ export function FunnelOverviewPanel({
                     <OverviewKpiTile
                       label="Unique visitors"
                       value={analyticsTotals.uniqueVisitors}
-                      hint="Different people"
+                      hint={periodLabel}
                       icon={Users}
                       iconBg={DASHBOARD_KPI_ICON.green}
                       hoverTone="green"
                     />
                   </motion.div>
-                </motion.div>
+                </>
+              ) : null}
+            </motion.section>
 
-                <div className="funnel-overview-chart-grid">
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Page views by month"
-                      subtitle="How many funnel pages were opened"
-                      total={analyticsTotals.pageViews}
-                      data={pageViewsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.blue}
-                    />
-                  </motion.div>
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Button clicks by month"
-                      subtitle="How many buttons were tapped"
-                      total={analyticsTotals.buttonClicks}
-                      data={buttonClicksMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.pink}
-                    />
-                  </motion.div>
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <AnalyticsMetricMiniChart
-                      title="Unique visitors by month"
-                      subtitle="How many different people visited"
-                      total={analyticsTotals.uniqueVisitors}
-                      data={uniqueVisitorsMonthly}
-                      strokeColor={OVERVIEW_CHART_COLORS.green}
-                    />
-                  </motion.div>
-                  <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
-                    <FunnelRevenueMiniChart
-                      data={revenueMonthly}
-                      totalRevenueCents={monthlyStatsTotals?.revenue ?? 0}
-                      currency={statsMonthly?.currency ?? "usd"}
-                    />
-                  </motion.div>
-                </div>
+            {hasMonthlyCharts || analyticsTotals ? (
+              <motion.section
+                className="funnel-overview-chart-grid"
+                aria-label="Campaign charts"
+                variants={funnelPanelItem}
+              >
+                {hasMonthlyCharts ? (
+                  <>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <SignupsPaymentsBarChart
+                        data={signupsPaymentsMonthly}
+                        caption={periodLabel}
+                      />
+                    </motion.div>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <SignupBreakdownPieChart
+                        data={signupBreakdownMonthly}
+                        caption={periodLabel}
+                      />
+                    </motion.div>
+                  </>
+                ) : null}
+                {analyticsTotals ? (
+                  <>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <AnalyticsMetricMiniChart
+                        title="Page views"
+                        subtitle={periodLabel}
+                        caption={periodLabel}
+                        total={analyticsTotals.pageViews}
+                        data={pageViewsMonthly}
+                        strokeColor={OVERVIEW_CHART_COLORS.blue}
+                      />
+                    </motion.div>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <AnalyticsMetricMiniChart
+                        title="Button clicks"
+                        subtitle={periodLabel}
+                        caption={periodLabel}
+                        total={analyticsTotals.buttonClicks}
+                        data={buttonClicksMonthly}
+                        strokeColor={OVERVIEW_CHART_COLORS.pink}
+                      />
+                    </motion.div>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <AnalyticsMetricMiniChart
+                        title="Unique visitors"
+                        subtitle={periodLabel}
+                        caption={periodLabel}
+                        total={analyticsTotals.uniqueVisitors}
+                        data={uniqueVisitorsMonthly}
+                        strokeColor={OVERVIEW_CHART_COLORS.green}
+                      />
+                    </motion.div>
+                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                      <FunnelRevenueMiniChart
+                        data={revenueMonthly}
+                        totalRevenueCents={monthlyStatsTotals.revenue}
+                        currency={statsMonthly?.currency ?? "usd"}
+                        caption={periodLabel}
+                      />
+                    </motion.div>
+                  </>
+                ) : null}
               </motion.section>
             ) : null}
           </motion.div>

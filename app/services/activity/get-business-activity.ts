@@ -56,6 +56,7 @@ export type ActivityMonthlyPoint = {
   prepaidRevenueCents: number;
   orders?: number;
   members?: number;
+  paidRevenueCents?: number;
 };
 
 export type ActivityMonthlyResponse = {
@@ -173,7 +174,7 @@ export async function getRestaurantActivitySummary(
 
 export async function getRestaurantActivityMonthly(
   restaurantId: number,
-  options: { months?: number } = {},
+  options: { months?: number; from?: string; to?: string } = {},
 ): Promise<ActivityMonthlyResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -182,8 +183,13 @@ export async function getRestaurantActivityMonthly(
     throw new Error("Valid business id is required.");
   }
 
-  const months = options.months ?? 6;
-  const q = new URLSearchParams({ months: String(months) });
+  const q = new URLSearchParams();
+  if (options.from && options.to) {
+    q.set("from", options.from);
+    q.set("to", options.to);
+  } else {
+    q.set("months", String(options.months ?? 6));
+  }
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/activity/business/${encodeURIComponent(String(restaurantId))}/summary/monthly?${q.toString()}`,

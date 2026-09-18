@@ -7,13 +7,6 @@ type ChartCanvasSize = {
   height: number;
 };
 
-/**
- * Change summary:
- * - Added a resize-aware chart canvas wrapper for funnel overview charts.
- * - Why: Recharts needs explicit pixel dimensions; container queries alone are not enough.
- * - Related: SignupsPaymentsBarChart, SignupBreakdownPieChart, AnalyticsMetricMiniChart.
- * - MCP context 7: uses ResizeObserver for production-grade responsive chart sizing.
- */
 export function OverviewChartCanvas({
   children,
   variant = "main",

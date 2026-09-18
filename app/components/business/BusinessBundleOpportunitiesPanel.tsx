@@ -110,7 +110,7 @@ function CampaignSuggestionsCard({
               {...spacesImageEagerLoadProps}
             />
           ) : (
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#1D4ED8] ring-1 ring-[#e8edf5]">
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#e8edf5]">
               <Layers className="size-5" aria-hidden />
             </span>
           )}
@@ -129,7 +129,7 @@ function CampaignSuggestionsCard({
           </div>
         </div>
         {statusLabel && StatusIcon ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#EEF4FF] px-2.5 py-1 text-[0.7rem] font-semibold text-[#1D4ED8]">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.7rem] font-semibold text-[#1877f2]">
             <StatusIcon className="size-3" aria-hidden />
             {statusLabel}
           </span>
@@ -194,13 +194,13 @@ function CampaignSuggestionsCard({
                     </span>
                   </td>
                   <td className="px-3 py-3 text-center align-middle">
-                    <span className="inline-flex rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
+                    <span className="inline-flex rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1877f2]">
                       {shareLabel}%
                     </span>
                   </td>
                   <td className="px-3 py-3 text-center align-middle">
                     {showLift ? (
-                      <span className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-emerald-700">
+                      <span className="inline-flex items-center justify-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#34a853]">
                         <TrendingUp className="size-3" aria-hidden />
                         {liftLabel}x
                       </span>
@@ -263,7 +263,7 @@ function CampaignSuggestionsCard({
               aria-label="Previous suggestions page"
               disabled={pagination.page <= 1}
               onClick={() => onPageChange(pagination.page - 1)}
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="size-4" aria-hidden />
             </button>
@@ -275,7 +275,7 @@ function CampaignSuggestionsCard({
               aria-label="Next suggestions page"
               disabled={pagination.page >= totalPages}
               onClick={() => onPageChange(pagination.page + 1)}
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronRight className="size-4" aria-hidden />
             </button>

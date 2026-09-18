@@ -20,6 +20,7 @@ import {
 import {
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -39,19 +40,21 @@ export function AnalyticsMetricMiniChart({
   total,
   data,
   strokeColor,
+  caption,
 }: {
   title: string;
   subtitle: string;
   total: number;
   data: MonthlyMetricPoint[];
   strokeColor: string;
+  caption?: string;
 }) {
   const gradient = useLineChartGradient(strokeColor);
 
   return (
     <OverviewChartShell
       title={title}
-      subtitle={`${subtitle}, last ${OVERVIEW_MONTH_COUNT} months`}
+      subtitle={caption ?? `${subtitle}, last ${OVERVIEW_MONTH_COUNT} months`}
       minHeightClass="min-h-0"
       className="h-full"
       accent={strokeToAccent(strokeColor)}
@@ -72,7 +75,7 @@ export function AnalyticsMetricMiniChart({
                 tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
                 axisLine={false}
                 tickLine={false}
-                interval={0}
+                interval={overviewAxisInterval(data.length)}
                 tickFormatter={shortenMonthAxisLabel}
                 height={30}
                 dy={4}

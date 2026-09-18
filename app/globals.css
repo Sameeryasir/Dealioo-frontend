@@ -13391,7 +13391,6 @@ body:has(.rd-shell--app) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* Why: 3 charts in a 2-col grid left a blank hole — last chart spans full width. */
   .funnel-overview-chart-grid--three > .funnel-overview-chart-slot:last-child {
     grid-column: 1 / -1;
   }

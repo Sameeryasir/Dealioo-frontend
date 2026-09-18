@@ -34,11 +34,13 @@ export function ActivityMonthCalendarPicker({
   onChange,
   className = "",
   compact = false,
+  showAllMonths = true,
 }: {
   value: string;
   onChange: (monthKey: string) => void;
   className?: string;
   compact?: boolean;
+  showAllMonths?: boolean;
 }) {
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
   const selectedLabel = useMemo(
@@ -95,20 +97,22 @@ export function ActivityMonthCalendarPicker({
           style={menuStyle}
           className="overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.08)] ring-1 ring-black/[0.02]"
         >
-          <button
-            type="button"
-            onClick={() => {
-              onChange(ACTIVITY_ALL_MONTHS_ID);
-              setOpen(false);
-            }}
-            className={`mb-3 flex w-full cursor-pointer items-center justify-center rounded-full px-3 py-2 text-[0.8rem] font-bold transition ${
-              value === ACTIVITY_ALL_MONTHS_ID
-                ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
-                : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
-            }`}
-          >
-            All months (last {ACTIVITY_MONTH_COUNT})
-          </button>
+          {showAllMonths ? (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(ACTIVITY_ALL_MONTHS_ID);
+                setOpen(false);
+              }}
+              className={`mb-3 flex w-full cursor-pointer items-center justify-center rounded-full px-3 py-2 text-[0.8rem] font-bold transition ${
+                value === ACTIVITY_ALL_MONTHS_ID
+                  ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
+                  : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
+              }`}
+            >
+              All months (last {ACTIVITY_MONTH_COUNT})
+            </button>
+          ) : null}
 
           <div className="mb-3 flex items-center justify-between gap-2 rounded-full border border-[#e8edf5] bg-[#f8fafc] px-2 py-1.5">
             <button

@@ -14,6 +14,7 @@ import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/
 import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyRevenuePoint } from "@/app/components/business/business-activity-chart-config";
@@ -23,10 +24,12 @@ export function BusinessRevenueMiniChart({
   data,
   totalRevenueCents,
   months,
+  caption,
 }: {
   data: MonthlyRevenuePoint[];
   totalRevenueCents: number;
   months: number;
+  caption?: string;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
   const chartData = data.map((row) => ({
@@ -36,8 +39,8 @@ export function BusinessRevenueMiniChart({
 
   return (
     <OverviewChartShell
-      title="Revenue by month"
-      subtitle={`Prepaid offer revenue, last ${months} months`}
+      title="Revenue"
+      subtitle={caption ?? `Prepaid offer revenue, last ${months} months`}
       minHeightClass="min-h-[220px]"
       className="h-full"
       accent="pink"
@@ -56,7 +59,7 @@ export function BusinessRevenueMiniChart({
               tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
               axisLine={false}
               tickLine={false}
-              interval={0}
+              interval={overviewAxisInterval(data.length)}
               tickFormatter={shortenMonthAxisLabel}
               height={30}
               dy={4}

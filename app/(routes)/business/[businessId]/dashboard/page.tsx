@@ -6,7 +6,6 @@ import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
-import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -65,16 +64,6 @@ export default function BusinessDashboardPage() {
   const { data: restaurant } = useBusinessByIdQuery(businessId);
 
   const activityEnabled = businessId != null && hasAuthSession();
-  const activityMonths = 6;
-
-  const activityChartQuery = useQuery({
-    queryKey: ["rd-home-activity-monthly", businessId, activityMonths],
-    enabled: activityEnabled,
-    staleTime: 60_000,
-    queryFn: () =>
-      getRestaurantActivityMonthly(businessId!, { months: activityMonths }),
-  });
-
   const metaStatusQuery = useQuery({
     queryKey: ["rd-home-facebook-status", businessId],
     enabled: activityEnabled,
@@ -108,7 +97,6 @@ export default function BusinessDashboardPage() {
 
   if (isScannerUser()) return null;
 
-  const activityData = activityChartQuery.data;
   const integrationsHref =
     businessId != null
       ? businessSettingsHref(businessId, "integrations", {
@@ -141,12 +129,6 @@ export default function BusinessDashboardPage() {
     return `Connect ${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]} to finish setup for this business.`;
   })();
 
-  const isQuietBusiness =
-    !activityChartQuery.isPending &&
-    (activityData?.activeCampaigns ?? 0) === 0 &&
-    (activityData?.totalOrders ?? 0) === 0 &&
-    (activityData?.totalMembers ?? 0) === 0;
-
   return (
     <section className="rd-premium w-full" aria-label="Business dashboard">
       <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
@@ -165,9 +147,7 @@ export default function BusinessDashboardPage() {
                     Performance
                   </h2>
                   <p className="m-0 mt-1 text-sm font-medium leading-relaxed text-slate-600">
-                    {isQuietBusiness
-                      ? "Publish a campaign, then watch earnings, conversion, and bundle tips here."
-                      : "Highest-earning campaigns, conversion, and bundle opportunities."}
+                    Highest-earning campaigns, conversion, and bundle opportunities.
                   </p>
                 </div>
               </div>
@@ -242,14 +222,6 @@ export default function BusinessDashboardPage() {
           <BusinessActivityOverviewPanel
             businessId={businessId}
             businessName={restaurant?.name}
-            data={activityData?.data ?? []}
-            months={activityData?.months ?? activityMonths}
-            activeCampaigns={activityData?.activeCampaigns ?? 0}
-            totalOrders={activityData?.totalOrders ?? 0}
-            totalMembers={activityData?.totalMembers ?? 0}
-            todayRevenueCents={activityData?.todayRevenueCents ?? 0}
-            isLoading={activityChartQuery.isPending}
-            isQuietBusiness={isQuietBusiness}
           />
         </section>
       </div>

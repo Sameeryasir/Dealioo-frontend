@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,38 +14,35 @@ import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/O
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
-  OverviewChartGradientDefs,
-  useBarChartGradients,
-} from "@/app/components/campaign/overview/charts/overview-chart-gradients";
-import {
-  OVERVIEW_BAR_CHART_MARGIN,
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
   type MonthlySignupsPaymentsPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 
 export function SignupsPaymentsBarChart({
   data,
+  caption,
 }: {
   data: MonthlySignupsPaymentsPoint[];
+  caption?: string;
 }) {
-  const gradients = useBarChartGradients();
   const signupTotal = data.reduce((sum, row) => sum + row.signups, 0);
   const paymentTotal = data.reduce((sum, row) => sum + row.payments, 0);
 
   return (
     <OverviewChartShell
       title="Signups vs payments"
-      subtitle={`Month view, last ${OVERVIEW_MONTH_COUNT} months`}
+      subtitle={caption ?? `Month view, last ${OVERVIEW_MONTH_COUNT} months`}
       minHeightClass="min-h-0"
       accent="multi"
     >
       <OverviewChartCanvas>
         {({ width, height }) => (
           <ResponsiveContainer width={width} height={height}>
-            <BarChart data={data} margin={OVERVIEW_BAR_CHART_MARGIN} barGap={6}>
-              <OverviewChartGradientDefs stops={gradients.stops} />
+            <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
               <CartesianGrid
                 strokeDasharray="4 6"
                 stroke="#e8edf5"
@@ -54,9 +51,9 @@ export function SignupsPaymentsBarChart({
               <XAxis
                 dataKey="label"
                 tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
-                axisLine={{ stroke: "#e8edf5" }}
+                axisLine={false}
                 tickLine={false}
-                interval={0}
+                interval={overviewAxisInterval(data.length)}
                 tickFormatter={shortenMonthAxisLabel}
                 height={34}
                 dy={6}
@@ -68,25 +65,46 @@ export function SignupsPaymentsBarChart({
                 tickLine={false}
                 width={36}
               />
-              <Tooltip
-                content={<OverviewChartTooltip />}
-                cursor={{ fill: "rgba(24,119,242,0.06)", radius: 8 }}
-              />
-              <Bar
+              <Tooltip content={<OverviewChartTooltip />} />
+              <Line
+                type="monotone"
                 dataKey="signups"
                 name="Signups"
-                fill={`url(#${gradients.signups})`}
-                radius={[8, 8, 2, 2]}
-                maxBarSize={34}
+                stroke={OVERVIEW_CHART_COLORS.green}
+                strokeWidth={3}
+                dot={{
+                  r: 3.5,
+                  fill: "#ffffff",
+                  stroke: OVERVIEW_CHART_COLORS.green,
+                  strokeWidth: 2.5,
+                }}
+                activeDot={{
+                  r: 6,
+                  fill: OVERVIEW_CHART_COLORS.green,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
               />
-              <Bar
+              <Line
+                type="monotone"
                 dataKey="payments"
                 name="Payments"
-                fill={`url(#${gradients.payments})`}
-                radius={[8, 8, 2, 2]}
-                maxBarSize={34}
+                stroke={OVERVIEW_CHART_COLORS.blue}
+                strokeWidth={3}
+                dot={{
+                  r: 3.5,
+                  fill: "#ffffff",
+                  stroke: OVERVIEW_CHART_COLORS.blue,
+                  strokeWidth: 2.5,
+                }}
+                activeDot={{
+                  r: 6,
+                  fill: OVERVIEW_CHART_COLORS.blue,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
               />
-            </BarChart>
+            </LineChart>
           </ResponsiveContainer>
         )}
       </OverviewChartCanvas>

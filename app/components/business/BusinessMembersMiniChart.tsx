@@ -14,6 +14,7 @@ import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/
 import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
+  overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyMetricBarPoint } from "@/app/components/business/business-activity-chart-config";
@@ -22,17 +23,19 @@ export function BusinessMembersMiniChart({
   data,
   total,
   months,
+  caption,
 }: {
   data: MonthlyMetricBarPoint[];
   total: number;
   months: number;
+  caption?: string;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
 
   return (
     <OverviewChartShell
       title="New members"
-      subtitle={`Customers registered, last ${months} months`}
+      subtitle={caption ?? `Customers registered, last ${months} months`}
       minHeightClass="min-h-[220px]"
       className="h-full"
       accent="pink"
@@ -51,7 +54,7 @@ export function BusinessMembersMiniChart({
               tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
               axisLine={false}
               tickLine={false}
-              interval={0}
+              interval={overviewAxisInterval(data.length)}
               tickFormatter={shortenMonthAxisLabel}
               height={30}
               dy={4}

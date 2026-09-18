@@ -151,7 +151,7 @@ export default function CampaignHeader({
             <button
               type="button"
               onClick={toggleSidebar}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 md:hidden"
+              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 md:hidden"
               aria-expanded={sidebarExpanded}
               aria-controls="rd-sidebar-nav"
               aria-label={sidebarExpanded ? "Close menu" : "Open menu"}
@@ -160,7 +160,7 @@ export default function CampaignHeader({
             </button>
             <Link
               href={campaignsHref}
-              className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
               aria-label="Back to campaigns"
             >
               <ArrowLeft className="size-3.5" aria-hidden strokeWidth={2.25} />
@@ -209,7 +209,7 @@ export default function CampaignHeader({
             <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
               <Link
                 href={campaignsHref}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+                className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-[#f8fafc] text-[#07111f] outline-none transition hover:border-[#1877f2]/35 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
                 aria-label="Back to campaigns"
               >
                 <ArrowLeft className="size-4" aria-hidden strokeWidth={2.25} />
