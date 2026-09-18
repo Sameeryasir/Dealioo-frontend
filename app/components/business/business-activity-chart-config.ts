@@ -94,7 +94,7 @@ export function buildRevenueMonthlyData(
   return points.map((row) => ({
     month: row.month,
     label: formatMonthLabel(row.month),
-    value: row.prepaidRevenueCents,
+    value: row.paidRevenueCents ?? 0,
   }));
 }
 

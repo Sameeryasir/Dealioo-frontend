@@ -718,7 +718,7 @@ export function MetaCampaignBuilder({
       adSetData,
       adCreativeData,
     );
-    if (readyError || !draftId) {
+    if (readyError || !draftId || !campaignData || !adSetData || !adCreativeData) {
       setError(readyError ?? "Complete all steps before publishing.");
       return;
     }

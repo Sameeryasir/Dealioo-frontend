@@ -359,7 +359,7 @@ export function BusinessActivityOverviewPanel({
                 <div className="min-h-[300px]">
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
-                    totalRevenueCents={visibleTotals.revenueCents}
+                    totalRevenueCents={periodPaidCents}
                     months={1}
                     caption={periodLabel}
                   />
