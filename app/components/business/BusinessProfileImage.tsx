@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * Circular business logo that fits the full mark inside the frame (no crop).
- * Related: BusinessDashboardCard.tsx, globals.css (.org-biz-card-avatar*)
- */
-
 import {
   resolveUploadImageUrl,
 } from "@/app/lib/resolve-upload-image-url";

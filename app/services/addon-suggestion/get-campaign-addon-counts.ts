@@ -114,7 +114,11 @@ export async function getCampaignAddonCounts(
           return {
             campaignId,
             campaignName,
-            imageUrl: row.imageUrl?.trim() ? row.imageUrl.trim() : null,
+            imageUrl:
+              (typeof row.imageUrl === "string" && row.imageUrl.trim()) ||
+              (typeof (row as { image_url?: string }).image_url === "string" &&
+                (row as { image_url?: string }).image_url?.trim()) ||
+              null,
             totalAddonPurchases: Math.max(
               0,
               Math.round(Number(row.totalAddonPurchases) || 0),

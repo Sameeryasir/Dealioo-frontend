@@ -184,6 +184,125 @@ export function buildActivityMonthFilterOptions(
   return options;
 }
 
+export function currentActivityDateKey(): string {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  )
+    .toISOString()
+    .slice(0, 10);
+}
+
+export function buildActivityDateKey(
+  year: number,
+  month: number,
+  day: number,
+): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export function parseActivityDateKey(
+  dateKey: string,
+): { year: number; month: number; day: number } | null {
+  const [yearRaw, monthRaw, dayRaw] = dateKey.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  if (
+    utc.getUTCFullYear() !== year ||
+    utc.getUTCMonth() !== month - 1 ||
+    utc.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return { year, month, day };
+}
+
+export function isActivityDateSelectable(
+  dateKey: string,
+  monthCount = ACTIVITY_MONTH_COUNT,
+): boolean {
+  const parsed = parseActivityDateKey(dateKey);
+  if (!parsed) return false;
+
+  const dayStart = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+  const earliest = getEarliestSelectableActivityMonth(monthCount);
+  const today = new Date(currentActivityDateKey() + "T00:00:00.000Z");
+  return dayStart >= earliest && dayStart <= today;
+}
+
+export function resolveActivityDateRange(
+  dateKey: string,
+  monthCount = ACTIVITY_MONTH_COUNT,
+): { from: string; to: string } {
+  const selected = isActivityDateSelectable(dateKey, monthCount)
+    ? dateKey
+    : currentActivityDateKey();
+  const parsed = parseActivityDateKey(selected);
+  if (!parsed) {
+    const now = new Date();
+    return { from: now.toISOString(), to: now.toISOString() };
+  }
+
+  const from = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, parsed.day, 0, 0, 0, 0),
+  );
+  const to = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, parsed.day, 23, 59, 59, 999),
+  );
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+export function resolveCollectiveMonthRange(
+  dateKey: string,
+  monthCount = ACTIVITY_MONTH_COUNT,
+): { from: string; to: string; inProgress: boolean } {
+  const selected = isActivityDateSelectable(dateKey, monthCount)
+    ? dateKey
+    : currentActivityDateKey();
+  const parsed = parseActivityDateKey(selected);
+  if (!parsed) {
+    const now = new Date().toISOString();
+    return { from: now, to: now, inProgress: true };
+  }
+
+  const from = new Date(Date.UTC(parsed.year, parsed.month - 1, 1, 0, 0, 0, 0));
+  const lastDay = new Date(Date.UTC(parsed.year, parsed.month, 0)).getUTCDate();
+  const monthEnd = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, lastDay, 23, 59, 59, 999),
+  );
+  const today = parseActivityDateKey(currentActivityDateKey());
+  const todayEnd = today
+    ? new Date(Date.UTC(today.year, today.month - 1, today.day, 23, 59, 59, 999))
+    : monthEnd;
+  const inProgress = monthEnd.getTime() > todayEnd.getTime();
+  const to = inProgress ? todayEnd : monthEnd;
+  return { from: from.toISOString(), to: to.toISOString(), inProgress };
+}
+
+export function formatActivityDateLabel(dateKey: string): string {
+  const parsed = parseActivityDateKey(dateKey);
+  if (!parsed) return "Select date";
+  return new Intl.DateTimeFormat("en", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
+}
+
 export function resolveActivityMonthRange(
   monthFilterId: string,
   options: ActivityMonthFilterOption[],

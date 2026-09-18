@@ -75,7 +75,9 @@ export type BusinessTopCampaignsFilters = {
 
 function parseDailyTotal(row: BusinessPerformanceDailyTotal): BusinessPerformanceDailyTotal {
   return {
-    date: String(row.date ?? "").slice(0, 10),
+    date: /^\d{4}-\d{2}-\d{2}T\d{2}/.test(String(row.date ?? ""))
+      ? String(row.date).trim().slice(0, 13)
+      : String(row.date ?? "").slice(0, 10),
     earningsCents: Math.max(0, Math.round(Number(row.earningsCents) || 0)),
     orderCount: Math.max(0, Math.round(Number(row.orderCount) || 0)),
     uniqueCustomerCount: Math.max(
@@ -173,7 +175,11 @@ export async function getBusinessTopEarningCampaigns(
             row.campaignType === "prepaid" || row.campaignType === "postpaid"
               ? row.campaignType
               : null,
-          imageUrl: row.imageUrl?.trim() ? row.imageUrl.trim() : null,
+          imageUrl:
+            (typeof row.imageUrl === "string" && row.imageUrl.trim()) ||
+            (typeof (row as { image_url?: string }).image_url === "string" &&
+              (row as { image_url?: string }).image_url?.trim()) ||
+            null,
           price:
             priceRaw != null && priceRaw >= 0
               ? Math.round(priceRaw * 100) / 100
@@ -252,7 +258,7 @@ export async function getBusinessTopEarningCampaigns(
     dailyTotals: Array.isArray(data.dailyTotals)
       ? data.dailyTotals
           .map(parseDailyTotal)
-          .filter((row) => /^\d{4}-\d{2}-\d{2}$/.test(row.date))
+          .filter((row) => /^\d{4}-\d{2}-\d{2}(T\d{2})?$/.test(row.date))
       : [],
     dailyByCampaign: Array.isArray(data.dailyByCampaign)
       ? data.dailyByCampaign
@@ -262,7 +268,7 @@ export async function getBusinessTopEarningCampaigns(
           }))
           .filter(
             (row) =>
-              /^\d{4}-\d{2}-\d{2}$/.test(row.date) &&
+              /^\d{4}-\d{2}-\d{2}(T\d{2})?$/.test(row.date) &&
               Number.isFinite(row.campaignId) &&
               row.campaignId > 0,
           )

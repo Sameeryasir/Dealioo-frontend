@@ -20,7 +20,7 @@ import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { getUserRoleLabel } from "@/app/lib/user-role-label";
 import { MY_BUSINESSES_PAGE_SIZE } from "@/app/services/business/get-my-business";
-import { AlertCircle, Filter, Megaphone, Plus, Search, Users, X } from "lucide-react";
+import { AlertCircle, Building2, Filter, Megaphone, Plus, Search, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -326,8 +326,11 @@ function OwnerDashboardPage() {
                   onRetry={() => loadBusinesses()}
                 />
               ) : isClient && showEmptyState ? (
-                <div className="org-dashboard-first-run">
+                <div className="org-dashboard-first-run org-dashboard-first-run--empty">
                   <div className="org-dashboard-first-run-copy org-dashboard-first-run-copy--solo">
+                    <span className="org-dashboard-first-run-icon" aria-hidden>
+                      <Building2 strokeWidth={2.25} />
+                    </span>
                     {canAddBusiness ? (
                       <>
                         <p className="org-dashboard-first-run-title">

@@ -1,6 +1,5 @@
 "use client";
 
-import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import {
@@ -9,6 +8,7 @@ import {
   buildActivityMonthKey,
   formatActivityMonthLabel,
   resolveActivityMonthRange,
+  resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -58,10 +58,12 @@ function formatTitleCase(value: string): string {
 function CampaignSuggestionsCard({
   campaign,
   pagination,
+  periodLabel,
   onPageChange,
 }: {
   campaign: CampaignAddonSuggestionsGroup;
   pagination: AddonSuggestionPagination;
+  periodLabel: string;
   onPageChange: (page: number) => void;
 }) {
   const [hoverTip, setHoverTip] = useState<{
@@ -122,7 +124,7 @@ function CampaignSuggestionsCard({
               {campaign.totalAddonVisits > 0
                 ? ` · ${campaign.totalAddonVisits} visit${campaign.totalAddonVisits === 1 ? "" : "s"}`
                 : ""}{" "}
-              with this deal
+              with this deal in {periodLabel}
             </p>
           </div>
         </div>
@@ -253,7 +255,7 @@ function CampaignSuggestionsCard({
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#eef2f7] pt-3">
           <p className="m-0 text-xs text-slate-400">
             {pagination.totalItems} suggestion
-            {pagination.totalItems === 1 ? "" : "s"} this month
+            {pagination.totalItems === 1 ? "" : "s"} in {periodLabel}
           </p>
           <div className="flex items-center gap-1.5">
             <button
@@ -309,28 +311,33 @@ export function BusinessBundleOpportunitiesPanel({
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [searchParams]);
 
-  const [monthFilter, setMonthFilter] = useState(initialMonth);
+  const monthFilter = initialMonth;
   const [page, setPage] = useState(1);
   const [alertDismissed, setAlertDismissed] = useState(false);
-
-  useEffect(() => {
-    setMonthFilter(initialMonth);
-  }, [initialMonth]);
 
   useEffect(() => {
     setPage(1);
   }, [businessId, campaignId, monthFilter]);
 
-  const range = useMemo(
-    () => resolveActivityMonthRange(monthFilter, monthOptions),
-    [monthFilter, monthOptions],
-  );
+  const range = useMemo(() => {
+    if (monthFilter === ACTIVITY_ALL_MONTHS_ID) {
+      return {
+        ...resolveActivityMonthRange(monthFilter, monthOptions),
+        inProgress: false,
+      };
+    }
+    return resolveCollectiveMonthRange(`${monthFilter}-01`);
+  }, [monthFilter, monthOptions]);
 
   const monthLabel =
     monthFilter === ACTIVITY_ALL_MONTHS_ID
       ? monthOptions.find((option) => option.id === ACTIVITY_ALL_MONTHS_ID)
           ?.label ?? "All months"
       : formatActivityMonthLabel(monthFilter);
+  const periodLabel =
+    monthFilter === ACTIVITY_ALL_MONTHS_ID
+      ? monthLabel
+      : `${monthLabel}${range.inProgress ? " so far" : ""}`;
 
   const suggestionsQuery = useQuery({
     queryKey: [
@@ -384,37 +391,27 @@ export function BusinessBundleOpportunitiesPanel({
     <section className="rd-premium w-full" aria-label="Bundle opportunities">
       <div className="flex flex-col gap-4">
         <header className={`${panelCardClass} px-4 py-4 sm:px-5`}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <Link
-                href={performanceHref}
-                className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1877f2] no-underline"
-              >
-                <ArrowLeft className="size-3.5" aria-hidden />
-                Back to Performance
-              </Link>
-              <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2]">
-                  <Layers className="size-4" strokeWidth={2.25} aria-hidden />
-                </span>
-                <div>
-                  <h1 className="m-0 text-lg font-semibold text-[#07111f]">
-                    Bundle opportunities
-                  </h1>
-                  <p className="m-0 mt-0.5 text-sm text-slate-500">
-                    Suggested add-ons for this campaign in {monthLabel}
-                  </p>
-                </div>
+          <div className="min-w-0">
+            <Link
+              href={performanceHref}
+              className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1877f2] no-underline"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Back to Performance
+            </Link>
+            <div className="flex items-center gap-2">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2]">
+                <Layers className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+              <div>
+                <h1 className="m-0 text-lg font-semibold text-[#07111f]">
+                  Bundle opportunities
+                </h1>
+                <p className="m-0 mt-0.5 text-sm text-slate-500">
+                  Suggested add-ons for this campaign in {periodLabel}
+                </p>
               </div>
             </div>
-            <ActivityMonthCalendarPicker
-              value={monthFilter}
-              onChange={(next) => {
-                setMonthFilter(next);
-                setPage(1);
-              }}
-              compact
-            />
           </div>
         </header>
 
@@ -462,6 +459,7 @@ export function BusinessBundleOpportunitiesPanel({
           <CampaignSuggestionsCard
             campaign={selectedSuggestions}
             pagination={pagination}
+            periodLabel={periodLabel}
             onPageChange={setPage}
           />
         )}

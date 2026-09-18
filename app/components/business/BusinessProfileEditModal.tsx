@@ -36,7 +36,6 @@ import {
   Lightbulb,
   Loader2,
   MapPin,
-  Store,
   X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -487,8 +486,6 @@ export function BusinessProfileEditModal({
   }, [filePreviewUrl]);
 
   const displayLogo = filePreviewUrl ?? logoSrc;
-  const shortLabel =
-    formatTitleCase(form.name.trim()).split(/\s+/)[0] || "Biz";
   const websiteHref = form.websiteUrl.trim();
 
   const patchForm = useCallback((patch: Partial<FormSnapshot>) => {
@@ -797,43 +794,65 @@ export function BusinessProfileEditModal({
                           onLogoPick(e.target.files?.[0] ?? null, e.target);
                         }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => logoInputRef.current?.click()}
-                        className="relative size-[5.5rem] cursor-pointer rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#DBEAFE]"
-                        aria-label="Upload business logo"
-                      >
-                        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl ring-1 ring-[#C7D7FF] shadow-[0_10px_24px_rgba(47,107,255,0.2)]">
-                          {displayLogo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={displayLogo}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span
-                              className="flex h-full w-full flex-col items-center justify-center gap-1 text-white"
-                              style={{
-                                background:
-                                  "linear-gradient(145deg, #3B82F6 0%, #6366F1 48%, #A855F7 100%)",
-                              }}
-                            >
-                              <Store
-                                className="size-7"
-                                strokeWidth={1.75}
-                                aria-hidden
+                      <div className="mt-1.5 flex items-start gap-4">
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          className="relative size-[5.5rem] shrink-0 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#DBEAFE]"
+                          aria-label="Upload business logo"
+                        >
+                          <span
+                            className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full ring-1 ring-[#e8edf5] shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${
+                              displayLogo ? "bg-[#f1f5f9]" : "bg-white"
+                            }`}
+                          >
+                            {displayLogo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={displayLogo}
+                                alt=""
+                                className="size-full object-contain object-center p-1.5"
                               />
-                              <span className="max-w-[90%] truncate text-[0.7rem] font-bold">
-                                {shortLabel}
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center bg-white text-slate-400">
+                                <Camera
+                                  className="size-7"
+                                  strokeWidth={1.75}
+                                  aria-hidden
+                                />
                               </span>
-                            </span>
-                          )}
-                        </span>
-                        <span className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-[#2F6BFF] text-white shadow-md">
-                          <Camera className="size-3.5" strokeWidth={2.25} />
-                        </span>
-                      </button>
+                            )}
+                          </span>
+                          <span className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-[#2F6BFF] text-white shadow-md">
+                            <Camera className="size-3.5" strokeWidth={2.25} />
+                          </span>
+                        </button>
+                        <div className="min-w-0 flex-1 pt-1">
+                          <p className="m-0 text-[0.8rem] font-semibold text-slate-700">
+                            Recommended size
+                          </p>
+                          <p className="m-0 mt-1 text-[0.78rem] leading-relaxed text-slate-500">
+                            Use a square image, ideally{" "}
+                            <span className="font-semibold text-slate-700">
+                              512×512
+                            </span>{" "}
+                            or{" "}
+                            <span className="font-semibold text-slate-700">
+                              1024×1024
+                            </span>{" "}
+                            px (PNG, JPG, or WebP). Keep the logo centered with a
+                            little padding around it so nothing important gets
+                            cropped in the circle.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => logoInputRef.current?.click()}
+                            className="mt-2.5 text-[0.78rem] font-semibold text-[#2F6BFF] transition hover:text-[#2563EB]"
+                          >
+                            {displayLogo ? "Replace image" : "Upload image"}
+                          </button>
+                        </div>
+                      </div>
                       {logoError ? (
                         <p className="m-0 mt-1 text-[0.7rem] text-red-600">
                           {logoError}

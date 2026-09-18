@@ -6,21 +6,12 @@ import type {
   BusinessSetupStepId,
 } from "@/app/lib/business-setup";
 import {
-  GoogleAdsLogo,
-  MetaLogo,
-  StripeLogo,
-} from "@/app/components/landing/LandingIntegrationLogos";
-import {
-  Building2,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
   Clock3,
-  ImagePlus,
-  Mail,
-  MapPin,
   Sparkles,
   X,
 } from "lucide-react";
@@ -30,7 +21,6 @@ import {
   useEffect,
   useId,
   useState,
-  type ComponentType,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -54,48 +44,6 @@ const STEP_HINTS: Record<BusinessSetupStepId, string> = {
   "google-ads": "Connect Google Ads to run campaigns.",
 };
 
-const STEP_ICONS: Partial<
-  Record<
-    BusinessSetupStepId,
-    ComponentType<{ className?: string; strokeWidth?: number }>
-  >
-> = {
-  "business-information": Building2,
-  "business-logo": ImagePlus,
-  "contact-details": Mail,
-  address: MapPin,
-};
-
-function TwilioMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden role="img">
-      <circle cx="12" cy="12" r="12" fill="#F22F46" />
-      <circle cx="8.2" cy="8.2" r="2.15" fill="#fff" />
-      <circle cx="15.8" cy="8.2" r="2.15" fill="#fff" />
-      <circle cx="8.2" cy="15.8" r="2.15" fill="#fff" />
-      <circle cx="15.8" cy="15.8" r="2.15" fill="#fff" />
-    </svg>
-  );
-}
-
-function StepMark({ step }: { step: BusinessSetupStep }) {
-  if (step.id === "stripe") {
-    return <StripeLogo className="size-4" />;
-  }
-  if (step.id === "meta-ads") {
-    return <MetaLogo className="size-4" />;
-  }
-  if (step.id === "google-ads") {
-    return <GoogleAdsLogo className="size-4" />;
-  }
-  if (step.id === "twilio-number") {
-    return <TwilioMark className="size-4" />;
-  }
-  const Icon = STEP_ICONS[step.id];
-  if (!Icon) return null;
-  return <Icon className="size-4" strokeWidth={2.25} />;
-}
-
 function RemainingStepRow({
   step,
   onGo,
@@ -114,18 +62,7 @@ function RemainingStepRow({
 
   const body = (
     <>
-      <span
-        className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
-        aria-hidden
-      >
-        <StepMark step={step} />
-      </span>
       <span className="org-biz-setup-step-copy">
-        {step.necessary ? (
-          <span className="org-biz-setup-step-badge org-biz-setup-step-badge--necessary">
-            Necessary
-          </span>
-        ) : null}
         <span className="org-biz-setup-step-title">{title}</span>
         <span className="org-biz-setup-step-hint">{STEP_HINTS[step.id]}</span>
       </span>
@@ -165,18 +102,7 @@ function CompletedStepRow({ step }: { step: BusinessSetupStep }) {
     <span
       className={`org-biz-setup-step-card org-biz-setup-step-card--done org-biz-setup-step-card--${step.group}`}
     >
-      <span
-        className={`org-biz-setup-step-icon org-biz-setup-step-icon--${step.id}`}
-        aria-hidden
-      >
-        <StepMark step={step} />
-      </span>
       <span className="org-biz-setup-step-copy">
-        {step.necessary ? (
-          <span className="org-biz-setup-step-badge org-biz-setup-step-badge--necessary">
-            Necessary
-          </span>
-        ) : null}
         <span className="org-biz-setup-step-title">{step.label}</span>
       </span>
       <span className="org-biz-setup-step-check" aria-hidden>

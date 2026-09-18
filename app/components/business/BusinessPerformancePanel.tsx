@@ -8,8 +8,8 @@ import {
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
   formatActivityMonthLabel,
-  parseActivityMonthKey,
   resolveActivityMonthRange,
+  resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
 import { formatCents, formatDollars } from "@/app/lib/money";
@@ -40,8 +40,6 @@ import {
   Link2,
   Megaphone,
   PackageSearch,
-  ShoppingBag,
-  Sparkles,
   Trophy,
   Users,
   type LucideIcon,
@@ -57,10 +55,9 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
   Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -68,15 +65,7 @@ import {
   YAxis,
 } from "recharts";
 
-type ChartMetric = "earnings" | "orders" | "customers";
-
-const CHART_METRIC_BUTTONS: Array<{ id: ChartMetric; label: string }> = [
-  { id: "earnings", label: "Earnings" },
-  { id: "orders", label: "Orders" },
-  { id: "customers", label: "Customers" },
-];
-
-const CHART_COLORS = ["#1877f2", "#7C3AED", "#059669", "#EA580C", "#DB2777"];
+const CHART_COLORS = ["#1877f2", "#7c3aed", "#059669"];
 const PERFORMANCE_CHART_HEIGHT_PX = 360;
 
 function PerformanceChartMount({ children }: { children: ReactNode }) {
@@ -107,13 +96,16 @@ type PerformanceScoreBreakdown = {
   avgRevPoints: number;
 };
 
-function currentMonthKey(): string {
+function currentPerformanceMonthKey(): string {
   const now = new Date();
   return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
 }
 
 const panelCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+
+const campaignImageClass =
+  "size-11 shrink-0 rounded-xl bg-[#f8fafc] object-contain p-1 ring-1 ring-[#e8edf5]";
 
 function percentChange(
   current: number,
@@ -148,43 +140,14 @@ function formatDayLabel(dateKey: string): string {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-function enumerateUtcDateKeys(fromKey: string, toKey: string): string[] {
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(fromKey) ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(toKey) ||
-    fromKey > toKey
-  ) {
-    return [];
-  }
-  const [fromY, fromM, fromD] = fromKey.split("-").map(Number);
-  const [toY, toM, toD] = toKey.split("-").map(Number);
-  const cursor = new Date(Date.UTC(fromY!, fromM! - 1, fromD!));
-  const end = new Date(Date.UTC(toY!, toM! - 1, toD!));
-  const keys: string[] = [];
-  while (cursor.getTime() <= end.getTime()) {
-    keys.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return keys;
-}
-
-function fullMonthUtcDateKeys(monthKey: string): string[] {
-  const parsed = parseActivityMonthKey(monthKey);
-  if (!parsed) return [];
-  const startKey = `${monthKey}-01`;
-  const endKey = new Date(Date.UTC(parsed.year, parsed.month, 0))
-    .toISOString()
-    .slice(0, 10);
-  return enumerateUtcDateKeys(startKey, endKey);
-}
-
-function utcTodayDateKey(): string {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  )
-    .toISOString()
-    .slice(0, 10);
+function formatChartPointLabel(dateKey: string): string {
+  const hourMatch = /^(\d{4}-\d{2}-\d{2})T(\d{2})$/.exec(dateKey);
+  if (!hourMatch) return formatDayLabel(dateKey);
+  const hour = Number(hourMatch[2]);
+  if (!Number.isFinite(hour)) return dateKey;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12} ${suffix}`;
 }
 
 function repeatRatePercent(campaign: BusinessTopCampaign): number {
@@ -357,7 +320,6 @@ function CampaignChartTooltip({
   label,
   payload,
   chartCampaigns,
-  chartMetric,
   hoveredSeriesKey,
 }: {
   active?: boolean;
@@ -370,7 +332,6 @@ function CampaignChartTooltip({
     payload?: Record<string, string | number | null>;
   }>;
   chartCampaigns: BusinessTopCampaign[];
-  chartMetric: ChartMetric;
   hoveredSeriesKey: string | null;
 }) {
   if (!active || !payload?.length || !hoveredSeriesKey) return null;
@@ -396,10 +357,7 @@ function CampaignChartTooltip({
     campaign?.campaignName ||
     dataKey;
   const imageSrc = resolveUploadImageUrl(campaign?.imageUrl ?? null);
-  const valueLabel =
-    chartMetric === "earnings"
-      ? formatCents(numeric, "USD")
-      : String(numeric);
+  const valueLabel = formatCents(numeric, "USD");
   const dayLabel = String(entry.payload?.fullLabel ?? label ?? "");
 
   return (
@@ -409,26 +367,15 @@ function CampaignChartTooltip({
       </p>
       <div className="flex items-center gap-2.5">
         {imageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageSrc}
             alt=""
-            width={40}
-            height={40}
-            className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-[#e8edf5]"
+            width={44}
+            height={44}
+            className={campaignImageClass}
             {...spacesImageEagerLoadProps}
           />
-        ) : (
-          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-[#e8edf5]"
-            style={{
-              backgroundColor: `${entry.color ?? "#1877f2"}18`,
-              color: entry.color ?? "#1877f2",
-            }}
-          >
-            <Megaphone className="size-4" aria-hidden />
-          </span>
-        )}
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
             {name}
@@ -442,32 +389,6 @@ function CampaignChartTooltip({
         </div>
       </div>
     </div>
-  );
-}
-
-function CampaignBillingBadge({
-  campaignType,
-}: {
-  campaignType?: "prepaid" | "postpaid" | null;
-}) {
-  if (campaignType === "postpaid") {
-    return (
-      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[0.68rem] font-medium text-slate-600">
-        Postpaid
-      </span>
-    );
-  }
-  if (campaignType === "prepaid") {
-    return (
-      <span className="inline-flex items-center rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.68rem] font-medium text-[#1D4ED8]">
-        Prepaid
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[0.68rem] font-medium text-slate-500">
-      —
-    </span>
   );
 }
 
@@ -608,123 +529,49 @@ function BundleOpportunitiesSection({
             const addonLabel =
               formatTitleCase(tip.addonName) || tip.addonName;
             const topStatus = tip.topStatus ?? "emerging";
-            const isBest = globalIndex === 0 && topStatus === "clear";
             const imageSrc = resolveUploadImageUrl(tip.imageUrl ?? null);
 
             return (
               <div
                 key={`${tip.campaignName}:${tip.addonName}:${globalIndex}`}
-                className={`group relative overflow-hidden rounded-xl border bg-white transition duration-200 hover:border-[#c7d7fe] hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
-                  isBest
-                    ? "border-[#c7d7fe] shadow-[0_8px_20px_rgba(24,119,242,0.08)]"
-                    : "border-[#e8edf5] shadow-[0_4px_12px_rgba(15,23,42,0.03)]"
-                }`}
+                className="flex h-full flex-col rounded-2xl border border-[#e8edf5] bg-white p-4"
               >
-                <div
-                  className={`absolute inset-y-0 left-0 w-[3px] ${
-                    isBest ? "bg-[#1877f2]" : "bg-[#e8edf5]"
-                  }`}
-                  aria-hidden
-                />
-
-                <div className="px-3.5 py-3.5 pl-4">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] font-semibold tabular-nums ${
-                        isBest
-                          ? "bg-[#1877f2] text-white"
-                          : "bg-[#EEF4FF] text-[#1877f2]"
-                      }`}
-                    >
-                      {globalIndex + 1}
-                    </span>
-                    {imageSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={imageSrc}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-[#e8edf5]"
-                        {...spacesImageEagerLoadProps}
-                      />
-                    ) : (
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2] ring-1 ring-[#e8edf5]">
-                        <Megaphone className="size-4" aria-hidden />
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <p className="m-0 truncate text-[0.95rem] font-semibold tracking-tight text-[#07111f]">
-                          {campaignLabel}
-                        </p>
-                        {topStatus === "clear" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-[#1D4ED8]">
-                            <Trophy className="size-3" aria-hidden />
-                            Best
-                          </span>
-                        ) : topStatus === "emerging" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.04em] text-amber-700">
-                            <Sparkles className="size-3" aria-hidden />
-                            Early tip
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="m-0 mt-2 flex items-start gap-1.5 line-clamp-2 text-[0.8rem] leading-snug text-slate-500">
-                    <Layers
-                      className="mt-0.5 size-3.5 shrink-0 text-[#1877f2]"
-                      strokeWidth={2.25}
-                      aria-hidden
+                <div className="flex min-w-0 items-center gap-3">
+                  {imageSrc ? (
+                    <img
+                      src={imageSrc}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className={campaignImageClass}
+                      {...spacesImageEagerLoadProps}
                     />
-                    <span>
-                      {topStatus === "tied" ? (
-                        <>
-                          Several add-ons tied · e.g.{" "}
-                          <span className="font-semibold text-[#1D4ED8]">
-                            {addonLabel}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          Pair with{" "}
-                          <span className="font-semibold text-[#1D4ED8]">
-                            {addonLabel}
-                          </span>
-                        </>
-                      )}
-                    </span>
-                  </p>
-
-                  <div className="mt-3 flex flex-col gap-2.5">
-                    <p className="m-0 inline-flex items-center gap-1.5 text-[0.75rem] text-slate-500">
-                      <ShoppingBag
-                        className="size-3.5 shrink-0 text-[#1877f2]"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                      Bought together{" "}
-                      <span className="font-semibold tabular-nums text-[#07111f]">
-                        {tip.timesPurchased}{" "}
-                        {tip.timesPurchased === 1 ? "time" : "times"}
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
+                      {campaignLabel}
+                    </p>
+                    <p className="m-0 mt-0.5 truncate text-xs text-slate-500">
+                      {topStatus === "tied" ? "Tied add-on" : "Pair with"}{" "}
+                      <span className="font-medium text-[#07111f]">
+                        {addonLabel}
                       </span>
                     </p>
-                    <Link
-                      href={tipHref(tip.campaignId)}
-                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 border-0 bg-[#EEF4FF] px-4 text-[0.8rem] font-semibold text-[#1D4ED8] no-underline shadow-none outline-none ring-0 transition hover:bg-[#dbe7ff] focus-visible:outline-none focus-visible:ring-0"
-                      style={{ borderRadius: 9999 }}
-                    >
-                      View details
-                      <ArrowRight
-                        className="size-3.5 shrink-0"
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </Link>
                   </div>
                 </div>
+                <p className="m-0 mt-4 text-sm text-slate-500">
+                  <span className="font-semibold tabular-nums text-[#07111f]">
+                    {tip.timesPurchased}
+                  </span>{" "}
+                  {tip.timesPurchased === 1 ? "time" : "times"} together
+                </p>
+                <Link
+                  href={tipHref(tip.campaignId)}
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#1877f2] no-underline"
+                >
+                  View details
+                  <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
+                </Link>
               </div>
             );
           })}
@@ -737,9 +584,13 @@ function BundleOpportunitiesSection({
 function ConversionPerformanceSection({
   campaigns,
   isPending,
+  monthLabel,
+  monthInProgress,
 }: {
   campaigns: BusinessConversionCampaign[];
   isPending: boolean;
+  monthLabel: string;
+  monthInProgress: boolean;
 }) {
   const bestCampaignId = useMemo(() => {
     let bestId: number | null = null;
@@ -779,7 +630,8 @@ function ConversionPerformanceSection({
         </h2>
         <p className="m-0 mt-0.5 text-sm text-slate-500">
           How often guests who view a deal go on to place a paid order, for your
-          top campaigns in this period.
+          top 3 performing campaigns in {monthLabel}
+          {monthInProgress ? " so far" : ""}.
         </p>
       </div>
 
@@ -931,28 +783,16 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
   businessId,
   chartData,
   chartCampaigns,
-  totalCampaignCount,
-  chartMetric,
-  chartMetricButtons,
-  onMetricChange,
   monthFilter,
   monthLabel,
-  monthOptions,
-  onMonthChange,
   todayMarkerLabel,
   isPending,
 }: {
   businessId: number;
   chartData: Array<Record<string, string | number | null>>;
   chartCampaigns: BusinessTopCampaign[];
-  totalCampaignCount: number;
-  chartMetric: ChartMetric;
-  chartMetricButtons: Array<{ id: ChartMetric; label: string }>;
-  onMetricChange: (metric: ChartMetric) => void;
   monthFilter: string;
   monthLabel: string;
-  monthOptions: Array<{ id: string; label: string }>;
-  onMonthChange: (monthKey: string) => void;
   todayMarkerLabel: string | null;
   isPending: boolean;
 }) {
@@ -967,20 +807,9 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
 
   const clearHovered = useCallback(() => setHoveredFast(null), [setHoveredFast]);
 
-  const calendarMonths = useMemo(
-    () => monthOptions.filter((option) => option.id !== ACTIVITY_ALL_MONTHS_ID),
-    [monthOptions],
-  );
-  const calendarMonthIndex = calendarMonths.findIndex(
-    (option) => option.id === monthFilter,
-  );
-  const canGoOlder =
-    calendarMonthIndex >= 0 && calendarMonthIndex < calendarMonths.length - 1;
-  const canGoNewer = calendarMonthIndex > 0;
   const isFullMonthView = monthFilter !== ACTIVITY_ALL_MONTHS_ID;
   const xAxisInterval =
     chartData.length >= 28 ? 4 : chartData.length >= 16 ? 2 : 0;
-  const monthInProgress = todayMarkerLabel != null;
 
   return (
     <div className={`${panelCardClass} overflow-hidden px-4 py-4 sm:px-5`}>
@@ -995,18 +824,13 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 Campaign Performance
               </h2>
               {chartCampaigns.length > 0 ? (
-                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1D4ED8]">
-                  Top {chartCampaigns.length}
+                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[0.65rem] font-semibold text-[#1D4ED8]">
+                  Top 3
                 </span>
               ) : null}
             </div>
             <p className="m-0 mt-1 text-sm text-slate-500">
-              {monthInProgress
-                ? `Daily trend for your top 3 campaigns in ${monthLabel}. Lines stop at today.`
-                : `Daily trend for your top 3 campaigns in ${monthLabel}.`}
-              {totalCampaignCount > 3
-                ? ` Showing 3 of ${totalCampaignCount}.`
-                : null}
+              {`Top 3 performing campaigns in ${monthLabel}.`}
             </p>
           </div>
 
@@ -1018,57 +842,6 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
               View all campaigns
               <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
             </Link>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                aria-label="Previous month"
-                disabled={!canGoOlder}
-                onClick={() => {
-                  const next = calendarMonths[calendarMonthIndex + 1];
-                  if (next) onMonthChange(next.id);
-                }}
-                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="size-4" aria-hidden />
-              </button>
-              <ActivityMonthCalendarPicker
-                value={monthFilter}
-                onChange={onMonthChange}
-                compact
-              />
-              <button
-                type="button"
-                aria-label="Next month"
-                disabled={!canGoNewer}
-                onClick={() => {
-                  const next = calendarMonths[calendarMonthIndex - 1];
-                  if (next) onMonthChange(next.id);
-                }}
-                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronRight className="size-4" aria-hidden />
-              </button>
-            </div>
-
-            <div className="flex shrink-0 flex-wrap gap-1 rounded-full border border-[#e8edf5] bg-[#f8fafc] p-1">
-              {chartMetricButtons.map((button) => {
-                const active = chartMetric === button.id;
-                return (
-                  <button
-                    key={button.id}
-                    type="button"
-                    onClick={() => onMetricChange(button.id)}
-                    className={`cursor-pointer rounded-full px-3.5 py-1.5 text-[0.75rem] font-semibold transition ${
-                      active
-                        ? "bg-[#1877f2] text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]"
-                        : "text-slate-500 hover:bg-white hover:text-[#1877f2]"
-                    }`}
-                  >
-                    {button.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>
@@ -1096,30 +869,11 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
               height={PERFORMANCE_CHART_HEIGHT_PX}
               minWidth={0}
             >
-              <AreaChart
+              <LineChart
                 data={chartData}
                 margin={{ top: 16, right: 14, left: 2, bottom: 4 }}
                 onMouseLeave={clearHovered}
               >
-              <defs>
-                {chartCampaigns.map((campaign, index) => {
-                  const color = CHART_COLORS[index % CHART_COLORS.length]!;
-                  return (
-                    <linearGradient
-                      key={campaign.campaignId}
-                      id={`perf-area-${campaign.campaignId}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stopColor={color} stopOpacity={0.28} />
-                      <stop offset="55%" stopColor={color} stopOpacity={0.08} />
-                      <stop offset="100%" stopColor={color} stopOpacity={0.01} />
-                    </linearGradient>
-                  );
-                })}
-              </defs>
               <CartesianGrid
                 strokeDasharray="3 6"
                 stroke="#e2e8f0"
@@ -1134,6 +888,9 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 minTickGap={isFullMonthView ? 18 : 24}
                 dy={8}
                 padding={{ left: 8, right: 8 }}
+                tickFormatter={(value: string) =>
+                  value.trim() ? value : ""
+                }
               />
               <YAxis
                 tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
@@ -1141,9 +898,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 tickLine={false}
                 width={48}
                 tickFormatter={(value: number) =>
-                  chartMetric === "earnings"
-                    ? `$${Math.round(Number(value) / 100)}`
-                    : String(Math.round(Number(value) || 0))
+                  `$${Math.round(Number(value) / 100)}`
                 }
               />
               {todayMarkerLabel ? (
@@ -1183,7 +938,6 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 content={
                   <CampaignChartTooltip
                     chartCampaigns={chartCampaigns}
-                    chartMetric={chartMetric}
                     hoveredSeriesKey={hoveredSeriesKey}
                   />
                 }
@@ -1194,16 +948,14 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                 const isActive =
                   hoveredSeriesKey == null || hoveredSeriesKey === seriesKey;
                 return (
-                  <Area
+                  <Line
                     key={campaign.campaignId}
                     type="monotone"
                     dataKey={seriesKey}
                     name={seriesKey}
                     stroke={color}
                     strokeWidth={isActive ? 2.5 : 1.5}
-                    strokeOpacity={isActive ? 1 : 0.22}
-                    fill={`url(#perf-area-${campaign.campaignId})`}
-                    fillOpacity={isActive ? 1 : 0.2}
+                    strokeOpacity={isActive ? 1 : 0.35}
                     connectNulls={false}
                     style={{ pointerEvents: "none" }}
                     legendType="none"
@@ -1284,7 +1036,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                   />
                 );
               })}
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           </PerformanceChartMount>
         )}
@@ -1331,38 +1083,43 @@ export function BusinessPerformancePanel({
 }: {
   businessId: number;
 }) {
-  const [monthFilter, setMonthFilter] = useState(currentMonthKey);
+  const [monthFilter, setMonthFilter] = useState(currentPerformanceMonthKey);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [chartMetric, setChartMetric] = useState<ChartMetric>("earnings");
 
   const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
-  const range = useMemo(
-    () => resolveActivityMonthRange(monthFilter, monthOptions),
-    [monthFilter, monthOptions],
-  );
+  const monthRange = useMemo(() => {
+    if (monthFilter === ACTIVITY_ALL_MONTHS_ID) {
+      return {
+        ...resolveActivityMonthRange(monthFilter, monthOptions),
+        inProgress: false,
+      };
+    }
+    return resolveCollectiveMonthRange(`${monthFilter}-01`);
+  }, [monthFilter, monthOptions]);
 
-  const monthLabel =
+  const monthName =
     monthFilter === ACTIVITY_ALL_MONTHS_ID
       ? monthOptions.find((option) => option.id === ACTIVITY_ALL_MONTHS_ID)
           ?.label ?? "All months"
       : formatActivityMonthLabel(monthFilter);
+  const periodLabel = monthRange.inProgress ? `${monthName} so far` : monthName;
 
   const query = useQuery({
     queryKey: [
       "business-top-earning-campaigns",
       businessId,
       monthFilter,
-      range.from,
-      range.to,
+      monthRange.from,
+      monthRange.to,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
     staleTime: 15_000,
     refetchOnMount: "always",
     queryFn: () =>
       getBusinessTopEarningCampaigns(businessId, {
-        from: range.from,
-        to: range.to,
-        limit: 10,
+        from: monthRange.from,
+        to: monthRange.to,
+        limit: 3,
       }),
   });
 
@@ -1370,18 +1127,17 @@ export function BusinessPerformancePanel({
     queryKey: [
       "business-addon-counts",
       businessId,
-      monthFilter,
-      range.from,
-      range.to,
+      monthRange.from,
+      monthRange.to,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
     staleTime: 15_000,
     refetchOnMount: "always",
     queryFn: () =>
       getCampaignAddonCounts(businessId, {
-        from: range.from,
-        to: range.to,
-        limit: 5,
+        from: monthRange.from,
+        to: monthRange.to,
+        limit: 3,
       }),
   });
 
@@ -1389,6 +1145,7 @@ export function BusinessPerformancePanel({
     setAlertDismissed(false);
   }, [businessId, monthFilter, query.errorUpdatedAt]);
 
+  const campaigns = query.data?.campaigns ?? [];
   const addonCountCampaigns = addonCountsQuery.data?.campaigns ?? [];
   const campaignsWithAddonCounts = useMemo(
     () =>
@@ -1396,6 +1153,9 @@ export function BusinessPerformancePanel({
     [addonCountCampaigns],
   );
   const bundlePreviewTips = useMemo(() => {
+    const imageByCampaignId = new Map(
+      campaigns.map((campaign) => [campaign.campaignId, campaign.imageUrl] as const),
+    );
     const tips: Array<{
       campaignId: number;
       campaignName: string;
@@ -1407,18 +1167,21 @@ export function BusinessPerformancePanel({
     for (const campaign of campaignsWithAddonCounts) {
       const top = campaign.addons[0];
       if (!top) continue;
+      const storedImage =
+        campaign.imageUrl?.trim() ||
+        imageByCampaignId.get(campaign.campaignId)?.trim() ||
+        null;
       tips.push({
         campaignId: campaign.campaignId,
         campaignName: campaign.campaignName,
-        imageUrl: campaign.imageUrl ?? null,
+        imageUrl: storedImage,
         addonName: top.name,
         timesPurchased: top.times,
         topStatus: campaign.topStatus ?? "emerging",
       });
     }
     return tips;
-  }, [campaignsWithAddonCounts]);
-  const campaigns = query.data?.campaigns ?? [];
+  }, [campaigns, campaignsWithAddonCounts]);
   const conversionCampaigns = useMemo(() => {
     const fromApi = query.data?.conversionCampaigns ?? [];
     const byId = new Map(
@@ -1450,7 +1213,6 @@ export function BusinessPerformancePanel({
       };
     });
   }, [campaigns, query.data?.conversionCampaigns]);
-  const dailyTotals = query.data?.dailyTotals ?? [];
   const dailyByCampaign = query.data?.dailyByCampaign ?? [];
   const totalEarningsCents = query.data?.totalEarningsCents ?? 0;
   const totalOrderCount = query.data?.totalOrderCount ?? 0;
@@ -1458,13 +1220,10 @@ export function BusinessPerformancePanel({
     query.data?.totalUniqueCustomerCount ?? 0;
   const previousPeriod = query.data?.previousPeriod ?? null;
   const topCampaign = campaigns[0] ?? null;
-  const monthInProgress = monthFilter === currentMonthKey();
-  const comparisonLabel =
-    monthFilter === ACTIVITY_ALL_MONTHS_ID
-      ? "previous period"
-      : monthInProgress
-        ? "same days last month"
-        : "previous month";
+  const comparisonLabel = "previous month";
+  const monthHint = monthRange.inProgress
+    ? "Added up from the 1st of this month through today, then compared with those same days last month."
+    : "Added up for the whole month, then compared with the full previous month.";
   const earningsChange = percentChange(
     totalEarningsCents,
     previousPeriod?.totalEarningsCents,
@@ -1488,56 +1247,37 @@ export function BusinessPerformancePanel({
 
     const byDayCampaign = new Map<string, number>();
     for (const row of dailyByCampaign) {
-      const key =
-        chartMetric === "earnings"
-          ? row.earningsCents
-          : chartMetric === "orders"
-            ? row.orderCount
-            : row.uniqueCustomerCount;
-      byDayCampaign.set(`${row.date}:${row.campaignId}`, key);
+      const day = row.date.slice(0, 10);
+      const key = row.earningsCents;
+      byDayCampaign.set(`${day}:${row.campaignId}`, key);
     }
 
-    const dayKeys =
-      monthFilter !== ACTIVITY_ALL_MONTHS_ID
-        ? fullMonthUtcDateKeys(monthFilter)
-        : dailyTotals.map((day) => day.date);
+    const pointKeys = [...byDayCampaign.keys()]
+      .map((key) => key.slice(0, 10))
+      .filter((day, index, days) => days.indexOf(day) === index)
+      .sort();
 
-    if (dayKeys.length === 0) return [];
+    if (pointKeys.length === 0) return [];
 
-    const todayKey = utcTodayDateKey();
-    const isCurrentMonth = monthFilter === currentMonthKey();
-
-    return dayKeys.map((date) => {
-      const isFutureDay = isCurrentMonth && date > todayKey;
+    return pointKeys.map((date) => {
       const point: Record<string, string | number | null> = {
         date,
-        label:
-          monthFilter !== ACTIVITY_ALL_MONTHS_ID
-            ? String(Number(date.slice(8, 10)))
-            : formatDayLabel(date),
-        fullLabel: formatDayLabel(date),
+        label: formatChartPointLabel(date),
+        fullLabel: formatChartPointLabel(date),
       };
       for (const campaign of chartCampaigns) {
-        point[`c${campaign.campaignId}`] = isFutureDay
-          ? null
-          : (byDayCampaign.get(`${date}:${campaign.campaignId}`) ?? 0);
+        point[`c${campaign.campaignId}`] = byDayCampaign.get(
+          `${date}:${campaign.campaignId}`,
+        ) ?? 0;
       }
       return point;
     });
   }, [
     chartCampaigns,
-    chartMetric,
     dailyByCampaign,
-    dailyTotals,
-    monthFilter,
   ]);
 
-  const todayMarkerLabel =
-    monthFilter === currentMonthKey()
-      ? String(Number(utcTodayDateKey().slice(8, 10)))
-      : null;
-
-  const chartMetricButtons = CHART_METRIC_BUTTONS;
+  const todayMarkerLabel = null;
 
   return (
     <section className="rd-premium w-full" aria-label="Performance">
@@ -1554,7 +1294,7 @@ export function BusinessPerformancePanel({
                     Performance
                   </h1>
                   <p className="m-0 mt-0.5 text-sm text-slate-500">
-                    Highest-earning campaigns for {monthLabel}
+                    Top 3 performing campaigns in {periodLabel}
                   </p>
                 </div>
               </div>
@@ -1570,11 +1310,7 @@ export function BusinessPerformancePanel({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <PerformanceKpiCard
             title="Total Earnings"
-            hint={
-              monthInProgress
-                ? "Paid deal earnings so far this month (add-ons excluded). Percent compares the same days so far vs last month."
-                : "Paid deal earnings for the selected month (add-ons excluded). Percent shows change vs the previous month."
-            }
+            hint={`Paid deal earnings for the month (add-ons excluded). ${monthHint}`}
             value={
               query.isPending ? "—" : formatCents(totalEarningsCents, "USD")
             }
@@ -1586,7 +1322,7 @@ export function BusinessPerformancePanel({
                 <KpiHealthFooter
                   changePercent={earningsChange}
                   comparisonLabel={comparisonLabel}
-                  monthInProgress={monthInProgress}
+                  monthInProgress={monthRange.inProgress}
                   currentValue={totalEarningsCents}
                   previousValue={previousPeriod?.totalEarningsCents}
                 />
@@ -1595,11 +1331,7 @@ export function BusinessPerformancePanel({
           />
           <PerformanceKpiCard
             title="Paid Orders"
-            hint={
-              monthInProgress
-                ? "Paid deal payments so far this month. Percent compares the same days so far vs last month."
-                : "Number of paid deal payments in the selected month."
-            }
+            hint={`Paid deal payments for the month. ${monthHint}`}
             value={query.isPending ? "—" : String(totalOrderCount)}
             icon={Link2}
             iconWrapClass="bg-[#F3E8FF]"
@@ -1609,7 +1341,7 @@ export function BusinessPerformancePanel({
                 <KpiHealthFooter
                   changePercent={ordersChange}
                   comparisonLabel={comparisonLabel}
-                  monthInProgress={monthInProgress}
+                  monthInProgress={monthRange.inProgress}
                   currentValue={totalOrderCount}
                   previousValue={previousPeriod?.totalOrderCount}
                 />
@@ -1618,11 +1350,7 @@ export function BusinessPerformancePanel({
           />
           <PerformanceKpiCard
             title="Unique Customers"
-            hint={
-              monthInProgress
-                ? "Distinct paying guests so far this month. Percent compares the same days so far vs last month."
-                : "Distinct guests who paid for a deal in the selected month."
-            }
+            hint={`Different guests who paid during the month. ${monthHint}`}
             value={
               query.isPending ? "—" : String(totalUniqueCustomerCount)
             }
@@ -1634,7 +1362,7 @@ export function BusinessPerformancePanel({
                 <KpiHealthFooter
                   changePercent={uniqueChange}
                   comparisonLabel={comparisonLabel}
-                  monthInProgress={monthInProgress}
+                  monthInProgress={monthRange.inProgress}
                   currentValue={totalUniqueCustomerCount}
                   previousValue={previousPeriod?.totalUniqueCustomerCount}
                 />
@@ -1643,7 +1371,7 @@ export function BusinessPerformancePanel({
           />
           <PerformanceKpiCard
             title="Top Campaign"
-            hint="Highest-earning campaign in the selected month."
+            hint="Highest-earning campaign for the selected month."
             value={
               query.isPending
                 ? "—"
@@ -1671,14 +1399,8 @@ export function BusinessPerformancePanel({
           businessId={businessId}
           chartData={chartData}
           chartCampaigns={chartCampaigns}
-          totalCampaignCount={campaigns.length}
-          chartMetric={chartMetric}
-          chartMetricButtons={chartMetricButtons}
-          onMetricChange={setChartMetric}
           monthFilter={monthFilter}
-          monthLabel={monthLabel}
-          monthOptions={monthOptions}
-          onMonthChange={setMonthFilter}
+          monthLabel={periodLabel}
           todayMarkerLabel={todayMarkerLabel}
           isPending={query.isPending}
         />
@@ -1686,12 +1408,14 @@ export function BusinessPerformancePanel({
         <ConversionPerformanceSection
           campaigns={conversionCampaigns}
           isPending={query.isPending}
+          monthLabel={monthName}
+          monthInProgress={monthRange.inProgress}
         />
 
         <BundleOpportunitiesSection
           businessId={businessId}
           monthFilter={monthFilter}
-          monthLabel={monthLabel}
+          monthLabel={periodLabel}
           campaignCount={campaignsWithAddonCounts.length}
           topTips={bundlePreviewTips}
           isPending={addonCountsQuery.isPending}
@@ -1700,10 +1424,10 @@ export function BusinessPerformancePanel({
         <div className={`${panelCardClass} overflow-hidden`}>
           <div className="border-b border-[#eef2f7] px-4 py-3 sm:px-5">
             <h2 className="m-0 text-sm font-semibold text-[#07111f]">
-              Highest-earning campaigns
+              Top 3 performing campaigns
             </h2>
             <p className="m-0 mt-0.5 text-xs text-slate-500">
-              Orders, customers, repeat rate, and earnings for {monthLabel}
+              Orders, customers, repeat rate, and earnings in {periodLabel}
             </p>
           </div>
 
@@ -1737,12 +1461,6 @@ export function BusinessPerformancePanel({
                     <tr className="border-b border-[#eef2f7] bg-[#f8fafc]/80 text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-slate-400">
                       <th className="px-4 py-3 font-semibold sm:px-5" scope="col">
                         Campaign
-                      </th>
-                      <th
-                        className="px-3 py-3 text-center font-semibold"
-                        scope="col"
-                      >
-                        Type
                       </th>
                       <th
                         className="px-3 py-3 text-center font-semibold tabular-nums"
@@ -1780,7 +1498,7 @@ export function BusinessPerformancePanel({
                     </tr>
                   </thead>
                   <tbody>
-                    {campaigns.map((campaign, index) => {
+                    {campaigns.map((campaign) => {
                       const imageSrc = resolveUploadImageUrl(campaign.imageUrl);
                       const name =
                         formatTitleCase(campaign.campaignName) ||
@@ -1800,24 +1518,16 @@ export function BusinessPerformancePanel({
                               href={href}
                               className="flex items-center gap-3 text-inherit no-underline"
                             >
-                              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF] text-[0.65rem] font-semibold tabular-nums text-[#1877f2]">
-                                {index + 1}
-                              </span>
                               {imageSrc ? (
-                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={imageSrc}
                                   alt=""
-                                  width={40}
-                                  height={40}
-                                  className="size-10 shrink-0 rounded-xl object-cover"
+                                  width={44}
+                                  height={44}
+                                  className={campaignImageClass}
                                   {...spacesImageEagerLoadProps}
                                 />
-                              ) : (
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2]/10 text-[#1877f2]">
-                                  <Megaphone className="size-4" aria-hidden />
-                                </span>
-                              )}
+                              ) : null}
                               <span className="min-w-0">
                                 <span className="truncate text-sm font-semibold text-[#07111f]">
                                   {name}
@@ -1829,11 +1539,6 @@ export function BusinessPerformancePanel({
                                 ) : null}
                               </span>
                             </Link>
-                          </td>
-                          <td className="px-3 py-3.5 text-center">
-                            <CampaignBillingBadge
-                              campaignType={campaign.campaignType}
-                            />
                           </td>
                           <td className="px-3 py-3.5 text-center text-sm tabular-nums text-slate-700">
                             {campaign.orderCount}

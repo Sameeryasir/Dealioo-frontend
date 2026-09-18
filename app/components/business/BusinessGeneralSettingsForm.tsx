@@ -14,13 +14,13 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
+  Camera,
   Check,
   ChevronRight,
   Link2,
   Loader2,
   Pencil,
   Shield,
-  Store,
   Target,
   UserRound,
   Users,
@@ -186,36 +186,27 @@ const fieldInputClass =
 
 function BusinessLogoAvatar({
   previewUrl,
-  businessName,
 }: {
   previewUrl: string | null;
   businessName: string;
 }) {
-  const shortLabel =
-    formatTitleCase(businessName.trim()).split(/\s+/)[0] || "Biz";
-
   return (
     <div className="relative size-[5.75rem] shrink-0 xl:size-[6.5rem]">
-      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_10px_28px_rgba(47,107,255,0.22)] ring-1 ring-[#c7d7ff]">
+      <span
+        className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-[#e8edf5] ${
+          previewUrl ? "bg-[#f1f5f9]" : "bg-white"
+        }`}
+      >
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
             alt=""
-            className="h-full w-full object-cover"
+            className="size-full object-contain object-center p-1.5"
           />
         ) : (
-          <span
-            className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-white"
-            style={{
-              background:
-                "linear-gradient(145deg, #3B82F6 0%, #6366F1 48%, #A855F7 100%)",
-            }}
-          >
-            <Store className="size-7 opacity-95" strokeWidth={1.75} aria-hidden />
-            <span className="max-w-full truncate text-[0.72rem] font-bold tracking-tight">
-              {shortLabel}
-            </span>
+          <span className="flex h-full w-full items-center justify-center bg-white text-slate-400">
+            <Camera className="size-8" strokeWidth={1.75} aria-hidden />
           </span>
         )}
       </span>
