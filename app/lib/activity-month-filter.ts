@@ -1,5 +1,11 @@
 export const ACTIVITY_MONTH_COUNT = 6;
 
+// Business dashboard year arrows already reach last year. This count makes every past month in that view selectable, not only the last six.
+export function activityCalendarYearMonthCount(): number {
+  const now = new Date();
+  return now.getUTCMonth() + 13;
+}
+
 export const ACTIVITY_ALL_MONTHS_ID = "all";
 
 export type ActivityMonthFilterOption = {

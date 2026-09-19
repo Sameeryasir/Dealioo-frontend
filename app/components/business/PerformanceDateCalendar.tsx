@@ -12,6 +12,7 @@ import {
   getEarliestSelectableActivityMonth,
   isActivityDateSelectable,
   parseActivityDateKey,
+  ACTIVITY_MONTH_COUNT,
 } from "@/app/lib/activity-month-filter";
 import { automationEase } from "@/app/lib/motion";
 import { AnimatePresence, motion } from "framer-motion";
@@ -34,10 +35,12 @@ export function PerformanceDateCalendar({
   value,
   onChange,
   className = "",
+  monthCount = ACTIVITY_MONTH_COUNT,
 }: {
   value: string;
   onChange: (dateKey: string) => void;
   className?: string;
+  monthCount?: number;
 }) {
   const selectedLabel = formatActivityDateLabel(value);
   const {
@@ -54,7 +57,7 @@ export function PerformanceDateCalendar({
     estimatedHeight: 390,
   });
 
-  const minDate = dayjs(getEarliestSelectableActivityMonth());
+  const minDate = dayjs(getEarliestSelectableActivityMonth(monthCount));
   const maxDate = dayjs(currentActivityDateKey());
 
   const menu =
@@ -85,7 +88,7 @@ export function PerformanceDateCalendar({
                     next.month() + 1,
                     next.date(),
                   );
-                  if (!isActivityDateSelectable(dateKey)) return;
+                  if (!isActivityDateSelectable(dateKey, monthCount)) return;
                   onChange(dateKey);
                   setOpen(false);
                 }}

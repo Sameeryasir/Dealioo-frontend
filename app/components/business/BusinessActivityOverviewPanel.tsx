@@ -17,6 +17,7 @@ import { Skeleton } from "@/app/components/skeleton";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import {
+  activityCalendarYearMonthCount,
   buildActivityMonthKey,
   currentActivityDateKey,
   formatActivityDateLabel,
@@ -149,13 +150,16 @@ export function BusinessActivityOverviewPanel({
     return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
   });
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
   const periodRange = useMemo(() => {
-    if (calendarMode === "day") return resolveActivityDateRange(dateFilter);
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, dashboardMonthCount);
+    }
     return (
-      getActivityMonthRangeForKey(monthFilter) ??
-      resolveActivityDateRange(currentActivityDateKey())
+      getActivityMonthRangeForKey(monthFilter, dashboardMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
     );
-  }, [calendarMode, dateFilter, monthFilter]);
+  }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
   const periodQuery = useQuery({
     queryKey: [
       "business-dashboard-activity",
@@ -275,11 +279,13 @@ export function BusinessActivityOverviewPanel({
                 onChange={setMonthFilter}
                 compact
                 showAllMonths={false}
+                monthCount={dashboardMonthCount}
               />
             ) : (
               <PerformanceDateCalendar
                 value={dateFilter}
                 onChange={setDateFilter}
+                monthCount={dashboardMonthCount}
               />
             )}
           </div>

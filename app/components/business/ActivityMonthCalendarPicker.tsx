@@ -12,6 +12,7 @@ import {
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
   formatActivityMonthLabel,
+  getEarliestSelectableActivityMonth,
   isActivityMonthSelectable,
   parseActivityMonthKey,
 } from "@/app/lib/activity-month-filter";
@@ -35,14 +36,19 @@ export function ActivityMonthCalendarPicker({
   className = "",
   compact = false,
   showAllMonths = true,
+  monthCount = ACTIVITY_MONTH_COUNT,
 }: {
   value: string;
   onChange: (monthKey: string) => void;
   className?: string;
   compact?: boolean;
   showAllMonths?: boolean;
+  monthCount?: number;
 }) {
-  const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
+  const monthOptions = useMemo(
+    () => buildActivityMonthFilterOptions(monthCount),
+    [monthCount],
+  );
   const selectedLabel = useMemo(
     () =>
       monthOptions.find((option) => option.id === value)?.label ??
@@ -69,11 +75,12 @@ export function ActivityMonthCalendarPicker({
 
   const { minYear, maxYear } = useMemo(() => {
     const now = new Date();
+    const earliestYear = getEarliestSelectableActivityMonth(monthCount).getUTCFullYear();
     return {
-      minYear: now.getUTCFullYear() - 1,
+      minYear: Math.min(now.getUTCFullYear() - 1, earliestYear),
       maxYear: now.getUTCFullYear(),
     };
-  }, []);
+  }, [monthCount]);
 
   useEffect(() => {
     if (open) {
@@ -142,7 +149,7 @@ export function ActivityMonthCalendarPicker({
             {ACTIVITY_MONTH_SHORT_NAMES.map((label, index) => {
               const month = index + 1;
               const monthKey = buildActivityMonthKey(viewYear, month);
-              const selectable = isActivityMonthSelectable(monthKey);
+              const selectable = isActivityMonthSelectable(monthKey, monthCount);
               const isSelected =
                 value !== ACTIVITY_ALL_MONTHS_ID && value === monthKey;
               const isCurrent = monthKey === currentMonthKey;
