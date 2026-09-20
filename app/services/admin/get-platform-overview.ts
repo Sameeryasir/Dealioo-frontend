@@ -50,6 +50,8 @@ export type PlatformAdminUser = {
   provider: string;
   createdAt: string;
   lastLoginAt: string | null;
+  planName: string | null;
+  planSlug: string | null;
 };
 
 export type PlatformAdminOverview = {
@@ -67,29 +69,83 @@ export type PlatformAdminOverview = {
   users: PlatformAdminUser[];
 };
 
+export type PlatformAdminTrends = {
+  from: string;
+  to: string;
+  totalRevenueCents: number;
+  newBusinesses: number;
+  points: Array<{
+    bucket: string;
+    revenueCents: number;
+    businesses: number;
+  }>;
+};
+
 function num(value: unknown, fallback = 0): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function mapPlatformAdminKpis(
+  data: Partial<PlatformAdminKpis> | null | undefined,
+): PlatformAdminKpis {
+  return {
+    totalBusinesses: num(data?.totalBusinesses),
+    activeBusinesses: num(data?.activeBusinesses),
+    totalUsers: num(data?.totalUsers),
+    newUsersToday: num(data?.newUsersToday),
+    ordersToday: num(data?.ordersToday),
+    revenueTodayCents: num(data?.revenueTodayCents),
+    businessesChangePct: num(data?.businessesChangePct),
+    activeBusinessesChangePct: num(data?.activeBusinessesChangePct),
+    usersChangePct: num(data?.usersChangePct),
+    newUsersChangePct: num(data?.newUsersChangePct),
+    ordersChangePct: num(data?.ordersChangePct),
+    revenueChangePct: num(data?.revenueChangePct),
+  };
+}
+
+export async function getPlatformAdminKpis(): Promise<PlatformAdminKpis> {
+  try {
+    const { data } = await authAxios.get<PlatformAdminKpis>("/admin/overview/kpis");
+    return mapPlatformAdminKpis(data);
+  } catch (error) {
+    throw new Error(parseApiMessage(error, "Could not load platform KPIs."));
+  }
+}
+
+export async function getPlatformAdminTrends(
+  from: string,
+  to: string,
+): Promise<PlatformAdminTrends> {
+  try {
+    const params = new URLSearchParams({ from, to });
+    const { data } = await authAxios.get<PlatformAdminTrends>(
+      `/admin/overview/trends?${params.toString()}`,
+    );
+    return {
+      from: data?.from ?? from,
+      to: data?.to ?? to,
+      totalRevenueCents: num(data?.totalRevenueCents),
+      newBusinesses: num(data?.newBusinesses),
+      points: Array.isArray(data?.points)
+        ? data.points.map((point) => ({
+            bucket: String(point?.bucket ?? ""),
+            revenueCents: num(point?.revenueCents),
+            businesses: num(point?.businesses),
+          }))
+        : [],
+    };
+  } catch (error) {
+    throw new Error(parseApiMessage(error, "Could not load this date range."));
+  }
 }
 
 export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview> {
   try {
     const { data } = await authAxios.get<PlatformAdminOverview>("/admin/overview");
     return {
-      kpis: {
-        totalBusinesses: num(data?.kpis?.totalBusinesses),
-        activeBusinesses: num(data?.kpis?.activeBusinesses),
-        totalUsers: num(data?.kpis?.totalUsers),
-        newUsersToday: num(data?.kpis?.newUsersToday),
-        ordersToday: num(data?.kpis?.ordersToday),
-        revenueTodayCents: num(data?.kpis?.revenueTodayCents),
-        businessesChangePct: num(data?.kpis?.businessesChangePct),
-        activeBusinessesChangePct: num(data?.kpis?.activeBusinessesChangePct),
-        usersChangePct: num(data?.kpis?.usersChangePct),
-        newUsersChangePct: num(data?.kpis?.newUsersChangePct),
-        ordersChangePct: num(data?.kpis?.ordersChangePct),
-        revenueChangePct: num(data?.kpis?.revenueChangePct),
-      },
+      kpis: mapPlatformAdminKpis(data?.kpis),
       charts: {
         revenueLast30Days: Array.isArray(data?.charts?.revenueLast30Days)
           ? data.charts.revenueLast30Days
@@ -102,7 +158,13 @@ export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview>
           : [],
       },
       businesses: Array.isArray(data?.businesses) ? data.businesses : [],
-      users: Array.isArray(data?.users) ? data.users : [],
+      users: Array.isArray(data?.users)
+        ? data.users.map((user) => ({
+            ...user,
+            planName: user?.planName ?? null,
+            planSlug: user?.planSlug ?? null,
+          }))
+        : [],
     };
   } catch (error) {
     throw new Error(parseApiMessage(error, "Could not load platform overview."));

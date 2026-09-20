@@ -259,28 +259,27 @@
   margin-bottom: 1rem;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 700px) {
   .kpiGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1100px) {
   .kpiGrid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 .kpiCard {
   position: relative;
   overflow: hidden;
+  min-width: 0;
   padding: 1rem 1.05rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1.15rem;
-  background: linear-gradient(160deg, #05070d 0%, #0a1628 48%, #0f1f3d 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 8px 20px rgba(15, 23, 42, 0.18);
+  border: 1px solid #e8edf5;
+  border-radius: 1.1rem;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
@@ -290,10 +289,8 @@
 
 .kpiCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 12px 28px rgba(15, 23, 42, 0.28);
+  border-color: color-mix(in srgb, var(--kpi-accent, #1877f2) 45%, #e8edf5);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--kpi-accent, #1877f2) 14%, transparent);
 }
 
 .kpiTop {
@@ -301,6 +298,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .kpiLabel {
@@ -309,16 +307,20 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.58);
+  color: #475569;
 }
 
 .kpiValue {
   margin: 0.45rem 0 0;
-  font-size: 1.55rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.035em;
-  color: #ffffff;
+  line-height: 1.2;
+  color: #000000;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpiIcon {
@@ -328,12 +330,8 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.75rem;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--kpi-accent, #1877f2) 34%, transparent) 0%,
-    color-mix(in srgb, var(--kpi-accent, #1877f2) 16%, transparent) 100%
-  );
-  color: #93c5fd;
+  background: var(--kpi-soft, #e8f2ff);
+  color: var(--kpi-accent, #1877f2);
   flex-shrink: 0;
   box-shadow: none;
 }
@@ -350,19 +348,19 @@
 }
 
 .kpiTrendUp {
-  background: rgba(52, 168, 83, 0.18);
-  color: #86efac;
+  background: rgba(52, 168, 83, 0.12);
+  color: #15803d;
 }
 
 .kpiTrendDown {
-  background: rgba(239, 68, 68, 0.18);
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
 }
 
 .kpiHint {
   margin: 0.35rem 0 0;
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: #64748b;
 }
 
 .chartGrid {
@@ -378,7 +376,7 @@
 
 @media (min-width: 1100px) {
   .chartGrid {
-    grid-template-columns: 1.45fr 1fr 0.95fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 

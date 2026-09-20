@@ -7,7 +7,6 @@ import {
   Layers,
   MousePointerClick,
   Plus,
-  TrendingUp,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import {
   buildRevenueMonthlySeries,
   buildSignupBreakdownFromMonthly,
   buildSignupsPaymentsMonthlyData,
-  computeConversionRateFromMonthly,
   sumAnalyticsFromMonthly,
   sumStatsFromMonthly,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -40,6 +38,7 @@ import {
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
+import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents } from "@/app/lib/money";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -57,14 +56,32 @@ function OverviewKpiTile({
   icon: Icon,
   iconBg,
   hoverTone = "blue",
+  format = "number",
+  currency = "usd",
 }: {
   label: string;
-  value: string | number;
+  value: number;
   hint?: string;
   icon: LucideIcon;
   iconBg: string;
   hoverTone?: "blue" | "pink" | "green" | "orange";
+  format?: "number" | "money" | "percent";
+  currency?: string;
 }) {
+  const animated = useCountUp(value, true);
+  const display =
+    format === "money"
+      ? formatCents(Math.round(animated), currency)
+      : format === "percent"
+        ? `${animated.toFixed(1)}%`
+        : String(Math.round(animated));
+  const finalLabel =
+    format === "money"
+      ? formatCents(Math.round(value), currency)
+      : format === "percent"
+        ? `${value.toFixed(1)}%`
+        : String(value);
+
   const hoverBorder =
     hoverTone === "pink"
       ? "hover:border-[#e1306c]/45 hover:shadow-[0_14px_32px_rgba(225,48,108,0.14)]"
@@ -99,9 +116,10 @@ function OverviewKpiTile({
           {label}
         </p>
         <p
-          className={`funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] ${hoverText}`}
+          className={`funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] tabular-nums ${hoverText}`}
+          aria-label={`${label}: ${finalLabel}`}
         >
-          {value}
+          {display}
         </p>
         {hint ? (
           <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-500">
@@ -116,8 +134,8 @@ function OverviewKpiTile({
 function OverviewSkeleton() {
   return (
     <div className="funnel-overview-content" aria-busy="true" aria-label="Loading stats">
-      <div className="funnel-overview-kpi-grid">
-        {Array.from({ length: 7 }).map((_, i) => (
+      <div className="funnel-overview-kpi-grid funnel-overview-kpi-grid--three">
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
             className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
@@ -305,11 +323,6 @@ export function FunnelOverviewPanel({
     [statsPoints],
   );
 
-  const conversionRate = useMemo(
-    () => (statsPoints ? computeConversionRateFromMonthly(statsPoints) : 0),
-    [statsPoints],
-  );
-
   const signupsPaymentsMonthly = useMemo(
     () =>
       statsPoints ? buildSignupsPaymentsMonthlyData(statsPoints) : [],
@@ -431,7 +444,7 @@ export function FunnelOverviewPanel({
             animate="show"
           >
             <motion.section
-              className="funnel-overview-kpi-grid"
+              className="funnel-overview-kpi-grid funnel-overview-kpi-grid--three"
               aria-label="Campaign summary"
               variants={funnelPanelStagger}
             >
@@ -458,24 +471,13 @@ export function FunnelOverviewPanel({
               <motion.div variants={funnelPanelItem}>
                 <OverviewKpiTile
                   label="Revenue"
-                  value={formatCents(
-                    monthlyStatsTotals.revenue,
-                    statsMonthly?.currency ?? "usd",
-                  )}
+                  value={monthlyStatsTotals.revenue}
                   hint={periodLabel}
                   icon={DollarSign}
                   iconBg={DASHBOARD_KPI_ICON.pink}
                   hoverTone="pink"
-                />
-              </motion.div>
-              <motion.div variants={funnelPanelItem}>
-                <OverviewKpiTile
-                  label="Conversion"
-                  value={`${conversionRate.toFixed(1)}%`}
-                  hint={periodLabel}
-                  icon={TrendingUp}
-                  iconBg={DASHBOARD_KPI_ICON.orange}
-                  hoverTone="orange"
+                  format="money"
+                  currency={statsMonthly?.currency ?? "usd"}
                 />
               </motion.div>
               {analyticsTotals ? (

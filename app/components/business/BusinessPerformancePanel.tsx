@@ -13,6 +13,7 @@ import {
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
+import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents, formatDollars } from "@/app/lib/money";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -287,15 +288,37 @@ function PerformanceKpiCard({
   icon: Icon,
   iconWrapClass,
   iconClass,
+  format = "text",
+  ready = true,
 }: {
   title: string;
   hint: string;
-  value: string;
+  value: number | string;
   footer?: ReactNode;
   icon: LucideIcon;
   iconWrapClass: string;
   iconClass: string;
+  format?: "text" | "number" | "money";
+  ready?: boolean;
 }) {
+  const numericTarget = typeof value === "number" ? value : 0;
+  const animated = useCountUp(
+    numericTarget,
+    ready && format !== "text",
+  );
+  const display =
+    format === "money"
+      ? formatCents(Math.round(animated), "USD")
+      : format === "number"
+        ? String(Math.round(animated))
+        : String(value);
+  const ariaValue =
+    format === "money"
+      ? formatCents(Math.round(numericTarget), "USD")
+      : format === "number"
+        ? String(numericTarget)
+        : String(value);
+
   return (
     <div className={`${panelCardClass} px-4 py-4`}>
       <div className="flex items-start gap-3">
@@ -316,8 +339,11 @@ function PerformanceKpiCard({
               <span className="sr-only">{hint}</span>
             </span>
           </p>
-          <p className="m-0 mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-[#07111f]">
-            {value}
+          <p
+            className="m-0 mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-[#07111f]"
+            aria-label={`${title}: ${ariaValue}`}
+          >
+            {ready || format === "text" ? display : "—"}
           </p>
           {footer ? <div className="mt-2">{footer}</div> : null}
         </div>
@@ -1333,9 +1359,9 @@ export function BusinessPerformancePanel({
           <PerformanceKpiCard
             title="Total Earnings"
             hint={`Paid deal earnings for the month (add-ons excluded). ${monthHint}`}
-            value={
-              query.isPending ? "—" : formatCents(totalEarningsCents, "USD")
-            }
+            value={totalEarningsCents}
+            format="money"
+            ready={!query.isPending}
             icon={CircleDollarSign}
             iconWrapClass="bg-[#e8f2ff]"
             iconClass="text-[#1877f2]"
@@ -1354,7 +1380,9 @@ export function BusinessPerformancePanel({
           <PerformanceKpiCard
             title="Paid Orders"
             hint={`Paid deal payments for the month. ${monthHint}`}
-            value={query.isPending ? "—" : String(totalOrderCount)}
+            value={totalOrderCount}
+            format="number"
+            ready={!query.isPending}
             icon={Link2}
             iconWrapClass="bg-[#fff7ed]"
             iconClass="text-[#f77737]"
@@ -1373,9 +1401,9 @@ export function BusinessPerformancePanel({
           <PerformanceKpiCard
             title="Unique Customers"
             hint={`Different guests who paid during the month. ${monthHint}`}
-            value={
-              query.isPending ? "—" : String(totalUniqueCustomerCount)
-            }
+            value={totalUniqueCustomerCount}
+            format="number"
+            ready={!query.isPending}
             icon={Users}
             iconWrapClass="bg-[#fdf2f8]"
             iconClass="text-[#e1306c]"

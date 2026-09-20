@@ -1,16 +1,41 @@
 "use client";
 
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
+import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
+import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
+import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
+import {
+  formatMonthLabel,
+  OVERVIEW_CHART_COLORS,
+  OVERVIEW_MINI_LINE_CHART_MARGIN,
+  overviewAxisInterval,
+  shortenMonthAxisLabel,
+} from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
+import {
+  activityCalendarYearMonthCount,
+  buildActivityMonthKey,
+  currentActivityDateKey,
+  formatActivityDateLabel,
+  formatActivityMonthLabel,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   getAdminMeetingRequests,
   type AdminMeetingRequest,
 } from "@/app/services/admin/get-admin-meeting-requests";
 import {
+  getPlatformAdminKpis,
   getPlatformAdminOverview,
+  getPlatformAdminTrends,
+  type PlatformAdminKpis,
   type PlatformAdminOverview,
+  type PlatformAdminTrends,
 } from "@/app/services/admin/get-platform-overview";
 import {
   ArrowDownRight,
@@ -38,10 +63,8 @@ import {
   Search,
   Shield,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
   User,
-  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -54,14 +77,9 @@ import {
   type CSSProperties,
 } from "react";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -70,27 +88,6 @@ import {
 
 const TABLE_PAGE_SIZE = 8;
 const BRAND_BLUE = "#1877f2";
-const BRAND_PURPLE = "#833aba";
-
-const CHART_PLAN_COLORS = ["#f472b6", "#a78bda", "#6bbf8a", "#e0a06a", "#94a3b8"];
-const DARK_CHART_TOOLTIP = {
-  contentStyle: {
-    background: "#0a1628",
-    border: "1px solid rgba(255,255,255,0.14)",
-    borderRadius: 10,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-    color: "#ffffff",
-  },
-  labelStyle: {
-    color: "rgba(255,255,255,0.92)",
-    fontWeight: 700,
-    marginBottom: 4,
-  },
-  itemStyle: {
-    color: "rgba(255,255,255,0.78)",
-    fontWeight: 600,
-  },
-} as const;
 
 function greetingForNow(): string {
   const h = new Date().getHours();
@@ -136,10 +133,15 @@ function formatMoney(cents: number, currency = "USD"): string {
   }).format(cents / 100);
 }
 
-function formatShortDay(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+function formatCompactMoney(cents: number, currency = "USD"): string {
+  const amount = cents / 100;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency.toUpperCase() === "USD" ? "USD" : currency.toUpperCase(),
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: Math.abs(amount) >= 1000 ? 1 : amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
 }
 
 function formatRelative(iso: string): string {
@@ -159,22 +161,6 @@ function formatRelative(iso: string): string {
   });
 }
 
-function dateRangeLabel(): string {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - 29);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  return `${fmt(start)} – ${fmt(end)}`;
-}
-
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
 function formatAbsoluteDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -183,6 +169,13 @@ function formatAbsoluteDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
 const OWNER_AVATAR_TONES = [
@@ -248,6 +241,60 @@ function Trend({ value }: { value: number }) {
   );
 }
 
+function useCountUp(target: number, ready: boolean, durationMs = 900): number {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!ready) {
+      setDisplay(0);
+      return;
+    }
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || target === 0) {
+      setDisplay(target);
+      return;
+    }
+
+    let frame = 0;
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const eased = 1 - (1 - progress) ** 3;
+      setDisplay(target * eased);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+      }
+    };
+
+    setDisplay(0);
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [durationMs, ready, target]);
+
+  return display;
+}
+
+function formatKpiDisplay(
+  animated: number,
+  target: number,
+  format: "number" | "money" | "percent",
+): string {
+  if (format === "money") {
+    return formatCompactMoney(Math.round(animated));
+  }
+  if (format === "percent") {
+    const digits = Number.isInteger(target) ? 0 : 1;
+    return `${animated.toFixed(digits)}%`;
+  }
+  return String(Math.round(animated));
+}
+
 function KpiCard({
   label,
   value,
@@ -256,15 +303,22 @@ function KpiCard({
   icon: Icon,
   accent,
   soft,
+  format = "number",
+  ready = true,
 }: {
   label: string;
-  value: string;
+  value: number;
   changePct?: number;
   hint?: string;
   icon: typeof Users;
   accent: string;
   soft: string;
+  format?: "number" | "money" | "percent";
+  ready?: boolean;
 }) {
+  const animated = useCountUp(value, ready);
+  const display = formatKpiDisplay(animated, value, format);
+
   return (
     <div
       className={styles.kpiCard}
@@ -278,7 +332,12 @@ function KpiCard({
       <div className={styles.kpiTop}>
         <div>
           <p className={styles.kpiLabel}>{label}</p>
-          <p className={styles.kpiValue}>{value}</p>
+          <p
+            className={styles.kpiValue}
+            aria-label={`${label}: ${formatKpiDisplay(value, value, format)}`}
+          >
+            {display}
+          </p>
         </div>
         <div className={styles.kpiIcon}>
           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
@@ -290,8 +349,70 @@ function KpiCard({
   );
 }
 
+function PlatformTrendChart({
+  data,
+  dataKey,
+  seriesName,
+  stroke,
+  money,
+}: {
+  data: Array<{ label: string }>;
+  dataKey: string;
+  seriesName: string;
+  stroke: string;
+  money?: boolean;
+}) {
+  return (
+    <div className="h-[220px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
+          <CartesianGrid strokeDasharray="4 6" stroke="#e8edf5" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
+            axisLine={false}
+            tickLine={false}
+            interval={overviewAxisInterval(data.length)}
+            tickFormatter={shortenMonthAxisLabel}
+            height={34}
+            dy={6}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+            axisLine={false}
+            tickLine={false}
+            width={money ? 42 : 36}
+            tickFormatter={
+              money
+                ? (value: number) =>
+                    new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      maximumFractionDigits: 0,
+                    }).format(value)
+                : undefined
+            }
+          />
+          <Tooltip content={<OverviewChartTooltip />} />
+          <Line
+            type="monotone"
+            dataKey={dataKey}
+            name={seriesName}
+            stroke={stroke}
+            strokeWidth={3}
+            dot={{ r: 3.5, fill: "#ffffff", stroke, strokeWidth: 2.5 }}
+            activeDot={{ r: 6, fill: stroke, stroke: "#ffffff", strokeWidth: 3 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export function SuperAdminDashboard() {
   const [overview, setOverview] = useState<PlatformAdminOverview | null>(null);
+  const [kpis, setKpis] = useState<PlatformAdminKpis | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -303,12 +424,39 @@ export function SuperAdminDashboard() {
   );
   const [meetingsLoading, setMeetingsLoading] = useState(false);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  });
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const [trends, setTrends] = useState<PlatformAdminTrends | null>(null);
+  const [trendsLoading, setTrendsLoading] = useState(true);
+  const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, dashboardMonthCount);
+    }
+    return (
+      getActivityMonthRangeForKey(monthFilter, dashboardMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
+    );
+  }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
+  const periodLabel =
+    calendarMode === "day"
+      ? formatActivityDateLabel(dateFilter)
+      : formatActivityMonthLabel(monthFilter);
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
+    void getPlatformAdminKpis()
+      .then((next) => setKpis(next))
+      .catch(() => {});
     try {
-      setOverview(await getPlatformAdminOverview());
+      const next = await getPlatformAdminOverview();
+      setOverview(next);
+      setKpis(next.kpis);
     } catch (error) {
       setOverview(null);
       setErrorMessage(
@@ -339,19 +487,36 @@ export function SuperAdminDashboard() {
   }, [loadOverview, loadMeetingRequests]);
 
   useEffect(() => {
+    let cancelled = false;
+    setTrendsLoading(true);
+    void getPlatformAdminTrends(periodRange.from, periodRange.to)
+      .then((next) => {
+        if (!cancelled) setTrends(next);
+      })
+      .catch(() => {
+        if (!cancelled) setTrends(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTrendsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [periodRange.from, periodRange.to]);
+
+  useEffect(() => {
     setBusinessPage(1);
     setUserPage(1);
     setMeetingPage(1);
   }, [query]);
 
-  const kpis = overview?.kpis;
   const q = query.trim().toLowerCase();
 
   const filteredBusinesses = useMemo(() => {
     const rows = overview?.businesses ?? [];
     if (!q) return rows;
     return rows.filter((b) =>
-      [b.name, b.ownerEmail, b.ownerName, b.planName, b.slug]
+      [b.name, b.ownerEmail, b.ownerName, b.slug]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -363,7 +528,7 @@ export function SuperAdminDashboard() {
     const rows = overview?.users ?? [];
     if (!q) return rows;
     return rows.filter((u) =>
-      [u.name, u.email, u.roleName, u.provider, String(u.id)]
+      [u.name, u.email, u.roleName, u.provider, u.planName, u.planSlug, String(u.id)]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -437,63 +602,24 @@ export function SuperAdminDashboard() {
 
   const revenueChart = useMemo(
     () =>
-      (overview?.charts.revenueLast30Days ?? []).map((row) => ({
-        date: row.date,
-        label: formatShortDay(row.date),
-        value: row.amountCents / 100,
-        amountCents: row.amountCents,
+      (trends?.points ?? []).map((point) => ({
+        label: formatMonthLabel(point.bucket),
+        value: point.revenueCents / 100,
       })),
-    [overview?.charts.revenueLast30Days],
+    [trends?.points],
   );
 
   const businessChart = useMemo(
     () =>
-      (overview?.charts.businessesLast30Days ?? []).map((row) => ({
-        date: row.date,
-        label: formatShortDay(row.date),
-        count: row.count,
+      (trends?.points ?? []).map((point) => ({
+        label: formatMonthLabel(point.bucket),
+        count: point.businesses,
       })),
-    [overview?.charts.businessesLast30Days],
+    [trends?.points],
   );
 
-  const subscriptionPie = useMemo(() => {
-    const rows = overview?.charts.subscriptionBreakdown ?? [];
-    if (rows.length === 0) {
-      return [{ name: "No plans", value: 1, slug: "empty" }];
-    }
-    return rows.map((r) => ({
-      name: r.planName,
-      value: r.count,
-      slug: r.planSlug,
-    }));
-  }, [overview?.charts.subscriptionBreakdown]);
-
-  const subscriptionTotal = useMemo(
-    () =>
-      (overview?.charts.subscriptionBreakdown ?? []).reduce(
-        (sum, r) => sum + r.count,
-        0,
-      ),
-    [overview?.charts.subscriptionBreakdown],
-  );
-
-  const revenue30Total = useMemo(
-    () =>
-      (overview?.charts.revenueLast30Days ?? []).reduce(
-        (sum, r) => sum + r.amountCents,
-        0,
-      ),
-    [overview?.charts.revenueLast30Days],
-  );
-
-  const businesses30Total = useMemo(
-    () =>
-      (overview?.charts.businessesLast30Days ?? []).reduce(
-        (sum, r) => sum + r.count,
-        0,
-      ),
-    [overview?.charts.businessesLast30Days],
-  );
+  const periodRevenueCents = trends?.totalRevenueCents ?? 0;
+  const periodNewBusinesses = trends?.newBusinesses ?? 0;
 
   return (
     <section className={styles.page} aria-label="Super Admin platform overview">
@@ -519,21 +645,63 @@ export function SuperAdminDashboard() {
                 placeholder="Search businesses, users..."
               />
             </label>
-            <span className={styles.pillBtn}>
-              <CalendarDays className="size-3.5" aria-hidden />
-              {dateRangeLabel()}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                <button
+                  type="button"
+                  onClick={() => setCalendarMode("month")}
+                  className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                    calendarMode === "month"
+                      ? "bg-[#1877f2] text-white"
+                      : "text-slate-600"
+                  }`}
+                >
+                  Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarMode("day")}
+                  className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                    calendarMode === "day"
+                      ? "bg-[#1877f2] text-white"
+                      : "text-slate-600"
+                  }`}
+                >
+                  Day
+                </button>
+              </div>
+              {calendarMode === "month" ? (
+                <ActivityMonthCalendarPicker
+                  value={monthFilter}
+                  onChange={setMonthFilter}
+                  compact
+                  showAllMonths={false}
+                  monthCount={dashboardMonthCount}
+                />
+              ) : (
+                <PerformanceDateCalendar
+                  value={dateFilter}
+                  onChange={setDateFilter}
+                  monthCount={dashboardMonthCount}
+                />
+              )}
+            </div>
             <button
               type="button"
               className={styles.iconBtn}
               onClick={() => {
                 void loadOverview();
                 void loadMeetingRequests();
+                setTrendsLoading(true);
+                void getPlatformAdminTrends(periodRange.from, periodRange.to)
+                  .then((next) => setTrends(next))
+                  .catch(() => setTrends(null))
+                  .finally(() => setTrendsLoading(false));
               }}
-              disabled={loading || meetingsLoading}
+              disabled={loading || meetingsLoading || trendsLoading}
               aria-label="Refresh overview"
             >
-              {loading ? (
+              {loading || trendsLoading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <RefreshCw className="size-4" />
@@ -554,266 +722,113 @@ export function SuperAdminDashboard() {
         ) : null}
 
         <div className={styles.kpiGrid}>
-          {loading && !kpis ? (
-            Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className={styles.skeleton} />
-            ))
-          ) : (
-            <>
-              <KpiCard
-                label="Total Businesses"
-                value={String(kpis?.totalBusinesses ?? 0)}
-                changePct={kpis?.businessesChangePct}
-                hint="vs prior 30 days"
-                icon={Building2}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="Active Businesses"
-                value={String(kpis?.activeBusinesses ?? 0)}
-                changePct={kpis?.activeBusinessesChangePct}
-                hint="Onboarding completed"
-                icon={ShieldCheck}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="Total Users"
-                value={String(kpis?.totalUsers ?? 0)}
-                changePct={kpis?.usersChangePct}
-                hint="vs prior 30 days"
-                icon={Users}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="New Users Today"
-                value={String(kpis?.newUsersToday ?? 0)}
-                changePct={kpis?.newUsersChangePct}
-                hint="vs yesterday"
-                icon={UserPlus}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="Orders Today"
-                value={String(kpis?.ordersToday ?? 0)}
-                changePct={kpis?.ordersChangePct}
-                hint="Paid orders"
-                icon={ShoppingBag}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="Revenue Today"
-                value={formatMoney(kpis?.revenueTodayCents ?? 0)}
-                changePct={kpis?.revenueChangePct}
-                hint="vs yesterday"
-                icon={Wallet}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-              <KpiCard
-                label="Platform Health"
-                value="99.9%"
-                hint="All systems operational"
-                icon={Activity}
-                accent={BRAND_BLUE}
-                soft="#e8f2ff"
-              />
-            </>
-          )}
+          <KpiCard
+            label="Total Businesses"
+            value={kpis?.totalBusinesses ?? 0}
+            changePct={kpis?.businessesChangePct}
+            hint="vs prior 30 days"
+            icon={Building2}
+            accent="#34a853"
+            soft="#ecfdf5"
+            ready={Boolean(kpis)}
+          />
+          <KpiCard
+            label="Total Users"
+            value={kpis?.totalUsers ?? 0}
+            changePct={kpis?.usersChangePct}
+            hint="vs prior 30 days"
+            icon={Users}
+            accent="#e1306c"
+            soft="#fdf2f8"
+            ready={Boolean(kpis)}
+          />
+          <KpiCard
+            label="Total Revenue"
+            value={periodRevenueCents}
+            hint={periodLabel}
+            icon={Wallet}
+            accent="#e1306c"
+            soft="#fdf2f8"
+            format="money"
+            ready={Boolean(trends)}
+          />
+          <KpiCard
+            label="Platform Health"
+            value={99.9}
+            hint="All systems operational"
+            icon={Activity}
+            accent="#34a853"
+            soft="#ecfdf5"
+            format="percent"
+            ready={Boolean(kpis)}
+          />
         </div>
 
         <div className={styles.chartGrid}>
-          <div className={`${styles.card} ${styles.chartCard}`}>
-            <div className={styles.cardHead}>
-              <div>
-                <h2 className={styles.cardTitle}>Revenue Overview</h2>
-                <p className={styles.cardSub}>Paid order revenue · last 30 days</p>
+          <OverviewChartShell
+            title="Total revenue"
+            subtitle={periodLabel}
+            accent="pink"
+            stat={formatMoney(periodRevenueCents)}
+            minHeightClass="min-h-[220px]"
+          >
+            {trendsLoading && !trends ? (
+              <div className={styles.loadingBox}>
+                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
               </div>
-              <p className={styles.statBig}>{formatMoney(revenue30Total)}</p>
-            </div>
-            <div className={styles.cardBody}>
-              {loading && !overview ? (
-                <div className={styles.loadingBox}>
-                  <Loader2 className="size-6 animate-spin" style={{ color: "#93c5fd" }} />
-                </div>
-              ) : (
-                <div className={styles.chartPlot}>
-                  <ResponsiveContainer width="100%" height={220} minWidth={0}>
-                    <AreaChart data={revenueChart}>
-                      <defs>
-                        <linearGradient id="saRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={BRAND_BLUE} stopOpacity={0.45} />
-                          <stop offset="100%" stopColor={BRAND_BLUE} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
-                        axisLine={false}
-                        tickLine={false}
-                        minTickGap={28}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={40}
-                      />
-                      <Tooltip
-                        {...DARK_CHART_TOOLTIP}
-                        formatter={(value) => [
-                          formatMoney(Math.round(Number(value) * 100)),
-                          "Revenue",
-                        ]}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke={BRAND_BLUE}
-                        strokeWidth={2.5}
-                        fill="url(#saRevenue)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          </div>
+            ) : (
+              <>
+                <PlatformTrendChart
+                  data={revenueChart}
+                  dataKey="value"
+                  seriesName="Revenue"
+                  stroke={OVERVIEW_CHART_COLORS.pink}
+                  money
+                />
+                <OverviewChartLegend
+                  items={[
+                    {
+                      label: "Revenue",
+                      value: formatMoney(periodRevenueCents),
+                      color: OVERVIEW_CHART_COLORS.pink,
+                    },
+                  ]}
+                />
+              </>
+            )}
+          </OverviewChartShell>
 
-          <div className={`${styles.card} ${styles.chartCard}`}>
-            <div className={styles.cardHead}>
-              <div>
-                <h2 className={styles.cardTitle}>New Businesses</h2>
-                <p className={styles.cardSub}>Registrations · last 30 days</p>
+          <OverviewChartShell
+            title="New businesses"
+            subtitle={periodLabel}
+            accent="blue"
+            stat={String(periodNewBusinesses)}
+            minHeightClass="min-h-[220px]"
+          >
+            {trendsLoading && !trends ? (
+              <div className={styles.loadingBox}>
+                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
               </div>
-              <p className={styles.statBig}>{businesses30Total}</p>
-            </div>
-            <div className={styles.cardBody}>
-              {loading && !overview ? (
-                <div className={styles.loadingBox}>
-                  <Loader2 className="size-6 animate-spin" style={{ color: "#93c5fd" }} />
-                </div>
-              ) : (
-                <div className={styles.chartPlot}>
-                  <ResponsiveContainer width="100%" height={220} minWidth={0}>
-                    <BarChart data={businessChart}>
-                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
-                        axisLine={false}
-                        tickLine={false}
-                        minTickGap={28}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fontSize: 10, fill: "rgba(255,255,255,0.45)" }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={28}
-                      />
-                      <Tooltip
-                        {...DARK_CHART_TOOLTIP}
-                        cursor={{ fill: "rgba(255,255,255,0.06)" }}
-                        formatter={(value) => [
-                          Number(value),
-                          "Registrations",
-                        ]}
-                      />
-                      <Bar
-                        dataKey="count"
-                        name="Registrations"
-                        radius={[6, 6, 0, 0]}
-                      >
-                        {businessChart.map((_, index) => (
-                          <Cell
-                            key={`biz-bar-${index}`}
-                            fill={index % 2 === 0 ? "#6b9fd4" : "#93c5fd"}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={`${styles.card} ${styles.chartCard}`}>
-            <div className={styles.cardHead}>
-              <div>
-                <h2 className={styles.cardTitle}>Subscription Overview</h2>
-                <p className={styles.cardSub}>Active / trialing plans</p>
-              </div>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.chartPlotSm}>
-                <ResponsiveContainer width="100%" height={140} minWidth={0}>
-                  <PieChart>
-                    <Pie
-                      data={subscriptionPie}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={42}
-                      outerRadius={62}
-                      paddingAngle={2}
-                    >
-                      {subscriptionPie.map((entry, i) => (
-                        <Cell
-                          key={entry.slug}
-                          fill={
-                            entry.slug === "empty"
-                              ? "rgba(255,255,255,0.12)"
-                              : CHART_PLAN_COLORS[i % CHART_PLAN_COLORS.length]
-                          }
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      {...DARK_CHART_TOOLTIP}
-                      formatter={(value, name) => [Number(value), String(name)]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className={styles.legend}>
-                {(overview?.charts.subscriptionBreakdown ?? []).map((row, i) => {
-                  const pct =
-                    subscriptionTotal > 0
-                      ? Math.round((row.count / subscriptionTotal) * 1000) / 10
-                      : 0;
-                  return (
-                    <div key={row.planSlug} className={styles.legendRow}>
-                      <span className={styles.legendLeft}>
-                        <span
-                          className={styles.swatch}
-                          style={{
-                            background: CHART_PLAN_COLORS[i % CHART_PLAN_COLORS.length],
-                          }}
-                        />
-                        {row.planName}
-                      </span>
-                      <span>
-                        {row.count} ({pct}%)
-                      </span>
-                    </div>
-                  );
-                })}
-                {(overview?.charts.subscriptionBreakdown.length ?? 0) === 0 ? (
-                  <p className={styles.empty}>No active subscriptions yet.</p>
-                ) : (
-                  <p className={styles.cardSub} style={{ marginTop: 4 }}>
-                    {subscriptionTotal} subscriptions
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+            ) : (
+              <>
+                <PlatformTrendChart
+                  data={businessChart}
+                  dataKey="count"
+                  seriesName="New businesses"
+                  stroke={OVERVIEW_CHART_COLORS.blue}
+                />
+                <OverviewChartLegend
+                  items={[
+                    {
+                      label: "New businesses",
+                      value: periodNewBusinesses.toLocaleString(),
+                      color: OVERVIEW_CHART_COLORS.blue,
+                    },
+                  ]}
+                />
+              </>
+            )}
+          </OverviewChartShell>
         </div>
 
         <div id="sa-businesses" className={`${styles.card} ${styles.tableCard}`}>
@@ -848,7 +863,6 @@ export function SuperAdminDashboard() {
                       </span>
                     </th>
                     <th>Owner</th>
-                    <th>Plan</th>
                     <th>Status</th>
                     <th>
                       <span className={styles.thSort}>
@@ -861,8 +875,6 @@ export function SuperAdminDashboard() {
                 </thead>
                 <tbody>
                   {pagedBusinesses.map((b) => {
-                    const plan = planTagMeta(b.planName, b.planSlug);
-                    const PlanIcon = plan.Icon;
                     const ownerLabel = b.ownerName?.trim() || b.ownerEmail || "Owner";
                     return (
                       <tr key={b.id}>
@@ -914,12 +926,6 @@ export function SuperAdminDashboard() {
                               </div>
                             </div>
                           </div>
-                        </td>
-                        <td>
-                          <span className={`${styles.planTag} ${plan.className}`}>
-                            <PlanIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            {plan.label}
-                          </span>
                         </td>
                         <td>
                           <span
@@ -1017,6 +1023,7 @@ export function SuperAdminDashboard() {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Plan</th>
                     <th>Status</th>
                     <th>Created</th>
                     <th>Last login</th>
@@ -1026,6 +1033,8 @@ export function SuperAdminDashboard() {
                   {pagedUsers.map((u) => {
                     const role = roleTagMeta(u.roleName);
                     const RoleIcon = role.Icon;
+                    const plan = planTagMeta(u.planName, u.planSlug);
+                    const PlanIcon = plan.Icon;
                     return (
                       <tr key={u.id}>
                         <td>
@@ -1061,6 +1070,12 @@ export function SuperAdminDashboard() {
                           <span className={`${styles.roleTag} ${role.className}`}>
                             <RoleIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
                             {role.label}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`${styles.planTag} ${plan.className}`}>
+                            <PlanIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
+                            {plan.label}
                           </span>
                         </td>
                         <td>

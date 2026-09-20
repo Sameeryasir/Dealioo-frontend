@@ -26,6 +26,7 @@ import {
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { formatCents } from "@/app/lib/money";
+import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -48,14 +49,24 @@ function OverviewKpiTile({
   icon: Icon,
   iconBg,
   hoverTone = "blue",
+  format = "number",
 }: {
   label: string;
-  value: string | number;
+  value: number;
   hint?: string;
   icon: LucideIcon;
   iconBg: string;
   hoverTone?: "blue" | "pink" | "green" | "orange";
+  format?: "number" | "money";
 }) {
+  const animated = useCountUp(value, true);
+  const display =
+    format === "money"
+      ? formatCents(Math.round(animated), "usd")
+      : String(Math.round(animated));
+  const finalLabel =
+    format === "money" ? formatCents(Math.round(value), "usd") : String(value);
+
   const hoverBorder =
     hoverTone === "pink"
       ? "hover:border-[#e1306c]/45 hover:shadow-[0_14px_32px_rgba(225,48,108,0.14)]"
@@ -90,9 +101,10 @@ function OverviewKpiTile({
           {label}
         </p>
         <p
-          className={`m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] ${hoverText}`}
+          className={`m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] tabular-nums ${hoverText}`}
+          aria-label={`${label}: ${finalLabel}`}
         >
-          {value}
+          {display}
         </p>
         {hint ? (
           <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-500">
@@ -337,11 +349,12 @@ export function BusinessActivityOverviewPanel({
               />
               <OverviewKpiTile
                 label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
-                value={formatCents(periodPaidCents, "usd")}
+                value={periodPaidCents}
                 hint={periodLabel}
                 icon={DollarSign}
                 iconBg={calendarMode === "day" ? DASHBOARD_KPI_ICON.orange : DASHBOARD_KPI_ICON.pink}
                 hoverTone={calendarMode === "day" ? "orange" : "pink"}
+                format="money"
               />
             </section>
 
