@@ -40,8 +40,6 @@ export type VerifyOtpUser = {
 
 export type VerifyOtpResponse = {
   message: string;
-  token: string;
-  refreshToken: string;
   user: VerifyOtpUser;
   isNewCustomer: boolean;
 };
@@ -67,6 +65,7 @@ export async function verifyOtp(
         otp,
       },
       {
+        withCredentials: true,
         headers: {
           "Content-Type": "application/json",
         },

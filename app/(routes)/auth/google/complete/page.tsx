@@ -3,7 +3,7 @@
 import { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GOOGLE_SIGNUP_FLAG } from "@/app/components/auth/GoogleAuthButton";
-import { setAuthTokens } from "@/app/lib/auth-session";
+import { markAuthSession } from "@/app/lib/auth-session";
 import { trackProductCompleteRegistration } from "@/app/lib/product-meta-pixel";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
@@ -20,21 +20,17 @@ function GoogleAuthCompleteInner() {
     async function finish() {
       const hash = window.location.hash.replace(/^#/, "");
       const params = new URLSearchParams(hash);
-      const accessToken = params.get("accessToken")?.trim();
-      const refreshToken = params.get("refreshToken")?.trim();
       const userB64 = params.get("user")?.trim();
-      // Backend source of truth (isNewCustomer preferred; isNewUser fallback).
       const isNewCustomer =
         params.get("isNewCustomer") === "1" || params.get("isNewUser") === "1";
 
       window.history.replaceState(null, "", window.location.pathname);
 
-      if (!accessToken || !refreshToken) {
+      const user = parseGoogleUser(userB64);
+      if (!user) {
         router.replace("/auth/login?error=Google+sign-in+failed.");
         return;
       }
-
-      const user = parseGoogleUser(userB64);
 
       // Clear legacy signup click flag; do not use it for CompleteRegistration.
       try {
@@ -51,7 +47,7 @@ function GoogleAuthCompleteInner() {
         });
       }
 
-      setAuthTokens(accessToken, refreshToken);
+      markAuthSession();
       if (user) {
         setSetupUser(user);
       }

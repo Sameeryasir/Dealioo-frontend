@@ -230,8 +230,6 @@ export async function validateBusinessInvitation(
 export type RegisterWithInvitationResponse = {
   message: string;
   businessId?: number;
-  token: string;
-  refreshToken: string;
   user: VerifyOtpUser;
   isNewCustomer: boolean;
 };
@@ -239,8 +237,6 @@ export type RegisterWithInvitationResponse = {
 export type AcceptInvitationResponse = {
   message: string;
   businessId: number;
-  token: string;
-  refreshToken: string;
   user: VerifyOtpUser;
 };
 
@@ -280,6 +276,7 @@ export async function registerWithInvitation(input: {
         ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
       },
       {
+        withCredentials: true,
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       },
     );

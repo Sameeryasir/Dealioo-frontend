@@ -5,7 +5,7 @@ import SignupForm from "@/app/components/SignupForm";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
-import { setAuthTokens } from "@/app/lib/auth-session";
+import { markAuthSession } from "@/app/lib/auth-session";
 import { resolveInviteAuthHrefs } from "@/app/lib/invite-auth-links";
 import {
   trackProductCompleteRegistration,
@@ -143,7 +143,7 @@ function SignupPageInner() {
           });
           const accountEmail = inviteResult.user.email || values.email;
           setCredentials(accountEmail, values.password);
-          setAuthTokens(inviteResult.token, inviteResult.refreshToken);
+          markAuthSession();
           setSetupUser(inviteResult.user);
           if (inviteResult.isNewCustomer) {
             trackProductLead("signup_form_invite", {
@@ -196,17 +196,14 @@ function SignupPageInner() {
       setErrorMessage(null);
       setSubmitting(true);
       try {
-        const { token, refreshToken, user, isNewCustomer } = await verifyOtp(
-          email,
-          otp,
-        );
+        const { user, isNewCustomer } = await verifyOtp(email, otp);
         trackProductCompleteRegistration({
           email: user.email || email,
           phone: user.phone || undefined,
           externalId: String(user.id),
           isNewCustomer,
         });
-        setAuthTokens(token, refreshToken);
+        markAuthSession();
         setSetupUser(user);
       } catch (error) {
         const message =

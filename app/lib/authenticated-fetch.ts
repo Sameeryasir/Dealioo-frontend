@@ -1,9 +1,5 @@
 import { fetchWithTimeout } from "@/app/lib/api";
-import {
-  clearAuthSession,
-  getSetupAccessToken,
-} from "@/app/lib/auth-session";
-import { getSetupRefreshToken } from "@/app/lib/setup-refresh-token";
+import { clearAuthSession, hasAuthSession } from "@/app/lib/auth-session";
 import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 export function redirectToLogin(): void {
@@ -17,20 +13,17 @@ export async function authenticatedFetch(
   init: RequestInit = {},
   timeoutMs?: number,
 ): Promise<Response> {
-  const token = getSetupAccessToken().trim();
-  const refreshToken = getSetupRefreshToken().trim();
-
-  if (!token && !refreshToken) {
+  if (!hasAuthSession()) {
     redirectToLogin();
     throw new Error("Missing session. Sign in again.");
   }
 
-  const headers = new Headers(init.headers);
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
+  const requestInit: RequestInit = {
+    ...init,
+    credentials: "include",
+  };
 
-  let res = await fetchWithTimeout(input, { ...init, headers }, timeoutMs);
+  let res = await fetchWithTimeout(input, requestInit, timeoutMs);
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
@@ -39,8 +32,7 @@ export async function authenticatedFetch(
       throw new Error("Session expired. Please sign in again.");
     }
 
-    headers.set("Authorization", `Bearer ${newToken}`);
-    res = await fetchWithTimeout(input, { ...init, headers }, timeoutMs);
+    res = await fetchWithTimeout(input, requestInit, timeoutMs);
 
     if (res.status === 401) {
       redirectToLogin();

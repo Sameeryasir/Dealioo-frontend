@@ -7,7 +7,7 @@ import { GuestOnlyRoute } from "@/app/components/ProtectedRoute";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { isEmailNotVerifiedError } from "@/app/lib/auth-api-error";
 import { normalizeAuthEmail } from "@/app/lib/auth-password";
-import { setAuthTokens } from "@/app/lib/auth-session";
+import { markAuthSession } from "@/app/lib/auth-session";
 import {
   resolveInviteAuthHrefs,
   resolvePostAuthDestination,
@@ -69,11 +69,8 @@ function LoginPageInner() {
       setSubmitting(true);
       const normalizedEmail = normalizeAuthEmail(email);
       try {
-        const { token, refreshToken, user } = await login(
-          normalizedEmail,
-          password,
-        );
-        setAuthTokens(token, refreshToken);
+        const { user } = await login(normalizedEmail, password);
+        markAuthSession();
         setSetupUser(user);
         rememberCredentials(normalizedEmail, password);
 
@@ -132,12 +129,8 @@ function LoginPageInner() {
       setSubmitting(true);
       const normalizedEmail = normalizeAuthEmail(email);
       try {
-        const { token, refreshToken, user } = await resetPassword(
-          normalizedEmail,
-          otp,
-          password,
-        );
-        setAuthTokens(token, refreshToken);
+        const { user } = await resetPassword(normalizedEmail, otp, password);
+        markAuthSession();
         setSetupUser(user);
         rememberCredentials(normalizedEmail, password);
 

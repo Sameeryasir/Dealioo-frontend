@@ -1,20 +1,13 @@
-const STORAGE_KEY = "refreshToken";
-
-function assertClient(): boolean {
-  return typeof window !== "undefined";
-}
-
-export function setSetupRefreshToken(token: string): void {
-  if (!assertClient()) return;
-  localStorage.setItem(STORAGE_KEY, token);
+export function setSetupRefreshToken(_token?: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem("refreshToken");
+  window.sessionStorage.removeItem("refreshToken");
 }
 
 export function getSetupRefreshToken(): string {
-  if (!assertClient()) return "";
-  return localStorage.getItem(STORAGE_KEY) ?? "";
+  return "";
 }
 
 export function clearSetupRefreshToken(): void {
-  if (!assertClient()) return;
-  localStorage.removeItem(STORAGE_KEY);
+  setSetupRefreshToken();
 }

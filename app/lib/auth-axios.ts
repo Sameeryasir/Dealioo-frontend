@@ -1,23 +1,19 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { getApiBaseUrl } from "@/app/lib/api";
-import {
-  clearAuthSession,
-  getSetupAccessToken,
-} from "@/app/lib/auth-session";
+import { clearAuthSession } from "@/app/lib/auth-session";
 import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
 
-export const authAxios = axios.create();
+export const authAxios = axios.create({
+  withCredentials: true,
+});
 
 authAxios.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
-  const token = getSetupAccessToken().trim();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  config.withCredentials = true;
   if (config.data instanceof FormData) {
     config.headers.delete("Content-Type");
   }
@@ -43,7 +39,6 @@ authAxios.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    original.headers.Authorization = `Bearer ${newToken}`;
     return authAxios(original);
   },
 );

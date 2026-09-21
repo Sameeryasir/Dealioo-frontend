@@ -4,7 +4,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { hasAuthSession, setAuthTokens } from "@/app/lib/auth-session";
+import { hasAuthSession, markAuthSession } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import {
   acceptBusinessInvitation,
@@ -55,7 +55,7 @@ function AcceptInvitationInner() {
         setStatusMessage("Accepting your invitation…");
         const accepted = await acceptBusinessInvitation(token);
         if (cancelled) return;
-        setAuthTokens(accepted.token, accepted.refreshToken);
+        markAuthSession();
         setSetupUser(accepted.user);
         router.replace("/dashboard");
       } catch (err) {

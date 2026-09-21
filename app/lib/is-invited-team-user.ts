@@ -35,9 +35,21 @@ function getRoleNameFromAccessToken(): string | null {
 function getRoleNameFromRawStoredUser(): string | null {
   if (typeof window === "undefined") return null;
 
+  const prefix = "dealioo_user=";
+  let raw = "";
+  for (const part of document.cookie.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith(prefix)) continue;
+    try {
+      raw = decodeURIComponent(trimmed.slice(prefix.length));
+    } catch {
+      raw = trimmed.slice(prefix.length);
+    }
+    break;
+  }
+  if (!raw) return null;
+
   try {
-    const raw = localStorage.getItem("user");
-    if (!raw) return null;
     const parsed = JSON.parse(raw) as { role?: { name?: unknown } };
     const name = parsed?.role?.name;
     return typeof name === "string" && name.trim() ? name.trim() : null;

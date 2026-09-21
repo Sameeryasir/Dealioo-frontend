@@ -4,20 +4,14 @@ import {
   parseApiErrorMessage,
 } from "@/app/lib/api";
 
-export type RefreshTokenResponse = {
-  token: string;
-  refreshToken: string;
-};
-
-export async function refreshAuthTokens(
-  refreshToken: string,
-): Promise<RefreshTokenResponse> {
+export async function refreshAuthTokens(): Promise<void> {
   const res = await fetchWithTimeout(`${getApiBaseUrl()}/auth/refresh`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify({}),
   });
 
   if (!res.ok) {
@@ -25,6 +19,4 @@ export async function refreshAuthTokens(
       await parseApiErrorMessage(res, "Could not refresh session."),
     );
   }
-
-  return res.json() as Promise<RefreshTokenResponse>;
 }

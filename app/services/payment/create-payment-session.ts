@@ -73,12 +73,14 @@ export async function createPaymentSession(
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
-  if (accessToken?.trim()) {
-    headers.Authorization = `Bearer ${accessToken.trim()}`;
+  const token = accessToken?.trim() ?? "";
+  if (token.includes(".")) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(`${getApiBaseUrl()}/payment/session`, {
     method: "POST",
+    credentials: "include",
     headers,
     body: JSON.stringify(body),
   });

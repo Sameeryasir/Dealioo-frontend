@@ -3,8 +3,7 @@ import {
   parseApiErrorMessage,
 } from "@/app/lib/api";
 import { authenticatedFetch, redirectToLogin } from "@/app/lib/authenticated-fetch";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { getSetupRefreshToken } from "@/app/lib/setup-refresh-token";
+import { hasAuthSession } from "@/app/lib/auth-session";
 
 export class AutomationApiError extends Error {
   readonly status: number;
@@ -24,9 +23,7 @@ export async function automationFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = getSetupAccessToken().trim();
-  const refreshToken = getSetupRefreshToken().trim();
-  if (!token && !refreshToken) {
+  if (!hasAuthSession()) {
     redirectIfUnauthenticated();
     throw new AutomationApiError("Missing access token. Sign in again.", 401);
   }

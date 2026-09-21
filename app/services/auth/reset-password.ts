@@ -16,6 +16,7 @@ export async function resetPassword(
         password,
       },
       {
+        withCredentials: true,
         headers: {
           "Content-Type": "application/json",
         },

@@ -16,13 +16,17 @@ function notifyAuthSessionChanged(): void {
   window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
 }
 
-export function setAuthTokens(accessToken: string, refreshToken: string): void {
-  setSetupAccessToken(accessToken);
-  setSetupRefreshToken(refreshToken);
+export function markAuthSession(): void {
+  setSetupAccessToken();
+  setSetupRefreshToken();
   notifyAuthSessionChanged();
   void import("@/app/lib/sync-product-meta-attribution")
     .then((m) => m.syncProductMetaAttributionAfterAuth())
     .catch(() => {});
+}
+
+export function setAuthTokens(_accessToken?: string, _refreshToken?: string): void {
+  markAuthSession();
 }
 
 export function clearAuthSession(): void {
@@ -35,9 +39,7 @@ export function clearAuthSession(): void {
 }
 
 export function hasAuthSession(): boolean {
-  return Boolean(
-    getSetupAccessToken().trim() || getSetupRefreshToken().trim(),
-  );
+  return Boolean(getSetupAccessToken().trim());
 }
 
 export { getSetupAccessToken, getSetupRefreshToken };

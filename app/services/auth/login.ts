@@ -6,8 +6,6 @@ import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
 export type LoginResponse = {
   message: string;
-  token: string;
-  refreshToken: string;
   user: VerifyOtpUser;
 };
 
@@ -23,6 +21,7 @@ export async function login(
         password,
       },
       {
+        withCredentials: true,
         headers: {
           "Content-Type": "application/json",
         },

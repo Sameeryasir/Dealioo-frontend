@@ -4,7 +4,7 @@ import OtpForm from "@/app/components/OtpForm";
 import AuthPageShell, { AuthPageLoading } from "@/app/components/brand/AuthPageShell";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
-import { setAuthTokens } from "@/app/lib/auth-session";
+import { markAuthSession } from "@/app/lib/auth-session";
 import { setSetupUser } from "@/app/lib/setup-user";
 import { sendOtp } from "@/app/services/auth/send-otp";
 import { verifyOtp } from "@/app/services/auth/verify-otp";
@@ -34,8 +34,8 @@ function VerifyOtpPageInner() {
 
   const onVerifyOtp = useCallback(
     async (otp: number) => {
-      const { token, refreshToken, user } = await verifyOtp(email, otp);
-      setAuthTokens(token, refreshToken);
+      const { user } = await verifyOtp(email, otp);
+      markAuthSession();
       setSetupUser(user);
 
       const destination = await fetchAuthenticatedOnboardingDestination();

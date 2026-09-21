@@ -1,6 +1,8 @@
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
-const STORAGE_KEY = "user";
+const USER_COOKIE = "dealioo_user";
+const LEGACY_STORAGE_KEY = "user";
+const TEN_DAYS_SECONDS = 60 * 60 * 24 * 10;
 
 function assertClient(): boolean {
   return typeof window !== "undefined";
@@ -47,9 +49,48 @@ function isVerifyOtpUser(value: unknown): value is VerifyOtpUser {
   );
 }
 
+function readCookie(name: string): string {
+  if (!assertClient()) return "";
+  const prefix = `${name}=`;
+  for (const part of document.cookie.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith(prefix)) continue;
+    try {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    } catch {
+      return trimmed.slice(prefix.length);
+    }
+  }
+  return "";
+}
+
+function writeUserCookie(raw: string): void {
+  document.cookie = `${USER_COOKIE}=${encodeURIComponent(raw)}; Path=/; Max-Age=${TEN_DAYS_SECONDS}; SameSite=Lax`;
+}
+
+function clearUserCookie(): void {
+  document.cookie = `${USER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function clearLegacyUserStorage(): void {
+  if (!assertClient()) return;
+  window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+}
+
+function parseStoredUser(raw: string): VerifyOtpUser | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return isVerifyOtpUser(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setSetupUser(user: VerifyOtpUser): void {
   if (!assertClient()) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  clearLegacyUserStorage();
+  writeUserCookie(JSON.stringify(user));
 }
 
 export function mergeSetupUser(partial: Partial<VerifyOtpUser>): void {
@@ -61,17 +102,20 @@ export function mergeSetupUser(partial: Partial<VerifyOtpUser>): void {
 
 export function getSetupUser(): VerifyOtpUser | null {
   if (!assertClient()) return null;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return isVerifyOtpUser(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+
+  const fromCookie = parseStoredUser(readCookie(USER_COOKIE));
+  if (fromCookie) return fromCookie;
+
+  const legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY) ?? "";
+  const fromLegacy = parseStoredUser(legacyRaw);
+  if (!fromLegacy) return null;
+  writeUserCookie(JSON.stringify(fromLegacy));
+  clearLegacyUserStorage();
+  return fromLegacy;
 }
 
 export function clearSetupUser(): void {
   if (!assertClient()) return;
-  localStorage.removeItem(STORAGE_KEY);
+  clearUserCookie();
+  clearLegacyUserStorage();
 }
