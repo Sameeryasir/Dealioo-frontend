@@ -355,8 +355,7 @@ export function BusinessBundleOpportunitiesPanel({
       businessId > 0 &&
       campaignId != null &&
       campaignId > 0,
-    staleTime: 15_000,
-    refetchOnMount: "always",
+    staleTime: 30_000,
     queryFn: () =>
       getCampaignAddonSuggestions(businessId, {
         from: range.from,

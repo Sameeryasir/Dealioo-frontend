@@ -295,7 +295,6 @@ export function BusinessCampaignsPanel({
       const deletedId = campaignPendingDelete.id;
       setCampaignPendingDelete(null);
       toast.success("Campaign deleted.");
-      // Update React Query client immediately, then refresh from server.
       removeCampaignFromQueryClient(queryClient, businessId, deletedId);
       await queryClient.invalidateQueries({
         queryKey: [...funnelQueryKeys.campaigns(), businessId],
@@ -457,6 +456,7 @@ export function BusinessCampaignsPanel({
       void Promise.all([
         queryClient.invalidateQueries({
           queryKey: [...funnelQueryKeys.campaigns(), businessId],
+          refetchType: "none",
         }),
         queryClient.invalidateQueries({
           queryKey: ["business-activity-events", businessId],

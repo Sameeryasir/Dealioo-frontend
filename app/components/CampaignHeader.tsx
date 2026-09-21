@@ -151,7 +151,7 @@ export default function CampaignHeader({
             <button
               type="button"
               onClick={toggleSidebar}
-              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30 md:hidden"
+              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
               aria-expanded={sidebarExpanded}
               aria-controls="rd-sidebar-nav"
               aria-label={sidebarExpanded ? "Close menu" : "Open menu"}

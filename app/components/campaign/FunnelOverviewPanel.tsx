@@ -253,7 +253,7 @@ export function FunnelOverviewPanel({
       periodRange.to,
     ],
     enabled: funnelId != null && funnelId > 0,
-    staleTime: 15_000,
+    staleTime: 30_000,
     queryFn: () =>
       getFunnelStatsMonthly(funnelId!, {
         from: periodRange.from,
@@ -268,7 +268,7 @@ export function FunnelOverviewPanel({
       periodRange.to,
     ],
     enabled: funnelId != null && funnelId > 0,
-    staleTime: 15_000,
+    staleTime: 30_000,
     queryFn: () =>
       getAnalyticsOverviewMonthly(funnelId!, {
         from: periodRange.from,

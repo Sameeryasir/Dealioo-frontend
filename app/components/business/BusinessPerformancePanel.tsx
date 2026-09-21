@@ -1154,8 +1154,7 @@ export function BusinessPerformancePanel({
       monthRange.to,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
-    staleTime: 15_000,
-    refetchOnMount: "always",
+    staleTime: 30_000,
     queryFn: () =>
       getBusinessTopEarningCampaigns(businessId, {
         from: monthRange.from,
@@ -1172,8 +1171,7 @@ export function BusinessPerformancePanel({
       monthRange.to,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
-    staleTime: 15_000,
-    refetchOnMount: "always",
+    staleTime: 30_000,
     queryFn: () =>
       getCampaignAddonCounts(businessId, {
         from: monthRange.from,
