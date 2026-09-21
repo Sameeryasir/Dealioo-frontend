@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Ads Tracking screen matches the Connect tracking pixels card UI.
- * Why: Connected vs not-connected should read like the settings mock (badges, accent bar, toggle).
- * Related: business-tracking.ts, ads-tracking pages
- */
-
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
@@ -117,14 +111,6 @@ function TrackingCard({
 
 export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [pixelId, setPixelId] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [hasAccessTokenSaved, setHasAccessTokenSaved] = useState(false);
-  const [hasCapiReady, setHasCapiReady] = useState(false);
-  const [capiCredentialSource, setCapiCredentialSource] = useState<
-    "tracking_token" | "meta_oauth" | null
-  >(null);
-  const [hasGoogleUploadReady, setHasGoogleUploadReady] = useState(false);
-  const [clearAccessToken, setClearAccessToken] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [gtmId, setGtmId] = useState("");
   const [signupConversionLabel, setSignupConversionLabel] = useState("");
@@ -234,12 +220,12 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
   useEffect(() => {
     let cancelled = false;
-    const cleanups: { pixels?: () => void; gtm?: () => void } = {};
     setHasLoadedSaved(false);
 
+    const cancelPixels = loadPixels({ keepCurrentIfSet: true });
+    const cancelGtm = loadGtmContainers({ keepCurrentIfSet: true });
+
     void (async () => {
-      let savedPixelId = "";
-      let savedGtmId = "";
       let nextPixelId = "";
       let nextGtmId = "";
       let nextSignupConversionLabel = "";
@@ -252,12 +238,10 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         if (cancelled) return;
 
         if (saved?.pixelId?.trim()) {
-          savedPixelId = saved.pixelId.trim();
-          nextPixelId = savedPixelId;
+          nextPixelId = saved.pixelId.trim();
         }
         if (saved?.googleTagManagerId?.trim()) {
-          savedGtmId = saved.googleTagManagerId.trim();
-          nextGtmId = savedGtmId;
+          nextGtmId = saved.googleTagManagerId.trim();
         }
         if (saved?.googleAdsSignupConversionLabel?.trim()) {
           nextSignupConversionLabel = saved.googleAdsSignupConversionLabel.trim();
@@ -271,26 +255,15 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         }
         if (saved) {
           nextIsActive = saved.isActive;
-          setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
-          setHasCapiReady(Boolean(saved.hasCapiReady));
-          setCapiCredentialSource(saved.capiCredentialSource ?? null);
-          setHasGoogleUploadReady(Boolean(saved.hasGoogleUploadReady));
-        } else {
-          setHasAccessTokenSaved(false);
-          setHasCapiReady(false);
-          setCapiCredentialSource(null);
-          setHasGoogleUploadReady(false);
         }
-        setAccessToken("");
-        setClearAccessToken(false);
       } catch {
         // Keep empty defaults when tracking has not been saved yet.
       }
 
       if (cancelled) return;
 
-      setPixelId(nextPixelId);
-      setGtmId(nextGtmId);
+      if (nextPixelId) setPixelId(nextPixelId);
+      if (nextGtmId) setGtmId(nextGtmId);
       setSignupConversionLabel(nextSignupConversionLabel);
       setPurchaseConversionLabel(nextPurchaseConversionLabel);
       setLeadConversionLabel(nextLeadConversionLabel);
@@ -306,21 +279,12 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
         ),
       );
       setHasLoadedSaved(true);
-
-      if (!savedPixelId) {
-        cleanups.pixels = loadPixels();
-        if (cancelled) cleanups.pixels();
-      }
-      if (!savedGtmId) {
-        cleanups.gtm = loadGtmContainers();
-        if (cancelled) cleanups.gtm();
-      }
     })();
 
     return () => {
       cancelled = true;
-      cleanups.pixels?.();
-      cleanups.gtm?.();
+      cancelPixels();
+      cancelGtm();
     };
   }, [businessId, loadPixels, loadGtmContainers]);
 
@@ -362,13 +326,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     ],
   );
   const hasUnsavedChanges =
-    hasLoadedSaved &&
-    (!isSameTrackingForm(currentForm, savedForm) ||
-      Boolean(accessToken.trim()) ||
-      clearAccessToken);
+    hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
 
   const metaConnected = Boolean(pixelId.trim());
-  const capiReady = hasCapiReady || Boolean(accessToken.trim());
   const gtmConnected = Boolean(gtmId.trim());
   const trackingActive = isActive && metaConnected;
 
@@ -394,31 +354,16 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     setSaveError(null);
     setSaveSuccess(null);
     try {
-      const saved = await saveBusinessTracking(businessId, {
+      await saveBusinessTracking(businessId, {
         pixelId: payload.pixelId,
         googleTagManagerId: payload.gtmId,
         googleAdsSignupConversionLabel: payload.signupConversionLabel,
         googleAdsPurchaseConversionLabel: payload.purchaseConversionLabel,
         googleAdsLeadConversionLabel: payload.leadConversionLabel,
         isActive: payload.isActive,
-        ...(accessToken.trim()
-          ? { accessToken: accessToken.trim() }
-          : clearAccessToken
-            ? { accessToken: "" }
-            : {}),
       });
       setSavedForm(payload);
-      setAccessToken("");
-      setClearAccessToken(false);
-      setHasAccessTokenSaved(Boolean(saved.hasAccessToken));
-      setHasCapiReady(Boolean(saved.hasCapiReady));
-      setCapiCredentialSource(saved.capiCredentialSource ?? null);
-      setHasGoogleUploadReady(Boolean(saved.hasGoogleUploadReady));
-      setSaveSuccess(
-        saved.hasCapiReady || saved.hasGoogleUploadReady
-          ? "Tracking saved. Server-side ad conversions are ready where connected."
-          : "Tracking IDs saved. Connect Meta/Google Ads and add conversion labels for server tracking.",
-      );
+      setSaveSuccess("Tracking IDs saved.");
     } catch (err: unknown) {
       setSaveError(
         err instanceof Error ? err.message : "Could not save tracking IDs.",
@@ -563,63 +508,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             a different Pixel ID manually. Leave empty if not used.
           </p>
 
-          <div className="mt-4 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-[#07111f]">
-                Server conversions (CAPI)
-              </p>
-              <ConnectionBadge connected={capiReady && metaConnected} />
-            </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              {capiReady && metaConnected
-                ? capiCredentialSource === "tracking_token" ||
-                  hasAccessTokenSaved ||
-                  accessToken.trim()
-                  ? "Ready using your saved Conversions API access token."
-                  : "Ready using your connected Meta Ads login (same token used to load pixels)."
-                : "Needs a Pixel ID plus Meta Ads connected, or a dedicated Conversions API access token below. This is how Meta still gets purchases when the browser Pixel is blocked."}
-            </p>
-          </div>
-
-          <label className="mt-4 block text-sm font-semibold text-[#07111f]">
-            Conversions API access token (optional)
-            <span className="relative mt-1.5 block">
-              <input
-                type="password"
-                autoComplete="off"
-                value={accessToken}
-                onChange={(e) => {
-                  setAccessToken(e.target.value);
-                  if (e.target.value.trim()) setClearAccessToken(false);
-                }}
-                placeholder={
-                  hasAccessTokenSaved
-                    ? "Token saved — paste a new one to replace"
-                    : "Paste token from Meta Events Manager (optional)"
-                }
-                className={`${fieldClass} mt-0`}
-              />
-            </span>
-          </label>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="text-xs leading-relaxed text-slate-500">
-              Leave blank to use Meta Ads OAuth when connected. Only needed if
-              you want a dedicated system-user / Events Manager token.
-            </p>
-            {hasAccessTokenSaved ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setClearAccessToken(true);
-                  setAccessToken("");
-                }}
-                className="text-xs font-semibold text-rose-600 hover:underline"
-              >
-                {clearAccessToken ? "Will clear on save" : "Clear saved token"}
-              </button>
-            ) : null}
-          </div>
-
           <div className="mt-5 flex flex-col gap-3 border-t border-[#eef2f7] pt-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
             <button
               type="button"
@@ -749,64 +637,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             Your Google Ads tag ID (for example AW-18263528050). Use the Ads tag
             ID here — not a GTM- container ID.
           </p>
-
-          <div className="mt-4 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-[#07111f]">
-                Server conversions (Google Ads upload)
-              </p>
-              <ConnectionBadge
-                connected={hasGoogleUploadReady && gtmConnected}
-              />
-            </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              {hasGoogleUploadReady && gtmConnected
-                ? "Ready: browser gtag plus server uploadClickConversions using your connected Google Ads account."
-                : "Needs an AW- tag ID, at least one conversion label, and Google Ads connected in Settings. This is how Google still gets conversions when the browser tag is blocked."}
-            </p>
-          </div>
-
-          <div className="mt-5 space-y-4 border-t border-[#eef2f7] pt-4">
-            <p className="text-sm font-semibold text-[#07111f]">
-              Conversion labels
-            </p>
-            <p className="text-xs leading-relaxed text-slate-500">
-              Copy each label from Google Ads when you create a conversion
-              action. Browser sends gtag conversions; the server also uploads
-              click conversions with the same gclid when ads attribution is
-              present.
-            </p>
-
-            <label className="block text-sm font-medium text-[#07111f]">
-              Signup conversion label
-              <input
-                value={signupConversionLabel}
-                onChange={(e) => setSignupConversionLabel(e.target.value)}
-                placeholder="Signup label from Google Ads"
-                className={fieldClass}
-              />
-            </label>
-
-            <label className="block text-sm font-medium text-[#07111f]">
-              Purchase conversion label
-              <input
-                value={purchaseConversionLabel}
-                onChange={(e) => setPurchaseConversionLabel(e.target.value)}
-                placeholder="Purchase label from Google Ads"
-                className={fieldClass}
-              />
-            </label>
-
-            <label className="block text-sm font-medium text-[#07111f]">
-              Lead conversion label
-              <input
-                value={leadConversionLabel}
-                onChange={(e) => setLeadConversionLabel(e.target.value)}
-                placeholder="Lead label from Google Ads"
-                className={fieldClass}
-              />
-            </label>
-          </div>
         </TrackingCard>
 
         {saveError ? (

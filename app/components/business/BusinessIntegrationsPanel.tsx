@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 type ConnectStatus = "idle" | "loading" | "error";
@@ -310,6 +310,7 @@ export function BusinessIntegrationsPanel({
   focus = "",
 }: BusinessIntegrationsPanelProps) {
   const queryClient = useQueryClient();
+  const namesSoftRefetchDone = useRef(false);
   const [stripeBusy, setStripeBusy] = useState<ConnectStatus>("idle");
   const [stripeActionError, setStripeActionError] = useState<string | null>(null);
   const [metaBusy, setMetaBusy] = useState<ConnectStatus>("idle");
@@ -340,8 +341,8 @@ export function BusinessIntegrationsPanel({
     queryFn: () => getIntegrationsStatus(businessId),
     enabled: businessId > 0,
     staleTime: 30_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const statusInitialLoading = statusQuery.isLoading;
@@ -383,13 +384,41 @@ export function BusinessIntegrationsPanel({
   const twilioNumber = twilioQuery.selectedPhoneNumber?.trim() || "";
   const twilioCredentialsConnected = Boolean(twilioQuery.credentialsConnected);
   const twilioConnected = twilioCredentialsConnected || Boolean(twilioNumber);
-  const twilioInitialLoading = twilioQuery.isLoading;
   const twilioRefreshing =
     twilioQuery.isFetching && !twilioQuery.isLoading && Boolean(twilioQuery.data);
 
-  const panelReady = !statusInitialLoading && !twilioInitialLoading;
+  const panelReady = !statusInitialLoading;
   const panelRefreshing = statusRefreshing || twilioRefreshing;
   const loadError = statusError || twilioQuery.error;
+
+  useEffect(() => {
+    namesSoftRefetchDone.current = false;
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!statusQuery.isSuccess || !statusQuery.data) return;
+    if (namesSoftRefetchDone.current) return;
+    const data = statusQuery.data;
+    const missingName =
+      (data.facebook.connected &&
+        data.facebook.metaAdAccountId &&
+        !data.facebook.metaAdAccountName) ||
+      (data.googleAds.connected &&
+        data.googleAds.googleCustomerId &&
+        !data.googleAds.googleCustomerName) ||
+      (data.stripe.connected &&
+        data.stripe.stripeAccountId &&
+        !data.stripe.stripeAccountName);
+    if (!missingName) return;
+
+    namesSoftRefetchDone.current = true;
+    const timer = window.setTimeout(() => {
+      void queryClient.invalidateQueries({
+        queryKey: integrationsStatusQueryKey(businessId),
+      });
+    }, 2_000);
+    return () => window.clearTimeout(timer);
+  }, [businessId, queryClient, statusQuery.data, statusQuery.isSuccess]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
