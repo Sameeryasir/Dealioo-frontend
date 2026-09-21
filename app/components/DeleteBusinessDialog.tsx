@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - What: Rebuilt the delete-business dialog into a dedicated danger confirmation UI.
- * - Why: The shared blue ConfirmDialog felt weak for a permanent delete action.
- * - Related: BusinessDashboardCard.tsx
- * - MCP: Context 7 — clear irreversible-action UX with typed confirmation.
- */
-
 import { Building2, Loader2, ShieldAlert, X } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 
