@@ -17089,3 +17089,37 @@ iframe[name*="assistant" i] {
   height: 0 !important;
   opacity: 0 !important;
 }
+
+.rd-perf-chart-mount {
+  will-change: clip-path;
+}
+
+.rd-perf-chart-mount.rd-perf-chart-pending {
+  clip-path: inset(0 100% 0 0);
+}
+
+.rd-perf-chart-mount.rd-perf-chart-drawing {
+  animation: rd-perf-chart-wipe 2.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.rd-perf-chart-mount.rd-perf-chart-drawn {
+  clip-path: inset(0 0 0 0);
+}
+
+@keyframes rd-perf-chart-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-perf-chart-mount.rd-perf-chart-pending,
+  .rd-perf-chart-mount.rd-perf-chart-drawing,
+  .rd-perf-chart-mount.rd-perf-chart-drawn {
+    clip-path: none;
+    animation: none;
+  }
+}

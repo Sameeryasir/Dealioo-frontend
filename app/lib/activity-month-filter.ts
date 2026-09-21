@@ -154,7 +154,7 @@ export function buildActivityMonthFilterOptions(
 
   options.push({
     id: ACTIVITY_ALL_MONTHS_ID,
-    label: `All months (last ${monthCount})`,
+    label: "All months",
     from: allFrom.toISOString(),
     to: endOfTodayUtc.toISOString(),
   });

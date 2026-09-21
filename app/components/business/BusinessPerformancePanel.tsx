@@ -6,6 +6,7 @@ import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts
 import { Skeleton } from "@/app/components/skeleton";
 import {
   ACTIVITY_ALL_MONTHS_ID,
+  activityCalendarYearMonthCount,
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
   formatActivityMonthLabel,
@@ -43,8 +44,10 @@ import {
   Link2,
   Megaphone,
   PackageSearch,
+  Percent,
   Trophy,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -79,13 +82,61 @@ const CAMPAIGN_TONES = [
   { soft: "bg-[#fff7ed]", ink: "text-[#f77737]", line: "bg-[#f77737]" },
 ] as const;
 const PERFORMANCE_CHART_HEIGHT_PX = 360;
+const PERF_CHART_REVEAL_MS = 2600;
 
-function PerformanceChartMount({ children }: { children: ReactNode }) {
+function PerformanceChartMount({
+  children,
+  drawKey,
+}: {
+  children: ReactNode;
+  drawKey: string;
+}) {
   const [ready, setReady] = useState(false);
+  const [activeKey, setActiveKey] = useState(drawKey);
+  const [clipped, setClipped] = useState(true);
+  const [animate, setAnimate] = useState(false);
+
+  if (activeKey !== drawKey) {
+    setActiveKey(drawKey);
+    setClipped(true);
+    setAnimate(false);
+  }
+
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setReady(true));
     return () => window.cancelAnimationFrame(id);
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setClipped(false);
+      setAnimate(false);
+      return;
+    }
+
+    setClipped(true);
+    setAnimate(false);
+
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setAnimate(true);
+        setClipped(false);
+      });
+    });
+
+    const doneId = window.setTimeout(() => {
+      setAnimate(false);
+    }, PERF_CHART_REVEAL_MS + 80);
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+      window.clearTimeout(doneId);
+    };
+  }, [ready, drawKey]);
 
   if (!ready) {
     return (
@@ -97,7 +148,21 @@ function PerformanceChartMount({ children }: { children: ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div
+      key={drawKey}
+      className="rd-perf-chart-mount h-full w-full min-w-0"
+      style={{
+        clipPath: clipped ? "inset(0 100% 0 0)" : "inset(0 0 0 0)",
+        transition: animate
+          ? `clip-path ${PERF_CHART_REVEAL_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
+          : "none",
+        willChange: "clip-path",
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 type PerformanceScoreBreakdown = {
@@ -215,6 +280,173 @@ function formatConversionRate(views: number, paidOrders: number): string {
   return `${rate}%`;
 }
 
+/** Below this, conversion rankings are treated as early signals only. */
+const MIN_VIEWS_FOR_TRUSTED_CONVERSION = 40;
+/** Need enough paid orders before suggesting “promote more”. */
+const MIN_ORDERS_FOR_PROMOTE_HINT = 8;
+/** Gap (percentage points) before calling conversion “much weaker”. */
+const WEAK_CONVERSION_GAP_PP = 8;
+
+function avgOrderValueCents(
+  earningsCents: number,
+  orderCount: number,
+): number | null {
+  if (orderCount <= 0) return null;
+  return Math.max(0, Math.round(earningsCents / orderCount));
+}
+
+function funnelStepRate(fromCount: number, toCount: number): number | null {
+  if (fromCount <= 0) return null;
+  return Math.min(100, Math.round((toCount / fromCount) * 10000) / 100);
+}
+
+function campaignDisplayName(name: string): string {
+  return formatTitleCase(name) || name;
+}
+
+type CampaignNextStep = {
+  label: string;
+  detail: string;
+};
+
+function suggestCampaignNextStep(
+  campaign: BusinessTopCampaign,
+  trustedBestConverterId: number | null,
+  trustedBestRate: number | null,
+): CampaignNextStep {
+  const rate = conversionRatePercent(campaign.viewCount, campaign.orderCount);
+  const name = campaignDisplayName(campaign.campaignName);
+
+  if (campaign.viewCount < MIN_VIEWS_FOR_TRUSTED_CONVERSION) {
+    return {
+      label: "Need more views",
+      detail: `${name} needs more page traffic before conversion is reliable.`,
+    };
+  }
+
+  if (
+    trustedBestConverterId != null &&
+    campaign.campaignId === trustedBestConverterId &&
+    campaign.orderCount >= MIN_ORDERS_FOR_PROMOTE_HINT
+  ) {
+    return {
+      label: "Consider promoting",
+      detail:
+        "Strong conversion with enough sales to take seriously — consider more promotion, not a guarantee.",
+    };
+  }
+
+  if (
+    rate != null &&
+    trustedBestRate != null &&
+    trustedBestRate - rate >= WEAK_CONVERSION_GAP_PP &&
+    campaign.viewCount >= MIN_VIEWS_FOR_TRUSTED_CONVERSION
+  ) {
+    return {
+      label: "Review the offer page",
+      detail:
+        "Viewers are converting less often than your best deal. Check the page, price, or offer — this is a signal, not proof of a problem.",
+    };
+  }
+
+  if (campaign.earningsCents > 0 && campaign.orderCount > 0) {
+    return {
+      label: "Keep monitoring",
+      detail: "Solid activity this period. No strong change suggested from this data alone.",
+    };
+  }
+
+  return {
+    label: "Check back later",
+    detail: "Not enough paid activity yet to suggest a next step.",
+  };
+}
+
+type PerformanceGuidance = {
+  tip: string;
+  tipCaution: string;
+  moneyLeader: BusinessTopCampaign | null;
+  bestConverter: BusinessConversionCampaign | null;
+  converterTrusted: boolean;
+};
+
+function buildPerformanceGuidance(
+  earningCampaigns: BusinessTopCampaign[],
+  conversionRows: BusinessConversionCampaign[],
+): PerformanceGuidance {
+  const moneyLeader = earningCampaigns[0] ?? null;
+
+  const scoredConverters = conversionRows
+    .map((row) => {
+      const rate = conversionRatePercent(row.viewCount, row.orderCount);
+      return rate == null ? null : { row, rate };
+    })
+    .filter((row): row is { row: BusinessConversionCampaign; rate: number } => row != null)
+    .sort((a, b) => {
+      if (b.rate !== a.rate) return b.rate - a.rate;
+      if (b.row.orderCount !== a.row.orderCount) {
+        return b.row.orderCount - a.row.orderCount;
+      }
+      return a.row.campaignName.localeCompare(b.row.campaignName);
+    });
+
+  const trusted = scoredConverters.filter(
+    (row) => row.row.viewCount >= MIN_VIEWS_FOR_TRUSTED_CONVERSION,
+  );
+  const bestTrusted = trusted[0] ?? null;
+  const bestAny = scoredConverters[0] ?? null;
+  const bestConverter = bestTrusted?.row ?? null;
+  const converterTrusted = bestTrusted != null;
+
+  if (!moneyLeader) {
+    return {
+      tip: "No paid campaign activity in this period yet.",
+      tipCaution: "Tips appear after guests view deals and place paid orders.",
+      moneyLeader: null,
+      bestConverter: null,
+      converterTrusted: false,
+    };
+  }
+
+  const moneyName = campaignDisplayName(moneyLeader.campaignName);
+
+  if (!bestConverter) {
+    const early = bestAny?.row;
+    return {
+      tip: `${moneyName} made the most money in this period.`,
+      tipCaution: early
+        ? `Conversion ranking needs at least ${MIN_VIEWS_FOR_TRUSTED_CONVERSION} views per deal before it’s reliable (${campaignDisplayName(early.campaignName)} is still early).`
+        : `Conversion needs page views before we can compare deals fairly.`,
+      moneyLeader,
+      bestConverter: null,
+      converterTrusted: false,
+    };
+  }
+
+  const converterName = campaignDisplayName(bestConverter.campaignName);
+  const sameLeader = moneyLeader.campaignId === bestConverter.campaignId;
+
+  if (sameLeader) {
+    return {
+      tip: `${moneyName} leads on earnings and also converts viewers best among deals with enough traffic.`,
+      tipCaution:
+        "Based on paid deal earnings and views→paid orders only. It doesn’t include ad cost or add-on sales.",
+      moneyLeader,
+      bestConverter,
+      converterTrusted: true,
+    };
+  }
+
+  return {
+    tip: `${moneyName} made the most money. ${converterName} converts viewers best — different strengths.`,
+    tipCaution:
+      "Money leader ≠ always the best deal to scale. Conversion only counts when a deal has enough views.",
+    moneyLeader,
+    bestConverter,
+    converterTrusted: true,
+  };
+}
+
 function scoreTone(score: number): string {
   if (score >= 85) return "bg-[#ecfdf5] text-[#34a853]";
   if (score >= 70) return "bg-[#e8f2ff] text-[#1877f2]";
@@ -290,6 +522,7 @@ function PerformanceKpiCard({
   iconClass,
   format = "text",
   ready = true,
+  href,
 }: {
   title: string;
   hint: string;
@@ -300,6 +533,7 @@ function PerformanceKpiCard({
   iconClass: string;
   format?: "text" | "number" | "money";
   ready?: boolean;
+  href?: string | null;
 }) {
   const numericTarget = typeof value === "number" ? value : 0;
   const animated = useCountUp(
@@ -319,37 +553,54 @@ function PerformanceKpiCard({
         ? String(numericTarget)
         : String(value);
 
-  return (
-    <div className={`${panelCardClass} px-4 py-4`}>
-      <div className="flex items-start gap-3">
-        <span
-          className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconWrapClass}`}
+  const body = (
+    <div className="flex items-start gap-3">
+      <span
+        className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconWrapClass}`}
+      >
+        <Icon
+          className={`size-5 ${iconClass}`}
+          strokeWidth={2.25}
+          aria-hidden
+        />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="m-0 flex items-center gap-1 text-[0.78rem] font-medium text-slate-500">
+          {title}
+          <span title={hint} className="inline-flex cursor-pointer text-slate-300">
+            <Info className="size-3.5" aria-hidden />
+            <span className="sr-only">{hint}</span>
+          </span>
+          {href ? (
+            <ArrowUpRight
+              className="ml-auto size-3.5 text-slate-300"
+              aria-hidden
+            />
+          ) : null}
+        </p>
+        <p
+          className="m-0 mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-[#07111f]"
+          aria-label={`${title}: ${ariaValue}`}
         >
-          <Icon
-            className={`size-5 ${iconClass}`}
-            strokeWidth={2.25}
-            aria-hidden
-          />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="m-0 flex items-center gap-1 text-[0.78rem] font-medium text-slate-500">
-            {title}
-            <span title={hint} className="inline-flex cursor-pointer text-slate-300">
-              <Info className="size-3.5" aria-hidden />
-              <span className="sr-only">{hint}</span>
-            </span>
-          </p>
-          <p
-            className="m-0 mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-[#07111f]"
-            aria-label={`${title}: ${ariaValue}`}
-          >
-            {ready || format === "text" ? display : "—"}
-          </p>
-          {footer ? <div className="mt-2">{footer}</div> : null}
-        </div>
+          {ready || format === "text" ? display : "—"}
+        </p>
+        {footer ? <div className="mt-2">{footer}</div> : null}
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${panelCardClass} block px-4 py-4 text-inherit no-underline transition hover:border-[#1877f2]/25 hover:bg-[#f8fbff]`}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={`${panelCardClass} px-4 py-4`}>{body}</div>;
 }
 
 function CampaignChartTooltip({
@@ -625,26 +876,14 @@ function ConversionPerformanceSection({
   isPending,
   monthLabel,
   monthInProgress,
+  trustedBestConverterId,
 }: {
   campaigns: BusinessConversionCampaign[];
   isPending: boolean;
   monthLabel: string;
   monthInProgress: boolean;
+  trustedBestConverterId: number | null;
 }) {
-  const bestCampaignId = useMemo(() => {
-    let bestId: number | null = null;
-    let bestRate = -1;
-    for (const row of campaigns) {
-      const rate = conversionRatePercent(row.viewCount, row.orderCount);
-      if (rate == null) continue;
-      if (rate > bestRate) {
-        bestRate = rate;
-        bestId = row.campaignId;
-      }
-    }
-    return bestId;
-  }, [campaigns]);
-
   if (isPending) {
     return (
       <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
@@ -652,7 +891,7 @@ function ConversionPerformanceSection({
         <Skeleton className="mt-2 h-4 w-72 rounded-md" />
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-20 w-full rounded-xl" />
+            <Skeleton key={index} className="h-28 w-full rounded-xl" />
           ))}
         </div>
       </div>
@@ -664,13 +903,23 @@ function ConversionPerformanceSection({
   return (
     <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
       <div className="min-w-0">
-        <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
+        <h2 className="m-0 flex items-center gap-1.5 text-[0.95rem] font-semibold text-[#07111f]">
           Conversion Performance
+          <span
+            title="Conversion = paid orders ÷ deal page views. Only compare deals once each has enough views."
+            className="inline-flex cursor-help text-slate-300"
+          >
+            <Info className="size-3.5" aria-hidden />
+            <span className="sr-only">
+              Conversion equals paid orders divided by deal page views.
+            </span>
+          </span>
         </h2>
         <p className="m-0 mt-0.5 text-sm text-slate-500">
-          How often guests who view a deal go on to place a paid order, for your
-          top 3 performing campaigns in {monthLabel}
-          {monthInProgress ? " so far" : ""}.
+          How often guests who view a deal go on to place a paid order
+          {monthInProgress ? " so far" : ""} in {monthLabel}. “Best converter”
+          only applies when a deal has at least {MIN_VIEWS_FOR_TRUSTED_CONVERSION}{" "}
+          views.
         </p>
       </div>
 
@@ -679,39 +928,433 @@ function ConversionPerformanceSection({
           const name =
             formatTitleCase(campaign.campaignName) || campaign.campaignName;
           const tone = CAMPAIGN_TONES[index % CAMPAIGN_TONES.length]!;
-          const isBest = campaign.campaignId === bestCampaignId;
+          const rate = conversionRatePercent(
+            campaign.viewCount,
+            campaign.orderCount,
+          );
           const rateLabel = formatConversionRate(
             campaign.viewCount,
             campaign.orderCount,
           );
           const hasViews = campaign.viewCount > 0;
+          const trusted =
+            campaign.viewCount >= MIN_VIEWS_FOR_TRUSTED_CONVERSION;
+          const isBest =
+            trustedBestConverterId != null &&
+            campaign.campaignId === trustedBestConverterId;
+          const perHundred =
+            rate == null ? null : Math.max(0, Math.min(100, Math.round(rate)));
+          const barWidth =
+            rate == null ? 0 : Math.max(2, Math.min(100, rate));
 
           return (
             <div
               key={campaign.campaignId}
               className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white px-3.5 py-3"
             >
-              <span className={`mb-2 block h-1 w-10 rounded-full ${tone.line}`} aria-hidden />
+              <span
+                className={`mb-2 block h-1 w-10 rounded-full ${tone.line}`}
+                aria-hidden
+              />
               <div className="flex items-start justify-between gap-2">
                 <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
                   {name}
                 </p>
                 {isBest ? (
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${tone.soft} ${tone.ink}`}>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${tone.soft} ${tone.ink}`}
+                  >
                     Best converter
+                  </span>
+                ) : !trusted && hasViews ? (
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500">
+                    Early data
                   </span>
                 ) : null}
               </div>
 
-              <p className={`m-0 mt-2 text-xl font-semibold tabular-nums tracking-tight ${tone.ink}`}>
+              <p
+                className={`m-0 mt-2 text-xl font-semibold tabular-nums tracking-tight ${tone.ink}`}
+              >
                 {hasViews ? rateLabel : "No views yet"}
               </p>
               <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-400">
-                {hasViews
-                  ? `${campaign.orderCount} paid · ${campaign.viewCount} views`
+                {hasViews && perHundred != null
+                  ? `About ${perHundred} out of 100 viewers paid`
                   : `${campaign.orderCount} paid · 0 views`}
               </p>
+              {hasViews ? (
+                <div className="mt-2.5">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${tone.line}`}
+                      style={{ width: `${barWidth}%` }}
+                      aria-hidden
+                    />
+                  </div>
+                  <p className="m-0 mt-1.5 text-[0.65rem] text-slate-400">
+                    {campaign.orderCount} paid · {campaign.viewCount} views
+                    {!trusted
+                      ? ` · need ${MIN_VIEWS_FOR_TRUSTED_CONVERSION}+ views to rank`
+                      : ""}
+                  </p>
+                </div>
+              ) : (
+                <p className="m-0 mt-2 text-[0.65rem] text-slate-400">
+                  {campaign.orderCount} paid · 0 views — conversion can’t be
+                  calculated yet.
+                </p>
+              )}
             </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PerformanceOwnerGuidance({
+  guidance,
+  isPending,
+  businessId,
+}: {
+  guidance: PerformanceGuidance;
+  isPending: boolean;
+  businessId: number;
+}) {
+  if (isPending) {
+    return (
+      <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+        <Skeleton className="h-5 w-64 rounded-md" />
+        <Skeleton className="mt-2 h-4 w-full max-w-xl rounded-md" />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  const money = guidance.moneyLeader;
+  const converter = guidance.bestConverter;
+  const converterRate =
+    converter && guidance.converterTrusted
+      ? conversionRatePercent(converter.viewCount, converter.orderCount)
+      : null;
+  const converterPerHundred =
+    converterRate == null
+      ? null
+      : Math.max(0, Math.min(100, Math.round(converterRate)));
+  const moneyHref = money
+    ? campaignDashboardHref(businessId, money.campaignId)
+    : null;
+  const converterHref =
+    converter && guidance.converterTrusted
+      ? campaignDashboardHref(businessId, converter.campaignId)
+      : null;
+
+  const moneyBody = (
+    <>
+      <div
+        className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-[#34a853]/10"
+        aria-hidden
+      />
+      <div className="relative flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-[#34a853] ring-1 ring-[#34a853]/15">
+          <Trophy className="size-5" strokeWidth={2.25} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-[#34a853]">
+            Money leader
+            <span
+              title="Highest paid deal earnings in this period (add-ons excluded)."
+              className="inline-flex cursor-help text-[#34a853]/50"
+            >
+              <Info className="size-3" aria-hidden />
+            </span>
+            {moneyHref ? (
+              <ArrowUpRight className="ml-auto size-3.5 text-[#34a853]/70" aria-hidden />
+            ) : null}
+          </p>
+          {money ? (
+            <>
+              <p className="m-0 mt-1.5 truncate text-[1.05rem] font-semibold tracking-tight text-[#07111f]">
+                {campaignDisplayName(money.campaignName)}
+              </p>
+              <p className="m-0 mt-1 text-lg font-semibold tabular-nums tracking-tight text-[#34a853]">
+                {formatCents(money.earningsCents, "USD")}
+              </p>
+              <p className="m-0 mt-0.5 text-xs text-slate-500">
+                {money.orderCount} paid orders this period
+                {moneyHref ? " · Open campaign" : ""}
+              </p>
+            </>
+          ) : (
+            <p className="m-0 mt-1.5 text-sm text-slate-500">
+              No paid campaigns yet
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  const converterBody = (
+    <>
+      <div
+        className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-[#1877f2]/10"
+        aria-hidden
+      />
+      <div className="relative flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+          <Percent className="size-5" strokeWidth={2.25} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-[#1877f2]">
+            Best converter
+            <span
+              title={`Highest views→paid rate among deals with at least ${MIN_VIEWS_FOR_TRUSTED_CONVERSION} views.`}
+              className="inline-flex cursor-help text-[#1877f2]/50"
+            >
+              <Info className="size-3" aria-hidden />
+            </span>
+            {converterHref ? (
+              <ArrowUpRight className="ml-auto size-3.5 text-[#1877f2]/70" aria-hidden />
+            ) : null}
+          </p>
+          {converter && guidance.converterTrusted ? (
+            <>
+              <p className="m-0 mt-1.5 truncate text-[1.05rem] font-semibold tracking-tight text-[#07111f]">
+                {campaignDisplayName(converter.campaignName)}
+              </p>
+              <p className="m-0 mt-1 text-lg font-semibold tabular-nums tracking-tight text-[#1877f2]">
+                {formatConversionRate(
+                  converter.viewCount,
+                  converter.orderCount,
+                )}
+              </p>
+              <p className="m-0 mt-0.5 text-xs text-slate-500">
+                {converterPerHundred != null
+                  ? `About ${converterPerHundred} of 100 viewers paid`
+                  : null}
+                {" · "}
+                {converter.orderCount} paid · {converter.viewCount} views
+                {converterHref ? " · Open campaign" : ""}
+              </p>
+              {converterRate != null ? (
+                <div className="mt-2.5 h-1.5 max-w-[12rem] overflow-hidden rounded-full bg-[#e8f2ff]">
+                  <div
+                    className="h-full rounded-full bg-[#1877f2]"
+                    style={{
+                      width: `${Math.max(4, Math.min(100, converterRate))}%`,
+                    }}
+                    aria-hidden
+                  />
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="m-0 mt-1.5 text-sm leading-snug text-slate-500">
+              Not ranked yet — need {MIN_VIEWS_FOR_TRUSTED_CONVERSION}+ views
+              on a deal first
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <div className={`${panelCardClass} overflow-hidden`}>
+      <div className="border-b border-[#eef2f7] bg-[linear-gradient(180deg,#fbfdff_0%,#ffffff_100%)] px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="m-0 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-slate-400">
+            Simple takeaway
+          </p>
+          <p className="m-0 mt-1 text-sm font-semibold text-[#07111f]">
+            {guidance.tip}
+          </p>
+          <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
+            {guidance.tipCaution}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-0 sm:grid-cols-2">
+        {moneyHref ? (
+          <Link
+            href={moneyHref}
+            className="relative block overflow-hidden border-b border-[#eef2f7] px-4 py-4 text-inherit no-underline transition hover:bg-[#f6fdf8] sm:border-b-0 sm:border-r sm:px-5"
+          >
+            {moneyBody}
+          </Link>
+        ) : (
+          <div className="relative overflow-hidden border-b border-[#eef2f7] px-4 py-4 sm:border-b-0 sm:border-r sm:px-5">
+            {moneyBody}
+          </div>
+        )}
+
+        {converterHref ? (
+          <Link
+            href={converterHref}
+            className="relative block overflow-hidden px-4 py-4 text-inherit no-underline transition hover:bg-[#f5f9ff] sm:px-5"
+          >
+            {converterBody}
+          </Link>
+        ) : (
+          <div className="relative overflow-hidden px-4 py-4 sm:px-5">
+            {converterBody}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FunnelDropoffSection({
+  campaigns,
+  isPending,
+  monthLabel,
+  businessId,
+}: {
+  campaigns: BusinessTopCampaign[];
+  isPending: boolean;
+  monthLabel: string;
+  businessId: number;
+}) {
+  const orderedCampaigns = useMemo(() => {
+    return [...campaigns].sort((a, b) => {
+      const rateA = conversionRatePercent(a.viewCount, a.orderCount);
+      const rateB = conversionRatePercent(b.viewCount, b.orderCount);
+      if (rateA == null && rateB == null) {
+        return a.campaignName.localeCompare(b.campaignName);
+      }
+      if (rateA == null) return 1;
+      if (rateB == null) return -1;
+      if (rateB !== rateA) return rateB - rateA;
+      if (b.orderCount !== a.orderCount) return b.orderCount - a.orderCount;
+      return a.campaignName.localeCompare(b.campaignName);
+    });
+  }, [campaigns]);
+
+  if (isPending) {
+    return (
+      <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+        <Skeleton className="h-5 w-52 rounded-md" />
+        <Skeleton className="mt-2 h-4 w-80 rounded-md" />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (orderedCampaigns.length === 0) return null;
+
+  return (
+    <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+      <div className="min-w-0">
+        <h2 className="m-0 flex items-center gap-1.5 text-[0.95rem] font-semibold text-[#07111f]">
+          Funnel drop-off
+          <span
+            title="Views, signups, and paid orders from the same Performance API for this business and period. Listed best conversion first."
+            className="inline-flex cursor-help text-slate-300"
+          >
+            <Info className="size-3.5" aria-hidden />
+          </span>
+        </h2>
+        <p className="m-0 mt-0.5 text-sm text-slate-500">
+          Where guests leave between viewing, signing up, and paying — ordered by
+          best conversion in {monthLabel}. Rates under{" "}
+          {MIN_VIEWS_FOR_TRUSTED_CONVERSION} views are marked early.
+        </p>
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {orderedCampaigns.map((campaign, index) => {
+          const tone = CAMPAIGN_TONES[index % CAMPAIGN_TONES.length]!;
+          const name = campaignDisplayName(campaign.campaignName);
+          const views = Math.max(0, campaign.viewCount);
+          const signups = Math.max(0, campaign.signupCount);
+          const paid = Math.max(0, campaign.orderCount);
+          const maxStep = Math.max(views, signups, paid, 1);
+          const viewToSignup = funnelStepRate(views, signups);
+          const signupToPaid = funnelStepRate(signups, paid);
+          const trusted = views >= MIN_VIEWS_FOR_TRUSTED_CONVERSION;
+          const href = campaignDashboardHref(businessId, campaign.campaignId);
+          const conversionLabel = formatConversionRate(views, paid);
+
+          const steps = [
+            { key: "views", label: "Views", count: views },
+            { key: "signups", label: "Signups", count: signups },
+            { key: "paid", label: "Paid", count: paid },
+          ] as const;
+
+          return (
+            <Link
+              key={campaign.campaignId}
+              href={href}
+              className="block rounded-xl border border-[#e8edf5] bg-white px-3.5 py-3 text-inherit no-underline transition hover:border-[#1877f2]/25 hover:bg-[#f8fbff]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
+                      {name}
+                    </p>
+                    {index === 0 && trusted ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${tone.soft} ${tone.ink}`}
+                      >
+                        Best conversion
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="m-0 mt-0.5 text-[0.65rem] text-slate-400">
+                    {views > 0 ? `${conversionLabel} conversion` : "No views yet"}
+                    {trusted
+                      ? viewToSignup != null
+                        ? ` · ${viewToSignup}% view→signup`
+                        : ""
+                      : ` · Early data · ${views} views`}
+                    {signupToPaid != null ? ` · ${signupToPaid}% signup→paid` : ""}
+                  </p>
+                </div>
+                <ArrowUpRight
+                  className="size-3.5 shrink-0 text-slate-300"
+                  aria-hidden
+                />
+              </div>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {steps.map((step) => (
+                  <div key={step.key} className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                        {step.label}
+                      </p>
+                      <p className="m-0 text-sm font-semibold tabular-nums text-[#07111f]">
+                        {step.count}
+                      </p>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${tone.line}`}
+                        style={{
+                          width: `${Math.max(
+                            step.count > 0 ? 4 : 0,
+                            Math.min(100, (step.count / maxStep) * 100),
+                          )}%`,
+                        }}
+                        aria-hidden
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Link>
           );
         })}
       </div>
@@ -728,6 +1371,10 @@ function UniqueCustomersCell({ campaign }: { campaign: BusinessTopCampaign }) {
       <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-44 -translate-x-1/2 rounded-xl border border-[#e8edf5] bg-white px-3 py-2.5 text-left shadow-[0_12px_28px_rgba(15,23,42,0.12)] group-hover:block group-focus-within:block">
         <p className="m-0 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-slate-400">
           Customer Breakdown
+        </p>
+        <p className="m-0 mt-1 text-[0.65rem] leading-snug text-slate-400">
+          Unique customers = different guests who paid. New vs returning is based
+          on whether they paid this business before this period.
         </p>
         <dl className="m-0 mt-2 space-y-1.5 text-xs text-slate-600">
           <div className="flex items-center justify-between gap-3">
@@ -813,7 +1460,9 @@ function PerformanceScoreCell({
           ))}
         </dl>
         <p className="m-0 mt-2 border-t border-[#eef2f7] pt-2 text-[0.65rem] leading-snug text-slate-400">
-          Score is relative to campaigns in the selected period.
+          Score compares campaigns in this period only (earnings, orders, repeat
+          rate, revenue per customer). It is relative, not a grade out of 100
+          against other businesses.
         </p>
       </div>
     </div>
@@ -904,7 +1553,11 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
             </p>
           </div>
         ) : (
-          <PerformanceChartMount>
+          <PerformanceChartMount
+            drawKey={`${monthFilter}:${chartCampaigns
+              .map((campaign) => campaign.campaignId)
+              .join("-")}:${chartData.length}`}
+          >
             <ResponsiveContainer
               width="100%"
               height={PERFORMANCE_CHART_HEIGHT_PX}
@@ -1127,7 +1780,11 @@ export function BusinessPerformancePanel({
   const [monthFilter, setMonthFilter] = useState(currentPerformanceMonthKey);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
+  const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const monthOptions = useMemo(
+    () => buildActivityMonthFilterOptions(dashboardMonthCount),
+    [dashboardMonthCount],
+  );
   const monthRange = useMemo(() => {
     if (monthFilter === ACTIVITY_ALL_MONTHS_ID) {
       return {
@@ -1135,8 +1792,11 @@ export function BusinessPerformancePanel({
         inProgress: false,
       };
     }
-    return resolveCollectiveMonthRange(`${monthFilter}-01`);
-  }, [monthFilter, monthOptions]);
+    return resolveCollectiveMonthRange(
+      `${monthFilter}-01`,
+      dashboardMonthCount,
+    );
+  }, [dashboardMonthCount, monthFilter, monthOptions]);
 
   const monthName =
     monthFilter === ACTIVITY_ALL_MONTHS_ID
@@ -1184,7 +1844,18 @@ export function BusinessPerformancePanel({
     setAlertDismissed(false);
   }, [businessId, monthFilter, query.errorUpdatedAt]);
 
-  const campaigns = query.data?.campaigns ?? [];
+  const campaigns = useMemo(() => {
+    const rows = query.data?.campaigns ?? [];
+    return [...rows].sort((a, b) => {
+      if (b.earningsCents !== a.earningsCents) {
+        return b.earningsCents - a.earningsCents;
+      }
+      if (b.orderCount !== a.orderCount) {
+        return b.orderCount - a.orderCount;
+      }
+      return a.campaignName.localeCompare(b.campaignName);
+    });
+  }, [query.data?.campaigns]);
   const addonCountCampaigns = addonCountsQuery.data?.campaigns ?? [];
   const campaignsWithAddonCounts = useMemo(
     () =>
@@ -1258,7 +1929,30 @@ export function BusinessPerformancePanel({
   const totalUniqueCustomerCount =
     query.data?.totalUniqueCustomerCount ?? 0;
   const previousPeriod = query.data?.previousPeriod ?? null;
-  const topCampaign = campaigns[0] ?? null;
+  const avgOrderValueCentsValue = useMemo(
+    () => avgOrderValueCents(totalEarningsCents, totalOrderCount),
+    [totalEarningsCents, totalOrderCount],
+  );
+  const topCampaign = useMemo(() => {
+    if (campaigns.length === 0) return null;
+    return campaigns.reduce((best, row) =>
+      row.earningsCents > best.earningsCents ? row : best,
+    );
+  }, [campaigns]);
+  const guidance = useMemo(
+    () => buildPerformanceGuidance(campaigns, conversionCampaigns),
+    [campaigns, conversionCampaigns],
+  );
+  const trustedBestConverterId = guidance.converterTrusted
+    ? (guidance.bestConverter?.campaignId ?? null)
+    : null;
+  const trustedBestConverterRate = useMemo(() => {
+    if (!guidance.bestConverter || !guidance.converterTrusted) return null;
+    return conversionRatePercent(
+      guidance.bestConverter.viewCount,
+      guidance.bestConverter.orderCount,
+    );
+  }, [guidance.bestConverter, guidance.converterTrusted]);
   const comparisonLabel = "previous month";
   const monthHint = monthRange.inProgress
     ? "Added up from the 1st of this month through today, then compared with those same days last month."
@@ -1349,14 +2043,21 @@ export function BusinessPerformancePanel({
               value={monthFilter}
               onChange={setMonthFilter}
               compact
+              monthCount={dashboardMonthCount}
             />
           </div>
         </header>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <PerformanceOwnerGuidance
+          guidance={guidance}
+          isPending={query.isPending}
+          businessId={businessId}
+        />
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <PerformanceKpiCard
             title="Total Earnings"
-            hint={`Paid deal earnings for the month (add-ons excluded). ${monthHint}`}
+            hint={`Paid deal earnings in this period only (add-ons excluded). ${monthHint}`}
             value={totalEarningsCents}
             format="money"
             ready={!query.isPending}
@@ -1377,7 +2078,7 @@ export function BusinessPerformancePanel({
           />
           <PerformanceKpiCard
             title="Paid Orders"
-            hint={`Paid deal payments for the month. ${monthHint}`}
+            hint={`Count of paid deal payments in this period. ${monthHint}`}
             value={totalOrderCount}
             format="number"
             ready={!query.isPending}
@@ -1397,8 +2098,27 @@ export function BusinessPerformancePanel({
             }
           />
           <PerformanceKpiCard
+            title="Avg order value"
+            hint="Total paid deal earnings ÷ paid orders in this period (add-ons excluded). Blank when there are no paid orders."
+            value={avgOrderValueCentsValue ?? 0}
+            format="money"
+            ready={!query.isPending && avgOrderValueCentsValue != null}
+            icon={Wallet}
+            iconWrapClass="bg-[#f0fdf4]"
+            iconClass="text-[#16a34a]"
+            footer={
+              query.isPending ? null : (
+                <p className="m-0 text-xs text-slate-500">
+                  {avgOrderValueCentsValue != null
+                    ? "Per paid deal order"
+                    : "No paid orders yet"}
+                </p>
+              )
+            }
+          />
+          <PerformanceKpiCard
             title="Unique Customers"
-            hint={`Different guests who paid during the month. ${monthHint}`}
+            hint={`Different guests who paid in this period. ${monthHint}`}
             value={totalUniqueCustomerCount}
             format="number"
             ready={!query.isPending}
@@ -1419,7 +2139,7 @@ export function BusinessPerformancePanel({
           />
           <PerformanceKpiCard
             title="Top Campaign"
-            hint="Highest-earning campaign for the selected month."
+            hint="Money leader: highest paid deal earnings in this period (not conversion rate)."
             value={
               query.isPending
                 ? "—"
@@ -1431,11 +2151,16 @@ export function BusinessPerformancePanel({
             icon={Trophy}
             iconWrapClass="bg-[#ecfdf5]"
             iconClass="text-[#34a853]"
+            href={
+              topCampaign
+                ? campaignDashboardHref(businessId, topCampaign.campaignId)
+                : null
+            }
             footer={
               query.isPending ? null : (
                 <p className="m-0 text-xs text-slate-500">
                   {topCampaign
-                    ? `${formatCents(topCampaign.earningsCents, "USD")} earned`
+                    ? `${formatCents(topCampaign.earningsCents, "USD")} earned (by revenue)`
                     : "—"}
                 </p>
               )
@@ -1458,6 +2183,14 @@ export function BusinessPerformancePanel({
           isPending={query.isPending}
           monthLabel={monthName}
           monthInProgress={monthRange.inProgress}
+          trustedBestConverterId={trustedBestConverterId}
+        />
+
+        <FunnelDropoffSection
+          campaigns={chartCampaigns}
+          isPending={query.isPending}
+          monthLabel={periodLabel}
+          businessId={businessId}
         />
 
         <BundleOpportunitiesSection
@@ -1475,7 +2208,8 @@ export function BusinessPerformancePanel({
               Top 3 performing campaigns
             </h2>
             <p className="m-0 mt-0.5 text-xs text-slate-500">
-              Orders, customers, repeat rate, and earnings in {periodLabel}
+              Ranked by earnings in {periodLabel}. Suggested next steps are
+              cautious hints from this period’s data only — not guarantees.
             </p>
           </div>
 
@@ -1503,11 +2237,143 @@ export function BusinessPerformancePanel({
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="space-y-3 p-4 lg:hidden">
+                {campaigns.map((campaign) => {
+                  const imageSrc = resolveUploadImageUrl(campaign.imageUrl);
+                  const name =
+                    formatTitleCase(campaign.campaignName) ||
+                    campaign.campaignName;
+                  const href = campaignDashboardHref(
+                    businessId,
+                    campaign.campaignId,
+                  );
+                  const nextStep = suggestCampaignNextStep(
+                    campaign,
+                    trustedBestConverterId,
+                    trustedBestConverterRate,
+                  );
+                  const campaignAov = avgOrderValueCents(
+                    campaign.earningsCents,
+                    campaign.orderCount,
+                  );
+
+                  return (
+                    <article
+                      key={campaign.campaignId}
+                      className="rounded-xl border border-[#e8edf5] bg-white p-3.5 shadow-[0_4px_12px_rgba(15,23,42,0.03)]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <Link
+                          href={href}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-inherit no-underline"
+                        >
+                          {imageSrc ? (
+                            <img
+                              src={imageSrc}
+                              alt=""
+                              width={44}
+                              height={44}
+                              className={campaignImageClass}
+                              {...spacesImageEagerLoadProps}
+                            />
+                          ) : null}
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-[#07111f]">
+                              {name}
+                            </span>
+                            {campaign.price != null ? (
+                              <span className="mt-0.5 block text-xs text-slate-500">
+                                Offer price {formatDollars(campaign.price)}
+                              </span>
+                            ) : null}
+                          </span>
+                        </Link>
+                        <Link
+                          href={href}
+                          className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[#dbe7ff] bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-semibold text-[#1877f2] no-underline"
+                        >
+                          Open
+                          <ArrowUpRight className="size-3" aria-hidden />
+                        </Link>
+                      </div>
+
+                      <dl className="m-0 mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Earnings
+                          </dt>
+                          <dd className="m-0 mt-0.5 text-sm font-semibold tabular-nums text-[#07111f]">
+                            {formatCents(campaign.earningsCents, "USD")}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Avg order
+                          </dt>
+                          <dd className="m-0 mt-0.5 text-sm font-semibold tabular-nums text-[#07111f]">
+                            {campaignAov != null
+                              ? formatCents(campaignAov, "USD")
+                              : "—"}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Orders
+                          </dt>
+                          <dd className="m-0 mt-0.5 text-sm font-semibold tabular-nums text-[#07111f]">
+                            {campaign.orderCount}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Unique customers
+                          </dt>
+                          <dd className="m-0 mt-0.5 text-sm font-semibold tabular-nums text-[#07111f]">
+                            {campaign.uniqueCustomerCount}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Repeat rate
+                          </dt>
+                          <dd className="m-0 mt-0.5 text-sm font-semibold tabular-nums text-[#07111f]">
+                            {repeatRatePercent(campaign)}%
+                          </dd>
+                        </div>
+                        <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2">
+                          <dt className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                            Score
+                          </dt>
+                          <dd className="m-0 mt-1">
+                            <PerformanceScoreCell
+                              campaign={campaign}
+                              campaigns={campaigns}
+                            />
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-3 rounded-lg border border-[#eef2f7] bg-[#fbfdff] px-3 py-2.5">
+                        <p className="m-0 text-[0.7rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                          Suggested next step
+                        </p>
+                        <p className="m-0 mt-1 text-sm font-semibold text-[#07111f]">
+                          {nextStep.label}
+                        </p>
+                        <p className="m-0 mt-0.5 text-[0.7rem] leading-snug text-slate-500">
+                          {nextStep.detail}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
                 <table className="w-full min-w-[980px] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-[#eef2f7] bg-[#f8fafc]/80 text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-slate-400">
-                      <th className="px-4 py-3 font-semibold sm:px-5" scope="col">
+                      <th className="px-4 py-3 font-semibold xl:px-5" scope="col">
                         Campaign
                       </th>
                       <th
@@ -1520,25 +2386,69 @@ export function BusinessPerformancePanel({
                         className="px-3 py-3 text-center font-semibold tabular-nums"
                         scope="col"
                       >
-                        Unique customers
+                        <span className="inline-flex items-center gap-1">
+                          Unique customers
+                          <span
+                            title="Different guests who paid. Hover a number for new vs returning."
+                            className="inline-flex cursor-help text-slate-300"
+                          >
+                            <Info className="size-3" aria-hidden />
+                          </span>
+                        </span>
                       </th>
                       <th
                         className="px-3 py-3 text-center font-semibold tabular-nums"
                         scope="col"
                       >
-                        Repeat rate
+                        <span className="inline-flex items-center gap-1">
+                          Repeat rate
+                          <span
+                            title="Share of paying customers who paid more than once in this period."
+                            className="inline-flex cursor-help text-slate-300"
+                          >
+                            <Info className="size-3" aria-hidden />
+                          </span>
+                        </span>
                       </th>
                       <th
                         className="px-3 py-3 text-center font-semibold"
                         scope="col"
                       >
-                        Performance score
+                        <span className="inline-flex items-center gap-1">
+                          Performance score
+                          <span
+                            title="Relative score vs the other campaigns in this period only."
+                            className="inline-flex cursor-help text-slate-300"
+                          >
+                            <Info className="size-3" aria-hidden />
+                          </span>
+                        </span>
                       </th>
                       <th
-                        className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5"
+                        className="px-4 py-3 text-right font-semibold tabular-nums xl:px-5"
                         scope="col"
                       >
                         Earnings
+                      </th>
+                      <th
+                        className="px-3 py-3 text-right font-semibold tabular-nums"
+                        scope="col"
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          Avg order
+                          <span
+                            title="Campaign earnings ÷ paid orders in this period (add-ons excluded)."
+                            className="inline-flex cursor-help text-slate-300"
+                          >
+                            <Info className="size-3" aria-hidden />
+                          </span>
+                        </span>
+                      </th>
+                      <th
+                        className="px-3 py-3 text-left font-semibold"
+                        scope="col"
+                      >
+                        Suggested next step
                       </th>
                       <th className="px-3 py-3 text-right font-semibold" scope="col">
                         <span className="sr-only">Actions</span>
@@ -1555,13 +2465,22 @@ export function BusinessPerformancePanel({
                         businessId,
                         campaign.campaignId,
                       );
+                      const nextStep = suggestCampaignNextStep(
+                        campaign,
+                        trustedBestConverterId,
+                        trustedBestConverterRate,
+                      );
+                      const campaignAov = avgOrderValueCents(
+                        campaign.earningsCents,
+                        campaign.orderCount,
+                      );
 
                       return (
                         <tr
                           key={campaign.campaignId}
                           className="border-b border-[#eef2f7] last:border-b-0 transition hover:bg-[#f8fafc]"
                         >
-                          <td className="px-4 py-3.5 sm:px-5">
+                          <td className="px-4 py-3.5 xl:px-5">
                             <Link
                               href={href}
                               className="flex cursor-pointer items-center gap-3 text-inherit no-underline"
@@ -1603,8 +2522,21 @@ export function BusinessPerformancePanel({
                               campaigns={campaigns}
                             />
                           </td>
-                          <td className="px-4 py-3.5 text-right text-sm font-semibold tabular-nums text-[#07111f] sm:px-5">
+                          <td className="px-4 py-3.5 text-right text-sm font-semibold tabular-nums text-[#07111f] xl:px-5">
                             {formatCents(campaign.earningsCents, "USD")}
+                          </td>
+                          <td className="px-3 py-3.5 text-right text-sm tabular-nums text-slate-700">
+                            {campaignAov != null
+                              ? formatCents(campaignAov, "USD")
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-3.5 text-left">
+                            <p className="m-0 text-[0.75rem] font-semibold text-[#07111f]">
+                              {nextStep.label}
+                            </p>
+                            <p className="m-0 mt-0.5 max-w-[14rem] text-[0.65rem] leading-snug text-slate-400">
+                              {nextStep.detail}
+                            </p>
                           </td>
                           <td className="px-3 py-3.5 text-right">
                             <Link

@@ -117,7 +117,7 @@ export function ActivityMonthCalendarPicker({
                   : "bg-[#f4f7fb] text-slate-600 hover:bg-[#e8f2ff] hover:text-[#1877f2]"
               }`}
             >
-              All months (last {ACTIVITY_MONTH_COUNT})
+              All months
             </button>
           ) : null}
 

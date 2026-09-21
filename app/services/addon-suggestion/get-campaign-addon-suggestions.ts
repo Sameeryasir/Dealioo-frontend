@@ -10,6 +10,7 @@ export type CampaignAddonSuggestionItem = {
   addonName: string;
   timesPurchased: number;
   visitCount: number;
+  revenueCents: number;
   sharePercent: number;
   visitSharePercent: number;
   lift: number;
@@ -140,6 +141,10 @@ export async function getCampaignAddonSuggestions(
                     visitCount: Math.max(
                       0,
                       Math.round(Number(item.visitCount) || 0),
+                    ),
+                    revenueCents: Math.max(
+                      0,
+                      Math.round(Number(item.revenueCents) || 0),
                     ),
                     sharePercent: Math.max(
                       0,

@@ -202,6 +202,16 @@ export async function getBusinessTopEarningCampaigns(
           returningCustomerCount,
         };
       })
+        .filter((row) => Number.isFinite(row.campaignId) && row.campaignId > 0)
+        .sort((a, b) => {
+          if (b.earningsCents !== a.earningsCents) {
+            return b.earningsCents - a.earningsCents;
+          }
+          if (b.orderCount !== a.orderCount) {
+            return b.orderCount - a.orderCount;
+          }
+          return a.campaignName.localeCompare(b.campaignName);
+        })
     : [];
 
   const conversionCampaigns = Array.isArray(data.conversionCampaigns)
