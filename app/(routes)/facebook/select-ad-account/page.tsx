@@ -10,14 +10,11 @@ import {
 } from "@/app/services/facebook/get-facebook-ad-accounts";
 import { setFacebookAdAccount } from "@/app/services/facebook/set-facebook-ad-account";
 import { notifyFacebookOAuthComplete } from "@/app/lib/facebook-oauth-popup";
-import { AuthSessionError } from "@/app/lib/authenticated-fetch";
-import { markAuthSession } from "@/app/lib/auth-session";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
 import { integrationsStatusQueryKey } from "@/app/services/integration-audit/get-integrations-status";
 
-const OAUTH_AUTH = { redirectOnAuthFailure: false } as const;
-
 function isActiveAccountStatus(status: number | null): boolean {
+  // Meta Marketing API: 1 = ACTIVE
   return status == null || status === 1;
 }
 
@@ -64,22 +61,15 @@ function SelectAdAccountInner() {
     setLoading(true);
     setError(null);
     try {
-      markAuthSession();
-      const list = await getFacebookAdAccounts(businessId, OAUTH_AUTH);
+      const list = await getFacebookAdAccounts(businessId);
       setAccounts(list);
       if (list.length === 1) {
         setSelectedId(list[0].id);
       }
     } catch (e) {
-      if (e instanceof AuthSessionError) {
-        setError(
-          "Session issue in this window. Keep this tab open, make sure you are signed in on Dealioo, then tap Retry.",
-        );
-      } else {
-        setError(
-          e instanceof Error ? e.message : "Could not load ad accounts.",
-        );
-      }
+      setError(
+        e instanceof Error ? e.message : "Could not load ad accounts.",
+      );
     } finally {
       setLoading(false);
     }
@@ -105,8 +95,7 @@ function SelectAdAccountInner() {
     setSaving(true);
     setError(null);
     try {
-      markAuthSession();
-      await setFacebookAdAccount(businessId, selectedId, OAUTH_AUTH);
+      await setFacebookAdAccount(businessId, selectedId);
       await refreshIntegrationsStatus();
       if (
         notifyFacebookOAuthComplete(businessId, metaCampaignBuilderHref)
@@ -115,13 +104,7 @@ function SelectAdAccountInner() {
       }
       router.push(metaCampaignBuilderHref);
     } catch (e) {
-      if (e instanceof AuthSessionError) {
-        setError(
-          "Session issue in this window. Sign in on Dealioo, then tap Retry.",
-        );
-      } else {
-        setError(e instanceof Error ? e.message : "Could not save ad account.");
-      }
+      setError(e instanceof Error ? e.message : "Could not save ad account.");
       setSaving(false);
     }
   };
@@ -150,10 +133,6 @@ function SelectAdAccountInner() {
             <h1 className="mt-1 text-[22px] font-bold tracking-tight text-[#1c1e21]">
               Choose your ad account
             </h1>
-            <p className="mt-2 text-sm text-[#65676b]">
-              Pick the ads account Dealioo should use. Stay in this window until
-              you save.
-            </p>
           </div>
 
           {loading ? (
@@ -186,6 +165,7 @@ function SelectAdAccountInner() {
                           : "border-[#dadde1] bg-white hover:bg-[#f7f8fa]"
                       }`}
                     >
+                      {/* Simple radio — CSS only */}
                       <span
                         className={`mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
                           selected
@@ -240,28 +220,19 @@ function SelectAdAccountInner() {
             </ul>
           ) : null}
 
-          {!loading && accounts.length === 0 && !error ? (
+          {!loading && accounts.length === 0 ? (
             <p className="py-6 text-center text-sm text-[#65676b]">
               No ad accounts found for this Meta login.
             </p>
           ) : null}
 
           {error ? (
-            <div className="space-y-3">
-              <p
-                className="m-0 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
-                role="alert"
-              >
-                {error}
-              </p>
-              <button
-                type="button"
-                onClick={() => void loadAccounts()}
-                className="flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border border-[#dadde1] bg-white text-[14px] font-semibold text-[#1c1e21] hover:bg-[#f7f8fa]"
-              >
-                Retry
-              </button>
-            </div>
+            <p
+              className="m-0 rounded-xl bg-[#fff8f8] px-3 py-2.5 text-[13px] text-[#b32d2e]"
+              role="alert"
+            >
+              {error}
+            </p>
           ) : null}
 
           <div className="space-y-3.5 pt-4">

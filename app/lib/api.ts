@@ -17,16 +17,17 @@ function normalizeApiBaseUrl(raw: string): string {
 }
 
 export function getApiBaseUrl(): string {
+  // Prefer explicit API URL (local backend) even when the UI is opened via ngrok.
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (fromEnv) {
+    return normalizeApiBaseUrl(fromEnv);
+  }
+
   if (typeof window !== "undefined") {
     const { hostname, origin } = window.location;
     if (!isLocalHostname(hostname)) {
       return normalizeApiBaseUrl(origin);
     }
-  }
-
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (fromEnv) {
-    return normalizeApiBaseUrl(fromEnv);
   }
 
   return LOCAL_API_DEFAULT;
