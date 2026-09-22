@@ -6,6 +6,7 @@ import {
   getFacebookPageEngagementPreview,
   type FacebookPageEngagementPreview,
 } from "@/app/services/facebook/get-facebook-page-engagement-preview";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 
 type FacebookPageEngagementPreviewCardProps = {
   businessId: number;
@@ -34,6 +35,7 @@ export function FacebookPageEngagementPreviewCard({
   businessId,
   pageId,
 }: FacebookPageEngagementPreviewCardProps) {
+  const [canLoadPageInfo, setCanLoadPageInfo] = useState<boolean | null>(null);
   const [preview, setPreview] = useState<FacebookPageEngagementPreview | null>(
     null,
   );
@@ -41,8 +43,40 @@ export function FacebookPageEngagementPreviewCard({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!Number.isFinite(businessId) || businessId < 1) {
+      setCanLoadPageInfo(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCanLoadPageInfo(null);
+
+    void getFacebookConnectionStatus("", businessId)
+      .then((status) => {
+        if (cancelled) return;
+        const granted =
+          status.capabilities?.pageInformation === true ||
+          status.permissions?.pages_read_engagement === "granted" ||
+          (status.metaOauthScopes ?? []).includes("pages_read_engagement");
+        setCanLoadPageInfo(granted);
+      })
+      .catch(() => {
+        if (!cancelled) setCanLoadPageInfo(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
+
+  useEffect(() => {
     const trimmedPageId = pageId.trim();
-    if (!trimmedPageId || !Number.isFinite(businessId) || businessId < 1) {
+    if (
+      canLoadPageInfo !== true ||
+      !trimmedPageId ||
+      !Number.isFinite(businessId) ||
+      businessId < 1
+    ) {
       setPreview(null);
       setError(null);
       setLoading(false);
@@ -75,7 +109,7 @@ export function FacebookPageEngagementPreviewCard({
     return () => {
       cancelled = true;
     };
-  }, [businessId, pageId]);
+  }, [businessId, pageId, canLoadPageInfo]);
 
   const detailRows = useMemo((): DetailRow[] => {
     if (!preview?.detailsLoaded) return [];
@@ -139,7 +173,7 @@ export function FacebookPageEngagementPreviewCard({
     return rows;
   }, [preview]);
 
-  if (!pageId.trim()) {
+  if (!pageId.trim() || canLoadPageInfo !== true) {
     return null;
   }
 
