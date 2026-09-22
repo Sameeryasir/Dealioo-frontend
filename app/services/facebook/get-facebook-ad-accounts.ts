@@ -1,5 +1,8 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
-import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import {
+  authenticatedFetch,
+  type AuthenticatedFetchOptions,
+} from "@/app/lib/authenticated-fetch";
 
 export type FacebookAdAccount = {
   id: string;
@@ -19,9 +22,14 @@ const CACHE_TTL_MS = 60_000;
 
 export async function getFacebookAdAccounts(
   restaurantId: number,
+  authOptions?: AuthenticatedFetchOptions,
 ): Promise<FacebookAdAccount[]> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
+  }
+
+  if (authOptions?.redirectOnAuthFailure === false) {
+    return fetchFacebookAdAccounts(restaurantId, authOptions);
   }
 
   const cached = cacheByBusinessId.get(restaurantId);
@@ -34,7 +42,7 @@ export async function getFacebookAdAccounts(
     return existing;
   }
 
-  const request = fetchFacebookAdAccounts(restaurantId)
+  const request = fetchFacebookAdAccounts(restaurantId, authOptions)
     .then((accounts) => {
       cacheByBusinessId.set(restaurantId, { at: Date.now(), accounts });
       return accounts;
@@ -51,10 +59,13 @@ export async function getFacebookAdAccounts(
 
 async function fetchFacebookAdAccounts(
   restaurantId: number,
+  authOptions?: AuthenticatedFetchOptions,
 ): Promise<FacebookAdAccount[]> {
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/facebook/ad-accounts/${encodeURIComponent(String(restaurantId))}`,
     { method: "GET" },
+    undefined,
+    authOptions,
   );
 
   if (!res.ok) {

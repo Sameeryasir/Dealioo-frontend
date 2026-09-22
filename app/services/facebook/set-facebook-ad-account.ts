@@ -1,9 +1,13 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
-import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import {
+  authenticatedFetch,
+  type AuthenticatedFetchOptions,
+} from "@/app/lib/authenticated-fetch";
 
 export async function setFacebookAdAccount(
   restaurantId: number,
   adAccountId: string,
+  authOptions?: AuthenticatedFetchOptions,
 ): Promise<{ metaAdAccountId: string }> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
@@ -19,6 +23,8 @@ export async function setFacebookAdAccount(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ adAccountId: adAccountId.trim() }),
     },
+    undefined,
+    authOptions,
   );
 
   if (!res.ok) {

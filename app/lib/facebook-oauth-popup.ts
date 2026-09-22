@@ -9,7 +9,6 @@ export const FACEBOOK_OAUTH_AUTHENTICATED_MESSAGE =
 export const FACEBOOK_OAUTH_CANCELLED_MESSAGE =
   "facebook-oauth-cancelled" as const;
 
-/** Cross-tab signal so Integrations can refresh after the OAuth popup finishes. */
 export const FACEBOOK_OAUTH_STATUS_SYNC_KEY = "dealioo-facebook-oauth-status-sync";
 
 export type FacebookOAuthResult =
@@ -26,9 +25,7 @@ function signalFacebookOAuthStatusSync(
       FACEBOOK_OAUTH_STATUS_SYNC_KEY,
       JSON.stringify({ businessId, phase, at: Date.now() }),
     );
-  } catch {
-    /* private mode / quota — ignore */
-  }
+  } catch {}
 }
 
 function readBusinessIdFromSyncPayload(raw: string | null): number | null {
@@ -104,6 +101,7 @@ function waitForFacebookOAuthPopup(
       if (settled) return;
       settled = true;
       window.clearInterval(pollTimer);
+      window.clearInterval(statusPollTimer);
       window.clearTimeout(timeoutTimer);
       window.removeEventListener("message", onMessage);
       resolve(result);
@@ -118,20 +116,14 @@ function waitForFacebookOAuthPopup(
       if (type === FACEBOOK_OAUTH_CANCELLED_MESSAGE) {
         try {
           popup.close();
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         finish({ status: "cancelled" });
         return;
       }
 
       if (event.origin !== window.location.origin) return;
 
-      // Token saved successfully — do not close popup (user may still pick ad account).
       if (type === FACEBOOK_OAUTH_AUTHENTICATED_MESSAGE) {
-        const id = readBusinessIdFromMessage(data);
-        if (id == null) return;
-        finish({ status: "connected", businessId: id });
         return;
       }
 
@@ -142,9 +134,7 @@ function waitForFacebookOAuthPopup(
 
       try {
         popup.close();
-      } catch {
-        /* ignore */
-      }
+      } catch {}
       finish({ status: "connected", businessId: id });
     };
 
@@ -155,9 +145,9 @@ function waitForFacebookOAuthPopup(
       if (!popup.closed || closedCheckStarted || settled) return;
       closedCheckStarted = true;
       window.clearInterval(pollTimer);
+      window.clearInterval(statusPollTimer);
 
       void (async () => {
-        // Give a late postMessage a moment to arrive before checking the API.
         await sleep(400);
         if (settled) return;
 
@@ -174,13 +164,26 @@ function waitForFacebookOAuthPopup(
       })();
     }, 400);
 
+    const statusPollTimer = window.setInterval(() => {
+      if (settled || popup.closed) return;
+      void (async () => {
+        try {
+          const status = await getFacebookConnectionStatus(
+            accessToken,
+            businessId,
+          );
+          if (status.connected && status.metaAdAccountId?.trim()) {
+            finish({ status: "connected", businessId });
+          }
+        } catch {}
+      })();
+    }, 2500);
+
     const timeoutTimer = window.setTimeout(() => {
       void (async () => {
         try {
           popup.close();
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         if (settled) return;
 
         const connected = await isFacebookConnectedForBusiness(
@@ -207,7 +210,6 @@ export async function connectFacebookInPopup(
     throw new Error("Select at least one Meta Ads permission before connecting.");
   }
 
-  // Open during the click gesture so the browser does not block the tab.
   const popup = openFacebookConnectPopup();
   if (!popup) {
     throw new Error(
@@ -221,16 +223,13 @@ export async function connectFacebookInPopup(
   } catch (error) {
     try {
       popup.close();
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     throw error;
   }
 
   return waitForFacebookOAuthPopup(popup, accessToken, businessId);
 }
 
-/** Notify opener that Meta OAuth succeeded (token saved). Keeps the popup open. */
 export function notifyFacebookOAuthAuthenticated(businessId: number): boolean {
   if (typeof window === "undefined") return false;
   signalFacebookOAuthStatusSync(businessId, "authenticated");
@@ -245,14 +244,12 @@ export function notifyFacebookOAuthAuthenticated(businessId: number): boolean {
   return true;
 }
 
-/** Notify opener and close when connect + ad account step finished in a popup. */
 export function notifyFacebookOAuthComplete(
   businessId: number,
-  redirectHref?: string,
+  _redirectHref?: string,
 ): boolean {
   if (typeof window === "undefined") return false;
 
-  // Signal other tabs first — redirect/close can drop late postMessage handlers.
   signalFacebookOAuthStatusSync(businessId, "complete");
 
   const opener = window.opener;
@@ -263,13 +260,9 @@ export function notifyFacebookOAuthComplete(
     window.location.origin,
   );
 
-  if (redirectHref?.trim()) {
-    try {
-      opener.location.assign(redirectHref.trim());
-    } catch {
-      /* cross-origin opener — ignore */
-    }
-  }
+  try {
+    opener.focus();
+  } catch {}
 
   window.close();
   return true;

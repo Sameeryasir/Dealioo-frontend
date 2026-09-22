@@ -447,6 +447,9 @@ export function BusinessIntegrationsPanel({
 
   const applyMetaOAuthStatusSync = useCallback(
     async (phase?: "authenticated" | "complete") => {
+      if (phase === "authenticated") {
+        return;
+      }
       await refreshStatus();
       bumpAuditLogs();
       if (phase === "complete") {

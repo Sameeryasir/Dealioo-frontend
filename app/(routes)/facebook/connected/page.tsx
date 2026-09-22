@@ -92,7 +92,9 @@ function FacebookConnectedInner() {
   useEffect(() => {
     if (businessId == null) return;
     notifyFacebookOAuthAuthenticated(businessId);
-  }, [businessId]);
+    setSelectingAdAccount(true);
+    router.replace(selectAdAccountHref);
+  }, [businessId, router, selectAdAccountHref]);
 
   const grantedOptions = useMemo(() => {
     return granted.map((scopeId) => {
@@ -132,7 +134,7 @@ function FacebookConnectedInner() {
               <span>connected successfully</span>
             </p>
             <p className="m-0 text-[13px] leading-snug text-[#65676b]">
-              Permissions are granted. Select an ads account to finish setup.
+              Permissions are granted. Opening ads account selection…
             </p>
           </div>
         </div>
