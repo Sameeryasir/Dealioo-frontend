@@ -7,9 +7,9 @@ const baseUrl =
 const privacyUrl = `${baseUrl}/privacy`;
 
 export const metadata: Metadata = {
-  title: "Privacy Policy, Meta Integration | Dealioo",
+  title: "Privacy Policy | Dealioo",
   description:
-    "How Dealioo uses Meta (Facebook) data when you connect your account, publish ads, and view campaign performance.",
+    "Dealioo Privacy Policy, including Meta and Google Ads integrations, data collection, retention, deletion, and your privacy rights.",
   alternates: {
     canonical: privacyUrl,
   },
