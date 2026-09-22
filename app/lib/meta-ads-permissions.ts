@@ -12,11 +12,6 @@ export type MetaPermissionOption = {
   defaultSelected: boolean;
 };
 
-const PAGE_SCOPES_WITH_ADS_MANAGEMENT: MetaSelectableScopeId[] = [
-  "pages_show_list",
-  "pages_read_engagement",
-];
-
 export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
   {
     id: "ads_read",
@@ -33,7 +28,7 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     description:
       "Create, read, delete, and publish Meta campaigns, ad sets, creatives, and ads from Dealioo’s campaign builder.",
     tooltip:
-      "Required to build and publish ads in Dealioo. After selecting this, choose either pages_show_list or pages_read_engagement.",
+      "Required to build and publish ads in Dealioo. Selecting this also selects pages_show_list.",
     defaultSelected: false,
   },
   {
@@ -42,7 +37,7 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     description:
       "Lists Facebook Pages you manage in Dealioo’s Page picker so you can choose which Page will run your ads. This is Meta’s pages_show_list permission (list Pages only — it does not attach a Page to ads).",
     tooltip:
-      "Needed to show your Page list. Selecting this also selects ads_management and deselects pages_read_engagement.",
+      "Needed to show your Page list. Selecting this also selects ads_management.",
     defaultSelected: false,
   },
   {
@@ -51,7 +46,7 @@ export const META_ADS_PERMISSION_OPTIONS: MetaPermissionOption[] = [
     description:
       "Uses the Facebook Page you already chose as the identity for your ads, and loads that Page’s details in campaign creation so you can verify the correct Page will represent your advertisement. This is Meta’s pages_read_engagement permission.",
     tooltip:
-      "Needed so ads publish from your business Facebook Page and so Dealioo can show Page identity details in the campaign builder. Selecting this also selects ads_management and deselects pages_show_list.",
+      "Needed so ads publish from your business Facebook Page and so Dealioo can show Page identity details in the campaign builder. Selecting this also selects ads_management and pages_show_list.",
     defaultSelected: false,
   },
 ];
@@ -81,22 +76,23 @@ export function toggleMetaSelectableScope(
   id: MetaSelectableScopeId,
 ): MetaSelectableScopeId[] {
   const next = new Set(current);
-  const isPageScope = PAGE_SCOPES_WITH_ADS_MANAGEMENT.includes(id);
 
   if (next.has(id)) {
     next.delete(id);
-    if (id === "ads_management") {
-      for (const scope of PAGE_SCOPES_WITH_ADS_MANAGEMENT) {
-        next.delete(scope);
-      }
+    if (id === "ads_management" || id === "pages_show_list") {
+      next.delete("ads_management");
+      next.delete("pages_show_list");
+      next.delete("pages_read_engagement");
     }
   } else {
     next.add(id);
-    if (isPageScope) {
+    if (id === "pages_read_engagement") {
       next.add("ads_management");
-      for (const scope of PAGE_SCOPES_WITH_ADS_MANAGEMENT) {
-        if (scope !== id) next.delete(scope);
-      }
+      next.add("pages_show_list");
+      next.add("pages_read_engagement");
+    } else if (id === "ads_management" || id === "pages_show_list") {
+      next.add("ads_management");
+      next.add("pages_show_list");
     }
   }
 
