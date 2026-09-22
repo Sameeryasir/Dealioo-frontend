@@ -105,8 +105,8 @@ export function MetaAdsPermissionConsent({
               <span>will request only what you check below:</span>
             </p>
             <p className="m-0 text-[13px] leading-snug text-[#65676b]">
-              Tick one or more. ads_management also selects pages_show_list and
-              pages_read_engagement.
+              Tick one or more. With ads_management, choose either
+              pages_show_list or pages_read_engagement.
             </p>
           </div>
         </div>
