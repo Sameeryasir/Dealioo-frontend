@@ -65,18 +65,37 @@ import {
 } from "@/app/lib/meta-account-currency";
 import { formatObjective } from "@/app/lib/meta-review-helpers";
 
-const CONVERSION_EVENT_OPTIONS = [
-  { value: "PURCHASE", label: "Purchase" },
-  { value: "LEAD", label: "Lead" },
-  { value: "COMPLETE_REGISTRATION", label: "Complete registration" },
-  { value: "ADD_TO_CART", label: "Add to cart" },
-  { value: "INITIATED_CHECKOUT", label: "Initiate checkout" },
-  { value: "ADD_PAYMENT_INFO", label: "Add payment info" },
-  { value: "VIEW_CONTENT", label: "View content" },
-  { value: "SEARCH", label: "Search" },
-  { value: "CONTACT", label: "Contact" },
-  { value: "SUBSCRIBE", label: "Subscribe" },
-] as const;
+const CONVERSION_EVENT_OPTIONS_BY_OBJECTIVE: Record<
+  string,
+  readonly { value: string; label: string }[]
+> = {
+  OUTCOME_LEADS: [
+    { value: "LEAD", label: "Lead" },
+    { value: "COMPLETE_REGISTRATION", label: "Complete registration" },
+    { value: "CONTACT", label: "Contact" },
+    { value: "FIND_LOCATION", label: "Find location" },
+    { value: "SCHEDULE", label: "Schedule" },
+    { value: "START_TRIAL", label: "Start trial" },
+    { value: "SUBMIT_APPLICATION", label: "Submit application" },
+    { value: "SUBSCRIBE", label: "Subscribe" },
+  ],
+  OUTCOME_SALES: [
+    { value: "PURCHASE", label: "Purchase" },
+    { value: "INITIATED_CHECKOUT", label: "Initiate checkout" },
+    { value: "ADD_PAYMENT_INFO", label: "Add payment info" },
+    { value: "ADD_TO_CART", label: "Add to cart" },
+    { value: "COMPLETE_REGISTRATION", label: "Complete registration" },
+    { value: "DONATE", label: "Donate" },
+    { value: "START_TRIAL", label: "Start trial" },
+    { value: "SUBSCRIBE", label: "Subscribe" },
+    { value: "CONTENT_VIEW", label: "View content" },
+  ],
+};
+
+const DEFAULT_CONVERSION_EVENT_BY_OBJECTIVE: Record<string, string> = {
+  OUTCOME_LEADS: "LEAD",
+  OUTCOME_SALES: "PURCHASE",
+};
 
 const WEBSITE_CONVERSION_LOCATION_OPTIONS: {
   value: MetaDestinationType;
@@ -292,10 +311,19 @@ export function AdSetSetupStep({
   const needsPromotedObject =
     optimizationGoal === "OFFSITE_CONVERSIONS" ||
     optimizationGoal === "VALUE" ||
-    optimizationGoal === "LANDING_PAGE_VIEWS";
+    (optimizationGoal === "LANDING_PAGE_VIEWS" &&
+      campaignData.objective !== "OUTCOME_TRAFFIC");
   const needsConversionEvent =
     optimizationGoal === "OFFSITE_CONVERSIONS" ||
     optimizationGoal === "VALUE";
+  const conversionEventOptions = useMemo(
+    () => CONVERSION_EVENT_OPTIONS_BY_OBJECTIVE[campaignData.objective] ?? [],
+    [campaignData.objective],
+  );
+  const defaultConversionEvent =
+    optimizationGoal === "VALUE"
+      ? "PURCHASE"
+      : (DEFAULT_CONVERSION_EVENT_BY_OBJECTIVE[campaignData.objective] ?? "");
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
@@ -309,8 +337,26 @@ export function AdSetSetupStep({
   useEffect(() => {
     if (!needsConversionEvent) {
       setCustomEventType("");
+      return;
     }
-  }, [needsConversionEvent]);
+    setCustomEventType((current) => {
+      const normalized =
+        current === "VIEW_CONTENT" ? "CONTENT_VIEW" : current.trim();
+      if (
+        normalized &&
+        conversionEventOptions.some((opt) => opt.value === normalized)
+      ) {
+        return normalized;
+      }
+      return defaultConversionEvent;
+    });
+  }, [
+    needsConversionEvent,
+    campaignData.objective,
+    optimizationGoal,
+    conversionEventOptions,
+    defaultConversionEvent,
+  ]);
 
   useEffect(() => {
     if (!isAwarenessObjective) return;
@@ -711,7 +757,10 @@ export function AdSetSetupStep({
           hint={
             needsConversionEvent
               ? "Optimize for conversions or value — you’ll choose a Dataset and conversion event below."
-              : optimizationGoal === "LANDING_PAGE_VIEWS"
+              : optimizationGoal === "LANDING_PAGE_VIEWS" &&
+                  campaignData.objective === "OUTCOME_TRAFFIC"
+                ? "Traffic landing page views do not use a Dataset promoted object — Meta measures visits from your ad link."
+                : optimizationGoal === "LANDING_PAGE_VIEWS"
                 ? "Optimize for landing page views — choose a Dataset below (no conversion event)."
                 : campaignData.objective === "OUTCOME_LEADS"
                   ? "Set your goal, such as maximising leads."
@@ -778,19 +827,23 @@ export function AdSetSetupStep({
           <BuilderField
             label="Conversion event"
             required
-            hint="The website action Meta should optimize for (Purchase, Lead, etc.). Not used with Landing page views."
+            hint={
+              optimizationGoal === "VALUE"
+                ? "Value optimization uses Purchase with your Dataset."
+                : "Only events Meta allows for this campaign objective are listed."
+            }
             error={fieldErrors.customEventType}
           >
             <BuilderSelect
               aria-label="Conversion event"
               value={
-                CONVERSION_EVENT_OPTIONS.some(
+                conversionEventOptions.some(
                   (opt) => opt.value === customEventType,
                 )
                   ? customEventType
-                  : ""
+                  : defaultConversionEvent
               }
-              options={[...CONVERSION_EVENT_OPTIONS]}
+              options={[...conversionEventOptions]}
               onChange={setCustomEventType}
             />
           </BuilderField>

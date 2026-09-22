@@ -17,17 +17,16 @@ function normalizeApiBaseUrl(raw: string): string {
 }
 
 export function getApiBaseUrl(): string {
-  // Prefer explicit API URL (local backend) even when the UI is opened via ngrok.
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (fromEnv) {
-    return normalizeApiBaseUrl(fromEnv);
-  }
-
   if (typeof window !== "undefined") {
     const { hostname, origin } = window.location;
     if (!isLocalHostname(hostname)) {
       return normalizeApiBaseUrl(origin);
     }
+  }
+
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (fromEnv) {
+    return normalizeApiBaseUrl(fromEnv);
   }
 
   return LOCAL_API_DEFAULT;
@@ -58,8 +57,17 @@ export async function fetchWithTimeout(
     );
   }
 
+  const headers = new Headers(init?.headers);
+  if (typeof window !== "undefined" && !isLocalHostname(window.location.hostname)) {
+    headers.set("ngrok-skip-browser-warning", "true");
+  }
+
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    return await fetch(input, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
       if (externalSignal?.aborted) {
