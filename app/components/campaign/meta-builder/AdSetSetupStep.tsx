@@ -293,6 +293,9 @@ export function AdSetSetupStep({
     optimizationGoal === "OFFSITE_CONVERSIONS" ||
     optimizationGoal === "VALUE" ||
     optimizationGoal === "LANDING_PAGE_VIEWS";
+  const needsConversionEvent =
+    optimizationGoal === "OFFSITE_CONVERSIONS" ||
+    optimizationGoal === "VALUE";
 
   const savedPixelIdRef = useRef(initialData?.promotedObject?.pixelId?.trim() ?? "");
   savedPixelIdRef.current = initialData?.promotedObject?.pixelId?.trim() ?? "";
@@ -302,6 +305,12 @@ export function AdSetSetupStep({
   );
   savedFacebookPageIdRef.current =
     initialData?.promotedObject?.pageId?.trim() ?? "";
+
+  useEffect(() => {
+    if (!needsConversionEvent) {
+      setCustomEventType("");
+    }
+  }, [needsConversionEvent]);
 
   useEffect(() => {
     if (!isAwarenessObjective) return;
@@ -477,17 +486,22 @@ export function AdSetSetupStep({
 
     if (needsPromotedObject) {
       if (!pixelId.trim()) {
-        setFieldErrors({ pixelId: "Select a Dataset (Meta Pixel) to track conversions." });
-        setLocalError("Select a Dataset (Meta Pixel) before continuing.");
+        setFieldErrors({
+          pixelId:
+            "Select a Dataset (Meta Pixel). Required for this performance goal.",
+        });
+        setLocalError(
+          needsConversionEvent
+            ? "Select a Dataset and a conversion event before continuing."
+            : "Select a Dataset (Meta Pixel) before continuing. Landing page views do not need a conversion event.",
+        );
         return;
       }
-      if (
-        (optimizationGoal === "OFFSITE_CONVERSIONS" ||
-          optimizationGoal === "VALUE") &&
-        !customEventType.trim()
-      ) {
+      if (needsConversionEvent && !customEventType.trim()) {
         setFieldErrors({ customEventType: "Select a conversion event." });
-        setLocalError("Select a conversion event before continuing.");
+        setLocalError(
+          "Select a conversion event before continuing. Conversions/value need Dataset + event.",
+        );
         return;
       }
     }
@@ -580,8 +594,9 @@ export function AdSetSetupStep({
       promotedObject: needsPromotedObject
         ? {
             pixelId: pixelId.trim(),
-            customEventType: customEventType.trim(),
-            pageId: facebookPageId.trim() || undefined,
+            ...(needsConversionEvent && customEventType.trim()
+              ? { customEventType: customEventType.trim() }
+              : {}),
           }
         : isAwarenessObjective && facebookPageId.trim()
           ? { pageId: facebookPageId.trim() }
@@ -694,11 +709,15 @@ export function AdSetSetupStep({
         <BuilderField
           label="Performance goal"
           hint={
-            campaignData.objective === "OUTCOME_LEADS"
-              ? "Set your goal, such as maximising leads."
-              : campaignData.objective === "OUTCOME_ENGAGEMENT"
-                ? "How you measure success for your ads."
-                : "Set your goal, such as maximising conversions or conversion value."
+            needsConversionEvent
+              ? "Optimize for conversions or value — you’ll choose a Dataset and conversion event below."
+              : optimizationGoal === "LANDING_PAGE_VIEWS"
+                ? "Optimize for landing page views — choose a Dataset below (no conversion event)."
+                : campaignData.objective === "OUTCOME_LEADS"
+                  ? "Set your goal, such as maximising leads."
+                  : campaignData.objective === "OUTCOME_ENGAGEMENT"
+                    ? "How you measure success for your ads."
+                    : "Set your goal, such as maximising conversions or conversion value."
           }
         >
           <BuilderPerformanceGoalSelect
@@ -709,53 +728,57 @@ export function AdSetSetupStep({
           />
         </BuilderField>
 
-        <BuilderField
-          label="Dataset"
-          required={needsPromotedObject}
-          hint="Track actions that people take on your website."
-          error={fieldErrors.pixelId ?? pixelsError ?? undefined}
-        >
-          {pixelsLoading ? (
-            <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
-              Loading datasets from Meta…
-            </p>
-          ) : pixelSelectOptions.length > 0 ? (
-            <BuilderSelect
-              aria-label="Dataset"
-              value={
-                pixelSelectOptions.some((opt) => opt.value === pixelId)
-                  ? pixelId
-                  : pixelSelectOptions[0]!.value
-              }
-              options={pixelSelectOptions}
-              onChange={setPixelId}
-            />
-          ) : (
-            <div className="space-y-2">
-              {!pixelsError ? (
-                <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
-                  No dataset (Meta Pixel) was found on this account.
-                  Create one in Meta Events Manager, or paste the Pixel ID
-                  below.
-                </p>
-              ) : null}
-              <input
-                value={pixelId}
-                onChange={(e) => setPixelId(e.target.value)}
-                className={inputClass}
-                placeholder="Enter Meta Pixel / Dataset ID"
+        {needsPromotedObject ? (
+          <BuilderField
+            label="Dataset"
+            required
+            hint={
+              needsConversionEvent
+                ? "Meta Pixel used with your conversion event. Required for conversions/value goals."
+                : "Meta Pixel that tracks website visits. Required for landing page views — no conversion event needed."
+            }
+            error={fieldErrors.pixelId ?? pixelsError ?? undefined}
+          >
+            {pixelsLoading ? (
+              <p className="rounded-xl bg-[#f4f8ff] px-3 py-2.5 text-sm text-slate-500">
+                Loading datasets from Meta…
+              </p>
+            ) : pixelSelectOptions.length > 0 ? (
+              <BuilderSelect
+                aria-label="Dataset"
+                value={
+                  pixelSelectOptions.some((opt) => opt.value === pixelId)
+                    ? pixelId
+                    : pixelSelectOptions[0]!.value
+                }
+                options={pixelSelectOptions}
+                onChange={setPixelId}
               />
-            </div>
-          )}
-        </BuilderField>
+            ) : (
+              <div className="space-y-2">
+                {!pixelsError ? (
+                  <p className="rounded-xl bg-[#fff7ed] px-3 py-2.5 text-xs text-amber-800">
+                    No dataset (Meta Pixel) was found on this account.
+                    Create one in Meta Events Manager, or paste the Pixel ID
+                    below.
+                  </p>
+                ) : null}
+                <input
+                  value={pixelId}
+                  onChange={(e) => setPixelId(e.target.value)}
+                  className={inputClass}
+                  placeholder="Enter Meta Pixel / Dataset ID"
+                />
+              </div>
+            )}
+          </BuilderField>
+        ) : null}
 
-        {!isAwarenessObjective &&
-        (optimizationGoal === "OFFSITE_CONVERSIONS" ||
-          optimizationGoal === "VALUE") ? (
+        {!isAwarenessObjective && needsConversionEvent ? (
           <BuilderField
             label="Conversion event"
             required
-            hint="The action that you want people to take when they see your ads."
+            hint="The website action Meta should optimize for (Purchase, Lead, etc.). Not used with Landing page views."
             error={fieldErrors.customEventType}
           >
             <BuilderSelect
