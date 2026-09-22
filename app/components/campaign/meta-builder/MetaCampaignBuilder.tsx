@@ -445,6 +445,10 @@ export function MetaCampaignBuilder({
                 optimizationGoal: defaultOptimizationGoalForObjective(
                   data.objective,
                 ),
+                promotedObject:
+                  data.objective === "OUTCOME_TRAFFIC"
+                    ? undefined
+                    : adSet.promotedObject,
               }
             : adSet,
         );

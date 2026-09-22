@@ -4,12 +4,17 @@ import type {
   CampaignStepData,
 } from "@/app/lib/meta-campaign-builder-types";
 
-function optimizationGoalNeedsPixel(goal: string | null | undefined): boolean {
-  return (
-    goal === "OFFSITE_CONVERSIONS" ||
-    goal === "VALUE" ||
-    goal === "LANDING_PAGE_VIEWS"
-  );
+function optimizationGoalNeedsPixel(
+  goal: string | null | undefined,
+  objective?: string | null,
+): boolean {
+  if (goal === "OFFSITE_CONVERSIONS" || goal === "VALUE") {
+    return true;
+  }
+  if (goal === "LANDING_PAGE_VIEWS") {
+    return objective !== "OUTCOME_TRAFFIC";
+  }
+  return false;
 }
 
 export function getMetaPublishReadyError(
@@ -37,7 +42,7 @@ export function getMetaPublishReadyError(
     return "Add at least one included location before publishing.";
   }
 
-  if (optimizationGoalNeedsPixel(adSet.optimizationGoal)) {
+  if (optimizationGoalNeedsPixel(adSet.optimizationGoal, campaign.objective)) {
     if (!adSet.promotedObject?.pixelId?.trim()) {
       return "Select a Dataset (Meta Pixel) on the Ad set step before publishing.";
     }
