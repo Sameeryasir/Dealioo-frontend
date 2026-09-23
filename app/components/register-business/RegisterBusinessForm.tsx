@@ -37,23 +37,18 @@ import {
   Banknote,
   Building2,
   Check,
-  Clock3,
   Globe,
-  Heart,
   ImagePlus,
-  Lightbulb,
   Loader2,
   Mail,
   Map,
   MapPin,
   PenLine,
-  Rocket,
   Search,
   Shield,
   Sparkles,
   Tag,
   Trash2,
-  TrendingUp,
   Upload,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -281,177 +276,6 @@ const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
 const DRAFT_DEBOUNCE_MS = 700;
 const ABOUT_DESC_MAX = 500;
-
-const BASICS_BENEFITS = [
-  {
-    icon: Clock3,
-    title: "Takes less than 2 minutes",
-    hint: "Quick and easy onboarding",
-  },
-  {
-    icon: Rocket,
-    title: "Everything in one place",
-    hint: "Manage funnels, ads, payments & more",
-  },
-  {
-    icon: TrendingUp,
-    title: "Grow your business faster",
-    hint: "Powerful tools to boost your growth",
-  },
-] as const;
-
-function BasicsAsideArt({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 360 200"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <ellipse cx="180" cy="168" rx="140" ry="18" fill="rgba(255,255,255,0.12)" />
-      <path d="M40 150V95l28-16 22 12v59H40Z" fill="rgba(255,255,255,0.18)" />
-      <path d="M98 150V78l36-22 30 18v76H98Z" fill="rgba(255,255,255,0.22)" />
-      <path d="M250 150V88l34-20 32 18v64h-66Z" fill="rgba(255,255,255,0.2)" />
-      <rect x="128" y="92" width="104" height="62" rx="8" fill="rgba(255,255,255,0.92)" />
-      <path d="M118 96h124l-10-18H128l-10 18Z" fill="#60A5FA" />
-      <rect x="152" y="112" width="22" height="22" rx="3" fill="#93C5FD" />
-      <rect x="186" y="112" width="22" height="22" rx="3" fill="#93C5FD" />
-      <rect x="168" y="128" width="24" height="26" rx="3" fill="#1D4ED8" />
-      <circle cx="292" cy="78" r="18" fill="rgba(255,255,255,0.95)" />
-      <circle cx="292" cy="78" r="12" fill="#1877F2" />
-      <path
-        d="M287 78c0-3.2 2.2-5.2 5.1-5.2 1.7 0 2.9.6 3.7 1.5l-1.6 1.5c-.5-.5-1.1-.8-1.9-.8-1.4 0-2.4 1.1-2.4 2.9s1 2.9 2.4 2.9c.9 0 1.5-.3 2-.8l1.6 1.4c-.9 1-2.2 1.6-3.8 1.6-3.1.1-5.1-2-5.1-5Z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-function AboutStoreArt({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 24 280 168"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <ellipse cx="150" cy="178" rx="100" ry="12" fill="rgba(15,23,42,0.28)" />
-      <rect x="28" y="58" width="7" height="112" rx="3" fill="#C4B5FD" />
-      <rect x="8" y="32" width="50" height="50" rx="14" fill="#1877F2" />
-      <rect x="16" y="58" width="5" height="14" rx="1" fill="#F83071" />
-      <rect x="24" y="52" width="5" height="20" rx="1" fill="#FCB825" />
-      <rect x="32" y="46" width="5" height="26" rx="1" fill="#00B34C" />
-      <path
-        d="M38 44h10c8 0 14 5.5 14 13.5S56 71 48 71H38V44Zm10 8c3.6 0 6.2 2.5 6.2 6.2S51.6 64.5 48 64.5h-4V52H48Z"
-        fill="#ffffff"
-      />
-      <rect x="68" y="62" width="160" height="108" rx="16" fill="#FFFFFF" />
-      <rect x="68" y="62" width="160" height="32" rx="16" fill="#EDE9FE" />
-      <rect x="68" y="78" width="160" height="16" fill="#EDE9FE" />
-      <path d="M58 74h180l-10 26H68l-10-26Z" fill="#FFFFFF" />
-      <path d="M78 74h22l-7 26H71l7-26Z" fill="#8B5CF6" />
-      <path d="M122 74h22l-7 26h-22l7-26Z" fill="#8B5CF6" />
-      <path d="M166 74h22l-7 26h-22l7-26Z" fill="#8B5CF6" />
-      <path d="M210 74h22l-7 26h-22l7-26Z" fill="#8B5CF6" />
-      <rect x="90" y="112" width="34" height="34" rx="7" fill="#BFDBFE" />
-      <rect x="172" y="112" width="34" height="34" rx="7" fill="#BFDBFE" />
-      <rect x="130" y="116" width="34" height="54" rx="9" fill="#1877F2" />
-      <circle cx="154" cy="144" r="3" fill="#DBEAFE" />
-      <rect x="238" y="138" width="26" height="22" rx="5" fill="#DDD6FE" />
-      <path
-        d="M251 138c-9-16-2-28 0-32 2 4 9 16 0 32Z"
-        fill="#34D399"
-      />
-      <path
-        d="M251 138c9-14 4-26 0-32-2 7-7 16 0 32Z"
-        fill="#10B981"
-      />
-    </svg>
-  );
-}
-
-function AboutAsideScene() {
-  return (
-    <div className={logoStyles.aboutScene}>
-      <div className={logoStyles.aboutStage}>
-        <svg
-          className={logoStyles.aboutOrbit}
-          viewBox="0 0 320 260"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden
-        >
-          <path
-            d="M160 48C210 48 268 78 278 128C286 168 250 205 198 220"
-            stroke="rgba(255,255,255,0.45)"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeDasharray="1.5 7"
-          />
-          <path
-            d="M148 50C98 58 52 88 48 130C44 170 78 205 128 220"
-            stroke="rgba(255,255,255,0.28)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeDasharray="1.5 7"
-          />
-        </svg>
-
-        <div
-          className={`${logoStyles.aboutFloatCard} ${logoStyles.aboutFloatMail}`}
-        >
-          <Mail
-            className="size-4 shrink-0 text-[#1877F2]"
-            strokeWidth={2.5}
-            aria-hidden
-          />
-          <span className={logoStyles.aboutFloatLines} aria-hidden>
-            <span
-              className={`${logoStyles.aboutFloatLine} ${logoStyles.aboutFloatLineLong}`}
-            />
-            <span
-              className={`${logoStyles.aboutFloatLine} ${logoStyles.aboutFloatLineShort}`}
-            />
-          </span>
-        </div>
-
-        <div
-          className={`${logoStyles.aboutFloatCard} ${logoStyles.aboutFloatGlobe}`}
-        >
-          <Globe
-            className="size-4 shrink-0 text-[#1877F2]"
-            strokeWidth={2.5}
-            aria-hidden
-          />
-          <span className={logoStyles.aboutFloatLines} aria-hidden>
-            <span
-              className={`${logoStyles.aboutFloatLine} ${logoStyles.aboutFloatLineLong}`}
-            />
-            <span
-              className={`${logoStyles.aboutFloatLine} ${logoStyles.aboutFloatLineShort}`}
-            />
-          </span>
-        </div>
-
-        <span
-          className={`${logoStyles.aboutHeartBubble} ${logoStyles.aboutFloatHeart}`}
-          aria-hidden
-        >
-          <Heart
-            className="size-3.5 fill-[#EC4899] text-[#EC4899]"
-            strokeWidth={0}
-          />
-        </span>
-
-        <div className={logoStyles.aboutStoreWrap}>
-          <AboutStoreArt className={logoStyles.aboutStoreArt} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function isImageMime(mime: string): boolean {
   return mime === "image/png" || mime === "image/jpeg" || mime === "image/webp";
@@ -1683,77 +1507,6 @@ export default function RegisterBusinessForm({
                       </button>
                     )}
                   </div>
-
-                  <aside
-                    className={`${logoStyles.basicsAside}${
-                      currentStep.id === "about" ? ` ${logoStyles.aboutAside}` : ""
-                    }`}
-                    aria-label="Why register"
-                  >
-                    {currentStep.id === "basics" ? (
-                      <>
-                        <BasicsAsideArt className={logoStyles.basicsAsideArt} />
-                        <div className={logoStyles.basicsAsideCopy}>
-                          <h3 className={logoStyles.basicsAsideTitle}>
-                            Let&apos;s build your business presence
-                          </h3>
-                          <p className={logoStyles.basicsAsideText}>
-                            A quick setup helps personalize Dealioo for your
-                            business so you can launch funnels and capture
-                            customers faster.
-                          </p>
-                        </div>
-                        <ul className={logoStyles.basicsBenefits}>
-                          {BASICS_BENEFITS.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <li
-                                key={item.title}
-                                className={logoStyles.basicsBenefit}
-                              >
-                                <span
-                                  className={logoStyles.basicsBenefitIcon}
-                                  aria-hidden
-                                >
-                                  <Icon className="size-4" strokeWidth={2.25} />
-                                </span>
-                                <div>
-                                  <p className={logoStyles.basicsBenefitTitle}>
-                                    {item.title}
-                                  </p>
-                                  <p className={logoStyles.basicsBenefitHint}>
-                                    {item.hint}
-                                  </p>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </>
-                    ) : (
-                      <>
-                        <AboutAsideScene />
-                        <div className={logoStyles.basicsTipCard}>
-                          <span className={logoStyles.basicsTipIcon} aria-hidden>
-                            <Lightbulb
-                              className="size-4"
-                              strokeWidth={2.25}
-                              fill="none"
-                            />
-                          </span>
-                          <div>
-                            <p className={logoStyles.basicsTipTitle}>
-                              Why this matters?
-                            </p>
-                            <p className={logoStyles.basicsTipText}>
-                              These details help customers discover and trust
-                              your business.
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </aside>
                 </div>
               )}
               </motion.div>

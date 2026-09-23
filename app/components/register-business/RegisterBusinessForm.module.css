@@ -345,15 +345,19 @@
   color: #c5221f;
 }
 
+/* Centered create-business form card (side popup removed). */
 .basicsZone {
   width: 100%;
-  max-width: 58rem;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .basicsSheet {
-  display: grid;
+  display: flex;
   width: 100%;
-  min-height: clamp(28rem, 70dvh, 36rem);
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   border-radius: 1.15rem;
   background: #ffffff;
@@ -371,15 +375,9 @@
   min-width: 0;
 }
 
-@media (min-width: 1024px) {
-  .basicsSheet {
-    grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.9fr);
-  }
-}
-
 /* About step has fewer fields — keep the card shorter than essentials. */
 .basicsSheetAbout {
-  min-height: clamp(20rem, 48dvh, 26rem);
+  min-height: 0;
 }
 
 .basicsSheetAbout .basicsForm {
@@ -456,7 +454,7 @@
 
 .basicsSubtitle {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
   margin: -0.35rem 0 0;
   font-size: 0.92rem;
@@ -591,227 +589,6 @@
   width: auto;
 }
 
-.basicsTipCard {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  margin-top: auto;
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.94);
-  padding: 0.9rem 0.95rem;
-  color: #0f172a;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
-}
-
-.basicsTipIcon {
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 2.15rem;
-  height: 2.15rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #1877f2 0%, #7c3aed 55%, #db2777 100%);
-  color: #ffffff;
-}
-
-.basicsTipTitle {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.basicsTipText {
-  margin: 0.2rem 0 0;
-  font-size: 0.74rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: #475569;
-}
-
-.aboutAside {
-  justify-content: space-between;
-  gap: 0.65rem;
-  background: linear-gradient(165deg, #1877f2 0%, #5b21b6 48%, #9d174d 100%);
-  color: #0f172a;
-}
-
-.aboutScene {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  width: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  padding: 0.25rem 0.15rem 0.15rem;
-}
-
-.aboutStage {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 26rem;
-}
-
-.aboutOrbit {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.aboutFloatCard {
-  position: absolute;
-  z-index: 2;
-  box-sizing: border-box;
-  display: flex;
-  width: 5.85rem;
-  min-height: 2.45rem;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  background: #ffffff;
-  padding: 0.45rem 0.65rem;
-  box-shadow:
-    0 12px 28px rgba(15, 23, 42, 0.16),
-    0 2px 6px rgba(15, 23, 42, 0.06);
-  animation: aboutTagFloat 3.8s ease-in-out infinite;
-}
-
-.aboutFloatMail {
-  top: 2%;
-  left: 50%;
-  margin-left: -2.925rem;
-  animation-delay: 0s;
-}
-
-.aboutFloatGlobe {
-  top: 12%;
-  right: 0;
-  animation-delay: 0.35s;
-}
-
-.aboutHeartBubble {
-  position: absolute;
-  z-index: 2;
-  box-sizing: border-box;
-  display: inline-flex;
-  width: 2.45rem;
-  height: 2.45rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #ec4899;
-  box-shadow:
-    0 12px 26px rgba(236, 72, 153, 0.22),
-    0 2px 6px rgba(15, 23, 42, 0.06);
-  animation: aboutTagFloat 3.8s ease-in-out infinite;
-}
-
-.aboutHeartBubble::after {
-  content: "";
-  position: absolute;
-  bottom: -0.22rem;
-  left: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 0 0 0 0.15rem;
-  background: #ffffff;
-  transform: translateX(-50%) rotate(-40deg);
-}
-
-.aboutFloatHeart {
-  top: 62%;
-  right: 0.55rem;
-  animation-delay: 0.7s;
-}
-
-.aboutFloatLines {
-  display: flex;
-  flex-direction: column;
-  gap: 0.22rem;
-}
-
-.aboutFloatLine {
-  display: block;
-  height: 0.28rem;
-  border-radius: 999px;
-  background: #e2e8f0;
-}
-
-.aboutFloatLineShort {
-  width: 1.2rem;
-}
-
-.aboutFloatLineLong {
-  width: 1.85rem;
-}
-
-.aboutStoreWrap {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(2.5rem);
-}
-
-.aboutStoreArt {
-  display: block;
-  width: 100%;
-  max-width: 26rem;
-  height: auto;
-  transform: scale(1.18);
-  transform-origin: center center;
-  filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.28));
-  animation: aboutStoreIn 0.55s ease-out both;
-}
-
-@keyframes aboutTagFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes aboutStoreIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(1.05);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1.18);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aboutFloatCard,
-  .aboutHeartBubble,
-  .aboutStoreArt {
-    animation: none;
-  }
-}
-
-.aboutAside .basicsTipCard {
-  flex-shrink: 0;
-  border-color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
-}
 
 .basicsInputWrap {
   display: flex;
@@ -960,99 +737,6 @@
 .basicsNext:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.basicsAside {
-  position: relative;
-  display: none;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 1rem;
-  overflow: hidden;
-  background: linear-gradient(165deg, #1877f2 0%, #5b21b6 48%, #9d174d 100%);
-  padding: 1.75rem 1.5rem 1.65rem;
-  color: #ffffff;
-}
-
-@media (min-width: 1024px) {
-  .basicsAside {
-    display: flex;
-  }
-}
-
-.basicsAsideArt {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 46%;
-  opacity: 0.95;
-  pointer-events: none;
-}
-
-.basicsAsideCopy {
-  position: relative;
-  z-index: 1;
-  margin-top: auto;
-}
-
-.basicsAsideTitle {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-}
-
-.basicsAsideText {
-  margin: 0.55rem 0 0;
-  font-size: 0.84rem;
-  font-weight: 500;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.basicsBenefits {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 1.1rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.basicsBenefit {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-}
-
-.basicsBenefitIcon {
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 2.15rem;
-  height: 2.15rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.basicsBenefitTitle {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.basicsBenefitHint {
-  margin: 0.1rem 0 0;
-  font-size: 0.74rem;
-  font-weight: 500;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.78);
 }
 
 .locationSheet {
@@ -1346,10 +1030,6 @@
   filter: drop-shadow(0 16px 28px rgba(15, 23, 42, 0.28));
 }
 
-.fitPinArt + .basicsAsideCopy {
-  margin-top: 0.15rem;
-}
-
 .fitWandHero {
   position: relative;
   z-index: 1;
@@ -1359,10 +1039,6 @@
   align-items: center;
   justify-content: center;
   margin: 0.15rem auto 0.15rem;
-}
-
-.fitWandHero + .basicsAsideCopy {
-  margin-top: 0.15rem;
 }
 
 .fitWandRipple {
@@ -1470,7 +1146,7 @@
 
 @media (min-width: 1280px) {
   .basicsZone {
-    max-width: 64rem;
+    max-width: 36rem;
   }
 
   .locationMap {
