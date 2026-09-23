@@ -3,14 +3,29 @@
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
 import { editorStatusLabel } from "@/app/components/crm-template-editor/editor-status";
 
+function compactStatusLabel(
+  status: EditorSaveStatus,
+  isDirty: boolean,
+): string {
+  if (status === "saving") return "Saving";
+  if (status === "error") return "Failed";
+  if (status === "saved") return "Saved";
+  if (isDirty) return "Unsaved";
+  return "Synced";
+}
+
 export function StatusBadge({
   status,
   isDirty,
+  compact = false,
 }: {
   status: EditorSaveStatus;
   isDirty: boolean;
+  compact?: boolean;
 }) {
-  const label = editorStatusLabel(status, isDirty);
+  const label = compact
+    ? compactStatusLabel(status, isDirty)
+    : editorStatusLabel(status, isDirty);
   const tone =
     status === "error"
       ? "bg-red-50 text-red-700 ring-red-200/80"
@@ -24,7 +39,8 @@ export function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.625rem] font-bold ring-1 ring-inset ${tone}`}
+      className={`inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[0.625rem] font-bold leading-none ring-1 ring-inset ${tone}`}
+      title={editorStatusLabel(status, isDirty)}
       aria-live="polite"
     >
       {label}

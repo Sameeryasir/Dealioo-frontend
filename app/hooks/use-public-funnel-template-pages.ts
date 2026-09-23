@@ -21,6 +21,7 @@ import {
   type PublicFunnelResponse,
   type PublicFunnelStep,
 } from "@/app/services/funnel/get-public-funnel";
+import { applyCampaignOfferToLandingPages } from "@/app/lib/clone-template-pages";
 
 function mergeStepPages(
   prev: TemplatePagesState,
@@ -96,7 +97,10 @@ export function usePublicFunnelTemplatePages(
               FunnelByCampaignResponse["pages"]
             >;
             setPages((prev) => {
-              const next = mergeStepPages(prev, apiPages);
+              const next = applyCampaignOfferToLandingPages(
+                mergeStepPages(prev, apiPages),
+                loaded.offer,
+              );
               void saveFunnelTemplatePagesAsync(funnelIdSegment, next);
               return next;
             });

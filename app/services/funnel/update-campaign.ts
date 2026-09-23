@@ -1,10 +1,6 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
-import {
-  isCampaignCategory,
-  type CampaignCategory,
-} from "@/app/lib/campaign-category";
 
 export type CampaignPublicationStatus = "published" | "unpublished";
 
@@ -16,7 +12,6 @@ export type UpdateCampaignPayload = {
   description: string;
   price: number;
   status: CampaignPublicationStatus;
-  campaignCategory?: CampaignCategory;
   image?: File | null;
 };
 
@@ -47,12 +42,6 @@ export async function updateCampaign(
   if (payload.status !== "published" && payload.status !== "unpublished") {
     throw new Error("Status must be published or unpublished.");
   }
-  if (
-    payload.campaignCategory != null &&
-    !isCampaignCategory(payload.campaignCategory)
-  ) {
-    throw new Error("Select a valid campaign category.");
-  }
 
   const form = new FormData();
   form.append("campaignName", payload.campaignName.trim());
@@ -61,9 +50,6 @@ export async function updateCampaign(
   form.append("description", payload.description.trim());
   form.append("price", String(payload.price));
   form.append("status", payload.status);
-  if (payload.campaignCategory) {
-    form.append("campaignCategory", payload.campaignCategory);
-  }
   if (payload.image instanceof File) {
     form.append("image", payload.image, payload.image.name);
   }
@@ -80,5 +66,5 @@ export async function updateCampaign(
     throw new Error(await parseApiErrorMessage(res, "Could not update campaign."));
   }
 
-  return res.json() as Promise<unknown>;
+  return res.json();
 }

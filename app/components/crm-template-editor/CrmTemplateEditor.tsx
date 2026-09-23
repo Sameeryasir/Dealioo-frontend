@@ -34,6 +34,7 @@ import { isGrowthAiSubscription } from "@/app/lib/plan-limits";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { mergePagesForSave } from "@/app/lib/merge-funnel-pages";
+import { applyCampaignOfferToLandingPages } from "@/app/lib/clone-template-pages";
 import {
   buildCreateFunnelRequestBody,
   createFunnel,
@@ -151,12 +152,25 @@ export function CrmTemplateEditor({
 
   const activePage = pages[activeId];
 
+  const resolvedCampaignOffer =
+    campaignOffer?.trim() || campaignDetail?.offer?.trim() || "";
+
   useEffect(() => {
     if (!isHydrated) return;
-    resetPagesHistory(funnelLoader.pages);
+    resetPagesHistory(
+      applyCampaignOfferToLandingPages(
+        funnelLoader.pages,
+        resolvedCampaignOffer,
+      ),
+    );
     setIsDirty(false);
     setSaveStatus("idle");
-  }, [isHydrated, funnelLoader.pages, resetPagesHistory]);
+  }, [
+    isHydrated,
+    funnelLoader.pages,
+    resolvedCampaignOffer,
+    resetPagesHistory,
+  ]);
 
   usePersistCampaignFunnelDraft(
     campaignId,
@@ -292,9 +306,9 @@ export function CrmTemplateEditor({
     return {
       subtotal,
       fees: 0,
-      offer: campaignOffer?.trim() || null,
+      offer: resolvedCampaignOffer || null,
     };
-  }, [campaignPrice, campaignOffer]);
+  }, [campaignPrice, resolvedCampaignOffer]);
 
   const landingTrackingUrl = useMemo(() => {
     return buildFunnelLandingTrackingUrl({
@@ -310,7 +324,7 @@ export function CrmTemplateEditor({
   }, [funnelId, campaignId, previewBusinessId, campaignPrice, campaignType]);
 
   const campaignTitleForTracking =
-    campaignName?.trim() || campaignOffer?.trim() || "Campaign";
+    campaignName?.trim() || resolvedCampaignOffer || "Campaign";
 
   useEffect(() => {
     setTrackingPortalReady(true);

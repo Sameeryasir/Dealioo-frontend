@@ -6,7 +6,7 @@ export function parseOfferPrice(raw: string): number {
   return n;
 }
 
-export const CAMPAIGN_OFFER_MAX_LENGTH = 50;
+export const CAMPAIGN_OFFER_MAX_LENGTH = 100;
 
 export function isValidOfferName(raw: string): boolean {
   const trimmed = raw.trim();

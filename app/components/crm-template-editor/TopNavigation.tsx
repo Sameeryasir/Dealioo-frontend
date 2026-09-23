@@ -47,8 +47,14 @@ const compactPrimaryActionClass =
 const ghostActionClass =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
 
+const dockedGhostActionClass =
+  "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[0.72rem] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
+
 const publishActionClass =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
+
+const dockedPublishActionClass =
+  "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[0.72rem] font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function TopNavigation({
   campaignName,
@@ -71,6 +77,9 @@ export function TopNavigation({
   const campaignLine = campaignName ? campaignName : "Your campaign";
   const compact = embedded || docked;
   const ctaClass = compact ? compactPrimaryActionClass : primaryActionClass;
+  const actionGhostClass = embedded && docked ? dockedGhostActionClass : ghostActionClass;
+  const actionPublishClass =
+    embedded && docked ? dockedPublishActionClass : publishActionClass;
 
   const trackingLinkButton = onTrackingLink ? (
     <button
@@ -82,10 +91,10 @@ export function TopNavigation({
           ? "Save the funnel first to generate a tracking link"
           : "Get link for Facebook / Google ads"
       }
-      className={ghostActionClass}
+      className={actionGhostClass}
     >
-      <Link2 className="size-3.5" aria-hidden />
-      Tracking link
+      <Link2 className="size-3.5 shrink-0" aria-hidden />
+      <span className="truncate">Tracking link</span>
     </button>
   ) : null;
 
@@ -97,10 +106,10 @@ export function TopNavigation({
           onClick={onUnpublish}
           disabled={isSaving || !onUnpublish}
           title="Take this funnel offline for guests"
-          className={ghostActionClass}
+          className={actionGhostClass}
         >
-          <GlobeLock className="size-3.5" aria-hidden />
-          Unpublish
+          <GlobeLock className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">Unpublish</span>
         </button>
       ) : (
         <button
@@ -108,41 +117,44 @@ export function TopNavigation({
           onClick={onPublish}
           disabled={isSaving || !onPublish}
           title="Make this funnel live for guests and ads"
-          className={publishActionClass}
+          className={actionPublishClass}
         >
-          <Globe className="size-3.5" aria-hidden />
-          Publish
+          <Globe className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">Publish</span>
         </button>
       )
     ) : null;
 
   if (embedded && docked) {
+    const title = campaignName?.trim() || pageLabel;
+    const liveTone = published
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200/80"
+      : "bg-amber-50 text-amber-800 ring-amber-200/80";
+
     return (
-      <div className="editor-panel-top-inner flex h-full min-h-0 w-full flex-col justify-between">
-        <div className="editor-panel-top-head shrink-0">
+      <div className="editor-panel-top-inner flex h-full min-h-0 w-full flex-col justify-between gap-2">
+        <div className="editor-panel-top-head min-w-0 shrink-0">
           <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-slate-500">
             Editor
           </p>
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            <p
-              className="m-0 min-w-0 truncate text-[0.875rem] font-semibold text-slate-900"
-              title={pageLabel}
-            >
-              {pageLabel}
-            </p>
-            <StatusBadge status={saveStatus} isDirty={isDirty} />
-          </div>
-          <p
-            className={`mt-1 m-0 text-[0.65rem] font-semibold ${
-              published ? "text-emerald-700" : "text-amber-700"
-            }`}
+          <h2
+            className="mt-1.5 m-0 line-clamp-2 break-words text-[0.95rem] font-semibold leading-snug tracking-tight text-slate-900"
+            title={title}
           >
-            {published ? "Live for guests" : "Draft — not public yet"}
-          </p>
+            {title}
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[0.625rem] font-bold leading-none ring-1 ring-inset ${liveTone}`}
+            >
+              {published ? "Live" : "Draft"}
+            </span>
+            <StatusBadge status={saveStatus} isDirty={isDirty} compact />
+          </div>
         </div>
 
-        <div className="editor-panel-top-foot flex flex-col gap-1.5">
-          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+        <div className="editor-panel-top-foot flex min-w-0 flex-col gap-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             {trackingLinkButton}
             {publishControls}
           </div>

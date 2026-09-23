@@ -20,11 +20,6 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
-import {
-  CAMPAIGN_CATEGORY_OPTIONS,
-  type CampaignCategory,
-} from "@/app/lib/campaign-category";
 import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
@@ -54,7 +49,6 @@ export type CreateCampaignCompletePayload = {
   offerPrice: string;
   offerImage: File;
   campaignType: CampaignType;
-  campaignCategory: CampaignCategory;
   includeOfferPrice: boolean;
 };
 
@@ -139,8 +133,6 @@ export default function CreateCampaigns({
 
 const [campaignType, setCampaignType] = useState<CampaignType | null>(null);
   const [campaignName, setCampaignName] = useState("");
-  const [campaignCategory, setCampaignCategory] =
-    useState<CampaignCategory | "">("");
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -157,7 +149,6 @@ useEffect(() => {
     dispatch(resetCampaignDraft());
     setCampaignType(null);
     setCampaignName("");
-    setCampaignCategory("");
     setOffer("");
     setDescription("");
     setPrice("");
@@ -277,11 +268,6 @@ useEffect(() => {
       return;
     }
 
-    if (!campaignCategory) {
-      setError("Select a campaign category.");
-      return;
-    }
-
     const offerError = offerNameValidationMessage(offer);
     if (offerError) {
       setError(offerError);
@@ -324,7 +310,6 @@ useEffect(() => {
       offerPrice: requirePrice ? price.trim() : "",
       offerImage: imageFile,
       campaignType,
-      campaignCategory,
       includeOfferPrice: requirePrice,
     };
 
@@ -505,32 +490,6 @@ useEffect(() => {
 
 <div>
               <FieldHeader
-                htmlFor="create-campaign-category"
-                label="Category"
-                required
-              />
-              <BusinessOptionSelect
-                id="create-campaign-category"
-                value={campaignCategory}
-                options={[...CAMPAIGN_CATEGORY_OPTIONS]}
-                placeholder="Select a category"
-                ariaLabel="Campaign category"
-                disabled={isSaving}
-                menuZIndex={90}
-                triggerClassName={`${inputClassName} flex items-center justify-between gap-2`}
-                onChange={(nextValue) =>
-                  setCampaignCategory(
-                    (nextValue || "") as CampaignCategory | "",
-                  )
-                }
-              />
-              <FieldHint>
-                Helps guests find the right kind of offer.
-              </FieldHint>
-            </div>
-
-<div>
-              <FieldHeader
                 htmlFor="create-campaign-description"
                 label="Description"
                 count={`${description.length}/${CAMPAIGN_DESCRIPTION_MAX_LENGTH}`}
@@ -579,7 +538,7 @@ useEffect(() => {
                   required
                 />
                 <FieldHint>
-                  Enter the special offer or headline for this campaign.
+                  Choose a clear offer name — this text appears as the tag on your funnel landing page.
                 </FieldHint>
               </div>
               <div>

@@ -250,6 +250,7 @@ export function LandingPagePreview({
       ctaTextColor: pageRecord.ctaTextColor,
       buttonBackgroundColor: landing?.buttonBackgroundColor,
       ctaBackgroundColor: pageRecord.ctaBackgroundColor,
+      eyebrow: landing?.eyebrow,
     },
   });
 

@@ -130,7 +130,7 @@ export function resolveLandingTheme(input: {
     ctaShadow: template.ctaShadow,
     trustClass: template.trustClass,
     heroPlaceholderClass: template.heroPlaceholderClass,
-    eyebrow: template.eyebrow,
+    eyebrow: overrides.eyebrow?.trim() || template.eyebrow,
     trustLine: template.trustLine,
   };
 }

@@ -31,6 +31,7 @@ export type LandingStyleOverrides = {
   ctaBackgroundColor?: string | null;
   buttonBackgroundColor?: string | null;
   buttonColor?: string | null;
+  eyebrow?: string | null;
 };
 
 export type FrameworkThemeDefaults = {

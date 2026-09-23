@@ -177,6 +177,7 @@ export function mapFunnelApiPagesToTemplateState(
       contentSectionOrder?: LandingTemplatePage["contentSectionOrder"];
       pageTemplateId?: string;
       copyTemplateId?: string;
+      eyebrow?: string;
     };
     mapped.contentSectionOrder = normalizeLandingSectionOrder(
       landingExtras.contentSectionOrder ?? fb.contentSectionOrder,
@@ -186,6 +187,9 @@ export function mapFunnelApiPagesToTemplateState(
     }
     if (landingExtras.copyTemplateId?.trim()) {
       mapped.copyTemplateId = landingExtras.copyTemplateId.trim();
+    }
+    if (landingExtras.eyebrow?.trim()) {
+      mapped.eyebrow = landingExtras.eyebrow.trim();
     }
     base.landing = mapped;
   }

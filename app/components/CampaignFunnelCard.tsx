@@ -346,19 +346,22 @@ export default function CampaignFunnelCard({
 
           <div className="mt-auto w-full pt-4">
             <div className="org-campaign-card-footer flex items-end justify-between gap-2 border-t border-[#e8eef7] pt-3">
-              {priceText ? (
-                <p className="org-campaign-card-price m-0 text-[1.35rem] font-extrabold leading-none sm:text-[1.45rem]">
-                  {priceText}
-                </p>
-              ) : campaignTypeLabel ? (
-                <span className="org-campaign-card-type inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.04em]">
-                  {campaignTypeLabel}
-                </span>
-              ) : (
-                <span className="org-campaign-card-meta text-[0.72rem] font-medium">
-                  No price set
-                </span>
-              )}
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {priceText ? (
+                  <p className="org-campaign-card-price m-0 text-[1.35rem] font-extrabold leading-none sm:text-[1.45rem]">
+                    {priceText}
+                  </p>
+                ) : (
+                  <span className="org-campaign-card-meta text-[0.72rem] font-medium">
+                    No price set
+                  </span>
+                )}
+                {campaignTypeLabel ? (
+                  <span className="org-campaign-card-type inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.04em]">
+                    {campaignTypeLabel}
+                  </span>
+                ) : null}
+              </div>
               {created ? (
                 <p className="org-campaign-card-date m-0 inline-flex items-center gap-1 text-[0.65rem] font-medium sm:text-[0.68rem]">
                   <CalendarDays className="size-3 shrink-0 opacity-70" strokeWidth={2} aria-hidden />

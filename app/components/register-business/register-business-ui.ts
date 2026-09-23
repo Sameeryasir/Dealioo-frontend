@@ -19,7 +19,6 @@ export const REGISTER_BUSINESS_STEP_UI: Record<
   basics: {
     lead: "Let's start with the ",
     accent: "essentials",
-    // Short setup blurb under the heading (popup tip removed).
     subtitle:
       "A quick setup helps personalize Dealioo for your business so you can launch funnels and capture customers faster.",
   },

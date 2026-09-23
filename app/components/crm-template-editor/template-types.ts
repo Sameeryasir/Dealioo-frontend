@@ -71,6 +71,7 @@ export type LandingTemplatePage = TemplatePageBase & {
   contentSectionOrder?: LandingContentSectionId[];
   pageTemplateId?: string;
   copyTemplateId?: string;
+  eyebrow?: string;
   headingColor: string;
   subheadingColor: string;
   bodyColor: string;
@@ -95,6 +96,7 @@ export type TemplatePagePatch = Partial<Omit<TemplatePageBase, "id">> &
       | "contentSectionOrder"
       | "pageTemplateId"
       | "copyTemplateId"
+      | "eyebrow"
       | "headingColor"
       | "subheadingColor"
       | "bodyColor"

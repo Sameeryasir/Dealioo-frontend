@@ -57,6 +57,7 @@ export type CreateFunnelLandingPagePayload = {
   contentSectionOrder?: string[];
   pageTemplateId?: string;
   copyTemplateId?: string;
+  eyebrow?: string;
 };
 
 export type CreateFunnelSignupPagePayload = {
@@ -192,6 +193,7 @@ function buildLandingPayload(
     ...(page.copyTemplateId?.trim()
       ? { copyTemplateId: page.copyTemplateId.trim() }
       : {}),
+    ...(page.eyebrow?.trim() ? { eyebrow: page.eyebrow.trim() } : {}),
   };
 }
 

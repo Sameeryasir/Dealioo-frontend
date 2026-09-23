@@ -1,9 +1,5 @@
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
-import {
-  isCampaignCategory,
-  type CampaignCategory,
-} from "@/app/lib/campaign-category";
 
 export type Funnel = {
   id: number;
@@ -15,7 +11,6 @@ export type Funnel = {
   description?: string | null;
   price?: number | string;
   campaignType?: "prepaid" | "postpaid";
-  campaignCategory?: CampaignCategory;
   published?: boolean;
   status: string;
   createdAt: string;
@@ -94,10 +89,6 @@ function coerceCampaign(value: unknown): Funnel | null {
     rawCampaignType === "prepaid" || rawCampaignType === "postpaid"
       ? rawCampaignType
       : undefined;
-  const rawCampaignCategory = o.campaignCategory ?? o.campaign_category;
-  const campaignCategory = isCampaignCategory(rawCampaignCategory)
-    ? rawCampaignCategory
-    : undefined;
   const status =
     typeof o.status === "string"
       ? o.status
@@ -135,7 +126,6 @@ function coerceCampaign(value: unknown): Funnel | null {
     description,
     price: typeof price === "number" || typeof price === "string" ? price : undefined,
     campaignType,
-    campaignCategory,
     published:
       typeof o.published === "boolean"
         ? o.published

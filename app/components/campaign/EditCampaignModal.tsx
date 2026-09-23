@@ -21,13 +21,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
 import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
-import {
-  CAMPAIGN_CATEGORY_OPTIONS,
-  isCampaignCategory,
-  type CampaignCategory,
-} from "@/app/lib/campaign-category";
 import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
@@ -114,8 +108,6 @@ export function EditCampaignModal({
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [campaignName, setCampaignName] = useState("");
-  const [campaignCategory, setCampaignCategory] =
-    useState<CampaignCategory | "">("");
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -138,11 +130,6 @@ export function EditCampaignModal({
     if (!open || !campaign) return;
     setCampaignName(
       (campaign.campaignName?.trim() ?? "").slice(0, CAMPAIGN_NAME_MAX_LENGTH),
-    );
-    setCampaignCategory(
-      isCampaignCategory(campaign.campaignCategory)
-        ? campaign.campaignCategory
-        : "",
     );
     setOffer(
       (campaign.offer?.trim() ?? "").slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
@@ -255,11 +242,6 @@ export function EditCampaignModal({
         setIsSaving(false);
         return;
       }
-      if (!isCampaignCategory(campaignCategory)) {
-        setError("Select a campaign category.");
-        setIsSaving(false);
-        return;
-      }
       const offerError = offerNameValidationMessage(offer);
       if (offerError) {
         setError(offerError);
@@ -297,7 +279,6 @@ export function EditCampaignModal({
         description: description.trim(),
         price: parseOfferPrice(price),
         status,
-        campaignCategory,
         image: imageFile,
       });
       const updatedCampaign =
@@ -305,7 +286,6 @@ export function EditCampaignModal({
         ({
           ...campaign,
           campaignName: trimmedName,
-          campaignCategory,
           offer: offer.trim(),
           description: description.trim(),
           price: parseOfferPrice(price),
@@ -412,32 +392,6 @@ export function EditCampaignModal({
 
               <div>
                 <FieldHeader
-                  htmlFor="edit-campaign-category"
-                  label="Category"
-                  required
-                />
-                <BusinessOptionSelect
-                  id="edit-campaign-category"
-                  value={campaignCategory}
-                  options={[...CAMPAIGN_CATEGORY_OPTIONS]}
-                  placeholder="Select a category"
-                  ariaLabel="Campaign category"
-                  disabled={isSaving}
-                  menuZIndex={90}
-                  triggerClassName={`${inputClassName} flex items-center justify-between gap-2`}
-                  onChange={(nextValue) =>
-                    setCampaignCategory(
-                      (nextValue || "") as CampaignCategory | "",
-                    )
-                  }
-                />
-                <FieldHint>
-                  Helps guests find the right kind of offer.
-                </FieldHint>
-              </div>
-
-              <div>
-                <FieldHeader
                   htmlFor="edit-campaign-description"
                   label="Description"
                   count={`${description.length}/${CAMPAIGN_DESCRIPTION_MAX_LENGTH}`}
@@ -486,7 +440,7 @@ export function EditCampaignModal({
                     required
                   />
                   <FieldHint>
-                    Enter the special offer or headline for this campaign.
+                    Choose a clear offer name — this text appears as the tag on your funnel landing page.
                   </FieldHint>
                 </div>
                 <div>
