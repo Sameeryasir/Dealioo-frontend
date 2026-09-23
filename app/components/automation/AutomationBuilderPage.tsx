@@ -70,7 +70,7 @@ import {
   updateAutomationNode,
 } from "@/app/services/automation/node-api";
 import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
-import { isPositiveInt } from "@/app/lib/numbers";
+import { isPositiveInt, parseRoutePositiveInt } from "@/app/lib/numbers";
 import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 import { validateWorkflowForActivation } from "@/app/components/automation/builder/workflow-activation-validation";
 import {
@@ -242,7 +242,12 @@ export function AutomationBuilderPage({
   } = useAutomationQuery(automationNumericId);
 
   const linkedCampaignId = remoteAutomation?.campaignId ?? null;
-  const { data: linkedCampaign } = useCampaignByIdQuery(linkedCampaignId);
+  const campaignIdFromQuery = useMemo(
+    () => parseRoutePositiveInt(searchParams.get("campaignId")),
+    [searchParams],
+  );
+  const resolvedCampaignId = campaignIdFromQuery ?? linkedCampaignId;
+  const { data: linkedCampaign } = useCampaignByIdQuery(resolvedCampaignId);
   const campaignIsPublished =
     linkedCampaign == null
       ? null
@@ -338,7 +343,30 @@ export function AutomationBuilderPage({
   }, [tabFromUrl]);
 
   const automationsListHref =
-    listHref ?? `/business/${businessId}/dashboard/automations`;
+    listHref ??
+    (resolvedCampaignId != null && resolvedCampaignId >= 1
+      ? `/business/${businessId}/dashboard/campaigns/${resolvedCampaignId}/automations`
+      : `/business/${businessId}/dashboard/automations`);
+
+  useEffect(() => {
+    if (
+      resolvedCampaignId == null ||
+      resolvedCampaignId < 1 ||
+      campaignIdFromQuery === resolvedCampaignId
+    ) {
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("campaignId", String(resolvedCampaignId));
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [
+    campaignIdFromQuery,
+    pathname,
+    resolvedCampaignId,
+    router,
+    searchParams,
+  ]);
 
   const automationActive = automationIsActive === true;
 

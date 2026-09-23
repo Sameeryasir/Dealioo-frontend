@@ -54,6 +54,91 @@ export function isExecutionInProgress(
   return status === "queued" || status === "running" || status === "waiting";
 }
 
+export function executionStatusPlainLabel(
+  status: AutomationExecutionStatus,
+): string {
+  switch (status) {
+    case "queued":
+      return "Queued";
+    case "running":
+      return "Sending";
+    case "waiting":
+      return "Waiting";
+    case "paused":
+      return "Paused";
+    case "completed":
+      return "Sent";
+    case "failed":
+      return "Failed";
+    case "cancelled":
+      return "Cancelled";
+    case "timed_out":
+      return "Timed out";
+    default:
+      return status;
+  }
+}
+
+function recipientCountForRun(
+  row: Pick<
+    AutomationExecution,
+    "totalRecipients" | "executedRecipients" | "customerId" | "emailsSentCount"
+  >,
+): number {
+  if (row.totalRecipients && row.totalRecipients > 0) return row.totalRecipients;
+  const executed = row.executedRecipients?.length ?? 0;
+  if (executed > 0) return executed;
+  if (row.emailsSentCount && row.emailsSentCount > 0) return row.emailsSentCount;
+  return row.customerId ? 1 : 0;
+}
+
+export function executionRunOutcomeLine(
+  row: Pick<
+    AutomationExecution,
+    | "status"
+    | "emailsSentCount"
+    | "totalRecipients"
+    | "executedRecipients"
+    | "customerId"
+    | "customer"
+  >,
+): string {
+  const total = recipientCountForRun(row);
+  const sent = row.emailsSentCount ?? 0;
+
+  if (isExecutionInProgress(row.status)) {
+    if (total > 0) {
+      return sent > 0
+        ? `Sending ${sent} of ${total}`
+        : `Sending to ${total}`;
+    }
+    if (row.status === "queued") return "Queued";
+    if (row.status === "waiting") return "Waiting";
+    return "Sending…";
+  }
+
+  if (row.status === "failed" || row.status === "timed_out") {
+    if (sent > 0 && total > sent) {
+      return `Sent ${sent}, failed for ${total - sent}`;
+    }
+    if (total > 0) return `Failed for ${total}`;
+    return "Failed";
+  }
+
+  if (row.status === "cancelled") {
+    if (sent > 0) return `Sent ${sent} before cancel`;
+    return total > 0 ? `Cancelled · ${total} queued` : "Cancelled";
+  }
+
+  if (row.status === "paused") {
+    return total > 0 ? `Paused · ${sent} of ${total}` : "Paused";
+  }
+
+  const reached = sent > 0 ? sent : total;
+  if (reached > 0) return `Sent to ${reached}`;
+  return customerLabel(row.customerId, row.customer);
+}
+
 export function isBulkEmailSendInProgress(
   status: AutomationExecutionStatusDto,
 ): boolean {

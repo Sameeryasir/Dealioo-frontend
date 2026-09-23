@@ -36,7 +36,8 @@ import { formatDateTimeShort } from "@/app/lib/datetime";
 import { reportTableShellClass } from "@/app/lib/panel-styles";
 import { RunProgressBanner } from "@/app/components/automation/RunProgressBanner";
 import {
-  executionRunCustomersLine,
+  executionRunOutcomeLine,
+  executionStatusPlainLabel,
   isExecutionInProgress,
 } from "@/app/components/automation/execution-status-ui";
 import { Skeleton } from "@/app/components/skeleton";
@@ -76,10 +77,10 @@ const STATUS_FILTERS: { id: "all" | AutomationExecutionStatus; label: string }[]
   [
     { id: "all", label: "All" },
     { id: "queued", label: "Queued" },
-    { id: "running", label: "Running" },
+    { id: "running", label: "Sending" },
     { id: "waiting", label: "Waiting" },
     { id: "paused", label: "Paused" },
-    { id: "completed", label: "Completed" },
+    { id: "completed", label: "Sent" },
     { id: "failed", label: "Failed" },
     { id: "cancelled", label: "Cancelled" },
     { id: "timed_out", label: "Timed out" },
@@ -201,7 +202,8 @@ function RunRow({
   deleteLocked: boolean;
 }) {
   const StatusIcon = statusIcon(row.status);
-  const customersText = executionRunCustomersLine(row);
+  const outcomeText = executionRunOutcomeLine(row);
+  const statusLabel = executionStatusPlainLabel(row.status);
   const runLabel = `Run #${row.id}`;
 
   const inProgress = isExecutionInProgress(row.status);
@@ -225,7 +227,7 @@ function RunRow({
           onOpenLogs(row);
         }
       }}
-      className={`group ${RUNS_TABLE_GRID} w-full cursor-pointer border-l-2 px-5 py-3.5 text-sm transition hover:bg-violet-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-inset ${rowAccentClass(row.status)} pl-[calc(1.25rem-2px)] ${
+      className={`group ${RUNS_TABLE_GRID} w-full cursor-pointer border-l-2 px-5 py-3.5 text-sm transition hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-inset ${rowAccentClass(row.status)} pl-[calc(1.25rem-2px)] ${
         inProgress ? "bg-sky-50/40" : ""
       }`}
     >
@@ -237,8 +239,8 @@ function RunRow({
           {runLabel}
         </p>
         {recipientCount > 0 ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-emerald-800 ring-1 ring-emerald-200/80">
-            <Users className="size-3" aria-hidden strokeWidth={ICON_STROKE} />
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-blue-800 ring-1 ring-blue-200/80">
+            <Users className="size-3 text-blue-600" aria-hidden strokeWidth={ICON_STROKE} />
             {recipientCount}
           </span>
         ) : null}
@@ -246,21 +248,21 @@ function RunRow({
 
       <div
         className={`${RUNS_CELL} flex items-center gap-2 text-zinc-600`}
-        title={customersText}
+        title={outcomeText}
       >
         <Users
-          className="size-4 shrink-0 text-violet-500/90"
+          className="size-4 shrink-0 text-blue-600"
           aria-hidden
           strokeWidth={ICON_STROKE}
         />
-        <p className="min-w-0 truncate">{customersText}</p>
+        <p className="min-w-0 truncate">{outcomeText}</p>
       </div>
 
       <div
         className={`${RUNS_CELL} flex items-center gap-1.5 tabular-nums text-zinc-600`}
       >
         <CalendarClock
-          className="size-4 shrink-0 text-zinc-400"
+          className="size-4 shrink-0 text-blue-600"
           aria-hidden
           strokeWidth={ICON_STROKE}
         />
@@ -279,7 +281,7 @@ function RunRow({
             aria-hidden
             strokeWidth={ICON_STROKE}
           />
-          {row.status}
+          {statusLabel}
         </StatusPill>
 
         <button
@@ -423,7 +425,13 @@ export function AutomationExecutionsPanel({
   const [logsDrawer, setLogsDrawer] = useState<{
     executionId: number;
     runStartedAt?: string | null;
+    runUpdatedAt?: string | null;
+    runScheduledAt?: string | null;
     runTitle: string;
+    runStatus: AutomationExecutionStatus;
+    lastError?: string | null;
+    emailsSentCount?: number;
+    totalRecipients?: number;
   } | null>(null);
 
   const deleteTargetName = useMemo(() => {
@@ -457,9 +465,27 @@ export function AutomationExecutionsPanel({
     setLogsDrawer({
       executionId: row.id,
       runStartedAt: row.createdAt,
+      runUpdatedAt: row.updatedAt,
+      runScheduledAt: row.scheduledAt,
       runTitle: `Run #${row.id}`,
+      runStatus: row.status,
+      lastError: row.lastError,
+      emailsSentCount: row.emailsSentCount,
+      totalRecipients: row.totalRecipients,
     });
   }, []);
+
+  const retryFailedRun = useCallback(async () => {
+    await run({
+      onStarted: (status) => {
+        onExecutionStarted?.(status.executionId);
+        void refetch();
+      },
+      onFinished: () => {
+        void refetch();
+      },
+    });
+  }, [run, onExecutionStarted, refetch]);
 
   const showInitialSkeleton = loading && executions.length === 0;
 
@@ -474,7 +500,7 @@ export function AutomationExecutionsPanel({
       <div className="border-b border-zinc-200/90 bg-white px-4 py-4 sm:px-6">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20">
               <Workflow className="size-5" aria-hidden strokeWidth={ICON_STROKE} />
             </span>
             <div className="min-w-0">
@@ -503,7 +529,7 @@ export function AutomationExecutionsPanel({
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50"
             >
               <RefreshCw
-                className={`size-4 ${loading || refreshing ? "animate-spin" : ""}`}
+                className={`size-4 text-blue-600 ${loading || refreshing ? "animate-spin" : ""}`}
                 aria-hidden
               />
               Refresh
@@ -573,7 +599,7 @@ export function AutomationExecutionsPanel({
               label="Total runs"
               value={stats.total}
               icon={Workflow}
-              tone="zinc"
+              tone="blue"
             />
             </motion.div>
             <motion.div variants={runsRowReveal}>
@@ -581,7 +607,7 @@ export function AutomationExecutionsPanel({
               label="Completed"
               value={stats.completed}
               icon={CheckCircle2}
-              tone="emerald"
+              tone="blue"
             />
             </motion.div>
             <motion.div variants={runsRowReveal}>
@@ -598,7 +624,7 @@ export function AutomationExecutionsPanel({
               label="Customers reached"
               value={stats.customersReached}
               icon={Users}
-              tone="violet"
+              tone="blue"
             />
             </motion.div>
             </div>
@@ -609,7 +635,7 @@ export function AutomationExecutionsPanel({
           {refreshing ? (
             <motion.div
               key="runs-refresh"
-              className="pointer-events-none absolute inset-x-4 top-4 z-10 h-0.5 overflow-hidden rounded-full bg-violet-100 sm:inset-x-6"
+              className="pointer-events-none absolute inset-x-4 top-4 z-10 h-0.5 overflow-hidden rounded-full bg-blue-100 sm:inset-x-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -617,7 +643,7 @@ export function AutomationExecutionsPanel({
               aria-hidden
             >
               <motion.div
-                className="h-full w-1/3 rounded-full bg-violet-500"
+                className="h-full w-1/3 rounded-full bg-blue-500"
                 animate={{ x: ["-120%", "380%"] }}
                 transition={{
                   duration: 1.15,
@@ -664,6 +690,7 @@ export function AutomationExecutionsPanel({
             >
               <PanelEmptyState
                 icon={Workflow}
+                iconClassName="bg-blue-100 text-blue-600"
                 title="No runs yet"
                 description={
                   showRunButton
@@ -687,7 +714,7 @@ export function AutomationExecutionsPanel({
             header={
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/90 bg-gradient-to-r from-zinc-50 to-white px-5 py-3.5">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
                     <ListChecks
                       className="size-4"
                       aria-hidden
@@ -702,7 +729,7 @@ export function AutomationExecutionsPanel({
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold tabular-nums text-zinc-700 ring-1 ring-zinc-200/90">
-                  <Workflow className="size-3.5 text-violet-600" aria-hidden />
+                  <Workflow className="size-3.5 text-blue-600" aria-hidden />
                   {meta?.total ?? executions.length} total
                 </span>
               </div>
@@ -725,16 +752,32 @@ export function AutomationExecutionsPanel({
               className={`${RUNS_TABLE_GRID} border-b border-zinc-200 bg-zinc-50/95 px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500`}
             >
               <span className={RUNS_CELL}>
-                <TableColumnHeader icon={ListChecks} label="Run" />
+                <TableColumnHeader
+                  icon={ListChecks}
+                  label="Run"
+                  iconClassName="text-blue-600"
+                />
               </span>
               <span className={RUNS_CELL}>
-                <TableColumnHeader icon={Users} label="Customers" />
+                <TableColumnHeader
+                  icon={Users}
+                  label="Result"
+                  iconClassName="text-blue-600"
+                />
               </span>
               <span className={RUNS_CELL}>
-                <TableColumnHeader icon={CalendarClock} label="Started" />
+                <TableColumnHeader
+                  icon={CalendarClock}
+                  label="Started"
+                  iconClassName="text-blue-600"
+                />
               </span>
               <div className={RUNS_STATUS_ACTIONS_CELL}>
-                <TableColumnHeader icon={CheckCircle2} label="Status" />
+                <TableColumnHeader
+                  icon={CheckCircle2}
+                  label="Status"
+                  iconClassName="text-blue-600"
+                />
                 <span className="size-8 shrink-0" aria-hidden />
               </div>
             </div>
@@ -784,7 +827,19 @@ export function AutomationExecutionsPanel({
       open={logsDrawer != null}
       executionId={logsDrawer?.executionId ?? null}
       runStartedAt={logsDrawer?.runStartedAt}
+      runUpdatedAt={logsDrawer?.runUpdatedAt}
+      runScheduledAt={logsDrawer?.runScheduledAt}
       runTitle={logsDrawer?.runTitle ?? "Run"}
+      runStatus={logsDrawer?.runStatus}
+      lastError={logsDrawer?.lastError}
+      emailsSentCount={logsDrawer?.emailsSentCount}
+      totalRecipients={logsDrawer?.totalRecipients}
+      canRetry={showRunButton && automationActive !== false}
+      onRetry={
+        showRunButton && automationActive !== false
+          ? () => retryFailedRun()
+          : undefined
+      }
       onClose={() => setLogsDrawer(null)}
     />
 

@@ -37,6 +37,9 @@ export default function CampaignAutomationsPage() {
     (automationId: string, bootstrapping = false) => {
       if (businessId == null) return;
       const query = new URLSearchParams();
+      if (campaignId != null) {
+        query.set("campaignId", String(campaignId));
+      }
       if (funnelId != null) {
         query.set("funnelId", String(funnelId));
       }
@@ -50,7 +53,7 @@ export default function CampaignAutomationsPage() {
         }`,
       );
     },
-    [router, businessId, funnelId],
+    [router, businessId, campaignId, funnelId],
   );
 
   if (businessId == null || campaignId == null) {

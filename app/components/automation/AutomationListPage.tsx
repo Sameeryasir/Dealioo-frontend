@@ -308,10 +308,16 @@ export function AutomationListPage({
     const base = `/business/${businessId}/dashboard/automations/${
       row.numericId != null ? String(row.numericId) : row.id
     }`;
-    if (funnelId != null && funnelId >= 1) {
-      return `${base}?funnelId=${encodeURIComponent(String(funnelId))}`;
+    const params = new URLSearchParams();
+    const resolvedCampaignId = campaignId ?? row.campaignId;
+    if (resolvedCampaignId != null && resolvedCampaignId >= 1) {
+      params.set("campaignId", String(resolvedCampaignId));
     }
-    return base;
+    if (funnelId != null && funnelId >= 1) {
+      params.set("funnelId", String(funnelId));
+    }
+    const qs = params.toString();
+    return qs ? `${base}?${qs}` : base;
   };
 
   const openCreateModal = useCallback(() => {
@@ -336,6 +342,9 @@ export function AutomationListPage({
       }
 
       const params = new URLSearchParams();
+      if (campaignId != null && campaignId >= 1) {
+        params.set("campaignId", String(campaignId));
+      }
       if (funnelId != null && funnelId >= 1) {
         params.set("funnelId", String(funnelId));
       }
@@ -350,7 +359,7 @@ export function AutomationListPage({
         }`,
       );
     },
-    [businessId, funnelId, onOpenBuilder, router],
+    [businessId, campaignId, funnelId, onOpenBuilder, router],
   );
 
   const modals = (

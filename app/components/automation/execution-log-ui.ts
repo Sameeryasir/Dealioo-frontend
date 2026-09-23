@@ -6,14 +6,27 @@ export type LogDisplayTone = "info" | "success" | "warning" | "error";
 
 export type LogDisplayStatus = "passed" | "failed" | "waiting" | "info";
 
+export type LogRecipientResult = {
+  label: string;
+  status: "sent" | "failed" | "skipped";
+  reason?: string;
+};
+
 export type LogDisplay = {
   heading: string;
   stepLabel: string;
   summary: string;
   details: string[];
+  recipients: LogRecipientResult[];
   tone: LogDisplayTone;
   status: LogDisplayStatus;
   nodeId?: number | null;
+};
+
+export type RunActivitySummary = {
+  sent: number;
+  failed: number;
+  skipped: number;
 };
 
 export const LOG_HEADING_EMAIL_SENT = "Email sent";
@@ -26,13 +39,14 @@ function makeLogDisplay(
     stepLabel: statusLabel(partial.status),
     summary: "",
     details: [],
+    recipients: [],
     nodeId: null,
     ...partial,
   };
 }
 
 function statusLabel(status: LogDisplayStatus): string {
-  if (status === "passed") return "Passed";
+  if (status === "passed") return "Done";
   if (status === "failed") return "Failed";
   if (status === "waiting") return "Waiting";
   return "In progress";
@@ -68,6 +82,13 @@ function extractBulkEmailSendCount(message: string): number | null {
   return Number.isFinite(count) && count > 0 ? count : null;
 }
 
+function extractEmailFromMessage(message: string): string | null {
+  const match = message.match(
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+  );
+  return match?.[0]?.trim() ?? null;
+}
+
 function redactEmailAddresses(text: string): string {
   return text
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "")
@@ -99,49 +120,74 @@ function extractDelayMinutes(message: string): number | null {
   return match ? Number.parseInt(match[1]!, 10) : null;
 }
 
-function waitSummary(message: string, config: Record<string, unknown>): string {
-  const delay = config.delay;
-  const unit = configString(config, "unit");
-  if (typeof delay === "number" && unit) {
-    return `Wait ${delay} ${unit}`;
+function formatWaitDuration(
+  delay: number,
+  unit: string | null,
+  minutesFromMessage: number | null,
+): string | null {
+  if (Number.isFinite(delay) && unit) {
+    const u = unit.toLowerCase();
+    const label =
+      u.startsWith("day")
+        ? delay === 1
+          ? "day"
+          : "days"
+        : u.startsWith("hour")
+          ? delay === 1
+            ? "hour"
+            : "hours"
+          : delay === 1
+            ? "minute"
+            : "minutes";
+    return `${delay} ${label}`;
   }
-  const minutes = extractDelayMinutes(message);
-  if (minutes != null) {
-    if (minutes >= 1440 && minutes % 1440 === 0) {
-      const days = minutes / 1440;
-      return `Wait ${days} day${days === 1 ? "" : "s"}`;
-    }
-    if (minutes >= 60 && minutes % 60 === 0) {
-      const hours = minutes / 60;
-      return `Wait ${hours} hour${hours === 1 ? "" : "s"}`;
-    }
-    return `Wait ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  if (minutesFromMessage == null) return null;
+  const minutes = minutesFromMessage;
+  if (minutes >= 1440 && minutes % 1440 === 0) {
+    const days = minutes / 1440;
+    return `${days} day${days === 1 ? "" : "s"}`;
   }
-  if (/wait skipped/i.test(message)) return "No delay — continued";
-  if (/wait completed/i.test(message)) return "Wait finished";
-  return message.trim() || "Wait step";
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
-function conditionSummary(message: string, config: Record<string, unknown>): string {
-  const rule =
-    configString(config, "conditionType") ??
-    configString(config, "value") ??
-    "Condition checked";
+function waitHeading(
+  message: string,
+  config: Record<string, unknown>,
+  waiting: boolean,
+): string {
+  if (/wait skipped/i.test(message)) return "No wait — continued";
+  const duration = formatWaitDuration(
+    typeof config.delay === "number" ? config.delay : NaN,
+    configString(config, "unit"),
+    extractDelayMinutes(message),
+  );
+  if (duration) {
+    return waiting ? `Waiting ${duration}` : `Waited ${duration}`;
+  }
+  if (/wait completed/i.test(message)) return "Wait finished";
+  return waiting ? "Waiting…" : "Wait finished";
+}
+
+function conditionHeading(message: string): string {
   if (/guest completed payment|workflow stops/i.test(message)) {
-    return `${rule} — stopped (guest paid)`;
+    return "Checked unpaid — guest paid, stopped";
   }
   if (/still unpaid|sending reminder/i.test(message)) {
-    return `${rule} — still unpaid, continue`;
+    return "Checked unpaid — still unpaid";
   }
   if (/visited and redeemed|customer visited/i.test(message)) {
-    return `${rule} — visited, continue`;
+    return "Checked visit — visited";
   }
   if (/has not visited|waiting before visit/i.test(message)) {
-    return `${rule} — not visited yet`;
+    return "Checked visit — not visited yet";
   }
-  if (/condition met/i.test(message)) return `${rule} — met, stop`;
-  if (/condition not met/i.test(message)) return `${rule} — not met, continue`;
-  return rule;
+  if (/condition met/i.test(message)) return "Condition met — stopped";
+  if (/condition not met/i.test(message)) return "Condition not met — continued";
+  return "Checked condition";
 }
 
 function emailSummary(message: string, config: Record<string, unknown>): string {
@@ -156,12 +202,38 @@ function emailSummary(message: string, config: Record<string, unknown>): string 
   ) {
     return emailsDeliveredSummary(1);
   }
-  if (/email failed|send failed|skipped/i.test(message)) {
+  if (/email failed|send failed/i.test(message)) {
     const subject = configString(config, "subject");
-    return subject ? `Email: ${subject}` : redactEmailAddresses(message) || "Email failed";
+    return subject ? `Could not send: ${subject}` : "Email failed";
+  }
+  if (/skipped/i.test(message)) {
+    return redactEmailAddresses(message) || "Email skipped";
   }
   const subject = configString(config, "subject");
   return subject ? `Email: ${subject}` : "Send email";
+}
+
+function recipientFromDeliveryLog(log: AutomationLog): LogRecipientResult {
+  const email = extractEmailFromMessage(log.message);
+  const label =
+    email ??
+    (log.customerId ? `Customer #${log.customerId}` : "Customer");
+  if (/skipped/i.test(log.message)) {
+    return {
+      label,
+      status: "skipped",
+      reason: redactEmailAddresses(log.message) || undefined,
+    };
+  }
+  if (log.error || /failed/i.test(log.message)) {
+    return {
+      label,
+      status: "failed",
+      reason:
+        redactEmailAddresses((log.error ?? log.message).trim()) || undefined,
+    };
+  }
+  return { label, status: "sent" };
 }
 
 function scoreDisplay(display: LogDisplay): number {
@@ -176,11 +248,70 @@ export function isEmailSentLogDisplay(display: LogDisplay): boolean {
 }
 
 export function logActivityCardTitle(display: LogDisplay): string {
+  if (display.heading === LOG_HEADING_EMAIL_SENT) {
+    const fromRecipients = display.recipients.filter(
+      (r) => r.status === "sent",
+    ).length;
+    const match = display.summary.match(/(\d+)\s+email/i);
+    const fromSummary = match ? Number.parseInt(match[1]!, 10) : 0;
+    const count =
+      fromRecipients > 0
+        ? fromRecipients
+        : Number.isFinite(fromSummary) && fromSummary > 0
+          ? fromSummary
+          : 0;
+    if (count > 0) {
+      return `Email sent · ${count} delivered`;
+    }
+    return LOG_HEADING_EMAIL_SENT;
+  }
+
+  if (/email failed/i.test(display.heading)) {
+    const failedFromRecipients = display.recipients.filter(
+      (r) => r.status === "failed",
+    ).length;
+    if (failedFromRecipients > 0) {
+      return `Email failed · ${failedFromRecipients}`;
+    }
+  }
+
   return display.heading;
 }
 
 export function isRunFinishedLogDisplay(display: LogDisplay): boolean {
   return display.heading === LOG_HEADING_RUN_FINISHED;
+}
+
+export function summarizeRunActivity(
+  displays: LogDisplay[],
+): RunActivitySummary {
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const display of displays) {
+    if (display.recipients.length > 0) {
+      for (const recipient of display.recipients) {
+        if (recipient.status === "sent") sent += 1;
+        else if (recipient.status === "failed") failed += 1;
+        else skipped += 1;
+      }
+      continue;
+    }
+
+    if (isEmailSentLogDisplay(display) || /email sent/i.test(display.heading)) {
+      const match = display.summary.match(/(\d+)\s+email/i);
+      const count = match ? Number.parseInt(match[1]!, 10) : 1;
+      if (Number.isFinite(count) && count > 0) sent += count;
+      else sent += 1;
+    } else if (display.status === "failed" && /email/i.test(display.heading)) {
+      failed += 1;
+    } else if (/skipped/i.test(display.summary) || /skipped/i.test(display.heading)) {
+      skipped += 1;
+    }
+  }
+
+  return { sent, failed, skipped };
 }
 
 export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
@@ -192,10 +323,27 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (isNoiseMessage(message)) return null;
 
-  if (log.error || /node execution failed|bulk .* send failed|all send attempts failed/i.test(message)) {
+  if (
+    log.error ||
+    /node execution failed|bulk .* send failed|all send attempts failed/i.test(
+      message,
+    )
+  ) {
+    const recipient = extractEmailFromMessage(message);
     return makeLogDisplay({
-      heading: nodeName,
+      heading: /email/i.test(type) || /email/i.test(nodeName)
+        ? "Email failed"
+        : nodeName,
       summary: redactEmailAddresses((log.error ?? message).trim()),
+      recipients: recipient
+        ? [
+            {
+              label: recipient,
+              status: "failed",
+              reason: redactEmailAddresses((log.error ?? message).trim()) || undefined,
+            },
+          ]
+        : [],
       tone: "error",
       status: "failed",
       nodeId,
@@ -214,8 +362,8 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (/workflow stopped|automation paused/i.test(message)) {
     return makeLogDisplay({
-      heading: nodeName,
-      summary: message,
+      heading: "Run paused",
+      summary: redactEmailAddresses(message),
       tone: "warning",
       status: "passed",
       nodeId,
@@ -224,10 +372,16 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (isPrepOnlyMessage(message)) return null;
 
-  if (/email sent to|reward email sent|qr pass email sent|payment reminder email sent|action email sent|payment reminder text sent|actions sent/i.test(message)) {
+  if (
+    /email sent to|reward email sent|qr pass email sent|payment reminder email sent|action email sent|payment reminder text sent|actions sent/i.test(
+      message,
+    )
+  ) {
+    const recipient = recipientFromDeliveryLog(log);
     return makeLogDisplay({
-      heading: type === "email" || !type ? "Send Email" : nodeName,
+      heading: LOG_HEADING_EMAIL_SENT,
       summary: emailSummary(message, config),
+      recipients: [recipient],
       tone: "success",
       status: "passed",
       nodeId,
@@ -236,8 +390,8 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (/sms sent|whatsapp message sent/i.test(message)) {
     return makeLogDisplay({
-      heading: nodeName,
-      summary: message,
+      heading: /whatsapp/i.test(message) ? "WhatsApp sent" : "SMS sent",
+      summary: redactEmailAddresses(message),
       tone: "success",
       status: "passed",
       nodeId,
@@ -250,10 +404,10 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
   ) {
     const unpaidMatch = message.match(/(\d+)\s+unpaid guest/i);
     return makeLogDisplay({
-      heading: nodeName,
+      heading: "Started",
       summary: unpaidMatch
-        ? `Schedule matched — ${unpaidMatch[1]} unpaid guest${unpaidMatch[1] === "1" ? "" : "s"}`
-        : "Schedule matched — starting this run",
+        ? `Found ${unpaidMatch[1]} unpaid guest${unpaidMatch[1] === "1" ? "" : "s"}`
+        : "Automation started this run",
       tone: "success",
       status: "passed",
       nodeId,
@@ -266,18 +420,24 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
   ) {
     const waiting = /delay scheduled/i.test(message);
     return makeLogDisplay({
-      heading: nodeName,
-      summary: waitSummary(message, config),
+      heading: waitHeading(message, config, waiting),
+      summary: "",
       tone: waiting ? "info" : "success",
       status: waiting ? "waiting" : "passed",
       nodeId,
     });
   }
 
-  if (type === "condition" || /condition:/i.test(message) || /guest still unpaid|guest completed payment|customer visited|has not visited/i.test(message)) {
+  if (
+    type === "condition" ||
+    /condition:/i.test(message) ||
+    /guest still unpaid|guest completed payment|customer visited|has not visited/i.test(
+      message,
+    )
+  ) {
     return makeLogDisplay({
-      heading: nodeName,
-      summary: conditionSummary(message, config),
+      heading: conditionHeading(message),
+      summary: "",
       tone: "success",
       status: "passed",
       nodeId,
@@ -286,16 +446,18 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (type === "email") {
     if (/skipped/i.test(message)) {
+      const recipient = recipientFromDeliveryLog(log);
       return makeLogDisplay({
-        heading: nodeName,
-        summary: message,
+        heading: "Email skipped",
+        summary: redactEmailAddresses(message),
+        recipients: [recipient],
         tone: "warning",
         status: "passed",
         nodeId,
       });
     }
     return makeLogDisplay({
-      heading: nodeName,
+      heading: LOG_HEADING_EMAIL_SENT,
       summary: emailSummary(message, config),
       tone: "success",
       status: "passed",
@@ -305,8 +467,8 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (type === "tag" || /tag applied/i.test(message)) {
     return makeLogDisplay({
-      heading: nodeName,
-      summary: message,
+      heading: "Tag applied",
+      summary: redactEmailAddresses(message),
       tone: "success",
       status: "passed",
       nodeId,
@@ -315,8 +477,8 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (type === "coupon" || /reward offer prepared/i.test(message)) {
     return makeLogDisplay({
-      heading: nodeName,
-      summary: message,
+      heading: "Reward prepared",
+      summary: redactEmailAddresses(message),
       tone: "success",
       status: "passed",
       nodeId,
@@ -325,8 +487,8 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   if (/prepaid offer batch|payment reminder started/i.test(message)) {
     return makeLogDisplay({
-      heading: nodeName || "Start",
-      summary: message,
+      heading: "Started",
+      summary: redactEmailAddresses(message),
       tone: "success",
       status: "passed",
       nodeId,
@@ -335,7 +497,7 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
 
   return makeLogDisplay({
     heading: nodeName || "Step",
-    summary: message,
+    summary: redactEmailAddresses(message),
     tone: "success",
     status: "passed",
     nodeId,
@@ -351,14 +513,20 @@ function isEmailDeliveryMessage(message: string): boolean {
 export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
   const displays: LogDisplay[] = [];
   const byNode = new Map<number, LogDisplay>();
-  let pendingEmailSends = 0;
+  let pendingEmailRecipients: LogRecipientResult[] = [];
   let pendingEmailNodeId: number | null = null;
 
   const flushEmailBatch = () => {
-    if (pendingEmailSends === 0) return;
+    if (pendingEmailRecipients.length === 0) return;
+    const sentCount = pendingEmailRecipients.filter(
+      (r) => r.status === "sent",
+    ).length;
     const display = makeLogDisplay({
-      heading: "Send Email",
-      summary: emailsDeliveredSummary(pendingEmailSends),
+      heading: LOG_HEADING_EMAIL_SENT,
+      summary: emailsDeliveredSummary(
+        sentCount > 0 ? sentCount : pendingEmailRecipients.length,
+      ),
+      recipients: [...pendingEmailRecipients],
       tone: "success",
       status: "passed",
       nodeId: pendingEmailNodeId,
@@ -369,14 +537,16 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
         byNode.set(pendingEmailNodeId, display);
         if (!existing) displays.push(display);
         else {
-          const idx = displays.findIndex((d) => d.nodeId === pendingEmailNodeId);
+          const idx = displays.findIndex(
+            (d) => d.nodeId === pendingEmailNodeId,
+          );
           if (idx >= 0) displays[idx] = display;
         }
       }
     } else {
       displays.push(display);
     }
-    pendingEmailSends = 0;
+    pendingEmailRecipients = [];
     pendingEmailNodeId = null;
   };
 
@@ -387,7 +557,16 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
 
     if (!log.error && isEmailDeliveryMessage(log.message)) {
       const bulkCount = extractBulkEmailSendCount(log.message);
-      pendingEmailSends += bulkCount ?? 1;
+      if (bulkCount != null && bulkCount > 1 && !extractEmailFromMessage(log.message)) {
+        for (let i = 0; i < bulkCount; i += 1) {
+          pendingEmailRecipients.push({
+            label: `Recipient ${pendingEmailRecipients.length + 1}`,
+            status: "sent",
+          });
+        }
+      } else {
+        pendingEmailRecipients.push(recipientFromDeliveryLog(log));
+      }
       pendingEmailNodeId = log.nodeId ?? log.node?.id ?? pendingEmailNodeId;
       continue;
     }
@@ -407,9 +586,14 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
       const existing = byNode.get(nodeId);
       if (existing) {
         if (scoreDisplay(display) >= scoreDisplay(existing)) {
-          byNode.set(nodeId, display);
+          const mergedRecipients =
+            display.recipients.length > 0
+              ? display.recipients
+              : existing.recipients;
+          const next = { ...display, recipients: mergedRecipients };
+          byNode.set(nodeId, next);
           const idx = displays.findIndex((d) => d.nodeId === nodeId);
-          if (idx >= 0) displays[idx] = display;
+          if (idx >= 0) displays[idx] = next;
         }
         continue;
       }

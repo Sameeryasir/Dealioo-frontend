@@ -8,28 +8,61 @@ import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { ArrowLeft, LogOut, PanelLeft, UserRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
+import { parseRoutePositiveInt } from "@/app/lib/numbers";
 
 const ORG_DASHBOARD_HREF = "/dashboard";
 const PROFILE_HREF = "/dashboard/profile";
 
 const BUSINESS_DASHBOARD_HOME = /^\/business\/\d+\/dashboard\/?$/;
+const BUSINESS_AUTOMATIONS_LIST = /^\/business\/(\d+)\/dashboard\/automations\/?$/;
+const BUSINESS_AUTOMATION_DETAIL =
+  /^\/business\/(\d+)\/dashboard\/automations\/\d+/;
+
+function normalizeBusinessPath(pathname: string): string {
+  return pathname.replace(/^\/restaurant\//, "/business/");
+}
 
 export default function BusinessNavbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { clearPassword } = useCredentialContext();
   const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebarExpand();
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRootRef = useRef<HTMLDivElement>(null);
 
-  const showSwitchBusiness = useMemo(() => {
-    const normalized = (pathname ?? "").replace(/^\/restaurant\//, "/business/");
-    return BUSINESS_DASHBOARD_HOME.test(normalized);
-  }, [pathname]);
+  const normalizedPath = useMemo(
+    () => normalizeBusinessPath(pathname ?? ""),
+    [pathname],
+  );
+
+  const showSwitchBusiness = useMemo(
+    () => BUSINESS_DASHBOARD_HOME.test(normalizedPath),
+    [normalizedPath],
+  );
+
+  const automationBackHref = useMemo(() => {
+    const detailMatch = normalizedPath.match(BUSINESS_AUTOMATION_DETAIL);
+    if (detailMatch?.[1]) {
+      const businessId = detailMatch[1];
+      const campaignId = parseRoutePositiveInt(searchParams.get("campaignId"));
+      if (campaignId != null) {
+        return `/business/${businessId}/dashboard/campaigns/${campaignId}/automations`;
+      }
+      return `/business/${businessId}/dashboard/automations`;
+    }
+    const listMatch = normalizedPath.match(BUSINESS_AUTOMATIONS_LIST);
+    if (listMatch?.[1]) {
+      return `/business/${listMatch[1]}/dashboard`;
+    }
+    return null;
+  }, [normalizedPath, searchParams]);
+
+  const onAutomationRoute = automationBackHref != null;
 
   useEffect(() => {
     setUser(getSetupUser());
@@ -73,16 +106,26 @@ export default function BusinessNavbar() {
     <header className="rd-topbar" aria-label="Dashboard tools">
       <div className="rd-topbar-inner relative flex h-[var(--rd-header-h)] items-center justify-between gap-2.5 sm:gap-3">
         <div className="rd-topbar-leading relative z-[2] flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
-            aria-expanded={sidebarExpanded}
-            aria-controls="rd-sidebar-nav"
-            aria-label={sidebarExpanded ? "Close menu" : "Open menu"}
-          >
-            <PanelLeft className="size-4" strokeWidth={2.25} aria-hidden />
-          </button>
+          {onAutomationRoute && automationBackHref ? (
+            <Link
+              href={automationBackHref}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="size-4" strokeWidth={2.25} aria-hidden />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e8edf5] bg-white text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25"
+              aria-expanded={sidebarExpanded}
+              aria-controls="rd-sidebar-nav"
+              aria-label={sidebarExpanded ? "Close menu" : "Open menu"}
+            >
+              <PanelLeft className="size-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          )}
 
           {showSwitchBusiness ? (
             <Link

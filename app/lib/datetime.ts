@@ -51,6 +51,26 @@ export function formatLogDrawerTimestamp(
   }
 }
 
+export function formatDurationBetween(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined,
+): string | null {
+  if (!startIso || !endIso) return null;
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
+  const secs = Math.round((end - start) / 1000);
+  if (secs < 60) return `${Math.max(secs, 1)}s`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) {
+    const rem = secs % 60;
+    return rem > 0 ? `${mins}m ${rem}s` : `${mins}m`;
+  }
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+}
+
 export function formatRelativeTimeAgo(
   iso: string | null | undefined,
 ): string {
