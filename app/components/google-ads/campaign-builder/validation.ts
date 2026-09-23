@@ -5,7 +5,7 @@ export const HEADLINE_MAX = 30;
 export const DESCRIPTION_MAX = 90;
 export const PATH_MAX = 15;
 export const GOOGLE_REQUIRED_PUBLISH_STEPS = [
-  1, 2, 3, 4, 7,
+  1, 2, 3, 4, 5, 7,
 ] as const;
 
 export function isValidHttpUrl(value: string): boolean {
@@ -60,136 +60,24 @@ function validateGoalDetailsFields(
 ) {
   if (!draft.goal) return;
 
-  if (draft.goal === "SALES") {
-    const channel =
-      draft.salesChannel === "ONLINE_STORE" || draft.salesChannel === "MULTIPLE"
-        ? "WEBSITE"
-        : draft.salesChannel;
+  const funnelGoals =
+    draft.goal === "SALES" ||
+    draft.goal === "LEADS" ||
+    draft.goal === "WEBSITE_TRAFFIC";
 
-    if (!channel) {
-      errors.salesChannel = "Choose how customers complete a purchase.";
-    } else if (channel === "WEBSITE") {
-      if (draft.destinationType !== "dealioo_funnel") {
-        errors.destinationType = "Choose a Dealioo funnel.";
-      } else if (!draft.selectedFunnelId) {
-        errors.destinationType = "Select a published Dealioo funnel.";
-      } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
-        errors.websiteUrl = "Enter a valid destination URL.";
-      }
-    } else if (channel === "PHYSICAL_STORE") {
-      if (!draft.businessLocation.trim()) {
-        errors.businessLocation = "Add your business location.";
-      }
-    } else if (channel === "PHONE_ORDERS") {
-      errors.salesChannel = "Choose how customers complete a purchase.";
-    }
-  }
-
-  if (draft.goal === "LEADS") {
-    const primaryLeadMethod =
-      draft.leadContactMethods.find(
-        (id) =>
-          id === "CONTACT_FORM" ||
-          id === "GOOGLE_LEAD_FORM" ||
-          id === "PHONE_CALLS",
-      ) ?? null;
-    if (
-      !primaryLeadMethod ||
-      draft.leadContactMethods.filter(
-        (id) => id !== "WHATSAPP" && id !== "APPOINTMENT_BOOKING",
-      ).length !== 1
-    ) {
-      errors.leadContactMethods = "Choose how you would like to receive leads.";
-    }
-    if (primaryLeadMethod === "CONTACT_FORM") {
-      if (draft.destinationType !== "dealioo_funnel") {
-        errors.destinationType = "Choose a Dealioo funnel.";
-      } else if (!draft.selectedFunnelId) {
-        errors.destinationType = "Select a published Dealioo funnel.";
-      } else if (
-        !isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)
-      ) {
-        errors.landingPageUrl = "Add a valid landing page URL.";
-      }
-    }
-    if (primaryLeadMethod === "GOOGLE_LEAD_FORM") {
-      if (!draft.businessName.trim()) {
-        errors.businessName = "Add a business name.";
-      }
-      if (!draft.googleLeadFormHeadline.trim()) {
-        errors.googleLeadFormHeadline = "Add a lead form headline.";
-      }
-      if (!draft.googleLeadFormDescription.trim()) {
-        errors.googleLeadFormDescription = "Add a lead form description.";
-      }
-      if (!draft.googleLeadFormCta.trim()) {
-        errors.googleLeadFormCta = "Choose a call to action.";
-      }
-      if (!draft.googleLeadFormCtaDescription.trim()) {
-        errors.googleLeadFormCtaDescription = "Add a CTA description.";
-      }
-      if (draft.googleLeadFormFields.length === 0) {
-        errors.googleLeadFormFields = "Select at least one form field.";
-      }
-      if (!isValidHttpUrl(draft.googleLeadFormPrivacyUrl)) {
-        errors.googleLeadFormPrivacyUrl = "Add a valid privacy policy URL.";
-      }
-      if (!draft.googleLeadFormThankYouHeadline.trim()) {
-        errors.googleLeadFormThankYouHeadline = "Add a thank-you headline.";
-      }
-      if (!draft.googleLeadFormThankYouMessage.trim()) {
-        errors.googleLeadFormThankYouMessage = "Add a thank-you message.";
-      }
-      if (!draft.googleLeadFormPostSubmitAction.trim()) {
-        errors.googleLeadFormPostSubmitAction = "Choose a post-submit action.";
-      }
-      if (
-        draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE" &&
-        !isValidHttpUrl(
-          draft.googleLeadFormPostSubmitUrl ||
-            draft.websiteUrl ||
-            draft.landingPageUrl,
-        )
-      ) {
-        errors.googleLeadFormPostSubmitUrl =
-          "Add a website URL for the post-submit action.";
-      }
-    }
-    if (primaryLeadMethod === "PHONE_CALLS" && !draft.businessPhone.trim()) {
-      errors.businessPhone = "Add a phone number.";
-    }
-  }
-
-  if (draft.goal === "WEBSITE_TRAFFIC") {
+  if (funnelGoals) {
     if (draft.destinationType !== "dealioo_funnel") {
       errors.destinationType = "Choose a Dealioo funnel.";
     } else if (!draft.selectedFunnelId) {
       errors.destinationType = "Select a published Dealioo funnel.";
-    } else if (!isValidHttpUrl(draft.websiteUrl || draft.landingPageUrl)) {
-      errors.websiteUrl = "Enter a valid website URL.";
-    }
-    if (!draft.trafficAction) {
-      errors.trafficAction = "Choose what visitors should do.";
+    } else if (!isValidHttpUrl(draft.landingPageUrl || draft.websiteUrl)) {
+      errors.destinationType =
+        "Funnel link is missing. Select a published Dealioo funnel.";
     }
   }
 
-  if (draft.goal === "AWARENESS") {
-    if (!draft.businessName.trim()) {
-      errors.businessName = "Add your business name.";
-    }
-  }
-
-  if (draft.goal === "LOCAL_VISITS") {
-    if (!draft.businessLocation.trim()) {
-      errors.businessLocation = "Add your business location.";
-    }
-    if (!draft.businessPhone.trim()) {
-      errors.businessPhone = "Add a phone number.";
-    }
-  }
-
-  if (draft.goal === "APP_PROMOTION" && !draft.appName.trim()) {
-    errors.appName = "Add your app name.";
+  if (draft.goal === "WEBSITE_TRAFFIC" && !draft.trafficAction) {
+    errors.trafficAction = "Choose what visitors should do.";
   }
 }
 
@@ -275,20 +163,11 @@ export function validateStep(
         ad.finalUrl.trim() ||
         draft.landingPageUrl.trim() ||
         draft.websiteUrl.trim();
-      const needsLandingUrl =
-        draft.destinationType === "dealioo_funnel" ||
-        draft.destinationType === "external_website" ||
-        draft.destinationType == null;
 
-      if (needsLandingUrl && !isValidHttpUrl(finalUrl)) {
-        errors.finalUrl = "Add a valid landing page URL.";
-      } else if (!needsLandingUrl && finalUrl && !isValidHttpUrl(finalUrl)) {
-        errors.finalUrl = "Add a valid final URL.";
-      } else if (!needsLandingUrl && !isValidHttpUrl(finalUrl)) {
-        if (!isValidHttpUrl(draft.websiteUrl)) {
-          errors.finalUrl =
-            "Add a website URL so Google can show your ad (from business profile or Step 2).";
-        }
+      if (draft.destinationType !== "dealioo_funnel" || !draft.selectedFunnelId) {
+        errors.finalUrl = "Select a published Dealioo funnel in Campaign Setup.";
+      } else if (!isValidHttpUrl(finalUrl)) {
+        errors.finalUrl = "Funnel link is missing. Re-select your Dealioo funnel.";
       }
 
       const headlines = ad.headlines.map((h) => h.trim()).filter(Boolean);
@@ -335,21 +214,12 @@ export function validateStep(
     }
   }
 
-  if (step === 5 && forPublish) {
-    if (draft.sitelinks.length > 8) {
-      errors.sitelinks = "You can add up to 8 sitelinks.";
+  if (step === 5) {
+    if (!draft.ageRanges.length) {
+      errors.ageRanges = "Select at least one age group.";
     }
-    for (const link of draft.sitelinks) {
-      if (!link.enabled) continue;
-      if (!link.text.trim()) {
-        errors.sitelinks = "Enabled sitelinks need a link label.";
-        break;
-      }
-      const urlErr = sitelinkUrlError(link.url, true);
-      if (urlErr) {
-        errors.sitelinks = urlErr;
-        break;
-      }
+    if (!draft.gender) {
+      errors.gender = "Choose a gender option.";
     }
   }
 
@@ -363,6 +233,5 @@ export function validateAllRequiredSteps(
   for (const step of GOOGLE_REQUIRED_PUBLISH_STEPS) {
     Object.assign(all, validateStep(step, draft, { forPublish: true }));
   }
-  Object.assign(all, validateStep(5, draft, { forPublish: true }));
   return all;
 }

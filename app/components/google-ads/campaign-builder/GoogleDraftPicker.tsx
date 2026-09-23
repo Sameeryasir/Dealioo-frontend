@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,15 +11,24 @@ import {
   RefreshCw,
   Rocket,
   Target,
+  Trash2,
   X,
 } from "lucide-react";
 import {
   STEP_TITLES,
   TOTAL_WIZARD_STEPS,
 } from "@/app/components/google-ads/campaign-builder/types";
+import {
+  clearGoogleCampaignDraft,
+  loadGoogleCampaignServerDraftId,
+} from "@/app/components/google-ads/campaign-builder/draft-storage";
+import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { useGoogleCampaignDraftsQuery } from "@/app/hooks/use-google-campaign-drafts-query";
-import type { GoogleCampaignDraftListItem } from "@/app/services/google-ads/google-campaign-draft";
+import {
+  deleteGoogleCampaignDraft,
+  type GoogleCampaignDraftListItem,
+} from "@/app/services/google-ads/google-campaign-draft";
 
 export type GoogleDraftPickerAction =
   | { type: "create" }
@@ -153,6 +162,10 @@ export function GoogleDraftPicker({
   const { data: drafts, isLoading, error, refetch, isFetching } =
     useGoogleCampaignDraftsQuery(businessId, { enabled: true });
   const [filter, setFilter] = useState<DraftBucket | "all">("all");
+  const [draftPendingDelete, setDraftPendingDelete] =
+    useState<GoogleCampaignDraftListItem | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const map: Record<DraftBucket, GoogleCampaignDraftListItem[]> = {
@@ -185,343 +198,443 @@ export function GoogleDraftPicker({
   const consoleUrl =
     adsConsoleUrl?.trim() || "https://ads.google.com/aw/campaigns";
 
+  const handleConfirmDeleteDraft = useCallback(async () => {
+    if (!draftPendingDelete) return;
+    const draft = draftPendingDelete;
+    setDeletingDraftId(draft.id);
+    setDeleteError(null);
+    try {
+      await deleteGoogleCampaignDraft(businessId, draft.id);
+      if (loadGoogleCampaignServerDraftId(businessId) === draft.id) {
+        clearGoogleCampaignDraft(businessId);
+      }
+      setDraftPendingDelete(null);
+      await refetch();
+    } catch (e) {
+      setDeleteError(
+        e instanceof Error ? e.message : "Could not delete campaign draft.",
+      );
+    } finally {
+      setDeletingDraftId(null);
+    }
+  }, [businessId, draftPendingDelete, refetch]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#07111f]/40 backdrop-blur-[1px]"
-        aria-label="Close draft picker"
-        onClick={onClose}
-      />
+    <>
+      <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        <button
+          type="button"
+          className="absolute inset-0 bg-[#07111f]/40 backdrop-blur-[1px]"
+          aria-label="Close draft picker"
+          onClick={onClose}
+        />
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="google-draft-picker-title"
-        className="relative z-10 flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-[#e8edf5] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] sm:rounded-2xl"
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1a73e8]">
-              Google Ads
-            </p>
-            <h2
-              id="google-draft-picker-title"
-              className="mt-0.5 text-lg font-extrabold tracking-tight text-[#07111f]"
-            >
-              Your Google campaigns
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Create new, continue a draft, or open published campaigns.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-[#e8edf5] bg-white p-2 text-slate-500 transition hover:bg-[#f8fbff] hover:text-[#1a73e8]"
-            aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <div className="space-y-3 border-b border-[#e8edf5] px-5 py-4">
-          <button
-            type="button"
-            onClick={() => onSelect({ type: "create" })}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a73e8] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#1765cc]"
-          >
-            <Plus className="size-4" aria-hidden />
-            Create new campaign
-          </button>
-
-          <div className="flex flex-wrap gap-1.5">
-            {(
-              [
-                { key: "all" as const, label: "All", value: drafts.length },
-                { key: "draft" as const, label: "Drafts", value: counts.draft },
-                {
-                  key: "publishing" as const,
-                  label: "Publishing",
-                  value: counts.publishing,
-                },
-                {
-                  key: "failed" as const,
-                  label: "Failed",
-                  value: counts.failed,
-                },
-                {
-                  key: "published" as const,
-                  label: "Published",
-                  value: counts.published,
-                },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setFilter(tab.key)}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                  filter === tab.key
-                    ? "bg-[#e8f0fe] text-[#1a73e8]"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                }`}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="google-draft-picker-title"
+          className="relative z-10 flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-[#e8edf5] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] sm:rounded-2xl"
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1a73e8]">
+                Google Ads
+              </p>
+              <h2
+                id="google-draft-picker-title"
+                className="mt-0.5 text-lg font-extrabold tracking-tight text-[#07111f]"
               >
-                {tab.label}
-                <span className="ml-1 tabular-nums text-slate-400">
-                  {tab.value}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-2 border-b border-[#e8edf5] px-5 py-2.5">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
-            {filter === "all" ? "All campaigns" : BUCKET_TITLE[filter]}
-          </p>
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:underline disabled:opacity-60"
-          >
-            <RefreshCw
-              className={`size-3.5 ${isFetching ? "animate-spin" : ""}`}
-              aria-hidden
-            />
-            Refresh
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
-              <Loader2 className="size-4 animate-spin text-[#1a73e8]" />
-              Loading campaigns…
-            </div>
-          ) : null}
-
-          {error ? (
-            <div
-              className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-              role="alert"
-            >
-              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <div>
-                <p>{error}</p>
-                <button
-                  type="button"
-                  onClick={() => void refetch()}
-                  className="mt-2 text-xs font-semibold underline"
-                >
-                  Try again
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {!isLoading && !error && drafts.length === 0 ? (
-            <div className="py-10 text-center">
-              <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#f8fbff] text-[#1a73e8]">
-                <Target className="size-5" aria-hidden />
-              </div>
-              <p className="mt-3 text-sm font-semibold text-[#07111f]">
-                No Google campaigns yet
-              </p>
+                Your Google campaigns
+              </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Create a new campaign to get started.
+                Create new, continue a draft, or open published campaigns.
               </p>
             </div>
-          ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-[#e8edf5] bg-white p-2 text-slate-500 transition hover:bg-[#f8fbff] hover:text-[#1a73e8]"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
 
-          {!isLoading && !error
-            ? visibleBuckets.map((bucket) => {
-                const items = grouped[bucket];
-                if (items.length === 0) return null;
-                return (
-                  <section key={bucket} className="mb-5 last:mb-0">
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
-                      {BUCKET_TITLE[bucket]}
-                      <span className="ml-1.5 font-semibold text-slate-400">
-                        ({items.length})
-                      </span>
-                    </h3>
-                    <ul className="space-y-2">
-                      {items.map((draft) => {
-                        const thumb = draftThumb(draft);
-                        const goal = goalLabel(draft);
-                        const updated = relativeTime(
-                          draft.updatedAt || draft.lastSavedAt,
-                        );
-                        return (
-                          <li
-                            key={draft.id}
-                            className="rounded-xl border border-[#e8edf5] bg-white p-3.5 transition hover:border-[#c9d8f0]"
-                          >
-                            <div className="flex gap-3">
-                              <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f8fbff] text-[#1a73e8]">
-                                {thumb ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={thumb}
-                                    alt=""
-                                    className="size-full object-cover"
-                                  />
-                                ) : (
-                                  <BucketIcon bucket={bucket} />
-                                )}
-                              </div>
+          <div className="space-y-3 border-b border-[#e8edf5] px-5 py-4">
+            <button
+              type="button"
+              onClick={() => onSelect({ type: "create" })}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a73e8] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#1765cc]"
+            >
+              <Plus className="size-4" aria-hidden />
+              Create new campaign
+            </button>
 
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="truncate text-sm font-bold text-[#07111f]">
-                                    {draftDisplayName(draft)}
-                                  </p>
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${badgeClass(bucket)}`}
-                                  >
-                                    {BUCKET_TITLE[bucket]}
-                                  </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { key: "all" as const, label: "All", value: drafts.length },
+                  {
+                    key: "draft" as const,
+                    label: "Drafts",
+                    value: counts.draft,
+                  },
+                  {
+                    key: "publishing" as const,
+                    label: "Publishing",
+                    value: counts.publishing,
+                  },
+                  {
+                    key: "failed" as const,
+                    label: "Failed",
+                    value: counts.failed,
+                  },
+                  {
+                    key: "published" as const,
+                    label: "Published",
+                    value: counts.published,
+                  },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilter(tab.key)}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                    filter === tab.key
+                      ? "bg-[#e8f0fe] text-[#1a73e8]"
+                      : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-1 tabular-nums text-slate-400">
+                    {tab.value}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-b border-[#e8edf5] px-5 py-2.5">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
+              {filter === "all" ? "All campaigns" : BUCKET_TITLE[filter]}
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:underline disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`size-3.5 ${isFetching ? "animate-spin" : ""}`}
+                aria-hidden
+              />
+              Refresh
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {deleteError ? (
+              <div
+                className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <p>{deleteError}</p>
+              </div>
+            ) : null}
+
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+                <Loader2 className="size-4 animate-spin text-[#1a73e8]" />
+                Loading campaigns…
+              </div>
+            ) : null}
+
+            {error ? (
+              <div
+                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <div>
+                  <p>{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => void refetch()}
+                    className="mt-2 text-xs font-semibold underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {!isLoading && !error && drafts.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#f8fbff] text-[#1a73e8]">
+                  <Target className="size-5" aria-hidden />
+                </div>
+                <p className="mt-3 text-sm font-semibold text-[#07111f]">
+                  No Google campaigns yet
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Create a new campaign to get started.
+                </p>
+              </div>
+            ) : null}
+
+            {!isLoading && !error
+              ? visibleBuckets.map((bucket) => {
+                  const items = grouped[bucket];
+                  if (items.length === 0) return null;
+                  return (
+                    <section key={bucket} className="mb-5 last:mb-0">
+                      <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
+                        {BUCKET_TITLE[bucket]}
+                        <span className="ml-1.5 font-semibold text-slate-400">
+                          ({items.length})
+                        </span>
+                      </h3>
+                      <ul className="space-y-2">
+                        {items.map((draft) => {
+                          const thumb = draftThumb(draft);
+                          const goal = goalLabel(draft);
+                          const updated = relativeTime(
+                            draft.updatedAt || draft.lastSavedAt,
+                          );
+                          return (
+                            <li
+                              key={draft.id}
+                              className="rounded-xl border border-[#e8edf5] bg-white p-3.5 transition hover:border-[#c9d8f0]"
+                            >
+                              <div className="flex gap-3">
+                                <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f8fbff] text-[#1a73e8]">
+                                  {thumb ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={thumb}
+                                      alt=""
+                                      className="size-full object-cover"
+                                    />
+                                  ) : (
+                                    <BucketIcon bucket={bucket} />
+                                  )}
                                 </div>
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {stepLabel(draft)}
-                                  {goal ? ` · ${goal}` : ""}
-                                  {draft.selectedFunnelName?.trim()
-                                    ? ` · ${draft.selectedFunnelName.trim()}`
-                                    : ""}
-                                  {updated ? ` · ${updated}` : ""}
-                                </p>
-
-                                {(bucket === "draft" ||
-                                  bucket === "failed" ||
-                                  (bucket === "publishing" &&
-                                    typeof draft.publishProgress ===
-                                      "number")) && (
-                                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div
-                                      className={`h-full rounded-full ${
-                                        bucket === "failed"
-                                          ? "bg-red-400"
-                                          : "bg-[#1a73e8]"
-                                      }`}
-                                      style={{
-                                        width: `${
-                                          bucket === "publishing" &&
-                                          typeof draft.publishProgress ===
-                                            "number"
-                                            ? Math.min(
-                                                100,
-                                                Math.max(
-                                                  0,
-                                                  draft.publishProgress,
-                                                ),
-                                              )
-                                            : stepProgress(draft)
-                                        }%`,
-                                      }}
-                                    />
-                                  </div>
-                                )}
-
-                                {draft.errorMessage?.trim() &&
-                                bucket === "failed" ? (
-                                  <p className="mt-1.5 line-clamp-2 text-xs text-red-600">
-                                    {draft.errorMessage}
-                                  </p>
-                                ) : null}
-
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {bucket === "draft" ? (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        onSelect({ type: "continue", draft })
-                                      }
-                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
-                                    >
-                                      Continue editing
-                                    </button>
-                                  ) : null}
-
-                                  {bucket === "failed" ? (
-                                    <>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex flex-wrap items-center gap-2">
+                                      <p className="truncate text-sm font-bold text-[#07111f]">
+                                        {draftDisplayName(draft)}
+                                      </p>
+                                      <span
+                                        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${badgeClass(bucket)}`}
+                                      >
+                                        {BUCKET_TITLE[bucket]}
+                                      </span>
+                                    </div>
+                                    {bucket === "draft" ||
+                                    bucket === "failed" ? (
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          onSelect({ type: "retry", draft })
-                                        }
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a73e8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1765cc]"
+                                        title="Delete draft"
+                                        aria-label={`Delete ${draftDisplayName(draft)}`}
+                                        disabled={deletingDraftId === draft.id}
+                                        onClick={() => {
+                                          setDeleteError(null);
+                                          setDraftPendingDelete(draft);
+                                        }}
+                                        className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                       >
-                                        <Rocket
-                                          className="size-3.5"
-                                          aria-hidden
-                                        />
-                                        Retry publish
+                                        {deletingDraftId === draft.id ? (
+                                          <Loader2
+                                            className="size-4 animate-spin"
+                                            aria-hidden
+                                          />
+                                        ) : (
+                                          <Trash2
+                                            className="size-4"
+                                            aria-hidden
+                                          />
+                                        )}
                                       </button>
+                                    ) : null}
+                                  </div>
+
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    {stepLabel(draft)}
+                                    {goal ? ` · ${goal}` : ""}
+                                    {draft.selectedFunnelName?.trim()
+                                      ? ` · ${draft.selectedFunnelName.trim()}`
+                                      : ""}
+                                    {updated ? ` · ${updated}` : ""}
+                                  </p>
+
+                                  {(bucket === "draft" ||
+                                    bucket === "failed" ||
+                                    (bucket === "publishing" &&
+                                      typeof draft.publishProgress ===
+                                        "number")) && (
+                                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100">
+                                      <div
+                                        className={`h-full rounded-full ${
+                                          bucket === "failed"
+                                            ? "bg-red-400"
+                                            : "bg-[#1a73e8]"
+                                        }`}
+                                        style={{
+                                          width: `${
+                                            bucket === "publishing" &&
+                                            typeof draft.publishProgress ===
+                                              "number"
+                                              ? Math.min(
+                                                  100,
+                                                  Math.max(
+                                                    0,
+                                                    draft.publishProgress,
+                                                  ),
+                                                )
+                                              : stepProgress(draft)
+                                          }%`,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {draft.errorMessage?.trim() &&
+                                  bucket === "failed" ? (
+                                    <p className="mt-1.5 line-clamp-2 text-xs text-red-600">
+                                      {draft.errorMessage}
+                                    </p>
+                                  ) : null}
+
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {bucket === "draft" ? (
                                       <button
                                         type="button"
                                         onClick={() =>
                                           onSelect({ type: "continue", draft })
                                         }
-                                        className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fbff]"
+                                        className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
                                       >
                                         Continue editing
                                       </button>
-                                    </>
-                                  ) : null}
+                                    ) : null}
 
-                                  {bucket === "publishing" ? (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        onSelect({ type: "progress", draft })
-                                      }
-                                      className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
-                                    >
-                                      View progress
-                                    </button>
-                                  ) : null}
+                                    {bucket === "failed" ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onSelect({ type: "retry", draft })
+                                          }
+                                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a73e8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1765cc]"
+                                        >
+                                          <Rocket
+                                            className="size-3.5"
+                                            aria-hidden
+                                          />
+                                          Retry publish
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onSelect({
+                                              type: "continue",
+                                              draft,
+                                            })
+                                          }
+                                          className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fbff]"
+                                        >
+                                          Continue editing
+                                        </button>
+                                      </>
+                                    ) : null}
 
-                                  {bucket === "published" ? (
-                                    <a
-                                      href={consoleUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
-                                    >
-                                      Open in Google Ads
-                                      <ExternalLink
-                                        className="size-3.5"
-                                        aria-hidden
-                                      />
-                                    </a>
-                                  ) : null}
+                                    {bucket === "publishing" ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onSelect({ type: "progress", draft })
+                                        }
+                                        className="rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
+                                      >
+                                        View progress
+                                      </button>
+                                    ) : null}
+
+                                    {bucket === "published" ? (
+                                      <a
+                                        href={consoleUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
+                                      >
+                                        Open in Google Ads
+                                        <ExternalLink
+                                          className="size-3.5"
+                                          aria-hidden
+                                        />
+                                      </a>
+                                    ) : null}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                );
-              })
-            : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  );
+                })
+              : null}
 
-          {!isLoading &&
-          !error &&
-          drafts.length > 0 &&
-          visibleBuckets.every((bucket) => grouped[bucket].length === 0) ? (
-            <p className="py-8 text-center text-sm text-slate-500">
-              Nothing in this status yet.
-            </p>
-          ) : null}
+            {!isLoading &&
+            !error &&
+            drafts.length > 0 &&
+            visibleBuckets.every((bucket) => grouped[bucket].length === 0) ? (
+              <p className="py-8 text-center text-sm text-slate-500">
+                Nothing in this status yet.
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
+
+      <DeleteConfirmationDialog
+        open={draftPendingDelete != null}
+        itemName={
+          draftPendingDelete
+            ? draftDisplayName(draftPendingDelete)
+            : "this draft"
+        }
+        title="Delete this draft?"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold">
+              {draftPendingDelete
+                ? draftDisplayName(draftPendingDelete)
+                : "this draft"}
+            </span>
+            ? This only removes the Dealioo draft. It cannot be undone.
+          </>
+        }
+        confirmText="Delete draft"
+        checkboxLabel="I understand this draft will be permanently deleted."
+        isLoading={deletingDraftId != null}
+        onConfirm={() => {
+          void handleConfirmDeleteDraft();
+        }}
+        onCancel={() => {
+          if (deletingDraftId == null) {
+            setDraftPendingDelete(null);
+          }
+        }}
+      />
+    </>
   );
 }

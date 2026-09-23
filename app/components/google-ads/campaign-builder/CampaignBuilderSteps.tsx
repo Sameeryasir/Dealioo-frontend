@@ -14,7 +14,6 @@ import {
   Eye,
   FileText,
   Flag,
-  Globe,
   ImageIcon,
   Info,
   Languages,
@@ -24,14 +23,11 @@ import {
   MapPinOff,
   Megaphone,
   MousePointerClick,
-  Phone,
   Plus,
   Radar,
   Rocket,
   ShoppingBag,
-  ShoppingCart,
   Sparkles,
-  Store,
   Tag,
   Trash2,
   Type,
@@ -49,10 +45,8 @@ import {
   enabledKeywords,
   estimateMetrics,
   generateAdSuggestions,
-  generateCallouts,
   generateKeywordsFromBusinessAndLanding,
   generateNegativesFromProducts,
-  generateSnippetValues,
   inferBusinessTypeFromProducts,
   prefillFromBusinessDescription,
   toSuggestedKeywords,
@@ -71,15 +65,11 @@ import {
   Field,
   Panel,
   SearchableMultiSelect,
-  SearchableSelect,
   SelectableCard,
-  SimpleSelect,
   StepShell,
   inputClass,
 } from "@/app/components/google-ads/campaign-builder/builder-controls";
-import { BusinessLocationPicker } from "@/app/components/google-ads/campaign-builder/BusinessLocationPicker";
 import { AccountConversionGoalsPanel } from "@/app/components/google-ads/campaign-builder/SalesConversionGoalsPanel";
-import { LocalVisitsCampaignTypePanel } from "@/app/components/google-ads/campaign-builder/LocalVisitsCampaignTypePanel";
 import { LocationAutocomplete } from "@/app/components/google-ads/campaign-builder/LocationAutocomplete";
 import {
   deriveLegacyLocationFields,
@@ -104,20 +94,14 @@ const GoogleAdsLocationsMap = dynamic(
   },
 );
 import {
+  AGE_RANGE_OPTIONS,
   GOAL_OPTIONS,
-  GOOGLE_LEAD_FORM_CTA_OPTIONS,
-  GOOGLE_LEAD_FORM_FIELD_OPTIONS,
-  GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS,
   LANGUAGE_OPTIONS,
-  LEAD_CONTACT_OPTIONS,
-  LEAD_PHONE_COUNTRY_CODES,
-  SALES_CHANNEL_OPTIONS,
   TOTAL_WIZARD_STEPS,
   TRAFFIC_ACTION_OPTIONS,
+  type AgeRangeId,
   type CampaignGoalId,
   type GoogleCampaignBuilderDraft,
-  type LeadContactMethodId,
-  type SalesChannelId,
   type TrafficActionId,
 } from "@/app/components/google-ads/campaign-builder/types";
 import {
@@ -126,11 +110,9 @@ import {
 } from "@/app/components/google-ads/campaign-builder/validation";
 import { DestinationPicker } from "@/app/components/google-ads/campaign-builder/DestinationPicker";
 import {
-  applyNonUrlDestination,
   destinationLabel,
   formatBusinessAddressLine,
   resolveCampaignDestinationUrl,
-  withSyncedAdFinalUrl,
 } from "@/app/components/google-ads/campaign-builder/destination";
 
 function formatRadiusLabel(value: number, unit: RadiusUnitId): string {
@@ -146,22 +128,12 @@ type StepProps = {
 };
 
 const GOAL_ICONS: Record<
-  Exclude<CampaignGoalId, "APP_PROMOTION">,
+  Exclude<CampaignGoalId, "APP_PROMOTION" | "AWARENESS" | "LOCAL_VISITS">,
   LucideIcon
 > = {
   SALES: ShoppingBag,
   LEADS: Users,
   WEBSITE_TRAFFIC: MousePointerClick,
-  AWARENESS: Megaphone,
-  LOCAL_VISITS: MapPin,
-};
-
-const SALES_CHANNEL_ICONS: Record<
-  Extract<SalesChannelId, "WEBSITE" | "PHYSICAL_STORE">,
-  LucideIcon
-> = {
-  WEBSITE: Globe,
-  PHYSICAL_STORE: Store,
 };
 
 function CharCount({ value, max }: { value: string; max: number }) {
@@ -308,8 +280,7 @@ export function StepGoal({ businessId, draft, errors, onChange }: StepProps) {
         aria-label="Campaign goal"
       >
         {GOAL_OPTIONS.map((goal) => {
-          const Icon =
-            GOAL_ICONS[goal.id as Exclude<CampaignGoalId, "APP_PROMOTION">];
+          const Icon = GOAL_ICONS[goal.id];
           return (
             <SelectableCard
               key={goal.id}
@@ -319,11 +290,17 @@ export function StepGoal({ businessId, draft, errors, onChange }: StepProps) {
               description={goal.description}
               icon={<Icon className="size-5" aria-hidden />}
               onClick={() =>
-                onChange(
-                  goal.id === "LOCAL_VISITS"
-                    ? { goal: goal.id, campaignType: "PERFORMANCE_MAX" }
-                    : { goal: goal.id },
-                )
+                onChange({
+                  goal: goal.id,
+                  campaignType: "SEARCH",
+                  destinationType: "dealioo_funnel",
+                  ...(goal.id === "SALES"
+                    ? { salesChannel: "WEBSITE" as const }
+                    : {}),
+                  ...(goal.id === "LEADS"
+                    ? { leadContactMethods: ["CONTACT_FORM" as const] }
+                    : {}),
+                })
               }
             />
           );
@@ -333,13 +310,7 @@ export function StepGoal({ businessId, draft, errors, onChange }: StepProps) {
         <p className="text-sm font-medium text-red-500">{errors.goal}</p>
       ) : null}
 
-      {draft.goal === "LOCAL_VISITS" ? (
-        <LocalVisitsCampaignTypePanel
-          businessId={businessId}
-          campaignType={draft.campaignType}
-          onChange={onChange}
-        />
-      ) : draft.goal && selectedGoalLabel ? (
+      {draft.goal && selectedGoalLabel ? (
         <AccountConversionGoalsPanel
           businessId={businessId}
           campaignGoal={draft.goal}
@@ -390,15 +361,44 @@ export function StepCampaignDetails({
   draftRef.current = draft;
   const { data: businessProfile } = useBusinessByIdQuery(businessId);
 
-  const isSalesGoal = draft.goal === "SALES";
-  const isLeadsGoal = draft.goal === "LEADS";
+  // Funnel-first: Sales / Leads / Traffic always send people to a Dealioo funnel.
+  useEffect(() => {
+    if (!draft.goal) return;
+    if (
+      draft.goal !== "SALES" &&
+      draft.goal !== "LEADS" &&
+      draft.goal !== "WEBSITE_TRAFFIC"
+    ) {
+      return;
+    }
 
-  const salesChannel: SalesChannelId | null =
-    draft.salesChannel === "ONLINE_STORE" || draft.salesChannel === "MULTIPLE"
-      ? "WEBSITE"
-      : draft.salesChannel === "PHONE_ORDERS"
-        ? null
-        : draft.salesChannel;
+    const patch: Partial<GoogleCampaignBuilderDraft> = {};
+    if (draft.destinationType !== "dealioo_funnel") {
+      patch.destinationType = "dealioo_funnel";
+    }
+    if (draft.campaignType !== "SEARCH") {
+      patch.campaignType = "SEARCH";
+    }
+    if (draft.goal === "SALES" && draft.salesChannel !== "WEBSITE") {
+      patch.salesChannel = "WEBSITE";
+    }
+    if (draft.goal === "LEADS") {
+      const methods = draft.leadContactMethods.filter(
+        (id) => id !== "WHATSAPP" && id !== "APPOINTMENT_BOOKING",
+      );
+      if (methods.length !== 1 || methods[0] !== "CONTACT_FORM") {
+        patch.leadContactMethods = ["CONTACT_FORM"];
+      }
+    }
+    if (Object.keys(patch).length > 0) onChange(patch);
+  }, [
+    draft.campaignType,
+    draft.destinationType,
+    draft.goal,
+    draft.leadContactMethods,
+    draft.salesChannel,
+    onChange,
+  ]);
 
   // Prefill business name from connected Google Ads when this step mounts
   useEffect(() => {
@@ -443,9 +443,6 @@ export function StepCampaignDetails({
     });
 
     const patch: Partial<GoogleCampaignBuilderDraft> = {};
-    if (!draft.websiteUrl.trim() && businessProfile.websiteUrl?.trim()) {
-      patch.websiteUrl = businessProfile.websiteUrl.trim();
-    }
     if (!draft.businessPhone.trim() && businessProfile.phoneNumber?.trim()) {
       patch.businessPhone = businessProfile.phoneNumber.trim();
       patch.phoneNumber = businessProfile.phoneNumber.trim();
@@ -462,75 +459,22 @@ export function StepCampaignDetails({
     draft.businessAddress,
     draft.businessLocation,
     draft.businessPhone,
-    draft.websiteUrl,
     onChange,
   ]);
 
 
-  const selectPrimaryLeadMethod = (id: LeadContactMethodId) => {
-    if (id === "CONTACT_FORM") {
-      onChange({
-        leadContactMethods: [id],
-        destinationType:
-          draft.destinationType === "dealioo_funnel" ||
-          draft.destinationType === "external_website"
-            ? draft.destinationType
-            : null,
-      });
-      return;
-    }
-    if (id === "GOOGLE_LEAD_FORM") {
-      onChange({
-        leadContactMethods: [id],
-        ...applyNonUrlDestination("google_lead_form"),
-      });
-      return;
-    }
-    if (id === "PHONE_CALLS") {
-      onChange({
-        leadContactMethods: [id],
-        ...applyNonUrlDestination("phone"),
-      });
-      return;
-    }
-    onChange({ leadContactMethods: [id] });
-  };
 
-  const primaryLeadMethod =
-    draft.leadContactMethods.find((id) =>
-      LEAD_CONTACT_OPTIONS.some((option) => option.id === id),
-    ) ?? null;
-
-  const selectSalesChannel = (
-    id: Extract<SalesChannelId, "WEBSITE" | "PHYSICAL_STORE">,
-  ) => {
-    if (id === "WEBSITE") {
-      onChange({
-        salesChannel: id,
-        destinationType:
-          draft.destinationType === "dealioo_funnel" ||
-          draft.destinationType === "external_website"
-            ? draft.destinationType
-            : null,
-      });
-      return;
-    }
-    if (id === "PHYSICAL_STORE") {
-      onChange({
-        salesChannel: id,
-        ...applyNonUrlDestination("physical_location"),
-      });
-      return;
-    }
-    onChange({ salesChannel: id });
-  };
+  const showFunnelDestination =
+    draft.goal === "SALES" ||
+    draft.goal === "LEADS" ||
+    draft.goal === "WEBSITE_TRAFFIC";
 
   return (
     <StepShell
       step={2}
       total={TOTAL_WIZARD_STEPS}
       title="Set up your campaign"
-      description="We prefilled what we already know about your business. Tell us how customers should reach you."
+      description="We prefilled what we already know about your business. Pick the Dealioo funnel Google Ads should send people to."
     >
       <Panel className="space-y-4">
         <SetupSectionTitle
@@ -578,522 +522,43 @@ export function StepCampaignDetails({
 
       </Panel>
 
-      {isSalesGoal ? (
-        <>
-          <Panel className="space-y-3">
-            <SetupSectionTitle
-              icon={ShoppingCart}
-              title="How do customers complete a purchase?"
-              description="Choose the main way people buy from you."
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {SALES_CHANNEL_OPTIONS.map((option) => {
-                const Icon = SALES_CHANNEL_ICONS[option.id];
-                return (
-                  <SelectableCard
-                    key={option.id}
-                    selectionMode="radio"
-                    selected={salesChannel === option.id}
-                    title={option.title}
-                    description={option.description}
-                    icon={<Icon className="size-5" aria-hidden />}
-                    onClick={() => selectSalesChannel(option.id)}
-                  />
-                );
-              })}
-            </div>
-            {errors.salesChannel ? (
-              <p className="text-sm font-medium text-red-500">
-                {errors.salesChannel}
-              </p>
-            ) : null}
-          </Panel>
-
-          {salesChannel === "WEBSITE" ? (
-            <DestinationPicker
-              businessId={businessId}
-              draft={draft}
-              errors={errors}
-              onChange={onChange}
-            />
-          ) : null}
-
-          {salesChannel === "PHYSICAL_STORE" ? (
-            <Panel>
-              <BusinessLocationPicker
-                label="Business location"
-                description="Search your address, use current location, or place a pin on the map."
-                value={draft.businessLocation}
-                latitude={draft.businessLocationLat}
-                longitude={draft.businessLocationLng}
-                error={errors.businessLocation}
-                onChange={(patch) =>
-                  onChange({
-                    ...patch,
-                    ...applyNonUrlDestination("physical_location"),
-                  })
-                }
-              />
-            </Panel>
-          ) : null}
-        </>
-      ) : null}
-
-      {isLeadsGoal ? (
-        <Panel className="space-y-4">
-          <div>
-            <p className="text-sm font-bold text-[#07111f]">
-              How would you like to receive leads?
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Choose one primary way customers should contact you.
-            </p>
-          </div>
-
-          <div
-            className="grid gap-3 sm:grid-cols-3"
-            role="radiogroup"
-            aria-label="Primary lead method"
-          >
-            {LEAD_CONTACT_OPTIONS.map((option) => (
-              <SelectableCard
-                key={option.id}
-                selectionMode="radio"
-                selected={primaryLeadMethod === option.id}
-                title={option.title}
-                description={option.description}
-                onClick={() => selectPrimaryLeadMethod(option.id)}
-              />
-            ))}
-          </div>
-          {errors.leadContactMethods ? (
-            <p className="text-sm font-medium text-red-500">
-              {errors.leadContactMethods}
-            </p>
-          ) : null}
-
-          {primaryLeadMethod === "CONTACT_FORM" ? (
-            <DestinationPicker
-              businessId={businessId}
-              draft={draft}
-              errors={errors}
-              onChange={onChange}
-              title="Where should customers go?"
-            />
-          ) : null}
-
-          {primaryLeadMethod === "GOOGLE_LEAD_FORM" ? (
-            <div className="space-y-5 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
-              <div>
-                <p className="text-sm font-bold text-[#07111f]">
-                  Google Lead Form
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Collect leads without sending people away from Google.
-                </p>
-              </div>
-
-              <Field
-                label="Headline"
-                required
-                error={errors.googleLeadFormHeadline}
-              >
-                <input
-                  className={inputClass(errors.googleLeadFormHeadline)}
-                  value={draft.googleLeadFormHeadline}
-                  onChange={(e) =>
-                    onChange({ googleLeadFormHeadline: e.target.value })
-                  }
-                  placeholder="Get a Free Quote"
-                />
-              </Field>
-
-              <Field
-                label="Description"
-                required
-                error={errors.googleLeadFormDescription}
-              >
-                <textarea
-                  className={`${inputClass(errors.googleLeadFormDescription)} min-h-[80px]`}
-                  value={draft.googleLeadFormDescription}
-                  onChange={(e) =>
-                    onChange({ googleLeadFormDescription: e.target.value })
-                  }
-                  placeholder="Tell us what you need and our team will contact you."
-                />
-              </Field>
-
-              <Field
-                label="Call to action"
-                required
-                error={errors.googleLeadFormCta}
-              >
-                <SimpleSelect
-                  aria-label="Call to action"
-                  value={draft.googleLeadFormCta}
-                  options={GOOGLE_LEAD_FORM_CTA_OPTIONS.map((cta) => ({
-                    id: cta.id,
-                    label: cta.label,
-                  }))}
-                  onChange={(googleLeadFormCta) =>
-                    onChange({ googleLeadFormCta })
-                  }
-                  error={errors.googleLeadFormCta}
-                  placeholder="Choose a call to action"
-                />
-              </Field>
-
-              <Field
-                label="CTA description"
-                required
-                error={errors.googleLeadFormCtaDescription}
-              >
-                <input
-                  className={inputClass(errors.googleLeadFormCtaDescription)}
-                  value={draft.googleLeadFormCtaDescription}
-                  onChange={(e) =>
-                    onChange({ googleLeadFormCtaDescription: e.target.value })
-                  }
-                  placeholder="Get your free quote today"
-                />
-              </Field>
-
-              <div className="space-y-2 border-t border-[#dbeafe] pt-4">
-                <p className="text-sm font-bold text-[#07111f]">
-                  Fields to collect
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {GOOGLE_LEAD_FORM_FIELD_OPTIONS.map((field) => {
-                    const checked = draft.googleLeadFormFields.includes(
-                      field.id,
-                    );
-                    return (
-                      <button
-                        key={field.id}
-                        type="button"
-                        onClick={() => {
-                          const next = checked
-                            ? draft.googleLeadFormFields.filter(
-                                (id) => id !== field.id,
-                              )
-                            : [...draft.googleLeadFormFields, field.id];
-                          onChange({ googleLeadFormFields: next });
-                        }}
-                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition ${
-                          checked
-                            ? "border-[#4285F4] bg-white text-[#4285F4]"
-                            : "border-[#e8edf5] bg-white text-slate-600"
-                        }`}
-                      >
-                        <span
-                          className={`flex size-4 items-center justify-center rounded border ${
-                            checked
-                              ? "border-[#4285F4] bg-[#4285F4] text-white"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {checked ? (
-                            <Check className="size-2.5" strokeWidth={3} />
-                          ) : null}
-                        </span>
-                        {field.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.googleLeadFormFields ? (
-                  <p className="text-xs font-medium text-red-500">
-                    {errors.googleLeadFormFields}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-3 border-t border-[#dbeafe] pt-4">
-                <Field
-                  label="Privacy policy URL"
-                  required
-                  error={errors.googleLeadFormPrivacyUrl}
-                >
-                  <input
-                    className={inputClass(errors.googleLeadFormPrivacyUrl)}
-                    value={draft.googleLeadFormPrivacyUrl}
-                    onChange={(e) =>
-                      onChange({ googleLeadFormPrivacyUrl: e.target.value })
-                    }
-                    placeholder="https://example.com/privacy"
-                  />
-                </Field>
-              </div>
-
-              <div className="space-y-3 border-t border-[#dbeafe] pt-4">
-                <p className="text-sm font-bold text-[#07111f]">
-                  Thank-you screen
-                </p>
-                <Field
-                  label="Thank-you headline"
-                  required
-                  error={errors.googleLeadFormThankYouHeadline}
-                >
-                  <input
-                    className={inputClass(errors.googleLeadFormThankYouHeadline)}
-                    value={draft.googleLeadFormThankYouHeadline}
-                    onChange={(e) =>
-                      onChange({
-                        googleLeadFormThankYouHeadline: e.target.value,
-                      })
-                    }
-                    placeholder="Thank you!"
-                  />
-                </Field>
-                <Field
-                  label="Thank-you message"
-                  required
-                  error={errors.googleLeadFormThankYouMessage}
-                >
-                  <textarea
-                    className={`${inputClass(errors.googleLeadFormThankYouMessage)} min-h-[72px]`}
-                    value={draft.googleLeadFormThankYouMessage}
-                    onChange={(e) =>
-                      onChange({
-                        googleLeadFormThankYouMessage: e.target.value,
-                      })
-                    }
-                    placeholder="We'll contact you shortly."
-                  />
-                </Field>
-                <Field
-                  label="Post-submit action"
-                  required
-                  error={errors.googleLeadFormPostSubmitAction}
-                >
-                  <SimpleSelect
-                    aria-label="Post-submit action"
-                    value={draft.googleLeadFormPostSubmitAction}
-                    options={GOOGLE_LEAD_FORM_POST_SUBMIT_OPTIONS.map(
-                      (action) => ({
-                        id: action.id,
-                        label: action.label,
-                      }),
-                    )}
-                    onChange={(googleLeadFormPostSubmitAction) =>
-                      onChange({ googleLeadFormPostSubmitAction })
-                    }
-                    error={errors.googleLeadFormPostSubmitAction}
-                    placeholder="Choose a post-submit action"
-                  />
-                </Field>
-                {draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE" ||
-                draft.googleLeadFormPostSubmitAction === "DOWNLOAD" ||
-                draft.googleLeadFormPostSubmitAction === "LEARN_MORE" ? (
-                  <Field
-                    label="Post-submit URL"
-                    required={
-                      draft.googleLeadFormPostSubmitAction === "VISIT_WEBSITE"
-                    }
-                    error={errors.googleLeadFormPostSubmitUrl}
-                  >
-                    <input
-                      className={inputClass(
-                        errors.googleLeadFormPostSubmitUrl,
-                      )}
-                      value={
-                        draft.googleLeadFormPostSubmitUrl ||
-                        draft.websiteUrl ||
-                        draft.landingPageUrl
-                      }
-                      onChange={(e) =>
-                        onChange({
-                          googleLeadFormPostSubmitUrl: e.target.value,
-                          websiteUrl: draft.websiteUrl || e.target.value,
-                        })
-                      }
-                      placeholder="https://example.com"
-                    />
-                  </Field>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {primaryLeadMethod === "PHONE_CALLS" ? (
-            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
-              <p className="text-sm font-bold text-[#07111f]">Phone Calls</p>
-              <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <Field label="Country code" required>
-                  <select
-                    className={inputClass()}
-                    value={draft.phoneCountryCode}
-                    onChange={(e) =>
-                      onChange({ phoneCountryCode: e.target.value })
-                    }
-                  >
-                    {LEAD_PHONE_COUNTRY_CODES.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field
-                  label="Business phone"
-                  required
-                  hint="Prefilled from your business profile when available."
-                  error={errors.businessPhone}
-                >
-                  <input
-                    className={inputClass(errors.businessPhone)}
-                    value={draft.businessPhone}
-                    onChange={(e) =>
-                      onChange({
-                        businessPhone: e.target.value,
-                        phoneNumber: e.target.value,
-                      })
-                    }
-                    placeholder="416-555-0123"
-                  />
-                </Field>
-              </div>
-            </div>
-          ) : null}
-        </Panel>
+      {showFunnelDestination ? (
+        <DestinationPicker
+          businessId={businessId}
+          draft={draft}
+          errors={errors}
+          onChange={onChange}
+          title={
+            draft.goal === "WEBSITE_TRAFFIC"
+              ? "Where should we send visitors?"
+              : "Where should customers go after clicking your ad?"
+          }
+        />
       ) : null}
 
       {draft.goal === "WEBSITE_TRAFFIC" ? (
-        <>
-          <DestinationPicker
-            businessId={businessId}
-            draft={draft}
-            errors={errors}
-            onChange={onChange}
-            title="Where should we send visitors?"
-          />
-          <Panel className="space-y-3">
-            <p className="text-sm font-bold text-[#07111f]">
-              What should visitors do?
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {TRAFFIC_ACTION_OPTIONS.map((option) => (
-                <SelectableCard
-                  key={option.id}
-                  selectionMode="radio"
-                  selected={draft.trafficAction === option.id}
-                  title={option.label}
-                  onClick={() =>
-                    onChange({ trafficAction: option.id as TrafficActionId })
-                  }
-                />
-              ))}
-            </div>
-            {errors.trafficAction ? (
-              <p className="text-sm font-medium text-red-500">
-                {errors.trafficAction}
-              </p>
-            ) : null}
-          </Panel>
-        </>
-      ) : null}
-
-      {draft.goal === "AWARENESS" ? (
-        <Panel className="space-y-4">
-          <p className="text-xs text-slate-500">
-            Prefilled from your business profile — edit only if something
-            changed.
+        <Panel className="space-y-3">
+          <p className="text-sm font-bold text-[#07111f]">
+            What should visitors do?
           </p>
-          <Field label="Business address">
-            <input
-              className={inputClass()}
-              value={draft.businessAddress}
-              onChange={(e) => onChange({ businessAddress: e.target.value })}
-              placeholder="123 Main Street"
-            />
-          </Field>
-          <Field label="Business phone">
-            <input
-              className={inputClass()}
-              value={draft.businessPhone}
-              onChange={(e) =>
-                onChange({
-                  businessPhone: e.target.value,
-                  phoneNumber: e.target.value,
-                })
-              }
-              placeholder="+1 555 0100"
-            />
-          </Field>
-          <SearchableSelect
-            label="Business hours"
-            options={[
-              "Open 24/7",
-              "Mon–Fri 9am–5pm",
-              "Mon–Sat 10am–8pm",
-              "Weekends only",
-              "By appointment",
-            ]}
-            value={draft.businessHours}
-            onChange={(businessHours) => onChange({ businessHours })}
-            placeholder="Select hours"
-          />
-        </Panel>
-      ) : null}
-
-      {draft.goal === "LOCAL_VISITS" ? (
-        <div className="space-y-4">
-          <Panel>
-            <BusinessLocationPicker
-              label="Business location"
-              value={draft.businessLocation}
-              latitude={draft.businessLocationLat}
-              longitude={draft.businessLocationLng}
-              error={errors.businessLocation}
-              onChange={(patch) =>
-                onChange({
-                  ...patch,
-                  ...applyNonUrlDestination("physical_location"),
-                })
-              }
-            />
-          </Panel>
-          <Panel className="space-y-4">
-            <Field label="Business phone" required error={errors.businessPhone}>
-              <input
-                className={inputClass(errors.businessPhone)}
-                value={draft.businessPhone}
-                onChange={(e) =>
-                  onChange({
-                    businessPhone: e.target.value,
-                    phoneNumber: e.target.value,
-                  })
+          <div className="grid gap-3 sm:grid-cols-2">
+            {TRAFFIC_ACTION_OPTIONS.map((option) => (
+              <SelectableCard
+                key={option.id}
+                selectionMode="radio"
+                selected={draft.trafficAction === option.id}
+                title={option.label}
+                onClick={() =>
+                  onChange({ trafficAction: option.id as TrafficActionId })
                 }
-                placeholder="+1 555 0100"
               />
-            </Field>
-            <SearchableSelect
-              label="Business hours"
-              options={[
-                "Open 24/7",
-                "Mon–Fri 9am–5pm",
-                "Mon–Sat 10am–8pm",
-                "Weekends only",
-                "By appointment",
-              ]}
-              value={draft.businessHours}
-              onChange={(businessHours) => onChange({ businessHours })}
-              placeholder="Select hours"
-            />
-          </Panel>
-        </div>
-      ) : null}
-
-      {draft.goal === "APP_PROMOTION" ? (
-        <Panel>
-          <Field label="App name" required error={errors.appName}>
-            <input
-              className={inputClass(errors.appName)}
-              value={draft.appName}
-              onChange={(e) => onChange({ appName: e.target.value })}
-              placeholder="My App"
-            />
-          </Field>
+            ))}
+          </div>
+          {errors.trafficAction ? (
+            <p className="text-sm font-medium text-red-500">
+              {errors.trafficAction}
+            </p>
+          ) : null}
         </Panel>
       ) : null}
 
@@ -1766,29 +1231,14 @@ export function StepProductsServices({
             <Sparkles className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-[#07111f]">
-                  Keyword suggestions
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {enabledKeywords(draft).length} selected
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={generating}
-                onClick={() => void runGenerate()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#4285F4] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(66,133,244,0.22)] transition hover:bg-[#1a73e8] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-              >
-                {generating ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <Sparkles className="size-4" aria-hidden />
-                )}
-                {generating ? "Generating…" : "Generate Keywords"}
-              </button>
-            </div>
+            <p className="text-sm font-bold text-[#07111f]">
+              Keyword suggestions
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {generating
+                ? "Generating from your business and funnel…"
+                : `${enabledKeywords(draft).length} selected`}
+            </p>
           </div>
         </div>
 
@@ -1935,10 +1385,7 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
     );
 
     const needsUrlSync =
-      Boolean(destinationUrl) &&
-      current.finalUrl.trim() !== destinationUrl &&
-      (draft.destinationType === "dealioo_funnel" ||
-        !current.finalUrl.trim());
+      Boolean(destinationUrl) && current.finalUrl.trim() !== destinationUrl;
 
     if (
       headlines.length !== current.headlines.length ||
@@ -1977,9 +1424,6 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
   };
 
   const destinationUrl = resolveCampaignDestinationUrl(draft);
-  const isFunnelDestination = draft.destinationType === "dealioo_funnel";
-  const isExternalDestination = draft.destinationType === "external_website";
-  const usesLandingUrl = isFunnelDestination || isExternalDestination;
 
   const displayLandingUrl = (() => {
     const raw = (destinationUrl || ad.finalUrl || "").trim();
@@ -1999,22 +1443,6 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
       return stripped.length > 48 ? `${stripped.slice(0, 45)}…` : stripped;
     }
   })();
-
-  const regenerate = () => {
-    const next = generateAdSuggestions(draft);
-    onChange({
-      ads: [
-        {
-          ...next,
-          id: ad.id,
-          finalUrl: destinationUrl || next.finalUrl || ad.finalUrl,
-          path1: ad.path1 || next.path1,
-          path2: ad.path2 || next.path2,
-        },
-      ],
-      adsGenerated: true,
-    });
-  };
 
   const addCustomKeywords = (raw: string) => {
     const parts = raw
@@ -2076,8 +1504,7 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Panel className="space-y-5">
-          {usesLandingUrl ? (
-            <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+          <div className="space-y-3 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
               <div className="flex gap-3">
                 <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#4285F4] shadow-sm">
                   <Link2 className="size-5" aria-hidden />
@@ -2086,30 +1513,19 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
                   <p className="text-sm font-bold text-[#07111f]">
                     Landing page
                   </p>
-                  {isFunnelDestination ? (
-                    <>
-                      <p className="mt-1 truncate text-sm font-semibold text-[#07111f]">
-                        {draft.selectedFunnelName || "Dealioo Funnel"}
-                      </p>
-                      <p
-                        className="mt-0.5 truncate text-xs text-slate-500"
-                        title={destinationUrl || ad.finalUrl}
-                      >
-                        {displayLandingUrl || "Funnel connected"}
-                      </p>
-                      <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
-                        <Check className="size-3" aria-hidden />
-                        Connected
-                      </p>
-                    </>
-                  ) : (
-                    <p
-                      className="mt-1 truncate text-xs text-slate-500"
-                      title={destinationUrl || ad.finalUrl}
-                    >
-                      {displayLandingUrl || "Add a website URL"}
-                    </p>
-                  )}
+                  <p className="mt-1 truncate text-sm font-semibold text-[#07111f]">
+                    {draft.selectedFunnelName || "Dealioo Funnel"}
+                  </p>
+                  <p
+                    className="mt-0.5 truncate text-xs text-slate-500"
+                    title={destinationUrl || ad.finalUrl}
+                  >
+                    {displayLandingUrl || "Funnel connected"}
+                  </p>
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">
+                    <Check className="size-3" aria-hidden />
+                    Connected
+                  </p>
                   {errors.finalUrl ? (
                     <p className="mt-2 text-sm font-medium text-red-500">
                       {errors.finalUrl}
@@ -2118,44 +1534,6 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="space-y-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] p-4">
-              <div className="flex gap-3">
-                <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-                  <ExternalLink className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1 space-y-3">
-                  <div>
-                    <p className="text-sm font-bold text-[#07111f]">
-                      {destinationLabel(draft)}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      This campaign focuses on{" "}
-                      {destinationLabel(draft).toLowerCase()}. A website URL is
-                      still used behind the scenes when Google needs one.
-                    </p>
-                  </div>
-                  <Field
-                    label="Website URL (optional fallback)"
-                    error={errors.finalUrl}
-                  >
-                    <input
-                      className={inputClass(errors.finalUrl)}
-                      value={ad.finalUrl || draft.websiteUrl}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        onChange({
-                          websiteUrl: value || draft.websiteUrl,
-                          ads: [{ ...ad, finalUrl: value }],
-                        });
-                      }}
-                      placeholder="https://…"
-                    />
-                  </Field>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="space-y-4 border-t border-[#e8edf5] pt-5">
             <div className="flex gap-3">
@@ -2276,23 +1654,11 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
                 <Type className="size-5" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-[#07111f]">Headlines</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      At least {MIN_RSA_HEADLINES} required · up to{" "}
-                      {MAX_RSA_HEADLINES}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={regenerate}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#dbeafe] bg-[#f4f8ff] px-3 py-1.5 text-sm font-semibold text-[#4285F4] transition hover:bg-[#e8f0fe]"
-                  >
-                    <Sparkles className="size-4" aria-hidden />
-                    Regenerate
-                  </button>
-                </div>
+                <p className="text-sm font-bold text-[#07111f]">Headlines</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  At least {MIN_RSA_HEADLINES} required · up to{" "}
+                  {MAX_RSA_HEADLINES}
+                </p>
               </div>
             </div>
 
@@ -2462,226 +1828,96 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
   );
 }
 
-export function StepBusinessDetails({
-  businessId,
-  draft,
-  onChange,
-}: StepProps) {
-  const { data: businessProfile } = useBusinessByIdQuery(businessId);
-  const [landingLoading, setLandingLoading] = useState(false);
-  const [landingError, setLandingError] = useState<string | null>(null);
-  const [landingContent, setLandingContent] = useState<{
-    headline: string;
-    subheadline: string;
-    body: string;
-  } | null>(null);
-
-  const businessDescription =
-    draft.businessDescription.trim() ||
-    businessProfile?.description?.trim() ||
-    "";
-
-  const funnelUrl = (
-    draft.landingPageUrl ||
-    draft.websiteUrl ||
-    ""
-  ).trim();
-
-  useEffect(() => {
-    if (draft.assetsGenerated) return;
-    const type =
-      draft.businessType ||
-      inferBusinessTypeFromProducts(draft.productsServices, "Local Business");
-
-    onChange({
-      extensionBusinessName: draft.extensionBusinessName || draft.businessName,
-      phoneNumber: draft.phoneNumber || draft.businessPhone,
-      callouts: generateCallouts(type),
-      structuredSnippetHeader: draft.structuredSnippetHeader || "Services",
-      structuredSnippetValues: generateSnippetValues(type),
-      sitelinks: [],
-      assetsGenerated: true,
-    });
-  }, [draft, draft.assetsGenerated, onChange]);
-
-  useEffect(() => {
-    const profileDescription = businessProfile?.description?.trim() || "";
-    if (!profileDescription) return;
-    if (draft.businessDescription.trim()) return;
-    onChange({ businessDescription: profileDescription });
-  }, [
-    businessProfile?.description,
-    draft.businessDescription,
-    onChange,
-  ]);
-
-  useEffect(() => {
-    const campaignId = draft.selectedFunnelId;
-    if (
-      draft.destinationType !== "dealioo_funnel" ||
-      !campaignId ||
-      campaignId < 1
-    ) {
-      setLandingContent(null);
-      setLandingError(null);
-      setLandingLoading(false);
-      return;
+export function StepAudience({ draft, errors, onChange }: StepProps) {
+  const toggleAge = (age: AgeRangeId) => {
+    const selected = new Set(draft.ageRanges);
+    if (selected.has(age)) {
+      if (selected.size <= 1) return;
+      selected.delete(age);
+    } else {
+      selected.add(age);
     }
-
-    let cancelled = false;
-    setLandingLoading(true);
-    setLandingError(null);
-
-    void (async () => {
-      try {
-        let remote = await fetchFunnelByCampaignId(
-          getSetupAccessToken(),
-          campaignId,
-        );
-        if (remote === "not-modified") {
-          clearStoredFunnelEtag(campaignId);
-          remote = await fetchFunnelByCampaignId(
-            getSetupAccessToken(),
-            campaignId,
-          );
-        }
-        if (cancelled) return;
-        if (!remote || remote === "not-modified") {
-          setLandingContent(null);
-          setLandingError(
-            "No funnel landing page found for this destination.",
-          );
-          return;
-        }
-        const landing = remote.pages?.landing;
-        setLandingContent({
-          headline: landing?.headline?.trim() || "",
-          subheadline: landing?.subheadline?.trim() || "",
-          body: landing?.body?.trim() || "",
-        });
-      } catch (error) {
-        if (cancelled) return;
-        setLandingContent(null);
-        setLandingError(
-          error instanceof Error
-            ? error.message
-            : "Could not load funnel landing page content.",
-        );
-      } finally {
-        if (!cancelled) setLandingLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [draft.destinationType, draft.selectedFunnelId]);
+    onChange({
+      ageRanges: AGE_RANGE_OPTIONS.filter((option) => selected.has(option)),
+    });
+  };
 
   return (
     <StepShell
       step={5}
       total={TOTAL_WIZARD_STEPS}
-      title="Enhance your ad"
-      description="Keywords will be generated on the basis of this information."
+      title="Who should see your ads?"
+      description="Choose age and gender targeting, the same way you would in Google Ads before keywords and ads."
     >
       <Panel className="space-y-4">
         <div className="flex gap-3">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <FileText className="size-5" aria-hidden />
+            <Users className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-[#07111f]">
-              Business description
-            </p>
+            <p className="text-sm font-bold text-[#07111f]">Age</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Loaded from your business profile.
-            </p>
-            <p className="mt-3 whitespace-pre-wrap text-sm font-normal leading-relaxed text-[#334155]">
-              {businessDescription || "No business description set yet."}
+              Select one or more age groups. People outside these ages are
+              excluded, like in Google Ads.
             </p>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {AGE_RANGE_OPTIONS.map((age) => {
+            const selected = draft.ageRanges.includes(age);
+            return (
+              <button
+                key={age}
+                type="button"
+                onClick={() => toggleAge(age)}
+                className={`rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
+                  selected
+                    ? "border-[#4285F4] bg-[#e8f0fe] text-[#1a73e8]"
+                    : "border-[#e8edf5] bg-white text-slate-600 hover:border-[#c9d8f0]"
+                }`}
+              >
+                {age}
+              </button>
+            );
+          })}
+        </div>
+        {errors.ageRanges ? (
+          <p className="text-sm font-medium text-red-500">{errors.ageRanges}</p>
+        ) : null}
       </Panel>
 
       <Panel className="space-y-4">
         <div className="flex gap-3">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f8ff] text-[#4285F4]">
-            <Link2 className="size-5" aria-hidden />
+            <Users className="size-5" aria-hidden />
           </span>
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <p className="text-sm font-bold text-[#07111f]">
-                Funnel landing page
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Content from the funnel URL used for this campaign.
-              </p>
-            </div>
-
-            {funnelUrl ? (
-              <p className="truncate text-xs font-normal text-[#4285F4]">
-                {funnelUrl.replace(/^https?:\/\//i, "").replace(/^www\./i, "")}
-              </p>
-            ) : (
-              <p className="text-xs font-normal text-slate-400">
-                No funnel URL selected yet. Choose a funnel in Campaign Setup.
-              </p>
-            )}
-
-            {landingLoading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Loading landing page content…
-              </div>
-            ) : landingError ? (
-              <p className="text-sm font-normal text-red-500">{landingError}</p>
-            ) : landingContent ? (
-              <div className="space-y-3 rounded-2xl border border-[#e8edf5] bg-[#f8fbff] px-4 py-4">
-                {landingContent.headline ? (
-                  <div>
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-                      Headline
-                    </p>
-                    <p className="mt-1 text-base font-normal text-[#07111f]">
-                      {landingContent.headline}
-                    </p>
-                  </div>
-                ) : null}
-                {landingContent.subheadline ? (
-                  <div>
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-                      Subheadline
-                    </p>
-                    <p className="mt-1 text-sm font-normal text-[#334155]">
-                      {landingContent.subheadline}
-                    </p>
-                  </div>
-                ) : null}
-                {landingContent.body ? (
-                  <div>
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
-                      Description
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm font-normal leading-relaxed text-[#334155]">
-                      {landingContent.body}
-                    </p>
-                  </div>
-                ) : null}
-                {!landingContent.headline &&
-                !landingContent.subheadline &&
-                !landingContent.body ? (
-                  <p className="text-sm font-normal text-slate-400">
-                    Landing page content is empty.
-                  </p>
-                ) : null}
-              </div>
-            ) : draft.destinationType !== "dealioo_funnel" ? (
-              <p className="text-sm font-normal text-slate-400">
-                Select a Dealioo funnel to preview its landing page content.
-              </p>
-            ) : null}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-[#07111f]">Gender</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Match Google Ads gender targeting for your Search campaign.
+            </p>
           </div>
         </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              { id: "ALL" as const, title: "All genders" },
+              { id: "MALE" as const, title: "Male" },
+              { id: "FEMALE" as const, title: "Female" },
+            ] as const
+          ).map((option) => (
+            <SelectableCard
+              key={option.id}
+              selectionMode="radio"
+              selected={draft.gender === option.id}
+              title={option.title}
+              onClick={() => onChange({ gender: option.id })}
+            />
+          ))}
+        </div>
+        {errors.gender ? (
+          <p className="text-sm font-medium text-red-500">{errors.gender}</p>
+        ) : null}
       </Panel>
     </StepShell>
   );
@@ -3037,16 +2273,19 @@ export function StepReviewPublish({
                 onEdit={() => onEditStep(4)}
               />
               <ReviewRow
-                icon={FileText}
-                label="Business & landing"
+                icon={Users}
+                label="Audience"
                 value={
-                  draft.businessDescription.trim() ||
-                  "No business description yet"
+                  draft.ageRanges.length > 0
+                    ? draft.ageRanges.join(", ")
+                    : "No ages selected"
                 }
                 detail={
-                  draft.selectedFunnelName.trim() ||
-                  draft.landingPageUrl.trim() ||
-                  undefined
+                  draft.gender === "MALE"
+                    ? "Male"
+                    : draft.gender === "FEMALE"
+                      ? "Female"
+                      : "All genders"
                 }
                 onEdit={() => onEditStep(5)}
               />
@@ -3225,7 +2464,7 @@ export function renderCampaignBuilderStep(
     case 4:
       return <StepLocationsLanguages {...props} />;
     case 5:
-      return <StepBusinessDetails {...props} />;
+      return <StepAudience {...props} />;
     case 6:
       return <StepProductsServices {...props} />;
     case 7:

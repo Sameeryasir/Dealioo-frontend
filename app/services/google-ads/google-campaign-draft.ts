@@ -376,6 +376,18 @@ export async function getGoogleCampaignDraft(
   return res.json() as Promise<GoogleCampaignDraftResumeResponse>;
 }
 
+export async function deleteGoogleCampaignDraft(
+  businessId: number,
+  draftId: string,
+): Promise<{ deleted: true; draftId: string }> {
+  const res = await authenticatedFetch(
+    `${draftsBase(businessId)}/${encodeURIComponent(draftId.trim())}`,
+    { method: "DELETE" },
+  );
+  await throwIfNotOk(res, "Could not delete campaign draft.");
+  return res.json() as Promise<{ deleted: true; draftId: string }>;
+}
+
 export type GoogleCampaignDraftListItem = {
   id: string;
   businessId: number;

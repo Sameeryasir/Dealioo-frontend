@@ -351,31 +351,25 @@ export function createDefaultDraft(): GoogleCampaignBuilderDraft {
 }
 
 export const GOAL_OPTIONS: {
-  id: CampaignGoalId;
+  id: Exclude<CampaignGoalId, "AWARENESS" | "APP_PROMOTION" | "LOCAL_VISITS">;
   title: string;
   description: string;
 }[] = [
   {
     id: "SALES",
     title: "Sales",
-    description: "Get more purchases or orders from potential customers.",
+    description: "Get more purchases or orders through your Dealioo funnel.",
   },
   {
     id: "LEADS",
     title: "Leads",
     description:
-      "Get more calls, forms, bookings, or enquiries from potential customers.",
+      "Get more form fills and enquiries through your Dealioo funnel.",
   },
   {
     id: "WEBSITE_TRAFFIC",
     title: "Website Traffic",
-    description: "Send more potential customers to your funnel or website.",
-  },
-  {
-    id: "LOCAL_VISITS",
-    title: "Local Visits",
-    description:
-      "Get more people to visit or contact your physical business.",
+    description: "Send more people to your published Dealioo funnel.",
   },
 ];
 
@@ -613,7 +607,7 @@ export const STEP_TITLES = [
   "Campaign Setup",
   "Budget",
   "Locations & Languages",
-  "Ad Enhancements",
+  "Audience",
   "Keywords",
   "Create Ad",
   "Review & Publish",

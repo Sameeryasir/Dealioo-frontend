@@ -113,16 +113,11 @@ function stepPayload(
       };
     case 5:
       return {
-        extensionBusinessName: draft.extensionBusinessName,
-        phoneNumber: draft.phoneNumber,
-        businessAddress: draft.businessAddress,
-        businessHours: draft.businessHours,
-        callouts: draft.callouts,
-        structuredSnippetHeader: draft.structuredSnippetHeader,
-        structuredSnippetValues: draft.structuredSnippetValues,
-        useLocationExtension: draft.useLocationExtension,
-        sitelinks: draft.sitelinks,
-        assetsGenerated: draft.assetsGenerated,
+        ageRanges: draft.ageRanges,
+        gender: draft.gender,
+        householdIncome: draft.householdIncome,
+        interests: draft.interests,
+        idealCustomers: draft.idealCustomers,
       };
     case 6:
       return {

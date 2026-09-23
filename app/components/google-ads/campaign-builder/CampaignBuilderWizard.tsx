@@ -51,9 +51,9 @@ import {
   pollGooglePublishUntilDone,
   publishGoogleCampaignDraft,
   saveGoogleAdsStep,
+  saveGoogleAudienceStep,
   saveGoogleBudgetStep,
   saveGoogleCampaignInfoStep,
-  saveGoogleExtrasStep,
   saveGoogleGoalDetailsStep,
   saveGoogleGoalStep,
   saveGoogleKeywordsStep,
@@ -811,20 +811,14 @@ export function CampaignBuilderWizard({
           version = languages.version;
           draftId = languages.id;
         } else if (step === 5) {
-          const saved = await saveGoogleExtrasStep(businessId, {
+          const saved = await saveGoogleAudienceStep(businessId, {
             draftId,
             expectedVersion: version,
-            extensionBusinessName:
-              draft.extensionBusinessName || draft.businessName,
-            phoneNumber: draft.phoneNumber || draft.businessPhone,
-            businessAddress: draft.businessAddress,
-            businessHours: draft.businessHours,
-            callouts: draft.callouts,
-            structuredSnippetHeader: draft.structuredSnippetHeader,
-            structuredSnippetValues: draft.structuredSnippetValues,
-            useLocationExtension: draft.useLocationExtension,
-            sitelinks: draft.sitelinks,
-            assetsGenerated: draft.assetsGenerated,
+            ageRanges: draft.ageRanges,
+            gender: draft.gender,
+            householdIncome: draft.householdIncome,
+            interests: draft.interests,
+            idealCustomers: draft.idealCustomers,
           });
           rememberServerVersion(saved.version, saved.id);
           version = saved.version;
