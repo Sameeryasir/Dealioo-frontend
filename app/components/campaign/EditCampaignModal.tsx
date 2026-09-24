@@ -16,6 +16,7 @@ import {
   type ReactNode,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -26,9 +27,16 @@ import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
   campaignDescriptionValidationMessage,
+  campaignNameValidationMessage,
+  computeOriginalPriceFromDiscount,
+  discountValidationMessage,
+  inferDiscountFromPrices,
   offerNameValidationMessage,
+  offerPriceValidationMessage,
   parseOfferPrice,
+  type CampaignDiscountType,
 } from "@/app/lib/campaign-form";
+import { CampaignDiscountFields } from "@/app/components/campaign/CampaignDiscountFields";
 import { upsertCampaignInQueryClient } from "@/app/lib/campaign-query-cache";
 import { getAutomations } from "@/app/services/automation/automation-api";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
@@ -39,6 +47,13 @@ import {
 } from "@/app/services/funnel/update-campaign";
 
 const CAMPAIGN_NAME_MAX_LENGTH = 30;
+
+type FieldKey =
+  | "campaignName"
+  | "description"
+  | "offer"
+  | "price"
+  | "discount";
 
 function resolveCampaignStatus(
   campaign: Funnel,
@@ -53,6 +68,9 @@ function resolveCampaignStatus(
 
 const inputClassName =
   "w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60";
+
+const inputErrorClassName =
+  "w-full rounded-xl border border-red-300 bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60";
 
 function FieldHeader({
   htmlFor,
@@ -85,6 +103,26 @@ function FieldHint({ children }: { children: ReactNode }) {
   return <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{children}</p>;
 }
 
+function FieldError({ message }: { message: string | null | undefined }) {
+  if (!message) return null;
+  return (
+    <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+      {message}
+    </p>
+  );
+}
+
+function FieldMessage({
+  error,
+  hint,
+}: {
+  error?: string | null;
+  hint: ReactNode;
+}) {
+  if (error) return <FieldError message={error} />;
+  return <FieldHint>{hint}</FieldHint>;
+}
+
 function parsePrice(raw: number | string | undefined): string {
   if (raw == null) return "";
   if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
@@ -111,6 +149,10 @@ export function EditCampaignModal({
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [discountType, setDiscountType] =
+    useState<CampaignDiscountType>("percent");
+  const [discountValue, setDiscountValue] = useState("");
   const [status, setStatus] = useState<CampaignPublicationStatus>("published");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -119,12 +161,45 @@ export function EditCampaignModal({
   const [isDragging, setIsDragging] = useState(false);
   const [unpublishBlockedOpen, setUnpublishBlockedOpen] = useState(false);
   const [activeAutomationCount, setActiveAutomationCount] = useState(0);
+  const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>(
+    {},
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
+
+  const markTouched = (key: FieldKey) => {
+    setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
+  const fieldErrors = {
+    campaignName: campaignNameValidationMessage(
+      campaignName,
+      CAMPAIGN_NAME_MAX_LENGTH,
+    ),
+    description: campaignDescriptionValidationMessage(description),
+    offer: offerNameValidationMessage(offer),
+    price: offerPriceValidationMessage(price),
+    discount: discountValidationMessage({
+      enabled: discountEnabled,
+      dealPriceRaw: price,
+      discountType,
+      discountValueRaw: discountValue,
+    }),
+  };
+
+  const showError = (key: FieldKey) =>
+    touched[key] ? fieldErrors[key] : null;
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setTouched({});
+      setError(null);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || !campaign) return;
@@ -141,11 +216,19 @@ export function EditCampaignModal({
       ),
     );
     setPrice(parsePrice(campaign.price));
+    const inferred = inferDiscountFromPrices(
+      campaign.price,
+      campaign.originalPrice,
+    );
+    setDiscountEnabled(inferred.enabled);
+    setDiscountType(inferred.discountType);
+    setDiscountValue(inferred.discountValue);
     setStatus(resolveCampaignStatus(campaign));
     setImageFile(null);
     const image = campaign.imageUrl?.trim() || null;
     setPreviewUrl(image);
     setError(null);
+    setTouched({});
     setIsSaving(false);
     setIsDragging(false);
     setUnpublishBlockedOpen(false);
@@ -228,32 +311,28 @@ export function EditCampaignModal({
     e.preventDefault();
     if (!campaign || isSaving) return;
 
+    setError(null);
+    setTouched({
+      campaignName: true,
+      description: true,
+      offer: true,
+      price: true,
+      discount: true,
+    });
+
+    if (
+      fieldErrors.campaignName ||
+      fieldErrors.description ||
+      fieldErrors.offer ||
+      fieldErrors.price ||
+      fieldErrors.discount
+    ) {
+      return;
+    }
+
     try {
-      setError(null);
       setIsSaving(true);
       const trimmedName = campaignName.trim();
-      if (!trimmedName) {
-        setError("Enter a campaign name.");
-        setIsSaving(false);
-        return;
-      }
-      if (trimmedName.length > CAMPAIGN_NAME_MAX_LENGTH) {
-        setError(`Campaign name must be ${CAMPAIGN_NAME_MAX_LENGTH} characters or less.`);
-        setIsSaving(false);
-        return;
-      }
-      const offerError = offerNameValidationMessage(offer);
-      if (offerError) {
-        setError(offerError);
-        setIsSaving(false);
-        return;
-      }
-      const descriptionError = campaignDescriptionValidationMessage(description);
-      if (descriptionError) {
-        setError(descriptionError);
-        setIsSaving(false);
-        return;
-      }
 
       const previousStatus = resolveCampaignStatus(campaign);
       if (status === "unpublished" && previousStatus !== "unpublished") {
@@ -271,13 +350,24 @@ export function EditCampaignModal({
         }
       }
 
+      const dealPrice = parseOfferPrice(price);
+      const computedOriginal =
+        discountEnabled
+          ? computeOriginalPriceFromDiscount({
+              dealPrice,
+              discountType,
+              discountValue: Number.parseFloat(discountValue.trim()),
+            })
+          : null;
+
       const updatedBody = await updateCampaign({
         campaignId: campaign.id,
         campaignName: trimmedName,
         websiteUrl: campaign.websiteUrl?.trim() ?? "",
         offer: offer.trim(),
         description: description.trim(),
-        price: parseOfferPrice(price),
+        price: dealPrice,
+        originalPrice: computedOriginal,
         status,
         image: imageFile,
       });
@@ -288,7 +378,8 @@ export function EditCampaignModal({
           campaignName: trimmedName,
           offer: offer.trim(),
           description: description.trim(),
-          price: parseOfferPrice(price),
+          price: dealPrice,
+          originalPrice: computedOriginal,
           status,
           published: status === "published",
           updatedAt: new Date().toISOString(),
@@ -381,13 +472,21 @@ export function EditCampaignModal({
                       e.target.value.slice(0, CAMPAIGN_NAME_MAX_LENGTH),
                     )
                   }
+                  onBlur={() => markTouched("campaignName")}
                   maxLength={CAMPAIGN_NAME_MAX_LENGTH}
-                  className={inputClassName}
+                  className={
+                    showError("campaignName")
+                      ? inputErrorClassName
+                      : inputClassName
+                  }
                   placeholder="Campaign name"
                   disabled={isSaving}
-                  required
+                  aria-invalid={Boolean(showError("campaignName"))}
                 />
-                <FieldHint>Give your campaign a clear and catchy name.</FieldHint>
+                <FieldMessage
+                  error={showError("campaignName")}
+                  hint="Give your campaign a clear and catchy name."
+                />
               </div>
 
               <div>
@@ -404,17 +503,22 @@ export function EditCampaignModal({
                       e.target.value.slice(0, CAMPAIGN_DESCRIPTION_MAX_LENGTH),
                     )
                   }
+                  onBlur={() => markTouched("description")}
                   rows={3}
                   maxLength={CAMPAIGN_DESCRIPTION_MAX_LENGTH}
-                  className={`${inputClassName} min-h-[5rem] resize-none leading-relaxed`}
+                  className={`${
+                    showError("description")
+                      ? inputErrorClassName
+                      : inputClassName
+                  } min-h-[5rem] resize-none leading-relaxed`}
                   placeholder="Describe your campaign"
                   disabled={isSaving}
-                  required
+                  aria-invalid={Boolean(showError("description"))}
                 />
-                <FieldHint>
-                  Describe your campaign, what&apos;s included, and why it&apos;s
-                  special.
-                </FieldHint>
+                <FieldMessage
+                  error={showError("description")}
+                  hint="Describe your campaign, what's included, and why it's special."
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.35fr_0.85fr]">
@@ -433,20 +537,24 @@ export function EditCampaignModal({
                         e.target.value.slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
                       )
                     }
+                    onBlur={() => markTouched("offer")}
                     maxLength={CAMPAIGN_OFFER_MAX_LENGTH}
-                    className={inputClassName}
+                    className={
+                      showError("offer") ? inputErrorClassName : inputClassName
+                    }
                     placeholder="Offer name"
                     disabled={isSaving}
-                    required
+                    aria-invalid={Boolean(showError("offer"))}
                   />
-                  <FieldHint>
-                    Choose a clear offer name — this text appears as the tag on your funnel landing page.
-                  </FieldHint>
+                  <FieldMessage
+                    error={showError("offer")}
+                    hint="Choose a clear offer name — this text appears as the tag on your funnel landing page."
+                  />
                 </div>
                 <div>
                   <FieldHeader
                     htmlFor="edit-campaign-price"
-                    label="Price"
+                    label="Deal price"
                     required
                   />
                   <input
@@ -456,14 +564,43 @@ export function EditCampaignModal({
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
+                    onBlur={() => {
+                      markTouched("price");
+                      if (discountEnabled) markTouched("discount");
+                    }}
                     inputMode="decimal"
-                    className={inputClassName}
+                    className={
+                      showError("price") ? inputErrorClassName : inputClassName
+                    }
                     placeholder="0.00"
                     disabled={isSaving}
-                    required
+                    aria-invalid={Boolean(showError("price"))}
                   />
-                  <FieldHint>Set the offer price (e.g. 22.00).</FieldHint>
+                  <FieldMessage
+                    error={showError("price")}
+                    hint="What the guest pays for this offer (e.g. 22.00)."
+                  />
                 </div>
+                <CampaignDiscountFields
+                  idPrefix="edit-campaign"
+                  enabled={discountEnabled}
+                  discountType={discountType}
+                  discountValue={discountValue}
+                  dealPrice={price}
+                  disabled={isSaving}
+                  error={showError("discount")}
+                  onEnabledChange={(next) => {
+                    setDiscountEnabled(next);
+                    if (!next) setDiscountValue("");
+                    markTouched("discount");
+                  }}
+                  onTypeChange={(next) => {
+                    setDiscountType(next);
+                    markTouched("discount");
+                  }}
+                  onValueChange={setDiscountValue}
+                  onValueBlur={() => markTouched("discount")}
+                />
               </div>
 
               <div>

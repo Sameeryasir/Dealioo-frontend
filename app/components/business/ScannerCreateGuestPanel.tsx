@@ -18,11 +18,14 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  BookMeetingPhoneInput,
-  isValidPhoneNumber,
-} from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import { DealPriceDisplay } from "@/app/components/DealPriceDisplay";
+import { BookMeetingPhoneInput } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
+import {
+  emailValidationMessage,
+  guestNameValidationMessage,
+  phoneValidationMessage,
+} from "@/app/lib/form-validation";
 import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
@@ -61,7 +64,6 @@ function DealCheckboxRow({
   disabled: boolean;
   onToggle: () => void;
 }) {
-  const priceLabel = formatDealPrice(deal.price);
   const imageSrc = resolveUploadImageUrl(deal.imageUrl);
 
   return (
@@ -103,10 +105,13 @@ function DealCheckboxRow({
             {deal.campaignName}
           </span>
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {priceLabel ? (
-              <span className="text-[0.76rem] font-bold text-emerald-700">
-                {priceLabel}
-              </span>
+            {deal.price != null && deal.price !== "" ? (
+              <DealPriceDisplay
+                price={deal.price}
+                originalPrice={deal.originalPrice}
+                size="sm"
+                showSaveBadge={false}
+              />
             ) : null}
             {deal.campaignType === "postpaid" ? (
               <span className="text-[0.72rem] font-semibold text-slate-500">
@@ -168,6 +173,11 @@ const CREATE_FIELDS = [
 const inputClassName =
   "w-full rounded-full border border-[#e2e8f0] bg-white py-3 px-4 text-[0.88rem] font-medium text-[#0e182b] shadow-[0_6px_18px_rgba(15,23,42,0.05)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15";
 
+const inputErrorClassName =
+  "w-full rounded-full border border-red-300 bg-white py-3 px-4 text-[0.88rem] font-medium text-[#0e182b] shadow-[0_6px_18px_rgba(15,23,42,0.05)] outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-200";
+
+type CreateGuestFieldKey = "name" | "email" | "phone";
+
 export function ScannerCreateGuestPanel({
   businessId,
 }: {
@@ -178,6 +188,9 @@ export function ScannerCreateGuestPanel({
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [touched, setTouched] = useState<
+    Partial<Record<CreateGuestFieldKey, boolean>>
+  >({});
   const [createdGuestId, setCreatedGuestId] = useState<number | null>(null);
   const [createdGuestName, setCreatedGuestName] = useState("");
   const [deals, setDeals] = useState<GuestAvailableBusinessDeal[]>([]);
@@ -195,11 +208,25 @@ export function ScannerCreateGuestPanel({
   >(null);
   const purchaseIdempotencyKeyRef = useRef("");
 
+  const markTouched = (key: CreateGuestFieldKey) => {
+    setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
+  const fieldErrors = {
+    name: guestNameValidationMessage(name),
+    email: emailValidationMessage(email),
+    phone: phoneValidationMessage(phone),
+  };
+
+  const showError = (key: CreateGuestFieldKey) =>
+    touched[key] ? fieldErrors[key] : null;
+
   const resetForm = () => {
     setName("");
     setEmail("");
     setPhone("");
     setErrorMessage(null);
+    setTouched({});
     setCreatedGuestId(null);
     setCreatedGuestName("");
     setDeals([]);
@@ -260,30 +287,20 @@ export function ScannerCreateGuestPanel({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setSubmitting(true);
     setErrorMessage(null);
+    setTouched({ name: true, email: true, phone: true });
+
+    if (fieldErrors.name || fieldErrors.email || fieldErrors.phone) {
+      return;
+    }
+
+    setSubmitting(true);
     setCreatedGuestId(null);
     setPurchaseSuccess(null);
 
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone.trim();
-
-    if (!trimmedName) {
-      setErrorMessage("Please enter the guest name.");
-      setSubmitting(false);
-      return;
-    }
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setErrorMessage("Please enter a valid email address.");
-      setSubmitting(false);
-      return;
-    }
-    if (!trimmedPhone || !isValidPhoneNumber(trimmedPhone)) {
-      setErrorMessage("Please enter a valid phone number.");
-      setSubmitting(false);
-      return;
-    }
 
     try {
       const result = await createCustomer({
@@ -299,6 +316,7 @@ export function ScannerCreateGuestPanel({
       setName("");
       setEmail("");
       setPhone("");
+      setTouched({});
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Could not create guest.",
@@ -704,8 +722,11 @@ export function ScannerCreateGuestPanel({
                     {CREATE_FIELDS.map((field) => {
                       const value =
                         field.id === "guest-name" ? name : email;
+                      const fieldKey: CreateGuestFieldKey =
+                        field.id === "guest-name" ? "name" : "email";
                       const onChange =
                         field.id === "guest-name" ? setName : setEmail;
+                      const error = showError(fieldKey);
 
                       return (
                         <div key={field.id} className="min-w-0">
@@ -728,12 +749,23 @@ export function ScannerCreateGuestPanel({
                               type={field.type}
                               value={value}
                               onChange={(event) => onChange(event.target.value)}
-                              required
+                              onBlur={() => markTouched(fieldKey)}
                               autoComplete={field.autoComplete}
                               placeholder={field.placeholder}
-                              className={`${inputClassName} pl-11`}
+                              aria-invalid={Boolean(error)}
+                              className={`${
+                                error ? inputErrorClassName : inputClassName
+                              } pl-11`}
                             />
                           </div>
+                          {error ? (
+                            <p
+                              className="mt-1.5 text-xs font-medium text-red-600"
+                              role="alert"
+                            >
+                              {error}
+                            </p>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -748,7 +780,14 @@ export function ScannerCreateGuestPanel({
                           · Guest phone number
                         </span>
                       </label>
-                      <div className="rounded-full border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition focus-within:border-[#1877f2]/45 focus-within:ring-2 focus-within:ring-[#1877f2]/15">
+                      <div
+                        className={`rounded-full border bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition focus-within:ring-2 ${
+                          showError("phone")
+                            ? "border-red-300 focus-within:border-red-400 focus-within:ring-red-200"
+                            : "border-[#e2e8f0] focus-within:border-[#1877f2]/45 focus-within:ring-[#1877f2]/15"
+                        }`}
+                        onBlur={() => markTouched("phone")}
+                      >
                         <div className="flex items-center gap-3">
                           <Phone
                             className="size-4 shrink-0 text-slate-400"
@@ -762,6 +801,14 @@ export function ScannerCreateGuestPanel({
                           />
                         </div>
                       </div>
+                      {showError("phone") ? (
+                        <p
+                          className="mt-1.5 text-xs font-medium text-red-600"
+                          role="alert"
+                        >
+                          {showError("phone")}
+                        </p>
+                      ) : null}
                     </div>
 
                     {errorMessage ? (

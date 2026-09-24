@@ -15,16 +15,42 @@ export function formatCampaignPrice(amount: number | null | undefined): string {
 
 export type CampaignPricing = {
   subtotal: number | null;
+  originalPrice?: number | null;
   fees: number;
   offer?: string | null;
 };
 
 export const EMPTY_CAMPAIGN_PRICING: CampaignPricing = {
   subtotal: null,
+  originalPrice: null,
   fees: 0,
 };
 
 export function campaignPricingTotal(p: CampaignPricing): number | null {
   if (p.subtotal == null) return null;
   return p.subtotal + (p.fees ?? 0);
+}
+
+export function resolveDealDiscount(input: {
+  price: number | null | undefined;
+  originalPrice?: number | null | undefined;
+}): {
+  price: number | null;
+  originalPrice: number | null;
+  hasDiscount: boolean;
+  percentOff: number | null;
+} {
+  const price = parseCampaignPrice(input.price);
+  const originalPrice = parseCampaignPrice(input.originalPrice);
+  const hasDiscount =
+    price != null && originalPrice != null && originalPrice > price;
+  const percentOff = hasDiscount
+    ? Math.round(((originalPrice! - price!) / originalPrice!) * 100)
+    : null;
+  return {
+    price,
+    originalPrice: hasDiscount ? originalPrice : null,
+    hasDiscount,
+    percentOff,
+  };
 }

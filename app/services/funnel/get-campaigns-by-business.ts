@@ -10,6 +10,7 @@ export type Funnel = {
   offer?: string;
   description?: string | null;
   price?: number | string;
+  originalPrice?: number | string | null;
   campaignType?: "prepaid" | "postpaid";
   published?: boolean;
   status: string;
@@ -84,6 +85,8 @@ function coerceCampaign(value: unknown): Funnel | null {
         ? null
         : undefined;
   const price = o.price ?? undefined;
+  const originalPrice =
+    o.originalPrice ?? o.original_price ?? undefined;
   const rawCampaignType = o.campaignType ?? o.campaign_type;
   const campaignType =
     rawCampaignType === "prepaid" || rawCampaignType === "postpaid"
@@ -125,6 +128,12 @@ function coerceCampaign(value: unknown): Funnel | null {
     offer,
     description,
     price: typeof price === "number" || typeof price === "string" ? price : undefined,
+    originalPrice:
+      typeof originalPrice === "number" || typeof originalPrice === "string"
+        ? originalPrice
+        : originalPrice === null
+          ? null
+          : undefined,
     campaignType,
     published:
       typeof o.published === "boolean"

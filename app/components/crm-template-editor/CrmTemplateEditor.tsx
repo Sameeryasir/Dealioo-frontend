@@ -90,6 +90,7 @@ export type CrmTemplateEditorProps = {
   campaignId?: number;
   campaignName?: string;
   campaignPrice?: number | string;
+  campaignOriginalPrice?: number | string | null;
   campaignOffer?: string;
   campaignType?: "prepaid" | "postpaid";
   initialPageId?: TemplatePageId;
@@ -102,6 +103,7 @@ export function CrmTemplateEditor({
   campaignId,
   campaignName,
   campaignPrice,
+  campaignOriginalPrice,
   campaignOffer,
   campaignType: campaignTypeProp,
   initialPageId = "landing",
@@ -303,12 +305,21 @@ export function CrmTemplateEditor({
 
   const campaignPricing = useMemo((): CampaignPricing => {
     const subtotal = parseCampaignPrice(campaignPrice);
+    const originalPrice = parseCampaignPrice(
+      campaignOriginalPrice ?? campaignDetail?.originalPrice,
+    );
     return {
       subtotal,
+      originalPrice,
       fees: 0,
       offer: resolvedCampaignOffer || null,
     };
-  }, [campaignPrice, resolvedCampaignOffer]);
+  }, [
+    campaignPrice,
+    campaignOriginalPrice,
+    campaignDetail?.originalPrice,
+    resolvedCampaignOffer,
+  ]);
 
   const landingTrackingUrl = useMemo(() => {
     return buildFunnelLandingTrackingUrl({
@@ -316,12 +327,20 @@ export function CrmTemplateEditor({
       campaignId,
       businessId: previewBusinessId,
       price: campaignPrice,
+      originalPrice: campaignPricing.originalPrice,
       campaignType:
         campaignType === "prepaid" || campaignType === "postpaid"
           ? campaignType
           : undefined,
     });
-  }, [funnelId, campaignId, previewBusinessId, campaignPrice, campaignType]);
+  }, [
+    funnelId,
+    campaignId,
+    previewBusinessId,
+    campaignPrice,
+    campaignPricing.originalPrice,
+    campaignType,
+  ]);
 
   const campaignTitleForTracking =
     campaignName?.trim() || resolvedCampaignOffer || "Campaign";

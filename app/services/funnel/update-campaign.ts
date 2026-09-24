@@ -11,6 +11,7 @@ export type UpdateCampaignPayload = {
   offer: string;
   description: string;
   price: number;
+  originalPrice?: number | null;
   status: CampaignPublicationStatus;
   image?: File | null;
 };
@@ -49,6 +50,11 @@ export async function updateCampaign(
   form.append("offer", payload.offer.trim());
   form.append("description", payload.description.trim());
   form.append("price", String(payload.price));
+  if (payload.originalPrice != null && Number.isFinite(payload.originalPrice)) {
+    form.append("originalPrice", String(payload.originalPrice));
+  } else {
+    form.append("originalPrice", "");
+  }
   form.append("status", payload.status);
   if (payload.image instanceof File) {
     form.append("image", payload.image, payload.image.name);

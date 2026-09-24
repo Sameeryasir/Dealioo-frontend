@@ -389,6 +389,7 @@ export function BusinessCampaignsPanel({
     offerName: string;
     description: string;
     offerPrice: string;
+    originalPrice: string;
     offerImage: File;
     campaignType: "prepaid" | "postpaid";
     includeOfferPrice: boolean;
@@ -405,8 +406,13 @@ export function BusinessCampaignsPanel({
         description: payload.description,
         campaignType: payload.campaignType,
         ...(payload.includeOfferPrice
-          ? { price: parseOfferPrice(payload.offerPrice) }
-          : { price: null }),
+          ? {
+              price: parseOfferPrice(payload.offerPrice),
+              ...(payload.originalPrice.trim()
+                ? { originalPrice: parseOfferPrice(payload.originalPrice) }
+                : {}),
+            }
+          : { price: null, originalPrice: null }),
       });
       skipPostCreateNavRef.current = true;
       const campaignId = extractCampaignIdFromCreateResponse(createdBody);
@@ -435,6 +441,10 @@ export function BusinessCampaignsPanel({
               price: payload.includeOfferPrice
                 ? parseOfferPrice(payload.offerPrice)
                 : undefined,
+              originalPrice:
+                payload.includeOfferPrice && payload.originalPrice.trim()
+                  ? parseOfferPrice(payload.originalPrice)
+                  : undefined,
               campaignType: payload.campaignType,
               published: true,
               status: "published",

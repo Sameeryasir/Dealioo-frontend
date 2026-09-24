@@ -22,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { DealPriceDisplay } from "@/app/components/DealPriceDisplay";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -328,7 +329,6 @@ function BusinessDealCheckboxRow({
   disabled: boolean;
   onToggle: () => void;
 }) {
-  const priceLabel = formatDealPrice(deal.price);
   const imageSrc = resolveUploadImageUrl(deal.imageUrl);
 
   return (
@@ -375,10 +375,14 @@ function BusinessDealCheckboxRow({
             </span>
           ) : null}
         </span>
-        {priceLabel ? (
-          <span className="inline-flex shrink-0 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
-            {priceLabel}
-          </span>
+        {deal.price != null && deal.price !== "" ? (
+          <DealPriceDisplay
+            price={deal.price}
+            originalPrice={deal.originalPrice}
+            size="sm"
+            showSaveBadge={false}
+            className="shrink-0"
+          />
         ) : null}
       </button>
     </li>

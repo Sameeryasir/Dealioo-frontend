@@ -17,6 +17,8 @@ export type PublicFunnelResponse = Pick<
   businessId?: number | null;
   campaignType?: PublicFunnelCampaignType | string | null;
   offer?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
   pixelId?: string | null;
   googleTagManagerId?: string | null;
   googleAdsSignupConversionLabel?: string | null;

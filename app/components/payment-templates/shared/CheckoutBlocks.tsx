@@ -77,7 +77,18 @@ export function OrderSummaryBlock({
       <dl className={`mt-4 space-y-2 text-sm ${text}`}>
         <div className="flex justify-between gap-2">
           <dt className={muted}>Subtotal</dt>
-          <dd className="font-medium">{subtotal}</dd>
+          <dd className="font-medium">
+            <span className="inline-flex items-baseline gap-2">
+              <span>{subtotal}</span>
+              {campaignPricing.originalPrice != null &&
+              campaignPricing.subtotal != null &&
+              campaignPricing.originalPrice > campaignPricing.subtotal ? (
+                <span className={`line-through ${muted}`}>
+                  {formatCampaignPrice(campaignPricing.originalPrice)}
+                </span>
+              ) : null}
+            </span>
+          </dd>
         </div>
         <div className="flex justify-between gap-2">
           <dt className={muted}>Fees</dt>

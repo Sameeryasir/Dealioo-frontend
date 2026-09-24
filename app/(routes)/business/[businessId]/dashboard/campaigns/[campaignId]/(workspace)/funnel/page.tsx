@@ -48,6 +48,7 @@ export default function CampaignFunnelPage() {
         campaignId={campaignId}
         campaignName={campaign?.campaignName}
         campaignPrice={campaign?.price}
+        campaignOriginalPrice={campaign?.originalPrice}
         campaignOffer={campaign?.offer}
         campaignType={campaign?.campaignType}
       />

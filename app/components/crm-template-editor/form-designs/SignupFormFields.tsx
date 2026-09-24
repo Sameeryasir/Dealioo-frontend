@@ -53,9 +53,7 @@ export function SignupFormFields({
       inputTextClassName={blendedInputText}
       fieldId={id}
       inputName={id}
-      inputType={
-        id === "email" ? "email" : id === "phone" ? "tel" : "text"
-      }
+      inputType={id === "email" ? "email" : "text"}
       autoComplete={
         id === "email"
           ? "email"

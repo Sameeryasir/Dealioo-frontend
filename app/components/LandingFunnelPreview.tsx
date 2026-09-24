@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { FunnelPreviewSkeleton } from "@/app/components/crm-template-editor/FunnelPreviewSkeleton";
 import { FunnelMetaPixel } from "@/app/components/funnel/FunnelMetaPixel";
@@ -19,10 +20,27 @@ export function LandingFunnelPreview() {
     useFunnelGuestRoute();
 
   const isDesignPreview = searchParams.get("preview") === "1";
-  const campaignPricing = useCampaignPricing(campaignId, businessId);
 
   const { pages, isLoading, publicFunnel, unavailable } =
     usePublicFunnelTemplatePages(funnelIdSegment, businessId, "landing");
+
+  const apiPricing = useMemo(() => {
+    if (publicFunnel?.price == null && publicFunnel?.originalPrice == null) {
+      return null;
+    }
+    return {
+      subtotal: publicFunnel?.price ?? null,
+      originalPrice: publicFunnel?.originalPrice ?? null,
+      fees: 0,
+      offer: publicFunnel?.offer ?? null,
+    };
+  }, [publicFunnel?.price, publicFunnel?.originalPrice, publicFunnel?.offer]);
+
+  const campaignPricing = useCampaignPricing(
+    campaignId,
+    businessId,
+    apiPricing,
+  );
 
   const campaignType = parsePublicCampaignType(publicFunnel?.campaignType);
   useFunnelStepGuard(funnelId, "landing", { campaignType });
@@ -38,6 +56,7 @@ export function LandingFunnelPreview() {
             campaignId,
             businessId,
             price: campaignPricing.subtotal ?? undefined,
+            originalPrice: campaignPricing.originalPrice ?? undefined,
             campaignType,
           },
         })

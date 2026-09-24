@@ -14,8 +14,10 @@ import {
   type DragEvent,
   type FormEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -24,10 +26,14 @@ import {
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
   campaignDescriptionValidationMessage,
-  isValidOfferPrice,
+  campaignNameValidationMessage,
+  computeOriginalPriceFromDiscount,
+  discountValidationMessage,
   offerNameValidationMessage,
   offerPriceValidationMessage,
+  type CampaignDiscountType,
 } from "@/app/lib/campaign-form";
+import { CampaignDiscountFields } from "@/app/components/campaign/CampaignDiscountFields";
 import { getPublicAppUrl } from "@/app/lib/public-app-url";
 import {
   resetCampaignDraft,
@@ -47,6 +53,7 @@ export type CreateCampaignCompletePayload = {
   offerName: string;
   description: string;
   offerPrice: string;
+  originalPrice: string;
   offerImage: File;
   campaignType: CampaignType;
   includeOfferPrice: boolean;
@@ -55,7 +62,7 @@ export type CreateCampaignCompletePayload = {
 export type CreateCampaignsProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-variant?: "modal" | "inline";
+  variant?: "modal" | "inline";
   businessId: number;
   defaultWebsiteUrl?: string | null;
   onComplete?: (
@@ -69,6 +76,18 @@ variant?: "modal" | "inline";
 
 const inputClassName =
   "w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60";
+
+const inputErrorClassName =
+  "w-full rounded-xl border border-red-300 bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60";
+
+type FieldKey =
+  | "campaignType"
+  | "campaignName"
+  | "description"
+  | "offer"
+  | "price"
+  | "discount"
+  | "image";
 
 function FieldHeader({
   htmlFor,
@@ -103,6 +122,26 @@ function FieldHint({ children }: { children: ReactNode }) {
   );
 }
 
+function FieldError({ message }: { message: string | null | undefined }) {
+  if (!message) return null;
+  return (
+    <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+      {message}
+    </p>
+  );
+}
+
+function FieldMessage({
+  error,
+  hint,
+}: {
+  error?: string | null;
+  hint: ReactNode;
+}) {
+  if (error) return <FieldError message={error} />;
+  return <FieldHint>{hint}</FieldHint>;
+}
+
 function resolveDefaultCampaignWebsiteUrl(override?: string | null): string {
   const trimmed = override?.trim();
   if (trimmed) {
@@ -128,34 +167,73 @@ export default function CreateCampaigns({
 
   const [mounted, setMounted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-const [campaignType, setCampaignType] = useState<CampaignType | null>(null);
+  const [campaignType, setCampaignType] = useState<CampaignType | null>(null);
   const [campaignName, setCampaignName] = useState("");
   const [offer, setOffer] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [discountType, setDiscountType] =
+    useState<CampaignDiscountType>("percent");
+  const [discountValue, setDiscountValue] = useState("");
   const [includeOfferPrice, setIncludeOfferPrice] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>(
+    {},
+  );
+
+  const markTouched = (key: FieldKey) => {
+    setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
+  const requirePrice = campaignType === "prepaid" || includeOfferPrice;
+
+  const fieldErrors = {
+    campaignType: !campaignType ? "Choose prepaid or postpaid billing." : null,
+    campaignName: campaignNameValidationMessage(
+      campaignName,
+      CAMPAIGN_NAME_MAX_LENGTH,
+    ),
+    description: campaignDescriptionValidationMessage(description),
+    offer: offerNameValidationMessage(offer),
+    price: requirePrice ? offerPriceValidationMessage(price) : null,
+    discount: requirePrice
+      ? discountValidationMessage({
+          enabled: discountEnabled,
+          dealPriceRaw: price,
+          discountType,
+          discountValueRaw: discountValue,
+        })
+      : null,
+    image: imageFile instanceof File ? null : "Upload an offer image to continue.",
+  };
+
+  const showError = (key: FieldKey) =>
+    touched[key] ? fieldErrors[key] : null;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-useEffect(() => {
-    if (!open) return;
+  const resetFormState = useCallback(() => {
     dispatch(resetCampaignDraft());
     setCampaignType(null);
     setCampaignName("");
     setOffer("");
     setDescription("");
     setPrice("");
+    setDiscountEnabled(false);
+    setDiscountType("percent");
+    setDiscountValue("");
     setIncludeOfferPrice(true);
     setImageFile(null);
     setPreviewUrl(null);
-    setError(null);
+    setSubmitError(null);
+    setTouched({});
     setIsSaving(false);
     setIsDragging(false);
     if (objectUrlRef.current) {
@@ -163,7 +241,11 @@ useEffect(() => {
       objectUrlRef.current = null;
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [open, dispatch]);
+  }, [dispatch]);
+
+  useLayoutEffect(() => {
+    resetFormState();
+  }, [open, resetFormState]);
 
   useEffect(() => {
     return () => {
@@ -195,12 +277,13 @@ useEffect(() => {
   }, [campaignType]);
 
   const applyImageFile = (file: File) => {
+    markTouched("image");
     if (!file.type.startsWith("image/")) {
-      setError("Upload an image file (PNG, JPG, or WebP).");
+      setSubmitError("Upload an image file (PNG, JPG, or WebP).");
       return;
     }
     if (file.size > MAX_OFFER_IMAGE_BYTES) {
-      setError("Image must be 5MB or smaller.");
+      setSubmitError("Image must be 5MB or smaller.");
       return;
     }
     if (objectUrlRef.current) {
@@ -210,7 +293,7 @@ useEffect(() => {
     objectUrlRef.current = nextUrl;
     setImageFile(file);
     setPreviewUrl(nextUrl);
-    setError(null);
+    setSubmitError(null);
   };
 
   const clearPreviewImage = () => {
@@ -220,6 +303,7 @@ useEffect(() => {
     }
     setImageFile(null);
     setPreviewUrl(null);
+    markTouched("image");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -249,58 +333,47 @@ useEffect(() => {
     e.preventDefault();
     if (isSaving) return;
 
-    setError(null);
+    setSubmitError(null);
+    setTouched({
+      campaignType: true,
+      campaignName: true,
+      description: true,
+      offer: true,
+      price: true,
+      discount: true,
+      image: true,
+    });
 
-    if (!campaignType) {
-      setError("Choose prepaid or postpaid billing.");
+    if (
+      fieldErrors.campaignType ||
+      fieldErrors.campaignName ||
+      fieldErrors.description ||
+      fieldErrors.offer ||
+      fieldErrors.price ||
+      fieldErrors.discount ||
+      fieldErrors.image
+    ) {
       return;
     }
+
+    if (!campaignType || !(imageFile instanceof File)) return;
 
     const trimmedName = campaignName.trim();
-    if (!trimmedName) {
-      setError("Enter a campaign name.");
-      return;
-    }
-    if (trimmedName.length > CAMPAIGN_NAME_MAX_LENGTH) {
-      setError(
-        `Campaign name must be ${CAMPAIGN_NAME_MAX_LENGTH} characters or less.`,
-      );
-      return;
-    }
-
-    const offerError = offerNameValidationMessage(offer);
-    if (offerError) {
-      setError(offerError);
-      return;
-    }
-
-    const descriptionError = campaignDescriptionValidationMessage(description);
-    if (descriptionError) {
-      setError(descriptionError);
-      return;
-    }
-
-    const requirePrice = campaignType === "prepaid" || includeOfferPrice;
-    if (requirePrice) {
-      const priceError = offerPriceValidationMessage(price);
-      if (priceError) {
-        setError(priceError);
-        return;
-      }
-      if (!isValidOfferPrice(price)) {
-        setError("Enter a valid price (e.g. 19.99).");
-        return;
-      }
-    }
-
-    if (!(imageFile instanceof File)) {
-      setError("Upload an offer image to continue.");
-      return;
-    }
-
     const websiteUrl = resolveDefaultCampaignWebsiteUrl(defaultWebsiteUrl);
     dispatch(setDraftCampaignName(trimmedName));
     dispatch(setDraftWebsiteUrl(websiteUrl));
+
+    let originalPrice = "";
+    if (requirePrice && discountEnabled) {
+      const computed = computeOriginalPriceFromDiscount({
+        dealPrice: Number.parseFloat(price.trim()),
+        discountType,
+        discountValue: Number.parseFloat(discountValue.trim()),
+      });
+      if (computed != null) {
+        originalPrice = String(computed);
+      }
+    }
 
     const payload: CreateCampaignCompletePayload = {
       campaignName: trimmedName,
@@ -308,6 +381,7 @@ useEffect(() => {
       offerName: offer.trim(),
       description: description.trim(),
       offerPrice: requirePrice ? price.trim() : "",
+      originalPrice,
       offerImage: imageFile,
       campaignType,
       includeOfferPrice: requirePrice,
@@ -321,7 +395,7 @@ useEffect(() => {
       }
       onOpenChange(false);
     } catch (err) {
-      setError(
+      setSubmitError(
         err instanceof Error ? err.message : "Could not create campaign.",
       );
     } finally {
@@ -396,11 +470,16 @@ useEffect(() => {
                   role="radio"
                   aria-checked={campaignType === "prepaid"}
                   disabled={isSaving}
-                  onClick={() => setCampaignType("prepaid")}
+                  onClick={() => {
+                    setCampaignType("prepaid");
+                    markTouched("campaignType");
+                  }}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     campaignType === "prepaid"
                       ? "border-[#93c5fd] bg-[#f0f7ff] ring-1 ring-[#93c5fd]/50"
-                      : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
+                      : showError("campaignType")
+                        ? "border-red-300 bg-white"
+                        : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
                   }`}
                 >
                   <span
@@ -430,11 +509,16 @@ useEffect(() => {
                   role="radio"
                   aria-checked={campaignType === "postpaid"}
                   disabled={isSaving}
-                  onClick={() => setCampaignType("postpaid")}
+                  onClick={() => {
+                    setCampaignType("postpaid");
+                    markTouched("campaignType");
+                  }}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     campaignType === "postpaid"
                       ? "border-[#93c5fd] bg-[#f0f7ff] ring-1 ring-[#93c5fd]/50"
-                      : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
+                      : showError("campaignType")
+                        ? "border-red-300 bg-white"
+                        : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-slate-50"
                   }`}
                 >
                   <span
@@ -459,9 +543,10 @@ useEffect(() => {
                   </span>
                 </button>
               </div>
-              <FieldHint>
-                This can&apos;t be changed later for this campaign.
-              </FieldHint>
+              <FieldMessage
+                error={showError("campaignType")}
+                hint="This can't be changed later for this campaign."
+              />
             </div>
 
 <div>
@@ -474,18 +559,24 @@ useEffect(() => {
               <input
                 id="create-campaign-name"
                 value={campaignName}
-                onChange={(e) =>
+                onChange={(e) => {
                   setCampaignName(
                     e.target.value.slice(0, CAMPAIGN_NAME_MAX_LENGTH),
-                  )
-                }
+                  );
+                }}
+                onBlur={() => markTouched("campaignName")}
                 maxLength={CAMPAIGN_NAME_MAX_LENGTH}
-                className={inputClassName}
+                className={
+                  showError("campaignName") ? inputErrorClassName : inputClassName
+                }
                 placeholder="Campaign name"
                 disabled={isSaving}
-                required
+                aria-invalid={Boolean(showError("campaignName"))}
               />
-              <FieldHint>Give your campaign a clear and catchy name.</FieldHint>
+              <FieldMessage
+                error={showError("campaignName")}
+                hint="Give your campaign a clear and catchy name."
+              />
             </div>
 
 <div>
@@ -497,22 +588,25 @@ useEffect(() => {
               <textarea
                 id="create-campaign-description"
                 value={description}
-                onChange={(e) =>
+                onChange={(e) => {
                   setDescription(
                     e.target.value.slice(0, CAMPAIGN_DESCRIPTION_MAX_LENGTH),
-                  )
-                }
+                  );
+                }}
+                onBlur={() => markTouched("description")}
                 rows={3}
                 maxLength={CAMPAIGN_DESCRIPTION_MAX_LENGTH}
-                className={`${inputClassName} min-h-[5rem] resize-none leading-relaxed`}
+                className={`${
+                  showError("description") ? inputErrorClassName : inputClassName
+                } min-h-[5rem] resize-none leading-relaxed`}
                 placeholder="Describe your campaign"
                 disabled={isSaving}
-                required
+                aria-invalid={Boolean(showError("description"))}
               />
-              <FieldHint>
-                Describe your campaign, what&apos;s included, and why it&apos;s
-                special.
-              </FieldHint>
+              <FieldMessage
+                error={showError("description")}
+                hint="Describe your campaign, what's included, and why it's special."
+              />
             </div>
 
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.35fr_0.85fr]">
@@ -526,25 +620,29 @@ useEffect(() => {
                 <input
                   id="create-campaign-offer"
                   value={offer}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setOffer(
                       e.target.value.slice(0, CAMPAIGN_OFFER_MAX_LENGTH),
-                    )
-                  }
+                    );
+                  }}
+                  onBlur={() => markTouched("offer")}
                   maxLength={CAMPAIGN_OFFER_MAX_LENGTH}
-                  className={inputClassName}
+                  className={
+                    showError("offer") ? inputErrorClassName : inputClassName
+                  }
                   placeholder="Offer name"
                   disabled={isSaving}
-                  required
+                  aria-invalid={Boolean(showError("offer"))}
                 />
-                <FieldHint>
-                  Choose a clear offer name — this text appears as the tag on your funnel landing page.
-                </FieldHint>
+                <FieldMessage
+                  error={showError("offer")}
+                  hint="Choose a clear offer name — this text appears as the tag on your funnel landing page."
+                />
               </div>
               <div>
                 <FieldHeader
                   htmlFor="create-campaign-price"
-                  label="Price"
+                  label="Deal price"
                   required={
                     campaignType === "prepaid" || includeOfferPrice
                   }
@@ -555,17 +653,23 @@ useEffect(() => {
                   step="0.01"
                   min="0"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    setPrice(e.target.value);
+                  }}
+                  onBlur={() => {
+                    markTouched("price");
+                    if (discountEnabled) markTouched("discount");
+                  }}
                   inputMode="decimal"
-                  className={inputClassName}
+                  className={
+                    showError("price") ? inputErrorClassName : inputClassName
+                  }
                   placeholder="0.00"
                   disabled={
                     isSaving ||
                     (campaignType === "postpaid" && !includeOfferPrice)
                   }
-                  required={
-                    campaignType === "prepaid" || includeOfferPrice
-                  }
+                  aria-invalid={Boolean(showError("price"))}
                 />
                 {campaignType === "postpaid" ? (
                   <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
@@ -573,15 +677,48 @@ useEffect(() => {
                       type="checkbox"
                       checked={includeOfferPrice}
                       disabled={isSaving}
-                      onChange={(e) => setIncludeOfferPrice(e.target.checked)}
+                      onChange={(e) => {
+                        setIncludeOfferPrice(e.target.checked);
+                        if (!e.target.checked) {
+                          setDiscountEnabled(false);
+                          setDiscountValue("");
+                        }
+                        markTouched("price");
+                      }}
                       className="size-3.5 rounded border-slate-300 text-[#1877f2] focus:ring-[#1877f2]/30"
                     />
                     Include a listed price
                   </label>
-                ) : (
-                  <FieldHint>Set the offer price (e.g. 22.00).</FieldHint>
-                )}
+                ) : null}
+                <FieldMessage
+                  error={showError("price")}
+                  hint="What the guest pays for this offer (e.g. 22.00)."
+                />
               </div>
+              {(campaignType === "prepaid" || includeOfferPrice) ? (
+                <CampaignDiscountFields
+                  idPrefix="create-campaign"
+                  enabled={discountEnabled}
+                  discountType={discountType}
+                  discountValue={discountValue}
+                  dealPrice={price}
+                  disabled={isSaving}
+                  error={showError("discount")}
+                  onEnabledChange={(next) => {
+                    setDiscountEnabled(next);
+                    if (!next) setDiscountValue("");
+                    markTouched("discount");
+                  }}
+                  onTypeChange={(next) => {
+                    setDiscountType(next);
+                    markTouched("discount");
+                  }}
+                  onValueChange={(next) => {
+                    setDiscountValue(next);
+                  }}
+                  onValueBlur={() => markTouched("discount")}
+                />
+              ) : null}
             </div>
 
 <div>
@@ -622,7 +759,11 @@ useEffect(() => {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex aspect-[4/3] max-h-44 items-center justify-center rounded-xl border border-dashed border-[#e2e8f0] bg-[#f8fafc] text-xs text-slate-400">
+                  <div
+                    className={`flex aspect-[4/3] max-h-44 items-center justify-center rounded-xl border border-dashed bg-[#f8fafc] text-xs text-slate-400 ${
+                      showError("image") ? "border-red-300" : "border-[#e2e8f0]"
+                    }`}
+                  >
                     No image selected
                   </div>
                 )}
@@ -631,14 +772,19 @@ useEffect(() => {
                   type="button"
                   aria-label="Upload offer image"
                   disabled={isSaving}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    markTouched("image");
+                    fileInputRef.current?.click();
+                  }}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   className={`flex min-h-[11rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     isDragging
                       ? "border-[#1877f2] bg-[#eef5ff]"
-                      : "border-[#dbeafe] bg-white hover:border-[#1877f2]/50 hover:bg-[#f8fbff]"
+                      : showError("image")
+                        ? "border-red-300 bg-white"
+                        : "border-[#dbeafe] bg-white hover:border-[#1877f2]/50 hover:bg-[#f8fbff]"
                   }`}
                 >
                   <CloudUpload
@@ -657,15 +803,16 @@ useEffect(() => {
                   </span>
                 </button>
               </div>
+              <FieldError message={showError("image")} />
             </div>
 
-            {error ? (
+            {submitError ? (
               <p
                 className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
                 role="alert"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {error}
+                {submitError}
               </p>
             ) : null}
           </div>

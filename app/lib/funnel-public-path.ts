@@ -7,6 +7,7 @@ export type FunnelPublicPathQuery = {
   campaignId?: number | null;
   businessId?: number | null;
   price?: number | string | null;
+  originalPrice?: number | string | null;
   checkoutToken?: string | null;
   campaignType?: "prepaid" | "postpaid" | null;
   preview?: boolean;
@@ -46,6 +47,10 @@ export function buildFunnelPublicPath({
   const price = query?.price;
   if (price != null && String(price).trim() !== "") {
     params.set("price", String(price).trim());
+  }
+  const originalPrice = query?.originalPrice;
+  if (originalPrice != null && String(originalPrice).trim() !== "") {
+    params.set("originalPrice", String(originalPrice).trim());
   }
   if (query?.preview) {
     params.set("preview", "1");
@@ -171,6 +176,7 @@ export function buildFunnelLandingTrackingUrl(input: {
   campaignId?: number | null;
   businessId?: number | null;
   price?: number | string | null;
+  originalPrice?: number | string | null;
   campaignType?: "prepaid" | "postpaid" | null;
 }): string {
   const routeId = resolveFunnelRouteId(input.funnelId);
@@ -184,6 +190,8 @@ export function buildFunnelLandingTrackingUrl(input: {
       businessId: input.businessId,
       campaignId: input.campaignId,
       price: parseFunnelTrackingPrice(input.price) ?? input.price,
+      originalPrice:
+        parseFunnelTrackingPrice(input.originalPrice) ?? input.originalPrice,
       campaignType:
         input.campaignType === "prepaid" || input.campaignType === "postpaid"
           ? input.campaignType

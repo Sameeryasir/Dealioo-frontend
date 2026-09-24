@@ -6,9 +6,12 @@ import {
   type CampaignPricing,
   campaignPricingTotal,
   parseCampaignPrice,
+  resolveDealDiscount,
 } from "@/app/lib/campaign-price";
 import {
+  getFunnelCampaignOriginalPrice,
   getFunnelCampaignPrice,
+  setFunnelCampaignOriginalPrice,
   setFunnelCampaignPrice,
 } from "@/app/lib/funnel-campaign-price-storage";
 
@@ -23,19 +26,28 @@ export function useCampaignPricing(
     () => parseCampaignPrice(searchParams.get("price")),
     [searchParams],
   );
+  const originalFromUrl = useMemo(
+    () => parseCampaignPrice(searchParams.get("originalPrice")),
+    [searchParams],
+  );
 
   const pricing = useMemo((): CampaignPricing => {
     if (override) return override;
 
-    if (fromUrl != null) {
-      return { subtotal: fromUrl, fees: 0 };
-    }
+    const subtotal = fromUrl ?? getFunnelCampaignPrice();
+    const originalCandidate =
+      originalFromUrl ?? getFunnelCampaignOriginalPrice();
+    const deal = resolveDealDiscount({
+      price: subtotal,
+      originalPrice: originalCandidate,
+    });
 
     return {
-      subtotal: getFunnelCampaignPrice(),
+      subtotal: deal.price,
+      originalPrice: deal.originalPrice,
       fees: 0,
     };
-  }, [override, fromUrl]);
+  }, [override, fromUrl, originalFromUrl]);
 
   useEffect(() => {
     if (override) return;
@@ -44,7 +56,15 @@ export function useCampaignPricing(
     if (persist != null) {
       setFunnelCampaignPrice(persist);
     }
-  }, [override, fromUrl]);
+
+    const originalPersist =
+      originalFromUrl ?? getFunnelCampaignOriginalPrice();
+    const deal = resolveDealDiscount({
+      price: persist,
+      originalPrice: originalPersist,
+    });
+    setFunnelCampaignOriginalPrice(deal.originalPrice);
+  }, [override, fromUrl, originalFromUrl]);
 
   return pricing;
 }

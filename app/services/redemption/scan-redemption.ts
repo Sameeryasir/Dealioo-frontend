@@ -289,6 +289,7 @@ export type GuestAvailableBusinessDeal = {
   id: number;
   campaignName: string;
   price: number | string | null;
+  originalPrice?: number | string | null;
   imageUrl: string | null;
   campaignType: "prepaid" | "postpaid" | null;
 };
@@ -415,6 +416,8 @@ export type GuestCouponResponse = {
   expiresAt: string | null;
   campaignName: string | null;
   customerName: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
   passAvailable: boolean;
   passUnavailableReason: GuestPassUnavailableReason | null;
   passMessage: string | null;

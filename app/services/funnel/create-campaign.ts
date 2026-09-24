@@ -18,6 +18,7 @@ export type CreateCampaignPayload = {
   offer: string;
   description: string;
   price?: number | null;
+  originalPrice?: number | null;
   campaignType: "prepaid" | "postpaid";
 };
 
@@ -81,6 +82,22 @@ export async function createCampaign(
     }
   }
 
+  let originalPrice: number | null = null;
+  if (payload.originalPrice != null && payload.originalPrice !== undefined) {
+    if (!isValidOfferPrice(String(payload.originalPrice))) {
+      throw new Error("Enter a valid original price.");
+    }
+    originalPrice = parseOfferPrice(String(payload.originalPrice));
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) {
+      throw new Error("Enter a valid original price.");
+    }
+    if (price == null || !(originalPrice > price)) {
+      throw new Error(
+        "Original price must be higher than the deal price.",
+      );
+    }
+  }
+
   const form = new FormData();
   form.append("businessId", String(id));
   form.append("campaignName", payload.campaignName.trim());
@@ -91,6 +108,9 @@ export async function createCampaign(
   form.append("description", payload.description.trim());
   if (price != null) {
     form.append("price", String(price));
+  }
+  if (originalPrice != null) {
+    form.append("originalPrice", String(originalPrice));
   }
   form.append("status", "published");
 

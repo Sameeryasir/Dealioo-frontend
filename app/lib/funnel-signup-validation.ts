@@ -1,4 +1,5 @@
 import type { FormFieldId } from "@/app/components/crm-template-editor/template-types";
+import { isValidPhoneNumber } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 
 export const CRM_REQUIRED_SIGNUP_FIELDS: FormFieldId[] = ["email", "phone"];
 
@@ -52,6 +53,13 @@ export function validateFunnelSignupFormData(
         message: `Please enter your ${FIELD_ERROR_LABEL[id]}.`,
       };
     }
+  }
+
+  if (enabled.has("phone") && !isValidPhoneNumber(phone)) {
+    return {
+      ok: false,
+      message: "Please enter a valid phone number.",
+    };
   }
 
   const nameFromFields = [firstName, lastName].filter(Boolean).join(" ").trim();

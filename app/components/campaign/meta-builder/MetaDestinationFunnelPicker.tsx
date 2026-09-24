@@ -60,6 +60,7 @@ export function resolveMetaFunnelDestinationUrl(
       campaignId: funnel.id,
       businessId,
       price: funnel.price,
+      originalPrice: funnel.originalPrice,
       campaignType: funnel.campaignType,
     }),
   );

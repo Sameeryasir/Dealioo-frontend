@@ -1,7 +1,10 @@
 "use client";
 
+import { useId, useState } from "react";
 import { Mail, Phone, User, type LucideIcon } from "lucide-react";
-import { useId } from "react";
+import {
+  BookMeetingPhoneInput,
+} from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import type { FormFieldId } from "@/app/components/crm-template-editor/template-types";
 
 const FIELD_LABEL_ICON: Record<FormFieldId, LucideIcon> = {
@@ -40,10 +43,12 @@ export function FormFieldRow({
   const inputId = inputName ? `${inputName}-${reactId}` : `input-${reactId}`;
   const inputClassName = `${fieldClassName} min-w-0 border-0 bg-transparent px-3 text-sm outline-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/15 ${inputTextClassName}`;
   const Icon = fieldId ? FIELD_LABEL_ICON[fieldId] : null;
+  const [phoneValue, setPhoneValue] = useState("");
+  const isPhoneField = fieldId === "phone";
 
   return (
     <div className={rowClassName}>
-      <label htmlFor={inputId} className={labelClassName}>
+      <label htmlFor={isPhoneField ? undefined : inputId} className={labelClassName}>
         <span className="inline-flex items-center gap-2">
           {Icon ? (
             <span
@@ -64,14 +69,30 @@ export function FormFieldRow({
         </span>
       </label>
       {interactive ? (
-        <input
-          id={inputId}
-          name={inputName}
-          type={inputType}
-          autoComplete={autoComplete}
-          required={required}
-          className={inputClassName}
-        />
+        isPhoneField ? (
+          <div className={`${fieldClassName} min-w-0 px-2 py-1.5`}>
+            <input
+              type="hidden"
+              name={inputName ?? "phone"}
+              value={phoneValue}
+              required={required}
+            />
+            <BookMeetingPhoneInput
+              value={phoneValue}
+              onChange={setPhoneValue}
+              variant="boxed"
+            />
+          </div>
+        ) : (
+          <input
+            id={inputId}
+            name={inputName}
+            type={inputType}
+            autoComplete={autoComplete}
+            required={required}
+            className={inputClassName}
+          />
+        )
       ) : (
         <div className={fieldClassName} aria-hidden />
       )}

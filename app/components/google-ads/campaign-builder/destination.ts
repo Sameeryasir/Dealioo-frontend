@@ -94,6 +94,7 @@ export function applyFunnelDestination(
       campaignId: funnel.id,
       businessId,
       price: funnel.price,
+      originalPrice: funnel.originalPrice,
       campaignType: funnel.campaignType,
     }),
   );
