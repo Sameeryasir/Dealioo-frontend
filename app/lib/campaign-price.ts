@@ -32,8 +32,8 @@ export function campaignPricingTotal(p: CampaignPricing): number | null {
 }
 
 export function resolveDealDiscount(input: {
-  price: number | null | undefined;
-  originalPrice?: number | null | undefined;
+  price: number | string | null | undefined;
+  originalPrice?: number | string | null | undefined;
 }): {
   price: number | null;
   originalPrice: number | null;
