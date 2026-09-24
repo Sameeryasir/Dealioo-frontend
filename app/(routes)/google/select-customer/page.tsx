@@ -49,10 +49,10 @@ function SelectGoogleCustomerInner() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(() => oauthError);
 
-  const campaignsHref =
+  const googleAdsHref =
     businessId != null
-      ? `/business/${businessId}/dashboard/campaigns`
-      : "/dashboard";
+      ? `/business/${businessId}/dashboard/google-ads`
+      : "/dashboard/google-ads";
 
   const loadCustomers = useCallback(async () => {
     if (businessId == null) {
@@ -89,7 +89,7 @@ function SelectGoogleCustomerInner() {
     if (businessId != null && notifyGoogleOAuthComplete(businessId)) {
       return;
     }
-    router.push(campaignsHref);
+    router.push(googleAdsHref);
   };
 
   const handleSave = async () => {
@@ -106,7 +106,7 @@ function SelectGoogleCustomerInner() {
       if (notifyGoogleOAuthComplete(businessId)) {
         return;
       }
-      router.push(campaignsHref);
+      router.push(googleAdsHref);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Could not save Google Ads account.",

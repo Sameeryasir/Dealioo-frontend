@@ -92,7 +92,7 @@ export function LandingPageContent() {
         } ${mobileNavOpen ? "landing-nav-menu-open" : ""}`}
       >
         <div className="brand-landing-section brand-landing-nav-inner">
-          <Link href="/" className="landing-nav-logo shrink-0 py-0.5">
+          <Link href="/" className="landing-nav-logo flex shrink-0 items-center gap-2 py-0.5">
             <DealiooLogo
               src={LANDING_LOGO_SRC}
               width={LANDING_LOGO_WIDTH}
@@ -101,6 +101,7 @@ export function LandingPageContent() {
               className="h-9 w-auto sm:h-[2.625rem] md:h-11"
               priority
             />
+            <span className="sr-only">Dealioo</span>
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex" aria-label="Main">

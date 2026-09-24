@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowRight,
   Check,
 } from "lucide-react";
 import { GoogleAdsAnalyticsDashboard } from "@/app/components/campaign/GoogleAdsAnalyticsDashboard";
@@ -20,6 +21,7 @@ import {
   saveGoogleDraftLocalMeta,
 } from "@/app/components/google-ads/campaign-builder/draft-storage";
 import { GoogleAdsConnectEmptyState } from "@/app/components/google-ads/GoogleAdsConnectEmptyState";
+import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { Skeleton } from "@/app/components/skeleton";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
@@ -387,27 +389,44 @@ export function CampaignGoogleAdsPanel({
             ) : null}
 
             {googleConnected && !googleCustomerSelected ? (
-              <div className="overflow-visible rounded-3xl border border-zinc-200/80 bg-white shadow-sm ring-1 ring-zinc-950/[0.03]">
-                <div className="flex flex-col gap-5 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-                  <div className="flex items-start gap-4">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">
-                      <Check className="size-6" aria-hidden />
-                    </span>
-                    <div>
-                      <p className="font-bold text-zinc-900">
-                        Google linked, pick your Ads account
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-600">
-                        Choose which customer account powers this business.
-                      </p>
+              <div className="w-full overflow-hidden rounded-[28px] border border-[#e8edf5] bg-white shadow-[0_18px_50px_-24px_rgba(15,23,42,0.28)]">
+                <div className="grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                  <div className="relative flex min-h-[240px] items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f3faf6_0%,#eef6f1_100%)] px-8 py-14 sm:min-h-[320px]">
+                    <span className="pointer-events-none absolute left-1/2 top-1/2 size-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[#cfe8d8] sm:size-[20rem]" />
+                    <span className="pointer-events-none absolute left-1/2 top-1/2 size-[11rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[#cfe8d8] sm:size-[14rem]" />
+                    <div className="relative flex size-28 items-center justify-center rounded-full bg-white shadow-[0_16px_40px_-18px_rgba(24,128,56,0.45)] ring-1 ring-[#e8edf5] sm:size-32">
+                      <span className="flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20 sm:size-[4.5rem]">
+                        <Check className="size-8 sm:size-9" strokeWidth={2.5} aria-hidden />
+                      </span>
                     </div>
                   </div>
-                  <Link
-                    href={`/google/select-customer?businessId=${businessId}`}
-                    className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1877f2] px-6 py-3 text-sm font-semibold text-white no-underline transition hover:bg-[#166fe5]"
-                  >
-                    Choose Ads account
-                  </Link>
+
+                  <div className="flex flex-col justify-center px-6 py-8 sm:px-10 sm:py-12">
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e6f4ea] px-3 py-1 text-xs font-semibold text-[#137333]">
+                      <GoogleAdsLogo className="size-3.5" />
+                      Google linked
+                    </span>
+                    <h2 className="mt-4 text-[1.75rem] font-bold tracking-tight text-brand-navy sm:text-[2rem]">
+                      Pick your Ads account
+                    </h2>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-brand-muted sm:text-[0.95rem]">
+                      Choose which Google Ads customer account powers this
+                      business. Campaign stats and publishing will use that
+                      account only.
+                    </p>
+                    <Link
+                      href={`/google/select-customer?businessId=${businessId}`}
+                      className="mt-8 inline-flex h-12 w-full items-center justify-between gap-3 rounded-xl bg-[#1a73e8] px-3 text-sm font-semibold text-white no-underline shadow-sm transition hover:bg-[#1558c0]"
+                    >
+                      <span className="flex size-8 items-center justify-center rounded-md bg-white text-emerald-600">
+                        <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                      </span>
+                      <span className="flex-1 text-center">
+                        Choose Ads account
+                      </span>
+                      <ArrowRight className="mr-1 size-4 shrink-0" aria-hidden />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ) : null}

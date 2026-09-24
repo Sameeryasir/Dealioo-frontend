@@ -46,6 +46,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -309,6 +310,7 @@ export function BusinessIntegrationsPanel({
   businessId,
   focus = "",
 }: BusinessIntegrationsPanelProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const namesSoftRefetchDone = useRef(false);
   const [stripeBusy, setStripeBusy] = useState<ConnectStatus>("idle");
@@ -714,6 +716,7 @@ export function BusinessIntegrationsPanel({
       if (result.status === "connected") {
         await refreshStatus();
         toast.success("Google Ads connected.");
+        router.push(`/business/${businessId}/dashboard/google-ads`);
       } else {
         await abortGoogleAdsConnect(businessId);
         await refreshStatus();

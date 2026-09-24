@@ -18,6 +18,8 @@ function HeroAudienceLine({ reduced }: { reduced: boolean | null }) {
       <p className="landing-hero-audience-line landing-hero-audience-pill">
         <span className="landing-hero-audience-pill-dot" aria-hidden />
         <span className="landing-hero-audience-pill-text">
+          <span className="font-bold tracking-tight text-brand-navy">Dealioo</span>
+          {" — "}
           The AI Growth Platform for{" "}
           <span className="landing-hero-audience-accent">Local Businesses</span>
         </span>
@@ -34,8 +36,8 @@ function HeroSubline({ reduced }: { reduced: boolean | null }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.22, duration: 0.55, ease: easeOut }}
     >
-      Create AI-powered offers, run Meta & Google Ads and automatically turn first-time
-      customers into repeat customers.
+      Create AI-powered offers with Dealioo, run Meta & Google Ads and
+      automatically turn first-time customers into repeat customers.
     </motion.p>
   );
 }
@@ -64,8 +66,12 @@ export function LandingHero({ signupHref }: { signupHref: string }) {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.span custom={0} variants={headlineLine} className="landing-hero-headline-line">
-                  Turn every{" "}
+                <motion.span
+                  custom={0}
+                  variants={headlineLine}
+                  className="landing-hero-headline-line"
+                >
+                  Dealioo helps you turn every{" "}
                   <span className="landing-hero-accent-blue">ad click</span>
                 </motion.span>
                 <motion.span
