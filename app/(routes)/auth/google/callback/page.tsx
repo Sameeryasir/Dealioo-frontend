@@ -2,17 +2,17 @@
 
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { getApiBaseUrl } from "@/app/lib/api";
 
 function GoogleCallbackRedirectInner() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const apiBase = getApiBaseUrl().replace(/\/$/, "");
+    // Same-origin /api rewrite (like Facebook) so the OAuth tab keeps this host's
+    // signed-in cookie. Do not bounce to an absolute API URL / FRONTEND_URL[0].
     const qs = searchParams.toString();
     const target = qs
-      ? `${apiBase}/google-ads/callback/oauth?${qs}`
-      : `${apiBase}/google-ads/callback/oauth`;
+      ? `/api/google-ads/callback/oauth?${qs}`
+      : `/api/google-ads/callback/oauth`;
     window.location.replace(target);
   }, [searchParams]);
 
