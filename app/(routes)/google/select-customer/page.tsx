@@ -197,7 +197,8 @@ function SelectGoogleCustomerInner() {
                     }`}
                   >
                     <p className="font-semibold text-[#07111f]">
-                      {customer.name?.trim() || "Unnamed account"}
+                      {customer.name?.trim() ||
+                        formatGoogleCustomerId(customer.id)}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {customerSubtitle(customer)}
