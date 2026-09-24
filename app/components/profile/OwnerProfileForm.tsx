@@ -1,14 +1,18 @@
 "use client";
 
 import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
+import {
+  BookMeetingPhoneInput,
+  isValidPhoneNumber,
+} from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
-import { userAvatarUrl } from "@/app/lib/user-initials";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { mergeSetupUser, setSetupUser } from "@/app/lib/setup-user";
 import {
   getMyProfile,
   getProfileUpdateErrorMessage,
+  updateMyAvatar,
   updateMyProfile,
 } from "@/app/services/user/profile";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
@@ -18,6 +22,7 @@ import {
   BadgeCheck,
   Building2,
   CalendarDays,
+  Camera,
   Clock3,
   KeyRound,
   Loader2,
@@ -27,7 +32,14 @@ import {
   Shield,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type OwnerProfileFormProps = {
   variant?: "light" | "dark";
@@ -36,9 +48,12 @@ type OwnerProfileFormProps = {
 };
 
 const inputLight =
-  "brand-input h-11 w-full bg-white py-2 text-brand-navy";
+  "h-11 w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15 disabled:cursor-not-allowed disabled:opacity-60";
 const inputDark =
   "h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none ring-offset-zinc-950 placeholder:text-zinc-500 focus-visible:border-sky-500/60 focus-visible:ring-2 focus-visible:ring-sky-500/30";
+
+const cardClass =
+  "flex h-full flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 function formatProfileDate(value: string | null | undefined): string {
   if (!value?.trim()) return "Not available";
@@ -55,39 +70,34 @@ function signInMethodLabel(provider: string | undefined): string {
   return "Email & password";
 }
 
-function displayValue(value: string | null | undefined, fallback = "Not set"): string {
+function displayValue(
+  value: string | null | undefined,
+  fallback = "Not set",
+): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : fallback;
 }
 
-function ProfileDetailBoardCell({
+function ProfileDetailRow({
   label,
   value,
   icon: Icon,
-  mono,
-  tone = "blue",
 }: {
   label: string;
   value: string;
   icon: typeof UserRound;
-  mono?: boolean;
-  tone?: "blue" | "pink" | "teal";
 }) {
   return (
-    <div className={`profile-details-board-cell profile-details-board-cell--${tone}`}>
-      <span className="profile-details-board-icon">
-        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+    <div className="flex items-center gap-3 border-b border-[#eef2f7] px-4 py-3 last:border-b-0 sm:px-5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1877f2]">
+        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="profile-details-board-label">{label}</p>
-        <p
-          className={`profile-details-board-value ${
-            mono ? "profile-details-board-value--mono" : ""
-          }`}
-        >
-          {value}
-        </p>
-      </div>
+      <p className="w-[7.5rem] shrink-0 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+        {label}
+      </p>
+      <p className="min-w-0 flex-1 truncate text-sm font-medium text-[#07111f]">
+        {value}
+      </p>
     </div>
   );
 }
@@ -96,114 +106,102 @@ function ProfileContactViewRow({
   label,
   value,
   icon: Icon,
-  tone = "blue",
   isDark,
 }: {
   label: string;
   value: string;
   icon: typeof UserRound;
-  tone?: "blue" | "pink" | "teal";
   isDark: boolean;
 }) {
-  const viewValueClass = isDark
-    ? "text-sm font-medium text-white"
-    : "text-sm font-semibold text-brand-navy";
-  const viewLabelClass = isDark
-    ? "text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-zinc-500"
-    : "profile-contact-view-label";
-
   return (
-    <div className="profile-contact-view-row">
-      <span className={`profile-contact-view-icon profile-contact-view-icon--${tone}`}>
+    <div
+      className={`flex items-start gap-3 border-b px-4 py-3.5 last:border-b-0 sm:px-5 ${
+        isDark ? "border-zinc-800" : "border-[#eef2f7]"
+      }`}
+    >
+      <span
+        className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl ${
+          isDark
+            ? "bg-zinc-800 text-sky-300"
+            : "bg-[#eef5ff] text-[#1877f2]"
+        }`}
+      >
         <Icon className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <span className={viewLabelClass}>{label}</span>
-        <span className={`${viewValueClass} mt-0.5 block break-words`}>{value}</span>
+        <span
+          className={`text-[0.68rem] font-semibold uppercase tracking-[0.08em] ${
+            isDark ? "text-zinc-500" : "text-slate-400"
+          }`}
+        >
+          {label}
+        </span>
+        <span
+          className={`mt-1 block break-words text-sm font-semibold ${
+            isDark ? "text-white" : "text-[#07111f]"
+          }`}
+        >
+          {value}
+        </span>
       </div>
     </div>
   );
 }
 
+function StatusChip({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "blue" | "green" | "amber";
+}) {
+  const tones = {
+    blue: "bg-[#eef5ff] text-[#0f5ed7] ring-[#dbeafe]",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    amber: "bg-amber-50 text-amber-800 ring-amber-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ring-1 ${tones[tone]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 function ProfilePageSkeleton() {
   return (
-    <div className="profile-page-skeleton" aria-busy="true" aria-label="Loading profile">
-      <div className="org-dashboard-stats-banner">
-        <div className="org-dashboard-stats-inner">
-          <div className="org-dashboard-stats-layout org-dashboard-stats-layout--profile">
-            <div className="org-dashboard-stats-main">
-              <div className="profile-hero-identity">
-                <Skeleton className="size-20 shrink-0 rounded-full bg-white/20" />
-                <div className="min-w-0 flex-1 space-y-3">
-                  <Skeleton className="h-6 w-28 rounded-full bg-white/15" />
-                  <Skeleton className="h-9 w-56 max-w-full rounded-lg bg-white/20" />
-                  <Skeleton className="h-4 w-44 max-w-full rounded-md bg-white/10" />
-                </div>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Skeleton className="h-8 w-28 rounded-full bg-white/12" />
-                <Skeleton className="h-8 w-32 rounded-full bg-white/12" />
-                <Skeleton className="h-8 w-36 rounded-full bg-white/12" />
-              </div>
-            </div>
+    <div className="space-y-5" aria-busy="true" aria-label="Loading profile">
+      <div className={`${cardClass} p-5 sm:p-6`}>
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-16 shrink-0 rounded-full bg-slate-100" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-24 rounded-full bg-slate-100" />
+            <Skeleton className="h-7 w-48 max-w-full rounded-lg bg-slate-100" />
+            <Skeleton className="h-4 w-40 max-w-full rounded-md bg-slate-100" />
           </div>
         </div>
       </div>
-
-      <div className="org-dashboard-panel profile-page-panel">
-        <div className="org-dashboard-panel-toolbar profile-page-toolbar">
-          <Skeleton className="h-8 w-48 max-w-full rounded-lg bg-slate-100" />
-          <Skeleton className="mt-2 h-4 w-72 max-w-full rounded-md bg-slate-100" />
-        </div>
-        <div className="org-dashboard-panel-body profile-page-body">
-          <div className="profile-page-grid">
-            <div className="profile-details-panel">
-              <div className="profile-details-panel-head">
-                <Skeleton className="size-11 shrink-0 rounded-full bg-slate-100" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-5 w-36 rounded-md bg-slate-100" />
-                  <Skeleton className="h-4 w-full max-w-sm rounded-md bg-slate-100" />
-                </div>
-              </div>
-              <div className="profile-details-board">
-                {Array.from({ length: 5 }, (_, index) => (
-                  <Skeleton
-                    key={index}
-                    className="h-[4.75rem] w-full rounded-2xl bg-slate-50"
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="profile-edit-card">
-              <div className="profile-edit-card-head">
-                <Skeleton className="size-11 shrink-0 rounded-full bg-slate-100" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-5 w-40 rounded-md bg-slate-100" />
-                  <Skeleton className="h-4 w-full max-w-xs rounded-md bg-slate-100" />
-                </div>
-              </div>
-              <div className="profile-edit-card-body space-y-3">
-                {Array.from({ length: 3 }, (_, index) => (
-                  <Skeleton key={index} className="h-16 w-full rounded-2xl bg-slate-50" />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Skeleton className="h-72 w-full rounded-2xl bg-slate-100" />
+        <Skeleton className="h-72 w-full rounded-2xl bg-slate-100" />
       </div>
     </div>
   );
 }
 
 const editButtonLight =
-  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-[#1877f2]/25 bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
-
+  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 const editButtonDark =
   "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-5 text-sm font-semibold text-zinc-100 transition-all hover:border-zinc-600 hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 const cancelButtonLight =
-  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#d8e3f2] bg-white px-5 text-sm font-semibold text-brand-muted transition-all hover:border-[#c5d4ea] hover:bg-[#f8faff] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#e2e8f0] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 const cancelButtonDark =
   "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 px-5 text-sm font-semibold text-zinc-400 transition-all hover:border-zinc-600 hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+const saveButtonLight =
+  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+const saveButtonDark =
+  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-sky-600 px-6 text-sm font-semibold text-white shadow-md shadow-sky-900/30 transition-all hover:bg-sky-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 
 function ProfileContactSection({
   presentation,
@@ -244,29 +242,26 @@ function ProfileContactSection({
 }) {
   const isDark = variant === "dark";
   const isPage = presentation === "page";
+  const showForm = isEditing;
   const fieldIdPrefix = isPage ? "profile" : "profile-settings";
-  const title = isEditing ? "Edit contact details" : "Contact details";
-  const subtitle = isEditing
-    ? "Update the information used for your account and notifications."
+  const title = showForm ? "Edit profile" : "Contact details";
+  const subtitle = showForm
+    ? "Update your photo, name, email, or phone, then save."
     : "Your current contact information on Dealioo.";
 
   const footerBorderClass = isDark
     ? "border-t border-zinc-800 pt-4"
-    : "border-t border-[#e8edf5] pt-4";
+    : "border-t border-[#eef2f7] pt-4";
 
   const errorAlertClass = isDark
     ? "flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200"
-    : "flex items-start gap-2 rounded-xl border border-red-200/80 bg-red-50/90 px-3 py-2.5 text-sm text-red-800";
+    : "flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800";
 
   const successTextClass = isDark ? "text-emerald-400" : "text-emerald-600";
 
-  const body = isEditing ? (
-    <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
-      <div
-        className={`grid grid-cols-1 ${
-          isPage ? "gap-4 sm:grid-cols-2" : "gap-5"
-        }`}
-      >
+  const body = showForm ? (
+    <form className="flex flex-1 flex-col gap-5" onSubmit={onSubmit} noValidate>
+      <div className="grid grid-cols-1 gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${fieldIdPrefix}-name`} className={labelClass}>
             Full name
@@ -297,20 +292,24 @@ function ProfileContactSection({
           />
         </div>
 
-        <div className={`flex flex-col gap-1.5 ${isPage ? "sm:col-span-2" : ""}`}>
+        <div className="flex flex-col gap-1.5">
           <label htmlFor={`${fieldIdPrefix}-phone`} className={labelClass}>
             Phone
           </label>
-          <input
-            id={`${fieldIdPrefix}-phone`}
-            type="tel"
-            autoComplete="tel"
-            disabled={saving}
-            value={phone}
-            onChange={(event) => onPhoneChange(event.target.value)}
-            className={inputClass}
-            placeholder="Add your phone number"
-          />
+          <div
+            className={
+              isDark
+                ? "rounded-xl border border-zinc-700 bg-zinc-900 px-2 py-1 focus-within:border-sky-500/60 focus-within:ring-2 focus-within:ring-sky-500/30"
+                : "rounded-xl border border-[#e2e8f0] bg-white px-2 py-1 transition focus-within:border-[#1877f2] focus-within:ring-2 focus-within:ring-[#1877f2]/15"
+            }
+          >
+            <BookMeetingPhoneInput
+              value={phone}
+              onChange={onPhoneChange}
+              variant="boxed"
+              wrapClassName="!gap-1 [&_input]:!text-sm [&_input]:!font-medium"
+            />
+          </div>
         </div>
       </div>
 
@@ -321,7 +320,15 @@ function ProfileContactSection({
         </div>
       ) : null}
 
-      <div className={`flex flex-wrap items-center justify-end gap-3 ${footerBorderClass}`}>
+      {successMessage ? (
+        <p className={`text-sm font-medium ${successTextClass}`} role="status">
+          {successMessage}
+        </p>
+      ) : null}
+
+      <div
+        className={`flex flex-wrap items-center justify-end gap-2 ${footerBorderClass}`}
+      >
         <button
           type="button"
           disabled={saving}
@@ -348,27 +355,30 @@ function ProfileContactSection({
     </form>
   ) : (
     <div className="flex flex-col gap-5">
-      <div className={`profile-contact-view ${isDark ? "profile-contact-view--dark" : ""}`}>
+      <div
+        className={
+          isDark
+            ? "overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80"
+            : "overflow-hidden rounded-xl border border-[#e8edf5] bg-[#f8fafc]"
+        }
+      >
         <ProfileContactViewRow
           isDark={isDark}
           icon={UserRound}
           label="Full name"
           value={displayValue(name)}
-          tone="blue"
         />
         <ProfileContactViewRow
           isDark={isDark}
           icon={Mail}
           label="Email"
           value={displayValue(email)}
-          tone="pink"
         />
         <ProfileContactViewRow
           isDark={isDark}
           icon={Phone}
           label="Phone"
           value={displayValue(phone, "Not set")}
-          tone="teal"
         />
       </div>
 
@@ -378,32 +388,36 @@ function ProfileContactSection({
         </p>
       ) : null}
 
-      <div className={`flex justify-end ${footerBorderClass}`}>
-        <button
-          type="button"
-          onClick={onStartEdit}
-          className={isDark ? editButtonDark : editButtonLight}
-        >
-          <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
-          Edit
-        </button>
-      </div>
+      {!isPage ? (
+        <div className={`flex justify-end ${footerBorderClass}`}>
+          <button
+            type="button"
+            onClick={onStartEdit}
+            className={isDark ? editButtonDark : editButtonLight}
+          >
+            <Pencil className="size-4" strokeWidth={2.25} aria-hidden />
+            Edit
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 
   if (isPage) {
     return (
-      <div className="profile-edit-card lg:sticky lg:top-6">
-        <div className="profile-edit-card-head">
-          <span className="profile-edit-card-icon">
+      <div id="profile-edit-panel" className={cardClass}>
+        <div className="flex items-start gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
             <UserRound className="size-5" strokeWidth={2.25} aria-hidden />
           </span>
           <div className="min-w-0">
-            <h3 className="profile-section-heading">{title}</h3>
-            <p className="profile-section-copy">{subtitle}</p>
+            <h3 className="m-0 text-base font-extrabold tracking-tight text-[#07111f]">
+              {title}
+            </h3>
+            <p className="m-0 mt-0.5 text-sm text-slate-500">{subtitle}</p>
           </div>
         </div>
-        <div className="profile-edit-card-body">{body}</div>
+        <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">{body}</div>
       </div>
     );
   }
@@ -420,14 +434,14 @@ function ProfileContactSection({
         className={
           isDark
             ? "text-base font-semibold text-white"
-            : "text-base font-semibold text-brand-navy"
+            : "text-base font-semibold text-[#07111f]"
         }
       >
         {title}
       </h3>
       <p
         className={
-          isDark ? "mt-1 text-sm text-zinc-500" : "mt-1 text-sm text-brand-muted"
+          isDark ? "mt-1 text-sm text-zinc-500" : "mt-1 text-sm text-slate-500"
         }
       >
         {subtitle}
@@ -436,11 +450,6 @@ function ProfileContactSection({
     </div>
   );
 }
-
-const saveButtonLight =
-  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-brand-primary px-6 text-sm font-semibold text-white shadow-md shadow-brand-primary/20 transition-all hover:bg-brand-primary-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
-const saveButtonDark =
-  "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-sky-600 px-6 text-sm font-semibold text-white shadow-md shadow-sky-900/30 transition-all hover:bg-sky-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 
 function ProfileDetailCard({
   label,
@@ -461,7 +470,7 @@ function ProfileDetailCard({
       className={
         isDark
           ? "rounded-xl border border-zinc-800 bg-zinc-900/80 px-4 py-3.5"
-          : "rounded-xl border border-[#e8edf5] bg-[#f8faff] px-4 py-3.5"
+          : "rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5"
       }
     >
       <div className="flex items-start gap-3">
@@ -469,7 +478,7 @@ function ProfileDetailCard({
           className={
             isDark
               ? "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400"
-              : "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-brand-primary shadow-sm ring-1 ring-[#e8edf5]"
+              : "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1877f2]"
           }
         >
           <Icon className="size-4" strokeWidth={2} aria-hidden />
@@ -479,7 +488,7 @@ function ProfileDetailCard({
             className={
               isDark
                 ? "text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500"
-                : "text-[0.65rem] font-semibold uppercase tracking-wider text-brand-muted"
+                : "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400"
             }
           >
             {label}
@@ -487,7 +496,7 @@ function ProfileDetailCard({
           <p
             className={`mt-1 break-words text-sm font-medium ${
               mono ? "font-mono text-[0.8rem]" : ""
-            } ${isDark ? "text-white" : "text-brand-navy"}`}
+            } ${isDark ? "text-white" : "text-[#07111f]"}`}
           >
             {value}
           </p>
@@ -513,7 +522,7 @@ function StatusPill({
       : "bg-emerald-50 text-emerald-700 ring-emerald-200",
     neutral: isDark
       ? "bg-zinc-800 text-zinc-300 ring-zinc-700"
-      : "bg-zinc-100 text-zinc-700 ring-zinc-200",
+      : "bg-[#eef5ff] text-[#0f5ed7] ring-[#dbeafe]",
     warning: isDark
       ? "bg-amber-500/15 text-amber-200 ring-amber-500/25"
       : "bg-amber-50 text-amber-800 ring-amber-200",
@@ -542,6 +551,10 @@ export function OwnerProfileForm({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isEditingContact, setIsEditingContact] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputId = useId();
 
   const { meta: businessesMeta, isPending: businessesLoading } =
     useMyBusinessesQuery({ page: 1 });
@@ -550,7 +563,7 @@ export function OwnerProfileForm({
   const labelClass =
     variant === "dark"
       ? "text-sm font-medium text-zinc-300"
-      : "text-sm font-medium text-zinc-700";
+      : "text-sm font-semibold text-[#07111f]";
   const isDark = variant === "dark";
   const isPageLayout = layout === "page" && !isDark;
 
@@ -584,7 +597,40 @@ export function OwnerProfileForm({
   const handleStartEdit = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
+    setAvatarError(null);
     setIsEditingContact(true);
+  };
+
+  const handleAvatarPick = () => {
+    if (avatarUploading || !isEditingContact) return;
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file (PNG, JPEG, or WebP).");
+      return;
+    }
+
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const updated = await updateMyAvatar(file);
+      setSetupUser(updated);
+      setProfile(updated);
+      setSuccessMessage("Profile photo updated.");
+      onSaved?.(updated);
+    } catch (error) {
+      setAvatarError(getProfileUpdateErrorMessage(error));
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -594,6 +640,8 @@ export function OwnerProfileForm({
       setPhone(profile.phone ?? "");
     }
     setErrorMessage(null);
+    setSuccessMessage(null);
+    setAvatarError(null);
     setIsEditingContact(false);
   };
 
@@ -608,6 +656,10 @@ export function OwnerProfileForm({
     }
     if (!email.trim()) {
       setErrorMessage("Email is required.");
+      return;
+    }
+    if (phone.trim() && !isValidPhoneNumber(phone.trim())) {
+      setErrorMessage("Enter a valid phone number.");
       return;
     }
 
@@ -630,7 +682,9 @@ export function OwnerProfileForm({
   };
 
   if (loading) {
-    return isPageLayout ? <ProfilePageSkeleton /> : (
+    return isPageLayout ? (
+      <ProfilePageSkeleton />
+    ) : (
       <div className="flex items-center gap-2 text-sm text-zinc-500">
         <Loader2 className="size-4 animate-spin" aria-hidden />
         Loading profile…
@@ -642,7 +696,7 @@ export function OwnerProfileForm({
     return (
       <div
         role="alert"
-        className="rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-800"
+        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
       >
         Could not load your profile. Refresh the page and try again.
       </div>
@@ -673,49 +727,45 @@ export function OwnerProfileForm({
   );
 
   const pageAccountDetails = (
-    <div className="profile-details-panel">
-      <div className="profile-details-panel-head">
-        <span className="profile-details-panel-badge" aria-hidden>
-          <Shield className="size-4" strokeWidth={2.25} />
+    <div className={cardClass}>
+      <div className="flex items-start gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
+          <Shield className="size-5" strokeWidth={2.25} aria-hidden />
         </span>
         <div className="min-w-0">
-          <h3 className="profile-section-heading">Account details</h3>
-          <p className="profile-section-copy">
+          <h3 className="m-0 text-base font-extrabold tracking-tight text-[#07111f]">
+            Account details
+          </h3>
+          <p className="m-0 mt-0.5 text-sm text-slate-500">
             Identity, access, and activity for your Dealioo account.
           </p>
         </div>
       </div>
-
-      <div className="profile-details-board">
-        <ProfileDetailBoardCell
+      <div className="flex flex-1 flex-col divide-y divide-[#eef2f7]">
+        <ProfileDetailRow
           icon={Shield}
           label="Role"
           value={profile.role.name}
-          tone="blue"
         />
-        <ProfileDetailBoardCell
+        <ProfileDetailRow
           icon={BadgeCheck}
           label="Sign-in method"
           value={signInMethodLabel(profile.provider)}
-          tone="pink"
         />
-        <ProfileDetailBoardCell
+        <ProfileDetailRow
           icon={Building2}
           label="Businesses owned"
           value={businessCountLabel}
-          tone="teal"
         />
-        <ProfileDetailBoardCell
+        <ProfileDetailRow
           icon={CalendarDays}
           label="Member since"
           value={formatProfileDate(profile.createdAt)}
-          tone="blue"
         />
-        <ProfileDetailBoardCell
+        <ProfileDetailRow
           icon={Clock3}
           label="Last updated"
           value={formatProfileDate(profile.updatedAt)}
-          tone="teal"
         />
       </div>
     </div>
@@ -731,14 +781,14 @@ export function OwnerProfileForm({
         className={
           isDark
             ? "text-base font-semibold text-white"
-            : "text-base font-semibold text-brand-navy"
+            : "text-base font-semibold text-[#07111f]"
         }
       >
         Account details
       </h3>
       <p
         className={
-          isDark ? "mt-1 text-sm text-zinc-500" : "mt-1 text-sm text-brand-muted"
+          isDark ? "mt-1 text-sm text-zinc-500" : "mt-1 text-sm text-slate-500"
         }
       >
         {isPageLayout
@@ -801,136 +851,154 @@ export function OwnerProfileForm({
     </div>
   );
 
-  const hasProfilePhoto = Boolean(userAvatarUrl(profile));
-
   return (
-    <div className={`flex flex-col ${isPageLayout ? "gap-0" : "gap-8"}`}>
+    <div className={`flex flex-col ${isPageLayout ? "gap-5" : "gap-8"}`}>
       {isPageLayout ? (
         <>
-          <div className="org-dashboard-stats-banner">
-            <div className="org-dashboard-stats-inner">
-              <div className="org-dashboard-stats-layout org-dashboard-stats-layout--profile">
-                <div className="org-dashboard-stats-main">
-                  <div className="org-dashboard-stats-copy">
-                    <div className="profile-hero-identity">
-                      <div className="profile-hero-avatar-wrap">
-                        <div className="profile-hero-avatar-stack">
-                          <span className="profile-hero-avatar-orbit" aria-hidden />
-                          <span
-                            className={`profile-hero-avatar-frame${
-                              hasProfilePhoto ? "" : " profile-hero-avatar-frame--no-photo"
-                            }`}
-                          >
-                            <UserAccountAvatar
-                              user={profile}
-                              className="size-full rounded-full object-cover"
-                              heroFallback={!hasProfilePhoto}
-                            />
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="profile-hero-identity-copy">
-                        <p className="org-dashboard-stats-pill">
-                          <span className="org-dashboard-stats-pill-dot" aria-hidden />
-                          <span>{profile.role.name}</span>
-                        </p>
-                        <h2 className="org-dashboard-stats-title">
-                          <span className="org-dashboard-stats-greeting">Your profile, </span>
-                          <span className="org-dashboard-stats-name">
-                            {profile.name.split(" ")[0]}
-                          </span>
-                        </h2>
-                        <p className="org-dashboard-stats-intro profile-hero-email">
-                          <Mail
-                            className="profile-hero-email-icon"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          <span className="truncate">{profile.email}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <ul
-                      className="org-dashboard-stats-features profile-hero-features"
-                      aria-label="Account status"
+          <div className={cardClass}>
+            <div className="border-b border-[#eef2f7] bg-white px-5 py-5 sm:px-6 sm:py-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="relative shrink-0">
+                    <span
+                      className={`flex size-16 items-center justify-center overflow-hidden rounded-full bg-white ring-4 shadow-[0_10px_28px_rgba(24,119,242,0.18)] sm:size-[4.5rem] ${
+                        isEditingContact
+                          ? "ring-[#1877f2]/40"
+                          : "ring-[#dbeafe]"
+                      }`}
                     >
-                      <li>
-                        <span
-                          className={`org-dashboard-stats-feature org-dashboard-stats-feature--${
-                            profile.isActive ? "green" : "pink"
-                          }`}
-                        >
-                          <BadgeCheck
-                            className="org-dashboard-stats-feature-icon"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          {profile.isActive ? "Active account" : "Inactive"}
-                        </span>
-                      </li>
-                      <li>
-                        <span
-                          className={`org-dashboard-stats-feature org-dashboard-stats-feature--${
-                            profile.emailVerified ? "green" : "pink"
-                          }`}
-                        >
-                          <Mail
-                            className="org-dashboard-stats-feature-icon"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          {profile.emailVerified ? "Email verified" : "Email not verified"}
-                        </span>
-                      </li>
-                      <li>
-                        <span className="org-dashboard-stats-feature org-dashboard-stats-feature--blue">
-                          <KeyRound
-                            className="org-dashboard-stats-feature-icon"
-                            strokeWidth={2.25}
-                            aria-hidden
-                          />
-                          {signInMethodLabel(profile.provider)}
-                        </span>
-                      </li>
-                    </ul>
+                      <UserAccountAvatar
+                        user={profile}
+                        className="size-full rounded-full object-cover"
+                      />
+                    </span>
+                    {isEditingContact ? (
+                      <button
+                        type="button"
+                        onClick={handleAvatarPick}
+                        disabled={avatarUploading}
+                        aria-label="Update profile photo"
+                        className="absolute -bottom-0.5 -right-0.5 inline-flex size-8 items-center justify-center rounded-full border-2 border-white bg-[#1877f2] text-white shadow-md transition hover:bg-[#166fe0] disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {avatarUploading ? (
+                          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                        ) : (
+                          <Camera className="size-3.5" strokeWidth={2.25} aria-hidden />
+                        )}
+                      </button>
+                    ) : null}
+                    <input
+                      id={avatarInputId}
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="sr-only"
+                      onChange={(event) => {
+                        void handleAvatarChange(event);
+                      }}
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
+                      {profile.role.name}
+                    </p>
+                    <div className="mt-1 flex min-w-0 items-center gap-2">
+                      <h2 className="m-0 truncate text-[1.45rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.65rem]">
+                        {profile.name}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={
+                          isEditingContact ? handleCancelEdit : handleStartEdit
+                        }
+                        aria-label={
+                          isEditingContact ? "Cancel editing" : "Edit profile"
+                        }
+                        title={
+                          isEditingContact ? "Cancel editing" : "Edit profile"
+                        }
+                        className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition ${
+                          isEditingContact
+                            ? "border-[#1877f2] bg-[#1877f2] text-white"
+                            : "border-[#dbeafe] bg-[#eef5ff] text-[#1877f2] hover:bg-[#1877f2] hover:text-white"
+                        }`}
+                      >
+                        <Pencil className="size-3.5" strokeWidth={2.25} aria-hidden />
+                      </button>
+                    </div>
+                    <p className="m-0 mt-1.5 flex items-center gap-1.5 truncate text-sm font-medium text-slate-500">
+                      <Mail
+                        className="size-3.5 shrink-0 text-[#1877f2]"
+                        aria-hidden
+                      />
+                      <span className="truncate">{profile.email}</span>
+                    </p>
+                    {isEditingContact ? (
+                      <p className="m-0 mt-2 text-xs font-medium text-[#1877f2]">
+                        Editing — update your photo and contact details below.
+                      </p>
+                    ) : null}
+                    {avatarError ? (
+                      <p className="m-0 mt-2 text-xs font-medium text-red-600" role="alert">
+                        {avatarError}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          <div className="org-dashboard-panel profile-page-panel">
-            <div className="org-dashboard-panel-toolbar profile-page-toolbar">
-              <div className="org-dashboard-panel-heading">
-                <div className="org-dashboard-panel-title-row">
-                  <h2 className="org-dashboard-panel-title">Account overview</h2>
+                <div className="flex flex-wrap gap-2">
+                  <StatusChip
+                    label={profile.isActive ? "Active account" : "Inactive"}
+                    tone={profile.isActive ? "green" : "amber"}
+                  />
+                  <StatusChip
+                    label={
+                      profile.emailVerified
+                        ? "Email verified"
+                        : "Email not verified"
+                    }
+                    tone={profile.emailVerified ? "green" : "amber"}
+                  />
+                  <StatusChip
+                    label={signInMethodLabel(profile.provider)}
+                    tone="blue"
+                  />
                 </div>
-                <p className="profile-page-toolbar-copy">
-                  Review your account information and keep your contact details up to
-                  date.
-                </p>
               </div>
             </div>
 
-            <div className="org-dashboard-panel-body profile-page-body">
-              <div className="profile-page-grid">
-                {pageAccountDetails}
-                {pageEditForm}
-              </div>
-              {isAdminOrSuperAdminUser() ? (
-                <OwnerSubscriptionSection variant={variant} layout="page" />
-              ) : null}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 text-[0.78rem] font-medium text-slate-500 sm:px-6">
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound className="size-3.5 text-[#1877f2]" aria-hidden />
+                {signInMethodLabel(profile.provider)}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Building2 className="size-3.5 text-[#1877f2]" aria-hidden />
+                {businessCountLabel}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="size-3.5 text-[#1877f2]" aria-hidden />
+                Joined {formatProfileDate(profile.createdAt)}
+              </span>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-stretch">
+            {pageAccountDetails}
+            {pageEditForm}
+          </div>
+
+          {isAdminOrSuperAdminUser() ? (
+            <OwnerSubscriptionSection variant={variant} layout="page" />
+          ) : null}
         </>
       ) : (
         <div
           className={
             isDark
-              ? "overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 p-5 sm:p-6"
-              : "overflow-hidden rounded-2xl border border-[#dfe8f5] bg-gradient-to-br from-white via-[#f8faff] to-[#eef4ff] p-5 shadow-sm sm:p-6"
+              ? "overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6"
+              : "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6"
           }
         >
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -939,7 +1007,7 @@ export function OwnerProfileForm({
                 className={
                   isDark
                     ? "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-800 text-lg font-semibold text-white ring-2 ring-zinc-700"
-                    : "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-lg font-semibold text-brand-navy shadow-md ring-2 ring-white"
+                    : "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-lg font-semibold text-[#07111f] shadow-md ring-2 ring-[#dbeafe]"
                 }
               >
                 <UserAccountAvatar user={profile} className="size-full" />
@@ -949,7 +1017,7 @@ export function OwnerProfileForm({
                   className={
                     isDark
                       ? "text-xs font-semibold uppercase tracking-wider text-sky-300/90"
-                      : "text-xs font-semibold uppercase tracking-wider text-brand-primary"
+                      : "text-xs font-semibold uppercase tracking-wider text-[#1877f2]"
                   }
                 >
                   Account {profile.role.name}
@@ -958,7 +1026,7 @@ export function OwnerProfileForm({
                   className={
                     isDark
                       ? "mt-1 truncate text-2xl font-semibold tracking-tight text-white"
-                      : "mt-1 truncate text-2xl font-semibold tracking-tight text-brand-navy"
+                      : "mt-1 truncate text-2xl font-semibold tracking-tight text-[#07111f]"
                   }
                 >
                   {profile.name}
@@ -967,7 +1035,7 @@ export function OwnerProfileForm({
                   className={
                     isDark
                       ? "mt-1 truncate text-sm text-zinc-400"
-                      : "mt-1 truncate text-sm text-brand-muted"
+                      : "mt-1 truncate text-sm text-slate-500"
                   }
                 >
                   {profile.email}

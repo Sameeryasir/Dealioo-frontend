@@ -3144,16 +3144,12 @@ body {
   }
 
   .profile-page-panel {
-    @apply relative z-[2] overflow-hidden;
+    @apply relative z-[2] overflow-hidden bg-white;
     margin-top: -1.75rem;
     border-radius: 1.5rem 1.5rem 0 0;
     box-shadow:
       0 -12px 40px rgba(15, 23, 42, 0.08),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
-    background:
-      radial-gradient(ellipse 55% 40% at 100% 0%, rgba(24, 119, 242, 0.06) 0%, transparent 55%),
-      radial-gradient(ellipse 45% 35% at 0% 100%, rgba(225, 48, 108, 0.05) 0%, transparent 50%),
-      linear-gradient(180deg, #f7faff 0%, #ffffff 38%, #ffffff 100%);
   }
 
   @media (min-width: 640px) {
@@ -3193,13 +3189,11 @@ body {
   }
 
   .profile-details-panel-head {
-    @apply flex items-start gap-3.5 border-b border-[#eef2f8] px-5 py-5 sm:px-6;
-    background: linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%);
+    @apply flex items-start gap-3.5 border-b border-[#eef2f8] bg-white px-5 py-5 sm:px-6;
   }
 
   .profile-details-panel-badge {
-    @apply flex size-11 shrink-0 items-center justify-center rounded-full text-white;
-    background: linear-gradient(145deg, #1877f2 0%, #0f5ed7 100%);
+    @apply flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white;
     box-shadow: 0 10px 24px rgba(24, 119, 242, 0.28);
   }
 
@@ -3275,23 +3269,13 @@ body {
 
   .profile-edit-card {
     @apply relative overflow-hidden rounded-[1.35rem] border border-[#dfe8f5] bg-white;
-    background:
-      radial-gradient(ellipse 70% 45% at 100% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 40% at 0% 100%, rgba(225, 48, 108, 0.06) 0%, transparent 50%),
-      linear-gradient(180deg, #f5f8ff 0%, #ffffff 28%);
     box-shadow:
       0 1px 2px rgba(15, 23, 42, 0.04),
       0 20px 44px rgba(15, 23, 42, 0.08);
   }
 
   .profile-edit-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #1877f2 0%, #833aba 45%, #e1306c 100%);
+    content: none;
   }
 
   .profile-edit-card-head {

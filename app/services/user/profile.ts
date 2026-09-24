@@ -1,6 +1,7 @@
 import { parseApiMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authAxios } from "@/app/lib/auth-axios";
+import { compressImageForUpload } from "@/app/lib/compress-image-file";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { parseAuthUser } from "@/app/services/user/parse-auth-user";
 
@@ -31,6 +32,24 @@ export async function updateMyProfile(payload: {
     email: payload.email.trim(),
     phone: payload.phone.trim(),
   });
+
+  const user = parseAuthUser(response.data);
+  if (!user) {
+    throw new Error("Invalid profile data from server.");
+  }
+  return user;
+}
+
+export async function updateMyAvatar(file: File): Promise<VerifyOtpUser> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+
+  const compressed = await compressImageForUpload(file);
+  const formData = new FormData();
+  formData.append("file", compressed, compressed.name || "avatar.jpg");
+
+  const response = await authAxios.post<unknown>("/user/me/avatar", formData);
 
   const user = parseAuthUser(response.data);
   if (!user) {

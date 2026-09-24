@@ -1,3 +1,4 @@
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
 export function initialsFromUser(user: VerifyOtpUser | null): string {
@@ -20,5 +21,7 @@ export function initialsFromUser(user: VerifyOtpUser | null): string {
 
 export function userAvatarUrl(user: VerifyOtpUser | null): string | null {
   const url = user?.avatar?.trim();
-  return url ? url : null;
+  if (!url) return null;
+  const resolved = resolveUploadImageUrl(url);
+  return resolved || null;
 }
