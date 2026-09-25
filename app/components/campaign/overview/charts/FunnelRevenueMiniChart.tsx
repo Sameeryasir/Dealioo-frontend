@@ -19,6 +19,7 @@ import {
 } from "@/app/components/campaign/overview/charts/overview-chart-gradients";
 import {
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
   overviewAxisInterval,
@@ -107,6 +108,7 @@ export function FunnelRevenueMiniChart({
                 fill={`url(#${gradient.areaId})`}
                 fillOpacity={1}
                 tooltipType="none"
+                {...OVERVIEW_LINE_ANIMATION}
               />
               <Line
                 id={`${gradient.lineId}-stroke`}
@@ -115,6 +117,7 @@ export function FunnelRevenueMiniChart({
                 name="Revenue"
                 stroke={strokeColor}
                 strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
                 dot={{
                   r: 3.5,
                   fill: "#ffffff",

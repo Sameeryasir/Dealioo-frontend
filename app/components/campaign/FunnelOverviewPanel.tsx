@@ -524,13 +524,21 @@ export function FunnelOverviewPanel({
               >
                 {hasMonthlyCharts ? (
                   <>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`signups-payments-${periodLabel}`}
+                    >
                       <SignupsPaymentsBarChart
                         data={signupsPaymentsMonthly}
                         caption={periodLabel}
                       />
                     </motion.div>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`signup-breakdown-${periodLabel}`}
+                    >
                       <SignupBreakdownPieChart
                         data={signupBreakdownMonthly}
                         caption={periodLabel}
@@ -540,7 +548,11 @@ export function FunnelOverviewPanel({
                 ) : null}
                 {analyticsTotals ? (
                   <>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`page-views-${periodLabel}`}
+                    >
                       <AnalyticsMetricMiniChart
                         title="Page views"
                         subtitle={periodLabel}
@@ -550,7 +562,11 @@ export function FunnelOverviewPanel({
                         strokeColor={OVERVIEW_CHART_COLORS.blue}
                       />
                     </motion.div>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`button-clicks-${periodLabel}`}
+                    >
                       <AnalyticsMetricMiniChart
                         title="Button clicks"
                         subtitle={periodLabel}
@@ -560,7 +576,11 @@ export function FunnelOverviewPanel({
                         strokeColor={OVERVIEW_CHART_COLORS.pink}
                       />
                     </motion.div>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`unique-visitors-${periodLabel}`}
+                    >
                       <AnalyticsMetricMiniChart
                         title="Unique visitors"
                         subtitle={periodLabel}
@@ -570,7 +590,11 @@ export function FunnelOverviewPanel({
                         strokeColor={OVERVIEW_CHART_COLORS.green}
                       />
                     </motion.div>
-                    <motion.div className="funnel-overview-chart-slot" variants={funnelPanelItem}>
+                    <motion.div
+                      className="funnel-overview-chart-slot"
+                      variants={funnelPanelItem}
+                      key={`revenue-${periodLabel}`}
+                    >
                       <FunnelRevenueMiniChart
                         data={revenueMonthly}
                         totalRevenueCents={monthlyStatsTotals.revenue}

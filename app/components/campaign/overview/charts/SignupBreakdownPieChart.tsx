@@ -20,6 +20,7 @@ import {
 import {
   hasSignupBreakdownData,
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MONTH_COUNT,
   type ChartNameValue,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -119,6 +120,7 @@ export function SignupBreakdownPieChart({
                 cornerRadius={hasData ? 6 : 0}
                 stroke="#ffffff"
                 strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
               >
                 {pieData.map((entry, index) => (
                   <Cell

@@ -13,6 +13,7 @@ import { OverviewChartShell } from "@/app/components/campaign/overview/charts/Ov
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   overviewAxisInterval,
   shortenMonthAxisLabel,
@@ -85,6 +86,7 @@ export function BusinessRevenueMiniChart({
               name="Revenue"
               stroke={strokeColor}
               strokeWidth={3}
+              {...OVERVIEW_LINE_ANIMATION}
               dot={{
                 r: 3.5,
                 fill: "#ffffff",

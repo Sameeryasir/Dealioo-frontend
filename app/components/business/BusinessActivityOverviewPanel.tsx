@@ -372,10 +372,10 @@ export function BusinessActivityOverviewPanel({
                 </p>
               </div>
               <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
-                <div className="min-h-[300px]">
+                <div className="min-h-[300px]" key={`checkins-${periodLabel}`}>
                   <CheckInsBarChart data={visibleCheckIns} caption={periodLabel} />
                 </div>
-                <div className="min-h-[300px]">
+                <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
                     totalRevenueCents={periodPaidCents}
@@ -383,7 +383,7 @@ export function BusinessActivityOverviewPanel({
                     caption={periodLabel}
                   />
                 </div>
-                <div className="min-h-[300px]">
+                <div className="min-h-[300px]" key={`orders-${periodLabel}`}>
                   <BusinessMonthlyBarChart
                     title="Orders"
                     subtitle="Paid payments"
@@ -396,7 +396,7 @@ export function BusinessActivityOverviewPanel({
                     caption={periodLabel}
                   />
                 </div>
-                <div className="min-h-[300px]">
+                <div className="min-h-[300px]" key={`members-${periodLabel}`}>
                   <BusinessMembersMiniChart
                     data={visibleMembers}
                     total={visibleNewMembers}

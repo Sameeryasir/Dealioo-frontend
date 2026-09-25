@@ -18,6 +18,7 @@ import {
   useLineChartGradient,
 } from "@/app/components/campaign/overview/charts/overview-chart-gradients";
 import {
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
   overviewAxisInterval,
@@ -96,6 +97,7 @@ export function AnalyticsMetricMiniChart({
                 fill={`url(#${gradient.areaId})`}
                 fillOpacity={1}
                 tooltipType="none"
+                {...OVERVIEW_LINE_ANIMATION}
               />
               <Line
                 id={`${gradient.lineId}-stroke`}
@@ -104,6 +106,7 @@ export function AnalyticsMetricMiniChart({
                 name={title}
                 stroke={strokeColor}
                 strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
                 dot={{
                   r: 3.5,
                   fill: "#ffffff",

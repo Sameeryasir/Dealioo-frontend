@@ -15,6 +15,7 @@ import { OverviewChartShell } from "@/app/components/campaign/overview/charts/Ov
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
   OVERVIEW_CHART_COLORS,
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
   overviewAxisInterval,
@@ -72,6 +73,7 @@ export function SignupsPaymentsBarChart({
                 name="Signups"
                 stroke={OVERVIEW_CHART_COLORS.green}
                 strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
                 dot={{
                   r: 3.5,
                   fill: "#ffffff",
@@ -91,6 +93,7 @@ export function SignupsPaymentsBarChart({
                 name="Payments"
                 stroke={OVERVIEW_CHART_COLORS.blue}
                 strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
                 dot={{
                   r: 3.5,
                   fill: "#ffffff",

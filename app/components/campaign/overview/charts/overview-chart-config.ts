@@ -37,6 +37,13 @@ export const OVERVIEW_MINI_LINE_CHART_MARGIN = {
   bottom: 0,
 };
 
+export const OVERVIEW_LINE_ANIMATION = {
+  isAnimationActive: "auto" as const,
+  animationDuration: 900,
+  animationEasing: "ease-out" as const,
+  animationBegin: 0,
+};
+
 export const OVERVIEW_BAR_CHART_MARGIN = {
   top: 8,
   right: 12,

@@ -13,6 +13,7 @@ import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/O
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
+  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
   overviewAxisInterval,
@@ -87,6 +88,7 @@ export function BusinessMonthlyBarChart({
               name={seriesName}
               stroke={barFill}
               strokeWidth={3}
+              {...OVERVIEW_LINE_ANIMATION}
               dot={{
                 r: 3.5,
                 fill: "#ffffff",
