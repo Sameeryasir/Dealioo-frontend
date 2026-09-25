@@ -12,10 +12,11 @@ import { getBusinessSidebarUnread } from "@/app/services/sidebar-unread/get-busi
 import { markSidebarSectionRead } from "@/app/services/sidebar-unread/mark-sidebar-section-read";
 import { useBusinessSidebarPusher } from "@/app/hooks/use-business-sidebar-pusher";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
+import { isPusherConfigured } from "@/app/lib/pusher-sidebar";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const POLL_MS = 15_000;
+const FALLBACK_POLL_MS = 15_000;
 const SECTIONS: SidebarUnreadSection[] = ["orders", "activity", "history"];
 
 function resolveUserId(): number | null {
@@ -302,7 +303,9 @@ export function useBusinessSidebarSectionUnread(
     };
 
     run();
-    const timer = window.setInterval(run, POLL_MS);
+    const pollTimer = isPusherConfigured()
+      ? null
+      : window.setInterval(run, FALLBACK_POLL_MS);
     const onFocus = () => run();
     const onVisibility = () => {
       if (document.visibilityState === "visible") run();
@@ -313,7 +316,7 @@ export function useBusinessSidebarSectionUnread(
 
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      if (pollTimer != null) window.clearInterval(pollTimer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
       unsubReconnect();

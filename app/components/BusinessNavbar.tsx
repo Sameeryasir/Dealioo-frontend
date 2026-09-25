@@ -1,6 +1,6 @@
 "use client";
 
-import BusinessNotifications from "@/app/components/BusinessNotifications";
+import dynamic from "next/dynamic";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
@@ -12,6 +12,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
+
+const BusinessNotifications = dynamic(
+  () => import("@/app/components/BusinessNotifications"),
+  { ssr: false },
+);
 
 const ORG_DASHBOARD_HREF = "/dashboard";
 const PROFILE_HREF = "/dashboard/profile";

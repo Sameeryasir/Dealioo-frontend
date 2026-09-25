@@ -11,9 +11,12 @@ import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
 import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
+import { isPusherConfigured } from "@/app/lib/pusher-chat";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
+
+const FALLBACK_POLL_MS = 15_000;
 
 function isOnChatsRoute(pathname: string, chatsPathPrefix: string | null): boolean {
   if (isGuestChatsPath(pathname)) return true;
@@ -123,7 +126,9 @@ export function useChatSidebarUnread(
     };
 
     const initialRefresh = window.setTimeout(refresh, 500);
-    const timer = window.setInterval(refresh, 15_000);
+    const pollTimer = isPusherConfigured()
+      ? null
+      : window.setInterval(refresh, FALLBACK_POLL_MS);
     const onFocus = () => refresh();
     const onVisibility = () => {
       if (document.visibilityState === "visible") refresh();
@@ -135,7 +140,7 @@ export function useChatSidebarUnread(
     return () => {
       cancelled = true;
       window.clearTimeout(initialRefresh);
-      window.clearInterval(timer);
+      if (pollTimer != null) window.clearInterval(pollTimer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
       unsubReconnect();

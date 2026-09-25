@@ -1,11 +1,11 @@
 "use client";
 
 import { ArrowLeft, PanelLeft } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
-import BusinessNotifications from "@/app/components/BusinessNotifications";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import {
@@ -15,6 +15,11 @@ import {
   type CampaignDashboardTabId,
 } from "@/app/lib/campaign-dashboard-tab";
 import { hasAnyAutomationPermission } from "@/app/lib/member-permissions";
+
+const BusinessNotifications = dynamic(
+  () => import("@/app/components/BusinessNotifications"),
+  { ssr: false },
+);
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;

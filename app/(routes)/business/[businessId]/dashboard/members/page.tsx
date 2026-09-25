@@ -1,11 +1,28 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
+import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
+
+const BusinessMembersPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessMembersPanel").then(
+      (mod) => mod.BusinessMembersPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6" aria-busy="true" aria-label="Loading members">
+        <Skeleton className="mb-4 h-10 w-48 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export default function BusinessMembersPage() {
   const params = useParams();

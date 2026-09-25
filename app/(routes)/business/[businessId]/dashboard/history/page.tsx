@@ -1,12 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { BusinessHistoryPanel } from "@/app/components/business/BusinessHistoryPanel";
+import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { canViewBusinessHistory } from "@/app/lib/can-view-business-history";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
+
+const BusinessHistoryPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessHistoryPanel").then(
+      (mod) => mod.BusinessHistoryPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6" aria-busy="true" aria-label="Loading history">
+        <Skeleton className="mb-4 h-10 w-48 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export default function BusinessHistoryPage() {
   const params = useParams();

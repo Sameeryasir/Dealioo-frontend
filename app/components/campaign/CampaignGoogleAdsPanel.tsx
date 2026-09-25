@@ -209,22 +209,6 @@ export function CampaignGoogleAdsPanel({
     });
   }, [businessId, queryClient]);
 
-  useEffect(() => {
-    if (!googleConnected || !googleCustomerSelected) return;
-    if (!canCreateGoogleCampaign) return;
-    void queryClient.prefetchQuery({
-      queryKey: googleCampaignDraftQueryKeys.byBusiness(businessId),
-      queryFn: () => listGoogleCampaignDrafts(businessId),
-      staleTime: 30_000,
-    });
-  }, [
-    businessId,
-    canCreateGoogleCampaign,
-    googleConnected,
-    googleCustomerSelected,
-    queryClient,
-  ]);
-
   const loadStats = useCallback(async () => {
     setAdStatsLoading(true);
     setAdStatsError(null);
@@ -283,8 +267,21 @@ export function CampaignGoogleAdsPanel({
       setAdStats(null);
       setAdStatsError(null);
 
-      const { connected, customerSelected } =
-        await refreshConnection();
+      const token = getSetupAccessToken();
+      const statsInFlight =
+        token != null
+          ? getGoogleAdsCampaignStats(businessId)
+              .then((stats) => ({ ok: true as const, stats }))
+              .catch((e) => ({
+                ok: false as const,
+                message:
+                  e instanceof Error
+                    ? e.message
+                    : "Could not load Google Ads campaign stats.",
+              }))
+          : null;
+
+      const { connected, customerSelected } = await refreshConnection();
       if (cancelled) return;
 
       if (!connected || !customerSelected) {
@@ -292,13 +289,47 @@ export function CampaignGoogleAdsPanel({
         return;
       }
 
-      await loadStats();
+      if (!statsInFlight) {
+        setAdStatsLoading(false);
+        return;
+      }
+
+      const result = await statsInFlight;
+      if (cancelled) return;
+
+      if (result.ok) {
+        setAdStats(result.stats);
+        setAdStatsError(null);
+      } else {
+        setAdStats(null);
+        setAdStatsError(friendlyGoogleAdsError(result.message));
+      }
+      setAdStatsLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [businessId, refreshConnection, loadStats]);
+  }, [businessId, refreshConnection]);
+
+  useEffect(() => {
+    if (!googleConnected || !googleCustomerSelected) return;
+    if (!canCreateGoogleCampaign) return;
+    if (!createCampaignOpen && !draftPickerOpen) return;
+    void queryClient.prefetchQuery({
+      queryKey: googleCampaignDraftQueryKeys.byBusiness(businessId),
+      queryFn: () => listGoogleCampaignDrafts(businessId),
+      staleTime: 30_000,
+    });
+  }, [
+    businessId,
+    canCreateGoogleCampaign,
+    createCampaignOpen,
+    draftPickerOpen,
+    googleConnected,
+    googleCustomerSelected,
+    queryClient,
+  ]);
 
   const handleConfirmDeleteCampaign = useCallback(async () => {
     if (!campaignPendingDelete) return;

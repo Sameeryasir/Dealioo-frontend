@@ -34,7 +34,8 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
     queryKey: businessMemberQueryKeys.me(businessId ?? 0),
     queryFn: () => getMyBusinessMembershipAccess(businessId as number),
     enabled,
-    staleTime: 0,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     refetchOnWindowFocus: true,
   });
 

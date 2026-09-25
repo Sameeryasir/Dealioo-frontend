@@ -1,12 +1,13 @@
 "use client";
 
-import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
+import dynamic from "next/dynamic";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import { Skeleton } from "@/app/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -21,6 +22,22 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+
+const BusinessActivityOverviewPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessActivityOverviewPanel").then(
+      (mod) => mod.BusinessActivityOverviewPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-2" aria-busy="true" aria-label="Loading overview">
+        <Skeleton className="mb-3 h-8 w-48 rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 type MissingIntegration = "stripe" | "twilio" | "facebook" | "google";
 

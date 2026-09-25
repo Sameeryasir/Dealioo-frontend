@@ -9,7 +9,8 @@ import {
   googleBuilderSecondaryButtonClass,
   googleBuilderShellClass,
 } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
-import { renderCampaignBuilderStep } from "@/app/components/google-ads/campaign-builder/CampaignBuilderSteps";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/app/components/skeleton";
 import {
   clearGoogleCampaignDraft,
   loadGoogleCampaignDraft,
@@ -79,6 +80,21 @@ function resolveSaveError(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
   return fallback;
 }
+
+const CampaignBuilderStepHost = dynamic(
+  () =>
+    import("@/app/components/google-ads/campaign-builder/CampaignBuilderStepHost"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy="true" aria-label="Loading step">
+        <Skeleton className="h-8 w-48 rounded-xl" />
+        <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export function CampaignBuilderWizard({
   open,
@@ -1393,19 +1409,22 @@ export function CampaignBuilderWizard({
         <div className="mx-auto max-w-3xl pb-10">
           <AnimatePresence mode="wait">
             <div key={`${step}`}>
-              {renderCampaignBuilderStep(step, {
-                businessId,
-                draft,
-                errors,
-                onChange: patchDraft,
-                onEditStep: goToStep,
-                publishing,
-                publishProgress,
-                publishPhase,
-                publishStep,
-                publishError,
-                publishSuccess,
-              })}
+              {open ? (
+                <CampaignBuilderStepHost
+                  step={step}
+                  businessId={businessId}
+                  draft={draft}
+                  errors={errors}
+                  onChange={patchDraft}
+                  onEditStep={goToStep}
+                  publishing={publishing}
+                  publishProgress={publishProgress}
+                  publishPhase={publishPhase}
+                  publishStep={publishStep}
+                  publishError={publishError}
+                  publishSuccess={publishSuccess}
+                />
+              ) : null}
             </div>
           </AnimatePresence>
         </div>
