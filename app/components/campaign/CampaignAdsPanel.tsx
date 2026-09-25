@@ -1,22 +1,40 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
 } from "lucide-react";
-import { MetaAdsAnalyticsDashboard } from "@/app/components/campaign/MetaAdsAnalyticsDashboard";
 import { MetaAdsConnectEmptyState } from "@/app/components/campaign/MetaAdsConnectEmptyState";
-import { MetaCampaignBuilder } from "@/app/components/campaign/meta-builder/MetaCampaignBuilder";
 import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-builder/MetaCampaignObjectiveDialog";
-import {
-  MetaDraftPicker,
-  type MetaDraftPickerAction,
-} from "@/app/components/campaign/meta-builder/MetaDraftPicker";
+import type { MetaDraftPickerAction } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import { DEFAULT_META_AD_STATS_DATE_PRESET } from "@/app/lib/meta-ad-stats-date-preset";
+
+const MetaAdsAnalyticsDashboard = dynamic(
+  () =>
+    import("@/app/components/campaign/MetaAdsAnalyticsDashboard").then(
+      (mod) => mod.MetaAdsAnalyticsDashboard,
+    ),
+  { ssr: false },
+);
+const MetaCampaignBuilder = dynamic(
+  () =>
+    import("@/app/components/campaign/meta-builder/MetaCampaignBuilder").then(
+      (mod) => mod.MetaCampaignBuilder,
+    ),
+  { ssr: false },
+);
+const MetaDraftPicker = dynamic(
+  () =>
+    import("@/app/components/campaign/meta-builder/MetaDraftPicker").then(
+      (mod) => mod.MetaDraftPicker,
+    ),
+  { ssr: false },
+);
 
 function MetaAdsPanelSkeleton() {
   return (
@@ -623,38 +641,42 @@ export function CampaignAdsPanel({
         onContinue={handleObjectiveContinue}
       />
 
-      <MetaDraftPicker
-        open={draftPickerOpen}
-        businessId={businessId}
-        metaAdAccountId={metaAdAccountId}
-        onClose={() => setDraftPickerOpen(false)}
-        onSelect={handleDraftPickerSelect}
-      />
+      {draftPickerOpen ? (
+        <MetaDraftPicker
+          open={draftPickerOpen}
+          businessId={businessId}
+          metaAdAccountId={metaAdAccountId}
+          onClose={() => setDraftPickerOpen(false)}
+          onSelect={handleDraftPickerSelect}
+        />
+      ) : null}
 
-      <MetaCampaignBuilder
-        open={builderOpen}
-        onClose={() => {
-          setBuilderOpen(false);
-          setSelectedObjective(null);
-          setAutoStartPublish(false);
-          invalidateDrafts();
-        }}
-        businessId={businessId}
-        defaultName={builderDefaultName || campaignName}
-        defaultWebsiteUrl={campaignWebsiteUrl}
-        initialObjective={selectedObjective}
-        draftId={activeDraft?.id ?? null}
-        initialDraft={activeDraft}
-        autoStartPublish={
-          autoStartPublish ||
-          (activeDraft != null &&
-            ((activeDraft.status ?? "").toLowerCase() === "publishing" ||
-              ["QUEUED", "PUBLISHING", "RUNNING"].includes(
-                (activeDraft.publishStatus ?? "").toUpperCase(),
-              )))
-        }
-        onDraftSaved={handleDraftSaved}
-      />
+      {builderOpen ? (
+        <MetaCampaignBuilder
+          open={builderOpen}
+          onClose={() => {
+            setBuilderOpen(false);
+            setSelectedObjective(null);
+            setAutoStartPublish(false);
+            invalidateDrafts();
+          }}
+          businessId={businessId}
+          defaultName={builderDefaultName || campaignName}
+          defaultWebsiteUrl={campaignWebsiteUrl}
+          initialObjective={selectedObjective}
+          draftId={activeDraft?.id ?? null}
+          initialDraft={activeDraft}
+          autoStartPublish={
+            autoStartPublish ||
+            (activeDraft != null &&
+              ((activeDraft.status ?? "").toLowerCase() === "publishing" ||
+                ["QUEUED", "PUBLISHING", "RUNNING"].includes(
+                  (activeDraft.publishStatus ?? "").toUpperCase(),
+                )))
+          }
+          onDraftSaved={handleDraftSaved}
+        />
+      ) : null}
 
       {resumeDraftLoading ? (
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-xs font-semibold text-[#1877f2] shadow-lg">

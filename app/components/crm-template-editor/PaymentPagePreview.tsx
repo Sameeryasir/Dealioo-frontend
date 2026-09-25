@@ -1,9 +1,7 @@
 "use client";
 
-import {
-  FunnelStripePaymentForm,
-  type FunnelStripePaymentContext,
-} from "@/app/components/funnel/FunnelStripePaymentForm";
+import dynamic from "next/dynamic";
+import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { CheckoutTemplateRenderer } from "@/app/components/payment-templates/CheckoutTemplateRenderer";
 import {
   normalizeCheckoutTemplate,
@@ -30,6 +28,14 @@ import type {
   PaymentTemplatePage,
   TemplatePage,
 } from "@/app/components/crm-template-editor/template-types";
+
+const FunnelStripePaymentForm = dynamic(
+  () =>
+    import("@/app/components/funnel/FunnelStripePaymentForm").then(
+      (mod) => mod.FunnelStripePaymentForm,
+    ),
+  { ssr: false },
+);
 
 function isLandingTemplatePage(page: TemplatePage): page is LandingTemplatePage {
   return page.id === "landing";

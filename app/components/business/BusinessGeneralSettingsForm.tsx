@@ -1,7 +1,6 @@
 "use client";
 
-import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
-import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
+import dynamic from "next/dynamic";
 import { BusinessProfileEditModal } from "@/app/components/business/BusinessProfileEditModal";
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
@@ -34,6 +33,21 @@ import {
   useState,
   type ReactNode,
 } from "react";
+
+const BusinessIntegrationsPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessIntegrationsPanel").then(
+      (mod) => mod.BusinessIntegrationsPanel,
+    ),
+  { ssr: false },
+);
+const BusinessMembersPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessMembersPanel").then(
+      (mod) => mod.BusinessMembersPanel,
+    ),
+  { ssr: false },
+);
 
 export type BusinessProfilePreviewSection =
   | "general"

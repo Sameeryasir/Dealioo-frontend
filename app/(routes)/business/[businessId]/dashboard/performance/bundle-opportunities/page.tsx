@@ -1,11 +1,28 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { BusinessBundleOpportunitiesPanel } from "@/app/components/business/BusinessBundleOpportunitiesPanel";
+import { Skeleton } from "@/app/components/skeleton";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
+
+const BusinessBundleOpportunitiesPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessBundleOpportunitiesPanel").then(
+      (mod) => mod.BusinessBundleOpportunitiesPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6" aria-busy="true" aria-label="Loading bundle opportunities">
+        <Skeleton className="mb-4 h-10 w-56 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 function BundleOpportunitiesPageBody({ businessId }: { businessId: number }) {
   return <BusinessBundleOpportunitiesPanel businessId={businessId} />;

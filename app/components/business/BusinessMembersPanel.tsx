@@ -16,11 +16,11 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
-import { InviteMemberModal } from "@/app/components/business/InviteMemberModal";
 import { InvitePermissionSections } from "@/app/components/business/BusinessPermissionsMatrix";
 import { Skeleton } from "@/app/components/skeleton";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
@@ -38,6 +38,14 @@ import {
   removeBusinessMember,
   resendPendingBusinessInvitation,
 } from "@/app/services/member/business-members";
+
+const InviteMemberModal = dynamic(
+  () =>
+    import("@/app/components/business/InviteMemberModal").then(
+      (mod) => mod.InviteMemberModal,
+    ),
+  { ssr: false },
+);
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import {
   BUSINESS_MEMBER_PERMISSIONS,
@@ -1014,20 +1022,22 @@ export function BusinessMembersPanel({
         </div>
       </section>
 
-      <InviteMemberModal
-        open={inviteOpen}
-        onClose={() => {
-          setInviteOpen(false);
-          setEditInvite(null);
-        }}
-        businessId={businessId}
-        editInvite={editInvite}
-        onSuccess={() => {
-          void queryClient.invalidateQueries({
-            queryKey: businessMemberQueryKeys.lists(businessId),
-          });
-        }}
-      />
+      {inviteOpen ? (
+        <InviteMemberModal
+          open={inviteOpen}
+          onClose={() => {
+            setInviteOpen(false);
+            setEditInvite(null);
+          }}
+          businessId={businessId}
+          editInvite={editInvite}
+          onSuccess={() => {
+            void queryClient.invalidateQueries({
+              queryKey: businessMemberQueryKeys.lists(businessId),
+            });
+          }}
+        />
+      ) : null}
 
       <MemberDetailsModal
         member={detailsMember}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,13 +9,8 @@ import {
   ArrowRight,
   Check,
 } from "lucide-react";
-import { GoogleAdsAnalyticsDashboard } from "@/app/components/campaign/GoogleAdsAnalyticsDashboard";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
-import { GoogleAdsCreateCampaignFlow } from "@/app/components/google-ads/GoogleAdsCreateCampaignFlow";
-import {
-  GoogleDraftPicker,
-  type GoogleDraftPickerAction,
-} from "@/app/components/google-ads/campaign-builder/GoogleDraftPicker";
+import type { GoogleDraftPickerAction } from "@/app/components/google-ads/campaign-builder/GoogleDraftPicker";
 import {
   clearGoogleCampaignDraft,
   saveGoogleCampaignServerDraftId,
@@ -37,6 +33,28 @@ import {
   isGoogleAdsCustomerSelected,
 } from "@/app/services/google-ads/get-google-ads-connection-status";
 import { listGoogleCampaignDrafts } from "@/app/services/google-ads/google-campaign-draft";
+
+const GoogleAdsAnalyticsDashboard = dynamic(
+  () =>
+    import("@/app/components/campaign/GoogleAdsAnalyticsDashboard").then(
+      (mod) => mod.GoogleAdsAnalyticsDashboard,
+    ),
+  { ssr: false },
+);
+const GoogleAdsCreateCampaignFlow = dynamic(
+  () =>
+    import("@/app/components/google-ads/GoogleAdsCreateCampaignFlow").then(
+      (mod) => mod.GoogleAdsCreateCampaignFlow,
+    ),
+  { ssr: false },
+);
+const GoogleDraftPicker = dynamic(
+  () =>
+    import("@/app/components/google-ads/campaign-builder/GoogleDraftPicker").then(
+      (mod) => mod.GoogleDraftPicker,
+    ),
+  { ssr: false },
+);
 
 function GoogleAdsPanelSkeleton() {
   return (
@@ -99,14 +117,13 @@ function GoogleAdsPanelSkeleton() {
 }
 
 function isGoogleAuthError(message: string): boolean {
-  return /invalid_grant|access expired|was revoked|reconnect google|not connected/i.test(
-    message,
-  );
+  // Only treat true missing-connection as auth UI; refresh hiccups stay connected.
+  return /google ads is not connected/i.test(message);
 }
 
 function friendlyGoogleAdsError(message: string): string {
-  if (/invalid_grant/i.test(message) || isGoogleAuthError(message)) {
-    return "Google Ads access expired or was revoked. Reconnect Google Ads in Settings → Integrations.";
+  if (/could not refresh google ads access|stays active until you disconnect/i.test(message)) {
+    return "Google Ads is still connected. Please try again in a moment.";
   }
   return message;
 }
@@ -477,13 +494,15 @@ export function CampaignGoogleAdsPanel({
         }}
       />
 
-      <GoogleDraftPicker
-        open={draftPickerOpen}
-        businessId={businessId}
-        adsConsoleUrl={adsConsoleUrl}
-        onClose={() => setDraftPickerOpen(false)}
-        onSelect={handleDraftPickerSelect}
-      />
+      {draftPickerOpen ? (
+        <GoogleDraftPicker
+          open={draftPickerOpen}
+          businessId={businessId}
+          adsConsoleUrl={adsConsoleUrl}
+          onClose={() => setDraftPickerOpen(false)}
+          onSelect={handleDraftPickerSelect}
+        />
+      ) : null}
 
       {createCampaignOpen ? (
         <GoogleAdsCreateCampaignFlow

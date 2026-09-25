@@ -1,10 +1,27 @@
 "use client";
 
-import { CampaignGoogleAdsPanel } from "@/app/components/campaign/CampaignGoogleAdsPanel";
+import dynamic from "next/dynamic";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
+import { Skeleton } from "@/app/components/skeleton";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
+
+const CampaignGoogleAdsPanel = dynamic(
+  () =>
+    import("@/app/components/campaign/CampaignGoogleAdsPanel").then(
+      (mod) => mod.CampaignGoogleAdsPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6" aria-busy="true" aria-label="Loading Google Ads">
+        <Skeleton className="mb-4 h-10 w-56 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export default function BusinessGoogleAdsPage() {
   const params = useParams();

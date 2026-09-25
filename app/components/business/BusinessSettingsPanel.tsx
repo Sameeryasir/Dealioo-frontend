@@ -9,22 +9,16 @@ import {
   User,
   Users,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { clearSetupUser } from "@/app/lib/setup-user";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
-import {
-  BusinessGeneralSettingsForm,
-  type BusinessProfilePreviewSection,
-} from "@/app/components/business/BusinessGeneralSettingsForm";
-import { BusinessIntegrationsPanel } from "@/app/components/business/BusinessIntegrationsPanel";
-import { BusinessMembersPanel } from "@/app/components/business/BusinessMembersPanel";
+import type { BusinessProfilePreviewSection } from "@/app/components/business/BusinessGeneralSettingsForm";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { getBusinessTwilioPhoneNumbers } from "@/app/services/business/twilio-phone-numbers";
-import { OwnerProfileForm } from "@/app/components/profile/OwnerProfileForm";
-import { OwnerSubscriptionSection } from "@/app/components/profile/OwnerSubscriptionSection";
 import {
   businessSettingsHref,
   orgSettingsHref,
@@ -32,6 +26,42 @@ import {
 } from "@/app/lib/business-settings-routes";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { logoutSession } from "@/app/services/auth/logout";
+
+const BusinessGeneralSettingsForm = dynamic(
+  () =>
+    import("@/app/components/business/BusinessGeneralSettingsForm").then(
+      (mod) => mod.BusinessGeneralSettingsForm,
+    ),
+  { ssr: false },
+);
+const BusinessIntegrationsPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessIntegrationsPanel").then(
+      (mod) => mod.BusinessIntegrationsPanel,
+    ),
+  { ssr: false },
+);
+const BusinessMembersPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessMembersPanel").then(
+      (mod) => mod.BusinessMembersPanel,
+    ),
+  { ssr: false },
+);
+const OwnerProfileForm = dynamic(
+  () =>
+    import("@/app/components/profile/OwnerProfileForm").then(
+      (mod) => mod.OwnerProfileForm,
+    ),
+  { ssr: false },
+);
+const OwnerSubscriptionSection = dynamic(
+  () =>
+    import("@/app/components/profile/OwnerSubscriptionSection").then(
+      (mod) => mod.OwnerSubscriptionSection,
+    ),
+  { ssr: false },
+);
 
 const DASHBOARD_HREF = "/dashboard" as const;
 

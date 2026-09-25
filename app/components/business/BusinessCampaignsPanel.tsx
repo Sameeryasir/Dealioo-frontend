@@ -9,11 +9,10 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
-import { EditCampaignModal } from "@/app/components/campaign/EditCampaignModal";
-import CreateCampaigns from "@/app/components/CreateCampaigns";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
@@ -46,6 +45,18 @@ import {
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { subscribeBusinessCampaignActivity } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-campaign-activity";
+
+const CreateCampaigns = dynamic(
+  () => import("@/app/components/CreateCampaigns"),
+  { ssr: false },
+);
+const EditCampaignModal = dynamic(
+  () =>
+    import("@/app/components/campaign/EditCampaignModal").then(
+      (mod) => mod.EditCampaignModal,
+    ),
+  { ssr: false },
+);
 
 const CAMPAIGNS_FETCH_LIMIT = 200;
 const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
@@ -512,35 +523,39 @@ export function BusinessCampaignsPanel({
         onClose={() => setAlertDismissed(true)}
       />
 
-      <EditCampaignModal
-        open={campaignPendingEdit != null}
-        campaign={campaignPendingEdit}
-        onOpenChange={(open) => {
-          if (!open) setCampaignPendingEdit(null);
-        }}
-        onSaved={async () => {
-          await queryClient.invalidateQueries({
-            queryKey: [...funnelQueryKeys.campaigns(), businessId],
-          });
-        }}
-        onDeleteRequest={setCampaignPendingDelete}
-      />
+      {campaignPendingEdit != null ? (
+        <EditCampaignModal
+          open
+          campaign={campaignPendingEdit}
+          onOpenChange={(open) => {
+            if (!open) setCampaignPendingEdit(null);
+          }}
+          onSaved={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: [...funnelQueryKeys.campaigns(), businessId],
+            });
+          }}
+          onDeleteRequest={setCampaignPendingDelete}
+        />
+      ) : null}
 
-      <CreateCampaigns
-        open={createOpen}
-        businessId={businessId}
-        defaultWebsiteUrl={business?.websiteUrl}
-        onOpenChange={(next) => {
-          setCreateOpen(next);
-          if (!next) {
-            const skipDashboardNav = skipPostCreateNavRef.current;
-            if (skipDashboardNav) {
-              skipPostCreateNavRef.current = false;
+      {createOpen ? (
+        <CreateCampaigns
+          open={createOpen}
+          businessId={businessId}
+          defaultWebsiteUrl={business?.websiteUrl}
+          onOpenChange={(next) => {
+            setCreateOpen(next);
+            if (!next) {
+              const skipDashboardNav = skipPostCreateNavRef.current;
+              if (skipDashboardNav) {
+                skipPostCreateNavRef.current = false;
+              }
             }
-          }
-        }}
-        onComplete={handleCreateComplete}
-      />
+          }}
+          onComplete={handleCreateComplete}
+        />
+      ) : null}
 
       <DeleteConfirmationDialog
         open={campaignPendingDelete != null}

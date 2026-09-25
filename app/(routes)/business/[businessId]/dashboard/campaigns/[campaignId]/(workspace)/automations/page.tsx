@@ -1,13 +1,30 @@
 "use client";
 
-import { AutomationListPage } from "@/app/components/automation/AutomationListPage";
+import dynamic from "next/dynamic";
 import { useCampaignFunnelId } from "@/app/hooks/use-campaign-funnel-id";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
+import { Skeleton } from "@/app/components/skeleton";
 import { hasAnyAutomationPermission } from "@/app/lib/member-permissions";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo } from "react";
+
+const AutomationListPage = dynamic(
+  () =>
+    import("@/app/components/automation/AutomationListPage").then(
+      (mod) => mod.AutomationListPage,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4" aria-busy="true" aria-label="Loading automations">
+        <Skeleton className="mb-4 h-10 w-56 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export default function CampaignAutomationsPage() {
   const router = useRouter();

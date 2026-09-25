@@ -1,10 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
-import { BusinessQrScannerPanel } from "@/app/components/business/BusinessQrScannerPanel";
+import { Skeleton } from "@/app/components/skeleton";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
+
+const BusinessQrScannerPanel = dynamic(
+  () =>
+    import("@/app/components/business/BusinessQrScannerPanel").then(
+      (mod) => mod.BusinessQrScannerPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6" aria-busy="true" aria-label="Loading scanner">
+        <Skeleton className="mb-4 h-10 w-48 rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-2xl" />
+      </div>
+    ),
+  },
+);
 
 export default function BusinessScanningPage() {
   const params = useParams();

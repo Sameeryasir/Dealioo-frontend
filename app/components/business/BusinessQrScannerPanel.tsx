@@ -1,10 +1,8 @@
 "use client";
 
 import { ScanLine, Search, UserPlus } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { ScannerCreateGuestPanel } from "@/app/components/business/ScannerCreateGuestPanel";
-import { ScannerScanCodePanel } from "@/app/components/business/ScannerScanCodePanel";
-import { ScannerSearchGuestPanel } from "@/app/components/business/ScannerSearchGuestPanel";
 
 export const scannerCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -20,6 +18,49 @@ const SCANNER_TABS: Array<{
   { id: "search", label: "Search", icon: Search },
   { id: "create", label: "New Guest", icon: UserPlus },
 ];
+
+function ScannerTabLoading({ label }: { label: string }) {
+  return (
+    <div
+      className="flex min-h-[14rem] items-center justify-center text-sm text-slate-500"
+      aria-busy="true"
+      aria-label={label}
+    >
+      {label}
+    </div>
+  );
+}
+
+const ScannerScanCodePanel = dynamic(
+  () =>
+    import("@/app/components/business/ScannerScanCodePanel").then(
+      (mod) => mod.ScannerScanCodePanel,
+    ),
+  {
+    ssr: false,
+    loading: () => <ScannerTabLoading label="Loading scanner…" />,
+  },
+);
+const ScannerSearchGuestPanel = dynamic(
+  () =>
+    import("@/app/components/business/ScannerSearchGuestPanel").then(
+      (mod) => mod.ScannerSearchGuestPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => <ScannerTabLoading label="Loading guest search…" />,
+  },
+);
+const ScannerCreateGuestPanel = dynamic(
+  () =>
+    import("@/app/components/business/ScannerCreateGuestPanel").then(
+      (mod) => mod.ScannerCreateGuestPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => <ScannerTabLoading label="Loading new guest form…" />,
+  },
+);
 
 function FilterPill({
   active,

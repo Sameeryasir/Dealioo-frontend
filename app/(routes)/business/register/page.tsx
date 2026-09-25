@@ -1,15 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import RegisterBusinessForm, {
   type RegisterBusinessFormValues,
 } from "@/app/components/register-business/RegisterBusinessForm";
-import RegisterBusinessFacebookConnectStep from "@/app/components/register-business/RegisterBusinessFacebookConnectStep";
-import RegisterBusinessGoogleConnectStep from "@/app/components/register-business/RegisterBusinessGoogleConnectStep";
-import RegisterBusinessIntegrationAccountQuestionStep from "@/app/components/register-business/RegisterBusinessIntegrationAccountQuestionStep";
-import RegisterBusinessIntegrationCreateAccountStep from "@/app/components/register-business/RegisterBusinessIntegrationCreateAccountStep";
-import RegisterBusinessIntegrationWhyStep from "@/app/components/register-business/RegisterBusinessIntegrationWhyStep";
-import RegisterBusinessStripeConnectStep from "@/app/components/register-business/RegisterBusinessStripeConnectStep";
-import RegisterBusinessTwilioConnectStep from "@/app/components/register-business/RegisterBusinessTwilioConnectStep";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
 import {
   GoogleAdsLogo,
@@ -60,6 +54,41 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+const RegisterBusinessFacebookConnectStep = dynamic(
+  () => import("@/app/components/register-business/RegisterBusinessFacebookConnectStep"),
+  { ssr: false },
+);
+const RegisterBusinessGoogleConnectStep = dynamic(
+  () => import("@/app/components/register-business/RegisterBusinessGoogleConnectStep"),
+  { ssr: false },
+);
+const RegisterBusinessIntegrationAccountQuestionStep = dynamic(
+  () =>
+    import(
+      "@/app/components/register-business/RegisterBusinessIntegrationAccountQuestionStep"
+    ),
+  { ssr: false },
+);
+const RegisterBusinessIntegrationCreateAccountStep = dynamic(
+  () =>
+    import(
+      "@/app/components/register-business/RegisterBusinessIntegrationCreateAccountStep"
+    ),
+  { ssr: false },
+);
+const RegisterBusinessIntegrationWhyStep = dynamic(
+  () => import("@/app/components/register-business/RegisterBusinessIntegrationWhyStep"),
+  { ssr: false },
+);
+const RegisterBusinessStripeConnectStep = dynamic(
+  () => import("@/app/components/register-business/RegisterBusinessStripeConnectStep"),
+  { ssr: false },
+);
+const RegisterBusinessTwilioConnectStep = dynamic(
+  () => import("@/app/components/register-business/RegisterBusinessTwilioConnectStep"),
+  { ssr: false },
+);
 
 const EMPTY_CONNECTIONS: PostCreateConnectionMap = {
   facebook: false,
