@@ -149,29 +149,6 @@ export default function AdminPanelSidebar() {
           activeMatch: "exact",
         },
         {
-          href: ordersHref,
-          label: "Orders",
-          icon: ShoppingBag,
-          activeMatch: "prefix",
-          permission: "orders",
-        },
-        {
-          href: activityHref,
-          label: "Activity",
-          icon: Activity,
-          activeMatch: "prefix",
-          permission: "activity",
-        },
-        {
-          href: businessId
-            ? `${restaurantHomeHref}/scanning`
-            : "/dashboard/scanning",
-          label: "Scanning",
-          icon: ScanLine,
-          activeMatch: "prefix",
-          permission: "scanning",
-        },
-        {
           href: `${restaurantHomeHref}/campaigns`,
           label: "Campaigns",
           icon: Megaphone,
@@ -190,15 +167,6 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
-            ? `${restaurantHomeHref}/ads-tracking`
-            : "/dashboard/ads-tracking",
-          label: "Ads Tracking",
-          icon: ChartColumn,
-          activeMatch: "prefix",
-          permission: "meta_ads",
-        },
-        {
-          href: businessId
             ? `${restaurantHomeHref}/google-ads`
             : "/dashboard/google-ads",
           label: "Google Ads",
@@ -209,12 +177,49 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
-            ? `${restaurantHomeHref}/members`
-            : "/dashboard/members",
-          label: "Team",
-          icon: UserPlus,
+            ? `${restaurantHomeHref}/ads-tracking`
+            : "/dashboard/ads-tracking",
+          label: "Ads Tracking",
+          icon: ChartColumn,
           activeMatch: "prefix",
-          permission: "members",
+          permission: "meta_ads",
+        },
+        {
+          href: ordersHref,
+          label: "Orders",
+          icon: ShoppingBag,
+          activeMatch: "prefix",
+          permission: "orders",
+        },
+        {
+          href: activityHref,
+          label: "Activity",
+          icon: Activity,
+          activeMatch: "prefix",
+          permission: "activity",
+        },
+        {
+          href: historyHref,
+          label: "History",
+          icon: History,
+          activeMatch: "prefix",
+          permission: "history",
+        },
+        {
+          href: businessId
+            ? `${restaurantHomeHref}/scanning`
+            : "/dashboard/scanning",
+          label: "Scanning",
+          icon: ScanLine,
+          activeMatch: "prefix",
+          permission: "scanning",
+        },
+        {
+          href: chatsHref,
+          label: "Chats",
+          icon: MessageSquare,
+          activeMatch: "prefix",
+          permission: "chats",
         },
         {
           href: businessId
@@ -226,18 +231,13 @@ export default function AdminPanelSidebar() {
           permission: "campaigns",
         },
         {
-          href: chatsHref,
-          label: "Chats",
-          icon: MessageSquare,
+          href: businessId
+            ? `${restaurantHomeHref}/members`
+            : "/dashboard/members",
+          label: "Team",
+          icon: UserPlus,
           activeMatch: "prefix",
-          permission: "chats",
-        },
-        {
-          href: historyHref,
-          label: "History",
-          icon: History,
-          activeMatch: "prefix",
-          permission: "history",
+          permission: "members",
         },
       ];
 
