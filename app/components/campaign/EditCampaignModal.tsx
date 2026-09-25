@@ -24,11 +24,11 @@ import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { UnpublishCampaignBlockedDialog } from "@/app/components/campaign/UnpublishCampaignBlockedDialog";
 import {
+  buildCampaignOriginalPrice,
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
   campaignDescriptionValidationMessage,
   campaignNameValidationMessage,
-  computeOriginalPriceFromDiscount,
   discountValidationMessage,
   inferDiscountFromPrices,
   offerNameValidationMessage,
@@ -351,14 +351,18 @@ export function EditCampaignModal({
       }
 
       const dealPrice = parseOfferPrice(price);
-      const computedOriginal =
-        discountEnabled
-          ? computeOriginalPriceFromDiscount({
-              dealPrice,
-              discountType,
-              discountValue: Number.parseFloat(discountValue.trim()),
-            })
-          : null;
+      const built = buildCampaignOriginalPrice({
+        discountEnabled,
+        dealPriceRaw: price,
+        discountType,
+        discountValueRaw: discountValue,
+      });
+      if (built.error) {
+        setError(built.error);
+        setIsSaving(false);
+        return;
+      }
+      const computedOriginal = built.originalPrice;
 
       const updatedBody = await updateCampaign({
         campaignId: campaign.id,

@@ -5,9 +5,13 @@ import {
 } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
-import { isValidOfferPrice, parseOfferPrice } from "@/app/lib/campaign-form";
+import {
+  assertDealPricingPair,
+  isValidOfferPrice,
+  parseOfferPrice,
+  roundMoney,
+} from "@/app/lib/campaign-form";
 
-/** Image uploads can exceed the default 5s API timeout. */
 const CREATE_CAMPAIGN_TIMEOUT_MS = Math.max(API_REQUEST_TIMEOUT_MS, 120_000);
 
 export type CreateCampaignPayload = {
@@ -22,7 +26,6 @@ export type CreateCampaignPayload = {
   campaignType: "prepaid" | "postpaid";
 };
 
-/** Reads `id` from common POST /campaign/create JSON shapes so we can deep-link after create. */
 export function extractCampaignIdFromCreateResponse(
   body: unknown,
 ): number | undefined {
@@ -76,10 +79,7 @@ export async function createCampaign(
     if (!isValidOfferPrice(String(payload.price))) {
       throw new Error("Enter a valid price.");
     }
-    price = parseOfferPrice(String(payload.price));
-    if (!Number.isFinite(price) || price < 0) {
-      throw new Error("Price is required.");
-    }
+    price = roundMoney(parseOfferPrice(String(payload.price)));
   }
 
   let originalPrice: number | null = null;
@@ -87,15 +87,12 @@ export async function createCampaign(
     if (!isValidOfferPrice(String(payload.originalPrice))) {
       throw new Error("Enter a valid original price.");
     }
-    originalPrice = parseOfferPrice(String(payload.originalPrice));
-    if (!Number.isFinite(originalPrice) || originalPrice < 0) {
-      throw new Error("Enter a valid original price.");
-    }
-    if (price == null || !(originalPrice > price)) {
-      throw new Error(
-        "Original price must be higher than the deal price.",
-      );
-    }
+    originalPrice = roundMoney(parseOfferPrice(String(payload.originalPrice)));
+  }
+
+  const pricingError = assertDealPricingPair(price, originalPrice);
+  if (pricingError) {
+    throw new Error(pricingError);
   }
 
   const form = new FormData();

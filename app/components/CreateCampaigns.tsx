@@ -23,11 +23,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  buildCampaignOriginalPrice,
   CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   CAMPAIGN_OFFER_MAX_LENGTH,
   campaignDescriptionValidationMessage,
   campaignNameValidationMessage,
-  computeOriginalPriceFromDiscount,
   discountValidationMessage,
   offerNameValidationMessage,
   offerPriceValidationMessage,
@@ -365,14 +365,17 @@ useEffect(() => {
 
     let originalPrice = "";
     if (requirePrice && discountEnabled) {
-      const computed = computeOriginalPriceFromDiscount({
-        dealPrice: Number.parseFloat(price.trim()),
+      const built = buildCampaignOriginalPrice({
+        discountEnabled: true,
+        dealPriceRaw: price,
         discountType,
-        discountValue: Number.parseFloat(discountValue.trim()),
+        discountValueRaw: discountValue,
       });
-      if (computed != null) {
-        originalPrice = String(computed);
+      if (built.error || built.originalPrice == null) {
+        setSubmitError(built.error ?? "Could not apply discount.");
+        return;
       }
+      originalPrice = String(built.originalPrice);
     }
 
     const payload: CreateCampaignCompletePayload = {

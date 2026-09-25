@@ -1,6 +1,10 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
+import {
+  assertDealPricingPair,
+  roundMoney,
+} from "@/app/lib/campaign-form";
 
 export type CampaignPublicationStatus = "published" | "unpublished";
 
@@ -44,14 +48,24 @@ export async function updateCampaign(
     throw new Error("Status must be published or unpublished.");
   }
 
+  const price = roundMoney(payload.price);
+  const originalPrice =
+    payload.originalPrice != null && Number.isFinite(payload.originalPrice)
+      ? roundMoney(payload.originalPrice)
+      : null;
+  const pricingError = assertDealPricingPair(price, originalPrice);
+  if (pricingError) {
+    throw new Error(pricingError);
+  }
+
   const form = new FormData();
   form.append("campaignName", payload.campaignName.trim());
   form.append("websiteUrl", payload.websiteUrl.trim());
   form.append("offer", payload.offer.trim());
   form.append("description", payload.description.trim());
-  form.append("price", String(payload.price));
-  if (payload.originalPrice != null && Number.isFinite(payload.originalPrice)) {
-    form.append("originalPrice", String(payload.originalPrice));
+  form.append("price", String(price));
+  if (originalPrice != null) {
+    form.append("originalPrice", String(originalPrice));
   } else {
     form.append("originalPrice", "");
   }

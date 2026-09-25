@@ -5,15 +5,16 @@ export {
   meaningfulTextValidationMessage,
 } from "@/app/lib/form-validation";
 
+export const CAMPAIGN_PRICE_MAX = 999_999.99;
+export const CAMPAIGN_OFFER_MAX_LENGTH = 100;
+
 export function parseOfferPrice(raw: string): number {
   const n = Number.parseFloat(String(raw).replace(/[^0-9.-]/g, ""));
   if (!Number.isFinite(n)) {
     throw new Error("Enter a valid price.");
   }
-  return n;
+  return roundMoney(n);
 }
-
-export const CAMPAIGN_OFFER_MAX_LENGTH = 100;
 
 export function isValidOfferName(raw: string): boolean {
   return offerNameValidationMessage(raw) == null;
@@ -24,7 +25,31 @@ export function isValidOfferPrice(raw: string): boolean {
   if (!trimmed) return false;
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return false;
   const n = Number.parseFloat(trimmed);
-  return Number.isFinite(n) && n >= 0 && n <= 999999.99;
+  return Number.isFinite(n) && n >= 0 && n <= CAMPAIGN_PRICE_MAX;
+}
+
+export function assertDealPricingPair(
+  price: number | null,
+  originalPrice: number | null,
+): string | null {
+  if (originalPrice == null) return null;
+  if (price == null) {
+    return "Set a deal price before adding a discount.";
+  }
+  if (!Number.isFinite(price) || price < 0 || price > CAMPAIGN_PRICE_MAX) {
+    return "Enter a valid deal price.";
+  }
+  if (
+    !Number.isFinite(originalPrice) ||
+    originalPrice < 0 ||
+    originalPrice > CAMPAIGN_PRICE_MAX
+  ) {
+    return "Enter a valid original price.";
+  }
+  if (!(originalPrice > price)) {
+    return "Original price must be higher than the deal price.";
+  }
+  return null;
 }
 
 export function offerNameValidationMessage(raw: string): string | null {
@@ -76,18 +101,25 @@ export function computeOriginalPriceFromDiscount(input: {
   discountType: CampaignDiscountType;
   discountValue: number;
 }): number | null {
-  const { dealPrice, discountType, discountValue } = input;
-  if (!Number.isFinite(dealPrice) || dealPrice < 0) return null;
+  const dealPrice = roundMoney(input.dealPrice);
+  const discountValue = Number(input.discountValue);
+  if (!Number.isFinite(dealPrice) || dealPrice < 0 || dealPrice > CAMPAIGN_PRICE_MAX) {
+    return null;
+  }
   if (!Number.isFinite(discountValue) || discountValue <= 0) return null;
 
-  if (discountType === "fixed") {
-    return roundMoney(dealPrice + discountValue);
+  let original: number;
+  if (input.discountType === "fixed") {
+    if (discountValue > CAMPAIGN_PRICE_MAX) return null;
+    original = roundMoney(dealPrice + discountValue);
+  } else {
+    if (discountValue < 1 || discountValue >= 100) return null;
+    original = roundMoney(dealPrice / (1 - discountValue / 100));
   }
 
-  if (discountValue >= 100) return null;
-  const original = dealPrice / (1 - discountValue / 100);
-  if (!Number.isFinite(original) || original <= dealPrice) return null;
-  return roundMoney(original);
+  if (!Number.isFinite(original) || original > CAMPAIGN_PRICE_MAX) return null;
+  if (!(original > dealPrice)) return null;
+  return original;
 }
 
 export function discountValidationMessage(input: {
@@ -117,7 +149,7 @@ export function discountValidationMessage(input: {
   const discountValue = Number.parseFloat(raw);
 
   if (input.discountType === "percent") {
-    if (discountValue <= 0 || discountValue >= 100) {
+    if (discountValue < 1 || discountValue >= 100) {
       return "Percent discount must be between 1 and 99.";
     }
   } else if (discountValue <= 0) {
@@ -129,10 +161,41 @@ export function discountValidationMessage(input: {
     discountType: input.discountType,
     discountValue,
   });
-  if (original == null || !(original > dealPrice)) {
-    return "That discount does not create a valid original price.";
+  if (original == null) {
+    return "That discount would exceed the maximum price or is invalid.";
   }
-  return null;
+  return assertDealPricingPair(dealPrice, original);
+}
+
+export function buildCampaignOriginalPrice(input: {
+  discountEnabled: boolean;
+  dealPriceRaw: string;
+  discountType: CampaignDiscountType;
+  discountValueRaw: string;
+}): { originalPrice: number | null; error: string | null } {
+  if (!input.discountEnabled) {
+    return { originalPrice: null, error: null };
+  }
+  const error = discountValidationMessage({
+    enabled: true,
+    dealPriceRaw: input.dealPriceRaw,
+    discountType: input.discountType,
+    discountValueRaw: input.discountValueRaw,
+  });
+  if (error) return { originalPrice: null, error };
+
+  const originalPrice = computeOriginalPriceFromDiscount({
+    dealPrice: Number.parseFloat(input.dealPriceRaw.trim()),
+    discountType: input.discountType,
+    discountValue: Number.parseFloat(input.discountValueRaw.trim()),
+  });
+  if (originalPrice == null) {
+    return {
+      originalPrice: null,
+      error: "That discount does not create a valid original price.",
+    };
+  }
+  return { originalPrice, error: null };
 }
 
 export function inferDiscountFromPrices(

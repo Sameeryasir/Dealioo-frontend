@@ -43,7 +43,11 @@ export function resolveDealDiscount(input: {
   const price = parseCampaignPrice(input.price);
   const originalPrice = parseCampaignPrice(input.originalPrice);
   const hasDiscount =
-    price != null && originalPrice != null && originalPrice > price;
+    price != null &&
+    originalPrice != null &&
+    Number.isFinite(price) &&
+    Number.isFinite(originalPrice) &&
+    originalPrice > price;
   const percentOff = hasDiscount
     ? Math.round(((originalPrice! - price!) / originalPrice!) * 100)
     : null;
