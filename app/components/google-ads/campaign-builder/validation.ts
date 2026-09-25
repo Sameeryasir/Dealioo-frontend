@@ -5,7 +5,7 @@ export const HEADLINE_MAX = 30;
 export const DESCRIPTION_MAX = 90;
 export const PATH_MAX = 15;
 export const GOOGLE_REQUIRED_PUBLISH_STEPS = [
-  1, 2, 3, 4, 5, 7,
+  1, 2, 3, 4, 5, 6, 7,
 ] as const;
 
 export function isValidHttpUrl(value: string): boolean {
@@ -78,6 +78,15 @@ function validateGoalDetailsFields(
 
   if (draft.goal === "WEBSITE_TRAFFIC" && !draft.trafficAction) {
     errors.trafficAction = "Choose what visitors should do.";
+  }
+}
+
+function validateKeywordsFields(
+  draft: GoogleCampaignBuilderDraft,
+  errors: Record<string, string>,
+) {
+  if (enabledKeywords(draft).length === 0) {
+    errors.keywords = "Add at least one keyword to continue.";
   }
 }
 
@@ -154,6 +163,19 @@ export function validateStep(
     }
   }
 
+  if (step === 5) {
+    if (!draft.ageRanges.length) {
+      errors.ageRanges = "Select at least one age group.";
+    }
+    if (!draft.gender) {
+      errors.gender = "Choose a gender option.";
+    }
+  }
+
+  if (step === 6) {
+    validateKeywordsFields(draft, errors);
+  }
+
   if (step === 7) {
     const ad = draft.ads[0];
     if (!ad) {
@@ -212,15 +234,8 @@ export function validateStep(
         }
       }
     }
-  }
 
-  if (step === 5) {
-    if (!draft.ageRanges.length) {
-      errors.ageRanges = "Select at least one age group.";
-    }
-    if (!draft.gender) {
-      errors.gender = "Choose a gender option.";
-    }
+    validateKeywordsFields(draft, errors);
   }
 
   return errors;

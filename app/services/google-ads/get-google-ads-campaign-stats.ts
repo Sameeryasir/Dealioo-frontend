@@ -16,6 +16,7 @@ export type GoogleAdsCampaign = {
   name: string;
   status: string | null;
   effectiveStatus: string | null;
+  budgetId?: string | null;
   dailyBudget: string | null;
   insights: GoogleAdsCampaignInsight | null;
 };

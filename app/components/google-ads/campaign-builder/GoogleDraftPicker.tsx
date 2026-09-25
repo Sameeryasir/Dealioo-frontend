@@ -567,18 +567,36 @@ export function GoogleDraftPicker({
                                     ) : null}
 
                                     {bucket === "published" ? (
-                                      <a
-                                        href={consoleUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
-                                      >
-                                        Open in Google Ads
-                                        <ExternalLink
-                                          className="size-3.5"
-                                          aria-hidden
-                                        />
-                                      </a>
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onSelect({
+                                              type: "continue",
+                                              draft,
+                                            })
+                                          }
+                                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a73e8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1765cc]"
+                                        >
+                                          <FileEdit
+                                            className="size-3.5"
+                                            aria-hidden
+                                          />
+                                          Edit this ad
+                                        </button>
+                                        <a
+                                          href={consoleUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#f8fbff]"
+                                        >
+                                          Open in Google Ads
+                                          <ExternalLink
+                                            className="size-3.5"
+                                            aria-hidden
+                                          />
+                                        </a>
+                                      </>
                                     ) : null}
                                   </div>
                                 </div>

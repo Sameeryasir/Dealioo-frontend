@@ -14,6 +14,9 @@ import {
   Loader2,
   Megaphone,
   MousePointerClick,
+  Pause,
+  Pencil,
+  Play,
   Plus,
   RefreshCw,
   Search,
@@ -209,10 +212,25 @@ type GoogleAdsAnalyticsDashboardProps = {
   onCreateCampaign: () => void;
   onRefresh: () => void;
   onDeleteCampaign: (campaign: GoogleAdsCampaign) => void;
+  onToggleCampaignStatus?: (
+    campaign: GoogleAdsCampaign,
+    status: "ENABLED" | "PAUSED",
+  ) => void;
+  onEditCampaign?: (
+    campaign: GoogleAdsCampaign,
+    updates: {
+      name: string;
+      status: "ENABLED" | "PAUSED";
+      dailyBudget: number;
+    },
+  ) => void;
   deletingCampaignId: string | null;
+  statusUpdatingId?: string | null;
+  editingCampaignId?: string | null;
   errorMessage?: string | null;
   canCreateCampaign?: boolean;
   canDeleteCampaign?: boolean;
+  canManageCampaign?: boolean;
 };
 
 export function GoogleAdsAnalyticsDashboard({
@@ -222,10 +240,15 @@ export function GoogleAdsAnalyticsDashboard({
   onCreateCampaign,
   onRefresh,
   onDeleteCampaign,
+  onToggleCampaignStatus,
+  onEditCampaign,
   deletingCampaignId,
+  statusUpdatingId = null,
+  editingCampaignId = null,
   errorMessage,
   canCreateCampaign = true,
   canDeleteCampaign = true,
+  canManageCampaign = true,
 }: GoogleAdsAnalyticsDashboardProps) {
   const canOpenAdsConsole = isAdminUser();
   const [campaignSearch, setCampaignSearch] = useState("");
@@ -234,6 +257,12 @@ export function GoogleAdsAnalyticsDashboard({
   );
   const [page, setPage] = useState(1);
   const pageSize = 4;
+  const [editCampaign, setEditCampaign] = useState<GoogleAdsCampaign | null>(
+    null,
+  );
+  const [editName, setEditName] = useState("");
+  const [editStatus, setEditStatus] = useState<"ENABLED" | "PAUSED">("PAUSED");
+  const [editBudget, setEditBudget] = useState("");
 
   const currency = stats.currency;
   const campaigns = stats.campaigns ?? [];
@@ -549,6 +578,9 @@ export function GoogleAdsAnalyticsDashboard({
                       Status
                     </th>
                     <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
+                      Daily budget
+                    </th>
+                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
                       Spend
                     </th>
                     <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
@@ -582,14 +614,14 @@ export function GoogleAdsAnalyticsDashboard({
                   {bootstrapping ? (
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={`sk-${i}`}>
-                        <td colSpan={12} className="border-b border-[#f1f5f9] py-3">
+                        <td colSpan={13} className="border-b border-[#f1f5f9] py-3">
                           <div className="h-12 animate-pulse rounded-xl bg-[#f1f5f9]" />
                         </td>
                       </tr>
                     ))
                   ) : pageRows.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="py-10 text-center">
+                      <td colSpan={13} className="py-10 text-center">
                         <Megaphone
                           className="mx-auto size-10 text-slate-300"
                           aria-hidden
@@ -626,6 +658,12 @@ export function GoogleAdsAnalyticsDashboard({
                       const status = normalizeGoogleCampaignStatus(
                         c.effectiveStatus,
                       );
+                      const isEnabled = status === "ENABLED";
+                      const isPaused = status === "PAUSED";
+                      const rowBusy =
+                        deletingCampaignId === c.id ||
+                        statusUpdatingId === c.id ||
+                        editingCampaignId === c.id;
                       return (
                         <tr
                           key={c.id}
@@ -671,6 +709,11 @@ export function GoogleAdsAnalyticsDashboard({
                             </span>
                           </td>
                           <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                            {c.dailyBudget != null && c.dailyBudget !== ""
+                              ? formatMetaSpend(c.dailyBudget, currency)
+                              : "N/A"}
+                          </td>
+                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
                             {formatMetaSpend(c.insights?.spend, currency)}
                           </td>
                           <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
@@ -707,11 +750,77 @@ export function GoogleAdsAnalyticsDashboard({
                           </td>
                           <td className="sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white py-3 pl-2 group-hover:bg-[#f8fbff]">
                             <div className="flex items-center justify-end gap-1">
+                              {canManageCampaign &&
+                              onToggleCampaignStatus &&
+                              (isEnabled || isPaused) ? (
+                                <button
+                                  type="button"
+                                  title={
+                                    isEnabled
+                                      ? "Pause campaign"
+                                      : "Enable campaign"
+                                  }
+                                  disabled={rowBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleCampaignStatus(
+                                      c,
+                                      isEnabled ? "PAUSED" : "ENABLED",
+                                    );
+                                  }}
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                >
+                                  {statusUpdatingId === c.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : isEnabled ? (
+                                    <Pause className="size-4" aria-hidden />
+                                  ) : (
+                                    <Play className="size-4" aria-hidden />
+                                  )}
+                                </button>
+                              ) : null}
+                              {canManageCampaign && onEditCampaign ? (
+                                <button
+                                  type="button"
+                                  title="Edit published campaign"
+                                  disabled={rowBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const currentStatus =
+                                      normalizeGoogleCampaignStatus(
+                                        c.effectiveStatus,
+                                      );
+                                    setEditCampaign(c);
+                                    setEditName(c.name?.trim() || "");
+                                    setEditStatus(
+                                      currentStatus === "ENABLED"
+                                        ? "ENABLED"
+                                        : "PAUSED",
+                                    );
+                                    setEditBudget(
+                                      c.dailyBudget?.trim() || "20",
+                                    );
+                                  }}
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                >
+                                  {editingCampaignId === c.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Pencil className="size-4" aria-hidden />
+                                  )}
+                                </button>
+                              ) : null}
                               {canDeleteCampaign ? (
                                 <button
                                   type="button"
                                   title="Delete campaign"
-                                  disabled={deletingCampaignId === c.id}
+                                  disabled={rowBusy}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     onDeleteCampaign(c);
@@ -805,6 +914,102 @@ export function GoogleAdsAnalyticsDashboard({
           </Panel>
         </div>
       </div>
+
+      {editCampaign && onEditCampaign ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="google-ads-edit-title"
+          onClick={() => {
+            if (editingCampaignId == null) setEditCampaign(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              id="google-ads-edit-title"
+              className="text-base font-bold text-[#07111f]"
+            >
+              Edit published campaign
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Update this live Google Ads campaign without rebuilding it.
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Campaign name
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+                autoFocus
+              />
+            </label>
+
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Status
+              <select
+                value={editStatus}
+                onChange={(e) =>
+                  setEditStatus(e.target.value as "ENABLED" | "PAUSED")
+                }
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] bg-white px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+              >
+                <option value="ENABLED">Enabled (running)</option>
+                <option value="PAUSED">Paused</option>
+              </select>
+            </label>
+
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Daily budget {currency ? `(${currency})` : ""}
+              <input
+                type="number"
+                min={1}
+                step="0.01"
+                value={editBudget}
+                onChange={(e) => setEditBudget(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+              />
+            </label>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={editingCampaignId != null}
+                onClick={() => setEditCampaign(null)}
+                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={editingCampaignId != null}
+                onClick={() => {
+                  const name = editName.trim();
+                  const amount = Number.parseFloat(editBudget);
+                  if (!name || !Number.isFinite(amount) || amount < 1) return;
+                  onEditCampaign(editCampaign, {
+                    name,
+                    status: editStatus,
+                    dailyBudget: amount,
+                  });
+                  setEditCampaign(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:opacity-50"
+              >
+                {editingCampaignId === editCampaign.id ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : null}
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

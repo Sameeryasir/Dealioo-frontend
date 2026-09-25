@@ -12,12 +12,14 @@ export function StepShell({
   title,
   description,
   children,
+  errorSummary,
 }: {
   step: number;
   total: number;
   title: string;
   description: string;
   children: ReactNode;
+  errorSummary?: string | null;
 }) {
   return (
     <motion.div
@@ -37,6 +39,15 @@ export function StepShell({
         <p className="mt-2 text-base leading-relaxed text-slate-500">
           {description}
         </p>
+        {errorSummary ? (
+          <p
+            className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600"
+            data-google-builder-error
+            role="alert"
+          >
+            {errorSummary}
+          </p>
+        ) : null}
       </div>
       {children}
     </motion.div>

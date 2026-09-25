@@ -103,6 +103,8 @@ export function CampaignBuilderWizard({
   const [publishStep, setPublishStep] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [isRepublishMode, setIsRepublishMode] = useState(false);
+  const [visitedSteps, setVisitedSteps] = useState<number[]>([1]);
   const [publishedAdsConsoleUrl, setPublishedAdsConsoleUrl] = useState<
     string | null
   >(null);
@@ -198,6 +200,12 @@ export function CampaignBuilderWizard({
     serverVersionRef.current = serverVersion;
   }, [serverVersion]);
 
+  useEffect(() => {
+    setVisitedSteps((prev) =>
+      prev.includes(currentStep) ? prev : [...prev, currentStep].sort((a, b) => a - b),
+    );
+  }, [currentStep]);
+
   const applyWorkingCopy = useCallback(
     (next: GoogleCampaignBuilderDraft, stepOverride?: number) => {
       const step = Math.min(
@@ -209,6 +217,11 @@ export function CampaignBuilderWizard({
       setCurrentStep(step);
       formDataRef.current = withStep;
       currentStepRef.current = step;
+      setVisitedSteps((prev) => {
+        const unlocked = Array.from({ length: step }, (_, i) => i + 1);
+        const merged = new Set([...prev, ...unlocked]);
+        return [...merged].sort((a, b) => a - b);
+      });
     },
     [],
   );
@@ -227,6 +240,8 @@ export function CampaignBuilderWizard({
     setPublishPhase(null);
     setPublishError(null);
     setPublishSuccess(false);
+    setIsRepublishMode(false);
+    setVisitedSteps([1]);
     setPublishedAdsConsoleUrl(null);
     setHasAutosaved(false);
     setSavingGoal(false);
@@ -284,8 +299,48 @@ export function CampaignBuilderWizard({
             remote.publishStatus ?? ""
           ).toUpperCase();
           if (remoteStatus === "PUBLISHED") {
-            clearPublishedDraftLocally();
-            applyFreshDefaults();
+            setServerDraftId(remote.id);
+            setServerVersion(remote.version);
+            serverCompletedStepsRef.current = remote.completedSteps ?? [];
+            saveGoogleCampaignServerDraftId(businessId, remote.id);
+            saveGoogleDraftLocalMeta(businessId, {
+              draftId: remote.id,
+              serverVersion: remote.version,
+              updatedAt: remote.lastSavedAt,
+            });
+
+            const remoteWizardVersion =
+              typeof remote.draftData?.wizardVersion === "number"
+                ? remote.draftData.wizardVersion
+                : 3;
+            const remoteUiStep = resolveRemoteUiStep(
+              remote.currentStep || remote.draftData?.currentStep || 1,
+              remoteWizardVersion,
+            );
+            const merged = mergeGoogleDraftWithLocalRecovery({
+              remote: {
+                draftData: remote.draftData,
+                goal: remote.goal,
+                campaignName: remote.campaignName,
+                lastSavedAt: remote.lastSavedAt,
+                version: remote.version,
+                currentStep: remote.currentStep,
+              },
+              localDraft,
+              localMeta: meta,
+              remoteUiStep,
+            });
+
+            setIsRepublishMode(true);
+            setVisitedSteps(
+              Array.from({ length: TOTAL_WIZARD_STEPS }, (_, i) => i + 1),
+            );
+            applyWorkingCopy(merged, 7);
+            saveGoogleCampaignDraft(businessId, merged);
+            savedStepSnapshotsRef.current = seedSavedStepSnapshots(
+              merged,
+              beCompletedToUiCompleted(serverCompletedStepsRef.current),
+            );
             return;
           }
 
@@ -530,6 +585,9 @@ export function CampaignBuilderWizard({
     const clamped = Math.min(TOTAL_WIZARD_STEPS, Math.max(1, nextStep));
     setCurrentStep(clamped);
     currentStepRef.current = clamped;
+    setVisitedSteps((prev) =>
+      prev.includes(clamped) ? prev : [...prev, clamped].sort((a, b) => a - b),
+    );
     setFormData((prev) => {
       const next = { ...prev, currentStep: clamped };
       formDataRef.current = next;
@@ -538,6 +596,54 @@ export function CampaignBuilderWizard({
     setErrors({});
     setGoalSaveError(null);
   };
+
+  const showStepValidationErrors = useCallback(
+    (stepErrors: Record<string, string>) => {
+      setErrors(stepErrors);
+      const firstMessage = Object.values(stepErrors)[0];
+      toast.error(
+        firstMessage ||
+          "Please fix the highlighted fields on this step before continuing.",
+      );
+      window.requestAnimationFrame(() => {
+        const target =
+          document.querySelector<HTMLElement>(
+            "[data-google-builder-error], .text-red-500, [aria-invalid='true']",
+          ) ?? null;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    },
+    [],
+  );
+
+  const validateCurrentStepOrBlock = useCallback(
+    (targetStep?: number) => {
+      if (typeof targetStep === "number" && targetStep <= step) {
+        return true;
+      }
+      if (step >= TOTAL_WIZARD_STEPS) {
+        return true;
+      }
+      const stepErrors = validateStep(step, draft);
+      if (Object.keys(stepErrors).length === 0) {
+        return true;
+      }
+      showStepValidationErrors(stepErrors);
+      return false;
+    },
+    [draft, showStepValidationErrors, step],
+  );
+
+  const canJumpToStep = useCallback(
+    (targetStep: number) => {
+      if (publishSuccess) return false;
+      if (isRepublishMode) return true;
+      if (targetStep === step) return true;
+      if (targetStep < step) return true;
+      return visitedSteps.includes(targetStep);
+    },
+    [isRepublishMode, publishSuccess, step, visitedSteps],
+  );
 
   
   const advanceWithoutApi = useCallback((fromStep: number) => {
@@ -570,8 +676,11 @@ export function CampaignBuilderWizard({
 
   const handleContinue = async () => {
     const stepErrors = validateStep(step, draft);
-    setErrors(stepErrors);
-    if (Object.keys(stepErrors).length > 0) return;
+    if (Object.keys(stepErrors).length > 0) {
+      showStepValidationErrors(stepErrors);
+      return;
+    }
+    setErrors({});
 
     if (step >= 1 && step <= 8 && isStepUnchanged(step, draft)) {
       advanceWithoutApi(step);
@@ -580,7 +689,7 @@ export function CampaignBuilderWizard({
 
     if (step === 1) {
       if (!draft.goal) {
-        setErrors({ goal: "Pick a campaign goal to continue." });
+        showStepValidationErrors({ goal: "Pick a campaign goal to continue." });
         return;
       }
 
@@ -971,12 +1080,11 @@ export function CampaignBuilderWizard({
       const message =
         "Some required details are missing. Jump back and fix highlighted fields.";
       setPublishError(message);
-      toast.error(message);
       for (let s = 1; s <= 8; s += 1) {
         const stepErrors = validateStep(s, draft, { forPublish: true });
         if (Object.keys(stepErrors).length > 0) {
           goToStep(s);
-          setErrors(stepErrors);
+          showStepValidationErrors(stepErrors);
           break;
         }
       }
@@ -1124,7 +1232,9 @@ export function CampaignBuilderWizard({
       ? "Done"
       : publishError
         ? "Try again"
-        : "Publish Campaign"
+        : isRepublishMode
+          ? "Update on Google Ads"
+          : "Publish Campaign"
     : "Next";
   
   const busy = publishing || savingGoal;
@@ -1165,7 +1275,9 @@ export function CampaignBuilderWizard({
           </span>
           <div className="min-w-0">
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#4285F4]">
-              Google Ads · Campaign Builder
+              {isRepublishMode
+                ? "Google Ads · Update your campaign"
+                : "Google Ads · Campaign Builder"}
             </p>
             <h2
               id={titleId}
@@ -1209,16 +1321,71 @@ export function CampaignBuilderWizard({
             Step {step} of {TOTAL_WIZARD_STEPS}
           </p>
           <p className="hidden text-xs text-slate-400 sm:block">
-            {STEP_TITLES[step - 1]}
+            Click any step to jump there and change it
           </p>
         </div>
-        <div className="mx-auto mt-2 h-2 max-w-3xl overflow-hidden rounded-full bg-[#e8edf5]">
-          <motion.div
-            className="h-full rounded-full bg-[#4285F4]"
-            initial={false}
-            animate={{ width: `${progressPct}%` }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          />
+        <div className="mx-auto mt-2 max-w-3xl">
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="tablist"
+            aria-label="Campaign builder steps"
+          >
+            {STEP_TITLES.map((title, index) => {
+              const stepNumber = index + 1;
+              const isActive = stepNumber === step;
+              const isReachable = canJumpToStep(stepNumber);
+              const isDone =
+                visitedSteps.includes(stepNumber) && stepNumber < step;
+              return (
+                <button
+                  key={title}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-current={isActive ? "step" : undefined}
+                  disabled={busy || !isReachable}
+                  title={title}
+                  onClick={() => {
+                    if (busy || !isReachable || stepNumber === step) return;
+                    if (!validateCurrentStepOrBlock(stepNumber)) return;
+                    goToStep(stepNumber);
+                  }}
+                  className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                    isActive
+                      ? "bg-[#4285F4] text-white shadow-sm"
+                      : isReachable
+                        ? "bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc]"
+                        : "cursor-not-allowed bg-[#f1f5f9] text-slate-400"
+                  } disabled:opacity-60`}
+                >
+                  <span
+                    className={`inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : isDone
+                          ? "bg-[#34A853]/15 text-[#188038]"
+                          : "bg-white/70 text-inherit"
+                    }`}
+                  >
+                    {isDone && !isActive ? (
+                      <Check className="size-2.5" strokeWidth={3} aria-hidden />
+                    ) : (
+                      stepNumber
+                    )}
+                  </span>
+                  <span className="hidden truncate sm:inline">{title}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e8edf5]">
+            <motion.div
+              className="h-full rounded-full bg-[#4285F4]"
+              initial={false}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            />
+          </div>
         </div>
       </div>
 
@@ -1267,6 +1434,13 @@ export function CampaignBuilderWizard({
           {goalSaveError ? (
             <p className="text-sm font-medium text-red-500 sm:mr-2">
               {goalSaveError}
+            </p>
+          ) : Object.keys(errors).length > 0 ? (
+            <p
+              className="max-w-xs text-sm font-medium text-red-500 sm:mr-2"
+              data-google-builder-error
+            >
+              {Object.values(errors)[0]}
             </p>
           ) : null}
           <button

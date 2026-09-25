@@ -29,6 +29,10 @@ import {
   type GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import {
+  updateGoogleAdsCampaign,
+  updateGoogleAdsCampaignStatus,
+} from "@/app/services/google-ads/update-google-ads-campaign";
+import {
   getGoogleAdsConnectionStatus,
   isGoogleAdsCustomerSelected,
 } from "@/app/services/google-ads/get-google-ads-connection-status";
@@ -117,7 +121,6 @@ function GoogleAdsPanelSkeleton() {
 }
 
 function isGoogleAuthError(message: string): boolean {
-  // Only treat true missing-connection as auth UI; refresh hiccups stay connected.
   return /google ads is not connected/i.test(message);
 }
 
@@ -151,6 +154,10 @@ export function CampaignGoogleAdsPanel({
   const [campaignPendingDelete, setCampaignPendingDelete] =
     useState<GoogleAdsCampaign | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
+    null,
+  );
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(
     null,
   );
 
@@ -272,8 +279,6 @@ export function CampaignGoogleAdsPanel({
     let cancelled = false;
 
     void (async () => {
-      // Keep stats loading true while we resolve connection + first stats fetch,
-      // so the UI stays on skeleton instead of an empty white dashboard.
       setAdStatsLoading(true);
       setAdStats(null);
       setAdStatsError(null);
@@ -320,6 +325,91 @@ export function CampaignGoogleAdsPanel({
       setDeletingCampaignId(null);
     }
   }, [businessId, campaignPendingDelete]);
+
+  const handleToggleCampaignStatus = useCallback(
+    async (
+      campaign: GoogleAdsCampaign,
+      status: "ENABLED" | "PAUSED",
+    ) => {
+      if (!canCreateGoogleCampaign) return;
+      setStatusUpdatingId(campaign.id);
+      setAdStatsError(null);
+      try {
+        await updateGoogleAdsCampaignStatus(businessId, campaign.id, status);
+        setAdStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                campaigns: prev.campaigns.map((c) =>
+                  c.id === campaign.id
+                    ? { ...c, status, effectiveStatus: status }
+                    : c,
+                ),
+              }
+            : prev,
+        );
+      } catch (e) {
+        setAdStatsError(
+          e instanceof Error
+            ? e.message
+            : "Could not update campaign status.",
+        );
+      } finally {
+        setStatusUpdatingId(null);
+      }
+    },
+    [businessId, canCreateGoogleCampaign],
+  );
+
+  const handleEditCampaign = useCallback(
+    async (
+      campaign: GoogleAdsCampaign,
+      updates: {
+        name: string;
+        status: "ENABLED" | "PAUSED";
+        dailyBudget: number;
+      },
+    ) => {
+      if (!canCreateGoogleCampaign) return;
+      setEditingCampaignId(campaign.id);
+      setAdStatsError(null);
+      try {
+        const result = await updateGoogleAdsCampaign(
+          businessId,
+          campaign.id,
+          updates,
+        );
+        setAdStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                campaigns: prev.campaigns.map((c) =>
+                  c.id === campaign.id
+                    ? {
+                        ...c,
+                        name: result.name?.trim() || updates.name,
+                        status: result.status || updates.status,
+                        effectiveStatus: result.status || updates.status,
+                        dailyBudget:
+                          result.dailyBudget ?? String(updates.dailyBudget),
+                      }
+                    : c,
+                ),
+              }
+            : prev,
+        );
+      } catch (e) {
+        setAdStatsError(
+          e instanceof Error
+            ? e.message
+            : "Could not update published campaign.",
+        );
+      } finally {
+        setEditingCampaignId(null);
+      }
+    },
+    [businessId, canCreateGoogleCampaign],
+  );
 
   const adsConsoleUrl = "https://ads.google.com";
 
@@ -377,6 +467,7 @@ export function CampaignGoogleAdsPanel({
             errorMessage={adStatsError ?? googleError}
             canCreateCampaign={canCreateGoogleCampaign}
             canDeleteCampaign={canDeleteGoogleCampaign}
+            canManageCampaign={canCreateGoogleCampaign}
             onCreateCampaign={openCreatePicker}
             onRefresh={() => {
               void loadStats();
@@ -385,7 +476,15 @@ export function CampaignGoogleAdsPanel({
               if (!canDeleteGoogleCampaign) return;
               setCampaignPendingDelete(c);
             }}
+            onToggleCampaignStatus={(c, status) => {
+              void handleToggleCampaignStatus(c, status);
+            }}
+            onEditCampaign={(c, updates) => {
+              void handleEditCampaign(c, updates);
+            }}
             deletingCampaignId={deletingCampaignId}
+            statusUpdatingId={statusUpdatingId}
+            editingCampaignId={editingCampaignId}
           />
         ) : (
           <div>

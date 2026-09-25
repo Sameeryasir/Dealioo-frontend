@@ -127,6 +127,10 @@ type StepProps = {
   onChange: (patch: Partial<GoogleCampaignBuilderDraft>) => void;
 };
 
+function firstStepError(errors: Record<string, string>): string | null {
+  return Object.values(errors)[0] || null;
+}
+
 const GOAL_ICONS: Record<
   Exclude<CampaignGoalId, "APP_PROMOTION" | "AWARENESS" | "LOCAL_VISITS">,
   LucideIcon
@@ -273,6 +277,7 @@ export function StepGoal({ businessId, draft, errors, onChange }: StepProps) {
       total={TOTAL_WIZARD_STEPS}
       title="What do you want this campaign to achieve?"
       description="Choose the goal that best matches what you want to accomplish with this campaign."
+      errorSummary={firstStepError(errors)}
     >
       <div
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -361,7 +366,6 @@ export function StepCampaignDetails({
   draftRef.current = draft;
   const { data: businessProfile } = useBusinessByIdQuery(businessId);
 
-  // Funnel-first: Sales / Leads / Traffic always send people to a Dealioo funnel.
   useEffect(() => {
     if (!draft.goal) return;
     if (
@@ -400,7 +404,6 @@ export function StepCampaignDetails({
     onChange,
   ]);
 
-  // Prefill business name from connected Google Ads when this step mounts
   useEffect(() => {
     if (!businessId) return;
     let cancelled = false;
@@ -421,16 +424,13 @@ export function StepCampaignDetails({
         }
         if (Object.keys(patch).length > 0) onChangeRef.current(patch);
       })
-      .catch(() => {
-        // Leave fields as-is if Ads lookup fails; user can still type manually.
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
   }, [businessId]);
 
-  // Contact / location still come from Dealioo when Ads does not provide them
   useEffect(() => {
     if (!businessProfile || didPrefillContactFromBusiness.current) return;
     didPrefillContactFromBusiness.current = true;
@@ -475,6 +475,7 @@ export function StepCampaignDetails({
       total={TOTAL_WIZARD_STEPS}
       title="Set up your campaign"
       description="We prefilled what we already know about your business. Pick the Dealioo funnel Google Ads should send people to."
+      errorSummary={firstStepError(errors)}
     >
       <Panel className="space-y-4">
         <SetupSectionTitle
@@ -638,6 +639,7 @@ export function StepBudget({ draft, errors, onChange }: StepProps) {
       total={TOTAL_WIZARD_STEPS}
       title="Set up your budget"
       description="Set a daily budget you're comfortable with."
+      errorSummary={firstStepError(errors)}
     >
       <div className="space-y-4">
         <BudgetSlider
@@ -872,6 +874,7 @@ export function StepLocationsLanguages({ draft, errors, onChange }: StepProps) {
       total={TOTAL_WIZARD_STEPS}
       title="Where are your customers?"
       description="Add the places you want to reach, then choose languages. English is selected by default."
+      errorSummary={firstStepError(errors)}
     >
       <Panel className="space-y-5">
         <LocationAutocomplete
@@ -1224,6 +1227,7 @@ export function StepProductsServices({
       total={TOTAL_WIZARD_STEPS}
       title="Choose your keywords"
       description="Keywords are generated from your business description and funnel landing page."
+      errorSummary={firstStepError(errors)}
     >
       <Panel className="space-y-4">
         <div className="flex gap-3">
@@ -1501,6 +1505,7 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
       total={TOTAL_WIZARD_STEPS}
       title="Let's create your ad"
       description="We suggested headlines, descriptions, and keywords from your earlier answers. Edit anything before publishing."
+      errorSummary={firstStepError(errors)}
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Panel className="space-y-5">
@@ -1848,6 +1853,7 @@ export function StepAudience({ draft, errors, onChange }: StepProps) {
       total={TOTAL_WIZARD_STEPS}
       title="Who should see your ads?"
       description="Choose age and gender targeting, the same way you would in Google Ads before keywords and ads."
+      errorSummary={firstStepError(errors)}
     >
       <Panel className="space-y-4">
         <div className="flex gap-3">
