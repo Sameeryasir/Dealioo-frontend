@@ -200,7 +200,7 @@ export default function AdminPanelSidebar() {
         },
         {
           href: historyHref,
-          label: "History",
+          label: "Payment history",
           icon: History,
           activeMatch: "prefix",
           permission: "history",
@@ -225,7 +225,7 @@ export default function AdminPanelSidebar() {
           href: businessId
             ? `${restaurantHomeHref}/program`
             : "/dashboard/program",
-          label: "Program",
+          label: "Customers",
           icon: Users,
           activeMatch: "prefix",
           permission: "campaigns",
