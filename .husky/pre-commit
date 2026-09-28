@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# --- Pre-commit: block bad commits early ---
+# What: Full TypeScript check + ESLint only on staged files
+# Why: Catch type errors; avoid failing on unrelated legacy lint across the whole repo
+# Related: package.json scripts typecheck, lint-staged
+
+set -e
+
+echo "▶ Pre-commit: TypeScript check..."
+npm run typecheck
+
+echo "▶ Pre-commit: ESLint on staged files..."
+npx lint-staged
+
+echo "✓ Pre-commit passed (TypeScript + staged ESLint)."
