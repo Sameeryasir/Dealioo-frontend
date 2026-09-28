@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowRight,
   Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import type { GoogleDraftPickerAction } from "@/app/components/google-ads/campaign-builder/GoogleDraftPicker";
 import {
@@ -20,8 +21,12 @@ import { GoogleAdsConnectEmptyState } from "@/app/components/google-ads/GoogleAd
 import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { Skeleton } from "@/app/components/skeleton";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { buildGoogleCampaignOfferLinkMap } from "@/app/lib/google-ads-management";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import { googleCampaignDraftQueryKeys } from "@/app/hooks/use-google-campaign-drafts-query";
+import {
+  googleCampaignDraftQueryKeys,
+  useGoogleCampaignDraftsQuery,
+} from "@/app/hooks/use-google-campaign-drafts-query";
 import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
 import {
   getGoogleAdsCampaignStats,
@@ -36,7 +41,10 @@ import {
   getGoogleAdsConnectionStatus,
   isGoogleAdsCustomerSelected,
 } from "@/app/services/google-ads/get-google-ads-connection-status";
-import { listGoogleCampaignDrafts } from "@/app/services/google-ads/google-campaign-draft";
+import {
+  duplicateGoogleCampaignDraft,
+  listGoogleCampaignDrafts,
+} from "@/app/services/google-ads/google-campaign-draft";
 
 const GoogleAdsAnalyticsDashboard = dynamic(
   () =>
@@ -159,6 +167,17 @@ export function CampaignGoogleAdsPanel({
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(
     null,
+  );
+  const [duplicatingCampaignId, setDuplicatingCampaignId] = useState<
+    string | null
+  >(null);
+
+  const draftsQuery = useGoogleCampaignDraftsQuery(businessId, {
+    enabled: googleConnected && googleCustomerSelected,
+  });
+  const offerLinksByGoogleCampaignId = useMemo(
+    () => buildGoogleCampaignOfferLinkMap(draftsQuery.data),
+    [draftsQuery.data],
   );
 
   const openCreatePicker = useCallback(() => {
@@ -442,6 +461,50 @@ export function CampaignGoogleAdsPanel({
     [businessId, canCreateGoogleCampaign],
   );
 
+  const handleDuplicateCampaign = useCallback(
+    async (campaign: GoogleAdsCampaign) => {
+      if (!canCreateGoogleCampaign) return;
+      const link = offerLinksByGoogleCampaignId[campaign.id];
+      if (!link?.draftId) {
+        toast.error(
+          "Duplicate needs a Dealioo-linked Google draft for this campaign.",
+        );
+        return;
+      }
+      setDuplicatingCampaignId(campaign.id);
+      setAdStatsError(null);
+      try {
+        const copied = await duplicateGoogleCampaignDraft(
+          businessId,
+          link.draftId,
+        );
+        clearGoogleCampaignDraft(businessId);
+        saveGoogleCampaignServerDraftId(businessId, copied.id);
+        saveGoogleDraftLocalMeta(businessId, {
+          draftId: copied.id,
+          serverVersion: copied.version,
+          updatedAt: new Date().toISOString(),
+        });
+        invalidateGoogleDrafts();
+        toast.success("Campaign duplicated. Review and publish when ready.");
+        setCreateCampaignOpen(true);
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Could not duplicate campaign.";
+        setAdStatsError(message);
+        toast.error(message);
+      } finally {
+        setDuplicatingCampaignId(null);
+      }
+    },
+    [
+      businessId,
+      canCreateGoogleCampaign,
+      invalidateGoogleDrafts,
+      offerLinksByGoogleCampaignId,
+    ],
+  );
+
   const adsConsoleUrl = "https://ads.google.com";
 
   const connectionReady =
@@ -493,8 +556,10 @@ export function CampaignGoogleAdsPanel({
         ) : showAnalyticsDashboard ? (
           <GoogleAdsAnalyticsDashboard
             stats={adStats ?? emptyStats}
+            businessId={businessId}
             insightsLoading={adStatsLoading}
             adsConsoleUrl={adsConsoleUrl}
+            offerLinksByGoogleCampaignId={offerLinksByGoogleCampaignId}
             errorMessage={adStatsError ?? googleError}
             canCreateCampaign={canCreateGoogleCampaign}
             canDeleteCampaign={canDeleteGoogleCampaign}
@@ -502,10 +567,14 @@ export function CampaignGoogleAdsPanel({
             onCreateCampaign={openCreatePicker}
             onRefresh={() => {
               void loadStats();
+              void draftsQuery.refetch();
             }}
             onDeleteCampaign={(c) => {
               if (!canDeleteGoogleCampaign) return;
               setCampaignPendingDelete(c);
+            }}
+            onDuplicateCampaign={(c) => {
+              void handleDuplicateCampaign(c);
             }}
             onToggleCampaignStatus={(c, status) => {
               void handleToggleCampaignStatus(c, status);
@@ -516,6 +585,7 @@ export function CampaignGoogleAdsPanel({
             deletingCampaignId={deletingCampaignId}
             statusUpdatingId={statusUpdatingId}
             editingCampaignId={editingCampaignId}
+            duplicatingCampaignId={duplicatingCampaignId}
           />
         ) : (
           <div>

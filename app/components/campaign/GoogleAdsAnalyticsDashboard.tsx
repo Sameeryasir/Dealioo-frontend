@@ -8,6 +8,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   DollarSign,
   ExternalLink,
   Eye,
@@ -26,6 +27,7 @@ import {
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import {
   formatMetaCount,
   formatMetaDeliveryStatus,
@@ -33,6 +35,10 @@ import {
   formatMetaRateMoney,
   formatMetaSpend,
 } from "@/app/lib/format-meta-ads";
+import {
+  buildGoogleAdsManagementAlerts,
+  type GoogleCampaignOfferLink,
+} from "@/app/lib/google-ads-management";
 import type {
   GoogleAdsCampaign,
   GoogleAdsCampaignStats,
@@ -207,11 +213,14 @@ function Panel({
 
 type GoogleAdsAnalyticsDashboardProps = {
   stats: GoogleAdsCampaignStats;
+  businessId: number;
   insightsLoading?: boolean;
   adsConsoleUrl: string;
+  offerLinksByGoogleCampaignId?: Record<string, GoogleCampaignOfferLink>;
   onCreateCampaign: () => void;
   onRefresh: () => void;
   onDeleteCampaign: (campaign: GoogleAdsCampaign) => void;
+  onDuplicateCampaign?: (campaign: GoogleAdsCampaign) => void;
   onToggleCampaignStatus?: (
     campaign: GoogleAdsCampaign,
     status: "ENABLED" | "PAUSED",
@@ -227,6 +236,7 @@ type GoogleAdsAnalyticsDashboardProps = {
   deletingCampaignId: string | null;
   statusUpdatingId?: string | null;
   editingCampaignId?: string | null;
+  duplicatingCampaignId?: string | null;
   errorMessage?: string | null;
   canCreateCampaign?: boolean;
   canDeleteCampaign?: boolean;
@@ -235,16 +245,20 @@ type GoogleAdsAnalyticsDashboardProps = {
 
 export function GoogleAdsAnalyticsDashboard({
   stats,
+  businessId,
   insightsLoading,
   adsConsoleUrl,
+  offerLinksByGoogleCampaignId = {},
   onCreateCampaign,
   onRefresh,
   onDeleteCampaign,
+  onDuplicateCampaign,
   onToggleCampaignStatus,
   onEditCampaign,
   deletingCampaignId,
   statusUpdatingId = null,
   editingCampaignId = null,
+  duplicatingCampaignId = null,
   errorMessage,
   canCreateCampaign = true,
   canDeleteCampaign = true,
@@ -267,6 +281,10 @@ export function GoogleAdsAnalyticsDashboard({
   const currency = stats.currency;
   const campaigns = stats.campaigns ?? [];
   const bootstrapping = Boolean(insightsLoading && campaigns.length === 0);
+  const managementAlerts = useMemo(
+    () => buildGoogleAdsManagementAlerts(campaigns, stats.datePreset),
+    [campaigns, stats.datePreset],
+  );
 
   const selectedCampaign = useMemo(
     () => campaigns.find((c) => c.id === selectedCampaignId) ?? null,
@@ -459,6 +477,48 @@ export function GoogleAdsAnalyticsDashboard({
           >
             Try again
           </button>
+        </div>
+      ) : null}
+
+      {!bootstrapping && managementAlerts.length > 0 ? (
+        <div className="space-y-2" aria-label="Campaign alerts">
+          {managementAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`rounded-2xl border px-4 py-3 ${
+                alert.tone === "rose"
+                  ? "border-rose-200 bg-rose-50"
+                  : alert.tone === "amber"
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-slate-200 bg-slate-50"
+              }`}
+              role="status"
+            >
+              <p
+                className={`flex items-start gap-2 text-sm font-semibold ${
+                  alert.tone === "rose"
+                    ? "text-rose-900"
+                    : alert.tone === "amber"
+                      ? "text-amber-900"
+                      : "text-slate-800"
+                }`}
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {alert.title}
+              </p>
+              <p
+                className={`mt-1 pl-6 text-xs leading-relaxed ${
+                  alert.tone === "rose"
+                    ? "text-rose-800"
+                    : alert.tone === "amber"
+                      ? "text-amber-800"
+                      : "text-slate-600"
+                }`}
+              >
+                {alert.detail}
+              </p>
+            </div>
+          ))}
         </div>
       ) : null}
 
@@ -663,7 +723,13 @@ export function GoogleAdsAnalyticsDashboard({
                       const rowBusy =
                         deletingCampaignId === c.id ||
                         statusUpdatingId === c.id ||
-                        editingCampaignId === c.id;
+                        editingCampaignId === c.id ||
+                        duplicatingCampaignId === c.id;
+                      const offerLink = offerLinksByGoogleCampaignId[c.id];
+                      const dealiooHref =
+                        offerLink?.funnelId != null
+                          ? `/business/${businessId}/dashboard/campaigns/${offerLink.funnelId}`
+                          : null;
                       return (
                         <tr
                           key={c.id}
@@ -696,9 +762,25 @@ export function GoogleAdsAnalyticsDashboard({
                           <td className="border-b border-[#f1f5f9] py-3 pr-3">
                             <div className="min-w-0 max-w-[18rem]">
                               <p className="truncate font-semibold">{c.name}</p>
-                              <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
-                                {c.id}
-                              </p>
+                              {offerLink?.funnelName || dealiooHref ? (
+                                dealiooHref ? (
+                                  <Link
+                                    href={dealiooHref}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-[11px] font-semibold text-[#1877f2] hover:underline"
+                                  >
+                                    Dealioo: {offerLink?.funnelName || "Offer"}
+                                  </Link>
+                                ) : (
+                                  <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
+                                    Dealioo: {offerLink?.funnelName}
+                                  </p>
+                                )
+                              ) : (
+                                <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
+                                  {c.id}
+                                </p>
+                              )}
                             </div>
                           </td>
                           <td className="border-b border-[#f1f5f9] py-3 pr-3">
@@ -750,6 +832,29 @@ export function GoogleAdsAnalyticsDashboard({
                           </td>
                           <td className="sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white py-3 pl-2 group-hover:bg-[#f8fbff]">
                             <div className="flex items-center justify-end gap-1">
+                              {canManageCampaign &&
+                              onDuplicateCampaign &&
+                              offerLinksByGoogleCampaignId[c.id]?.draftId ? (
+                                <button
+                                  type="button"
+                                  title="Duplicate campaign setup"
+                                  disabled={rowBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDuplicateCampaign(c);
+                                  }}
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                >
+                                  {duplicatingCampaignId === c.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Copy className="size-4" aria-hidden />
+                                  )}
+                                </button>
+                              ) : null}
                               {canManageCampaign &&
                               onToggleCampaignStatus &&
                               (isEnabled || isPaused) ? (

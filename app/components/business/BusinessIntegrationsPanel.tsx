@@ -4,6 +4,7 @@ import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog
 import { ConnectTwilioCredentialsDialog } from "@/app/components/business/ConnectTwilioCredentialsDialog";
 import { IntegrationAuditLogsCard } from "@/app/components/business/IntegrationAuditLogsCard";
 import { MetaConnectPermissionsModal } from "@/app/components/facebook/MetaConnectPermissionsModal";
+import { GoogleConnectPermissionsModal } from "@/app/components/google-ads/GoogleConnectPermissionsModal";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import {
   GoogleAdsLogo,
@@ -323,6 +324,7 @@ export function BusinessIntegrationsPanel({
   >(() => getDefaultSelectedMetaScopes());
   const [googleBusy, setGoogleBusy] = useState<ConnectStatus>("idle");
   const [googleActionError, setGoogleActionError] = useState<string | null>(null);
+  const [googleConnectModalOpen, setGoogleConnectModalOpen] = useState(false);
   const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
   const [twilioCredentialsDialogOpen, setTwilioCredentialsDialogOpen] =
     useState(false);
@@ -669,6 +671,19 @@ export function BusinessIntegrationsPanel({
     }
   }, [metaBusy]);
 
+  const openGoogleConnectModal = () => {
+    setGoogleActionError(null);
+    setGoogleConnectModalOpen(true);
+  };
+
+  const closeGoogleConnectModal = useCallback(() => {
+    setGoogleConnectModalOpen(false);
+    setGoogleActionError(null);
+    if (googleBusy === "loading") {
+      setGoogleBusy("idle");
+    }
+  }, [googleBusy]);
+
   const handleConnectMeta = async () => {
     if (selectedMetaScopes.length === 0) {
       setMetaBusy("error");
@@ -714,6 +729,8 @@ export function BusinessIntegrationsPanel({
       if (!token) throw new Error("You're signed out. Sign in again.");
       const result = await connectGoogleAdsInPopup(token, businessId);
       if (result.status === "connected") {
+        setGoogleConnectModalOpen(false);
+        setGoogleActionError(null);
         await refreshStatus();
         toast.success("Google Ads connected.");
         router.push(`/business/${businessId}/dashboard/google-ads`);
@@ -1059,7 +1076,7 @@ export function BusinessIntegrationsPanel({
           ) : (
             <button
               type="button"
-              onClick={() => void handleConnectGoogle()}
+              onClick={openGoogleConnectModal}
               disabled={googleBusy === "loading"}
               className={`${actionBtn} gap-1.5 bg-[#34A853] text-white`}
             >
@@ -1076,6 +1093,13 @@ export function BusinessIntegrationsPanel({
             </button>
           )
         }
+      />
+      <GoogleConnectPermissionsModal
+        open={googleConnectModalOpen}
+        connecting={googleBusy === "loading"}
+        error={googleActionError}
+        onClose={closeGoogleConnectModal}
+        onContinue={() => void handleConnectGoogle()}
       />
 
       <IntegrationAuditLogsCard

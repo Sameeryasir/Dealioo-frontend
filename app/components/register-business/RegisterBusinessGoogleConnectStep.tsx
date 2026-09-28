@@ -4,6 +4,7 @@ import Navbar from "@/app/components/Navbar";
 import bookStyles from "@/app/components/book-meeting/BookMeetingForm.module.css";
 import styles from "@/app/components/register-business/RegisterBusinessFacebookConnectStep.module.css";
 import "@/app/components/register-business/register-business-responsive.css";
+import { GoogleAdsPermissionConsent } from "@/app/components/google-ads/GoogleAdsPermissionConsent";
 import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { getSetupAccessToken } from "@/app/lib/auth-session";
@@ -13,10 +14,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
-  BarChart3,
   Loader2,
-  Megaphone,
-  Target,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -28,27 +26,6 @@ export type RegisterBusinessGoogleConnectStepProps = {
   onBack?: () => void;
   embedded?: boolean;
 };
-
-const BENEFITS = [
-  {
-    icon: Megaphone,
-    title: "Run Google campaigns",
-    description:
-      "Create and manage Search and Performance Max campaigns from Dealioo.",
-  },
-  {
-    icon: BarChart3,
-    title: "See ad performance",
-    description:
-      "Pull spend, clicks, and conversions next to your guest results.",
-  },
-  {
-    icon: Target,
-    title: "Track funnel outcomes",
-    description:
-      "Connect ads to Dealioo funnels so you know which clicks convert.",
-  },
-] as const;
 
 export default function RegisterBusinessGoogleConnectStep({
   businessId,
@@ -110,31 +87,12 @@ export default function RegisterBusinessGoogleConnectStep({
               <span className="landing-hero-accent-blue">Google Ads</span>
             </h2>
             <p className={styles.subtitle}>
-              Use Connect Google Ads to link an existing account or create one
-              in Google — Dealioo opens Google and saves the connection here.
+              Review the Google permissions below, then connect. Dealioo opens
+              Google so you can link an existing Ads account or create one.
             </p>
           </header>
 
-          <h3 className={styles.sectionTitle}>
-            What connecting Google Ads unlocks:
-          </h3>
-
-          <ul className={styles.permissionList}>
-            {BENEFITS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.title} className={styles.permissionItem}>
-                  <span className={styles.permissionIcon} aria-hidden>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className={styles.permissionTitle}>{item.title}</p>
-                    <p className={styles.permissionText}>{item.description}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <GoogleAdsPermissionConsent disabled={connecting} />
 
           <div className={styles.privacyBox}>
             <p>

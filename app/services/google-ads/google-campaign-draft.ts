@@ -405,6 +405,9 @@ export type GoogleCampaignDraftListItem = {
   updatedAt: string;
   logoPreviewUrl: string | null;
   selectedFunnelName: string | null;
+  selectedFunnelId?: number | null;
+  googleCampaignId?: string | null;
+  landingPageUrl?: string | null;
 };
 
 export async function listGoogleCampaignDrafts(
@@ -416,6 +419,18 @@ export async function listGoogleCampaignDrafts(
   await throwIfNotOk(res, "Could not load Google campaign drafts.");
   const data = (await res.json()) as unknown;
   return Array.isArray(data) ? (data as GoogleCampaignDraftListItem[]) : [];
+}
+
+export async function duplicateGoogleCampaignDraft(
+  businessId: number,
+  draftId: string,
+): Promise<GoogleCampaignDraftListItem> {
+  const res = await authenticatedFetch(
+    `${draftsBase(businessId)}/${encodeURIComponent(draftId.trim())}/duplicate`,
+    { method: "POST" },
+  );
+  await throwIfNotOk(res, "Could not duplicate campaign.");
+  return res.json() as Promise<GoogleCampaignDraftListItem>;
 }
 
 export async function updateGoogleDraftProgress(
