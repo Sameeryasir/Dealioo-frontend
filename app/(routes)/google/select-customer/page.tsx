@@ -10,6 +10,11 @@ import {
 import { setGoogleAdsCustomer } from "@/app/services/google-ads/set-google-ads-customer";
 import { notifyGoogleOAuthComplete } from "@/app/lib/google-oauth-popup";
 import { readBusinessIdFromSearchParams } from "@/app/lib/business-id-params";
+import {
+  hasAuthSession,
+  markAuthSession,
+} from "@/app/lib/auth-session";
+import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 function formatGoogleCustomerId(id: string): string {
   const digits = id.replace(/\D/g, "");
@@ -36,6 +41,14 @@ function customerSubtitle(customer: GoogleAdsCustomer): string {
   return parts.join(", ");
 }
 
+async function ensureClientSessionMarker(): Promise<void> {
+  if (hasAuthSession()) return;
+  const refreshed = await refreshAccessToken();
+  if (refreshed) {
+    markAuthSession();
+  }
+}
+
 function SelectGoogleCustomerInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +56,6 @@ function SelectGoogleCustomerInner() {
   const oauthError = searchParams.get("error")?.trim() || null;
 
   const [customers, setCustomers] = useState<GoogleAdsCustomer[]>([]);
-  // OAuth failures redirect here with ?error= — do not start in a loading spinner.
   const [loading, setLoading] = useState(() => !oauthError);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -62,6 +74,7 @@ function SelectGoogleCustomerInner() {
     setLoading(true);
     setError(null);
     try {
+      await ensureClientSessionMarker();
       const list = await getGoogleAdsCustomers(businessId);
       setCustomers(list);
       if (list.length === 1) {

@@ -2,18 +2,41 @@
 
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { hasAuthSession, markAuthSession } from "@/app/lib/auth-session";
+import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 function GoogleCallbackRedirectInner() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Same-origin /api rewrite (like Facebook) so the OAuth tab keeps this host's
-    // signed-in cookie. Do not bounce to an absolute API URL / FRONTEND_URL[0].
-    const qs = searchParams.toString();
-    const target = qs
-      ? `/api/google-ads/callback/oauth?${qs}`
-      : `/api/google-ads/callback/oauth`;
-    window.location.replace(target);
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        if (!hasAuthSession()) {
+          const restored = await refreshAccessToken();
+          if (restored) markAuthSession();
+        } else {
+          markAuthSession();
+        }
+      } catch {
+        /* ignore */
+      }
+
+      if (cancelled) return;
+
+      const qs = searchParams.toString();
+      const target = qs
+        ? `/api/google-ads/callback/oauth?${qs}`
+        : `/api/google-ads/callback/oauth`;
+      window.location.replace(target);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   return (

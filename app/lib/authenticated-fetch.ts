@@ -1,5 +1,9 @@
 import { fetchWithTimeout } from "@/app/lib/api";
-import { clearAuthSession, hasAuthSession } from "@/app/lib/auth-session";
+import {
+  clearAuthSession,
+  hasAuthSession,
+  markAuthSession,
+} from "@/app/lib/auth-session";
 import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 export function redirectToLogin(): void {
@@ -13,11 +17,6 @@ export async function authenticatedFetch(
   init: RequestInit = {},
   timeoutMs?: number,
 ): Promise<Response> {
-  if (!hasAuthSession()) {
-    redirectToLogin();
-    throw new Error("Missing session. Sign in again.");
-  }
-
   const requestInit: RequestInit = {
     ...init,
     credentials: "include",
@@ -38,6 +37,10 @@ export async function authenticatedFetch(
       redirectToLogin();
       throw new Error("Session expired. Please sign in again.");
     }
+  }
+
+  if (res.ok && !hasAuthSession()) {
+    markAuthSession();
   }
 
   return res;
