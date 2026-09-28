@@ -1,5 +1,7 @@
 "use client";
 
+import CampaignBuilderStepHost from "@/app/components/google-ads/campaign-builder/CampaignBuilderStepHost";
+
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -9,8 +11,6 @@ import {
   googleBuilderSecondaryButtonClass,
   googleBuilderShellClass,
 } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
-import dynamic from "next/dynamic";
-import { Skeleton } from "@/app/components/skeleton";
 import {
   clearGoogleCampaignDraft,
   loadGoogleCampaignDraft,
@@ -80,21 +80,6 @@ function resolveSaveError(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
   return fallback;
 }
-
-const CampaignBuilderStepHost = dynamic(
-  () =>
-    import("@/app/components/google-ads/campaign-builder/CampaignBuilderStepHost"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="space-y-4" aria-busy="true" aria-label="Loading step">
-        <Skeleton className="h-8 w-48 rounded-xl" />
-        <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
-    ),
-  },
-);
 
 export function CampaignBuilderWizard({
   open,
@@ -282,7 +267,6 @@ export function CampaignBuilderWizard({
       setServerVersion(null);
     }
 
-
     if (storedDraftId) {
       if (localDraft) {
         const uiStep = Math.min(
@@ -464,7 +448,6 @@ export function CampaignBuilderWizard({
         cancelled = true;
       };
     }
-
 
     if (localDraft) {
       const uiStep = Math.min(

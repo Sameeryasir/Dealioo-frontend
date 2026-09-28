@@ -119,33 +119,52 @@ function OverviewKpiTile({
 function OverviewSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true" aria-label="Loading activity">
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5">
+      <section
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5"
+        aria-label="Business summary"
+      >
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
+            className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02]"
           >
             <Skeleton funnel className="size-10 shrink-0 rounded-xl" />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               <Skeleton funnel className="h-3 w-16" />
-              <Skeleton funnel className="mt-2 h-7 w-20" />
+              <Skeleton funnel className="mt-0.5 h-5 w-20 sm:h-6" />
+              <Skeleton funnel className="mt-1 h-3 w-24" />
             </div>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-3.5">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5"
-          >
-            <Skeleton funnel className="h-4 w-36" />
-            <Skeleton funnel className="mt-2 h-3 w-28" />
-            <Skeleton funnel className="mt-6 h-[200px] w-full rounded-xl" />
-          </div>
-        ))}
-      </div>
+      <section className="rd-premium-section" aria-label="Performance charts">
+        <div className="mb-1 px-0.5">
+          <Skeleton funnel className="h-5 w-44 rounded-md" />
+          <Skeleton funnel className="mt-1 h-3 w-64 max-w-full rounded-md" />
+        </div>
+        <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="min-h-[300px]">
+              <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+                <span
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1877f2]/25"
+                  aria-hidden
+                />
+                <div className="relative shrink-0 px-4 pb-2 pt-4 sm:px-5 sm:pt-5">
+                  <Skeleton funnel className="h-4 w-28 rounded-md sm:w-32" />
+                  <Skeleton funnel className="mt-0.5 h-3 w-36 rounded-md" />
+                </div>
+                <div className="relative mx-3 mb-3 flex min-h-[300px] flex-1 flex-col rounded-[1rem] bg-white px-2 py-2 ring-1 ring-[#e8edf5]/80 sm:mx-4 sm:mb-4 sm:px-3 sm:py-3">
+                  <div className="h-[250px] w-full min-w-0">
+                    <Skeleton funnel className="h-full w-full rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -305,7 +324,7 @@ export function BusinessActivityOverviewPanel({
       </div>
 
       {periodLoading ? (
-        <div className="px-2.5 py-4 sm:px-3 sm:py-5">
+        <div className="px-3 py-4 sm:px-4 sm:py-5">
           <OverviewSkeleton />
         </div>
       ) : (
