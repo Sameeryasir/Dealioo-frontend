@@ -3,7 +3,7 @@ export const ACTIVITY_MONTH_COUNT = 6;
 // Business dashboard year arrows already reach last year. This count makes every past month in that view selectable, not only the last six.
 export function activityCalendarYearMonthCount(): number {
   const now = new Date();
-  return now.getUTCMonth() + 13;
+  return now.getMonth() + 13;
 }
 
 export const ACTIVITY_ALL_MONTHS_ID = "all";
@@ -15,10 +15,25 @@ export type ActivityMonthFilterOption = {
   to: string;
 };
 
-function monthKeyFromDate(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+function localYmd(date = new Date()): { year: number; month: number; day: number } {
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  };
+}
+
+function localDayStart(year: number, month: number, day: number): Date {
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+function localDayEnd(year: number, month: number, day: number): Date {
+  return new Date(year, month - 1, day, 23, 59, 59, 999);
+}
+
+function monthKeyFromLocalDate(date: Date): string {
+  const { year, month } = localYmd(date);
+  return buildActivityMonthKey(year, month);
 }
 
 export function buildActivityMonthKey(year: number, month: number): string {
@@ -41,9 +56,7 @@ export function getEarliestSelectableActivityMonth(
   monthCount = ACTIVITY_MONTH_COUNT,
 ): Date {
   const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthCount - 1), 1),
-  );
+  return new Date(now.getFullYear(), now.getMonth() - (monthCount - 1), 1);
 }
 
 export function isActivityMonthSelectable(
@@ -53,12 +66,10 @@ export function isActivityMonthSelectable(
   const parsed = parseActivityMonthKey(monthKey);
   if (!parsed) return false;
 
-  const monthStart = new Date(Date.UTC(parsed.year, parsed.month - 1, 1));
+  const monthStart = new Date(parsed.year, parsed.month - 1, 1);
   const earliest = getEarliestSelectableActivityMonth(monthCount);
   const now = new Date();
-  const currentMonthStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  );
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return monthStart >= earliest && monthStart <= currentMonthStart;
 }
@@ -80,24 +91,12 @@ export function getActivityMonthRangeForKey(
   }
 
   const now = new Date();
-  const start = new Date(Date.UTC(parsed.year, parsed.month - 1, 1));
-  const currentMonthKey = monthKeyFromDate(now);
+  const start = localDayStart(parsed.year, parsed.month, 1);
+  const currentMonthKey = monthKeyFromLocalDate(now);
   const end =
     monthKey === currentMonthKey
-      ? new Date(
-          Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            23,
-            59,
-            59,
-            999,
-          ),
-        )
-      : new Date(
-          Date.UTC(parsed.year, parsed.month, 0, 23, 59, 59, 999),
-        );
+      ? localDayEnd(now.getFullYear(), now.getMonth() + 1, now.getDate())
+      : localDayEnd(parsed.year, parsed.month + 1, 0);
 
   return { from: start.toISOString(), to: end.toISOString() };
 }
@@ -127,58 +126,53 @@ export function formatActivityMonthLabel(monthKey: string): string {
   return new Intl.DateTimeFormat("en", {
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
+  }).format(new Date(year, month - 1, 1));
 }
 
 export function buildActivityMonthFilterOptions(
   monthCount = ACTIVITY_MONTH_COUNT,
 ): ActivityMonthFilterOption[] {
   const now = new Date();
-  const endOfTodayUtc = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      23,
-      59,
-      59,
-      999,
-    ),
+  const endOfTodayLocal = localDayEnd(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    now.getDate(),
   );
   const options: ActivityMonthFilterOption[] = [];
 
   const allFrom = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthCount - 1), 1),
+    now.getFullYear(),
+    now.getMonth() - (monthCount - 1),
+    1,
+    0,
+    0,
+    0,
+    0,
   );
 
   options.push({
     id: ACTIVITY_ALL_MONTHS_ID,
     label: "All months",
     from: allFrom.toISOString(),
-    to: endOfTodayUtc.toISOString(),
+    to: endOfTodayLocal.toISOString(),
   });
 
   for (let offset = 0; offset < monthCount; offset += 1) {
     const start = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1),
+      now.getFullYear(),
+      now.getMonth() - offset,
+      1,
+      0,
+      0,
+      0,
+      0,
     );
     const end =
       offset === 0
-        ? endOfTodayUtc
-        : new Date(
-            Date.UTC(
-              start.getUTCFullYear(),
-              start.getUTCMonth() + 1,
-              0,
-              23,
-              59,
-              59,
-              999,
-            ),
-          );
+        ? endOfTodayLocal
+        : localDayEnd(start.getFullYear(), start.getMonth() + 2, 0);
 
-    const monthKey = monthKeyFromDate(start);
+    const monthKey = monthKeyFromLocalDate(start);
     options.push({
       id: monthKey,
       label: formatActivityMonthLabel(monthKey),
@@ -191,12 +185,8 @@ export function buildActivityMonthFilterOptions(
 }
 
 export function currentActivityDateKey(): string {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  )
-    .toISOString()
-    .slice(0, 10);
+  const { year, month, day } = localYmd();
+  return buildActivityDateKey(year, month, day);
 }
 
 export function buildActivityDateKey(
@@ -225,11 +215,11 @@ export function parseActivityDateKey(
   ) {
     return null;
   }
-  const utc = new Date(Date.UTC(year, month - 1, day));
+  const local = new Date(year, month - 1, day);
   if (
-    utc.getUTCFullYear() !== year ||
-    utc.getUTCMonth() !== month - 1 ||
-    utc.getUTCDate() !== day
+    local.getFullYear() !== year ||
+    local.getMonth() !== month - 1 ||
+    local.getDate() !== day
   ) {
     return null;
   }
@@ -243,10 +233,12 @@ export function isActivityDateSelectable(
   const parsed = parseActivityDateKey(dateKey);
   if (!parsed) return false;
 
-  const dayStart = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+  const dayStart = localDayStart(parsed.year, parsed.month, parsed.day);
   const earliest = getEarliestSelectableActivityMonth(monthCount);
-  const today = new Date(currentActivityDateKey() + "T00:00:00.000Z");
-  return dayStart >= earliest && dayStart <= today;
+  const today = parseActivityDateKey(currentActivityDateKey());
+  if (!today) return false;
+  const todayStart = localDayStart(today.year, today.month, today.day);
+  return dayStart >= earliest && dayStart <= todayStart;
 }
 
 export function resolveActivityDateRange(
@@ -262,12 +254,8 @@ export function resolveActivityDateRange(
     return { from: now.toISOString(), to: now.toISOString() };
   }
 
-  const from = new Date(
-    Date.UTC(parsed.year, parsed.month - 1, parsed.day, 0, 0, 0, 0),
-  );
-  const to = new Date(
-    Date.UTC(parsed.year, parsed.month - 1, parsed.day, 23, 59, 59, 999),
-  );
+  const from = localDayStart(parsed.year, parsed.month, parsed.day);
+  const to = localDayEnd(parsed.year, parsed.month, parsed.day);
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
@@ -284,14 +272,11 @@ export function resolveCollectiveMonthRange(
     return { from: now, to: now, inProgress: true };
   }
 
-  const from = new Date(Date.UTC(parsed.year, parsed.month - 1, 1, 0, 0, 0, 0));
-  const lastDay = new Date(Date.UTC(parsed.year, parsed.month, 0)).getUTCDate();
-  const monthEnd = new Date(
-    Date.UTC(parsed.year, parsed.month - 1, lastDay, 23, 59, 59, 999),
-  );
+  const from = localDayStart(parsed.year, parsed.month, 1);
+  const monthEnd = localDayEnd(parsed.year, parsed.month + 1, 0);
   const today = parseActivityDateKey(currentActivityDateKey());
   const todayEnd = today
-    ? new Date(Date.UTC(today.year, today.month - 1, today.day, 23, 59, 59, 999))
+    ? localDayEnd(today.year, today.month, today.day)
     : monthEnd;
   const inProgress = monthEnd.getTime() > todayEnd.getTime();
   const to = inProgress ? todayEnd : monthEnd;
@@ -305,8 +290,7 @@ export function formatActivityDateLabel(dateKey: string): string {
     month: "long",
     day: "numeric",
     year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
+  }).format(new Date(parsed.year, parsed.month - 1, parsed.day));
 }
 
 export function resolveActivityMonthRange(
@@ -319,7 +303,13 @@ export function resolveActivityMonthRange(
   if (!match) {
     const now = new Date();
     const from = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (ACTIVITY_MONTH_COUNT - 1), 1),
+      now.getFullYear(),
+      now.getMonth() - (ACTIVITY_MONTH_COUNT - 1),
+      1,
+      0,
+      0,
+      0,
+      0,
     );
     return { from: from.toISOString(), to: now.toISOString() };
   }

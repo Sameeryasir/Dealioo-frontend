@@ -200,7 +200,7 @@ export function BusinessActivityOverviewPanel({
       periodRange.to,
     ],
     enabled: businessId != null && businessId > 0,
-    staleTime: 30_000,
+    staleTime: 5_000,
     queryFn: () =>
       getRestaurantActivityMonthly(businessId!, {
         from: periodRange.from,
