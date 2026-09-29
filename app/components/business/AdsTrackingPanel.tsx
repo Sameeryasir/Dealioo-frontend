@@ -93,7 +93,6 @@ function TrackingCard({
   accent: "meta" | "gtm";
   children: ReactNode;
 }) {
-  // --- Card shell: min-w-0 + h-full keep grid columns equal on wide screens ---
   return (
     <section className="h-full min-w-0 rounded-2xl border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       <div className="flex min-h-full min-w-0">
@@ -379,7 +378,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
   return (
     <div className="box-border w-full min-w-0 bg-white px-3 py-5 pb-14 sm:px-6 sm:py-7 sm:pb-16 lg:px-8 lg:py-8 lg:pb-20 xl:px-10">
-      {/* --- Layout: full usable width so cards can sit inline on large screens --- */}
       <div className="mx-auto w-full min-w-0 max-w-7xl space-y-4 sm:space-y-5">
         <header className="flex min-w-0 items-start gap-3 sm:gap-3.5">
           <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] sm:size-11">
@@ -413,7 +411,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           </div>
         </div>
 
-        {/* --- Cards: auto-fit by available width (works with sidebar on large screens) --- */}
         <div className="grid grid-cols-1 gap-4 sm:gap-5 min-[880px]:grid-cols-2 min-[880px]:items-stretch">
         <TrackingCard accent="meta">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

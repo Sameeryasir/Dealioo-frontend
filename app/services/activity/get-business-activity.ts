@@ -54,6 +54,7 @@ export type ActivityMonthlyPoint = {
   prepaidForOffer: number;
   messageSent: number;
   prepaidRevenueCents: number;
+  extraItemsRevenueCents?: number;
   orders?: number;
   members?: number;
   paidRevenueCents?: number;

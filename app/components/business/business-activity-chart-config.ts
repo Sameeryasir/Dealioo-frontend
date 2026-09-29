@@ -24,6 +24,10 @@ export function resolveCheckIns(row: ActivityMonthlyPoint): number {
   return row.visited + row.redeemedReward;
 }
 
+export function resolvePeriodRevenueCents(row: ActivityMonthlyPoint): number {
+  return (row.paidRevenueCents ?? 0) + (row.extraItemsRevenueCents ?? 0);
+}
+
 export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
   checkIns: number;
   revenueCents: number;
@@ -31,7 +35,7 @@ export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
   return points.reduce(
     (acc, row) => ({
       checkIns: acc.checkIns + resolveCheckIns(row),
-      revenueCents: acc.revenueCents + row.prepaidRevenueCents,
+      revenueCents: acc.revenueCents + resolvePeriodRevenueCents(row),
     }),
     { checkIns: 0, revenueCents: 0 },
   );
@@ -94,7 +98,7 @@ export function buildRevenueMonthlyData(
   return points.map((row) => ({
     month: row.month,
     label: formatMonthLabel(row.month),
-    value: row.paidRevenueCents ?? 0,
+    value: resolvePeriodRevenueCents(row),
   }));
 }
 

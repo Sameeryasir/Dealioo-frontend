@@ -8,6 +8,7 @@ import {
   buildOrdersMonthlyData,
   buildRevenueMonthlyData,
   sumActivityFromMonthly,
+  resolvePeriodRevenueCents,
 } from "@/app/components/business/business-activity-chart-config";
 import { BusinessMembersMiniChart } from "@/app/components/business/BusinessMembersMiniChart";
 import { BusinessMonthlyBarChart } from "@/app/components/business/BusinessMonthlyBarChart";
@@ -215,8 +216,8 @@ export function BusinessActivityOverviewPanel({
     [periodQuery.data?.data],
   );
   const displayActiveCampaigns = periodQuery.data?.activeCampaigns ?? 0;
-  const periodPaidCents = visibleData.reduce(
-    (sum, row) => sum + (row.paidRevenueCents ?? 0),
+  const periodRevenueCents = visibleData.reduce(
+    (sum, row) => sum + resolvePeriodRevenueCents(row),
     0,
   );
   const isQuietBusiness =
@@ -368,7 +369,7 @@ export function BusinessActivityOverviewPanel({
               />
               <OverviewKpiTile
                 label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
-                value={periodPaidCents}
+                value={periodRevenueCents}
                 hint={periodLabel}
                 icon={DollarSign}
                 iconBg={calendarMode === "day" ? DASHBOARD_KPI_ICON.orange : DASHBOARD_KPI_ICON.pink}
@@ -397,7 +398,7 @@ export function BusinessActivityOverviewPanel({
                 <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
-                    totalRevenueCents={periodPaidCents}
+                    totalRevenueCents={periodRevenueCents}
                     months={1}
                     caption={periodLabel}
                   />

@@ -41,7 +41,7 @@ export function BusinessRevenueMiniChart({
   return (
     <OverviewChartShell
       title="Revenue"
-      subtitle={caption ?? `Prepaid offer revenue, last ${months} months`}
+      subtitle={caption ?? `Paid revenue, last ${months} months`}
       minHeightClass="min-h-[220px]"
       className="h-full"
       accent="pink"
