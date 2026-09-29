@@ -1,4 +1,3 @@
-// How far back month/day pickers and “All months” can reach (10 years).
 export const ACTIVITY_MONTH_COUNT = 120;
 
 export function activityCalendarYearMonthCount(): number {
@@ -195,7 +194,6 @@ export function currentActivityDateKey(): string {
   return buildActivityDateKey(year, month, day);
 }
 
-/** Current calendar month in the viewer's local timezone (not UTC). */
 export function currentActivityMonthKey(): string {
   const { year, month } = localYmd();
   return buildActivityMonthKey(year, month);
