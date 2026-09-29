@@ -1,7 +1,6 @@
 import {
   PAYMENT_REMINDER_TEMPLATE,
   POST_PAYMENT_JOURNEY_TEMPLATE,
-  SIGNUP_AUTOMATION_TEMPLATE,
   type AutomationTemplate,
 } from "@/app/components/automation/automation-templates";
 import { applyAutomationTemplate } from "@/app/services/automation/apply-automation-template";
@@ -16,19 +15,16 @@ const PREPAID_DEFAULT_TEMPLATES: AutomationTemplate[] = [
   POST_PAYMENT_JOURNEY_TEMPLATE,
 ];
 
-const POSTPAID_DEFAULT_TEMPLATES: AutomationTemplate[] = [
-  SIGNUP_AUTOMATION_TEMPLATE,
-];
-
 export async function provisionCampaignDefaultAutomations(
   businessId: number,
   campaignId: number,
   campaignType: "prepaid" | "postpaid" = "prepaid",
 ): Promise<void> {
-  const templates =
-    campaignType === "postpaid"
-      ? POSTPAID_DEFAULT_TEMPLATES
-      : PREPAID_DEFAULT_TEMPLATES;
+  if (campaignType === "postpaid") {
+    return;
+  }
+
+  const templates = PREPAID_DEFAULT_TEMPLATES;
 
   const existing = await getAutomations(businessId);
   const onCampaign = existing.filter(

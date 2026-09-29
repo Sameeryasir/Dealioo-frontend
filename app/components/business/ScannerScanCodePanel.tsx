@@ -2,7 +2,6 @@
 
 import {
   ArrowDownToLine,
-  CheckCircle2,
   Focus,
   Gift,
   Loader2,
@@ -12,12 +11,12 @@ import {
   Sparkles,
   SunMedium,
   UserCheck,
-  Users,
   XCircle,
 } from "lucide-react";
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { ScanCompleteOrderDialog } from "@/app/components/business/ScanCompleteOrderDialog";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { ScanCustomerConfirmDialog } from "@/app/components/business/ScanCustomerConfirmDialog";
@@ -28,12 +27,11 @@ import {
   redeemExpectedOfferAmount,
   scanRedemptionQr,
   type ScanPreviewSuccess,
-  type ScanRedemptionSuccess,
 } from "@/app/services/redemption/scan-redemption";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
 
-type ScanState = "idle" | "scanning" | "loading" | "preview" | "success" | "error";
+type ScanState = "idle" | "scanning" | "loading" | "preview" | "error";
 type DialogStep =
   | "confirm"
   | "selectRewards"
@@ -55,7 +53,6 @@ async function resolveCameraConfig(): Promise<string | MediaTrackConstraints> {
       return pickCameraId(cameras);
     }
   } catch {
-    // fall through to facingMode constraints
   }
 
   return { facingMode: "user" };
@@ -102,109 +99,6 @@ const SCAN_TIPS = [
     description: "Move closer if the code isn't detected",
   },
 ] as const;
-
-function ScannerSuccessState({
-  result,
-  onScanAnother,
-}: {
-  result: ScanRedemptionSuccess;
-  onScanAnother: () => void;
-}) {
-  return (
-    <div className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-[#bfdbfe]/90 bg-[#eff6ff] shadow-[0_16px_40px_rgba(24,119,242,0.12)] ring-1 ring-[#1877f2]/10">
-      <span
-        className="pointer-events-none absolute -top-16 left-1/2 size-48 -translate-x-1/2 rounded-full bg-[#1877f2]/20 blur-3xl"
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute -right-10 top-24 size-28 rounded-full bg-[#1877f2]/10 blur-2xl"
-        aria-hidden
-      />
-
-      <div className="relative px-5 pb-6 pt-8 text-center sm:px-8 sm:pb-8 sm:pt-10">
-        <div className="mx-auto mb-5 flex size-[4.5rem] items-center justify-center rounded-full bg-[#1877f2] shadow-[0_12px_28px_rgba(24,119,242,0.35)] ring-4 ring-white">
-          <CheckCircle2
-            className="size-9 text-white"
-            strokeWidth={2.5}
-            aria-hidden
-          />
-        </div>
-
-        <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2]/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-          <Sparkles className="size-3" aria-hidden />
-          Success
-        </p>
-        <h3 className="m-0 mt-3 text-[1.45rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.6rem]">
-          Redeemed!
-        </h3>
-        <p className="m-0 mt-1.5 text-[0.88rem] font-medium text-slate-500">
-          Offer successfully applied at the counter.
-        </p>
-
-        <div className="mt-6 rounded-[1.2rem] border border-[#e8edf5] bg-white/90 px-4 py-4 text-left shadow-sm sm:px-5">
-          <div className="flex items-start gap-3 border-b border-[#f1f5f9] pb-4">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2]/10 text-[#1877f2] ring-1 ring-[#1877f2]/15">
-              <UserCheck className="size-5" strokeWidth={2.25} aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-[0.7rem] font-bold uppercase tracking-wide text-slate-400">
-                Customer
-              </p>
-              <p className="m-0 mt-0.5 truncate text-[1.05rem] font-extrabold text-[#07111f]">
-                {result.customerName}
-              </p>
-              <p className="m-0 mt-1.5 inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-[#1877f2]/10 px-2.5 py-0.5 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#1877f2]/15">
-                <Gift className="size-3 shrink-0" aria-hidden />
-                <span className="truncate">{result.campaignName}</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl bg-[#f8fafc] px-3 py-3 ring-1 ring-[#e8edf5]">
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Users className="size-3.5" aria-hidden />
-                <p className="m-0 text-[0.65rem] font-bold uppercase tracking-wide">
-                  Total visits
-                </p>
-              </div>
-              <p className="m-0 mt-1.5 text-[1.35rem] font-extrabold tabular-nums text-[#07111f]">
-                {result.totalVisits}
-              </p>
-            </div>
-            <div className="rounded-xl bg-[#f8fafc] px-3 py-3 ring-1 ring-[#e8edf5]">
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Gift className="size-3.5" aria-hidden />
-                <p className="m-0 text-[0.65rem] font-bold uppercase tracking-wide">
-                  Rewards left
-                </p>
-              </div>
-              <p className="m-0 mt-1.5 text-[1.35rem] font-extrabold tabular-nums text-[#07111f]">
-                {result.rewardsAvailable}
-              </p>
-            </div>
-          </div>
-
-          <p className="m-0 mt-4 text-center text-[0.75rem] font-medium text-slate-500">
-            Redeemed at{" "}
-            <span className="font-bold text-slate-700">
-              {formatDateTimeShort(result.redeemedAt)}
-            </span>
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onScanAnother}
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1877f2] px-6 py-3.5 text-[0.9rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.32)] transition hover:bg-[#166fe5] sm:w-auto sm:min-w-[12rem]"
-        >
-          <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
-          Scan another
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function ScannerIdleState({
   onStart,
@@ -476,9 +370,6 @@ export function ScannerScanCodePanel({
   const [previewResult, setPreviewResult] = useState<ScanPreviewSuccess | null>(
     null,
   );
-  const [successResult, setSuccessResult] = useState<ScanRedemptionSuccess | null>(
-    null,
-  );
   const [confirmingRedemption, setConfirmingRedemption] = useState(false);
   const [showPreviousRedemptions, setShowPreviousRedemptions] = useState(false);
   const [dialogStep, setDialogStep] = useState<DialogStep>("confirm");
@@ -498,13 +389,11 @@ export function ScannerScanCodePanel({
         await scanner.stop();
       }
     } catch {
-      // camera may already be stopped
     }
 
     try {
       scanner.clear();
     } catch {
-      // reader element may already be cleared
     }
   }, []);
 
@@ -516,7 +405,6 @@ export function ScannerScanCodePanel({
       setScanState("loading");
       setErrorMessage(null);
       setPreviewResult(null);
-      setSuccessResult(null);
       setShowPreviousRedemptions(false);
 
       await stopScanner();
@@ -585,8 +473,12 @@ export function ScannerScanCodePanel({
           setDialogStep("confirm");
           setPendingCouponIds([]);
           setPendingRedeemAmount(null);
-          setSuccessResult(result);
-          setScanState("success");
+          toast.success("Successfully redeemed", {
+            description: `${result.campaignName} · ${formatDateTimeShort(result.redeemedAt)}`,
+          });
+          scannedRef.current = false;
+          pendingTokenRef.current = "";
+          setScanState("scanning");
         } else {
           setErrorMessage(result.message);
           setScanState("error");
@@ -635,9 +527,7 @@ export function ScannerScanCodePanel({
           (decoded) => {
             void handlePreview(decoded);
           },
-          () => {
-            // ignore per-frame scan misses
-          },
+          () => {},
         );
       } catch (err) {
         if (cancelled) return;
@@ -669,7 +559,6 @@ export function ScannerScanCodePanel({
   const startScanner = () => {
     setErrorMessage(null);
     setPreviewResult(null);
-    setSuccessResult(null);
     scannedRef.current = false;
     setScanState("scanning");
   };
@@ -679,7 +568,6 @@ export function ScannerScanCodePanel({
     setScanState("idle");
     setErrorMessage(null);
     setPreviewResult(null);
-    setSuccessResult(null);
     setShowPreviousRedemptions(false);
     setConfirmingRedemption(false);
     setDialogStep("confirm");
@@ -872,13 +760,6 @@ export function ScannerScanCodePanel({
                 Cancel
               </button>
             </div>
-          ) : null}
-
-          {scanState === "success" && successResult ? (
-            <ScannerSuccessState
-              result={successResult}
-              onScanAnother={() => void resetScan()}
-            />
           ) : null}
 
           {scanState === "error" ? (

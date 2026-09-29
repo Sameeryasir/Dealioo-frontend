@@ -483,7 +483,7 @@ export function BusinessCampaignsPanel({
         }),
       ]);
 
-      if (campaignId != null) {
+      if (campaignId != null && payload.campaignType !== "postpaid") {
         void provisionCampaignDefaultAutomations(
           businessId,
           campaignId,

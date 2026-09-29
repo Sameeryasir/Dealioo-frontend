@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBusinessChatCustomersQuery } from "@/app/hooks/use-business-chat-customers-query";
 import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
-import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
 import {
   clearConversationMessageDatabasesForBusiness,
@@ -85,7 +84,6 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
       return;
     }
 
-    playNotificationChime();
     setLiveUnreadByCustomerId((prev) => {
       const serverCount = rowsByCustomerId.get(customerId)?.unreadCount ?? 0;
       const current = prev[customerId] ?? serverCount;

@@ -121,3 +121,66 @@ export function formatPaidAtParts(
     }),
   };
 }
+
+export function getUserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+export function formatUtcChartBucketLabel(
+  bucketKey: string,
+  timeZone: string = getUserTimeZone(),
+): string {
+  const hourMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})$/.exec(bucketKey);
+  if (hourMatch) {
+    const year = Number(hourMatch[1]);
+    const month = Number(hourMatch[2]);
+    const day = Number(hourMatch[3]);
+    const hour = Number(hourMatch[4]);
+    if (
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day) ||
+      !Number.isFinite(hour)
+    ) {
+      return bucketKey;
+    }
+    return new Intl.DateTimeFormat("en", {
+      hour: "numeric",
+      hour12: true,
+      timeZone,
+    }).format(new Date(Date.UTC(year, month - 1, day, hour)));
+  }
+
+  const parts = bucketKey.split("-");
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+
+  if (
+    parts.length >= 3 &&
+    Number.isFinite(year) &&
+    Number.isFinite(month) &&
+    Number.isFinite(day)
+  ) {
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      timeZone,
+    }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+  }
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return bucketKey;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    year: "numeric",
+    timeZone,
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
+}
+

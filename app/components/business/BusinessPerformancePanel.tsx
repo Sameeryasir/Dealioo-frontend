@@ -14,6 +14,7 @@ import {
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
+import { formatUtcChartBucketLabel } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents, formatDollars } from "@/app/lib/money";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -202,29 +203,8 @@ function formatTitleCase(value: string): string {
     .join(" ");
 }
 
-function formatDayLabel(dateKey: string): string {
-  const [yearRaw, monthRaw, dayRaw] = dateKey.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return dateKey;
-  }
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function formatChartPointLabel(dateKey: string): string {
-  const hourMatch = /^(\d{4}-\d{2}-\d{2})T(\d{2})$/.exec(dateKey);
-  if (!hourMatch) return formatDayLabel(dateKey);
-  const hour = Number(hourMatch[2]);
-  if (!Number.isFinite(hour)) return dateKey;
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return `${hour12} ${suffix}`;
+  return formatUtcChartBucketLabel(dateKey);
 }
 
 function repeatRatePercent(campaign: BusinessTopCampaign): number {

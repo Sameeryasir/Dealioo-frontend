@@ -1,7 +1,6 @@
 "use client";
 
 import { hasAuthSession } from "@/app/lib/auth-session";
-import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   readSectionUnreadCount,
@@ -382,7 +381,6 @@ export function useBusinessSidebarSectionUnread(
       writeSectionUnreadCount(user, business, payload.section, next);
       return { ...prev, [payload.section]: next };
     });
-    playNotificationChime();
     scheduleRefreshFromServer(user, business);
   });
 

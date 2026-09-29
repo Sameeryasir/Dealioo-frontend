@@ -1,6 +1,7 @@
 import type { FunnelAnalyticsMonthlyPoint } from "@/app/services/funnel/get-analytics-overview-monthly";
 import type { FunnelEventStats } from "@/app/services/funnel/get-funnel-event-stats";
 import type { FunnelStatsMonthlyPoint } from "@/app/services/funnel/get-funnel-stats-monthly";
+import { formatUtcChartBucketLabel } from "@/app/lib/datetime";
 
 export const OVERVIEW_MONTH_COUNT = 6;
 
@@ -66,37 +67,7 @@ export function shortenMonthAxisLabel(label: string): string {
 }
 
 export function formatMonthLabel(monthKey: string): string {
-  const hourMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})$/.exec(monthKey);
-  if (hourMatch) {
-    const hour = Number(hourMatch[4]);
-    const suffix = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-    return `${hour12} ${suffix}`;
-  }
-  const parts = monthKey.split("-");
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  if (
-    parts.length >= 3 &&
-    Number.isFinite(year) &&
-    Number.isFinite(month) &&
-    Number.isFinite(day)
-  ) {
-    return new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    }).format(new Date(Date.UTC(year, month - 1, day)));
-  }
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-    return monthKey;
-  }
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
+  return formatUtcChartBucketLabel(monthKey);
 }
 
 export function computeConversionRate(stats: FunnelEventStats): number {

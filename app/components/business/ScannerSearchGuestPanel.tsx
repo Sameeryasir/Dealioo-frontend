@@ -924,7 +924,7 @@ export function ScannerSearchGuestPanel({
           setRedeemStep(null);
           setPendingRedeemAmount(null);
           setSelectedDealIds([]);
-          toast.success("Redeemed successfully", {
+          toast.success("Successfully redeemed", {
             description: `${result.campaignName} · ${formatDateTimeShort(result.redeemedAt)}`,
           });
 
