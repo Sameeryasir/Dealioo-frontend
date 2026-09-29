@@ -9,12 +9,14 @@ import {
   activityCalendarYearMonthCount,
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
+  currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityMonthLabel,
   resolveActivityMonthRange,
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
-import { formatUtcChartBucketLabel } from "@/app/lib/datetime";
+import { formatUtcChartBucketLabel, getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents, formatDollars } from "@/app/lib/money";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -175,8 +177,7 @@ type PerformanceScoreBreakdown = {
 };
 
 function currentPerformanceMonthKey(): string {
-  const now = new Date();
-  return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  return currentActivityMonthKey();
 }
 
 const panelCardClass =
@@ -1582,7 +1583,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                   strokeDasharray="4 4"
                   strokeWidth={1.25}
                   label={{
-                    value: "Today",
+                    value: todayMarkerLabel,
                     position: "insideTopRight",
                     fill: "#64748b",
                     fontSize: 11,
@@ -1761,6 +1762,7 @@ export function BusinessPerformancePanel({
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const monthOptions = useMemo(
     () => buildActivityMonthFilterOptions(dashboardMonthCount),
     [dashboardMonthCount],
@@ -1792,6 +1794,7 @@ export function BusinessPerformancePanel({
       monthFilter,
       monthRange.from,
       monthRange.to,
+      viewerTimeZone,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
     staleTime: 30_000,
@@ -1800,6 +1803,7 @@ export function BusinessPerformancePanel({
         from: monthRange.from,
         to: monthRange.to,
         limit: 3,
+        timezone: viewerTimeZone,
       }),
   });
 
@@ -1961,8 +1965,7 @@ export function BusinessPerformancePanel({
     const byDayCampaign = new Map<string, number>();
     for (const row of dailyByCampaign) {
       const day = row.date.slice(0, 10);
-      const key = row.earningsCents;
-      byDayCampaign.set(`${day}:${row.campaignId}`, key);
+      byDayCampaign.set(`${day}:${row.campaignId}`, row.earningsCents);
     }
 
     const pointKeys = [...byDayCampaign.keys()]
@@ -1979,18 +1982,20 @@ export function BusinessPerformancePanel({
         fullLabel: formatChartPointLabel(date),
       };
       for (const campaign of chartCampaigns) {
-        point[`c${campaign.campaignId}`] = byDayCampaign.get(
-          `${date}:${campaign.campaignId}`,
-        ) ?? 0;
+        point[`c${campaign.campaignId}`] =
+          byDayCampaign.get(`${date}:${campaign.campaignId}`) ?? 0;
       }
       return point;
     });
-  }, [
-    chartCampaigns,
-    dailyByCampaign,
-  ]);
+  }, [chartCampaigns, dailyByCampaign]);
 
-  const todayMarkerLabel = null;
+  // Current month: mark “today” on the X axis (viewer-local calendar date).
+  const todayMarkerLabel = useMemo(() => {
+    if (!monthRange.inProgress) return null;
+    const todayKey = currentActivityDateKey();
+    const point = chartData.find((row) => row.date === todayKey);
+    return point ? String(point.label) : null;
+  }, [chartData, monthRange.inProgress]);
 
   return (
     <section className="rd-premium w-full" aria-label="Performance">

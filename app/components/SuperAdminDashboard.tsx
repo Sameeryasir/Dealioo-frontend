@@ -17,13 +17,14 @@ import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import {
   activityCalendarYearMonthCount,
-  buildActivityMonthKey,
   currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityDateLabel,
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
+import { getUserTimeZone } from "@/app/lib/datetime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import {
   getAdminMeetingRequests,
@@ -425,14 +426,12 @@ export function SuperAdminDashboard() {
   const [meetingsLoading, setMeetingsLoading] = useState(false);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
-  const [monthFilter, setMonthFilter] = useState(() => {
-    const now = new Date();
-    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
-  });
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const [trends, setTrends] = useState<PlatformAdminTrends | null>(null);
   const [trendsLoading, setTrendsLoading] = useState(true);
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const periodRange = useMemo(() => {
     if (calendarMode === "day") {
       return resolveActivityDateRange(dateFilter, dashboardMonthCount);
@@ -489,7 +488,11 @@ export function SuperAdminDashboard() {
   useEffect(() => {
     let cancelled = false;
     setTrendsLoading(true);
-    void getPlatformAdminTrends(periodRange.from, periodRange.to)
+    void getPlatformAdminTrends(
+      periodRange.from,
+      periodRange.to,
+      viewerTimeZone,
+    )
       .then((next) => {
         if (!cancelled) setTrends(next);
       })
@@ -502,7 +505,7 @@ export function SuperAdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [periodRange.from, periodRange.to]);
+  }, [periodRange.from, periodRange.to, viewerTimeZone]);
 
   useEffect(() => {
     setBusinessPage(1);
@@ -693,7 +696,11 @@ export function SuperAdminDashboard() {
                 void loadOverview();
                 void loadMeetingRequests();
                 setTrendsLoading(true);
-                void getPlatformAdminTrends(periodRange.from, periodRange.to)
+                void getPlatformAdminTrends(
+                  periodRange.from,
+                  periodRange.to,
+                  viewerTimeZone,
+                )
                   .then((next) => setTrends(next))
                   .catch(() => setTrends(null))
                   .finally(() => setTrendsLoading(false));

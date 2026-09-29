@@ -22,7 +22,9 @@ export type FunnelAnalyticsMonthly = {
 
 export async function getAnalyticsOverviewMonthly(
   funnelId: number,
-  options: number | { months?: number; from?: string; to?: string } = 6,
+  options:
+    | number
+    | { months?: number; from?: string; to?: string; timezone?: string } = 6,
 ): Promise<FunnelAnalyticsMonthly> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -38,6 +40,9 @@ export async function getAnalyticsOverviewMonthly(
     q.set("to", range.to);
   } else {
     q.set("months", String(range.months ?? 6));
+  }
+  if (typeof options !== "number" && options.timezone?.trim()) {
+    q.set("timezone", options.timezone.trim());
   }
 
   const res = await authenticatedFetch(

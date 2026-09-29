@@ -21,6 +21,46 @@ import {
 import type { MonthlyRevenuePoint } from "@/app/components/business/business-activity-chart-config";
 import { formatCents } from "@/app/lib/money";
 
+const MIN_VISIBLE_RATIO = 0.06;
+const RANGE_TRIGGER_RATIO = 25;
+
+type RevenuePlotPoint = MonthlyRevenuePoint & {
+  value: number;
+  actualValue: number;
+};
+
+function buildVisibleRevenuePlot(
+  dollars: MonthlyRevenuePoint[],
+): RevenuePlotPoint[] {
+  const values = dollars.map((row) => row.value);
+  const max = Math.max(...values, 0);
+  const nonZero = values.filter((v) => v > 0);
+
+  if (max <= 0 || nonZero.length === 0) {
+    return dollars.map((row) => ({
+      ...row,
+      actualValue: row.value,
+    }));
+  }
+
+  const minNonZero = Math.min(...nonZero);
+  const needsFloor = max / minNonZero >= RANGE_TRIGGER_RATIO;
+  const floor = max * MIN_VISIBLE_RATIO;
+
+  return dollars.map((row) => {
+    const actualValue = row.value;
+    const plotValue =
+      needsFloor && actualValue > 0 && actualValue < floor
+        ? floor
+        : actualValue;
+    return {
+      ...row,
+      value: plotValue,
+      actualValue,
+    };
+  });
+}
+
 export function BusinessRevenueMiniChart({
   data,
   totalRevenueCents,
@@ -33,22 +73,25 @@ export function BusinessRevenueMiniChart({
   caption?: string;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
-  const chartData = data.map((row) => ({
-    ...row,
-    value: row.value / 100,
-  }));
+
+  const chartData = buildVisibleRevenuePlot(
+    data.map((row) => ({
+      ...row,
+      value: row.value / 100,
+    })),
+  );
 
   return (
     <OverviewChartShell
       title="Revenue"
       subtitle={caption ?? `Paid revenue, last ${months} months`}
-      minHeightClass="min-h-[220px]"
+      minHeightClass="min-h-[300px]"
       className="h-full"
       accent="pink"
       stat={formatCents(totalRevenueCents, "usd")}
     >
-      <div className="h-[190px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height={190}>
+      <div className="h-[250px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height={250}>
           <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
             <CartesianGrid
               strokeDasharray="4 6"

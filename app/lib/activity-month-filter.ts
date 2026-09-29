@@ -189,6 +189,12 @@ export function currentActivityDateKey(): string {
   return buildActivityDateKey(year, month, day);
 }
 
+/** Current calendar month in the viewer's local timezone (not UTC). */
+export function currentActivityMonthKey(): string {
+  const { year, month } = localYmd();
+  return buildActivityMonthKey(year, month);
+}
+
 export function buildActivityDateKey(
   year: number,
   month: number,

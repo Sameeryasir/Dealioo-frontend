@@ -21,17 +21,13 @@ import { FunnelRevenueMiniChart } from "@/app/components/campaign/overview/chart
 import {
   buildAnalyticsMonthlySeries,
   buildRevenueMonthlySeries,
-  buildSignupBreakdownFromMonthly,
-  buildSignupsPaymentsMonthlyData,
   sumAnalyticsFromMonthly,
   sumStatsFromMonthly,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
-import { SignupBreakdownPieChart } from "@/app/components/campaign/overview/charts/SignupBreakdownPieChart";
-import { SignupsPaymentsBarChart } from "@/app/components/campaign/overview/charts/SignupsPaymentsBarChart";
 import { Skeleton } from "@/app/components/skeleton";
 import {
-  buildActivityMonthKey,
   currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityDateLabel,
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
@@ -40,6 +36,7 @@ import {
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents } from "@/app/lib/money";
+import { getUserTimeZone } from "@/app/lib/datetime";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { getAnalyticsOverviewMonthly } from "@/app/services/funnel/get-analytics-overview-monthly";
@@ -150,15 +147,15 @@ function OverviewSkeleton() {
       </div>
 
       <div className="funnel-overview-chart-grid">
-        <div className="funnel-overview-chart-slot min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
+        <div className="funnel-overview-chart-slot min-h-[300px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-36" />
           <Skeleton funnel className="mt-2 h-3 w-28" />
-          <Skeleton funnel className="mt-6 h-[220px] w-full rounded-xl" />
+          <Skeleton funnel className="mt-6 h-[250px] w-full rounded-xl" />
         </div>
-        <div className="funnel-overview-chart-slot min-h-[280px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
+        <div className="funnel-overview-chart-slot min-h-[300px] rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)] sm:px-5 sm:py-5">
           <Skeleton funnel className="h-4 w-32" />
           <Skeleton funnel className="mt-2 h-3 w-40" />
-          <Skeleton funnel className="mt-6 h-[220px] w-full rounded-full" />
+          <Skeleton funnel className="mt-6 h-[250px] w-full rounded-xl" />
         </div>
       </div>
     </div>
@@ -229,11 +226,9 @@ export function FunnelOverviewPanel({
   embedded?: boolean;
 }) {
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
-  const [monthFilter, setMonthFilter] = useState(() => {
-    const now = new Date();
-    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
-  });
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const periodRange = useMemo(() => {
     if (calendarMode === "day") return resolveActivityDateRange(dateFilter);
     return (
@@ -251,6 +246,7 @@ export function FunnelOverviewPanel({
       funnelId,
       periodRange.from,
       periodRange.to,
+      viewerTimeZone,
     ],
     enabled: funnelId != null && funnelId > 0,
     staleTime: 5_000,
@@ -258,6 +254,7 @@ export function FunnelOverviewPanel({
       getFunnelStatsMonthly(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
+        timezone: viewerTimeZone,
       }),
   });
   const analyticsQuery = useQuery({
@@ -266,6 +263,7 @@ export function FunnelOverviewPanel({
       funnelId,
       periodRange.from,
       periodRange.to,
+      viewerTimeZone,
     ],
     enabled: funnelId != null && funnelId > 0,
     staleTime: 5_000,
@@ -273,6 +271,7 @@ export function FunnelOverviewPanel({
       getAnalyticsOverviewMonthly(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
+        timezone: viewerTimeZone,
       }),
   });
   const statsMonthly = statsQuery.data;
@@ -323,18 +322,6 @@ export function FunnelOverviewPanel({
     [statsPoints],
   );
 
-  const signupsPaymentsMonthly = useMemo(
-    () =>
-      statsPoints ? buildSignupsPaymentsMonthlyData(statsPoints) : [],
-    [statsPoints],
-  );
-
-  const signupBreakdownMonthly = useMemo(
-    () =>
-      statsPoints ? buildSignupBreakdownFromMonthly(statsPoints) : [],
-    [statsPoints],
-  );
-
   const analyticsTotals = useMemo(
     () =>
       analyticsPoints ? sumAnalyticsFromMonthly(analyticsPoints) : null,
@@ -369,8 +356,6 @@ export function FunnelOverviewPanel({
     () => (statsPoints ? buildRevenueMonthlySeries(statsPoints) : []),
     [statsPoints],
   );
-
-  const hasMonthlyCharts = signupsPaymentsMonthly.length > 0;
 
   const performanceBandClass = embedded
     ? "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white"
@@ -516,36 +501,12 @@ export function FunnelOverviewPanel({
               ) : null}
             </motion.section>
 
-            {hasMonthlyCharts || analyticsTotals ? (
+            {analyticsTotals || monthlyStatsTotals ? (
               <motion.section
                 className="funnel-overview-chart-grid"
                 aria-label="Campaign charts"
                 variants={funnelPanelItem}
               >
-                {hasMonthlyCharts ? (
-                  <>
-                    <motion.div
-                      className="funnel-overview-chart-slot"
-                      variants={funnelPanelItem}
-                      key={`signups-payments-${periodLabel}`}
-                    >
-                      <SignupsPaymentsBarChart
-                        data={signupsPaymentsMonthly}
-                        caption={periodLabel}
-                      />
-                    </motion.div>
-                    <motion.div
-                      className="funnel-overview-chart-slot"
-                      variants={funnelPanelItem}
-                      key={`signup-breakdown-${periodLabel}`}
-                    >
-                      <SignupBreakdownPieChart
-                        data={signupBreakdownMonthly}
-                        caption={periodLabel}
-                      />
-                    </motion.div>
-                  </>
-                ) : null}
                 {analyticsTotals ? (
                   <>
                     <motion.div
@@ -590,19 +551,21 @@ export function FunnelOverviewPanel({
                         strokeColor={OVERVIEW_CHART_COLORS.green}
                       />
                     </motion.div>
-                    <motion.div
-                      className="funnel-overview-chart-slot"
-                      variants={funnelPanelItem}
-                      key={`revenue-${periodLabel}`}
-                    >
-                      <FunnelRevenueMiniChart
-                        data={revenueMonthly}
-                        totalRevenueCents={monthlyStatsTotals.revenue}
-                        currency={statsMonthly?.currency ?? "usd"}
-                        caption={periodLabel}
-                      />
-                    </motion.div>
                   </>
+                ) : null}
+                {monthlyStatsTotals ? (
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                    key={`revenue-${periodLabel}`}
+                  >
+                    <FunnelRevenueMiniChart
+                      data={revenueMonthly}
+                      totalRevenueCents={monthlyStatsTotals.revenue}
+                      currency={statsMonthly?.currency ?? "usd"}
+                      caption={periodLabel}
+                    />
+                  </motion.div>
                 ) : null}
               </motion.section>
             ) : null}

@@ -37,13 +37,13 @@ export function BusinessMembersMiniChart({
     <OverviewChartShell
       title="New members"
       subtitle={caption ?? `Customers registered, last ${months} months`}
-      minHeightClass="min-h-[220px]"
+      minHeightClass="min-h-[300px]"
       className="h-full"
       accent="pink"
       stat={total.toLocaleString()}
     >
-      <div className="h-[190px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height={190}>
+      <div className="h-[250px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height={250}>
           <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
             <CartesianGrid
               strokeDasharray="4 6"

@@ -19,14 +19,15 @@ import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import {
   activityCalendarYearMonthCount,
-  buildActivityMonthKey,
   currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityDateLabel,
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { formatCents } from "@/app/lib/money";
+import { getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { useQuery } from "@tanstack/react-query";
@@ -177,12 +178,11 @@ export function BusinessActivityOverviewPanel({
   businessName?: string;
 }) {
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
-  const [monthFilter, setMonthFilter] = useState(() => {
-    const now = new Date();
-    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
-  });
+  // Local calendar month so “today” matches the viewer’s timezone.
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const periodRange = useMemo(() => {
     if (calendarMode === "day") {
       return resolveActivityDateRange(dateFilter, dashboardMonthCount);
@@ -198,6 +198,7 @@ export function BusinessActivityOverviewPanel({
       businessId,
       periodRange.from,
       periodRange.to,
+      viewerTimeZone,
     ],
     enabled: businessId != null && businessId > 0,
     staleTime: 5_000,
@@ -205,6 +206,7 @@ export function BusinessActivityOverviewPanel({
       getRestaurantActivityMonthly(businessId!, {
         from: periodRange.from,
         to: periodRange.to,
+        timezone: viewerTimeZone,
       }),
   });
   const periodLabel =

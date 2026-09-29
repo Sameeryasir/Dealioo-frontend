@@ -9,6 +9,7 @@ import {
   activityCalendarYearMonthCount,
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
+  currentActivityMonthKey,
   formatActivityMonthLabel,
   parseActivityMonthKey,
   resolveActivityMonthRange,
@@ -66,18 +67,15 @@ type MomCompare = {
 };
 
 function currentMonthKey(): string {
-  const now = new Date();
-  return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  return currentActivityMonthKey();
 }
 
 function previousMonthKey(monthKey: string): string | null {
   const parsed = parseActivityMonthKey(monthKey);
   if (!parsed) return null;
-  const prior = new Date(Date.UTC(parsed.year, parsed.month - 2, 1));
-  return buildActivityMonthKey(
-    prior.getUTCFullYear(),
-    prior.getUTCMonth() + 1,
-  );
+  // Civil-month math on Y-M components (timezone-independent).
+  const prior = new Date(parsed.year, parsed.month - 2, 1);
+  return buildActivityMonthKey(prior.getFullYear(), prior.getMonth() + 1);
 }
 
 function addonMatchKey(name: string): string {

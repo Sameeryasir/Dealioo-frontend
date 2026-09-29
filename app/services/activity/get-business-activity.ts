@@ -175,7 +175,12 @@ export async function getRestaurantActivitySummary(
 
 export async function getRestaurantActivityMonthly(
   restaurantId: number,
-  options: { months?: number; from?: string; to?: string } = {},
+  options: {
+    months?: number;
+    from?: string;
+    to?: string;
+    timezone?: string;
+  } = {},
 ): Promise<ActivityMonthlyResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -190,6 +195,10 @@ export async function getRestaurantActivityMonthly(
     q.set("to", options.to);
   } else {
     q.set("months", String(options.months ?? 6));
+  }
+  // Viewer IANA zone so month/day buckets match their local calendar.
+  if (options.timezone?.trim()) {
+    q.set("timezone", options.timezone.trim());
   }
 
   const res = await authenticatedFetch(
