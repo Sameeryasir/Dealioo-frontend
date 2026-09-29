@@ -1,9 +1,8 @@
-export const ACTIVITY_MONTH_COUNT = 6;
+// How far back month/day pickers and “All months” can reach (10 years).
+export const ACTIVITY_MONTH_COUNT = 120;
 
-// Business dashboard year arrows already reach last year. This count makes every past month in that view selectable, not only the last six.
 export function activityCalendarYearMonthCount(): number {
-  const now = new Date();
-  return now.getMonth() + 13;
+  return ACTIVITY_MONTH_COUNT;
 }
 
 export const ACTIVITY_ALL_MONTHS_ID = "all";
@@ -67,11 +66,18 @@ export function isActivityMonthSelectable(
   if (!parsed) return false;
 
   const monthStart = new Date(parsed.year, parsed.month - 1, 1);
-  const earliest = getEarliestSelectableActivityMonth(monthCount);
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (monthStart > currentMonthStart) {
+    return false;
+  }
 
-  return monthStart >= earliest && monthStart <= currentMonthStart;
+  if (!Number.isFinite(monthCount) || monthCount <= 0) {
+    return true;
+  }
+
+  const earliest = getEarliestSelectableActivityMonth(monthCount);
+  return monthStart >= earliest;
 }
 
 export function getActivityMonthRangeForKey(

@@ -31,6 +31,7 @@ import {
   formatActivityDateLabel,
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
+  activityCalendarYearMonthCount,
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
@@ -229,13 +230,16 @@ export function FunnelOverviewPanel({
   const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
+  const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
   const periodRange = useMemo(() => {
-    if (calendarMode === "day") return resolveActivityDateRange(dateFilter);
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, dashboardMonthCount);
+    }
     return (
-      getActivityMonthRangeForKey(monthFilter) ??
-      resolveActivityDateRange(currentActivityDateKey())
+      getActivityMonthRangeForKey(monthFilter, dashboardMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
     );
-  }, [calendarMode, dateFilter, monthFilter]);
+  }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
   const periodLabel =
     calendarMode === "day"
       ? formatActivityDateLabel(dateFilter)
@@ -401,11 +405,13 @@ export function FunnelOverviewPanel({
               onChange={setMonthFilter}
               compact
               showAllMonths={false}
+              monthCount={dashboardMonthCount}
             />
           ) : (
             <PerformanceDateCalendar
               value={dateFilter}
               onChange={setDateFilter}
+              monthCount={dashboardMonthCount}
             />
           )}
         </div>

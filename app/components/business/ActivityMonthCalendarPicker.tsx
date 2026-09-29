@@ -49,12 +49,16 @@ export function ActivityMonthCalendarPicker({
     () => buildActivityMonthFilterOptions(monthCount),
     [monthCount],
   );
-  const selectedLabel = useMemo(
-    () =>
-      monthOptions.find((option) => option.id === value)?.label ??
-      "Select month",
-    [monthOptions, value],
-  );
+  const selectedLabel = useMemo(() => {
+    if (value === ACTIVITY_ALL_MONTHS_ID) {
+      return "All months";
+    }
+    const fromOptions = monthOptions.find((option) => option.id === value)?.label;
+    if (fromOptions) {
+      return fromOptions;
+    }
+    return formatActivityMonthLabel(value);
+  }, [monthOptions, value]);
 
   const [viewYear, setViewYear] = useState(() => getInitialViewYear(value));
   const currentMonthKey = useMemo(() => getCurrentMonthKey(), []);
@@ -77,7 +81,7 @@ export function ActivityMonthCalendarPicker({
     const now = new Date();
     const earliestYear = getEarliestSelectableActivityMonth(monthCount).getFullYear();
     return {
-      minYear: Math.min(now.getFullYear() - 1, earliestYear),
+      minYear: earliestYear,
       maxYear: now.getFullYear(),
     };
   }, [monthCount]);
