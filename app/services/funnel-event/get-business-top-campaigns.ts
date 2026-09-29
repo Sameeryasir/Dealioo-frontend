@@ -71,6 +71,7 @@ export type BusinessTopCampaignsFilters = {
   from?: string;
   to?: string;
   limit?: number;
+  timezone?: string;
 };
 
 function parseDailyTotal(row: BusinessPerformanceDailyTotal): BusinessPerformanceDailyTotal {
@@ -122,6 +123,9 @@ export async function getBusinessTopEarningCampaigns(
   if (filters.to?.trim()) q.set("to", filters.to.trim());
   if (filters.limit != null && Number.isFinite(filters.limit)) {
     q.set("limit", String(Math.max(1, Math.round(filters.limit))));
+  }
+  if (filters.timezone?.trim()) {
+    q.set("timezone", filters.timezone.trim());
   }
 
   const query = q.toString();

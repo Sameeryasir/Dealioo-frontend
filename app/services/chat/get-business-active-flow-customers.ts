@@ -31,13 +31,13 @@ export type PaginatedActiveFlowCustomersResponse = {
 };
 
 export async function getRestaurantActiveFlowCustomers(
-  restaurantId: number,
+  businessId: number,
   options: { page?: number; limit?: number } = {},
 ): Promise<PaginatedActiveFlowCustomersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
 
@@ -47,7 +47,7 @@ export async function getRestaurantActiveFlowCustomers(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/active-flows?${q.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/active-flows?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

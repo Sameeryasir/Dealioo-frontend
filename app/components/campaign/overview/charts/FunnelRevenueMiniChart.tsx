@@ -10,7 +10,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { OverviewChartCanvas } from "@/app/components/campaign/overview/charts/OverviewChartCanvas";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
@@ -64,77 +63,75 @@ export function FunnelRevenueMiniChart({
     <OverviewChartShell
       title={caption ? "Revenue" : "Revenue by month"}
       subtitle={caption ?? `Funnel paid revenue, last ${OVERVIEW_MONTH_COUNT} months`}
-      minHeightClass="min-h-0"
+      minHeightClass="min-h-[300px]"
       className="h-full"
       accent="orange"
       stat={formatCents(totalRevenueCents, currencyCode)}
     >
-      <OverviewChartCanvas variant="mini">
-        {({ width, height }) => (
-          <ResponsiveContainer width={width} height={height}>
-            <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-              <OverviewChartGradientDefs stops={gradient.stops} />
-              <CartesianGrid
-                strokeDasharray="4 6"
-                stroke="#e8edf5"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
-                axisLine={false}
-                tickLine={false}
-                interval={overviewAxisInterval(data.length)}
-                tickFormatter={shortenMonthAxisLabel}
-                height={30}
-                dy={4}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fill: "#cbd5e1", fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-                width={40}
-                tickFormatter={(value: number) =>
-                  formatAxisDollars(value, currencyCode)
-                }
-              />
-              <Tooltip content={<OverviewChartTooltip />} />
-              <Area
-                id={`${gradient.lineId}-fill`}
-                type="monotone"
-                dataKey="value"
-                stroke="none"
-                fill={`url(#${gradient.areaId})`}
-                fillOpacity={1}
-                tooltipType="none"
-                {...OVERVIEW_LINE_ANIMATION}
-              />
-              <Line
-                id={`${gradient.lineId}-stroke`}
-                type="monotone"
-                dataKey="value"
-                name="Revenue"
-                stroke={strokeColor}
-                strokeWidth={3}
-                {...OVERVIEW_LINE_ANIMATION}
-                dot={{
-                  r: 3.5,
-                  fill: "#ffffff",
-                  stroke: strokeColor,
-                  strokeWidth: 2.5,
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: strokeColor,
-                  stroke: "#ffffff",
-                  strokeWidth: 3,
-                }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </OverviewChartCanvas>
+      <div className="h-[250px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
+            <OverviewChartGradientDefs stops={gradient.stops} />
+            <CartesianGrid
+              strokeDasharray="4 6"
+              stroke="#e8edf5"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              interval={overviewAxisInterval(data.length)}
+              tickFormatter={shortenMonthAxisLabel}
+              height={30}
+              dy={4}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fill: "#cbd5e1", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+              tickFormatter={(value: number) =>
+                formatAxisDollars(value, currencyCode)
+              }
+            />
+            <Tooltip content={<OverviewChartTooltip />} />
+            <Area
+              id={`${gradient.lineId}-fill`}
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${gradient.areaId})`}
+              fillOpacity={1}
+              tooltipType="none"
+              {...OVERVIEW_LINE_ANIMATION}
+            />
+            <Line
+              id={`${gradient.lineId}-stroke`}
+              type="monotone"
+              dataKey="value"
+              name="Revenue"
+              stroke={strokeColor}
+              strokeWidth={3}
+              {...OVERVIEW_LINE_ANIMATION}
+              dot={{
+                r: 3.5,
+                fill: "#ffffff",
+                stroke: strokeColor,
+                strokeWidth: 2.5,
+              }}
+              activeDot={{
+                r: 6,
+                fill: strokeColor,
+                stroke: "#ffffff",
+                strokeWidth: 3,
+              }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </OverviewChartShell>
   );
 }

@@ -8,6 +8,7 @@ import {
   buildOrdersMonthlyData,
   buildRevenueMonthlyData,
   sumActivityFromMonthly,
+  resolvePeriodRevenueCents,
 } from "@/app/components/business/business-activity-chart-config";
 import { BusinessMembersMiniChart } from "@/app/components/business/BusinessMembersMiniChart";
 import { BusinessMonthlyBarChart } from "@/app/components/business/BusinessMonthlyBarChart";
@@ -18,14 +19,15 @@ import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import {
   activityCalendarYearMonthCount,
-  buildActivityMonthKey,
   currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityDateLabel,
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
   resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { formatCents } from "@/app/lib/money";
+import { getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { useQuery } from "@tanstack/react-query";
@@ -176,12 +178,11 @@ export function BusinessActivityOverviewPanel({
   businessName?: string;
 }) {
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
-  const [monthFilter, setMonthFilter] = useState(() => {
-    const now = new Date();
-    return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
-  });
+  // Local calendar month so “today” matches the viewer’s timezone.
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const periodRange = useMemo(() => {
     if (calendarMode === "day") {
       return resolveActivityDateRange(dateFilter, dashboardMonthCount);
@@ -197,13 +198,15 @@ export function BusinessActivityOverviewPanel({
       businessId,
       periodRange.from,
       periodRange.to,
+      viewerTimeZone,
     ],
     enabled: businessId != null && businessId > 0,
-    staleTime: 30_000,
+    staleTime: 5_000,
     queryFn: () =>
       getRestaurantActivityMonthly(businessId!, {
         from: periodRange.from,
         to: periodRange.to,
+        timezone: viewerTimeZone,
       }),
   });
   const periodLabel =
@@ -215,8 +218,8 @@ export function BusinessActivityOverviewPanel({
     [periodQuery.data?.data],
   );
   const displayActiveCampaigns = periodQuery.data?.activeCampaigns ?? 0;
-  const periodPaidCents = visibleData.reduce(
-    (sum, row) => sum + (row.paidRevenueCents ?? 0),
+  const periodRevenueCents = visibleData.reduce(
+    (sum, row) => sum + resolvePeriodRevenueCents(row),
     0,
   );
   const isQuietBusiness =
@@ -368,7 +371,7 @@ export function BusinessActivityOverviewPanel({
               />
               <OverviewKpiTile
                 label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
-                value={periodPaidCents}
+                value={periodRevenueCents}
                 hint={periodLabel}
                 icon={DollarSign}
                 iconBg={calendarMode === "day" ? DASHBOARD_KPI_ICON.orange : DASHBOARD_KPI_ICON.pink}
@@ -397,7 +400,7 @@ export function BusinessActivityOverviewPanel({
                 <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
-                    totalRevenueCents={periodPaidCents}
+                    totalRevenueCents={periodRevenueCents}
                     months={1}
                     caption={periodLabel}
                   />

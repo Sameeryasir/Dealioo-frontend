@@ -81,13 +81,13 @@ export type CustomerConversationDetail = {
 };
 
 export async function getRestaurantConversation(
-  restaurantId: number,
+  businessId: number,
   executionId: number,
 ): Promise<ConversationDetail> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(executionId)) {
@@ -95,7 +95,7 @@ export async function getRestaurantConversation(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/conversations/${encodeURIComponent(String(executionId))}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/conversations/${encodeURIComponent(String(executionId))}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -112,13 +112,13 @@ export async function getRestaurantConversation(
 }
 
 export async function getGuestConversation(
-  restaurantId: number,
+  businessId: number,
   conversationId: number,
 ): Promise<GuestConversation> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(conversationId)) {
@@ -126,7 +126,7 @@ export async function getGuestConversation(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/conversation/${encodeURIComponent(String(conversationId))}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/conversation/${encodeURIComponent(String(conversationId))}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -143,14 +143,14 @@ export async function getGuestConversation(
 }
 
 export async function getCustomerConversationMessages(
-  restaurantId: number,
+  businessId: number,
   customerId: number,
   options?: { beforeMessageId?: number; limit?: number },
 ): Promise<CustomerConversationMessages> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(customerId)) {
@@ -167,7 +167,7 @@ export async function getCustomerConversationMessages(
 
   const query = q.toString();
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages${query ? `?${query}` : ""}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/customers/${encodeURIComponent(String(customerId))}/messages${query ? `?${query}` : ""}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -184,11 +184,11 @@ export async function getCustomerConversationMessages(
 }
 
 export async function getCustomerConversation(
-  restaurantId: number,
+  businessId: number,
   _conversationId: number,
   customerId: number,
 ): Promise<CustomerConversationDetail> {
-  const chats = await getCustomerConversationMessages(restaurantId, customerId);
+  const chats = await getCustomerConversationMessages(businessId, customerId);
 
   return {
     conversationId: chats.conversationId,
@@ -200,7 +200,7 @@ export async function getCustomerConversation(
 }
 
 export async function syncCustomerConversationMessages(
-  restaurantId: number,
+  businessId: number,
   customerId: number,
   afterMessageId: number,
   limit: number = CHAT_MESSAGE_SYNC_PAGE_SIZE,
@@ -208,7 +208,7 @@ export async function syncCustomerConversationMessages(
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(customerId)) {
@@ -224,7 +224,7 @@ export async function syncCustomerConversationMessages(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages/sync?${query.toString()}`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/customers/${encodeURIComponent(String(customerId))}/messages/sync?${query.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

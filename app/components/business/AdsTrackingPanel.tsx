@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Save,
   ChartColumn,
-  TrendingUp,
 } from "lucide-react";
 import {
   GoogleAdsLogo,
@@ -95,15 +94,15 @@ function TrackingCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-      <div className="flex min-w-0">
+    <section className="h-full min-w-0 rounded-2xl border border-[#e8edf5] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+      <div className="flex min-h-full min-w-0">
         <div
           className={`w-1.5 shrink-0 self-stretch rounded-l-2xl ${
             accent === "meta" ? "bg-[#1877f2]" : "bg-amber-400"
           }`}
           aria-hidden
         />
-        <div className="min-w-0 flex-1 p-5 sm:p-6">{children}</div>
+        <div className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6">{children}</div>
       </div>
     </section>
   );
@@ -330,7 +329,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
   const metaConnected = Boolean(pixelId.trim());
   const gtmConnected = Boolean(gtmId.trim());
-  const trackingActive = isActive && metaConnected;
 
   useEffect(() => {
     if (!saveSuccess) return;
@@ -379,27 +377,27 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
     "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#bfdbfe] bg-white px-3 text-xs font-semibold text-[#1877f2] transition hover:bg-[#eff6ff] disabled:opacity-50";
 
   return (
-    <div className="box-border w-full min-w-0 bg-white px-4 py-6 pb-16 sm:px-8 sm:py-8 sm:pb-20">
-      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
-        <header className="flex min-w-0 items-start gap-3.5">
-          <span className="mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)]">
+    <div className="box-border w-full min-w-0 bg-white px-3 py-5 pb-14 sm:px-6 sm:py-7 sm:pb-16 lg:px-8 lg:py-8 lg:pb-20 xl:px-10">
+      <div className="mx-auto w-full min-w-0 max-w-7xl space-y-4 sm:space-y-5">
+        <header className="flex min-w-0 items-start gap-3 sm:gap-3.5">
+          <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] sm:size-11">
             <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#1877f2]">
               Ads tracking
             </p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#07111f] sm:text-[1.75rem]">
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-[#07111f] sm:text-2xl lg:text-[1.75rem]">
               Connect tracking pixels.
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
               Configure tracking pixel IDs for analytics and conversions. These
               IDs will be used across funnels for this business.
             </p>
           </div>
         </header>
 
-        <div className="rounded-xl border border-[#bfdbfe] bg-[#e8f2ff]/80 px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl border border-[#bfdbfe] bg-[#e8f2ff]/80 px-3 py-3 text-sm text-slate-600 sm:px-4">
           <div className="flex items-start gap-2.5">
             <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white">
               <Info className="size-3" strokeWidth={2.75} aria-hidden />
@@ -413,6 +411,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 min-[880px]:grid-cols-2 min-[880px]:items-stretch">
         <TrackingCard accent="meta">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -507,47 +506,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             Filled automatically from Meta when available. You can edit or type
             a different Pixel ID manually. Leave empty if not used.
           </p>
-
-          <div className="mt-5 flex flex-col gap-3 border-t border-[#eef2f7] pt-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isActive}
-              onClick={() => setIsActive((current) => !current)}
-              className="flex items-start gap-3 text-left"
-            >
-              <span
-                className={`mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition ${
-                  isActive ? "bg-[#1877f2]" : "bg-slate-300"
-                }`}
-              >
-                <span
-                  className={`size-5 rounded-full bg-white shadow-sm transition ${
-                    isActive ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </span>
-              <span>
-                <span className="block text-sm font-bold text-[#07111f]">
-                  Tracking active
-                </span>
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  Events from this pixel will be tracked across your funnels.
-                </span>
-              </span>
-            </button>
-
-            <div
-              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
-                trackingActive
-                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                  : "bg-slate-50 text-slate-500 ring-1 ring-slate-200"
-              }`}
-            >
-              <TrendingUp className="size-3.5" aria-hidden />
-              {trackingActive ? "Status Active" : "Status Off"}
-            </div>
-          </div>
         </TrackingCard>
 
         <TrackingCard accent="gtm">
@@ -638,6 +596,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             ID here — not a GTM- container ID.
           </p>
         </TrackingCard>
+        </div>
 
         {saveError ? (
           <div

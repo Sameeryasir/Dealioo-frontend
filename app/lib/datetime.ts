@@ -121,3 +121,68 @@ export function formatPaidAtParts(
     }),
   };
 }
+
+export function getUserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+/**
+ * Change summary:
+ * - What: Chart bucket labels treat keys as already in the viewer's calendar.
+ * - Why: Backend now buckets by viewer timezone; converting again would shift
+ *   hours/days (e.g. 6 PM local shown as wrong hour).
+ * - Related: overview-monthly.util buildZonedRangeBucketKeys
+ * - MCP context 7: display-only formatting from key parts; no invented times.
+ */
+export function formatUtcChartBucketLabel(
+  bucketKey: string,
+  _timeZone: string = getUserTimeZone(),
+): string {
+  // Hour buckets: YYYY-MM-DDTHH (wall clock in the viewer's zone)
+  const hourMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})$/.exec(bucketKey);
+  if (hourMatch) {
+    const hour = Number(hourMatch[4]);
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23) {
+      return bucketKey;
+    }
+    // Format like Intl hour12 (e.g. "3 AM", "6 PM") without re-zoning.
+    return new Intl.DateTimeFormat("en", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(2000, 0, 1, hour)));
+  }
+
+  const parts = bucketKey.split("-");
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+
+  // Day buckets: YYYY-MM-DD civil date in the viewer's zone — label as-is.
+  if (
+    parts.length >= 3 &&
+    Number.isFinite(year) &&
+    Number.isFinite(month) &&
+    Number.isFinite(day)
+  ) {
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+  }
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return bucketKey;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
+}

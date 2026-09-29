@@ -28,10 +28,6 @@ import {
   subscribeMemberRoleUpdated,
 } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-member-role-updated";
-import {
-  playNotificationChime,
-  unlockNotificationChime,
-} from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -47,9 +43,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -66,13 +61,9 @@ type NotifyRow = {
 
 export default function BusinessNotifications() {
   const router = useRouter();
-  const pathname = usePathname();
   const queryClient = useQueryClient();
   const params = useParams();
   const [open, setOpen] = useState(false);
-  const onGuestChats = isGuestChatsPath(pathname);
-  const prevBadgeTotalRef = useRef<number | null>(null);
-  const badgeHydratedRef = useRef(false);
   const [accessNotify, setAccessNotify] =
     useState<MemberRoleUpdatedNotification | null>(null);
   const [guestNotify, setGuestNotify] =
@@ -97,11 +88,6 @@ export default function BusinessNotifications() {
   const canActivity = can("activity");
   const canChats = can("chats");
   const canProgram = can("campaigns") || can("campaigns_guests");
-
-  useEffect(() => {
-    prevBadgeTotalRef.current = null;
-    badgeHydratedRef.current = false;
-  }, [businessId]);
 
   useEffect(() => {
     if (businessIdNumber == null || businessIdNumber < 1) {
@@ -199,7 +185,6 @@ export default function BusinessNotifications() {
           : [],
         updatedAt: payload.updatedAt,
       });
-      playNotificationChime();
     });
 
     const unsubGuest = canProgram
@@ -216,7 +201,6 @@ export default function BusinessNotifications() {
             campaignName: payload.campaignName,
             updatedAt: payload.occurredAt,
           });
-          playNotificationChime();
         })
       : () => {};
 
@@ -313,7 +297,7 @@ export default function BusinessNotifications() {
         countLabel: null,
         Icon: UserCog,
         iconClass: styles.notifyIconRose,
-        latestAtMs: Date.parse(accessNotify.updatedAt) || Date.now(),
+        latestAtMs: Date.parse(accessNotify.updatedAt) || 0,
       });
     }
 
@@ -326,7 +310,7 @@ export default function BusinessNotifications() {
         countLabel: null,
         Icon: Users,
         iconClass: styles.notifyIconBlue,
-        latestAtMs: Date.parse(guestNotify.updatedAt) || Date.now(),
+        latestAtMs: Date.parse(guestNotify.updatedAt) || 0,
       });
     }
 
@@ -430,31 +414,6 @@ export default function BusinessNotifications() {
     (canChats && hasUnreadChats ? 1 : 0);
 
   useEffect(() => {
-    if (businessId == null) {
-      prevBadgeTotalRef.current = null;
-      badgeHydratedRef.current = false;
-      return;
-    }
-
-    if (!membershipFetched) {
-      return;
-    }
-
-    const prev = prevBadgeTotalRef.current;
-    if (!badgeHydratedRef.current) {
-      prevBadgeTotalRef.current = badgeTotal;
-      badgeHydratedRef.current = true;
-      return;
-    }
-
-    const increased = prev != null && badgeTotal > prev;
-    prevBadgeTotalRef.current = badgeTotal;
-    if (increased && !onGuestChats) {
-      playNotificationChime();
-    }
-  }, [badgeTotal, businessId, membershipFetched, onGuestChats]);
-
-  useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -525,8 +484,6 @@ export default function BusinessNotifications() {
           ? chatUnread.markAllChatsRead()
           : Promise.resolve(),
       ]);
-
-      prevBadgeTotalRef.current = 0;
     } finally {
       setMarkingAllRead(false);
     }
@@ -557,7 +514,6 @@ export default function BusinessNotifications() {
           }
           aria-expanded={open}
           onClick={() => {
-            unlockNotificationChime();
             setOpen(true);
           }}
         >

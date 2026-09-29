@@ -9,11 +9,14 @@ import {
   activityCalendarYearMonthCount,
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
+  currentActivityDateKey,
+  currentActivityMonthKey,
   formatActivityMonthLabel,
   resolveActivityMonthRange,
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
+import { formatUtcChartBucketLabel, getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents, formatDollars } from "@/app/lib/money";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -174,8 +177,7 @@ type PerformanceScoreBreakdown = {
 };
 
 function currentPerformanceMonthKey(): string {
-  const now = new Date();
-  return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  return currentActivityMonthKey();
 }
 
 const panelCardClass =
@@ -202,29 +204,8 @@ function formatTitleCase(value: string): string {
     .join(" ");
 }
 
-function formatDayLabel(dateKey: string): string {
-  const [yearRaw, monthRaw, dayRaw] = dateKey.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return dateKey;
-  }
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function formatChartPointLabel(dateKey: string): string {
-  const hourMatch = /^(\d{4}-\d{2}-\d{2})T(\d{2})$/.exec(dateKey);
-  if (!hourMatch) return formatDayLabel(dateKey);
-  const hour = Number(hourMatch[2]);
-  if (!Number.isFinite(hour)) return dateKey;
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return `${hour12} ${suffix}`;
+  return formatUtcChartBucketLabel(dateKey);
 }
 
 function repeatRatePercent(campaign: BusinessTopCampaign): number {
@@ -1602,7 +1583,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                   strokeDasharray="4 4"
                   strokeWidth={1.25}
                   label={{
-                    value: "Today",
+                    value: todayMarkerLabel,
                     position: "insideTopRight",
                     fill: "#64748b",
                     fontSize: 11,
@@ -1781,6 +1762,7 @@ export function BusinessPerformancePanel({
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+  const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
   const monthOptions = useMemo(
     () => buildActivityMonthFilterOptions(dashboardMonthCount),
     [dashboardMonthCount],
@@ -1812,6 +1794,7 @@ export function BusinessPerformancePanel({
       monthFilter,
       monthRange.from,
       monthRange.to,
+      viewerTimeZone,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
     staleTime: 30_000,
@@ -1820,6 +1803,7 @@ export function BusinessPerformancePanel({
         from: monthRange.from,
         to: monthRange.to,
         limit: 3,
+        timezone: viewerTimeZone,
       }),
   });
 
@@ -1981,8 +1965,7 @@ export function BusinessPerformancePanel({
     const byDayCampaign = new Map<string, number>();
     for (const row of dailyByCampaign) {
       const day = row.date.slice(0, 10);
-      const key = row.earningsCents;
-      byDayCampaign.set(`${day}:${row.campaignId}`, key);
+      byDayCampaign.set(`${day}:${row.campaignId}`, row.earningsCents);
     }
 
     const pointKeys = [...byDayCampaign.keys()]
@@ -1999,18 +1982,20 @@ export function BusinessPerformancePanel({
         fullLabel: formatChartPointLabel(date),
       };
       for (const campaign of chartCampaigns) {
-        point[`c${campaign.campaignId}`] = byDayCampaign.get(
-          `${date}:${campaign.campaignId}`,
-        ) ?? 0;
+        point[`c${campaign.campaignId}`] =
+          byDayCampaign.get(`${date}:${campaign.campaignId}`) ?? 0;
       }
       return point;
     });
-  }, [
-    chartCampaigns,
-    dailyByCampaign,
-  ]);
+  }, [chartCampaigns, dailyByCampaign]);
 
-  const todayMarkerLabel = null;
+  // Current month: mark “today” on the X axis (viewer-local calendar date).
+  const todayMarkerLabel = useMemo(() => {
+    if (!monthRange.inProgress) return null;
+    const todayKey = currentActivityDateKey();
+    const point = chartData.find((row) => row.date === todayKey);
+    return point ? String(point.label) : null;
+  }, [chartData, monthRange.inProgress]);
 
   return (
     <section className="rd-premium w-full" aria-label="Performance">

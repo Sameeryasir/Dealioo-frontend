@@ -5,14 +5,14 @@ import { isPositiveInt } from "@/app/lib/numbers";
 import type { ConversationMessage } from "@/app/services/chat/get-business-conversation";
 
 export async function sendCustomerMessage(
-  restaurantId: number,
+  businessId: number,
   customerId: number,
   body: string,
 ): Promise<ConversationMessage> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Valid business id is required.");
   }
   if (!isPositiveInt(customerId)) {
@@ -25,7 +25,7 @@ export async function sendCustomerMessage(
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/customers/${encodeURIComponent(String(customerId))}/messages`,
     {
       method: "POST",
       headers: {

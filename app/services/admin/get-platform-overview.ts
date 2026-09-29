@@ -117,9 +117,13 @@ export async function getPlatformAdminKpis(): Promise<PlatformAdminKpis> {
 export async function getPlatformAdminTrends(
   from: string,
   to: string,
+  timezone?: string,
 ): Promise<PlatformAdminTrends> {
   try {
     const params = new URLSearchParams({ from, to });
+    if (timezone?.trim()) {
+      params.set("timezone", timezone.trim());
+    }
     const { data } = await authAxios.get<PlatformAdminTrends>(
       `/admin/overview/trends?${params.toString()}`,
     );

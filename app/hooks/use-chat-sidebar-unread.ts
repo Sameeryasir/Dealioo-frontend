@@ -8,7 +8,6 @@ import {
   writeChatHasUnread,
 } from "@/app/lib/chat-unread-storage";
 import { isGuestChatsPath } from "@/app/lib/guest-chats-route";
-import { playNotificationChime } from "@/app/lib/play-notification-chime";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { subscribePusherReconnect } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-chat";
@@ -167,7 +166,6 @@ export function useChatSidebarUnread(
       return;
     }
 
-    playNotificationChime();
     persistUnread(user, business, true, sentAt);
   });
 

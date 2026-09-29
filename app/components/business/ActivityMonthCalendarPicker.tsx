@@ -11,6 +11,7 @@ import {
   ACTIVITY_MONTH_SHORT_NAMES,
   buildActivityMonthFilterOptions,
   buildActivityMonthKey,
+  currentActivityMonthKey,
   formatActivityMonthLabel,
   getEarliestSelectableActivityMonth,
   isActivityMonthSelectable,
@@ -20,14 +21,13 @@ import { automationEase } from "@/app/lib/motion";
 
 function getInitialViewYear(value: string): number {
   if (value === ACTIVITY_ALL_MONTHS_ID) {
-    return new Date().getUTCFullYear();
+    return new Date().getFullYear();
   }
-  return parseActivityMonthKey(value)?.year ?? new Date().getUTCFullYear();
+  return parseActivityMonthKey(value)?.year ?? new Date().getFullYear();
 }
 
 function getCurrentMonthKey(): string {
-  const now = new Date();
-  return buildActivityMonthKey(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  return currentActivityMonthKey();
 }
 
 export function ActivityMonthCalendarPicker({
@@ -49,12 +49,16 @@ export function ActivityMonthCalendarPicker({
     () => buildActivityMonthFilterOptions(monthCount),
     [monthCount],
   );
-  const selectedLabel = useMemo(
-    () =>
-      monthOptions.find((option) => option.id === value)?.label ??
-      "Select month",
-    [monthOptions, value],
-  );
+  const selectedLabel = useMemo(() => {
+    if (value === ACTIVITY_ALL_MONTHS_ID) {
+      return "All months";
+    }
+    const fromOptions = monthOptions.find((option) => option.id === value)?.label;
+    if (fromOptions) {
+      return fromOptions;
+    }
+    return formatActivityMonthLabel(value);
+  }, [monthOptions, value]);
 
   const [viewYear, setViewYear] = useState(() => getInitialViewYear(value));
   const currentMonthKey = useMemo(() => getCurrentMonthKey(), []);
@@ -75,10 +79,10 @@ export function ActivityMonthCalendarPicker({
 
   const { minYear, maxYear } = useMemo(() => {
     const now = new Date();
-    const earliestYear = getEarliestSelectableActivityMonth(monthCount).getUTCFullYear();
+    const earliestYear = getEarliestSelectableActivityMonth(monthCount).getFullYear();
     return {
-      minYear: Math.min(now.getUTCFullYear() - 1, earliestYear),
-      maxYear: now.getUTCFullYear(),
+      minYear: earliestYear,
+      maxYear: now.getFullYear(),
     };
   }, [monthCount]);
 
