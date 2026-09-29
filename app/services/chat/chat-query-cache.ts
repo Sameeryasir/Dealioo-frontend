@@ -89,15 +89,6 @@ function sanitizeStoredCustomerRow(row: ChatCustomer): ChatCustomer {
   };
 }
 
-function sanitizeStoredCustomers(
-  customers: PaginatedChatCustomersResponse,
-): PaginatedChatCustomersResponse {
-  return {
-    ...customers,
-    data: customers.data.map(sanitizeStoredCustomerRow),
-  };
-}
-
 function sanitizeStoredConversation(
   conversation: CustomerConversationDetail,
 ): CustomerConversationDetail {
@@ -230,7 +221,6 @@ export function mergeCustomersAfterSync(
     return previous;
   }
 
-  // Keep every already-loaded row (infinite scroll may hold multiple pages).
   const merged = sortChatCustomersByRecentActivity([
     ...newRows,
     ...previous.data,
@@ -246,10 +236,6 @@ export function mergeCustomersAfterSync(
   };
 }
 
-/**
- * Append the next page of guests onto the list already on screen.
- * Dedupes by customerId so sync/Pusher overlaps do not create duplicates.
- */
 export function appendChatCustomersPage(
   previous: PaginatedChatCustomersResponse | null,
   nextPage: PaginatedChatCustomersResponse,
@@ -267,15 +253,11 @@ export function appendChatCustomersPage(
     data: [...previous.data, ...appended],
     meta: {
       ...nextPage.meta,
-      // meta.page = highest page loaded so far (for infinite scroll)
       page: Math.max(previous.meta.page, nextPage.meta.page),
     },
   };
 }
 
-/**
- * Apply a page-1 IndexedDB update without dropping later pages already loaded.
- */
 export function mergePageOneIntoLoadedCustomers(
   previous: PaginatedChatCustomersResponse | null,
   pageOne: PaginatedChatCustomersResponse,
@@ -374,7 +356,7 @@ export function mergeConversationAfterSync(
 ): CustomerConversationDetail {
   const sanitizedIncomingMessages = incoming.messages.map(sanitizeStoredMessage);
 
-  if (!previous) {
+  if (!previous || previous.customerId !== incoming.customerId) {
     return {
       conversationId: incoming.conversationId,
       customerId: incoming.customerId,
@@ -419,7 +401,8 @@ export function patchConversationFromPusher(
     return prev;
   }
 
-  const existingMessages = prev?.messages ?? [];
+  const existingMessages =
+    prev?.customerId === customerId ? (prev.messages ?? []) : [];
   if (messageExistsById(existingMessages, payload.message.id)) {
     return {
       customerId,
@@ -431,8 +414,8 @@ export function patchConversationFromPusher(
 
   return {
     customerId,
-    customerName: payload.customerName ?? prev?.customerName ?? null,
-    customerEmail: payload.customerEmail ?? prev?.customerEmail ?? null,
+    customerName: payload.customerName ?? (prev?.customerId === customerId ? prev.customerName : null) ?? null,
+    customerEmail: payload.customerEmail ?? (prev?.customerId === customerId ? prev.customerEmail : null) ?? null,
     messages: sortConversationMessages(
       insertMessageIfAbsent(
         existingMessages,
@@ -447,22 +430,31 @@ export function appendConversationMessage(
   message: ConversationMessage,
   guest: Pick<ChatCustomer, "customerId" | "customerName" | "customerEmail">,
 ): CustomerConversationDetail {
-  const existingMessages = prev?.messages ?? [];
+  const existingMessages =
+    prev?.customerId === guest.customerId ? (prev.messages ?? []) : [];
   if (messageExistsById(existingMessages, message.id)) {
     return (
-      prev ?? {
-        customerId: guest.customerId,
-        customerName: guest.customerName,
-        customerEmail: guest.customerEmail,
-        messages: existingMessages,
-      }
+      prev?.customerId === guest.customerId
+        ? prev
+        : {
+            customerId: guest.customerId,
+            customerName: guest.customerName,
+            customerEmail: guest.customerEmail,
+            messages: existingMessages,
+          }
     );
   }
 
   return sanitizeStoredConversation({
     customerId: guest.customerId,
-    customerName: prev?.customerName ?? guest.customerName,
-    customerEmail: prev?.customerEmail ?? guest.customerEmail,
+    customerName:
+      prev?.customerId === guest.customerId
+        ? (prev.customerName ?? guest.customerName)
+        : guest.customerName,
+    customerEmail:
+      prev?.customerId === guest.customerId
+        ? (prev.customerEmail ?? guest.customerEmail)
+        : guest.customerEmail,
     messages: insertMessageIfAbsent(
       existingMessages,
       sanitizeStoredMessage(message),

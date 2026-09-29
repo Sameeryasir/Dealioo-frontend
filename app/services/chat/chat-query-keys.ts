@@ -1,11 +1,11 @@
 export const chatQueryKeys = {
   all: ["chat"] as const,
-  customersRoot: (restaurantId: number) =>
-    [...chatQueryKeys.all, "customers", restaurantId] as const,
-  customers: (restaurantId: number, page: number) =>
-    [...chatQueryKeys.customersRoot(restaurantId), page] as const,
-  conversationsRoot: (restaurantId: number) =>
-    [...chatQueryKeys.all, "conversation", restaurantId] as const,
-  conversation: (restaurantId: number, customerId: number) =>
-    [...chatQueryKeys.conversationsRoot(restaurantId), customerId] as const,
+  customersRoot: (businessId: number) =>
+    [...chatQueryKeys.all, "customers", businessId] as const,
+  customers: (businessId: number, page: number) =>
+    [...chatQueryKeys.customersRoot(businessId), page] as const,
+  conversationsRoot: (businessId: number) =>
+    [...chatQueryKeys.all, "conversation", businessId] as const,
+  conversation: (businessId: number, customerId: number) =>
+    [...chatQueryKeys.conversationsRoot(businessId), customerId] as const,
 };

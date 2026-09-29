@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useBusinessChatCustomersQuery } from "@/app/hooks/use-business-chat-customers-query";
 import { useBusinessConversationsPusher } from "@/app/hooks/use-business-chat-pusher";
 import { CHAT_USE_INDEXED_DB } from "@/app/services/chat/chat-cache-mode";
@@ -15,7 +15,7 @@ import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationP
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
 
-const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v8";
+const CHAT_IDB_BUSINESS_CLEAR_KEY = "dealioo-chat-biz-clear-v11";
 
 export function BusinessChatsPanel({ businessId }: { businessId: number }) {
   const [search, setSearch] = useState("");
@@ -26,7 +26,9 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     Record<number, number>
   >({});
   const selectedCustomerIdRef = useRef(selectedCustomerId);
-  selectedCustomerIdRef.current = selectedCustomerId;
+  useLayoutEffect(() => {
+    selectedCustomerIdRef.current = selectedCustomerId;
+  }, [selectedCustomerId]);
 
   const {
     rows,
@@ -102,7 +104,6 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
 
   useEffect(() => {
     if (businessId < 1 || !CHAT_USE_INDEXED_DB) {
-      setIdbReady(true);
       return;
     }
 
@@ -216,6 +217,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
         >
           {selectedRow ? (
             <GuestChatConversationPanel
+              key={`guest-chat-${selectedRow.customerId}`}
               businessId={businessId}
               row={selectedRow}
               onBack={() => setMobileShowList(true)}

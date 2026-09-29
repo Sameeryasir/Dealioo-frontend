@@ -4,17 +4,17 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 
 export async function markRestaurantChatsRead(
-  restaurantId: number,
+  businessId: number,
 ): Promise<{ chatsLastViewedAt: string }> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
-  if (!isPositiveInt(restaurantId)) {
+  if (!isPositiveInt(businessId)) {
     throw new Error("Invalid business id.");
   }
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(restaurantId))}/mark-read`,
+    `${getApiBaseUrl()}/chat/business/${encodeURIComponent(String(businessId))}/mark-read`,
     { method: "POST" },
   );
 
