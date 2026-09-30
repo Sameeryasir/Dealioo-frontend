@@ -68,7 +68,6 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
       "AI Image Generation",
       "AI Copywriting",
       "AI Campaign Builder",
-      "AI Chat Assistant",
       "AI Follow-ups",
       "AI Email, SMS & WhatsApp Automation",
       "Unlimited campaigns",

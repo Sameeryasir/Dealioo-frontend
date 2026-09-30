@@ -1,10 +1,22 @@
 "use client";
 
-import { ArrowLeft, PanelLeft } from "lucide-react";
+/**
+ * What changed: show the user profile avatar (account menu) on the campaign
+ * immersive header, matching the business dashboard top bar.
+ * Why: campaign immersive mode replaces BusinessNavbar, so the profile control
+ * was missing until now.
+ * Related: BusinessNavbar.tsx account menu; UserAccountAvatar.tsx
+ * MCP Context 7: reuse the same account menu pattern as the business top bar.
+ */
+
+import { ArrowLeft, LogOut, PanelLeft, UserRound } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import { usePathname, useRouter } from "next/navigation";
+import UserAccountAvatar from "@/app/components/UserAccountAvatar";
+import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
@@ -15,11 +27,16 @@ import {
   type CampaignDashboardTabId,
 } from "@/app/lib/campaign-dashboard-tab";
 import { hasAnyAutomationPermission } from "@/app/lib/member-permissions";
+import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
+import { logoutSession } from "@/app/services/auth/logout";
+import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
 const BusinessNotifications = dynamic(
   () => import("@/app/components/BusinessNotifications"),
   { ssr: false },
 );
+
+const PROFILE_HREF = "/dashboard/profile";
 
 function parsePrice(raw: number | string | undefined): number | null {
   if (raw == null) return null;
@@ -50,7 +67,9 @@ export default function CampaignHeader({
   campaign,
   embedded = false,
 }: CampaignHeaderProps) {
+  const router = useRouter();
   const pathname = usePathname();
+  const { clearPassword } = useCredentialContext();
   const { can, permissionList, isOwnerLike } =
     useBusinessMembershipPermissions(businessId);
   const campaignsHref = `/business/${businessId}/dashboard/campaigns`;
@@ -76,8 +95,74 @@ export default function CampaignHeader({
 
   const navRef = useRef<HTMLElement>(null);
   const tabButtonRefs = useRef<Partial<Record<string, HTMLAnchorElement>>>({});
+  const menuRootRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const { expanded: sidebarExpanded, toggle: toggleSidebar } =
     useSidebarExpand();
+  // --- User profile avatar (same as business top bar) ---
+  const [user, setUser] = useState<VerifyOtpUser | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuMounted, setMenuMounted] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    setUser(getSetupUser());
+    setMenuMounted(true);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    const trigger = menuTriggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    setMenuStyle({
+      position: "fixed",
+      top: rect.bottom + 8,
+      right: Math.max(8, window.innerWidth - rect.right),
+      zIndex: 120,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    updateMenuPosition();
+
+    const onPointerDown = (event: PointerEvent) => {
+      const root = menuRootRef.current;
+      const trigger = menuTriggerRef.current;
+      const target = event.target as Node;
+      if (root?.contains(target) || trigger?.contains(target)) return;
+      setMenuOpen(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
+    const onReposition = () => updateMenuPosition();
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [menuOpen, updateMenuPosition]);
+
+  const handleLogout = useCallback(async () => {
+    await logoutSession();
+    clearSetupUser();
+    clearPassword();
+    setMenuOpen(false);
+    router.push("/auth/login");
+  }, [clearPassword, router]);
+
+  const displayName = user?.name?.trim() || "Account";
 
   useEffect(() => {
     const activeButton = tabButtonRefs.current[activeTabId];
@@ -142,6 +227,83 @@ export default function CampaignHeader({
     );
   });
 
+  // Same user profile avatar menu as BusinessNavbar (campaign immersive hides that top bar)
+  const accountMenu = (
+    <div className="rd-topbar-account-menu">
+      <button
+        ref={menuTriggerRef}
+        type="button"
+        onClick={() => {
+          setMenuOpen((open) => {
+            const next = !open;
+            if (next) {
+              // Position before paint so the portal opens under the avatar
+              requestAnimationFrame(updateMenuPosition);
+            }
+            return next;
+          });
+        }}
+        className="rd-topbar-account-trigger"
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+        aria-label={`Account menu for ${displayName}`}
+      >
+        <span className="rd-topbar-account-trigger-ring">
+          <span className="rd-topbar-account-trigger-avatar">
+            <UserAccountAvatar user={user} className="size-full" />
+          </span>
+        </span>
+      </button>
+
+      {menuMounted && menuOpen
+        ? createPortal(
+            <div
+              ref={menuRootRef}
+              className="rd-topbar-account-dropdown"
+              role="menu"
+              aria-label="Account actions"
+              style={menuStyle}
+            >
+              <div className="rd-topbar-account-dropdown-accent" aria-hidden />
+
+              <div className="rd-topbar-account-dropdown-body">
+                <Link
+                  href={PROFILE_HREF}
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="rd-topbar-account-dropdown-item"
+                >
+                  <span
+                    className="rd-topbar-account-dropdown-item-icon"
+                    aria-hidden
+                  >
+                    <UserRound className="size-4" strokeWidth={2} />
+                  </span>
+                  Profile
+                </Link>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleLogout()}
+                  className="rd-topbar-account-dropdown-item rd-topbar-account-dropdown-item--logout"
+                >
+                  <span
+                    className="rd-topbar-account-dropdown-item-icon"
+                    aria-hidden
+                  >
+                    <LogOut className="size-4" strokeWidth={2} />
+                  </span>
+                  Logout
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+
   return (
     <header
       className={
@@ -204,6 +366,7 @@ export default function CampaignHeader({
 
           <div className="campaign-immersive-patti__side campaign-immersive-patti__side--end shrink-0 gap-1.5">
             <BusinessNotifications />
+            {accountMenu}
           </div>
         </div>
       ) : (
@@ -234,6 +397,7 @@ export default function CampaignHeader({
             </div>
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <BusinessNotifications />
+              {accountMenu}
             </div>
           </div>
 

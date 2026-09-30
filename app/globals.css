@@ -12985,7 +12985,8 @@ body:has(.rd-shell--app) {
   align-items: stretch;
   height: var(--rd-header-h);
   min-height: var(--rd-header-h);
-  overflow: hidden;
+  /* visible so the user profile account dropdown is not clipped */
+  overflow: visible;
   border: none;
   border-bottom: 1px solid #e8edf5;
   border-radius: 0;
