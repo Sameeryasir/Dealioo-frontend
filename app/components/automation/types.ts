@@ -10,6 +10,7 @@ export type AutomationListItem = {
   name: string;
   description: string;
   trigger: string;
+  purpose: string;
   status: AutomationStatus;
   business: string;
   campaignId?: number;

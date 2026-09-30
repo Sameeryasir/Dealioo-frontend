@@ -10,7 +10,6 @@ import {
   CalendarClock,
   Timer,
   UserPlus,
-  Workflow,
 } from "lucide-react";
 import type { BlockDefinition, WorkflowNode } from "@/app/components/automation/types";
 
@@ -24,16 +23,9 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
   },
   {
     id: "payment_trigger",
-    label: "Payment Trigger",
+    label: "Payment",
     section: "triggers",
     icon: CreditCard,
-    tone: "blue",
-  },
-  {
-    id: "funnel_complete",
-    label: "Funnel Complete",
-    section: "triggers",
-    icon: Workflow,
     tone: "blue",
   },
   {

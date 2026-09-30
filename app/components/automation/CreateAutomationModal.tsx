@@ -24,7 +24,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, createElement, type ReactNode } from "react";
 import {
   AUTOMATION_TEMPLATES,
   getAutomationTemplateById,
@@ -38,15 +38,8 @@ import {
   type AutomationPurpose,
 } from "@/app/services/automation/types";
 
-const TRIGGERS = [
-  "Cron Job",
-  "Payment",
-  "Signup",
-  "Abandoned Checkout",
-  "First Purchase",
-  "Funnel Complete",
-  "No Visit",
-];
+const TRIGGERS = ["Cron Job", "Payment", "Signup"] as const;
+type CreateTriggerOption = (typeof TRIGGERS)[number];
 
 type ModalStep = "choose" | "import-list" | "import-preview" | "create-blank";
 
@@ -196,7 +189,7 @@ function templateNodeTone(kind: AutomationTemplateNodeDef["kind"]): string {
 }
 
 function TemplateNodePreview({ node }: { node: AutomationTemplateNodeDef }) {
-  const Icon = templateNodeIcon(node.kind);
+  const icon = templateNodeIcon(node.kind);
   const tone = templateNodeTone(node.kind);
 
   return (
@@ -205,7 +198,11 @@ function TemplateNodePreview({ node }: { node: AutomationTemplateNodeDef }) {
         {node.label}
       </div>
       <div className="flex items-start gap-2.5 px-3 py-2.5">
-        <Icon className="mt-0.5 size-4 shrink-0 text-zinc-500" strokeWidth={ICON_STROKE} />
+        {createElement(icon, {
+          className: "mt-0.5 size-4 shrink-0 text-zinc-500",
+          strokeWidth: ICON_STROKE,
+          "aria-hidden": true,
+        })}
         <p className="text-sm leading-relaxed text-zinc-700">{node.summary}</p>
       </div>
     </li>
@@ -271,35 +268,6 @@ export function CreateAutomationModal({
   }) => void | Promise<void>;
   isSubmitting?: boolean;
 }) {
-  const [step, setStep] = useState<ModalStep>("choose");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
-    null,
-  );
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [trigger, setTrigger] = useState(TRIGGERS[0]!);
-  const [purpose, setPurpose] = useState<AutomationPurpose>(() =>
-    resolvePurposeForTrigger(TRIGGERS[0]!),
-  );
-
-  const selectedTemplate = selectedTemplateId
-    ? getAutomationTemplateById(selectedTemplateId)
-    : undefined;
-
-  useEffect(() => {
-    if (!open) return;
-    setStep("choose");
-    setSelectedTemplateId(null);
-    setName("");
-    setDescription("");
-    setTrigger(TRIGGERS[0]!);
-    setPurpose(resolvePurposeForTrigger(TRIGGERS[0]!));
-  }, [open]);
-
-  useEffect(() => {
-    setPurpose(resolvePurposeForTrigger(trigger));
-  }, [trigger]);
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -313,6 +281,54 @@ export function CreateAutomationModal({
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <CreateAutomationModalBody
+          onClose={onClose}
+          onCreate={onCreate}
+          isSubmitting={isSubmitting}
+        />
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function CreateAutomationModalBody({
+  onClose,
+  onCreate,
+  isSubmitting = false,
+}: {
+  onClose: () => void;
+  onCreate: (payload: {
+    name: string;
+    description: string;
+    trigger: string;
+    purpose: AutomationPurpose;
+    templateId?: string;
+  }) => void | Promise<void>;
+  isSubmitting?: boolean;
+}) {
+  const [step, setStep] = useState<ModalStep>("choose");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  );
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [trigger, setTrigger] = useState<CreateTriggerOption>(TRIGGERS[0]);
+  const [purpose, setPurpose] = useState<AutomationPurpose>(() =>
+    resolvePurposeForTrigger(TRIGGERS[0]),
+  );
+
+  const selectedTemplate = selectedTemplateId
+    ? getAutomationTemplateById(selectedTemplateId)
+    : undefined;
+
+  const handleTriggerChange = (next: CreateTriggerOption) => {
+    setTrigger(next);
+    setPurpose(resolvePurposeForTrigger(next));
+  };
 
   const goBack = () => {
     if (step === "import-preview") {
@@ -354,8 +370,6 @@ export function CreateAutomationModal({
           : "Name your workflow, choose a trigger, and pick what this automation is for.";
 
   return (
-    <AnimatePresence>
-      {open ? (
         <motion.div
           className="create-automation-modal-overlay fixed inset-0 z-50 overflow-y-auto overscroll-contain"
           initial={{ opacity: 0 }}
@@ -446,7 +460,6 @@ export function CreateAutomationModal({
                   <div className="create-automation-template-list__items">
                     {AUTOMATION_TEMPLATES.map((template) => {
                       const visual = templateListVisual(template.id);
-                      const TemplateIcon = visual.icon;
                       return (
                       <button
                         key={template.id}
@@ -460,7 +473,10 @@ export function CreateAutomationModal({
                         <span
                           className={`create-automation-template-card__icon flex size-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm ${visual.accentClass}`}
                         >
-                          <TemplateIcon className="size-5" strokeWidth={ICON_STROKE} />
+                          {createElement(visual.icon, {
+                            className: "size-5",
+                            strokeWidth: ICON_STROKE,
+                          })}
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="create-automation-template-card__heading flex flex-wrap items-center gap-2">
@@ -496,7 +512,7 @@ export function CreateAutomationModal({
                       <p className="text-sm leading-relaxed text-zinc-700">
                         {selectedTemplate.description}
                       </p>
-                      <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                      <dl className="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
                         <div>
                           <dt className="font-semibold uppercase tracking-wide text-zinc-500">
                             Trigger
@@ -591,7 +607,7 @@ export function CreateAutomationModal({
                       <RadioOptionGroup
                         name="automation-trigger"
                         value={trigger}
-                        onChange={setTrigger}
+                        onChange={handleTriggerChange}
                         options={TRIGGERS.map((t) => ({ value: t, label: t }))}
                         accent="orange"
                       />
@@ -646,7 +662,5 @@ export function CreateAutomationModal({
             </motion.div>
           </div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
   );
 }

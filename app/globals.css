@@ -14325,6 +14325,10 @@ body:has(.rd-shell--app) {
   color: #f59e0b;
 }
 
+.funnel-automations-col-icon--purpose {
+  color: #3b82f6;
+}
+
 .funnel-automations-col-icon--status {
   color: #10b981;
 }
@@ -14435,6 +14439,17 @@ body:has(.rd-shell--app) {
   background: color-mix(in srgb, #f59e0b 14%, white);
 }
 
+.funnel-automations-purpose-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #334155;
+  text-decoration: none;
+}
+
+.funnel-automations-purpose-text:hover {
+  color: #0f172a;
+}
+
 .funnel-automations-row-menu-btn:hover {
   background: var(--funnel-automations-accent-soft);
   color: var(--brand-primary-hover);
@@ -14479,19 +14494,23 @@ body:has(.rd-shell--app) {
 }
 
 .funnel-automations-col--name {
-  width: 36%;
+  width: 28%;
 }
 
 .funnel-automations-col--trigger {
-  width: 18%;
+  width: 14%;
+}
+
+.funnel-automations-col--purpose {
+  width: 20%;
 }
 
 .funnel-automations-col--status {
-  width: 16%;
+  width: 14%;
 }
 
 .funnel-automations-col--updated {
-  width: 20%;
+  width: 14%;
 }
 
 .funnel-automations-col--actions {
@@ -14500,22 +14519,27 @@ body:has(.rd-shell--app) {
 
 .funnel-automations-th--name,
 .funnel-automations-td--name {
-  width: 36%;
+  width: 28%;
 }
 
 .funnel-automations-th--trigger,
 .funnel-automations-td--trigger {
-  width: 18%;
+  width: 14%;
+}
+
+.funnel-automations-th--purpose,
+.funnel-automations-td--purpose {
+  width: 20%;
 }
 
 .funnel-automations-th--status,
 .funnel-automations-td--status {
-  width: 16%;
+  width: 14%;
 }
 
 .funnel-automations-th--updated,
 .funnel-automations-td--updated {
-  width: 20%;
+  width: 14%;
 }
 
 .funnel-automations-th--actions,
@@ -14556,7 +14580,7 @@ body:has(.rd-shell--app) {
   }
 
   .funnel-automations-table {
-    min-width: 32rem;
+    min-width: 40rem;
   }
 
   .funnel-automations-col-head__long {

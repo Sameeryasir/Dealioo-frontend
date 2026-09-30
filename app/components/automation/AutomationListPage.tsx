@@ -13,13 +13,14 @@ import {
   Trash2,
   Plus,
   SearchX,
+  Target,
   Workflow,
   Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardEase } from "@/app/lib/motion";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
@@ -176,12 +177,16 @@ function automationStatusIcon(status: AutomationStatus) {
 }
 
 function AutomationStatusBadge({ status }: { status: AutomationStatus }) {
-  const Icon = automationStatusIcon(status);
+  const icon = automationStatusIcon(status);
   return (
     <StatusPill
       className={`funnel-automations-status-pill funnel-automations-status-pill--${status} ${automationStatusBadgeClass(status)}`}
     >
-      <Icon className="size-3 shrink-0" aria-hidden strokeWidth={ICON_STROKE} />
+      {createElement(icon, {
+        className: "size-3 shrink-0",
+        "aria-hidden": true,
+        strokeWidth: ICON_STROKE,
+      })}
       <span className="capitalize">{status}</span>
     </StatusPill>
   );
@@ -299,7 +304,8 @@ export function AutomationListPage({
       if (!q) return true;
       return (
         row.name.toLowerCase().includes(q) ||
-        row.trigger.toLowerCase().includes(q)
+        row.trigger.toLowerCase().includes(q) ||
+        row.purpose.toLowerCase().includes(q)
       );
     });
   }, [items, query, filter, campaignId]);
@@ -695,6 +701,7 @@ function AutomationsTableSection({
           <colgroup>
             <col className="funnel-automations-col funnel-automations-col--name" />
             <col className="funnel-automations-col funnel-automations-col--trigger" />
+            <col className="funnel-automations-col funnel-automations-col--purpose" />
             <col className="funnel-automations-col funnel-automations-col--status" />
             <col className="funnel-automations-col funnel-automations-col--updated" />
             <col className="funnel-automations-col funnel-automations-col--actions" />
@@ -715,6 +722,14 @@ function AutomationsTableSection({
                   longLabel="Trigger"
                   shortLabel="Trigger"
                   iconClassName="funnel-automations-col-icon funnel-automations-col-icon--trigger"
+                />
+              </th>
+              <th className={`${thClass} funnel-automations-th--purpose`}>
+                <AutomationsColumnHead
+                  icon={Target}
+                  longLabel="Purpose"
+                  shortLabel="Purpose"
+                  iconClassName="funnel-automations-col-icon funnel-automations-col-icon--purpose"
                 />
               </th>
               <th className={`${thClass} funnel-automations-th--status`}>
@@ -778,6 +793,16 @@ function AutomationsTableSection({
                       {row.trigger}
                     </Link>
                   </td>
+                  <td className={`${tdClass} funnel-automations-td--purpose`}>
+                    <Link
+                      href={href}
+                      onClick={() => onOpenBuilder?.(row.id)}
+                      className="funnel-automations-purpose-text block truncate"
+                      title={row.purpose}
+                    >
+                      {row.purpose}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} funnel-automations-td--status whitespace-nowrap`}>
                     <Link href={href} onClick={() => onOpenBuilder?.(row.id)}>
                       <AutomationStatusBadge status={row.status} />
@@ -820,7 +845,7 @@ function AutomationListSkeleton() {
       <div className="funnel-automations-surface overflow-hidden">
         <div className="funnel-automations-table-head funnel-automations-skeleton-head px-5 py-3.5">
           <div className="flex gap-8">
-            {Array.from({ length: 4 }).map((_, i) => (
+            {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} funnel className="h-3 w-16" />
             ))}
           </div>
@@ -835,6 +860,7 @@ function AutomationListSkeleton() {
               <Skeleton funnel className="h-3 w-1/2" />
             </div>
             <Skeleton funnel className="h-4 w-14" />
+            <Skeleton funnel className="h-4 w-24" />
             <Skeleton funnel className="h-6 w-16 rounded-full" />
             <Skeleton funnel className="h-4 w-16" />
             <Skeleton funnel className="size-4 rounded-full" />

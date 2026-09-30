@@ -25,11 +25,6 @@ export const AUTOMATION_PURPOSE_OPTIONS: {
     label: "Prepaid / paid guests",
     description: "Target guests who already completed payment.",
   },
-  {
-    value: "funnel_abandoned_checkout_reminder",
-    label: "Abandoned checkout reminder",
-    description: "Follow up with guests who started checkout but did not finish.",
-  },
 ];
 
 export type AutomationStatusResponse = {
