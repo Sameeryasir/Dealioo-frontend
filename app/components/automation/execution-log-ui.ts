@@ -203,8 +203,7 @@ function emailSummary(message: string, config: Record<string, unknown>): string 
     return emailsDeliveredSummary(1);
   }
   if (/email failed|send failed/i.test(message)) {
-    const subject = configString(config, "subject");
-    return subject ? `Could not send: ${subject}` : "Email failed";
+    return "Email send failed";
   }
   if (/skipped/i.test(message)) {
     return redactEmailAddresses(message) || "Email skipped";
@@ -229,8 +228,6 @@ function recipientFromDeliveryLog(log: AutomationLog): LogRecipientResult {
     return {
       label,
       status: "failed",
-      reason:
-        redactEmailAddresses((log.error ?? log.message).trim()) || undefined,
     };
   }
   return { label, status: "sent" };
@@ -330,17 +327,20 @@ export function logDisplayForUser(log: AutomationLog): LogDisplay | null {
     )
   ) {
     const recipient = extractEmailFromMessage(message);
+    const isEmailFailure =
+      /email/i.test(type) ||
+      /email/i.test(nodeName) ||
+      /email/i.test(message) ||
+      /brevo|smtp|mail/i.test(log.error ?? message);
+
     return makeLogDisplay({
-      heading: /email/i.test(type) || /email/i.test(nodeName)
-        ? "Email failed"
-        : nodeName,
-      summary: redactEmailAddresses((log.error ?? message).trim()),
+      heading: isEmailFailure ? "Email failed" : nodeName,
+      summary: isEmailFailure ? "Email send failed" : "This step failed",
       recipients: recipient
         ? [
             {
               label: recipient,
               status: "failed",
-              reason: redactEmailAddresses((log.error ?? message).trim()) || undefined,
             },
           ]
         : [],

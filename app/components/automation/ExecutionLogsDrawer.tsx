@@ -154,7 +154,7 @@ export function ExecutionLogsDrawer({
   runScheduledAt,
   runTitle,
   runStatus,
-  lastError,
+  lastError: _lastError,
   emailsSentCount,
   totalRecipients,
   canRetry = false,
@@ -174,10 +174,17 @@ export function ExecutionLogsDrawer({
   );
   const completed = activitySteps.some(isRunFinishedLogDisplay);
   const isFailedRun = runStatus === "failed" || runStatus === "timed_out";
-  const failureMessage =
-    lastError?.trim() ||
-    activitySteps.find((step) => step.status === "failed")?.summary ||
-    (isFailedRun ? "This run did not finish successfully." : null);
+  const hasEmailFailure = activitySteps.some(
+    (step) =>
+      step.status === "failed" && /email failed/i.test(step.heading),
+  );
+  const failureMessage = isFailedRun
+    ? hasEmailFailure
+      ? "Email send failed"
+      : "This run did not finish successfully."
+    : hasEmailFailure
+      ? "Email send failed"
+      : null;
 
   const sentCount = Math.max(activitySummary.sent, emailsSentCount ?? 0);
   const failedCount =
