@@ -72,15 +72,23 @@ function ActivityCard({
 }) {
   const tone = TONE_STYLES[display.tone];
   const title = logActivityCardTitle(display);
-  const summary = display.summary.trim();
+  const isFailedStep = display.status === "failed";
+  const summary = isFailedStep
+    ? /email/i.test(display.heading)
+      ? "Email send failed"
+      : "This step failed"
+    : display.summary.trim();
   const showSummary =
     Boolean(summary) &&
     title !== summary &&
+    !isFailedStep &&
     !(
       /email sent/i.test(title) &&
       /email/i.test(summary) &&
       /delivered/i.test(summary)
     );
+  // Failed steps: title only — never show technical error details to users
+  const detailLines = isFailedStep ? [] : display.details;
 
   return (
     <motion.li variants={drawerLogItem} className="relative flex gap-3.5">
@@ -113,9 +121,9 @@ function ActivityCard({
             {summary}
           </p>
         ) : null}
-        {display.details.length > 0 ? (
+        {detailLines.length > 0 ? (
           <ul className="mt-2.5 space-y-1.5">
-            {display.details.map((line) => (
+            {detailLines.map((line) => (
               <li
                 key={line}
                 className="rounded-lg bg-zinc-50 px-2.5 py-1.5 text-[13px] leading-relaxed text-zinc-600"
@@ -182,9 +190,7 @@ export function ExecutionLogsDrawer({
     ? hasEmailFailure
       ? "Email send failed"
       : "This run did not finish successfully."
-    : hasEmailFailure
-      ? "Email send failed"
-      : null;
+    : null;
 
   const sentCount = Math.max(activitySummary.sent, emailsSentCount ?? 0);
   const failedCount =

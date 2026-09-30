@@ -221,7 +221,6 @@ function recipientFromDeliveryLog(log: AutomationLog): LogRecipientResult {
     return {
       label,
       status: "skipped",
-      reason: redactEmailAddresses(log.message) || undefined,
     };
   }
   if (log.error || /failed/i.test(log.message)) {
@@ -576,10 +575,21 @@ export function groupLogsForDisplay(logs: AutomationLog[]): LogDisplay[] {
     const display = logDisplayForUser(log);
     if (!display) continue;
 
-    display.summary = redactEmailAddresses(display.summary);
-    display.details = display.details
-      .map((line) => redactEmailAddresses(line))
-      .filter((line) => line.length > 0);
+    if (display.status === "failed") {
+      display.summary = /email/i.test(display.heading)
+        ? "Email send failed"
+        : "This step failed";
+      display.details = [];
+      display.recipients = display.recipients.map((recipient) => ({
+        label: recipient.label,
+        status: recipient.status,
+      }));
+    } else {
+      display.summary = redactEmailAddresses(display.summary);
+      display.details = display.details
+        .map((line) => redactEmailAddresses(line))
+        .filter((line) => line.length > 0);
+    }
 
     const nodeId = display.nodeId;
     if (nodeId != null) {
