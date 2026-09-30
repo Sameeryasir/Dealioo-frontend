@@ -82,6 +82,7 @@ export type BusinessSidebarSectionUnreadState = {
     updatedAt: string;
   } | null;
   markAllSectionsRead: () => Promise<void>;
+  refreshFromServer: () => Promise<void>;
 };
 
 const EMPTY_LATEST: SidebarSectionLatestAts = {
@@ -409,6 +410,14 @@ export function useBusinessSidebarSectionUnread(
     latestGuestJoined: enabled.guest === false ? null : latestGuestJoined,
     latestAccessUpdated,
     markAllSectionsRead,
+    refreshFromServer: () => {
+      const business = businessIdRef.current;
+      const user = userIdRef.current;
+      if (business == null || business < 1 || user == null) {
+        return Promise.resolve();
+      }
+      return refreshFromServer(user, business);
+    },
   };
 }
 

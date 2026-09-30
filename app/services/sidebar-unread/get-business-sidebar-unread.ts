@@ -210,3 +210,35 @@ export async function markAccessNotifyRead(
     );
   }
 }
+
+export async function markGuestNotifyRead(
+  businessId: number,
+  occurredAt?: string | null,
+): Promise<void> {
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  if (!isPositiveInt(businessId)) {
+    throw new Error("Invalid business id.");
+  }
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/sidebar-unread/business/${encodeURIComponent(String(businessId))}/guest-notify/mark-read`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(
+        occurredAt?.trim() ? { occurredAt: occurredAt.trim() } : {},
+      ),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(res, "Could not clear guest notification."),
+    );
+  }
+}
