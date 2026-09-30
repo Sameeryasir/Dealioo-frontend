@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   keepPreviousData,
   useQuery,
@@ -85,13 +85,11 @@ export function useAutomationExecutions(
 ) {
   const enabled = options?.enabled ?? true;
   const queryClient = useQueryClient();
-  const [page, setPageState] = useState(1);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const statusKey: AutomationExecutionStatus | "all" = status ?? "all";
-
-  useEffect(() => {
-    setPageState(1);
-  }, [automationId, statusKey]);
+  const pageScopeKey = `${automationId ?? "none"}:${statusKey}`;
+  const [pageByScope, setPageByScope] = useState<Record<string, number>>({});
+  const page = pageByScope[pageScopeKey] ?? 1;
 
   const queryKey =
     automationId != null
@@ -119,9 +117,15 @@ export function useAutomationExecutions(
   const meta = (query.data?.meta ?? null) as ExecutionsPageMeta | null;
   const summary = useMemo(() => meta?.summary ?? null, [meta]);
 
-  const setPage = useCallback((nextPage: number) => {
-    setPageState(nextPage);
-  }, []);
+  const setPage = useCallback(
+    (nextPage: number) => {
+      setPageByScope((prev) => ({
+        ...prev,
+        [pageScopeKey]: nextPage,
+      }));
+    },
+    [pageScopeKey],
+  );
 
   const patchData = useCallback(
     (updater: (prev: AutomationExecution[]) => AutomationExecution[]) => {
@@ -213,7 +217,7 @@ export function useAutomationExecutions(
         const isLastOnPage = executions.length === 1;
         const nextPage = isLastOnPage && page > 1 ? page - 1 : page;
         if (nextPage !== page) {
-          setPageState(nextPage);
+          setPage(nextPage);
         } else {
           await queryClient.invalidateQueries({
             queryKey: automationQueryKeys.executionsRoot(automationId),
@@ -223,8 +227,40 @@ export function useAutomationExecutions(
         setDeletingId(null);
       }
     },
-    [automationId, executions.length, page, queryClient],
+    [automationId, executions.length, page, queryClient, setPage],
   );
+
+  const refresh = useCallback(async () => {
+    if (automationId == null) return;
+
+    const targetPage = 1;
+    if (page !== targetPage) {
+      setPage(targetPage);
+    }
+
+    const data = await queryClient.fetchQuery({
+      queryKey: automationQueryKeys.executions(
+        automationId,
+        statusKey,
+        targetPage,
+      ),
+      queryFn: async () =>
+        getExecutions({
+          automationId,
+          status,
+          page: targetPage,
+          limit: EXECUTIONS_PAGE_SIZE,
+        }),
+      staleTime: 0,
+    });
+
+    await queryClient.invalidateQueries({
+      queryKey: automationQueryKeys.executionsRoot(automationId),
+      refetchType: "active",
+    });
+
+    return data;
+  }, [automationId, page, queryClient, setPage, status, statusKey]);
 
   return {
     executions,
@@ -238,6 +274,7 @@ export function useAutomationExecutions(
       ? getApiErrorMessage(query.error, "Could not load runs.")
       : null,
     refetch: query.refetch,
+    refresh,
     loadPage: setPage,
     patchData,
     patchMeta,

@@ -18,7 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { DeleteExecutionDialog } from "@/app/components/automation/DeleteExecutionDialog";
@@ -201,7 +201,7 @@ function RunRow({
   deleting: boolean;
   deleteLocked: boolean;
 }) {
-  const StatusIcon = statusIcon(row.status);
+  const statusIconComponent = statusIcon(row.status);
   const outcomeText = executionRunOutcomeLine(row);
   const statusLabel = executionStatusPlainLabel(row.status);
   const runLabel = `Run #${row.id}`;
@@ -276,11 +276,11 @@ function RunRow({
           size="xs"
           className={`inline-flex shrink-0 items-center gap-1.5 ${executionStatusBadgeClass(row.status)}`}
         >
-          <StatusIcon
-            className="size-3 shrink-0"
-            aria-hidden
-            strokeWidth={ICON_STROKE}
-          />
+          {createElement(statusIconComponent, {
+            className: "size-3 shrink-0",
+            "aria-hidden": true,
+            strokeWidth: ICON_STROKE,
+          })}
           {statusLabel}
         </StatusPill>
 
@@ -353,6 +353,7 @@ export function AutomationExecutionsPanel({
     refreshing,
     error,
     refetch,
+    refresh,
     applyPusherExecution,
     deleteExecution,
     deletingId,
@@ -422,6 +423,7 @@ export function AutomationExecutionsPanel({
   }, [automationActive, refetch]);
 
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [logsDrawer, setLogsDrawer] = useState<{
     executionId: number;
     runStartedAt?: string | null;
@@ -433,6 +435,19 @@ export function AutomationExecutionsPanel({
     emailsSentCount?: number;
     totalRecipients?: number;
   } | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    if (manualRefreshing) return;
+    setManualRefreshing(true);
+    try {
+      await refresh();
+      toast.success("Runs list updated");
+    } catch (err) {
+      toastApiError(err, "Could not refresh runs.");
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [manualRefreshing, refresh]);
 
   const deleteTargetName = useMemo(() => {
     if (deleteTargetId == null) return "this run";
@@ -522,17 +537,17 @@ export function AutomationExecutionsPanel({
             <button
               type="button"
               onClick={() => {
-                if (page === 1) void refetch();
-                else setPage(1);
+                void handleRefresh();
               }}
-              disabled={loading || busy}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50"
+              disabled={manualRefreshing}
+              aria-busy={manualRefreshing}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:cursor-wait disabled:opacity-70"
             >
               <RefreshCw
-                className={`size-4 text-blue-600 ${loading || refreshing ? "animate-spin" : ""}`}
+                className={`size-4 text-blue-600 ${manualRefreshing || refreshing ? "animate-spin" : ""}`}
                 aria-hidden
               />
-              Refresh
+              {manualRefreshing ? "Refreshing…" : "Refresh"}
             </button>
             {showPauseButton ? (
               <PauseAutomationButton
