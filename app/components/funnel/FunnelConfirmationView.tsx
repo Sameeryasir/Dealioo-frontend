@@ -35,7 +35,7 @@ export function FunnelConfirmationView({
   const metaPostpaidTrackedRef = useRef(false);
   const googlePurchaseTrackedRef = useRef(false);
   const searchParams = useSearchParams();
-  const { session, ready } = useCheckoutContext();
+  const { session, ready, checkoutToken } = useCheckoutContext();
 
   const isDesignPreview = searchParams.get("preview") === "1";
 
@@ -50,6 +50,7 @@ export function FunnelConfirmationView({
 
   const { isPaid, isFailed, isConfirming } = usePaymentStatusPoll({
     paymentId,
+    checkoutToken,
     enabled:
       !isDesignPreview && ready && isPrepaid && paymentId != null,
   });

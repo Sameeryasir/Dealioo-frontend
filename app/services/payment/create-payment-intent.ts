@@ -4,10 +4,10 @@ import { isPositiveInt } from "@/app/lib/numbers";
 export type CreatePaymentIntentPayload = {
   funnelId: number;
   businessId: number;
-  currency: string;
   customerEmail: string;
+  checkoutSessionToken: string;
+  currency?: string;
   customerId?: number;
-  checkoutSessionToken?: string;
 };
 
 export type CreatePaymentIntentResponse = {
@@ -24,10 +24,9 @@ export type CreatePaymentIntentResponse = {
 type CreatePaymentIntentRequestBody = {
   funnelId: number;
   businessId: number;
-  currency: string;
   customerEmail: string;
+  checkoutSessionToken: string;
   customerId?: number;
-  checkoutSessionToken?: string;
 };
 
 function readPaymentIntentId(
@@ -50,25 +49,22 @@ function assertPayload(
   if (!isPositiveInt(businessId)) {
     throw new Error("Business is required.");
   }
-  const currency = payload.currency?.trim().toLowerCase();
-  if (!currency) {
-    throw new Error("Currency is required.");
-  }
   const customerEmail = payload.customerEmail?.trim();
   if (!customerEmail) {
     throw new Error("Customer email is required.");
+  }
+  const checkoutSessionToken = payload.checkoutSessionToken?.trim();
+  if (!checkoutSessionToken) {
+    throw new Error("Checkout token is required.");
   }
 
   return {
     funnelId: payload.funnelId,
     businessId,
-    currency,
     customerEmail,
+    checkoutSessionToken,
     ...(isPositiveInt(payload.customerId)
       ? { customerId: payload.customerId }
-      : {}),
-    ...(payload.checkoutSessionToken?.trim()
-      ? { checkoutSessionToken: payload.checkoutSessionToken.trim() }
       : {}),
   };
 }

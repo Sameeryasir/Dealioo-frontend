@@ -24,6 +24,7 @@ export type PaymentPollPhase = "idle" | "confirming" | "paid" | "failed";
 
 type Options = {
   paymentId: number | null;
+  checkoutToken?: string | null;
   enabled?: boolean;
 };
 
@@ -37,6 +38,7 @@ function intervalForElapsed(elapsedMs: number): number {
  */
 export function usePaymentStatusPoll({
   paymentId,
+  checkoutToken,
   enabled = true,
 }: Options) {
   const [status, setStatus] = useState<FunnelPaymentStatusValue | null>(null);
@@ -54,16 +56,18 @@ export function usePaymentStatusPoll({
 
   const pollOnce = useCallback(async () => {
     if (paymentId == null) return null;
-    const res = await getPaymentStatus(paymentId);
+    const token = checkoutToken?.trim();
+    if (!token) return null;
+    const res = await getPaymentStatus(paymentId, token);
     setData(res);
     setStatus(res.status);
     return res;
-  }, [paymentId]);
+  }, [paymentId, checkoutToken]);
 
   useEffect(() => {
     clearTimer();
 
-    if (!enabled || paymentId == null) {
+    if (!enabled || paymentId == null || !checkoutToken?.trim()) {
       setStatus(null);
       setData(null);
       setPhase("idle");
@@ -114,7 +118,7 @@ export function usePaymentStatusPoll({
       cancelled = true;
       clearTimer();
     };
-  }, [enabled, paymentId, pollOnce, clearTimer]);
+  }, [enabled, paymentId, checkoutToken, pollOnce, clearTimer]);
 
   const isPaid = phase === "paid" || status === "paid";
   const isFailed = phase === "failed";

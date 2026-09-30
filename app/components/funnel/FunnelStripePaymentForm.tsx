@@ -87,17 +87,19 @@ export function FunnelStripePaymentForm({
       setCreating(true);
 
       try {
+        const checkoutToken = context.checkoutToken?.trim();
+        if (!checkoutToken) {
+          throw new Error("Checkout token is required.");
+        }
+
         const res = await createPaymentSession(
           {
             funnelId: context.funnelId,
             businessId,
-            currency: context.currency,
             customerEmail: context.customerEmail,
+            checkoutSessionToken: checkoutToken,
             ...(isPositiveInt(context.customerId)
               ? { customerId: context.customerId }
-              : {}),
-            ...(context.checkoutToken?.trim()
-              ? { checkoutSessionToken: context.checkoutToken.trim() }
               : {}),
           },
           getSetupAccessToken(),
