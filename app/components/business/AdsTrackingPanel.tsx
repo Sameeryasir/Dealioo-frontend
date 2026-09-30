@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import {
   AlertTriangle,
   CheckCircle2,
-  Info,
   Loader2,
   RefreshCw,
   Save,
@@ -396,20 +395,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             </p>
           </div>
         </header>
-
-        <div className="rounded-xl border border-[#bfdbfe] bg-[#e8f2ff]/80 px-3 py-3 text-sm text-slate-600 sm:px-4">
-          <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white">
-              <Info className="size-3" strokeWidth={2.75} aria-hidden />
-            </span>
-            <p>
-              Saved IDs load first. Meta pixels and Google Tag Manager
-              containers are fetched only when that ID is not saved yet. You can
-              still type IDs manually or use Refresh. Connect Google Ads in
-              Settings first to load GTM containers.
-            </p>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-5 min-[880px]:grid-cols-2 min-[880px]:items-stretch">
         <TrackingCard accent="meta">
