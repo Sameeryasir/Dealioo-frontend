@@ -48,13 +48,13 @@ const ghostActionClass =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
 
 const dockedGhostActionClass =
-  "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[0.72rem] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
+  "inline-flex w-full items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[0.72rem] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
 
 const publishActionClass =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 const dockedPublishActionClass =
-  "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[0.72rem] font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex w-full items-center justify-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[0.72rem] font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function TopNavigation({
   campaignName,
@@ -154,10 +154,8 @@ export function TopNavigation({
         </div>
 
         <div className="editor-panel-top-foot flex min-w-0 flex-col gap-1.5">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            {trackingLinkButton}
-            {publishControls}
-          </div>
+          {trackingLinkButton}
+          {publishControls}
           <button
             type="button"
             onClick={onSave}
