@@ -3,9 +3,55 @@ import { getGoogleAdsConnectionStatus } from "@/app/services/google-ads/get-goog
 
 export const GOOGLE_OAUTH_COMPLETE_MESSAGE = "google-oauth-complete" as const;
 
+export const GOOGLE_OAUTH_AUTHENTICATED_MESSAGE =
+  "google-oauth-authenticated" as const;
+
+export const GOOGLE_OAUTH_STATUS_SYNC_KEY = "dealioo-google-oauth-status-sync";
+
 export type GoogleOAuthResult =
   | { status: "connected"; businessId: number }
   | { status: "cancelled" };
+
+function signalGoogleOAuthStatusSync(
+  businessId: number,
+  phase: "authenticated" | "complete",
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      GOOGLE_OAUTH_STATUS_SYNC_KEY,
+      JSON.stringify({ businessId, phase, at: Date.now() }),
+    );
+  } catch {
+    /* private mode / quota — ignore */
+  }
+}
+
+function readBusinessIdFromSyncPayload(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as { businessId?: unknown };
+    if (typeof parsed.businessId !== "number" || parsed.businessId < 1) {
+      return null;
+    }
+    return parsed.businessId;
+  } catch {
+    return null;
+  }
+}
+
+export function consumeGoogleOAuthStatusSync(businessId: number): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(GOOGLE_OAUTH_STATUS_SYNC_KEY);
+    const id = readBusinessIdFromSyncPayload(raw);
+    if (id !== businessId) return false;
+    window.localStorage.removeItem(GOOGLE_OAUTH_STATUS_SYNC_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -63,27 +109,22 @@ function waitForGoogleOAuthPopup(
       resolve(result);
     };
 
-    const resolveFromServer = async () => {
-      await sleep(400);
-      if (settled) return;
-      const connected = await isGoogleConnectedForBusiness(
-        accessToken,
-        businessId,
-      );
-      finish(
-        connected
-          ? { status: "connected", businessId }
-          : { status: "cancelled" },
-      );
-    };
-
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
-      if ((data as { type?: string }).type !== GOOGLE_OAUTH_COMPLETE_MESSAGE) {
+
+      const type = (data as { type?: string }).type;
+
+      if (event.origin !== window.location.origin) return;
+
+      if (type === GOOGLE_OAUTH_AUTHENTICATED_MESSAGE) {
+        const id = readBusinessIdFromMessage(data);
+        if (id == null) return;
+        finish({ status: "connected", businessId: id });
         return;
       }
+
+      if (type !== GOOGLE_OAUTH_COMPLETE_MESSAGE) return;
 
       const id = readBusinessIdFromMessage(data);
       if (id == null) return;
@@ -91,7 +132,7 @@ function waitForGoogleOAuthPopup(
       try {
         popup.close();
       } catch {
-        /* popup may already be closed */
+        /* ignore */
       }
       finish({ status: "connected", businessId: id });
     };
@@ -103,7 +144,21 @@ function waitForGoogleOAuthPopup(
       if (!popup.closed || closedCheckStarted || settled) return;
       closedCheckStarted = true;
       window.clearInterval(pollTimer);
-      void resolveFromServer();
+
+      void (async () => {
+        await sleep(400);
+        if (settled) return;
+
+        const connected = await isGoogleConnectedForBusiness(
+          accessToken,
+          businessId,
+        );
+        finish(
+          connected
+            ? { status: "connected", businessId }
+            : { status: "cancelled" },
+        );
+      })();
     }, 400);
 
     const timeoutTimer = window.setTimeout(() => {
@@ -114,7 +169,16 @@ function waitForGoogleOAuthPopup(
           /* ignore */
         }
         if (settled) return;
-        await resolveFromServer();
+
+        const connected = await isGoogleConnectedForBusiness(
+          accessToken,
+          businessId,
+        );
+        finish(
+          connected
+            ? { status: "connected", businessId }
+            : { status: "cancelled" },
+        );
       })();
     }, timeoutMs);
   });
@@ -136,8 +200,28 @@ export async function connectGoogleAdsInPopup(
   return waitForGoogleOAuthPopup(popup, accessToken, businessId);
 }
 
-export function notifyGoogleOAuthComplete(businessId: number): boolean {
+export function notifyGoogleOAuthAuthenticated(businessId: number): boolean {
   if (typeof window === "undefined") return false;
+  signalGoogleOAuthStatusSync(businessId, "authenticated");
+
+  const opener = window.opener;
+  if (!opener || opener.closed) return false;
+
+  opener.postMessage(
+    { type: GOOGLE_OAUTH_AUTHENTICATED_MESSAGE, businessId },
+    window.location.origin,
+  );
+  return true;
+}
+
+export function notifyGoogleOAuthComplete(
+  businessId: number,
+  redirectHref?: string,
+): boolean {
+  if (typeof window === "undefined") return false;
+
+  signalGoogleOAuthStatusSync(businessId, "complete");
+
   const opener = window.opener;
   if (!opener || opener.closed) return false;
 
@@ -145,6 +229,15 @@ export function notifyGoogleOAuthComplete(businessId: number): boolean {
     { type: GOOGLE_OAUTH_COMPLETE_MESSAGE, businessId },
     window.location.origin,
   );
+
+  if (redirectHref?.trim()) {
+    try {
+      opener.location.assign(redirectHref.trim());
+    } catch {
+      /* cross-origin opener — ignore */
+    }
+  }
+
   window.close();
   return true;
 }

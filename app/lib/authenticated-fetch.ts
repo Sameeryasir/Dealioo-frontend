@@ -12,11 +12,17 @@ export function redirectToLogin(): void {
   window.location.href = "/auth/login";
 }
 
+export type AuthenticatedFetchOptions = {
+  redirectOnUnauthorized?: boolean;
+};
+
 export async function authenticatedFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
   timeoutMs?: number,
+  options?: AuthenticatedFetchOptions,
 ): Promise<Response> {
+  const redirectOnUnauthorized = options?.redirectOnUnauthorized !== false;
   const requestInit: RequestInit = {
     ...init,
     credentials: "include",
@@ -27,14 +33,18 @@ export async function authenticatedFetch(
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     if (!newToken) {
-      redirectToLogin();
+      if (redirectOnUnauthorized) {
+        redirectToLogin();
+      }
       throw new Error("Session expired. Please sign in again.");
     }
 
     res = await fetchWithTimeout(input, requestInit, timeoutMs);
 
     if (res.status === 401) {
-      redirectToLogin();
+      if (redirectOnUnauthorized) {
+        redirectToLogin();
+      }
       throw new Error("Session expired. Please sign in again.");
     }
   }

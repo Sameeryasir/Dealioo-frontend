@@ -23,6 +23,7 @@ export async function getGoogleAdsCustomers(
     `${getApiBaseUrl()}/google-ads/customers/${encodeURIComponent(String(restaurantId))}`,
     { method: "GET" },
     GOOGLE_ADS_REQUEST_TIMEOUT_MS,
+    { redirectOnUnauthorized: false },
   );
 
   if (!res.ok) {

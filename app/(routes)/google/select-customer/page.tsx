@@ -81,8 +81,14 @@ function SelectGoogleCustomerInner() {
         setSelectedId(list[0].id);
       }
     } catch (e) {
+      const raw =
+        e instanceof Error ? e.message : "Could not load Google Ads accounts.";
+      const looksLikeSession =
+        /session expired|sign in again|unauthorized|401|no session/i.test(raw);
       setError(
-        e instanceof Error ? e.message : "Could not load Google Ads accounts.",
+        looksLikeSession
+          ? "No Dealioo session in this window. Close this tab and finish choosing your Ads account from Integrations → Google Ads (use the same www/non-www address you logged in with)."
+          : raw,
       );
     } finally {
       setLoading(false);
@@ -99,7 +105,10 @@ function SelectGoogleCustomerInner() {
   }, [loadCustomers, oauthError]);
 
   const handleSkip = () => {
-    if (businessId != null && notifyGoogleOAuthComplete(businessId)) {
+    if (
+      businessId != null &&
+      notifyGoogleOAuthComplete(businessId, googleAdsHref)
+    ) {
       return;
     }
     router.push(googleAdsHref);
@@ -116,7 +125,7 @@ function SelectGoogleCustomerInner() {
         selectedId,
         selected?.managerCustomerId,
       );
-      if (notifyGoogleOAuthComplete(businessId)) {
+      if (notifyGoogleOAuthComplete(businessId, googleAdsHref)) {
         return;
       }
       router.push(googleAdsHref);

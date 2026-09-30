@@ -22,7 +22,13 @@ import {
   FACEBOOK_OAUTH_COMPLETE_MESSAGE,
   FACEBOOK_OAUTH_STATUS_SYNC_KEY,
 } from "@/app/lib/facebook-oauth-popup";
-import { connectGoogleAdsInPopup } from "@/app/lib/google-oauth-popup";
+import {
+  connectGoogleAdsInPopup,
+  consumeGoogleOAuthStatusSync,
+  GOOGLE_OAUTH_AUTHENTICATED_MESSAGE,
+  GOOGLE_OAUTH_COMPLETE_MESSAGE,
+  GOOGLE_OAUTH_STATUS_SYNC_KEY,
+} from "@/app/lib/google-oauth-popup";
 import {
   getDefaultSelectedMetaScopes,
   type MetaSelectableScopeId,
@@ -524,6 +530,83 @@ export function BusinessIntegrationsPanel({
     };
   }, [applyMetaOAuthStatusSync, businessId]);
 
+  const applyGoogleOAuthStatusSync = useCallback(
+    async (phase?: "authenticated" | "complete") => {
+      await refreshStatus();
+      bumpAuditLogs();
+      if (phase === "complete" || phase === "authenticated") {
+        setGoogleConnectModalOpen(false);
+        setGoogleActionError(null);
+        setGoogleBusy("idle");
+        toast.success("Google Ads connected.");
+      }
+    },
+    [bumpAuditLogs, refreshStatus],
+  );
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+
+      const type = (data as { type?: string }).type;
+      if (
+        type !== GOOGLE_OAUTH_COMPLETE_MESSAGE &&
+        type !== GOOGLE_OAUTH_AUTHENTICATED_MESSAGE
+      ) {
+        return;
+      }
+
+      const raw =
+        (data as { businessId?: unknown }).businessId ??
+        (data as { restaurantId?: unknown }).restaurantId;
+      if (typeof raw !== "number" || raw !== businessId) return;
+
+      void applyGoogleOAuthStatusSync(
+        type === GOOGLE_OAUTH_COMPLETE_MESSAGE ? "complete" : "authenticated",
+      );
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== GOOGLE_OAUTH_STATUS_SYNC_KEY || !event.newValue) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(event.newValue) as {
+          businessId?: unknown;
+          phase?: unknown;
+        };
+        if (parsed.businessId !== businessId) return;
+        void applyGoogleOAuthStatusSync(
+          parsed.phase === "complete" ? "complete" : "authenticated",
+        );
+        window.localStorage.removeItem(GOOGLE_OAUTH_STATUS_SYNC_KEY);
+      } catch {
+        /* ignore bad payload */
+      }
+    };
+
+    const onAppVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!consumeGoogleOAuthStatusSync(businessId)) return;
+      void applyGoogleOAuthStatusSync("complete");
+    };
+
+    window.addEventListener("message", onMessage);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onAppVisible);
+    document.addEventListener("visibilitychange", onAppVisible);
+    onAppVisible();
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onAppVisible);
+      document.removeEventListener("visibilitychange", onAppVisible);
+    };
+  }, [applyGoogleOAuthStatusSync, businessId]);
+
   const handleConnectStripe = async () => {
     setStripeBusy("loading");
     setStripeActionError(null);
@@ -733,7 +816,6 @@ export function BusinessIntegrationsPanel({
         setGoogleActionError(null);
         await refreshStatus();
         toast.success("Google Ads connected.");
-        router.push(`/business/${businessId}/dashboard/google-ads`);
       } else {
         await abortGoogleAdsConnect(businessId);
         await refreshStatus();
