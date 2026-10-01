@@ -56,6 +56,9 @@ export type BusinessFunnelEvent = {
   funnelPaymentId: number | null;
   orderId?: number | null;
   paymentSource?: string | null;
+  adSource?: "meta" | "google" | "utm" | null;
+  adSourceLabel?: string | null;
+  adSourceDetail?: string | null;
   /** @deprecated Use businessAmount */
   restaurantAmount?: number | null;
   /** @deprecated Use businessVisitedAt */
@@ -133,6 +136,14 @@ export async function getBusinessFunnelEvents(
     data: (payload.data ?? []).map((event) => ({
       ...event,
       campaignImageUrl: event.campaignImageUrl?.trim() || null,
+      adSource:
+        event.adSource === "meta" ||
+        event.adSource === "google" ||
+        event.adSource === "utm"
+          ? event.adSource
+          : null,
+      adSourceLabel: event.adSourceLabel?.trim() || null,
+      adSourceDetail: event.adSourceDetail?.trim() || null,
     })),
   };
 }

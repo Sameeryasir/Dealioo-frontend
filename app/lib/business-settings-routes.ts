@@ -4,14 +4,12 @@ export type BusinessSettingsSection =
   | "general"
   | "members"
   | "integrations"
-  | "usage"
   | "scanning";
 
 export const BUSINESS_SETTINGS_SECTIONS: BusinessSettingsSection[] = [
   "general",
   "members",
   "integrations",
-  "usage",
   "scanning",
   "account",
   "billing",

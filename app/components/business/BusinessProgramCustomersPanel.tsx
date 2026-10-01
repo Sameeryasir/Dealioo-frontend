@@ -1,6 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/app/components/skeleton";
+import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
@@ -18,6 +19,7 @@ import {
   Download,
   Loader2,
   Mail,
+  Megaphone,
   Phone,
   Search,
   UserRound,
@@ -533,6 +535,14 @@ export function BusinessProgramCustomersPanel({
                     </th>
                     <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
                       <TableColumnHeader
+                        icon={Megaphone}
+                        label="Ad source"
+                        iconClassName="text-[#1877f2]"
+                        labelClassName="text-[#1877f2]"
+                      />
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left align-middle">
+                      <TableColumnHeader
                         icon={BarChart3}
                         label="Visits"
                         iconClassName="text-[#1877f2]"
@@ -584,6 +594,13 @@ export function BusinessProgramCustomersPanel({
                             —
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3.5 align-middle">
+                        <AdSourceBadge
+                          source={customer.adSource}
+                          label={customer.adSourceLabel}
+                          detail={customer.adSourceDetail}
+                        />
                       </td>
                       <td className="px-4 py-3.5 align-middle">
                         <span className="text-sm font-normal tabular-nums leading-none text-slate-700">

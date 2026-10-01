@@ -19,6 +19,9 @@ export type FunnelGuestRecord = {
   tags: FunnelGuestTag[];
   hasPayment: boolean;
   eventCount: number;
+  adSource?: "meta" | "google" | "utm" | "in_store" | null;
+  adSourceLabel?: string | null;
+  adSourceDetail?: string | null;
 };
 
 export type PaginatedFunnelGuestsResponse = {
@@ -70,6 +73,21 @@ function normalizeGuest(raw: unknown): FunnelGuestRecord | null {
       typeof o.eventCount === "number"
         ? o.eventCount
         : Number(o.eventCount ?? 1) || 1,
+    adSource:
+      o.adSource === "meta" ||
+      o.adSource === "google" ||
+      o.adSource === "utm" ||
+      o.adSource === "in_store"
+        ? o.adSource
+        : null,
+    adSourceLabel:
+      typeof o.adSourceLabel === "string" && o.adSourceLabel.trim()
+        ? o.adSourceLabel.trim()
+        : null,
+    adSourceDetail:
+      typeof o.adSourceDetail === "string" && o.adSourceDetail.trim()
+        ? o.adSourceDetail.trim()
+        : null,
   };
 }
 

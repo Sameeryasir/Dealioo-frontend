@@ -18,6 +18,7 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -725,6 +726,13 @@ function OrderEventMobileCard({
             </p>
             <OrderExtraProductsDisplay event={event} />
           </div>
+          <div className="mt-2 flex justify-end">
+            <AdSourceBadge
+              source={event.adSource}
+              label={event.adSourceLabel}
+              detail={event.adSourceDetail}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -1093,6 +1101,14 @@ export function BusinessOrdersPanel({
                           </th>
                           <th className={thClass}>
                             <TableColumnHeader
+                              icon={Megaphone}
+                              label="Ad source"
+                              iconClassName={TABLE_HEAD_ICON_CLASS}
+                              labelClassName={TABLE_HEAD_LABEL_CLASS}
+                            />
+                          </th>
+                          <th className={thClass}>
+                            <TableColumnHeader
                               icon={Calendar}
                               label="Payment Date"
                               iconClassName={TABLE_HEAD_ICON_CLASS}
@@ -1160,6 +1176,13 @@ export function BusinessOrdersPanel({
                               </td>
                               <td className={`${tdClass} align-top whitespace-normal`}>
                                 <OrderExtraProductsDisplay event={event} />
+                              </td>
+                              <td className={`${tdClass} whitespace-nowrap`}>
+                                <AdSourceBadge
+                                  source={event.adSource}
+                                  label={event.adSourceLabel}
+                                  detail={event.adSourceDetail}
+                                />
                               </td>
                               <td
                                 className={`${tdClass} whitespace-nowrap text-slate-600`}

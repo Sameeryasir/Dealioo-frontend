@@ -1,11 +1,27 @@
 "use client";
 
+import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import { Skeleton } from "@/app/components/skeleton";
+import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
+import {
+  TABLE_HEAD_ICON_CLASS,
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
+import { formatDateTimeShort } from "@/app/lib/datetime";
+import { standardEase } from "@/app/lib/motion";
+import {
+  FUNNEL_GUESTS_PAGE_SIZE,
+  type FunnelGuestRecord,
+} from "@/app/services/funnel-event/get-funnel-guests";
 import {
   Activity,
   Calendar,
   Check,
   Copy,
   Mail,
+  Megaphone,
   MoreHorizontal,
   Phone,
   UserRound,
@@ -21,20 +37,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
-import { TableColumnHeader } from "@/app/components/TableColumnHeader";
-import { Skeleton } from "@/app/components/skeleton";
-import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
-import {
-  TABLE_HEAD_ICON_CLASS,
-  TABLE_HEAD_LABEL_CLASS,
-} from "@/app/lib/dashboard-brand-tones";
-import { formatDateTimeShort } from "@/app/lib/datetime";
-import { standardEase } from "@/app/lib/motion";
-import {
-  FUNNEL_GUESTS_PAGE_SIZE,
-  type FunnelGuestRecord,
-} from "@/app/services/funnel-event/get-funnel-guests";
 
 const guestsCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -453,6 +455,14 @@ function GuestMobileCard({
           <p className="m-0 truncate font-normal text-slate-600">{guest.email}</p>
         ) : null}
         {guest.phone ? <p className="m-0">{guest.phone}</p> : null}
+        <div className="pt-1">
+          <AdSourceBadge
+            source={guest.adSource}
+            label={guest.adSourceLabel}
+            detail={guest.adSourceDetail}
+            showInStoreFallback
+          />
+        </div>
       </div>
     </article>
   );
@@ -503,6 +513,14 @@ function GuestsTableSection({
                 <TableColumnHeader
                   icon={Phone}
                   label="Phone"
+                  iconClassName={TABLE_HEAD_ICON_CLASS}
+                  labelClassName={TABLE_HEAD_LABEL_CLASS}
+                />
+              </th>
+              <th className={thClass}>
+                <TableColumnHeader
+                  icon={Megaphone}
+                  label="Source"
                   iconClassName={TABLE_HEAD_ICON_CLASS}
                   labelClassName={TABLE_HEAD_LABEL_CLASS}
                 />
@@ -576,6 +594,14 @@ function GuestsTableSection({
                     ) : (
                       <span className="text-slate-300">N/A</span>
                     )}
+                  </td>
+                  <td className={`${tdClass} whitespace-nowrap`}>
+                    <AdSourceBadge
+                      source={guest.adSource}
+                      label={guest.adSourceLabel}
+                      detail={guest.adSourceDetail}
+                      showInStoreFallback
+                    />
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     <GuestJoinedAt iso={guest.createdAt} />

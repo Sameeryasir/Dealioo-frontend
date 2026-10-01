@@ -11,6 +11,9 @@ export type BusinessCustomerRecord = {
   phone: string | null;
   joiningDate: string;
   visitCount: number;
+  adSource?: "meta" | "google" | "utm" | null;
+  adSourceLabel?: string | null;
+  adSourceDetail?: string | null;
 };
 
 export type PaginatedBusinessCustomersResponse = {

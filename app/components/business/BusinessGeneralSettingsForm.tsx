@@ -5,7 +5,6 @@ import { BusinessProfileEditModal } from "@/app/components/business/BusinessProf
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
-import { getBusinessSetup } from "@/app/lib/business-setup";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import {
@@ -330,25 +329,6 @@ export function BusinessGeneralSettingsForm({
   const totalCampaigns = business?.summary?.totalCampaigns ?? 0;
   const totalCustomers = business?.summary?.totalCustomers ?? 0;
   const activeAutomations = business?.summary?.activeAutomations ?? 0;
-  const usagePercent = useMemo(() => {
-    const live = getBusinessSetup({
-      id: business?.id,
-      name: form.name,
-      logoUrl: logoSrc,
-      email: form.email,
-      phoneNumber: form.phoneNumber,
-      city: form.city,
-      state: form.state,
-      country: form.country,
-      postalCode: form.postalCode,
-      branchCount: Number.parseInt(form.branchCount, 10) || 0,
-      stripeConnected: business?.stripeConnected,
-      metaConnected: business?.metaConnected,
-      googleAdsConnected: business?.googleAdsConnected,
-      twilioConnected: business?.twilioConnected,
-    }).progressPercent;
-    return live;
-  }, [business, form, logoSrc]);
 
   const profileCompletion = useMemo(() => {
     const items = [
@@ -764,22 +744,6 @@ export function BusinessGeneralSettingsForm({
                 label="Active automations"
                 value={formatCount(activeAutomations)}
               />
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="m-0 text-[0.78rem] text-slate-500">
-                    Monthly usage
-                  </p>
-                  <p className="m-0 text-[0.78rem] font-bold text-[#0F172A]">
-                    {usagePercent}% of limit
-                  </p>
-                </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#E8EDF5]">
-                  <div
-                    className="h-full rounded-full bg-[#2F6BFF] transition-[width]"
-                    style={{ width: `${Math.min(100, Math.max(0, usagePercent))}%` }}
-                  />
-                </div>
-              </div>
             </div>
           </section>
 
