@@ -1,0 +1,57 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache libc6-compat
+
+FROM base AS deps
+COPY package.json package-lock.json ./
+ENV HUSKY=0
+RUN npm ci
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV HUSKY=0
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+ARG NEXT_PUBLIC_API_URL=http://localhost:4001/api
+ARG NEXT_PUBLIC_FRONTEND_URL=http://localhost:3002
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+ARG NEXT_PUBLIC_PUSHER_KEY=
+ARG NEXT_PUBLIC_PUSHER_CLUSTER=ap2
+ARG NEXT_PUBLIC_DO_SPACES_CDN_URL=
+ARG NEXT_PUBLIC_RP_META_PIXEL_ID=
+ARG BACKEND_URL=
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_PUSHER_KEY=$NEXT_PUBLIC_PUSHER_KEY
+ENV NEXT_PUBLIC_PUSHER_CLUSTER=$NEXT_PUBLIC_PUSHER_CLUSTER
+ENV NEXT_PUBLIC_DO_SPACES_CDN_URL=$NEXT_PUBLIC_DO_SPACES_CDN_URL
+ENV NEXT_PUBLIC_RP_META_PIXEL_ID=$NEXT_PUBLIC_RP_META_PIXEL_ID
+ENV BACKEND_URL=$BACKEND_URL
+
+RUN npm run build
+
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3002
+ENV HOSTNAME=0.0.0.0
+
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3002
+
+CMD ["node", "server.js"]

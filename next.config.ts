@@ -17,6 +17,8 @@ function getAllowedDevOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  // Smaller image for Docker (copies .next/standalone only).
+  output: "standalone",
   // Keep Turbopack rooted on this app so parent lockfiles cannot steal resolution.
   turbopack: {
     root: path.join(__dirname),
