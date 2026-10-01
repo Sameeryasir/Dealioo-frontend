@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GoogleAdsTag } from "@/app/components/funnel/GoogleAdsTag";
-import { captureGoogleAdsGclidFromUrl } from "@/app/lib/google-ads-funnel-tracking";
+import {
+  captureGoogleAdsGclidFromUrl,
+  hasGoogleAdsGclid,
+} from "@/app/lib/google-ads-funnel-tracking";
 import { trackGoogleAdsPageView } from "@/app/lib/google-ads-tag";
 
 type FunnelGoogleAdsTrackingProps = {
@@ -19,13 +22,15 @@ export function FunnelGoogleAdsTracking({
   stepKey,
 }: FunnelGoogleAdsTrackingProps) {
   const id = googleAdsId?.trim() ?? "";
+  const [fromGoogleAd, setFromGoogleAd] = useState(false);
 
   useEffect(() => {
     captureGoogleAdsGclidFromUrl();
+    setFromGoogleAd(hasGoogleAdsGclid());
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !fromGoogleAd) return;
     if (businessId == null || !Number.isFinite(businessId) || businessId <= 0) {
       return;
     }
@@ -41,7 +46,9 @@ export function FunnelGoogleAdsTracking({
       eventSourceUrl: window.location.href,
       params: { funnel_step: stepKey ?? "unknown" },
     });
-  }, [id, businessId, funnelId, stepKey]);
+  }, [id, businessId, funnelId, stepKey, fromGoogleAd]);
+
+  if (!id || !fromGoogleAd) return null;
 
   return <GoogleAdsTag googleAdsId={id} />;
 }

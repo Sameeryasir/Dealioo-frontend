@@ -1,4 +1,7 @@
-import { getFunnelMetaAttribution } from "@/app/lib/funnel-meta-attribution";
+import {
+  getFunnelMetaAttribution,
+  hasFunnelMetaAdClick,
+} from "@/app/lib/funnel-meta-attribution";
 import {
   claimFunnelMetaEventKey,
   createFunnelMetaEventId,
@@ -13,13 +16,14 @@ export async function trackMetaPixelCompleteRegistration(
 ): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
+  if (!hasFunnelMetaAdClick()) {
+    return null;
+  }
+
   const customerId = String(options.customerId);
   const pixelId =
     options.pixelId?.trim() || window.__rpMetaPixelInitialized || "";
   if (!pixelId) {
-    console.warn(
-      "[Funnel Meta] CompleteRegistration skipped — missing pixelId",
-    );
     return null;
   }
 
@@ -47,16 +51,10 @@ export async function trackMetaPixelCompleteRegistration(
   });
 
   const businessId = options.businessId;
-  const hasServerAttribution = Boolean(
-    attribution.fbclid?.trim() ||
-      attribution.fbc?.trim() ||
-      attribution.fbp?.trim(),
-  );
   if (
     businessId != null &&
     Number.isFinite(businessId) &&
-    businessId > 0 &&
-    hasServerAttribution
+    businessId > 0
   ) {
     try {
       await postFunnelMetaEvent({
@@ -82,11 +80,6 @@ export async function trackMetaPixelCompleteRegistration(
       );
       releaseFunnelMetaEventKey(dedupeKey);
     }
-  } else {
-    console.warn(
-      "[Funnel Meta] CompleteRegistration skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
-      { pixelId, businessId, hasServerAttribution },
-    );
   }
 
   return eventId;
@@ -102,11 +95,14 @@ export async function trackMetaPixelPurchaseSuccess(
 ): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
+  if (!hasFunnelMetaAdClick()) {
+    return null;
+  }
+
   const paymentId = String(options.paymentId);
   const pixelId =
     options.pixelId?.trim() || window.__rpMetaPixelInitialized || "";
   if (!pixelId) {
-    console.warn("[Funnel Meta] Purchase skipped — missing pixelId");
     return null;
   }
 
@@ -146,16 +142,10 @@ export async function trackMetaPixelPurchaseSuccess(
       ? String(options.customerId)
       : paymentId;
 
-  const hasServerAttribution = Boolean(
-    attribution.fbclid?.trim() ||
-      attribution.fbc?.trim() ||
-      attribution.fbp?.trim(),
-  );
   if (
     businessId != null &&
     Number.isFinite(businessId) &&
-    businessId > 0 &&
-    hasServerAttribution
+    businessId > 0
   ) {
     try {
       await postFunnelMetaEvent({
@@ -176,11 +166,6 @@ export async function trackMetaPixelPurchaseSuccess(
       console.warn("[Funnel Meta] Purchase backend/CAPI failed", err);
       releaseFunnelMetaEventKey(dedupeKey);
     }
-  } else {
-    console.warn(
-      "[Funnel Meta] Purchase skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
-      { pixelId, businessId, hasServerAttribution },
-    );
   }
 
   return eventId;

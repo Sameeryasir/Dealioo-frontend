@@ -165,3 +165,13 @@ export function hasFunnelFbclid(): boolean {
   if (params.get("fbclid")?.trim()) return true;
   return Boolean(getFunnelMetaAttribution().fbclid?.trim());
 }
+
+export function hasFunnelMetaAdClick(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("fbclid")?.trim()) return true;
+  const attribution = getFunnelMetaAttribution();
+  return Boolean(
+    attribution.fbclid?.trim() || attribution.fbc?.trim(),
+  );
+}

@@ -1,5 +1,6 @@
 import {
   getFunnelMetaAttribution,
+  hasFunnelMetaAdClick,
 } from "@/app/lib/funnel-meta-attribution";
 import { postFunnelMetaEvent } from "@/app/services/meta/track-funnel-meta-event";
 
@@ -119,6 +120,10 @@ export function trackMetaPixelEvent(
   const name = eventName.trim();
   if (!name) return null;
 
+  if (!hasFunnelMetaAdClick()) {
+    return null;
+  }
+
   const id =
     options.pixelId?.trim() || window.__rpMetaPixelInitialized || "";
   if (!id) return null;
@@ -155,14 +160,8 @@ export function trackMetaPixelEvent(
   }
 
   const businessId = options.businessId;
-  const hasServerAttribution = Boolean(
-    attribution.fbclid?.trim() ||
-      attribution.fbc?.trim() ||
-      attribution.fbp?.trim(),
-  );
   if (
     !options.skipServer &&
-    hasServerAttribution &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -189,11 +188,6 @@ export function trackMetaPixelEvent(
         sentFunnelMetaKeys.delete(dedupeKey);
       }
     });
-  } else if (!options.skipServer) {
-    console.warn(
-      "[Funnel Meta] skipped backend/CAPI — need businessId and fbclid/fbc/fbp",
-      { eventName: name, pixelId: id, businessId, hasServerAttribution },
-    );
   }
 
   return eventId;

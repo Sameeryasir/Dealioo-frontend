@@ -42,6 +42,8 @@ export function trackGoogleAdsConversion(
 ): string | null {
   if (typeof window === "undefined") return null;
 
+  if (!hasGoogleAdsGclid()) return null;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   const conversionLabel = normalizeId(options.conversionLabel);
@@ -80,7 +82,6 @@ export function trackGoogleAdsConversion(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
-    hasGoogleAdsGclid() &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -111,6 +112,8 @@ function trackGoogleAdsStandardEvent(
 ): string | null {
   if (typeof window === "undefined") return null;
 
+  if (!hasGoogleAdsGclid()) return null;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   if (!googleAdsId) return null;
@@ -141,7 +144,6 @@ function trackGoogleAdsStandardEvent(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
-    hasGoogleAdsGclid() &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -171,6 +173,8 @@ async function trackGoogleAdsStandardEventAsync(
 ): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
+  if (!hasGoogleAdsGclid()) return null;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   if (!googleAdsId) return null;
@@ -201,7 +205,6 @@ async function trackGoogleAdsStandardEventAsync(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
-    hasGoogleAdsGclid() &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -244,6 +247,8 @@ export type GoogleAdsPaymentTrackOptions = {
 export function trackGoogleAdsBeginCheckout(
   options: GoogleAdsPaymentTrackOptions = {},
 ): void {
+  if (!hasGoogleAdsGclid()) return;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   const businessId = options.businessId;
@@ -276,6 +281,8 @@ export function trackGoogleAdsBeginCheckout(
 export async function trackGoogleAdsPurchaseSuccess(
   options: GoogleAdsPaymentTrackOptions = {},
 ): Promise<void> {
+  if (!hasGoogleAdsGclid()) return;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   const businessId = options.businessId;
@@ -339,6 +346,8 @@ export type GoogleAdsSignupTrackOptions = {
 export async function trackGoogleAdsSignupSuccess(
   options: GoogleAdsSignupTrackOptions = {},
 ): Promise<void> {
+  if (!hasGoogleAdsGclid()) return;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   const businessId = options.businessId;
@@ -370,6 +379,8 @@ export function trackGoogleAdsButtonClick(
 ): string | null {
   if (typeof window === "undefined") return null;
 
+  if (!hasGoogleAdsGclid()) return null;
+
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
   if (!googleAdsId) return null;
@@ -390,7 +401,6 @@ export function trackGoogleAdsButtonClick(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
-    hasGoogleAdsGclid() &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0
@@ -415,6 +425,8 @@ export function trackGoogleAdsPageView(
   options: Omit<GoogleAdsTrackOptions, "conversionLabel"> = {},
 ): string | null {
   if (typeof window === "undefined") return null;
+
+  if (!hasGoogleAdsGclid()) return null;
 
   const googleAdsId =
     normalizeId(options.googleAdsId) || window.__rpGoogleAdsTagInitialized;
@@ -446,7 +458,6 @@ export function trackGoogleAdsPageView(
   const businessId = options.businessId;
   if (
     !options.skipServer &&
-    hasGoogleAdsGclid() &&
     businessId != null &&
     Number.isFinite(businessId) &&
     businessId > 0

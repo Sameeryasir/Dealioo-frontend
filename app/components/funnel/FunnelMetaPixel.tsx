@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { captureFunnelFbclidFromUrl } from "@/app/lib/funnel-meta-attribution";
+import {
+  captureFunnelFbclidFromUrl,
+  hasFunnelMetaAdClick,
+} from "@/app/lib/funnel-meta-attribution";
 import { trackMetaPixelPageView } from "@/app/lib/meta-pixel";
 
 type FunnelMetaPixelProps = {
@@ -18,13 +21,15 @@ export function FunnelMetaPixel({
   stepKey,
 }: FunnelMetaPixelProps) {
   useEffect(() => {
+    captureFunnelFbclidFromUrl();
+
     const id = pixelId?.trim();
     if (!id) return;
     if (businessId == null || !Number.isFinite(businessId) || businessId <= 0) {
       return;
     }
 
-    captureFunnelFbclidFromUrl();
+    if (!hasFunnelMetaAdClick()) return;
 
     const step = stepKey?.trim() || "unknown";
     trackMetaPixelPageView(id, {
