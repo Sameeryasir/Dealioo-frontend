@@ -1,29 +1,37 @@
 "use client";
 
-import { AlertTriangle, X, type LucideIcon } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { AlertTriangle, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type ConfirmDialogTone = "danger" | "warning" | "primary";
 
 const toneMeta = {
   danger: {
     eyebrow: "Access change",
-    className: "rp-confirm-dialog--primary",
   },
   warning: {
     eyebrow: "Please confirm",
-    className: "rp-confirm-dialog--primary",
   },
   primary: {
     eyebrow: "Confirm action",
-    className: "rp-confirm-dialog--primary",
   },
 } as const;
 
 export function ConfirmDialog({
   open,
   title,
-  titleId: titleIdProp,
+  titleId: _titleIdProp,
   description,
   icon: Icon = AlertTriangle,
   tone = "danger",
@@ -57,120 +65,77 @@ export function ConfirmDialog({
   onConfirm: () => void;
   autoFocusCancel?: boolean;
 }) {
-  const generatedTitleId = useId();
-  const titleId = titleIdProp ?? generatedTitleId;
   const [checkboxChecked, setCheckboxChecked] = useState(false);
   const meta = toneMeta[tone];
 
   useEffect(() => {
-    if (!open) {
-      setCheckboxChecked(false);
-      return;
-    }
-    if (isLoading) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, isLoading, onCancel]);
-
-  if (!open) return null;
+    if (!open) setCheckboxChecked(false);
+  }, [open]);
 
   const needsCheckbox = confirmCheckbox != null;
   const confirmBlocked =
     confirmDisabled || isLoading || (needsCheckbox && !checkboxChecked);
 
   return (
-    <div
-      className={`rp-confirm-dialog ${meta.className}`}
-      style={{ zIndex }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !isLoading) onCancel();
+      }}
     >
-      <button
-        type="button"
-        aria-label="Close dialog"
-        disabled={isLoading}
-        onClick={onCancel}
-        className="rp-confirm-dialog__backdrop"
-      />
+      <AlertDialogContent
+        style={{ zIndex }}
+        className={`max-w-[min(100%,38rem)] gap-0 p-0 sm:max-w-[min(100%,38rem)] ${panelClassName}`}
+      >
+        <AlertDialogHeader className="place-items-start gap-3 p-5 text-left sm:p-6">
+          <AlertDialogMedia className="mb-0 size-11 rounded-xl border border-amber-200/80 bg-amber-50 text-amber-800">
+            <Icon className="size-5" strokeWidth={2.25} />
+          </AlertDialogMedia>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+              {meta.eyebrow}
+            </p>
+            <AlertDialogTitle className="mt-1 text-base font-semibold text-zinc-900">
+              {title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-1.5 text-sm text-zinc-600">
+              {description}
+            </AlertDialogDescription>
 
-      <div className={`rp-confirm-dialog__panel ${panelClassName}`}>
-        <header className="rp-confirm-dialog__header">
-          <div className="rp-confirm-dialog__heading">
-            <span className="rp-confirm-dialog__icon" aria-hidden>
-              <Icon className="size-5" strokeWidth={2.25} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="rp-confirm-dialog__eyebrow">{meta.eyebrow}</p>
-              <h2 id={titleId} className="rp-confirm-dialog__title">
-                {title}
-              </h2>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={onCancel}
-            className="rp-confirm-dialog__close"
-            aria-label="Close"
-          >
-            <X className="size-4" strokeWidth={2.25} />
-          </button>
-        </header>
-
-        <div className="rp-confirm-dialog__body">
-          <div className="rp-confirm-dialog__message">{description}</div>
-
-          {needsCheckbox ? (
-            <label className="rp-confirm-dialog__checkbox">
-              <span className="rp-confirm-dialog__checkbox-control">
+            {needsCheckbox ? (
+              <label className="mt-4 flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
                   checked={checkboxChecked}
                   disabled={isLoading}
                   onChange={(e) => setCheckboxChecked(e.target.checked)}
+                  className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
                 />
-                <svg viewBox="0 0 12 12" fill="none" aria-hidden>
-                  <path
-                    d="M2.5 6L5 8.5L9.5 3.5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span className="rp-confirm-dialog__checkbox-label">
-                {confirmCheckbox.label}
-              </span>
-            </label>
-          ) : null}
-        </div>
+                <span className="text-sm font-semibold text-zinc-900">
+                  {confirmCheckbox.label}
+                </span>
+              </label>
+            ) : null}
+          </div>
+        </AlertDialogHeader>
 
-        <footer className="rp-confirm-dialog__footer">
-          <button
-            type="button"
+        <AlertDialogFooter className="border-t border-zinc-100 bg-zinc-50/80">
+          <AlertDialogCancel
             disabled={isLoading}
-            onClick={onCancel}
             autoFocus={autoFocusCancel}
-            className="rp-confirm-dialog__cancel"
+            onClick={onCancel}
           >
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </AlertDialogCancel>
+          <AlertDialogAction
             disabled={confirmBlocked}
+            variant={tone === "danger" ? "destructive" : "default"}
             onClick={onConfirm}
-            className="rp-confirm-dialog__confirm"
           >
             {isLoading ? (loadingLabel ?? `${confirmLabel}…`) : confirmLabel}
-          </button>
-        </footer>
-      </div>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

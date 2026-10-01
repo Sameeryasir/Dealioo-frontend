@@ -26,6 +26,7 @@ import {
 } from "@/app/lib/business-settings-routes";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { logoutSession } from "@/app/services/auth/logout";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BusinessGeneralSettingsForm = dynamic(
   () =>
@@ -150,8 +151,7 @@ export function BusinessSettingsPanel({
     },
     [businessId],
   );
-
-  const navLink = (item: NavItem) => {
+  const navTab = (item: NavItem) => {
     const Icon = item.icon;
     const selected = section === item.id;
     const hoverBorder =
@@ -164,25 +164,24 @@ export function BusinessSettingsPanel({
             : "hover:border-[#1877f2]/35";
 
     return (
-      <Link
+      <TabsTrigger
         key={item.id}
-        href={settingsHref(item.id)}
-        className={`flex items-center gap-2.5 rounded-[0.95rem] border px-2.5 py-2.5 text-left text-sm font-semibold no-underline transition duration-200 ${
+        value={item.id}
+        nativeButton={false}
+        render={<Link href={settingsHref(item.id)} />}
+        className={`flex h-auto w-full items-center justify-start gap-2.5 rounded-[0.95rem] border px-2.5 py-2.5 text-left text-sm font-semibold no-underline transition duration-200 after:hidden data-active:shadow-[0_4px_14px_rgba(24,119,242,0.12)] ${
           selected
-            ? "border-[#1877f2]/30 bg-[#1877f2]/[0.07] text-[#1877f2] shadow-[0_4px_14px_rgba(24,119,242,0.12)]"
+            ? "border-[#1877f2]/30 bg-[#1877f2]/[0.07] text-[#1877f2]"
             : `border-[#e8edf5] bg-white text-slate-700 shadow-[0_4px_12px_rgba(15,23,42,0.03)] ${hoverBorder}`
         }`}
-        aria-current={selected ? "page" : undefined}
       >
         <span
-          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-            selected ? DASHBOARD_KPI_ICON[item.tone] : DASHBOARD_KPI_ICON[item.tone]
-          }`}
+          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${DASHBOARD_KPI_ICON[item.tone]}`}
         >
           <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      </Link>
+      </TabsTrigger>
     );
   };
 
@@ -227,16 +226,22 @@ export function BusinessSettingsPanel({
           <p className="relative m-0 text-center text-[0.65rem] font-bold uppercase tracking-[0.14em] text-slate-500">
             Menu
           </p>
-
-          <div className="relative mt-3 flex flex-col gap-3">
+          <Tabs
+            orientation="vertical"
+            value={section}
+            className="relative mt-3 gap-3"
+          >
             {businessId != null ? (
               <div>
                 <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                   Organization
                 </p>
-                <div className="flex flex-col gap-2">
-                  {organizationNav.map(navLink)}
-                </div>
+                <TabsList
+                  variant="line"
+                  className="flex h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0"
+                >
+                  {organizationNav.map(navTab)}
+                </TabsList>
               </div>
             ) : null}
             {businessId == null ? (
@@ -244,14 +249,24 @@ export function BusinessSettingsPanel({
                 <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                   Account
                 </p>
-                <div className="flex flex-col gap-2">{visibleAccountNav.map(navLink)}</div>
+                <TabsList
+                  variant="line"
+                  className="flex h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0"
+                >
+                  {visibleAccountNav.map(navTab)}
+                </TabsList>
               </div>
             ) : visibleBillingNav.length > 0 ? (
               <div>
                 <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                   Account
                 </p>
-                <div className="flex flex-col gap-2">{visibleBillingNav.map(navLink)}</div>
+                <TabsList
+                  variant="line"
+                  className="flex h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0"
+                >
+                  {visibleBillingNav.map(navTab)}
+                </TabsList>
               </div>
             ) : null}
             {businessId == null ? (
@@ -259,12 +274,15 @@ export function BusinessSettingsPanel({
                 <p className="mb-2 px-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-400">
                   Organization
                 </p>
-                <div className="flex flex-col gap-2">
-                  {organizationNav.map(navLink)}
-                </div>
+                <TabsList
+                  variant="line"
+                  className="flex h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0"
+                >
+                  {organizationNav.map(navTab)}
+                </TabsList>
               </div>
             ) : null}
-          </div>
+          </Tabs>
         </aside>
 
         <article className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">

@@ -9,7 +9,9 @@
     "next.config.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
-    "app/**/*.mts"
+    "app/**/*.mts",
+    "components/**/*.ts",
+    "components/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

@@ -1,9 +1,18 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Check, Loader2, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { automationEase } from "@/app/lib/motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const DEFAULT_DESCRIPTION =
   "This action cannot be undone. Once deleted, this item will be permanently removed from the system.";
@@ -33,7 +42,6 @@ export function DeleteConfirmationDialog({
   onConfirm,
   onCancel,
 }: DeleteConfirmationDialogProps) {
-  const titleId = useId();
   const checkboxId = useId();
   const [confirmed, setConfirmed] = useState(false);
   const resolvedTitle = title ?? `Delete ${itemName}?`;
@@ -46,7 +54,6 @@ export function DeleteConfirmationDialog({
     );
   const resolvedCheckboxLabel =
     checkboxLabel ?? `Are you sure you want to delete ${itemName}?`;
-  const loadingLabel = "Deleting...";
   const canDelete = confirmed && !isLoading;
 
   useEffect(() => {
@@ -57,158 +64,79 @@ export function DeleteConfirmationDialog({
     setConfirmed(false);
   }, [open, itemName]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isLoading) onCancel();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prev;
-    };
-  }, [open, isLoading, onCancel]);
-
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
-          style={{ zIndex }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          role="presentation"
-        >
-          {isLoading ? (
-            <div
-              className="absolute inset-0 bg-[#07111f]/50 backdrop-blur-[6px]"
-              aria-hidden
-            />
-          ) : (
-            <button
-              type="button"
-              aria-label="Close dialog"
-              onClick={onCancel}
-              className="absolute inset-0 cursor-default bg-[#07111f]/50 backdrop-blur-[6px]"
-            />
-          )}
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !isLoading) onCancel();
+      }}
+    >
+      <AlertDialogContent
+        style={{ zIndex }}
+        className="max-w-xl gap-0 overflow-hidden p-0 sm:max-w-xl"
+      >
+        <AlertDialogHeader className="place-items-start gap-3 p-5 text-left sm:p-6">
+          <AlertDialogMedia className="mb-0 size-10 rounded-xl border border-red-200/90 bg-gradient-to-br from-red-50 to-[#fff1f2] text-red-500">
+            <AlertTriangle className="size-4.5" strokeWidth={2.25} />
+          </AlertDialogMedia>
+          <div className="min-w-0 flex-1">
+            <AlertDialogTitle className="text-[1rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.05rem]">
+              {resolvedTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-1.5 max-w-lg text-[0.82rem] leading-relaxed text-slate-500 sm:text-[0.85rem]">
+              {resolvedDescription}
+            </AlertDialogDescription>
+            <label
+              htmlFor={checkboxId}
+              className="mt-3.5 flex cursor-pointer items-center gap-3"
+            >
+              <span className="relative flex size-4.5 shrink-0 items-center justify-center">
+                <input
+                  id={checkboxId}
+                  type="checkbox"
+                  checked={confirmed}
+                  disabled={isLoading}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                  className="peer absolute inset-0 size-4.5 cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                />
+                <span className="flex size-4.5 items-center justify-center rounded-md border-2 border-slate-300 bg-white text-transparent shadow-sm transition peer-checked:border-[#1877f2] peer-checked:bg-[#1877f2] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#1877f2]/30 peer-disabled:opacity-50">
+                  <Check className="size-3" strokeWidth={3} aria-hidden />
+                </span>
+              </span>
+              <span className="text-[0.82rem] font-bold leading-none text-[#07111f] sm:text-[0.85rem]">
+                {resolvedCheckboxLabel}
+              </span>
+            </label>
+          </div>
+        </AlertDialogHeader>
 
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            className="relative z-10 w-full max-w-xl overflow-hidden rounded-[1.25rem] border border-[#e8edf5] bg-white shadow-[0_24px_48px_rgba(15,23,42,0.14),0_0_0_1px_rgba(24,119,242,0.04)] ring-1 ring-black/[0.03]"
-            initial={{ opacity: 0, scale: 0.96, y: 14 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            transition={{ duration: 0.28, ease: automationEase }}
-            onClick={(e) => e.stopPropagation()}
+        <AlertDialogFooter className="border-t border-[#e8edf5] bg-gradient-to-r from-white via-[#f8fbff] to-white">
+          <AlertDialogCancel disabled={isLoading} onClick={onCancel}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!canDelete}
+            onClick={onConfirm}
+            className="min-w-[7.5rem] gap-1.5 bg-gradient-to-r from-[#1877f2] to-[#166fe5] text-white hover:bg-[#1877f2] hover:brightness-105 disabled:bg-none disabled:bg-[#f1f5f9] disabled:text-slate-400"
           >
-            <div
-              className="pointer-events-none absolute inset-0"
-              aria-hidden
-              style={{
-                background: [
-                  "radial-gradient(ellipse 70% 50% at 100% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 60%)",
-                  "radial-gradient(ellipse 55% 45% at 0% 100%, rgba(225, 48, 108, 0.05) 0%, transparent 55%)",
-                ].join(", "),
-              }}
-            />
-
-            <div className="relative px-5 pb-3.5 pt-5 sm:px-6 sm:pb-4 sm:pt-5">
-              {!isLoading ? (
-                <button
-                  type="button"
-                  aria-label="Close"
-                  onClick={onCancel}
-                  className="absolute right-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] sm:right-4 sm:top-4"
-                >
-                  <X className="size-4.5" strokeWidth={2} aria-hidden />
-                </button>
-              ) : null}
-
-              <div className="flex gap-3 pr-8 sm:gap-3.5">
-                <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-red-200/90 bg-gradient-to-br from-red-50 to-[#fff1f2] text-red-500 shadow-[0_6px_14px_rgba(239,68,68,0.1)]"
+            {isLoading ? (
+              <>
+                <Loader2
+                  className="size-3.5 animate-spin"
                   aria-hidden
-                >
-                  <AlertTriangle className="size-4.5" strokeWidth={2.25} />
-                </span>
-                <div className="min-w-0 flex-1 pt-0.5">
-                  <h2
-                    id={titleId}
-                    className="text-[1rem] font-extrabold leading-snug tracking-tight text-[#07111f] sm:text-[1.05rem]"
-                  >
-                    {resolvedTitle}
-                  </h2>
-                  <div className="mt-1.5 max-w-lg text-[0.82rem] leading-relaxed text-slate-500 sm:text-[0.85rem]">
-                    {resolvedDescription}
-                  </div>
-                </div>
-              </div>
-
-              <label
-                htmlFor={checkboxId}
-                className="mt-3.5 flex cursor-pointer items-center gap-3"
-              >
-                <span className="relative flex size-4.5 shrink-0 items-center justify-center">
-                  <input
-                    id={checkboxId}
-                    type="checkbox"
-                    checked={confirmed}
-                    disabled={isLoading}
-                    onChange={(e) => setConfirmed(e.target.checked)}
-                    className="peer absolute inset-0 size-4.5 cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                  />
-                  <span className="flex size-4.5 items-center justify-center rounded-md border-2 border-slate-300 bg-white text-transparent shadow-sm transition peer-checked:border-[#1877f2] peer-checked:bg-[#1877f2] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#1877f2]/30 peer-disabled:opacity-50">
-                    <Check className="size-3" strokeWidth={3} aria-hidden />
-                  </span>
-                </span>
-                <span className="text-[0.82rem] font-bold leading-none text-[#07111f] sm:text-[0.85rem]">
-                  {resolvedCheckboxLabel}
-                </span>
-              </label>
-            </div>
-
-            <div className="relative flex justify-end gap-2 border-t border-[#e8edf5] bg-gradient-to-r from-white via-[#f8fbff] to-white px-5 py-3 sm:px-6">
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={onCancel}
-                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-xl border border-[#1877f2] bg-white px-4 text-[0.8rem] font-bold text-[#1877f2] shadow-sm transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!canDelete}
-                onClick={onConfirm}
-                className="inline-flex h-9 min-w-[7.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#166fe5] px-4 text-[0.8rem] font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-none disabled:bg-[#f1f5f9] disabled:text-slate-400 disabled:shadow-none disabled:hover:brightness-100"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2
-                      className="size-3.5 animate-spin"
-                      aria-hidden
-                      strokeWidth={2}
-                    />
-                    {loadingLabel}
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                    {confirmText}
-                  </>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+                  strokeWidth={2}
+                />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                {confirmText}
+              </>
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

@@ -1,7 +1,16 @@
 "use client";
 
-import { AlertCircle, X } from "lucide-react";
-import { useEffect, useId } from "react";
+import { AlertCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function OverviewAlertDialog({
   open,
@@ -12,75 +21,40 @@ export function OverviewAlertDialog({
   message: string;
   onClose: () => void;
 }) {
-  const titleId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <button
-        type="button"
-        aria-label="Close dialog"
-        onClick={onClose}
-        className="absolute inset-0 cursor-default bg-zinc-900/50 backdrop-blur-[2px]"
-      />
-
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xl ring-1 ring-black/5">
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="absolute right-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-900 transition hover:bg-zinc-100 sm:right-4 sm:top-4"
-        >
-          <X className="size-4" strokeWidth={2.25} aria-hidden />
-        </button>
-
-        <div className="px-5 pb-5 pt-5 sm:px-6 sm:pb-6 sm:pt-6">
-          <div className="flex gap-4 pr-8">
-            <span
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-red-200/80 bg-red-50 text-red-700 shadow-sm"
-              aria-hidden
-            >
-              <AlertCircle className="size-5" strokeWidth={2} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2
-                id={titleId}
-                className="text-base font-semibold leading-snug text-zinc-900"
-              >
-                Something went wrong
-              </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">
-                {message}
-              </p>
-            </div>
+      <AlertDialogContent
+        style={{ zIndex: 70 }}
+        className="max-w-md gap-0 p-0 sm:max-w-md"
+      >
+        <AlertDialogHeader className="place-items-start gap-4 p-5 text-left sm:p-6">
+          <AlertDialogMedia className="mb-0 size-11 rounded-xl border border-red-200/80 bg-red-50 text-red-700">
+            <AlertCircle className="size-5" strokeWidth={2} />
+          </AlertDialogMedia>
+          <div className="min-w-0 flex-1">
+            <AlertDialogTitle className="text-base font-semibold text-zinc-900">
+              Something went wrong
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-1.5 text-sm leading-relaxed text-zinc-600">
+              {message}
+            </AlertDialogDescription>
           </div>
-        </div>
+        </AlertDialogHeader>
 
-        <div className="flex justify-end border-t border-zinc-100 bg-zinc-50/80 px-5 py-4 sm:px-6">
-          <button
-            type="button"
+        <AlertDialogFooter className="border-t border-zinc-100 bg-zinc-50/80">
+          <AlertDialogAction
             onClick={onClose}
-            className="h-10 cursor-pointer rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-black active:scale-[0.98]"
+            className="h-10 rounded-xl bg-zinc-900 px-5 text-white hover:bg-black"
           >
             OK
-          </button>
-        </div>
-      </div>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
