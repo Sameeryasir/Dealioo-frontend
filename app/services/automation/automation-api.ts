@@ -4,6 +4,7 @@ import type {
   Automation,
   AutomationPurpose,
   CreateAutomationBody,
+  PaginationMeta,
   UpdateAutomationBody,
   UpdateAutomationResponse,
 } from "@/app/services/automation/types";
@@ -95,12 +96,46 @@ export function mapAutomationToListItem(
 }
 
 export async function getAutomations(
-  businessId?: number,
-): Promise<Automation[]> {
-  const query =
-    businessId != null ? `?businessId=${encodeURIComponent(String(businessId))}` : "";
-  return automationFetch<Automation[]>(query);
+  params: {
+    businessId?: number;
+    campaignId?: number;
+    q?: string;
+    status?: "active" | "draft";
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<{ data: Automation[]; meta: PaginationMeta }> {
+  // What changed: accept page/limit/campaign/search/status and return { data, meta }.
+  // Why: list UI paginates server-side; provision/edit still pass a high limit.
+  const search = new URLSearchParams();
+  if (params.businessId != null) {
+    search.set("businessId", String(params.businessId));
+  }
+  if (params.campaignId != null && params.campaignId >= 1) {
+    search.set("campaignId", String(params.campaignId));
+  }
+  if (params.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
+  if (params.status === "active" || params.status === "draft") {
+    search.set("status", params.status);
+  }
+  if (params.page != null) {
+    search.set("page", String(params.page));
+  }
+  if (params.limit != null) {
+    search.set("limit", String(params.limit));
+  }
+  const query = search.toString();
+  return automationFetch<{ data: Automation[]; meta: PaginationMeta }>(
+    query ? `?${query}` : "",
+  );
 }
+
+export type AutomationsListPage = {
+  data: AutomationListItem[];
+  meta: PaginationMeta;
+};
 
 export async function getAutomationById(id: number): Promise<Automation> {
   return automationFetch<Automation>(`/${id}`);

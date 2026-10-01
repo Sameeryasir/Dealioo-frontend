@@ -336,11 +336,14 @@ export function EditCampaignModal({
 
       const previousStatus = resolveCampaignStatus(campaign);
       if (status === "unpublished" && previousStatus !== "unpublished") {
-        const automations = await getAutomations(campaign.businessId);
-        const activeCount = automations.filter(
-          (automation) =>
-            automation.campaignId === campaign.id &&
-            automation.isActive === true,
+        const automations = await getAutomations({
+          businessId: campaign.businessId,
+          campaignId: campaign.id,
+          page: 1,
+          limit: 100,
+        });
+        const activeCount = automations.data.filter(
+          (automation) => automation.isActive === true,
         ).length;
         if (activeCount > 0) {
           setActiveAutomationCount(activeCount);

@@ -1,7 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { mapAutomationToListItem } from "@/app/services/automation/automation-api";
+import {
+  mapAutomationToListItem,
+  type AutomationsListPage,
+} from "@/app/services/automation/automation-api";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
-import type { AutomationListItem } from "@/app/components/automation/types";
 import type {
   Automation,
   AutomationStatusResponse,
@@ -21,6 +23,16 @@ function flagsFromStatus(status: AutomationStatusResponse["status"]): {
     return { isActive: false, published: true };
   }
   return { isActive: false, published: false };
+}
+
+function isAutomationsListPage(value: unknown): value is AutomationsListPage {
+  return (
+    typeof value === "object" &&
+    value != null &&
+    Array.isArray((value as AutomationsListPage).data) &&
+    typeof (value as AutomationsListPage).meta === "object" &&
+    (value as AutomationsListPage).meta != null
+  );
 }
 
 export function invalidateAutomationQueries(
@@ -73,23 +85,24 @@ export function syncAutomationStatusQueryCache(
     },
   );
 
-  queryClient.setQueriesData<AutomationListItem[]>(
+  // What changed: list cache is now { data, meta } pages, not a flat array.
+  queryClient.setQueriesData<AutomationsListPage>(
     { queryKey: automationQueryKeys.lists() },
     (prev) => {
-      if (!prev?.length) {
+      if (!isAutomationsListPage(prev) || !prev.data.length) {
         return prev;
       }
-      const index = prev.findIndex((row) => row.numericId === response.id);
+      const index = prev.data.findIndex((row) => row.numericId === response.id);
       if (index === -1) {
         return prev;
       }
-      const next = [...prev];
-      const current = next[index]!;
-      next[index] = {
+      const nextData = [...prev.data];
+      const current = nextData[index]!;
+      nextData[index] = {
         ...current,
         status: flags.isActive ? "active" : "draft",
       };
-      return next;
+      return { ...prev, data: nextData };
     },
   );
 
@@ -120,24 +133,27 @@ export function syncAutomationQueryCache(
   const listItem = mapAutomationToListItem(automation);
   const scopeBusinessId = automation.businessId ?? automation.restaurantId;
 
-  queryClient.setQueriesData<AutomationListItem[]>(
+  queryClient.setQueriesData<AutomationsListPage>(
     { queryKey: automationQueryKeys.lists() },
     (prev) => {
-      if (!prev?.length) {
+      if (!isAutomationsListPage(prev) || !prev.data.length) {
         return prev;
       }
 
-      const index = prev.findIndex((row) => row.numericId === automation.id);
+      const index = prev.data.findIndex((row) => row.numericId === automation.id);
       if (index === -1) {
         return prev;
       }
 
-      const next = [...prev];
-      next[index] = {
+      const nextData = [...prev.data];
+      nextData[index] = {
         ...listItem,
-        business: listItem.business !== "N/A" ? listItem.business : prev[index]!.business,
+        business:
+          listItem.business !== "N/A"
+            ? listItem.business
+            : prev.data[index]!.business,
       };
-      return next;
+      return { ...prev, data: nextData };
     },
   );
 

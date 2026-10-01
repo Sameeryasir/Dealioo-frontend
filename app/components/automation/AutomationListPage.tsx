@@ -20,10 +20,11 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createElement, useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardEase } from "@/app/lib/motion";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -49,7 +50,6 @@ import type {
 import {
   createAutomation,
   deleteAutomation,
-  mapAutomationToListItem,
   triggerToApi,
   updateAutomation,
 } from "@/app/services/automation/automation-api";
@@ -77,6 +77,7 @@ function truncateDescription(description: string, maxLength = 40): string {
 }
 
 const ICON_STROKE = 2.5;
+const AUTOMATIONS_PAGE_SIZE = 10;
 
 const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -248,7 +249,9 @@ export function AutomationListPage({
 
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [filter, setFilter] = useState<AutomationFilter>("all");
+  const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AutomationListItem | null>(
@@ -258,16 +261,31 @@ export function AutomationListPage({
   const [editTarget, setEditTarget] = useState<AutomationListItem | null>(null);
   const [savingDetails, setSavingDetails] = useState(false);
 
+  // Reset to page 1 when search/filter/campaign scope changes.
+  useEffect(() => {
+    setPage(1);
+  }, [deferredQuery, filter, campaignId]);
+
   const {
-    data: items,
+    data: listPage,
     isLoading: loading,
+    isFetching,
     error: loadError,
     refetch: loadAutomations,
-  } = useAutomationsQuery(businessId);
+  } = useAutomationsQuery(businessId, {
+    page,
+    limit: AUTOMATIONS_PAGE_SIZE,
+    campaignId,
+    q: deferredQuery,
+    status: filter,
+  });
+
+  const items = listPage.data;
+  const listMeta = listPage.meta;
 
   const automationNumericIds = useMemo(
     () =>
-      (items ?? [])
+      items
         .map((row) => row.numericId)
         .filter((id): id is number => id != null && id >= 1),
     [items],
@@ -299,20 +317,6 @@ export function AutomationListPage({
     const result = validateAutomationCreateContext(createContextInput);
     return result.ok ? null : result.message;
   }, [createContextInput]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (items ?? []).filter((row) => {
-      if (campaignId != null && row.campaignId !== campaignId) return false;
-      if (filter !== "all" && row.status !== filter) return false;
-      if (!q) return true;
-      return (
-        row.name.toLowerCase().includes(q) ||
-        row.trigger.toLowerCase().includes(q) ||
-        row.purpose.toLowerCase().includes(q)
-      );
-    });
-  }, [items, query, filter, campaignId]);
 
   const builderHref = (row: AutomationListItem) => {
     const base = `/business/${businessId}/dashboard/automations/${
@@ -411,12 +415,11 @@ export function AutomationListPage({
               }),
             );
 
-            const next = mapAutomationToListItem(created);
             if (businessId != null) {
-              queryClient.setQueryData<AutomationListItem[]>(
-                automationQueryKeys.list(businessId),
-                (prev) => [next, ...(prev ?? [])],
-              );
+              // Refresh all list pages so totals/pages stay correct after create.
+              void queryClient.invalidateQueries({
+                queryKey: automationQueryKeys.list(businessId),
+              });
             }
 
             syncAutomationQueryCache(queryClient, created);
@@ -482,10 +485,9 @@ export function AutomationListPage({
           try {
             await deleteAutomation(id);
             if (businessId != null) {
-              queryClient.setQueryData<AutomationListItem[]>(
-                automationQueryKeys.list(businessId),
-                (prev) => (prev ?? []).filter((row) => row.numericId !== id),
-              );
+              void queryClient.invalidateQueries({
+                queryKey: automationQueryKeys.list(businessId),
+              });
             }
             setDeleteTarget(null);
             toast.success("Automation deleted.");
@@ -535,7 +537,7 @@ export function AutomationListPage({
     <div className="funnel-automations-content">
       {embedded ? (
         <AutomationsEmbeddedHeader
-          total={filtered.length}
+          total={listMeta.total}
           onCreate={openCreateModal}
           canCreate={canCreateAutomation}
         />
@@ -595,7 +597,7 @@ export function AutomationListPage({
             />
           ) : null}
         </div>
-        {embedded ? <AutomationsToolbarHint count={filtered.length} /> : null}
+        {embedded ? <AutomationsToolbarHint count={listMeta.total} /> : null}
       </div>
 
       {loadError ? (
@@ -607,7 +609,7 @@ export function AutomationListPage({
         <AutomationListSkeleton />
       ) : null}
 
-      {!loading && !loadError && filtered.length > 0 ? (
+      {!loading && !loadError && items.length > 0 ? (
         <motion.div
           key="automations-table"
           className="funnel-automations-table-stage"
@@ -616,7 +618,7 @@ export function AutomationListPage({
           transition={{ duration: 0.34, ease: standardEase }}
         >
           <AutomationsTableSection
-            rows={filtered}
+            rows={items}
             builderHref={builderHref}
             onOpenBuilder={onOpenBuilder}
             onEditDetails={
@@ -628,10 +630,19 @@ export function AutomationListPage({
                 : undefined
             }
           />
+          <OffsetPagination
+            page={listMeta.page}
+            totalPages={listMeta.totalPages}
+            total={listMeta.total}
+            limit={listMeta.limit}
+            loading={isFetching}
+            onPageChange={setPage}
+            itemLabel="automations"
+          />
         </motion.div>
       ) : null}
 
-      {!loading && !loadError && filtered.length === 0 ? (
+      {!loading && !loadError && items.length === 0 ? (
         <PanelEmptyState
           className="funnel-automations-empty px-4 py-14"
           icon={SearchX}

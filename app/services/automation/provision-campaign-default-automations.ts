@@ -26,10 +26,13 @@ export async function provisionCampaignDefaultAutomations(
 
   const templates = PREPAID_DEFAULT_TEMPLATES;
 
-  const existing = await getAutomations(businessId);
-  const onCampaign = existing.filter(
-    (automation) => automation.campaignId === campaignId,
-  );
+  const existing = await getAutomations({
+    businessId,
+    campaignId,
+    page: 1,
+    limit: 100,
+  });
+  const onCampaign = existing.data;
 
   await Promise.all(
     templates.map(async (template) => {
