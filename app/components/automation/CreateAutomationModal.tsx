@@ -646,7 +646,7 @@ function CreateAutomationModalBody({
 
               {step === "create-blank" ? (
                 <form
-                  className="create-automation-modal__form flex min-h-0 flex-1 flex-col"
+                  className="create-automation-modal__form flex min-h-0 flex-1 flex-col overflow-hidden"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!name.trim() || isSubmitting) return;
@@ -658,7 +658,8 @@ function CreateAutomationModalBody({
                     });
                   }}
                 >
-                  <div className="create-automation-modal__body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                  {/* Explicit max-height so the middle scrolls and Purpose stays above the footer */}
+                  <div className="create-automation-modal__body create-automation-modal__body--create min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
                     <div>
                       <FieldLabel icon={Type}>Automation name</FieldLabel>
                       <input

@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   Sparkles,
   Star,
-  Tag,
   CalendarClock,
   Timer,
   UserPlus,
@@ -99,13 +98,6 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     label: "Create Coupon",
     section: "actions",
     icon: Percent,
-    tone: "violet",
-  },
-  {
-    id: "tag_customer",
-    label: "Tag Guest",
-    section: "actions",
-    icon: Tag,
     tone: "violet",
   },
   {

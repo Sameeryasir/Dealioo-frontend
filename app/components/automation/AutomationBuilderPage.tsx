@@ -271,10 +271,6 @@ export function AutomationBuilderPage({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [pathname, router, searchParams]);
 
-  const openBuilderGuide = useCallback(() => {
-    setManualGuideOpen(true);
-  }, []);
-
   useEffect(() => {
     if (!bootstrapping || !isPositiveInt(automationNumericId)) {
       return;
@@ -1575,7 +1571,6 @@ export function AutomationBuilderPage({
                 invalidNodeIds={invalidNodeIds}
                 invalidStepIds={invalidStepIds}
                 activeBranchTarget={activeBranchTarget}
-                onOpenGuide={openBuilderGuide}
                 onSelect={(id) => {
                   setSelectedId(id);
                   const selected = nodes.find((node) => node.id === id);

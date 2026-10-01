@@ -239,7 +239,7 @@ export function mergePrepaidBundledEmailAction(
   updates: {
     subject: string;
     message: string;
-    ctaLabel: string;
+    ctaLabels: string[];
     template: string;
   },
 ): Record<string, unknown> {
@@ -252,14 +252,23 @@ export function mergePrepaidBundledEmailAction(
   }
 
   const current = actions[index] as Record<string, unknown>;
-  actions[index] = {
+  const cleanedLabels = [
+    ...new Set(
+      updates.ctaLabels.map((label) => label.trim()).filter(Boolean),
+    ),
+  ];
+  const nextAction: Record<string, unknown> = {
     ...current,
     type: "send_email",
     subject: updates.subject,
     message: updates.message,
     template: updates.template,
-    ...(updates.ctaLabel ? { ctaLabel: updates.ctaLabel } : {}),
+    ctaLabels: cleanedLabels,
   };
+  // Body-link multi-select replaces the old single CTA button field.
+  delete nextAction.ctaLabel;
+  delete nextAction.linkLabel;
+  actions[index] = nextAction;
 
   return {
     ...node.config,

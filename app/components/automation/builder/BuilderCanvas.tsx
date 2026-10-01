@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp, LayoutTemplate, Minus, Plus, RotateCcw } from "lucide-react";
+import { LayoutTemplate, Minus, Plus, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   useCallback,
@@ -133,7 +133,6 @@ export function BuilderCanvas({
   onDeletePath,
   editLocked = false,
   onEditBlocked,
-  onOpenGuide,
 }: {
   nodes: WorkflowNode[];
   loading?: boolean;
@@ -165,7 +164,6 @@ export function BuilderCanvas({
   }) => void;
   editLocked?: boolean;
   onEditBlocked?: () => void;
-  onOpenGuide?: () => void;
 }) {
   const [revealKey, setRevealKey] = useState(0);
   const wasLoadingRef = useRef(loading);
@@ -1569,20 +1567,6 @@ export function BuilderCanvas({
           </div>
         </div>
       </motion.div>
-
-      {onOpenGuide ? (
-        <div className="pointer-events-auto absolute bottom-4 left-4 z-20 sm:bottom-5 sm:left-5">
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-[#dbe7f8] bg-[#1877f2] text-white shadow-lg shadow-[#1877f2]/25 ring-1 ring-[#1877f2]/20 transition hover:bg-[#0f5ed7]"
-            aria-label="Open builder guide"
-            title="Builder guide"
-          >
-            <CircleHelp className="size-5" strokeWidth={2.25} aria-hidden />
-          </button>
-        </div>
-      ) : null}
 
       {!loading && nodes.length > 0 ? (
         <div

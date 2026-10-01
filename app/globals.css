@@ -14723,13 +14723,17 @@ body:has(.rd-shell--app) {
 }
 
 .create-automation-modal {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: min(100%, 32rem);
   max-height: min(calc(100dvh - 1.75rem), 720px);
   border-radius: 1rem;
+  overflow: hidden;
 }
 
 .create-automation-modal__header {
+  flex-shrink: 0;
   padding-top: 1rem;
 }
 
@@ -14738,8 +14742,29 @@ body:has(.rd-shell--app) {
   scrollbar-gutter: stable;
 }
 
+/* Create-from-scratch: middle panel scrolls; footer stays pinned */
+.create-automation-modal__form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.create-automation-modal__body--create {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(58dvh, 26rem);
+  overflow-y: auto;
+  padding-bottom: 1.5rem;
+}
+
 .create-automation-modal__footer {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
   padding-bottom: 0.75rem;
+  background: #fff;
 }
 
 .create-automation-choice-card {

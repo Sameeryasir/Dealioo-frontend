@@ -63,6 +63,45 @@ const CTA_LABEL_OPTIONS = [
   "View my pass",
 ] as const;
 
+/** Read selected link labels (multi checkbox) — falls back to legacy single ctaLabel. */
+function parseBodyLinkLabelsFromConfig(
+  config: Record<string, unknown>,
+): string[] {
+  if (Array.isArray(config.ctaLabels)) {
+    return [
+      ...new Set(
+        config.ctaLabels
+          .map((value) => String(value ?? "").trim())
+          .filter((value) => value.length > 0),
+      ),
+    ];
+  }
+  const single = String(config.ctaLabel ?? config.linkLabel ?? "").trim();
+  return single ? [single] : [];
+}
+
+function toggleBodyLinkLabel(selected: string[], label: string): string[] {
+  if (selected.includes(label)) {
+    return selected.filter((item) => item !== label);
+  }
+  return [...selected, label];
+}
+
+/** Persist multi-select labels for message-body links (no HTML button required). */
+function bodyLinkLabelsConfigPatch(
+  labels: string[],
+): Record<string, unknown> {
+  const cleaned = [
+    ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+  ];
+  return {
+    ctaLabels: cleaned,
+    // Clear legacy single-button fields so only message-body links are used.
+    ctaLabel: undefined,
+    linkLabel: undefined,
+  };
+}
+
 const CONDITION_TYPES = [
   "Has not completed payment",
   "Opened email",
@@ -396,7 +435,7 @@ function buildConfigForNode(
     conditionType: string;
     conditionValue: string;
     message: string;
-    ctaLabel: string;
+    ctaLabels: string[];
     whatsappTemplate: string;
     cronFrequency: CronFrequency;
     cronTime: string;
@@ -412,6 +451,7 @@ function buildConfigForNode(
     inactiveDays: number;
   },
 ): Record<string, unknown> {
+  const primaryCtaLabel = values.ctaLabels[0]?.trim() ?? "";
   switch (kind) {
     case "cron_trigger":
       if (values.cronFrequency === "interval") {
@@ -463,9 +503,7 @@ function buildConfigForNode(
         template: values.template,
         subject: values.subject.trim(),
         message: values.message.trim(),
-        ...(values.ctaLabel.trim()
-          ? { ctaLabel: values.ctaLabel.trim() }
-          : {}),
+        ...bodyLinkLabelsConfigPatch(values.ctaLabels),
       };
     case "condition": {
       const label =
@@ -481,9 +519,7 @@ function buildConfigForNode(
     case "send_sms":
       return {
         message: values.message.trim(),
-        ...(values.ctaLabel.trim()
-          ? { linkLabel: values.ctaLabel.trim() }
-          : {}),
+        ...bodyLinkLabelsConfigPatch(values.ctaLabels),
       };
     case "send_whatsapp":
       return { template: values.whatsappTemplate };
@@ -498,7 +534,7 @@ function buildConfigForNode(
         expirationNote: values.expirationNote.trim(),
         subject: values.subject.trim(),
         message: values.message.trim(),
-        ctaLabel: values.ctaLabel.trim() || "View offer",
+        ctaLabel: primaryCtaLabel || "View offer",
       };
     case "reviews":
       return {
@@ -508,7 +544,7 @@ function buildConfigForNode(
         reviewUrl: values.reviewUrl.trim(),
         subject: values.subject.trim(),
         message: values.message.trim(),
-        ctaLabel: values.ctaLabel.trim() || "Leave a review",
+        ctaLabel: primaryCtaLabel || "Leave a review",
       };
     default:
       return {};
@@ -542,6 +578,13 @@ function mergeNodeConfigPreservingStructure(
     if (existing[key] !== undefined && patch[key] === undefined) {
       next[key] = existing[key];
     }
+  }
+
+  // Multi-select body links replace the old single button / link label fields.
+  if (Array.isArray(patch.ctaLabels)) {
+    next.ctaLabels = patch.ctaLabels;
+    delete next.ctaLabel;
+    delete next.linkLabel;
   }
 
   if (kind === "wait" || kind === "delay" || kind === "parallel_split") {
@@ -756,8 +799,8 @@ function NodeSettingsForm({
   const [message, setMessage] = useState(() =>
     readEmailField(emailFieldConfig, "message", emailDefaults),
   );
-  const [ctaLabel, setCtaLabel] = useState(() =>
-    readEmailField(emailFieldConfig, "ctaLabel", emailDefaults),
+  const [ctaLabels, setCtaLabels] = useState(() =>
+    parseBodyLinkLabelsFromConfig(emailFieldConfig),
   );
   const [whatsappTemplate, setWhatsappTemplate] = useState(() =>
     configString(config, "template", "order_reminder"),
@@ -828,7 +871,7 @@ function NodeSettingsForm({
     setConditionValue(initialConditionValue(saved));
     setFilterRows(parseFilterRowsFromConfig(saved));
     setMessage(readEmailField(emailConfig, "message", defaults));
-    setCtaLabel(readEmailField(emailConfig, "ctaLabel", defaults));
+    setCtaLabels(parseBodyLinkLabelsFromConfig(emailConfig));
     setWhatsappTemplate(configString(saved, "template", "order_reminder"));
     setCronFrequency(configCronFrequency(saved));
     setCronTime(configString(saved, "time", "09:00"));
@@ -866,7 +909,7 @@ function NodeSettingsForm({
     conditionType,
     conditionValue,
     message,
-    ctaLabel,
+    ctaLabels,
     whatsappTemplate,
     cronFrequency,
     cronTime,
@@ -887,33 +930,39 @@ function NodeSettingsForm({
       return mergePrepaidBundledEmailAction(node, {
         subject,
         message: message.trim(),
-        ctaLabel: ctaLabel.trim() || "View my pass",
+        ctaLabels,
         template,
       });
     }
     if (isPrepaidFirstEmailNode(node) && node.kind === "send_email") {
-      return {
+      const nextConfig: Record<string, unknown> = {
         ...node.config,
         subject,
         message: message.trim(),
-        ctaLabel: ctaLabel.trim() || PREPAID_FIRST_EMAIL_DEFAULTS.ctaLabel,
         template,
         headline:
           configString(node.config, "headline", "") ||
           PREPAID_FIRST_EMAIL_DEFAULTS.headline,
+        ...bodyLinkLabelsConfigPatch(ctaLabels),
       };
+      delete nextConfig.ctaLabel;
+      delete nextConfig.linkLabel;
+      return nextConfig;
     }
     if (returnOfferEmail) {
-      return {
+      const nextConfig: Record<string, unknown> = {
         ...node.config,
         subject,
         message: message.trim(),
-        ctaLabel: ctaLabel.trim(),
         template,
         headline:
           configString(node.config, "headline", "") ||
           configString(node.config, "rewardName", "Return visit offer"),
+        ...bodyLinkLabelsConfigPatch(ctaLabels),
       };
+      delete nextConfig.ctaLabel;
+      delete nextConfig.linkLabel;
+      return nextConfig;
     }
     if (node.kind === "condition") {
       return mergeNodeConfigPreservingStructure(
@@ -933,7 +982,7 @@ function NodeSettingsForm({
           conditionType,
           conditionValue,
           message,
-          ctaLabel,
+          ctaLabels,
           whatsappTemplate,
           cronFrequency,
           cronTime,
@@ -962,7 +1011,7 @@ function NodeSettingsForm({
         conditionType,
         conditionValue,
         message,
-        ctaLabel,
+        ctaLabels,
         whatsappTemplate,
         cronFrequency,
         cronTime,
@@ -987,7 +1036,7 @@ function NodeSettingsForm({
     cronInterval,
     cronIntervalUnit,
     cronTime,
-    ctaLabel,
+    ctaLabels,
     delay,
     expirationNote,
     filterRows,
@@ -1087,7 +1136,7 @@ function NodeSettingsForm({
       conditionType,
       conditionValue,
       message,
-      ctaLabel,
+      ctaLabels,
       whatsappTemplate,
       cronFrequency,
       cronTime,
@@ -1109,7 +1158,7 @@ function NodeSettingsForm({
     return validation.ok ? null : validation.message;
   }, [
     automationPurpose,
-    ctaLabel,
+    ctaLabels,
     cronDayOfWeek,
     cronFrequency,
     cronInterval,
@@ -1412,13 +1461,13 @@ function NodeSettingsForm({
           template={template}
           subject={subject}
           message={message}
-          ctaLabel={ctaLabel}
+          ctaLabels={ctaLabels}
           readOnly={readOnly}
           onEditBlocked={onEditBlocked}
           onTemplateChange={setTemplate}
           onSubjectChange={setSubject}
           onMessageChange={setMessage}
-          onCtaLabelChange={setCtaLabel}
+          onCtaLabelsChange={setCtaLabels}
         />
       )}
       {node.kind === "condition" && (
@@ -1432,9 +1481,11 @@ function NodeSettingsForm({
       {node.kind === "send_sms" && (
         <SmsSettings
           message={message}
+          ctaLabels={ctaLabels}
           readOnly={readOnly}
           onEditBlocked={onEditBlocked}
           onMessageChange={setMessage}
+          onCtaLabelsChange={setCtaLabels}
         />
       )}
       {node.kind === "send_whatsapp" && (
@@ -1526,15 +1577,20 @@ function SettingsSection({
 
 function FormField({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
     <div className="space-y-2.5">
       <label className="block text-sm font-medium text-zinc-700">{label}</label>
       {children}
+      {hint ? (
+        <p className="text-xs leading-relaxed text-zinc-500">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -1823,25 +1879,30 @@ function EmailSettings({
   template,
   subject,
   message,
-  ctaLabel,
+  ctaLabels,
   readOnly = false,
   onEditBlocked,
   onTemplateChange,
   onSubjectChange,
   onMessageChange,
-  onCtaLabelChange,
+  onCtaLabelsChange,
 }: {
   template: string;
   subject: string;
   message: string;
-  ctaLabel: string;
+  ctaLabels: string[];
   readOnly?: boolean;
   onEditBlocked?: () => void;
   onTemplateChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
   onMessageChange: (value: string) => void;
-  onCtaLabelChange: (value: string) => void;
+  onCtaLabelsChange: (value: string[]) => void;
 }) {
+  const extraSelected = ctaLabels.filter(
+    (label) =>
+      !CTA_LABEL_OPTIONS.includes(label as (typeof CTA_LABEL_OPTIONS)[number]),
+  );
+
   return (
     <SettingsSection
       title="Email"
@@ -1881,26 +1942,58 @@ function EmailSettings({
           {...lockedInputProps(readOnly, onEditBlocked)}
         />
       </FormField>
-      <FormField label="Button label">
-        <SettingsSelectDropdown
-          value={ctaLabel}
-          options={[
-            ...CTA_LABEL_OPTIONS.map((label) => ({
-              value: label,
-              label,
-            })),
-            ...(ctaLabel.trim() &&
-            !CTA_LABEL_OPTIONS.includes(
-              ctaLabel as (typeof CTA_LABEL_OPTIONS)[number],
-            )
-              ? [{ value: ctaLabel, label: ctaLabel }]
-              : []),
-          ]}
-          onChange={onCtaLabelChange}
-          ariaLabel="Button label"
-          locked={readOnly}
-          onLockedEdit={onEditBlocked}
-        />
+      <FormField label="Links in message">
+        <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-3">
+          {CTA_LABEL_OPTIONS.map((label) => {
+            const checked = ctaLabels.includes(label);
+            return (
+              <label
+                key={label}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-zinc-800 transition hover:bg-zinc-50 ${
+                  readOnly ? "cursor-not-allowed opacity-70" : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={readOnly}
+                  onChange={() => {
+                    if (readOnly) {
+                      onEditBlocked?.();
+                      return;
+                    }
+                    onCtaLabelsChange(toggleBodyLinkLabel(ctaLabels, label));
+                  }}
+                  className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
+                />
+                <span>{label}</span>
+              </label>
+            );
+          })}
+          {extraSelected.map((label) => (
+            <label
+              key={label}
+              className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-zinc-800 transition hover:bg-zinc-50 ${
+                readOnly ? "cursor-not-allowed opacity-70" : ""
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked
+                disabled={readOnly}
+                onChange={() => {
+                  if (readOnly) {
+                    onEditBlocked?.();
+                    return;
+                  }
+                  onCtaLabelsChange(toggleBodyLinkLabel(ctaLabels, label));
+                }}
+                className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
       </FormField>
     </motion.div>
     </SettingsSection>
@@ -2123,15 +2216,24 @@ function ConditionSettings({
 
 function SmsSettings({
   message,
+  ctaLabels,
   readOnly = false,
   onEditBlocked,
   onMessageChange,
+  onCtaLabelsChange,
 }: {
   message: string;
+  ctaLabels: string[];
   readOnly?: boolean;
   onEditBlocked?: () => void;
   onMessageChange: (value: string) => void;
+  onCtaLabelsChange: (value: string[]) => void;
 }) {
+  const extraSelected = ctaLabels.filter(
+    (label) =>
+      !CTA_LABEL_OPTIONS.includes(label as (typeof CTA_LABEL_OPTIONS)[number]),
+  );
+
   return (
     <SettingsSection title="SMS" description="Message sent to the customer.">
     <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -2143,6 +2245,59 @@ function SmsSettings({
           className={textareaClass()}
           {...lockedInputProps(readOnly, onEditBlocked)}
         />
+      </FormField>
+      <FormField label="Links in message">
+        <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-3">
+          {CTA_LABEL_OPTIONS.map((label) => {
+            const checked = ctaLabels.includes(label);
+            return (
+              <label
+                key={label}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-zinc-800 transition hover:bg-zinc-50 ${
+                  readOnly ? "cursor-not-allowed opacity-70" : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={readOnly}
+                  onChange={() => {
+                    if (readOnly) {
+                      onEditBlocked?.();
+                      return;
+                    }
+                    onCtaLabelsChange(toggleBodyLinkLabel(ctaLabels, label));
+                  }}
+                  className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
+                />
+                <span>{label}</span>
+              </label>
+            );
+          })}
+          {extraSelected.map((label) => (
+            <label
+              key={label}
+              className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-zinc-800 transition hover:bg-zinc-50 ${
+                readOnly ? "cursor-not-allowed opacity-70" : ""
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked
+                disabled={readOnly}
+                onChange={() => {
+                  if (readOnly) {
+                    onEditBlocked?.();
+                    return;
+                  }
+                  onCtaLabelsChange(toggleBodyLinkLabel(ctaLabels, label));
+                }}
+                className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
       </FormField>
     </motion.div>
     </SettingsSection>

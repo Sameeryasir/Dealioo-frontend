@@ -2,7 +2,6 @@ import {
   expandBundledActions,
   isBundledActionsNode,
 } from "@/app/components/automation/builder/bundled-actions";
-import { isUserCreatedActionNode } from "@/app/components/automation/builder/action-node-defaults";
 import {
   buildDesiredAutomationConnectionPairs,
   getNodeBranchPlacement,
@@ -31,23 +30,13 @@ function hasText(value: unknown): boolean {
 }
 
 function validateEmailNode(node: WorkflowNode): boolean {
-  if (!hasText(node.config.subject) || !hasText(node.config.message)) {
-    return false;
-  }
-  if (!isUserCreatedActionNode(node)) {
-    return true;
-  }
-  return hasText(node.config.ctaLabel) || hasText(node.config.linkLabel);
+  // Subject + message are enough — button/CTA label is optional.
+  return hasText(node.config.subject) && hasText(node.config.message);
 }
 
 function validateSmsNode(node: WorkflowNode): boolean {
-  if (hasText(node.config.message)) {
-    return true;
-  }
-  if (!isUserCreatedActionNode(node)) {
-    return hasText(node.config.linkLabel ?? node.config.ctaLabel);
-  }
-  return false;
+  // SMS only needs message text; link/button label is optional.
+  return hasText(node.config.message);
 }
 
 function isUntilStyleWait(config: Record<string, unknown>): boolean {
@@ -157,15 +146,6 @@ function nodeLabel(node: WorkflowNode): string {
 function activationMessageForNode(node: WorkflowNode): string {
   switch (node.kind) {
     case "send_email":
-      if (
-        hasText(node.config.subject) &&
-        hasText(node.config.message) &&
-        isUserCreatedActionNode(node) &&
-        !hasText(node.config.ctaLabel) &&
-        !hasText(node.config.linkLabel)
-      ) {
-        return `Choose a button label on "${nodeLabel(node)}" before activating.`;
-      }
       return `Send email needs a subject and message text. "${nodeLabel(node)}" is incomplete.`;
     case "send_sms":
     case "send_whatsapp":
