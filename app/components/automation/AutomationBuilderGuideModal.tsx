@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
   CalendarClock,
+  Check,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -43,6 +44,7 @@ type GuideStep = {
   id: string;
   title: string;
   body: string;
+  eyebrow: string;
   showNodeDemo?: boolean;
   showBuilderMap?: boolean;
   showActivateTip?: boolean;
@@ -262,38 +264,43 @@ function nodeVisual(kind: DemoNodeKind): {
   header: string;
   iconWrap: string;
   Icon: LucideIcon;
+  accentBar: string;
 } {
   switch (kind) {
     case "trigger":
       return {
-        header:
-          "border-white/10 bg-[linear-gradient(180deg,#0e2238_0%,#16385a_100%)] text-white",
-        iconWrap: "bg-white/15 text-white",
+        header: "bg-[#0f5ed7] text-white",
+        iconWrap: "bg-white/20 text-white",
         Icon: Workflow,
+        accentBar: "bg-[#0f5ed7]",
       };
     case "wait":
       return {
-        header: "border-blue-100 bg-blue-50 text-blue-950",
+        header: "bg-[#eff6ff] text-[#0f5ed7]",
         iconWrap: "bg-[#1877f2] text-white",
         Icon: Clock,
+        accentBar: "bg-[#1877f2]",
       };
     case "condition":
       return {
-        header: "border-amber-100 bg-amber-50 text-amber-950",
-        iconWrap: "bg-amber-500 text-white",
+        header: "bg-orange-50 text-orange-900",
+        iconWrap: "bg-orange-500 text-white",
         Icon: Filter,
+        accentBar: "bg-orange-500",
       };
     case "sms":
       return {
-        header: "border-violet-100 bg-violet-50 text-violet-950",
-        iconWrap: "bg-violet-500 text-white",
+        header: "bg-sky-50 text-sky-950",
+        iconWrap: "bg-sky-600 text-white",
         Icon: MessageSquare,
+        accentBar: "bg-sky-600",
       };
     default:
       return {
-        header: "border-sky-100 bg-sky-50 text-sky-950",
-        iconWrap: "bg-sky-500 text-white",
+        header: "bg-[#eff6ff] text-[#0f5ed7]",
+        iconWrap: "bg-[#1877f2] text-white",
         Icon: Mail,
+        accentBar: "bg-[#1877f2]",
       };
   }
 }
@@ -316,13 +323,17 @@ function NodeDemoCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05 * index, duration: 0.22, ease: automationEase }}
-      className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.06 * index, duration: 0.28, ease: automationEase }}
+      className="relative overflow-hidden rounded-2xl border border-[#dbe7f8] bg-white"
     >
+      <span
+        className={`absolute inset-y-0 left-0 w-1 ${visual.accentBar}`}
+        aria-hidden
+      />
       <div
-        className={`flex items-center gap-2.5 border-b px-3.5 py-2.5 text-[0.78rem] font-semibold ${visual.header}`}
+        className={`flex items-center gap-2.5 border-b border-[#eef2f7] px-3.5 py-2.5 text-[0.78rem] font-semibold ${visual.header}`}
       >
         <span
           className={`flex size-6 items-center justify-center rounded-lg ${visual.iconWrap}`}
@@ -340,12 +351,17 @@ function NodeDemoCard({
 
 function FlowConnector() {
   return (
-    <div className="flex flex-col items-center py-1" aria-hidden>
-      <span className="h-2.5 w-px bg-slate-200" />
-      <span className="flex size-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
+    <div className="flex flex-col items-center py-0.5" aria-hidden>
+      <span className="h-2 w-px bg-[#dbe7f8]" />
+      <motion.span
+        className="flex size-5 items-center justify-center rounded-full border border-[#dbe7f8] bg-white text-[#1877f2]"
+        initial={{ scale: 0.85, opacity: 0.6 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.25, ease: automationEase }}
+      >
         <ArrowRight className="size-3 rotate-90" strokeWidth={2.5} />
-      </span>
-      <span className="h-2.5 w-px bg-slate-200" />
+      </motion.span>
+      <span className="h-2 w-px bg-[#dbe7f8]" />
     </div>
   );
 }
@@ -355,53 +371,60 @@ function BuilderMap() {
     {
       icon: PanelLeft,
       title: "Left",
-      body: "Blocks to drag",
-      tone: "bg-[#eff6ff] text-[#1877f2]",
+      body: "Drag blocks onto the canvas",
+      step: "01",
     },
     {
       icon: LayoutTemplate,
       title: "Center",
-      body: "Your live flow",
-      tone: "bg-[#ecfdf5] text-[#059669]",
+      body: "Arrange your live flow",
+      step: "02",
     },
     {
       icon: PanelRight,
       title: "Right",
-      body: "Step settings",
-      tone: "bg-[#fff7ed] text-[#ea580c]",
+      body: "Edit each step’s settings",
+      step: "03",
     },
   ] as const;
 
   return (
-    <div className="grid gap-2.5 sm:grid-cols-3">
-      {parts.map((part, index) => {
-        const Icon = part.icon;
-        return (
-          <motion.div
-            key={part.title}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: 0.04 * index,
-              duration: 0.22,
-              ease: automationEase,
-            }}
-            className="rounded-2xl border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-sm"
-          >
-            <span
-              className={`mb-2.5 flex size-8 items-center justify-center rounded-xl ${part.tone}`}
+    <div className="relative overflow-hidden rounded-[1.35rem] border border-[#dbe7f8] bg-[#f8fbff] p-4 sm:p-5">
+      <div
+        className="pointer-events-none absolute inset-x-8 top-[3.35rem] hidden h-px bg-[#dbe7f8] sm:block"
+        aria-hidden
+      />
+      <div className="grid gap-3 sm:grid-cols-3">
+        {parts.map((part, index) => {
+          const Icon = part.icon;
+          return (
+            <motion.div
+              key={part.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.05 * index,
+                duration: 0.26,
+                ease: automationEase,
+              }}
+              className="relative rounded-2xl border border-white bg-white px-3.5 py-4 text-center"
             >
-              <Icon className="size-4" strokeWidth={2.25} aria-hidden />
-            </span>
-            <p className="m-0 text-sm font-semibold text-[#07111f]">
-              {part.title}
-            </p>
-            <p className="m-0 mt-1 text-xs leading-5 text-slate-500">
-              {part.body}
-            </p>
-          </motion.div>
-        );
-      })}
+              <span className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-[#1877f2] text-white">
+                <Icon className="size-[1.15rem]" strokeWidth={2.25} aria-hidden />
+              </span>
+              <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#1877f2]">
+                {part.step}
+              </p>
+              <p className="m-0 mt-1.5 text-sm font-semibold text-[#07111f]">
+                {part.title}
+              </p>
+              <p className="m-0 mt-1 text-xs leading-5 text-slate-500">
+                {part.body}
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -411,28 +434,93 @@ function buildSteps(key: TriggerKey): GuideStep[] {
   return [
     {
       id: "what",
+      eyebrow: "Trigger",
       title: `How ${meta.label} works`,
       body: meta.whenItRuns,
     },
     {
       id: "format",
+      eyebrow: "Canvas order",
       title: "How to start on the canvas",
       body: meta.startFormat,
       showNodeDemo: true,
     },
     {
       id: "builder",
+      eyebrow: "Workspace",
       title: "Where everything lives",
       body: "Use the three panels together: drag from the left, arrange in the center, edit on the right.",
       showBuilderMap: true,
     },
     {
       id: "activate",
+      eyebrow: "Go live",
       title: "Edit freely, then activate",
       body: "Change delays and messages anytime. Nothing runs for guests until you activate the automation.",
       showActivateTip: true,
     },
   ];
+}
+
+function StepProgress({
+  steps,
+  index,
+}: {
+  steps: GuideStep[];
+  index: number;
+}) {
+  return (
+    <div className="relative mt-6">
+      <div
+        className="absolute left-[0.7rem] right-[0.7rem] top-[0.7rem] hidden h-[2px] bg-[#e8edf5] sm:block"
+        aria-hidden
+      />
+      <div
+        className="absolute left-[0.7rem] top-[0.7rem] hidden h-[2px] bg-[#1877f2] sm:block"
+        style={{
+          width:
+            steps.length <= 1
+              ? "0%"
+              : `calc(${(index / (steps.length - 1)) * 100}% - 0px)`,
+          maxWidth: "calc(100% - 1.4rem)",
+          transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        aria-hidden
+      />
+      <ol className="relative m-0 grid list-none grid-cols-4 gap-2 p-0">
+        {steps.map((item, stepIndex) => {
+          const done = stepIndex < index;
+          const active = stepIndex === index;
+          return (
+            <li key={item.id} className="min-w-0">
+              <div className="flex flex-col items-start gap-2 sm:items-center sm:text-center">
+                <span
+                  className={`flex size-6 items-center justify-center rounded-full text-[0.65rem] font-bold transition ${
+                    done || active
+                      ? "bg-[#1877f2] text-white"
+                      : "bg-[#eef2f7] text-slate-400"
+                  }`}
+                >
+                  {done ? (
+                    <Check className="size-3.5" strokeWidth={2.75} aria-hidden />
+                  ) : (
+                    stepIndex + 1
+                  )}
+                </span>
+                <span
+                  className={`hidden max-w-full truncate text-[0.65rem] font-semibold uppercase tracking-[0.08em] sm:block ${
+                    active ? "text-[#1877f2]" : "text-slate-400"
+                  }`}
+                >
+                  {item.eyebrow}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
 }
 
 export function AutomationBuilderGuideModal({
@@ -490,7 +578,7 @@ export function AutomationBuilderGuideModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -499,7 +587,7 @@ export function AutomationBuilderGuideModal({
           <button
             type="button"
             aria-label="Skip guide"
-            className="absolute inset-0 cursor-pointer bg-zinc-950/50 backdrop-blur-[3px]"
+            className="absolute inset-0 cursor-pointer bg-[#07111f]/55 backdrop-blur-[4px]"
             onClick={onSkip}
           />
 
@@ -507,46 +595,50 @@ export function AutomationBuilderGuideModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="automation-builder-guide-title"
-            className="relative z-10 flex max-h-[min(92dvh,48rem)] w-full max-w-[38rem] flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_28px_70px_rgba(15,23,42,0.22)]"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            className="relative z-10 flex max-h-[min(94dvh,52rem)] w-full max-w-[40rem] flex-col overflow-hidden rounded-[1.5rem] border border-[#dbe7f8] bg-white"
+            initial={{ opacity: 0, y: 18, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: automationEase }}
+            exit={{ opacity: 0, y: 10, scale: 0.985 }}
+            transition={{ duration: 0.22, ease: automationEase }}
           >
-            <div className="relative shrink-0 overflow-hidden border-b border-[#eef2f7] bg-[#eff6ff] px-6 pb-5 pt-6 sm:px-7 sm:pb-6 sm:pt-7">
-              <div
-                className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/50 blur-2xl"
-                aria-hidden
-              />
+            <div className="relative shrink-0 overflow-hidden border-b border-[#eef2f7] bg-white px-5 pb-5 pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               <div className="relative flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3.5">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2] text-white shadow-[0_10px_24px_rgba(24,119,242,0.28)]">
+                  <motion.span
+                    className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[#dbe7f8] bg-[#eff6ff] text-[#1877f2]"
+                    initial={{ rotate: -8, scale: 0.92 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ duration: 0.28, ease: automationEase }}
+                  >
                     <TriggerIcon
                       className="size-5"
                       strokeWidth={2.25}
                       aria-hidden
                     />
-                  </span>
+                  </motion.span>
                   <div className="min-w-0 pt-0.5">
-                    <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                      Builder guide · {index + 1}/{total}
+                    <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Builder guide · Step {index + 1} of {total}
                     </p>
                     <AnimatePresence mode="wait">
                       <motion.h2
                         key={step.id}
                         id="automation-builder-guide-title"
-                        className="m-0 mt-1.5 text-[1.2rem] font-semibold tracking-tight text-[#07111f] sm:text-[1.28rem]"
-                        initial={{ opacity: 0, y: 6 }}
+                        className="m-0 mt-1.5 text-[1.22rem] font-semibold tracking-tight text-[#07111f] sm:text-[1.35rem]"
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.18, ease: automationEase }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.2, ease: automationEase }}
                       >
                         {step.title}
                       </motion.h2>
                     </AnimatePresence>
                     {automationName?.trim() ? (
-                      <p className="m-0 mt-1.5 inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-black/[0.04]">
-                        <MousePointer2 className="size-3 shrink-0 text-[#1877f2]" />
+                      <p className="m-0 mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-[#e8edf5]">
+                        <MousePointer2
+                          className="size-3 shrink-0 text-[#1877f2]"
+                          aria-hidden
+                        />
                         <span className="truncate">{automationName.trim()}</span>
                       </p>
                     ) : null}
@@ -556,52 +648,36 @@ export function AutomationBuilderGuideModal({
                   type="button"
                   aria-label="Skip"
                   onClick={onSkip}
-                  className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/70 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-800"
+                  className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#e8edf5] bg-white text-slate-500 transition hover:bg-[#f8fafc] hover:text-slate-800"
                 >
                   <X className="size-4" strokeWidth={2.25} aria-hidden />
                 </button>
               </div>
 
-              <div className="relative mt-5 flex gap-2">
-                {steps.map((item, stepIndex) => (
-                  <div
-                    key={item.id}
-                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70"
-                  >
-                    <motion.div
-                      className="h-full rounded-full bg-[#1877f2]"
-                      initial={false}
-                      animate={{
-                        width: stepIndex <= index ? "100%" : "0%",
-                      }}
-                      transition={{ duration: 0.25, ease: automationEase }}
-                    />
-                  </div>
-                ))}
-              </div>
+              <StepProgress steps={steps} index={index} />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 sm:px-7 sm:py-6">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7 sm:py-6">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={step.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2, ease: automationEase }}
+                  transition={{ duration: 0.22, ease: automationEase }}
                   className="space-y-4"
                 >
-                  <p className="m-0 text-[0.95rem] leading-7 text-slate-600">
+                  <p className="m-0 text-[0.98rem] leading-7 text-slate-600">
                     {step.body}
                   </p>
 
                   {step.showNodeDemo ? (
-                    <div className="rounded-[1.25rem] border border-[#e8edf5] bg-[#f8fafc] px-4 py-4 sm:px-5">
+                    <div className="rounded-[1.35rem] border border-[#dbe7f8] bg-[#f8fbff] px-4 py-4 sm:px-5">
                       <div className="mb-3.5 flex items-center justify-between gap-2">
                         <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
                           Example starting flow
                         </p>
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[0.65rem] font-semibold text-[#1877f2] ring-1 ring-[#dbe7f8]">
+                        <span className="rounded-full bg-[#1877f2] px-2.5 py-1 text-[0.65rem] font-semibold text-white">
                           Match this order
                         </span>
                       </div>
@@ -627,32 +703,43 @@ export function AutomationBuilderGuideModal({
                   {step.showBuilderMap ? <BuilderMap /> : null}
 
                   {step.showActivateTip ? (
-                    <div className="flex items-start gap-3 rounded-[1.25rem] border border-[#dbe7f8] bg-[#eff6ff] px-4 py-3.5">
-                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white">
-                        <Play className="size-3.5" strokeWidth={2.5} aria-hidden />
-                      </span>
-                      <div>
-                        <p className="m-0 text-sm font-semibold text-[#0f5ed7]">
-                          Ready when you are
-                        </p>
-                        <p className="m-0 mt-1 text-sm leading-6 text-[#1d4ed8]/90">
-                          Skip anytime. Come back later and keep editing —
-                          guests only enter after you activate.
-                        </p>
+                    <motion.div
+                      className="relative overflow-hidden rounded-[1.35rem] border border-[#dbe7f8] bg-[#eff6ff] px-4 py-4 sm:px-5"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.28, ease: automationEase }}
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#1877f2] text-white">
+                          <Play
+                            className="size-4"
+                            strokeWidth={2.5}
+                            aria-hidden
+                          />
+                        </span>
+                        <div>
+                          <p className="m-0 text-sm font-semibold text-[#0f5ed7]">
+                            Ready when you are
+                          </p>
+                          <p className="m-0 mt-1.5 text-sm leading-6 text-[#1d4ed8]/90">
+                            Skip anytime. Keep editing later — guests only enter
+                            after you activate.
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ) : null}
 
                   {step.id === "what" ? (
-                    <div className="flex items-start gap-2.5 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] px-3.5 py-3 text-sm leading-6 text-slate-600">
+                    <div className="flex items-start gap-2.5 rounded-2xl border border-[#dbe7f8] bg-[#f8fbff] px-3.5 py-3 text-sm leading-6 text-slate-600">
                       <CheckCircle2
-                        className="mt-0.5 size-4 shrink-0 text-[#34a853]"
+                        className="mt-0.5 size-4 shrink-0 text-[#1877f2]"
                         strokeWidth={2.25}
                         aria-hidden
                       />
                       <span>
                         Next screens show the exact node order and where to
-                        click on this builder.
+                        click in this builder.
                       </span>
                     </div>
                   ) : null}
@@ -660,20 +747,20 @@ export function AutomationBuilderGuideModal({
               </AnimatePresence>
             </div>
 
-            <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:px-7">
+            <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[#eef2f7] bg-white px-5 py-4 sm:px-7">
               <button
                 type="button"
                 onClick={onSkip}
-                className="h-10 cursor-pointer rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-white hover:text-slate-800"
+                className="h-11 cursor-pointer rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-[#f8fafc] hover:text-slate-800"
               >
-                Skip
+                Skip guide
               </button>
               <div className="flex items-center gap-2">
                 {index > 0 ? (
                   <button
                     type="button"
                     onClick={() => setIndex((prev) => Math.max(0, prev - 1))}
-                    className="h-10 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    className="h-11 cursor-pointer rounded-xl border border-[#dbe7f8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f8fbff]"
                   >
                     Back
                   </button>
@@ -687,9 +774,9 @@ export function AutomationBuilderGuideModal({
                     }
                     setIndex((prev) => Math.min(steps.length - 1, prev + 1));
                   }}
-                  className="inline-flex h-10 min-w-[7.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
+                  className="inline-flex h-11 min-w-[8.25rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white transition hover:bg-[#0f5ed7]"
                 >
-                  {isLast ? "Got it" : "Next"}
+                  {isLast ? "Got it" : "Continue"}
                   {!isLast ? (
                     <ArrowRight
                       className="size-3.5"
