@@ -1,9 +1,16 @@
 import { isPositiveInt } from "@/app/lib/numbers";
 import { triggerToApi } from "@/app/services/automation/automation-api";
+import { resolvePurposeForTrigger as resolvePurposeForTriggerFromMeta } from "@/app/services/automation/automation-purpose";
 import type {
   AutomationPurpose,
   CreateAutomationBody,
 } from "@/app/services/automation/types";
+
+export {
+  purposeLabelForTrigger,
+  purposeToDisplayLabel,
+  resolvePurposeMetaForTrigger,
+} from "@/app/services/automation/automation-purpose";
 
 export type AutomationCreateContextIds = {
   businessId: number;
@@ -62,22 +69,22 @@ export type BuildCreateAutomationBodyInput = {
 export function buildCreateAutomationBody(
   input: BuildCreateAutomationBodyInput,
 ): CreateAutomationBody {
+  const apiTrigger = triggerToApi(input.trigger);
+  const purpose =
+    apiTrigger === "cron"
+      ? input.purpose
+      : resolvePurposeForTrigger(input.trigger);
+
   return {
     name: input.name.trim(),
     description: input.description?.trim() || undefined,
-    trigger: triggerToApi(input.trigger),
-    purpose: input.purpose,
+    trigger: apiTrigger,
+    purpose,
     businessId: input.ids.businessId,
     campaignId: input.ids.campaignId,
   };
 }
 
-const DEFAULT_PURPOSE_BY_TRIGGER: Record<string, AutomationPurpose> = {
-  "Cron Job": "funnel_signup_payment_reminder",
-  Payment: "funnel_payment",
-  Signup: "funnel_signup",
-};
-
 export function resolvePurposeForTrigger(trigger: string): AutomationPurpose {
-  return DEFAULT_PURPOSE_BY_TRIGGER[trigger] ?? "funnel_signup";
+  return resolvePurposeForTriggerFromMeta(trigger);
 }

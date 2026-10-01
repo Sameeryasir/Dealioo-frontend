@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutTemplate, Minus, Plus, RotateCcw } from "lucide-react";
+import { CircleHelp, LayoutTemplate, Minus, Plus, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   useCallback,
@@ -133,6 +133,7 @@ export function BuilderCanvas({
   onDeletePath,
   editLocked = false,
   onEditBlocked,
+  onOpenGuide,
 }: {
   nodes: WorkflowNode[];
   loading?: boolean;
@@ -164,6 +165,7 @@ export function BuilderCanvas({
   }) => void;
   editLocked?: boolean;
   onEditBlocked?: () => void;
+  onOpenGuide?: () => void;
 }) {
   const [revealKey, setRevealKey] = useState(0);
   const wasLoadingRef = useRef(loading);
@@ -454,57 +456,47 @@ export function BuilderCanvas({
     flowStartIndex,
   );
   const splitLayout = parseSplitFlowLayout(flowNodes, flowStartIndex);
+  const hasSplitLayout = Boolean(splitLayout.hasSplit);
 
-  const handleCanvasBlockDrop = useCallback(
-    (e: React.DragEvent) => {
-      if (dropHoverBranchKey === "continue_main_path") {
-        handleBlockDrop(e, null, "continue_main_path");
-        return;
-      }
-      if (dropHoverBranchKey === "main_flow_inside") {
-        handleBlockDrop(e, null, "main_flow");
-        return;
-      }
-      if (dropHoverBranchKey && dropHoverBranchKey !== "after_parallel_split") {
-        const parts = dropHoverBranchKey.split(">");
-        const branchTarget: WorkflowBranchTarget =
-          parts.length >= 2
-            ? {
-                flowBranchParent: parts[parts.length - 2]!,
-                flowBranch: parts[parts.length - 1]!,
-              }
-            : { flowBranch: dropHoverBranchKey };
-        handleBlockDrop(e, branchTarget);
-        return;
-      }
-      if (dropHoverNodeId) {
-        const anchor = nodes.find((node) => node.id === dropHoverNodeId);
-        handleBlockDrop(
-          e,
-          anchor ? getNodeBranchPlacement(anchor) : null,
-          null,
-          dropHoverNodeId,
-        );
-        return;
-      }
-      // With a parallel split, new steps must land on a path — never a shared merge.
-      if (splitLayout.hasSplit) {
-        e.preventDefault();
-        e.stopPropagation();
-        clearDragState();
-        return;
-      }
-      handleBlockDrop(e, null, null);
-    },
-    [
-      clearDragState,
-      dropHoverBranchKey,
-      dropHoverNodeId,
-      handleBlockDrop,
-      nodes,
-      splitLayout.hasSplit,
-    ],
-  );
+  const handleCanvasBlockDrop = (e: React.DragEvent) => {
+    if (dropHoverBranchKey === "continue_main_path") {
+      handleBlockDrop(e, null, "continue_main_path");
+      return;
+    }
+    if (dropHoverBranchKey === "main_flow_inside") {
+      handleBlockDrop(e, null, "main_flow");
+      return;
+    }
+    if (dropHoverBranchKey && dropHoverBranchKey !== "after_parallel_split") {
+      const parts = dropHoverBranchKey.split(">");
+      const branchTarget: WorkflowBranchTarget =
+        parts.length >= 2
+          ? {
+              flowBranchParent: parts[parts.length - 2]!,
+              flowBranch: parts[parts.length - 1]!,
+            }
+          : { flowBranch: dropHoverBranchKey };
+      handleBlockDrop(e, branchTarget);
+      return;
+    }
+    if (dropHoverNodeId) {
+      const anchor = nodes.find((node) => node.id === dropHoverNodeId);
+      handleBlockDrop(
+        e,
+        anchor ? getNodeBranchPlacement(anchor) : null,
+        null,
+        dropHoverNodeId,
+      );
+      return;
+    }
+    if (hasSplitLayout) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearDragState();
+      return;
+    }
+    handleBlockDrop(e, null, null);
+  };
   const usePrepaidVisitSplit = prepaidVisitSplit.hasSplit;
   const usePaymentReminderSections = false;
   const headSegments = usePrepaidVisitSplit
@@ -1577,6 +1569,20 @@ export function BuilderCanvas({
           </div>
         </div>
       </motion.div>
+
+      {onOpenGuide ? (
+        <div className="pointer-events-auto absolute bottom-4 left-4 z-20 sm:bottom-5 sm:left-5">
+          <button
+            type="button"
+            onClick={onOpenGuide}
+            className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-[#dbe7f8] bg-[#1877f2] text-white shadow-lg shadow-[#1877f2]/25 ring-1 ring-[#1877f2]/20 transition hover:bg-[#0f5ed7]"
+            aria-label="Open builder guide"
+            title="Builder guide"
+          >
+            <CircleHelp className="size-5" strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
+      ) : null}
 
       {!loading && nodes.length > 0 ? (
         <div

@@ -1,4 +1,5 @@
 import { automationFetch } from "@/app/services/automation/automation-fetch";
+import { purposeToDisplayLabel } from "@/app/services/automation/automation-purpose";
 import type {
   Automation,
   AutomationPurpose,
@@ -6,7 +7,6 @@ import type {
   UpdateAutomationBody,
   UpdateAutomationResponse,
 } from "@/app/services/automation/types";
-import { AUTOMATION_PURPOSE_OPTIONS } from "@/app/services/automation/types";
 import type {
   AutomationListItem,
   AutomationStatus,
@@ -19,6 +19,7 @@ const UI_TRIGGER_TO_API: Record<string, string> = {
   "Abandoned Checkout": "abandoned_checkout",
   "First Purchase": "first_purchase",
   "No Visit": "no_visit",
+  "Win-back": "no_visit",
   "Cron Job": "cron",
 };
 
@@ -29,16 +30,8 @@ const API_TRIGGER_TO_UI: Record<string, string> = {
   funnel_complete: "Funnel Complete",
   abandoned_checkout: "Abandoned Checkout",
   first_purchase: "First Purchase",
-  no_visit: "No Visit",
+  no_visit: "Win-back",
   cron: "Cron Job",
-};
-
-const API_PURPOSE_TO_UI: Record<string, string> = {
-  ...Object.fromEntries(
-    AUTOMATION_PURPOSE_OPTIONS.map((option) => [option.value, option.label]),
-  ),
-  funnel_abandoned_checkout_reminder: "Abandoned checkout reminder",
-  manual: "Manual",
 };
 
 export function triggerToApi(trigger: string): string {
@@ -49,9 +42,11 @@ export function triggerToUi(trigger: string): string {
   return API_TRIGGER_TO_UI[trigger] ?? trigger;
 }
 
-export function purposeToUi(purpose: AutomationPurpose | string | null | undefined): string {
-  if (!purpose) return "N/A";
-  return API_PURPOSE_TO_UI[purpose] ?? purpose;
+export function purposeToUi(
+  purpose: AutomationPurpose | string | null | undefined,
+  trigger?: string | null,
+): string {
+  return purposeToDisplayLabel(purpose, trigger);
 }
 
 export function automationStatusFromApi(automation: Automation): AutomationStatus {
@@ -90,7 +85,7 @@ export function mapAutomationToListItem(
     name: automation.name,
     description: automation.description?.trim() ?? "",
     trigger: triggerToUi(automation.trigger),
-    purpose: purposeToUi(automation.purpose),
+    purpose: purposeToUi(automation.purpose, automation.trigger),
     status: listStatusFromApi(automation),
     business: businessLabel,
     campaignId: automation.campaignId,

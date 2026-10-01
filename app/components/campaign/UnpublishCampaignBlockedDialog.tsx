@@ -41,47 +41,40 @@ export function UnpublishCampaignBlockedDialog({
         type="button"
         aria-label="Close dialog"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-zinc-900/50 backdrop-blur-[2px]"
+        className="absolute inset-0 cursor-default bg-zinc-900/45 backdrop-blur-[2px]"
       />
 
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xl ring-1 ring-black/5">
+      <div className="relative w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.16)]">
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="absolute right-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-lg text-zinc-900 transition hover:bg-zinc-100 sm:right-4 sm:top-4"
+          className="absolute right-4 top-4 flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
         >
           <X className="size-4" strokeWidth={2.25} aria-hidden />
         </button>
 
-        <div className="px-5 pb-5 pt-5 sm:px-6 sm:pb-6 sm:pt-6">
-          <div className="flex gap-4 pr-8">
-            <span
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-amber-200/80 bg-amber-50 text-amber-800 shadow-sm"
-              aria-hidden
-            >
-              <AlertTriangle className="size-5" strokeWidth={2} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2
-                id={titleId}
-                className="text-base font-semibold leading-snug text-zinc-900"
-              >
-                Deactivate automations first
-              </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-                This campaign has {countLabel} still running. Deactivate all
-                automations for this campaign, then you can unpublish it.
-              </p>
-            </div>
+        <div className="px-6 pb-2 pt-7 sm:px-7 sm:pt-8">
+          <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-amber-200/80 bg-amber-50 text-amber-700">
+            <AlertTriangle className="size-5" strokeWidth={2.25} aria-hidden />
           </div>
+          <h2
+            id={titleId}
+            className="pr-8 text-lg font-semibold tracking-tight text-[#07111f]"
+          >
+            Deactivate automations first
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            This campaign has {countLabel} still running. Deactivate them, then
+            you can unpublish.
+          </p>
         </div>
 
-        <div className="flex justify-end border-t border-zinc-100 bg-zinc-50/80 px-5 py-4 sm:px-6">
+        <div className="flex justify-end border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:px-7">
           <button
             type="button"
             onClick={onClose}
-            className="h-10 cursor-pointer rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-black active:scale-[0.98]"
+            className="h-10 cursor-pointer rounded-xl bg-[#07111f] px-5 text-sm font-semibold text-white transition hover:bg-black"
           >
             Got it
           </button>

@@ -68,173 +68,325 @@ const WALLET_PASS_REMINDER_SMS = {
   linkLabel: "Pass Link",
 } as const;
 
-export const ABANDONED_CART_TEMPLATE: AutomationTemplate = {
-  id: "abandoned_cart",
-  name: "Abandoned Cart",
+export const ABANDONED_CHECKOUT_TEMPLATE: AutomationTemplate = {
+  id: "abandoned_checkout",
+  name: "Abandoned Checkout",
   category: "Revenue Recovery",
   description:
-    "Recover guests who signed up but did not finish. Sends initial SMS and rewards, then splits into pass and payment reminder paths.",
+    "Recover guests who started checkout but did not pay. Wait, confirm they are still unpaid, then send a recovery message. Edit wait time and message anytime.",
   trigger: "Abandoned Checkout",
   purpose: "funnel_abandoned_checkout_reminder",
   nodes: [
     {
       key: "trigger",
-      kind: "signup_trigger",
-      label: "Signed up for campaign",
+      kind: "abandoned_checkout_trigger",
+      label: "Abandoned checkout",
       summary:
-        "Guests enter this flow when they provide their information in a campaign funnel.",
+        "Starts when a guest signs up / starts checkout on this campaign.",
       config: {
         trigger: "abandoned_checkout",
-        title: "Signed up for campaign",
+        title: "Abandoned checkout",
         description:
-          "Guests enter this flow when they provide their information in a campaign funnel.",
+          "Starts when a guest signs up / starts checkout on this campaign.",
+        executionMode: "graph",
       },
     },
     {
       key: "wait",
       kind: "wait",
-      label: "Wait until",
-      summary: "15 minutes elapsed",
-      config: { delay: 15, unit: "minutes" },
+      label: "Wait",
+      summary: "1 hour — change this to your preferred delay",
+      config: { delay: 1, unit: "hours" },
     },
     {
-      key: "filter",
+      key: "filter_unpaid",
       kind: "condition",
-      label: "Filters",
-      summary: "NOT Prepaid for campaign offer",
+      label: "Still unpaid?",
+      summary: "Continues only if the guest has not paid yet",
       config: {
         conditionType: "Has not completed payment",
-        value: "NOT Prepaid",
+        value: "NOT Status not paid",
+        conditions: [{ negated: true, value: "Status not paid" }],
       },
     },
     {
-      key: "sms_pass_link",
-      kind: "send_sms",
-      label: "Send Text",
-      summary:
-        "Pass link — complete signup by adding your pass to your wallet.",
-      config: {
-        message:
-          "In order to complete your signup, you will need to click this link to add your pass to your wallet:",
-        linkLabel: "Pass Link",
-      },
-    },
-    {
-      key: "sms_confirm",
-      kind: "send_sms",
-      label: "Send Text",
-      summary:
-        "Personal follow-up confirming the offer and opt-out instructions.",
-      config: {
-        message:
-          "Hi [First Name]! This is your team confirming your offer. We noticed you didn't complete your purchase so we've texted you the offer in case you're still planning on coming by. Text STOP at anytime to opt out and delete your offer.",
-      },
-    },
-    {
-      key: "give_reward",
-      kind: "create_coupon",
-      label: "Give Rewards",
-      summary: "Grant the campaign reward — expires in 2 weeks (Sunday 11:59 PM).",
-      config: {
-        rewardName: "Campaign offer",
-        expiration: "2 weeks",
-        expirationNote:
-          "Expires in 2 weeks (rounded up to Sunday at 11:59 PM)",
-      },
-    },
-    {
-      key: "set_expiry",
+      key: "tag_abandoned",
       kind: "tag_customer",
-      label: "Set Reward Expiration",
-      summary:
-        "Set reward expiration to 2 weeks (rounded up to Sunday at 11:59 PM).",
+      label: "Tag guest",
+      summary: 'Label guest as "abandoned-checkout" for later targeting',
       config: {
-        tag: "reward_expiration",
-        rewardName: "Campaign offer",
-        expiration: "2 weeks",
-        expirationNote:
-          "Set expiration to in 2 weeks (rounded up to Sunday at 11:59 PM)",
+        tag: "abandoned-checkout",
+        action: "tag",
       },
     },
     {
-      key: "wait_pass",
-      kind: "wait",
-      label: "Wait until",
-      summary: "15 minutes elapsed",
-      config: { delay: 15, unit: "minutes", flowBranch: FLOW_BRANCH_PASS },
-    },
-    {
-      key: "filter_pass",
-      kind: "condition",
-      label: "Filters",
-      summary: "NOT Pass was added",
-      config: {
-        flowBranch: FLOW_BRANCH_PASS,
-        conditionType: "Pass not added",
-        value: "NOT Pass was added",
-      },
-    },
-    {
-      key: "action_pass",
+      key: "sms_recovery",
       kind: "send_sms",
-      label: "Send Text",
-      summary: "Pass reminder with wallet link.",
+      label: "Send recovery SMS",
+      summary: "Ask them to finish checkout — edit this message freely",
       config: {
-        flowBranch: FLOW_BRANCH_PASS,
-        message: WALLET_PASS_REMINDER_SMS.message,
-        linkLabel: WALLET_PASS_REMINDER_SMS.linkLabel,
+        message:
+          "Hi [First Name] — you left before finishing checkout. Your offer is still waiting. Tap below to complete payment anytime.",
+        linkLabel: "Complete checkout",
       },
     },
     {
-      key: "wait_payment",
-      kind: "wait",
-      label: "Wait until",
-      summary: "11:08 am",
+      key: "email_recovery",
+      kind: "send_email",
+      label: "Send recovery email",
+      summary: "Backup email if you also want email — edit freely",
       config: {
-        flowBranch: FLOW_BRANCH_PAYMENT,
-        waitMode: "until_time",
-        untilTime: "11:08 am",
-        time: "11:08",
-      },
-    },
-    {
-      key: "filter_payment",
-      kind: "condition",
-      label: "Filters",
-      summary: "Over 7 hours + NOT paid + NOT Arancini redeemed",
-      config: {
-        flowBranch: FLOW_BRANCH_PAYMENT,
-        conditions: [
-          { value: "Over 7 hours since signed up for the first time" },
-          { negated: true, value: "Status not paid" },
-          { negated: true, value: "Arancini was redeemed" },
-        ],
-      },
-    },
-    {
-      key: "action_payment",
-      kind: "send_sms",
-      label: "Send Text",
-      summary: "Register thanks, pay online, or add pass to Wallet then visit business.",
-      config: {
-        flowBranch: FLOW_BRANCH_PAYMENT,
-        ...PAYMENT_REMINDER_SMS_CONFIG,
+        subject: "Your offer is still waiting",
+        template: "Payment reminder",
+        message:
+          "Hi [First Name] — thanks for starting checkout. You can still finish and unlock your offer whenever you're ready.",
+        headline: "Complete your checkout",
+        ctaLabel: "Complete payment",
       },
     },
   ],
   connections: [
     { sourceKey: "trigger", targetKey: "wait" },
-    { sourceKey: "wait", targetKey: "filter" },
-    { sourceKey: "filter", targetKey: "sms_pass_link" },
-    { sourceKey: "sms_pass_link", targetKey: "sms_confirm" },
-    { sourceKey: "sms_confirm", targetKey: "give_reward" },
-    { sourceKey: "give_reward", targetKey: "set_expiry" },
-    { sourceKey: "set_expiry", targetKey: "wait_pass" },
-    { sourceKey: "wait_pass", targetKey: "filter_pass" },
-    { sourceKey: "filter_pass", targetKey: "action_pass" },
-    { sourceKey: "action_pass", targetKey: "wait_payment" },
-    { sourceKey: "wait_payment", targetKey: "filter_payment" },
-    { sourceKey: "filter_payment", targetKey: "action_payment" },
+    { sourceKey: "wait", targetKey: "filter_unpaid" },
+    { sourceKey: "filter_unpaid", targetKey: "tag_abandoned" },
+    { sourceKey: "tag_abandoned", targetKey: "sms_recovery" },
+    { sourceKey: "sms_recovery", targetKey: "email_recovery" },
+  ],
+};
+
+/** @deprecated Prefer ABANDONED_CHECKOUT_TEMPLATE */
+export const ABANDONED_CART_TEMPLATE = ABANDONED_CHECKOUT_TEMPLATE;
+
+export const FIRST_PURCHASE_TEMPLATE: AutomationTemplate = {
+  id: "first_purchase",
+  name: "First Purchase",
+  category: "Guest Journey",
+  description:
+    "Welcome guests after their first paid purchase. Edit the delay and message anytime, or rebuild the flow your way.",
+  trigger: "First Purchase",
+  purpose: "funnel_payment",
+  nodes: [
+    {
+      key: "trigger",
+      kind: "first_purchase_trigger",
+      label: "First purchase",
+      summary: "Starts on a guest’s first paid purchase for this funnel.",
+      config: {
+        trigger: "first_purchase",
+        title: "First purchase",
+        description: "Starts on a guest’s first paid purchase for this funnel.",
+        executionMode: "graph",
+      },
+    },
+    {
+      key: "wait",
+      kind: "wait",
+      label: "Wait",
+      summary: "10 minutes — change this delay anytime",
+      config: { delay: 10, unit: "minutes" },
+    },
+    {
+      key: "tag_first_purchase",
+      kind: "tag_customer",
+      label: "Tag guest",
+      summary: 'Label guest as "first-purchase"',
+      config: {
+        tag: "first-purchase",
+        action: "tag",
+      },
+    },
+    {
+      key: "email_welcome",
+      kind: "send_email",
+      label: "Welcome email",
+      summary: "Thank them for their first purchase — edit freely",
+      config: {
+        subject: "Thanks for your first purchase!",
+        template: "Payment reminder",
+        message:
+          "Hi [First Name] — thank you for your first purchase with us. We’re glad you’re here. Reply anytime if you need help.",
+        headline: "Welcome aboard",
+        ctaLabel: "View my pass",
+      },
+    },
+    {
+      key: "sms_welcome",
+      kind: "send_sms",
+      label: "Welcome SMS",
+      summary: "Short thank-you text — edit freely",
+      config: {
+        message:
+          "Hi [First Name] — thanks for your first purchase! We’re excited to see you. Text us anytime if you need anything.",
+        linkLabel: "View pass",
+      },
+    },
+  ],
+  connections: [
+    { sourceKey: "trigger", targetKey: "wait" },
+    { sourceKey: "wait", targetKey: "tag_first_purchase" },
+    { sourceKey: "tag_first_purchase", targetKey: "email_welcome" },
+    { sourceKey: "email_welcome", targetKey: "sms_welcome" },
+  ],
+};
+
+export const FUNNEL_COMPLETE_TEMPLATE: AutomationTemplate = {
+  id: "funnel_complete",
+  name: "Funnel Complete",
+  category: "Guest Journey",
+  description:
+    "Act when a guest finishes the funnel path. Ask for a review or send a thank-you — fully editable.",
+  trigger: "Funnel Complete",
+  purpose: "funnel_signup",
+  nodes: [
+    {
+      key: "trigger",
+      kind: "funnel_complete",
+      label: "Funnel completed",
+      summary: "Starts when a guest completes the funnel path.",
+      config: {
+        trigger: "funnel_completed",
+        title: "Funnel completed",
+        description: "Starts when a guest completes the funnel path.",
+        executionMode: "graph",
+      },
+    },
+    {
+      key: "wait",
+      kind: "wait",
+      label: "Wait",
+      summary: "30 minutes — change this delay anytime",
+      config: { delay: 30, unit: "minutes" },
+    },
+    {
+      key: "tag_completed",
+      kind: "tag_customer",
+      label: "Tag guest",
+      summary: 'Label guest as "funnel-completed"',
+      config: {
+        tag: "funnel-completed",
+        action: "tag",
+      },
+    },
+    {
+      key: "email_thanks",
+      kind: "send_email",
+      label: "Thank-you email",
+      summary: "Celebrate completion — edit the message anytime",
+      config: {
+        subject: "Thanks for completing your signup",
+        template: "Payment reminder",
+        message:
+          "Hi [First Name] — you finished the funnel. Thanks for joining us. Here’s a quick next step if you need it.",
+        headline: "You’re all set",
+        ctaLabel: "Open my offers",
+      },
+    },
+    {
+      key: "ask_review",
+      kind: "reviews",
+      label: "Ask for review",
+      summary: "Optional review request — add your HTTPS review link",
+      config: {
+        action: "ask_review",
+        workflowKind: "ask_review",
+        channel: "email",
+        reviewUrl: "https://",
+        subject: "How was your experience?",
+        message:
+          "Hi [First Name] — if you have a moment, we’d love a quick review. It helps other guests find us.",
+        ctaLabel: "Leave a review",
+      },
+    },
+  ],
+  connections: [
+    { sourceKey: "trigger", targetKey: "wait" },
+    { sourceKey: "wait", targetKey: "tag_completed" },
+    { sourceKey: "tag_completed", targetKey: "email_thanks" },
+    { sourceKey: "email_thanks", targetKey: "ask_review" },
+  ],
+};
+
+export const WIN_BACK_TEMPLATE: AutomationTemplate = {
+  id: "win_back",
+  name: "Win-back",
+  category: "Revenue Recovery",
+  description:
+    "Re-engage quiet guests who haven’t visited in a while. Change inactive days, schedule, and messages anytime.",
+  trigger: "Win-back",
+  purpose: "funnel_signup",
+  nodes: [
+    {
+      key: "trigger",
+      kind: "win_back_trigger",
+      label: "Win-back",
+      summary: "Finds guests with no visit for 30 days on a daily schedule.",
+      config: {
+        trigger: "no_visit",
+        inactiveDays: 30,
+        frequency: "daily",
+        time: "09:00",
+        dayOfWeek: "monday",
+        title: "Win-back",
+        description:
+          "Finds guests with no visit for your inactive-days setting.",
+        executionMode: "graph",
+      },
+    },
+    {
+      key: "tag_win_back",
+      kind: "tag_customer",
+      label: "Tag guest",
+      summary: 'Label guest as "win-back" so you don’t over-message',
+      config: {
+        tag: "win-back",
+        action: "tag",
+      },
+    },
+    {
+      key: "email_return",
+      kind: "send_email",
+      label: "Return email",
+      summary: "Invite them back — edit freely",
+      config: {
+        subject: "We miss you — come back anytime",
+        template: "Payment reminder",
+        message:
+          "Hi [First Name] — it’s been a while. We’d love to see you again. Tap below when you’re ready to come back.",
+        headline: "Come back soon",
+        ctaLabel: "View offer",
+      },
+    },
+    {
+      key: "sms_return",
+      kind: "send_sms",
+      label: "Return SMS",
+      summary: "Short win-back text — edit freely",
+      config: {
+        message:
+          "Hi [First Name] — we miss you! Stop by anytime. Reply STOP to opt out.",
+        linkLabel: "View offer",
+      },
+    },
+    {
+      key: "coupon_return",
+      kind: "create_coupon",
+      label: "Return offer",
+      summary: "Optional coupon / reward email — edit freely",
+      config: {
+        rewardName: "Welcome back offer",
+        expirationNote: "Expires in 14 days",
+        subject: "A little something to welcome you back",
+        message:
+          "Hi [First Name] — here’s a return offer when you’re ready to visit again.",
+        ctaLabel: "View offer",
+      },
+    },
+  ],
+  connections: [
+    { sourceKey: "trigger", targetKey: "tag_win_back" },
+    { sourceKey: "tag_win_back", targetKey: "email_return" },
+    { sourceKey: "email_return", targetKey: "sms_return" },
+    { sourceKey: "sms_return", targetKey: "coupon_return" },
   ],
 };
 
@@ -1077,13 +1229,13 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
   ],
 };
 
-const HIDDEN_TEMPLATE_PURPOSES = new Set<AutomationPurpose>([
-  "manual",
-  "funnel_abandoned_checkout_reminder",
-]);
+const HIDDEN_TEMPLATE_PURPOSES = new Set<AutomationPurpose>(["manual"]);
 
 export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
-  ABANDONED_CART_TEMPLATE,
+  ABANDONED_CHECKOUT_TEMPLATE,
+  FIRST_PURCHASE_TEMPLATE,
+  FUNNEL_COMPLETE_TEMPLATE,
+  WIN_BACK_TEMPLATE,
   PAYMENT_REMINDER_TEMPLATE,
   POST_PAYMENT_JOURNEY_TEMPLATE,
   SIGNUP_AUTOMATION_TEMPLATE,

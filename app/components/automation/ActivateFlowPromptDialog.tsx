@@ -4,11 +4,11 @@ import { AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
@@ -34,28 +34,33 @@ export function ActivateFlowPromptDialog({
     >
       <AlertDialogContent
         style={{ zIndex: 70 }}
-        className="max-w-md gap-0 p-0 sm:max-w-md"
+        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem]"
       >
-        <AlertDialogHeader className="place-items-start gap-4 p-5 text-left sm:p-6">
-          <AlertDialogMedia className="mb-0 size-11 rounded-xl border border-amber-200/80 bg-amber-50 text-amber-800">
-            <AlertTriangle className="size-5" strokeWidth={2} />
-          </AlertDialogMedia>
-          <div className="min-w-0 flex-1">
-            <AlertDialogTitle className="text-base font-semibold text-zinc-900">
-              Please activate your flow
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-              You have unsaved changes. Save your step settings and activate
-              your flow before leaving this page.
-            </AlertDialogDescription>
+        <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
+          <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-amber-200/80 bg-amber-50 text-amber-700">
+            <AlertTriangle className="size-5" strokeWidth={2.25} aria-hidden />
           </div>
+          <AlertDialogTitle className="text-lg font-semibold tracking-tight text-[#07111f]">
+            Activate your flow
+          </AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+            You have unsaved changes. Save your step settings and activate the
+            flow before leaving this page.
+          </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="border-t border-zinc-100 bg-zinc-50/80">
+        <AlertDialogFooter className="gap-2 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:px-7">
+          <AlertDialogCancel
+            disabled={isLoading}
+            onClick={onStay}
+            className="h-10 rounded-xl"
+          >
+            Stay here
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={isLoading}
             onClick={onActivate}
-            className="h-10 rounded-xl bg-zinc-900 px-5 text-white hover:bg-black"
+            className="h-10 rounded-xl bg-[#07111f] px-5 text-white hover:bg-black"
           >
             {isLoading ? "Activating…" : "Activate flow"}
           </AlertDialogAction>

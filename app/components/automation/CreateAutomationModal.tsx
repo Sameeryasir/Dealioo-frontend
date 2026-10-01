@@ -15,8 +15,10 @@ import {
   MessageSquare,
   Percent,
   Plus,
+  RotateCcw,
   ShoppingCart,
   Sparkles,
+  Star,
   Tag,
   Type,
   UserPlus,
@@ -32,13 +34,23 @@ import {
 } from "@/app/components/automation/automation-templates";
 import { flowPreviewHeaderClass } from "@/app/components/automation/builder/flow-step-colors";
 import { automationEase } from "@/app/lib/motion";
-import { resolvePurposeForTrigger } from "@/app/services/automation/automation-create-context";
+import { resolvePurposeMetaForTrigger } from "@/app/services/automation/automation-create-context";
+import { purposeToUi } from "@/app/services/automation/automation-api";
 import {
-  AUTOMATION_PURPOSE_OPTIONS,
+  CRON_AUTOMATION_PURPOSE_OPTIONS,
   type AutomationPurpose,
 } from "@/app/services/automation/types";
+import { isCronTrigger } from "@/app/services/automation/automation-purpose";
 
-const TRIGGERS = ["Cron Job", "Payment", "Signup"] as const;
+const TRIGGERS = [
+  "Cron Job",
+  "Payment",
+  "Signup",
+  "Abandoned Checkout",
+  "First Purchase",
+  "Funnel Complete",
+  "Win-back",
+] as const;
 type CreateTriggerOption = (typeof TRIGGERS)[number];
 
 type ModalStep = "choose" | "import-list" | "import-preview" | "create-blank";
@@ -123,6 +135,30 @@ function templateListVisual(templateId: string): {
   icon: LucideIcon;
   accentClass: string;
 } {
+  if (templateId === "abandoned_checkout" || templateId === "abandoned_cart") {
+    return {
+      icon: ShoppingCart,
+      accentClass: "bg-gradient-to-br from-[#f59e0b] to-[#ea580c] shadow-orange-500/25",
+    };
+  }
+  if (templateId === "first_purchase") {
+    return {
+      icon: Sparkles,
+      accentClass: "bg-gradient-to-br from-[#34d399] to-[#059669] shadow-emerald-500/25",
+    };
+  }
+  if (templateId === "funnel_complete") {
+    return {
+      icon: GitBranch,
+      accentClass: "bg-gradient-to-br from-[#818cf8] to-[#4f46e5] shadow-indigo-500/25",
+    };
+  }
+  if (templateId === "win_back") {
+    return {
+      icon: RotateCcw,
+      accentClass: "bg-gradient-to-br from-[#fb7185] to-[#e11d48] shadow-rose-500/25",
+    };
+  }
   if (templateId === "payment_reminder") {
     return {
       icon: CreditCard,
@@ -153,6 +189,14 @@ function templateNodeIcon(kind: AutomationTemplateNodeDef["kind"]): LucideIcon {
       return CreditCard;
     case "signup_trigger":
       return UserPlus;
+    case "abandoned_checkout_trigger":
+      return ShoppingCart;
+    case "first_purchase_trigger":
+      return Sparkles;
+    case "funnel_complete":
+      return GitBranch;
+    case "win_back_trigger":
+      return RotateCcw;
     case "cron_trigger":
       return CalendarClock;
     case "wait":
@@ -167,6 +211,8 @@ function templateNodeIcon(kind: AutomationTemplateNodeDef["kind"]): LucideIcon {
       return Percent;
     case "tag_customer":
       return Tag;
+    case "reviews":
+      return Star;
     default:
       return Workflow;
   }
@@ -176,6 +222,10 @@ function templateNodeTone(kind: AutomationTemplateNodeDef["kind"]): string {
   switch (kind) {
     case "signup_trigger":
     case "payment_trigger":
+    case "abandoned_checkout_trigger":
+    case "first_purchase_trigger":
+    case "funnel_complete":
+    case "win_back_trigger":
       return flowPreviewHeaderClass("signup_trigger");
     case "cron_trigger":
       return flowPreviewHeaderClass("cron_trigger");
@@ -317,9 +367,11 @@ function CreateAutomationModalBody({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [trigger, setTrigger] = useState<CreateTriggerOption>(TRIGGERS[0]);
-  const [purpose, setPurpose] = useState<AutomationPurpose>(() =>
-    resolvePurposeForTrigger(TRIGGERS[0]),
+  const [purpose, setPurpose] = useState<AutomationPurpose>(
+    () => resolvePurposeMetaForTrigger(TRIGGERS[0]).purpose,
   );
+  const purposeMeta = resolvePurposeMetaForTrigger(trigger);
+  const cronAllowsPurposeChoice = isCronTrigger(trigger);
 
   const selectedTemplate = selectedTemplateId
     ? getAutomationTemplateById(selectedTemplateId)
@@ -327,7 +379,14 @@ function CreateAutomationModalBody({
 
   const handleTriggerChange = (next: CreateTriggerOption) => {
     setTrigger(next);
-    setPurpose(resolvePurposeForTrigger(next));
+    if (!isCronTrigger(next)) {
+      setPurpose(resolvePurposeMetaForTrigger(next).purpose);
+      return;
+    }
+    setPurpose(
+      CRON_AUTOMATION_PURPOSE_OPTIONS[0]?.value ??
+        "funnel_signup_payment_reminder",
+    );
   };
 
   const goBack = () => {
@@ -490,12 +549,20 @@ function CreateAutomationModalBody({
                           <span className="create-automation-template-card__description mt-1 block text-sm leading-relaxed text-zinc-500">
                             {template.description}
                           </span>
-                          <span className="create-automation-template-card__steps mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1877f2]">
-                            {template.nodes.length} steps
-                            <ChevronRight
-                              className="size-3.5 transition group-hover:translate-x-0.5"
-                              aria-hidden
-                            />
+                          <span className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
+                            <span className="rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-orange-700 ring-1 ring-orange-100">
+                              {template.trigger}
+                            </span>
+                            <span className="rounded-full bg-[#eff6ff] px-2 py-0.5 font-semibold text-[#1877f2] ring-1 ring-[#dbe7f8]">
+                              {purposeToUi(template.purpose, template.trigger)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#1877f2]">
+                              {template.nodes.length} steps
+                              <ChevronRight
+                                className="size-3.5 transition group-hover:translate-x-0.5"
+                                aria-hidden
+                              />
+                            </span>
                           </span>
                         </span>
                       </button>
@@ -519,6 +586,17 @@ function CreateAutomationModalBody({
                           </dt>
                           <dd className="mt-1 font-medium text-zinc-900">
                             {selectedTemplate.trigger}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold uppercase tracking-wide text-zinc-500">
+                            Purpose
+                          </dt>
+                          <dd className="mt-1 font-medium text-zinc-900">
+                            {purposeToUi(
+                              selectedTemplate.purpose,
+                              selectedTemplate.trigger,
+                            )}
                           </dd>
                         </div>
                         <div>
@@ -616,26 +694,38 @@ function CreateAutomationModalBody({
                       <FieldLabel icon={Workflow} iconClassName="text-[#1877f2]">
                         Purpose
                       </FieldLabel>
-                      <RadioOptionGroup
-                        name="automation-purpose"
-                        value={purpose}
-                        onChange={setPurpose}
-                        options={AUTOMATION_PURPOSE_OPTIONS.map((option) => ({
-                          value: option.value,
-                          label: option.label,
-                        }))}
-                        accent="blue"
-                      />
-                      <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-                        {
-                          AUTOMATION_PURPOSE_OPTIONS.find(
-                            (option) => option.value === purpose,
-                          )?.description
-                        }{" "}
-                        You can create more than one automation with the same
-                        purpose — each keeps its own steps and does not mix with
-                        others.
-                      </p>
+                      {cronAllowsPurposeChoice ? (
+                        <>
+                          <RadioOptionGroup
+                            name="automation-purpose"
+                            value={purpose}
+                            onChange={setPurpose}
+                            options={CRON_AUTOMATION_PURPOSE_OPTIONS.map(
+                              (option) => ({
+                                value: option.value,
+                                label: option.label,
+                              }),
+                            )}
+                            accent="blue"
+                          />
+                          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                            {
+                              CRON_AUTOMATION_PURPOSE_OPTIONS.find(
+                                (option) => option.value === purpose,
+                              )?.description
+                            }
+                          </p>
+                        </>
+                      ) : (
+                        <div className="rounded-2xl border border-[#dbe7f8] bg-[#eff6ff] px-4 py-3.5">
+                          <p className="m-0 text-sm font-semibold text-[#0f5ed7]">
+                            {purposeMeta.label}
+                          </p>
+                          <p className="m-0 mt-1 text-sm leading-6 text-[#1d4ed8]/90">
+                            {purposeMeta.description}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -15,14 +15,22 @@ export function DeleteExecutionDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const name = itemName.trim() || "this run";
+
   return (
     <DeleteConfirmationDialog
       open={open}
-      itemName={itemName}
-      title="Delete this run?"
-      description="Are you sure you want to delete this run only?"
-      checkboxLabel="Yes, delete this run only"
-      confirmText="Delete"
+      itemName={name}
+      title={`Delete “${name}”?`}
+      description={
+        <>
+          This removes only{" "}
+          <span className="font-semibold text-[#1877f2]">{name}</span>. Other
+          runs stay as they are.
+        </>
+      }
+      checkboxLabel={`Yes, delete “${name}”`}
+      confirmText="Delete run"
       isLoading={isDeleting}
       onCancel={onCancel}
       onConfirm={onConfirm}

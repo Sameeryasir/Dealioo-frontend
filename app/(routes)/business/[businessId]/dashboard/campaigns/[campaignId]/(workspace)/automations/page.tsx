@@ -35,7 +35,7 @@ export default function CampaignAutomationsPage() {
   }, [businessId, campaignId, canAccess, isFetched, router]);
 
   const openAutomationBuilder = useCallback(
-    (automationId: string, bootstrapping = false) => {
+    (automationId: string, bootstrapping = false, showGuide = false) => {
       if (businessId == null) return;
       const query = new URLSearchParams();
       if (campaignId != null) {
@@ -46,6 +46,9 @@ export default function CampaignAutomationsPage() {
       }
       if (bootstrapping) {
         query.set("bootstrapping", "1");
+      }
+      if (showGuide) {
+        query.set("guide", "1");
       }
       const qs = query.toString();
       router.push(

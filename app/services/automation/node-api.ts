@@ -36,7 +36,16 @@ const TRIGGER_DEFAULT_CONFIG_BY_KIND: Partial<
 > = {
   signup_trigger: SIGNUP_TRIGGER_DEFAULT_CONFIG,
   payment_trigger: { trigger: "payment" },
-  funnel_complete: { trigger: "funnel_complete" },
+  abandoned_checkout_trigger: { trigger: "abandoned_checkout" },
+  first_purchase_trigger: { trigger: "first_purchase" },
+  funnel_complete: { trigger: "funnel_completed" },
+  win_back_trigger: {
+    trigger: "no_visit",
+    inactiveDays: 30,
+    frequency: "daily",
+    time: "09:00",
+    dayOfWeek: "monday",
+  },
   cron_trigger: {
     trigger: "cron",
     frequency: "daily",
@@ -68,7 +77,10 @@ export function defaultConfigForBlockKind(
 const BLOCK_TO_NODE_TYPE: Record<WorkflowNodeKind, ApiNodeType> = {
   signup_trigger: "trigger",
   payment_trigger: "trigger",
+  abandoned_checkout_trigger: "trigger",
+  first_purchase_trigger: "trigger",
   funnel_complete: "trigger",
+  win_back_trigger: "trigger",
   cron_trigger: "trigger",
   wait: "wait",
   delay: "wait",
@@ -104,13 +116,25 @@ export function nodeTypeToBlockKind(
   if (type === "trigger") {
     const trigger = config?.trigger;
     if (trigger === "payment") return "payment_trigger";
-    if (trigger === "funnel_complete") return "funnel_complete";
+    if (trigger === "funnel_complete" || trigger === "funnel_completed") {
+      return "funnel_complete";
+    }
     if (trigger === "cron") return "cron_trigger";
-    if (trigger === "abandoned_checkout") return "signup_trigger";
+    if (trigger === "abandoned_checkout") return "abandoned_checkout_trigger";
+    if (trigger === "first_purchase") return "first_purchase_trigger";
+    if (trigger === "no_visit") return "win_back_trigger";
     return "signup_trigger";
   }
   if (type === "wait" && config?.isParallelSplit === true) {
     return "parallel_split";
+  }
+  if (type === "tag") {
+    const action = String(config?.action ?? "").trim().toLowerCase();
+    const workflowKind = String(config?.workflowKind ?? "").trim().toLowerCase();
+    if (action === "ask_review" || workflowKind === "ask_review") {
+      return "reviews";
+    }
+    return "tag_customer";
   }
   if (API_NODE_TYPES.includes(type as ApiNodeType)) {
     return NODE_TYPE_TO_BLOCK_KIND[type as ApiNodeType];

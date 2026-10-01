@@ -23,7 +23,10 @@ export type BlockSection = "triggers" | "actions" | "conditions" | "flow";
 export type WorkflowNodeKind =
   | "signup_trigger"
   | "payment_trigger"
+  | "abandoned_checkout_trigger"
+  | "first_purchase_trigger"
   | "funnel_complete"
+  | "win_back_trigger"
   | "cron_trigger"
   | "wait"
   | "send_email"

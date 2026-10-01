@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
+import { AutomationBuilderGuideModal } from "@/app/components/automation/AutomationBuilderGuideModal";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
@@ -28,7 +29,9 @@ import {
   mapAutomationToListItem,
   activateAutomation,
   deactivateAutomation,
+  updateAutomation,
 } from "@/app/services/automation/automation-api";
+import { resolvePurposeForTrigger } from "@/app/services/automation/automation-purpose";
 import { syncAutomationQueryCache, invalidateAutomationQueries } from "@/app/services/automation/automation-query-cache";
 import { automationQueryKeys } from "@/app/services/automation/automation-query-keys";
 import { useAutomationQuery } from "@/app/hooks/use-automation-query";
@@ -255,6 +258,22 @@ export function AutomationBuilderPage({
         linkedCampaign.published === true;
 
   const bootstrapping = searchParams.get("bootstrapping") === "1";
+  const [manualGuideOpen, setManualGuideOpen] = useState(false);
+  const showBuilderGuide =
+    searchParams.get("guide") === "1" || manualGuideOpen;
+
+  const clearBuilderGuideParam = useCallback(() => {
+    setManualGuideOpen(false);
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has("guide")) return;
+    params.delete("guide");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const openBuilderGuide = useCallback(() => {
+    setManualGuideOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!bootstrapping || !isPositiveInt(automationNumericId)) {
@@ -936,6 +955,31 @@ export function AutomationBuilderPage({
           await updateAutomationNode(numericId, {
             config,
           });
+
+          if (
+            isPositiveInt(automationNumericId) &&
+            isTriggerBlockKind(selectedNode.kind)
+          ) {
+            const nextTrigger = String(config.trigger ?? "").trim();
+            if (nextTrigger) {
+              const body =
+                nextTrigger === "cron"
+                  ? { trigger: nextTrigger }
+                  : {
+                      trigger: nextTrigger,
+                      purpose: resolvePurposeForTrigger(nextTrigger),
+                    };
+              const updatedAutomation = await updateAutomation(
+                automationNumericId,
+                body,
+              );
+              if (!isAutomationStatusResponse(updatedAutomation)) {
+                setAutomation(mapAutomationToListItem(updatedAutomation));
+                syncAutomationQueryCache(queryClient, updatedAutomation);
+              }
+            }
+          }
+
           invalidateAutomationQueries(queryClient, {
             automationId: automationNumericId ?? undefined,
             businessId:
@@ -963,9 +1007,7 @@ export function AutomationBuilderPage({
       guardEdit,
       nodes,
       queryClient,
-      remoteAutomation?.businessId,
-      remoteAutomation?.purpose,
-      remoteAutomation?.restaurantId,
+      remoteAutomation,
       selectedNode,
     ],
   );
@@ -1533,6 +1575,7 @@ export function AutomationBuilderPage({
                 invalidNodeIds={invalidNodeIds}
                 invalidStepIds={invalidStepIds}
                 activeBranchTarget={activeBranchTarget}
+                onOpenGuide={openBuilderGuide}
                 onSelect={(id) => {
                   setSelectedId(id);
                   const selected = nodes.find((node) => node.id === id);
@@ -1654,27 +1697,28 @@ export function AutomationBuilderPage({
         onClose={closeDeactivatePrompt}
         onDeactivate={() => void handleDeactivateFromPrompt()}
       />
+      <AutomationBuilderGuideModal
+        open={showBuilderGuide}
+        trigger={automation?.trigger ?? remoteAutomation?.trigger ?? null}
+        automationName={automation?.name ?? remoteAutomation?.name ?? null}
+        onSkip={clearBuilderGuideParam}
+        onFinished={clearBuilderGuideParam}
+      />
       <DeleteConfirmationDialog
         open={pathDeletePending != null}
         itemName={pathDeletePending?.title.trim() || "this path"}
-        title="Delete this path?"
+        title={`Delete “${pathDeletePending?.title.trim() || "this path"}”?`}
         description={
           <>
-            Are you sure you want to delete{" "}
+            This removes{" "}
             <span className="font-semibold text-[#1877f2]">
               {pathDeletePending?.title.trim() || "this path"}
             </span>{" "}
-            and all steps on it? This cannot be undone.
+            and every step on it. You can’t undo this.
           </>
         }
         confirmText="Delete path"
-        checkboxLabel={
-          pathDeletePending
-            ? `Are you sure you want to delete ${
-                pathDeletePending.title.trim() || "this path"
-              } and all steps on it?`
-            : "Are you sure you want to delete this path and all steps on it?"
-        }
+        checkboxLabel={`Yes, delete “${pathDeletePending?.title.trim() || "this path"}”`}
         isLoading={pathDeleting}
         onConfirm={() => {
           void confirmDeletePath();

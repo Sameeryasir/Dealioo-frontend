@@ -41,7 +41,9 @@ import {
   blockSectionLabel,
 } from "@/app/components/automation/automation-ui";
 import { automationEase } from "@/app/lib/motion";
+import { resolvePurposeMetaForTrigger, purposeToDisplayLabel } from "@/app/services/automation/automation-purpose";
 import type { WorkflowNode } from "@/app/components/automation/types";
+import { isTriggerBlockKind } from "@/app/services/automation/node-api";
 
 const SETTINGS_PRIMARY_BUTTON =
   "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#1877f2] px-4 py-3 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(24,119,242,0.28)] transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:opacity-60";
@@ -370,10 +372,17 @@ function hasEditableSettings(kind: WorkflowNode["kind"]): boolean {
     "delay",
     "parallel_split",
     "cron_trigger",
+    "win_back_trigger",
+    "abandoned_checkout_trigger",
+    "first_purchase_trigger",
+    "funnel_complete",
     "send_email",
     "condition",
     "send_sms",
     "send_whatsapp",
+    "create_coupon",
+    "tag_customer",
+    "reviews",
   ].includes(kind);
 }
 
@@ -395,6 +404,12 @@ function buildConfigForNode(
     cronInterval: number;
     cronIntervalUnit: CronIntervalUnit;
     parallelBranches: { id: string; title: string }[];
+    tagName: string;
+    rewardName: string;
+    expirationNote: string;
+    reviewChannel: "email" | "sms";
+    reviewUrl: string;
+    inactiveDays: number;
   },
 ): Record<string, unknown> {
   switch (kind) {
@@ -409,6 +424,23 @@ function buildConfigForNode(
       }
       return {
         trigger: "cron",
+        frequency: values.cronFrequency,
+        time: values.cronTime,
+        dayOfWeek: values.cronDayOfWeek,
+      };
+    case "win_back_trigger":
+      if (values.cronFrequency === "interval") {
+        return {
+          trigger: "no_visit",
+          inactiveDays: Math.max(1, Math.min(values.inactiveDays || 30, 365)),
+          frequency: "interval",
+          interval: clampCronInterval(values.cronInterval),
+          unit: values.cronIntervalUnit,
+        };
+      }
+      return {
+        trigger: "no_visit",
+        inactiveDays: Math.max(1, Math.min(values.inactiveDays || 30, 365)),
         frequency: values.cronFrequency,
         time: values.cronTime,
         dayOfWeek: values.cronDayOfWeek,
@@ -455,6 +487,29 @@ function buildConfigForNode(
       };
     case "send_whatsapp":
       return { template: values.whatsappTemplate };
+    case "tag_customer":
+      return {
+        tag: values.tagName.trim().toLowerCase().replace(/\s+/g, "-") || "guest",
+        action: "tag",
+      };
+    case "create_coupon":
+      return {
+        rewardName: values.rewardName.trim() || "Return visit offer",
+        expirationNote: values.expirationNote.trim(),
+        subject: values.subject.trim(),
+        message: values.message.trim(),
+        ctaLabel: values.ctaLabel.trim() || "View offer",
+      };
+    case "reviews":
+      return {
+        action: "ask_review",
+        workflowKind: "ask_review",
+        channel: values.reviewChannel,
+        reviewUrl: values.reviewUrl.trim(),
+        subject: values.subject.trim(),
+        message: values.message.trim(),
+        ctaLabel: values.ctaLabel.trim() || "Leave a review",
+      };
     default:
       return {};
   }
@@ -725,6 +780,24 @@ function NodeSettingsForm({
   const [parallelBranches, setParallelBranches] = useState<
     { id: string; title: string }[]
   >(() => parseParallelBranchesFromConfig(config));
+  const [tagName, setTagName] = useState(() =>
+    configString(config, "tag", "abandoned-cart"),
+  );
+  const [rewardName, setRewardName] = useState(() =>
+    configString(config, "rewardName", "Return visit offer"),
+  );
+  const [expirationNote, setExpirationNote] = useState(() =>
+    configString(config, "expirationNote", configString(config, "expiration", "")),
+  );
+  const [reviewChannel, setReviewChannel] = useState<"email" | "sms">(() =>
+    configString(config, "channel", "email") === "sms" ? "sms" : "email",
+  );
+  const [reviewUrl, setReviewUrl] = useState(() =>
+    configString(config, "reviewUrl", ""),
+  );
+  const [inactiveDays, setInactiveDays] = useState(() =>
+    Math.max(1, Math.min(configNumber(config, "inactiveDays", 30), 365)),
+  );
 
   const configKey = JSON.stringify(node.config ?? {});
 
@@ -763,6 +836,18 @@ function NodeSettingsForm({
     setCronInterval(configCronIntervalValue(saved));
     setCronIntervalUnit(configCronIntervalUnit(saved));
     setParallelBranches(parseParallelBranchesFromConfig(saved));
+    setTagName(configString(saved, "tag", "abandoned-cart"));
+    setRewardName(configString(saved, "rewardName", "Return visit offer"));
+    setExpirationNote(
+      configString(saved, "expirationNote", configString(saved, "expiration", "")),
+    );
+    setReviewChannel(
+      configString(saved, "channel", "email") === "sms" ? "sms" : "email",
+    );
+    setReviewUrl(configString(saved, "reviewUrl", ""));
+    setInactiveDays(
+      Math.max(1, Math.min(configNumber(saved, "inactiveDays", 30), 365)),
+    );
   }, [node, configKey]);
 
   const cronPreview = formatCronScheduleSummary({
@@ -789,6 +874,12 @@ function NodeSettingsForm({
     cronInterval,
     cronIntervalUnit,
     parallelBranches,
+    tagName,
+    rewardName,
+    expirationNote,
+    reviewChannel,
+    reviewUrl,
+    inactiveDays,
   };
 
   const buildNextConfig = useCallback((): Record<string, unknown> => {
@@ -850,6 +941,12 @@ function NodeSettingsForm({
           cronInterval,
           cronIntervalUnit,
           parallelBranches,
+          tagName,
+          rewardName,
+          expirationNote,
+          reviewChannel,
+          reviewUrl,
+          inactiveDays,
         }),
         node.kind,
       );
@@ -873,6 +970,12 @@ function NodeSettingsForm({
         cronInterval,
         cronIntervalUnit,
         parallelBranches,
+        tagName,
+        rewardName,
+        expirationNote,
+        reviewChannel,
+        reviewUrl,
+        inactiveDays,
       }),
       node.kind,
     );
@@ -886,12 +989,18 @@ function NodeSettingsForm({
     cronTime,
     ctaLabel,
     delay,
+    expirationNote,
     filterRows,
+    inactiveDays,
     message,
     node,
     prepaidBundled,
     returnOfferEmail,
+    reviewChannel,
+    reviewUrl,
+    rewardName,
     subject,
+    tagName,
     template,
     unit,
     whatsappTemplate,
@@ -963,6 +1072,7 @@ function NodeSettingsForm({
   const scheduleWarning = useMemo(() => {
     if (
       node.kind !== "cron_trigger" &&
+      node.kind !== "win_back_trigger" &&
       node.kind !== "wait" &&
       node.kind !== "delay"
     ) {
@@ -985,6 +1095,12 @@ function NodeSettingsForm({
       cronInterval,
       cronIntervalUnit,
       parallelBranches,
+      tagName,
+      rewardName,
+      expirationNote,
+      reviewChannel,
+      reviewUrl,
+      inactiveDays,
     });
     const validation = validatePaymentReminderSchedule(nodes, automationPurpose, {
       nodeId: node.id,
@@ -1055,6 +1171,60 @@ function NodeSettingsForm({
           tone="orange"
         />
       ) : null}
+      {isTriggerBlockKind(node.kind) ? (
+        <SettingsSection
+          title={`Purpose · ${
+            node.kind === "cron_trigger"
+              ? purposeToDisplayLabel(
+                  automationPurpose,
+                  String(node.config?.trigger ?? "cron"),
+                )
+              : resolvePurposeMetaForTrigger(
+                  String(node.config?.trigger ?? node.kind),
+                ).label
+          }`}
+          description={
+            node.kind === "cron_trigger"
+              ? "Chosen when this Cron Job automation was created."
+              : resolvePurposeMetaForTrigger(
+                  String(node.config?.trigger ?? node.kind),
+                ).description
+          }
+        />
+      ) : null}
+      {node.kind === "abandoned_checkout_trigger" && (
+        <SettingsSection
+          title="Abandoned checkout"
+          description="Starts when a guest signs up / starts checkout. Add Wait + Still unpaid + SMS/Email after this to recover them. Edit those steps anytime."
+        >
+          <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm text-slate-600">
+            Tip: change the Wait delay and rewrite the recovery SMS/email to match
+            your business. Tag guest is optional for later targeting.
+          </p>
+        </SettingsSection>
+      )}
+      {node.kind === "first_purchase_trigger" && (
+        <SettingsSection
+          title="First purchase"
+          description="Starts only on a guest’s first paid purchase. Build welcome email/SMS after this and edit anytime."
+        >
+          <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm text-slate-600">
+            Tip: keep messages short and personal. Tagging helps you avoid
+            repeating the same welcome later.
+          </p>
+        </SettingsSection>
+      )}
+      {node.kind === "funnel_complete" && (
+        <SettingsSection
+          title="Funnel completed"
+          description="Starts when a guest finishes the funnel path. Add thank-you, review, or upsell steps after this."
+        >
+          <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm text-slate-600">
+            Tip: for Ask for review, paste a full HTTPS review link in that
+            step’s settings.
+          </p>
+        </SettingsSection>
+      )}
       {node.kind === "cron_trigger" && (
         <CronSettings
           frequency={cronFrequency}
@@ -1072,6 +1242,150 @@ function NodeSettingsForm({
           onIntervalChange={setCronInterval}
           onIntervalUnitChange={setCronIntervalUnit}
         />
+      )}
+      {node.kind === "win_back_trigger" && (
+        <SettingsSection
+          title="Win-back"
+          description="Finds guests who have not visited for a while, then runs on a schedule."
+        >
+          <FormField label="Inactive days">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={inactiveDays}
+              onChange={(e) =>
+                setInactiveDays(
+                  Math.max(1, Math.min(Number(e.target.value) || 30, 365)),
+                )
+              }
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+          <CronSettings
+            frequency={cronFrequency}
+            time={cronTime}
+            dayOfWeek={cronDayOfWeek}
+            interval={cronInterval}
+            intervalUnit={cronIntervalUnit}
+            summary={cronPreview}
+            scheduleWarning={scheduleWarning}
+            readOnly={readOnly}
+            onEditBlocked={onEditBlocked}
+            onFrequencyChange={setCronFrequency}
+            onTimeChange={setCronTime}
+            onDayOfWeekChange={setCronDayOfWeek}
+            onIntervalChange={setCronInterval}
+            onIntervalUnitChange={setCronIntervalUnit}
+          />
+        </SettingsSection>
+      )}
+      {node.kind === "tag_customer" && (
+        <SettingsSection
+          title="Tag guest"
+          description="Saves a label on the guest so later steps can target them. Does not send a message."
+        >
+          <FormField label="Tag name">
+            <input
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+              placeholder="abandoned-cart"
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+        </SettingsSection>
+      )}
+      {node.kind === "create_coupon" && (
+        <SettingsSection
+          title="Create coupon"
+          description="Creates / refreshes a guest coupon and emails the offer."
+        >
+          <FormField label="Offer name">
+            <input
+              value={rewardName}
+              onChange={(e) => setRewardName(e.target.value)}
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+          <FormField label="Expiration note">
+            <input
+              value={expirationNote}
+              onChange={(e) => setExpirationNote(e.target.value)}
+              placeholder="Expires in 7 days"
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+          <FormField label="Email subject">
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+          <FormField label="Email message">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className={textareaClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+        </SettingsSection>
+      )}
+      {node.kind === "reviews" && (
+        <SettingsSection
+          title="Ask for review"
+          description="Sends a review request over email or SMS. Review link must be HTTPS."
+        >
+          <FormField label="Channel">
+            <select
+              value={reviewChannel}
+              onChange={(e) =>
+                setReviewChannel(e.target.value === "sms" ? "sms" : "email")
+              }
+              className={inputClass()}
+              disabled={readOnly}
+              onFocus={readOnly ? () => onEditBlocked?.() : undefined}
+            >
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+            </select>
+          </FormField>
+          <FormField label="Review URL (HTTPS)">
+            <input
+              value={reviewUrl}
+              onChange={(e) => setReviewUrl(e.target.value)}
+              placeholder="https://..."
+              className={inputClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+          {reviewChannel === "email" ? (
+            <FormField label="Email subject">
+              <input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className={inputClass()}
+                {...lockedInputProps(readOnly, onEditBlocked)}
+              />
+            </FormField>
+          ) : null}
+          <FormField label="Message">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className={textareaClass()}
+              {...lockedInputProps(readOnly, onEditBlocked)}
+            />
+          </FormField>
+        </SettingsSection>
       )}
       {(node.kind === "wait" || node.kind === "delay") &&
         !isParallelSplitWorkflowNode(node) && (
@@ -1191,7 +1505,7 @@ function SettingsSection({
 }: {
   title?: string;
   description?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <section className="space-y-5">

@@ -21,16 +21,16 @@ export function DeleteAutomationDialog({
     <DeleteConfirmationDialog
       open={open}
       itemName={name}
-      title="Delete this automation?"
+      title={`Delete “${name}”?`}
       description={
         <>
-          Are you sure you want to delete{" "}
-          <span className="font-semibold text-[#1877f2]">{name}</span>? This
-          cannot be undone.
+          This permanently removes{" "}
+          <span className="font-semibold text-[#1877f2]">{name}</span> and its
+          flow. You can’t undo this.
         </>
       }
       confirmText="Delete automation"
-      checkboxLabel={`Are you sure you want to delete ${name}?`}
+      checkboxLabel={`Yes, delete “${name}”`}
       isLoading={isDeleting}
       onCancel={onCancel}
       onConfirm={onConfirm}

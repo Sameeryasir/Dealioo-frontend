@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertTriangle, type LucideIcon } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { AlertTriangle, Check, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
@@ -19,12 +18,15 @@ export type ConfirmDialogTone = "danger" | "warning" | "primary";
 const toneMeta = {
   danger: {
     eyebrow: "Access change",
+    iconWrap: "border-red-200/80 bg-red-50 text-red-500",
   },
   warning: {
     eyebrow: "Please confirm",
+    iconWrap: "border-amber-200/80 bg-amber-50 text-amber-700",
   },
   primary: {
     eyebrow: "Confirm action",
+    iconWrap: "border-[#dbe7f8] bg-[#eff6ff] text-[#1877f2]",
   },
 } as const;
 
@@ -36,7 +38,7 @@ export function ConfirmDialog({
   icon: Icon = AlertTriangle,
   tone = "danger",
   zIndex = 60,
-  panelClassName = "max-w-[38rem]",
+  panelClassName = "",
   cancelLabel = "Cancel",
   confirmLabel = "Delete",
   loadingLabel,
@@ -65,6 +67,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   autoFocusCancel?: boolean;
 }) {
+  const checkboxId = useId();
   const [checkboxChecked, setCheckboxChecked] = useState(false);
   const meta = toneMeta[tone];
 
@@ -85,45 +88,56 @@ export function ConfirmDialog({
     >
       <AlertDialogContent
         style={{ zIndex }}
-        className={`max-w-[min(100%,38rem)] gap-0 p-0 sm:max-w-[min(100%,38rem)] ${panelClassName}`}
+        className={`max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem] ${panelClassName}`}
       >
-        <AlertDialogHeader className="place-items-start gap-3 p-5 text-left sm:p-6">
-          <AlertDialogMedia className="mb-0 size-11 rounded-xl border border-amber-200/80 bg-amber-50 text-amber-800">
-            <Icon className="size-5" strokeWidth={2.25} />
-          </AlertDialogMedia>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-400">
-              {meta.eyebrow}
-            </p>
-            <AlertDialogTitle className="mt-1 text-base font-semibold text-zinc-900">
-              {title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-1.5 text-sm text-zinc-600">
-              {description}
-            </AlertDialogDescription>
+        <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
+          <div
+            className={`mb-5 flex size-11 items-center justify-center rounded-2xl border ${meta.iconWrap}`}
+          >
+            <Icon className="size-5" strokeWidth={2.25} aria-hidden />
+          </div>
 
-            {needsCheckbox ? (
-              <label className="mt-4 flex cursor-pointer items-center gap-3">
+          <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            {meta.eyebrow}
+          </p>
+          <AlertDialogTitle className="mt-1.5 text-lg font-semibold tracking-tight text-[#07111f]">
+            {title}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+            {description}
+          </AlertDialogDescription>
+
+          {needsCheckbox ? (
+            <label
+              htmlFor={checkboxId}
+              className="mt-5 flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-[#e8edf5] bg-[#f8fafc] px-4 py-3.5 transition hover:border-[#dbe7f8] hover:bg-[#f4f8ff]"
+            >
+              <span className="relative mt-0.5 flex size-5 shrink-0 items-center justify-center">
                 <input
+                  id={checkboxId}
                   type="checkbox"
                   checked={checkboxChecked}
                   disabled={isLoading}
                   onChange={(e) => setCheckboxChecked(e.target.checked)}
-                  className="size-4 rounded border-zinc-300 text-[#1877f2] focus:ring-[#1877f2]/30"
+                  className="peer absolute inset-0 size-5 cursor-pointer opacity-0 disabled:cursor-not-allowed"
                 />
-                <span className="text-sm font-semibold text-zinc-900">
-                  {confirmCheckbox.label}
+                <span className="flex size-5 items-center justify-center rounded-md border-2 border-slate-300 bg-white text-transparent transition peer-checked:border-[#1877f2] peer-checked:bg-[#1877f2] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#1877f2]/30 peer-disabled:opacity-50">
+                  <Check className="size-3" strokeWidth={3} aria-hidden />
                 </span>
-              </label>
-            ) : null}
-          </div>
+              </span>
+              <span className="min-w-0 flex-1 text-sm font-medium leading-5 text-slate-700">
+                {confirmCheckbox.label}
+              </span>
+            </label>
+          ) : null}
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="border-t border-zinc-100 bg-zinc-50/80">
+        <AlertDialogFooter className="gap-2 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:px-7">
           <AlertDialogCancel
             disabled={isLoading}
             autoFocus={autoFocusCancel}
             onClick={onCancel}
+            className="h-10 rounded-xl"
           >
             {cancelLabel}
           </AlertDialogCancel>
@@ -131,6 +145,7 @@ export function ConfirmDialog({
             disabled={confirmBlocked}
             variant={tone === "danger" ? "destructive" : "default"}
             onClick={onConfirm}
+            className="h-10 min-w-[8rem] rounded-xl"
           >
             {isLoading ? (loadingLabel ?? `${confirmLabel}…`) : confirmLabel}
           </AlertDialogAction>

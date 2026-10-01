@@ -20,6 +20,8 @@ import {
   Pencil,
   RotateCcw,
   Send,
+  ShoppingCart,
+  Sparkles,
   Trash2,
   UserPlus,
   X,
@@ -118,6 +120,14 @@ function triggerIcon(node: WorkflowNode): LucideIcon {
       return CalendarClock;
     case "payment_trigger":
       return CreditCard;
+    case "abandoned_checkout_trigger":
+      return ShoppingCart;
+    case "first_purchase_trigger":
+      return Sparkles;
+    case "funnel_complete":
+      return GitBranch;
+    case "win_back_trigger":
+      return RotateCcw;
     default:
       return UserPlus;
   }
@@ -131,8 +141,14 @@ function triggerDisplayTitle(node: WorkflowNode): string {
       return "Payment Trigger";
     case "signup_trigger":
       return "Signup";
+    case "abandoned_checkout_trigger":
+      return "Abandoned checkout";
+    case "first_purchase_trigger":
+      return "First purchase";
     case "funnel_complete":
-      return "Funnel Complete";
+      return "Funnel completed";
+    case "win_back_trigger":
+      return "Win-back";
     default:
       return getTriggerTitle(node);
   }
@@ -148,6 +164,23 @@ function triggerDisplayBody(node: WorkflowNode): string {
       return `${schedule}. Runs the custom flow you built.`;
     }
     return `${schedule}. Checks unpaid guests, then continues the flow.`;
+  }
+  if (node.kind === "win_back_trigger") {
+    const days = Number(node.config?.inactiveDays ?? 30);
+    const schedule = formatCronScheduleSummary({
+      ...node.config,
+      trigger: "cron",
+    });
+    return `Guests with no visit for ${Number.isFinite(days) ? days : 30} days. ${schedule}.`;
+  }
+  if (node.kind === "abandoned_checkout_trigger") {
+    return "Starts when a guest signs up / starts checkout but has not paid.";
+  }
+  if (node.kind === "first_purchase_trigger") {
+    return "Starts on a guest's first paid purchase for this funnel.";
+  }
+  if (node.kind === "funnel_complete") {
+    return "Starts when a guest completes the funnel path (signup or paid).";
   }
   return getTriggerDescription(node);
 }

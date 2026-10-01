@@ -10,7 +10,10 @@ import {
 const TRIGGER_NODE_KINDS = new Set<WorkflowNodeKind>([
   "signup_trigger",
   "payment_trigger",
+  "abandoned_checkout_trigger",
+  "first_purchase_trigger",
   "funnel_complete",
+  "win_back_trigger",
   "cron_trigger",
 ]);
 

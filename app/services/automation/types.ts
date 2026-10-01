@@ -25,7 +25,18 @@ export const AUTOMATION_PURPOSE_OPTIONS: {
     label: "Prepaid / paid guests",
     description: "Target guests who already completed payment.",
   },
+  {
+    value: "funnel_abandoned_checkout_reminder",
+    label: "Abandoned checkout",
+    description: "Recover guests who started checkout but did not pay.",
+  },
 ];
+
+export const CRON_AUTOMATION_PURPOSE_OPTIONS = AUTOMATION_PURPOSE_OPTIONS.filter(
+  (option) =>
+    option.value === "funnel_signup_payment_reminder" ||
+    option.value === "funnel_signup",
+);
 
 export type AutomationStatusResponse = {
   id: number;
@@ -77,6 +88,8 @@ export interface CreateAutomationBody {
 export interface UpdateAutomationBody {
   name?: string;
   description?: string;
+  trigger?: string;
+  purpose?: AutomationPurpose;
   isActive?: boolean;
   published?: boolean;
 }

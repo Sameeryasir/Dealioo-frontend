@@ -229,7 +229,11 @@ export function AutomationListPage({
   businessId?: number;
   campaignId?: number;
   funnelId?: number | null;
-  onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
+  onOpenBuilder?: (
+    automationId: string,
+    bootstrapping?: boolean,
+    showGuide?: boolean,
+  ) => void;
   embedded?: boolean;
 } = {}) {
   const route = useAutomationRouteContext();
@@ -337,9 +341,9 @@ export function AutomationListPage({
   }, [canCreateAutomation, createContextInput]);
 
   const openBuilderAfterCreate = useCallback(
-    (automationId: string, bootstrapping = false) => {
+    (automationId: string, bootstrapping = false, showGuide = false) => {
       if (onOpenBuilder) {
-        onOpenBuilder(automationId, bootstrapping);
+        onOpenBuilder(automationId, bootstrapping, showGuide);
         return;
       }
 
@@ -356,6 +360,9 @@ export function AutomationListPage({
       }
       if (bootstrapping) {
         params.set("bootstrapping", "1");
+      }
+      if (showGuide) {
+        params.set("guide", "1");
       }
 
       const query = params.toString();
@@ -415,7 +422,7 @@ export function AutomationListPage({
             syncAutomationQueryCache(queryClient, created);
 
             if (template) {
-              openBuilderAfterCreate(String(created.id), true);
+              openBuilderAfterCreate(String(created.id), true, true);
               void applyAutomationTemplate(created.id, template)
                 .then((withGraph) => {
                   syncAutomationQueryCache(queryClient, withGraph);
@@ -446,7 +453,7 @@ export function AutomationListPage({
                   "Automation was created, but the trigger step could not be added.",
                 );
               }
-              openBuilderAfterCreate(String(created.id), false);
+              openBuilderAfterCreate(String(created.id), false, true);
               toast.success("Automation created.");
             }
           } catch (err) {
@@ -685,7 +692,11 @@ function AutomationsTableSection({
 }: {
   rows: AutomationListItem[];
   builderHref: (row: AutomationListItem) => string;
-  onOpenBuilder?: (automationId: string, bootstrapping?: boolean) => void;
+  onOpenBuilder?: (
+    automationId: string,
+    bootstrapping?: boolean,
+    showGuide?: boolean,
+  ) => void;
   onEditDetails?: (row: AutomationListItem) => void;
   onDelete?: (row: AutomationListItem) => void;
 }) {

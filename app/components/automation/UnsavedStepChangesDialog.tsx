@@ -9,7 +9,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -42,32 +41,28 @@ export function UnsavedStepChangesDialog({
     >
       <AlertDialogContent
         style={{ zIndex: 70 }}
-        className="max-w-[26rem] gap-0 overflow-hidden p-0 sm:max-w-[26rem]"
+        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem]"
       >
-        <div className="h-0.5 bg-amber-500" aria-hidden />
-
-        <AlertDialogHeader className="place-items-start gap-4 p-5 text-left sm:px-6 sm:pt-5 sm:pb-4">
-          <AlertDialogMedia className="mb-0 size-11 rounded-xl border border-amber-200/80 bg-amber-50 text-amber-800">
-            <AlertTriangle className="size-5" strokeWidth={2} />
-          </AlertDialogMedia>
-          <div className="min-w-0 flex-1">
-            <AlertDialogTitle className="text-base font-semibold text-zinc-900">
-              Unsaved step changes
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-              You edited{" "}
-              <span className="font-medium text-zinc-700">{label}</span> but did
-              not save. Discard those edits or activate the automation to save
-              everything and turn it on.
-            </AlertDialogDescription>
+        <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
+          <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-amber-200/80 bg-amber-50 text-amber-700">
+            <AlertTriangle className="size-5" strokeWidth={2.25} aria-hidden />
           </div>
+          <AlertDialogTitle className="text-lg font-semibold tracking-tight text-[#07111f]">
+            Unsaved step changes
+          </AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+            You edited{" "}
+            <span className="font-semibold text-[#1877f2]">{label}</span> but
+            didn’t save. Discard those edits, or activate to save everything and
+            turn the automation on.
+          </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="flex-col gap-2 border-t border-zinc-100 bg-zinc-50/50 sm:flex-col">
+        <AlertDialogFooter className="flex-col gap-2 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:flex-col sm:px-7">
           <AlertDialogAction
             disabled={isLoading}
             onClick={onActivate}
-            className="h-10 w-full rounded-lg bg-zinc-900 text-white hover:bg-black"
+            className="h-10 w-full rounded-xl bg-[#07111f] text-white hover:bg-black"
           >
             {isLoading ? "Activating…" : "Activate automation"}
           </AlertDialogAction>
@@ -76,7 +71,7 @@ export function UnsavedStepChangesDialog({
               disabled={isLoading}
               autoFocus
               onClick={onKeepEditing}
-              className="h-10 sm:min-w-[6.5rem]"
+              className="h-10 rounded-xl sm:min-w-[7rem]"
             >
               Keep editing
             </AlertDialogCancel>
@@ -85,7 +80,7 @@ export function UnsavedStepChangesDialog({
               variant="outline"
               disabled={isLoading}
               onClick={onDiscard}
-              className="h-10 sm:min-w-[6.5rem]"
+              className="h-10 rounded-xl sm:min-w-[7rem]"
             >
               Discard changes
             </Button>
