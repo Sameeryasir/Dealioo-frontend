@@ -33,8 +33,9 @@ export function ActivateFlowPromptDialog({
       }}
     >
       <AlertDialogContent
+        size="sm"
         style={{ zIndex: 70 }}
-        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem]"
+        className="gap-0 overflow-hidden p-0"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
           <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-amber-200/80 bg-amber-50 text-amber-700">

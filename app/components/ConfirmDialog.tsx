@@ -1,7 +1,13 @@
 "use client";
 
+/**
+ * Change: dialog width is dynamic (sm/md/lg) from content, with optional size override.
+ * Why: shared confirm panels used one width for every message and looked uneven.
+ * Related: app/lib/dialog-panel-size.ts, DeleteConfirmationDialog.tsx
+ */
+
 import { AlertTriangle, Check, type LucideIcon } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +18,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DIALOG_PANEL_ALERT_SIZE,
+  reactNodeToPlainText,
+  resolveDialogPanelSize,
+  type DialogPanelSizeProp,
+} from "@/app/lib/dialog-panel-size";
 
 export type ConfirmDialogTone = "danger" | "warning" | "primary";
 
@@ -37,6 +49,7 @@ export function ConfirmDialog({
   description,
   icon: Icon = AlertTriangle,
   tone = "danger",
+  size = "auto",
   zIndex = 60,
   panelClassName = "",
   cancelLabel = "Cancel",
@@ -55,6 +68,8 @@ export function ConfirmDialog({
   description: ReactNode;
   tone?: ConfirmDialogTone;
   icon?: LucideIcon;
+  /** Override auto width: sm | md | lg | auto (from content). */
+  size?: DialogPanelSizeProp;
   zIndex?: number;
   panelClassName?: string;
   cancelLabel?: string;
@@ -79,6 +94,16 @@ export function ConfirmDialog({
   const confirmBlocked =
     confirmDisabled || isLoading || (needsCheckbox && !checkboxChecked);
 
+  const alertSize = useMemo(() => {
+    const contentText = [
+      title,
+      reactNodeToPlainText(description),
+      confirmCheckbox?.label ?? "",
+      confirmLabel,
+    ].join(" ");
+    return DIALOG_PANEL_ALERT_SIZE[resolveDialogPanelSize(size, contentText)];
+  }, [size, title, description, confirmCheckbox?.label, confirmLabel]);
+
   return (
     <AlertDialog
       open={open}
@@ -87,8 +112,9 @@ export function ConfirmDialog({
       }}
     >
       <AlertDialogContent
+        size={alertSize}
         style={{ zIndex }}
-        className={`max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem] ${panelClassName}`}
+        className={`gap-0 overflow-hidden p-0 ${panelClassName}`}
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
           <div

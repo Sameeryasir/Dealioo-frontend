@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
+import { useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DIALOG_PANEL_ALERT_SIZE,
+  resolveDialogPanelSize,
+} from "@/app/lib/dialog-panel-size";
 
 export function OverviewAlertDialog({
   open,
@@ -20,6 +25,14 @@ export function OverviewAlertDialog({
   message: string;
   onClose: () => void;
 }) {
+  const alertSize = useMemo(
+    () =>
+      DIALOG_PANEL_ALERT_SIZE[
+        resolveDialogPanelSize("auto", `Something went wrong ${message}`)
+      ],
+    [message],
+  );
+
   return (
     <AlertDialog
       open={open}
@@ -28,8 +41,9 @@ export function OverviewAlertDialog({
       }}
     >
       <AlertDialogContent
+        size={alertSize}
         style={{ zIndex: 70 }}
-        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem]"
+        className="gap-0 overflow-hidden p-0"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
           <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">

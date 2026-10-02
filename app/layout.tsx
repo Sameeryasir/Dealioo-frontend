@@ -8,9 +8,15 @@ import { StoreProvider } from "@/app/store/StoreProvider";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Poppins } from "next/font/google";
-import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
+
+/**
+ * Change: removed next/script beforeInteractive Meta Pixel from RootLayout.
+ * Why: beforeInteractive was tied to the layout chunk and caused ChunkLoadError
+ * timeouts in dev (Fast Refresh). ProductMetaPixel + ensureProductMetaPixel()
+ * already load/init the pixel safely after hydration.
+ */
 
 const productMetaPixelId =
   process.env.NEXT_PUBLIC_RP_META_PIXEL_ID?.trim() ?? "";
@@ -79,20 +85,6 @@ export default function RootLayout({
         className={`${poppins.className} min-h-full flex flex-col antialiased`}
         suppressHydrationWarning
       >
-        {productMetaPixelId ? (
-          <Script id="rp-product-meta-pixel" strategy="beforeInteractive">
-            {`
-              !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-              n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-              document,'script','https://connect.facebook.net/en_US/fbevents.js');
-              fbq('set', 'autoConfig', false, '${productMetaPixelId}');
-              fbq('init', '${productMetaPixelId}');
-              window.__rpProductMetaPixelInitialized = '${productMetaPixelId}';
-            `}
-          </Script>
-        ) : null}
         <StoreProvider>
           <QueryProvider>
             <AuthProvider>

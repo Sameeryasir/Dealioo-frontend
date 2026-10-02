@@ -1290,6 +1290,7 @@ export function BusinessIntegrationsPanel({
             </>
           )
         }
+        size={disconnectTarget === "twilio" ? "lg" : "auto"}
         confirmText={
           disconnectTarget === "stripe"
             ? "Remove Stripe"

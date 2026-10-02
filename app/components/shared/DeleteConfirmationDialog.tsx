@@ -1,7 +1,13 @@
 "use client";
 
+/**
+ * Change: dialog width is dynamic (sm/md/lg) from content, with optional size override.
+ * Why: a single 42rem width made short deletes look stretched and long ones cramped.
+ * Related: app/lib/dialog-panel-size.ts, ConfirmDialog.tsx
+ */
+
 import { AlertTriangle, Check, Loader2, Trash2 } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +18,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DIALOG_PANEL_ALERT_SIZE,
+  reactNodeToPlainText,
+  resolveDialogPanelSize,
+  type DialogPanelSizeProp,
+} from "@/app/lib/dialog-panel-size";
 
 const DEFAULT_DESCRIPTION =
   "This can’t be undone. Once deleted, it is permanently removed.";
@@ -23,6 +35,8 @@ export type DeleteConfirmationDialogProps = {
   description?: ReactNode;
   confirmText?: string;
   checkboxLabel?: string;
+  /** Override auto width: sm (compact), md (default), lg (long copy), auto (from content). */
+  size?: DialogPanelSizeProp;
   isLoading?: boolean;
   zIndex?: number;
   onConfirm: () => void;
@@ -36,6 +50,7 @@ export function DeleteConfirmationDialog({
   description,
   confirmText = "Delete",
   checkboxLabel,
+  size = "auto",
   isLoading = false,
   zIndex = 60,
   onConfirm,
@@ -57,6 +72,23 @@ export function DeleteConfirmationDialog({
     checkboxLabel ?? `Yes, delete “${displayName}”`;
   const canDelete = confirmed && !isLoading;
 
+  // --- Dynamic panel width from title + body + checkbox copy ---
+  const alertSize = useMemo(() => {
+    const contentText = [
+      resolvedTitle,
+      reactNodeToPlainText(resolvedDescription),
+      resolvedCheckboxLabel,
+      confirmText,
+    ].join(" ");
+    return DIALOG_PANEL_ALERT_SIZE[resolveDialogPanelSize(size, contentText)];
+  }, [
+    size,
+    resolvedTitle,
+    resolvedDescription,
+    resolvedCheckboxLabel,
+    confirmText,
+  ]);
+
   useEffect(() => {
     if (!open) {
       setConfirmed(false);
@@ -73,8 +105,9 @@ export function DeleteConfirmationDialog({
       }}
     >
       <AlertDialogContent
+        size={alertSize}
         style={{ zIndex }}
-        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[42rem]"
+        className="gap-0 overflow-hidden p-0"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
           <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">

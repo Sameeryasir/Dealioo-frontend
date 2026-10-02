@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Change: call ensureProductMetaPixel on mount.
+ * Why: layout no longer injects beforeInteractive Script (that caused ChunkLoadError);
+ * pixel must still load after hydration for tracking.
+ */
+
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -9,6 +15,7 @@ import {
 import { captureFbclidFromUrl } from "@/app/lib/product-meta-attribution";
 import {
   clearProductMetaLandingPageViewGuard,
+  ensureProductMetaPixel,
   stripLandingSectionHashFromUrl,
   trackProductMetaLandingPageViewOnce,
 } from "@/app/lib/product-meta-pixel";
@@ -21,6 +28,11 @@ export function ProductMetaPixel() {
   const skipAttributionSync =
     Boolean(pathname?.startsWith("/business/")) ||
     Boolean(pathname?.startsWith("/dashboard"));
+
+  // --- Load Meta pixel after hydration (avoids layout ChunkLoadError from beforeInteractive) ---
+  useEffect(() => {
+    ensureProductMetaPixel();
+  }, []);
 
   useEffect(() => {
     if (!hasAuthSession()) {
