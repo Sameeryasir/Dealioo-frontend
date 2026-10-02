@@ -74,7 +74,7 @@ export function DeleteConfirmationDialog({
     >
       <AlertDialogContent
         style={{ zIndex }}
-        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[32rem]"
+        className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[42rem]"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
           <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">

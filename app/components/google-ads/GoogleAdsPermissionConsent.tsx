@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Google Ads permission consent UI shown during connect.
- * What: lists the Google OAuth permissions Dealioo will request.
- * Why: users should see the same “See, edit, create, and delete…” wording before Google opens.
- * Related: RegisterBusinessGoogleConnectStep, GoogleConnectPermissionsModal, google-ads-permissions.ts
- * MCP context 7: clear consent copy, no optional scopes (backend always requests these).
- */
-
 import { Shield } from "lucide-react";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
@@ -26,37 +18,39 @@ export function GoogleAdsPermissionConsent({
 
   if (compact) {
     return (
-      <div className="space-y-2.5 sm:space-y-3">
-        <p className="m-0 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+      <div className="space-y-3.5">
+        <p className="m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
           Permissions Google will ask for
         </p>
-        <ul className="m-0 list-none space-y-2 p-0 sm:space-y-2.5" role="list">
+        <ul className="m-0 list-none space-y-3 p-0" role="list">
           {GOOGLE_ADS_PERMISSION_OPTIONS.map((opt) => (
             <li key={opt.id}>
               <div
-                className={`flex items-start gap-2.5 rounded-xl border border-[#ceead6] bg-[#F6FBF8] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5 ${
+                className={`rounded-2xl border border-[#e8edf5] bg-[#fbfcfe] px-4 py-4 transition ${
                   disabled ? "opacity-60" : ""
                 }`}
               >
-                <span
-                  className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-[#E6F4EA] text-[#188038]"
-                  aria-hidden
-                >
-                  <GoogleAdsLogo className="size-3" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold leading-snug text-slate-900 sm:text-[15px]">
-                    {opt.title}
+                <div className="flex items-start gap-3.5">
+                  <span
+                    className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white"
+                    aria-hidden
+                  >
+                    <GoogleAdsLogo className="size-4" />
                   </span>
-                  <span className="mt-1 block text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
-                    {opt.description}
-                  </span>
-                  {opt.required ? (
-                    <span className="mt-1.5 inline-flex rounded-full bg-[#E6F4EA] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#137333]">
-                      Required
-                    </span>
-                  ) : null}
-                </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 text-[0.9375rem] font-semibold leading-snug text-[#07111f]">
+                      {opt.title}
+                    </p>
+                    <p className="m-0 mt-1.5 text-[0.8125rem] leading-relaxed text-slate-500">
+                      {opt.description}
+                    </p>
+                    {opt.required ? (
+                      <span className="mt-3 inline-flex rounded-md border border-[#ceead6] bg-[#f0faf3] px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.06em] text-[#137333]">
+                        Required
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </li>
           ))}
@@ -66,19 +60,19 @@ export function GoogleAdsPermissionConsent({
   }
 
   return (
-    <div className="space-y-3.5">
-      <div className="space-y-1.5">
-        <p className="m-0 text-[16px] font-bold leading-snug text-[#1c1e21]">
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="m-0 text-[1rem] font-extrabold tracking-tight text-[#07111f]">
           Google Ads permissions
         </p>
         <div className="flex items-start gap-2.5">
           <Shield
-            className="mt-0.5 size-[18px] shrink-0 text-[#1a73e8]"
+            className="mt-0.5 size-[18px] shrink-0 text-[#188038]"
             strokeWidth={2}
             aria-hidden
           />
           <div className="min-w-0 space-y-1">
-            <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] leading-snug text-[#1c1e21]">
+            <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.875rem] leading-snug text-[#07111f]">
               <DealiooLogo
                 src="/black-logo.png"
                 className="inline-block h-[15px] w-auto"
@@ -87,7 +81,7 @@ export function GoogleAdsPermissionConsent({
               />
               <span>will ask Google for these permissions:</span>
             </p>
-            <p className="m-0 text-[13px] leading-snug text-[#65676b]">
+            <p className="m-0 text-[0.8125rem] leading-snug text-slate-500">
               You will see the same list on Google&apos;s consent screen. You
               can disconnect anytime in Settings → Integrations.
             </p>
@@ -95,26 +89,26 @@ export function GoogleAdsPermissionConsent({
         </div>
       </div>
 
-      <ul className="m-0 list-none space-y-2.5 p-0" role="list">
+      <ul className="m-0 list-none space-y-3 p-0" role="list">
         {GOOGLE_ADS_PERMISSION_OPTIONS.map((opt) => (
           <li key={opt.id}>
-            <div className="rounded-xl border border-[#34A853]/35 bg-[#F6FBF8] shadow-[0_0_0_1px_rgba(52,168,83,0.08)]">
-              <div className="flex items-start gap-3 px-3.5 py-3.5">
+            <div className="rounded-2xl border border-[#e8edf5] bg-[#fbfcfe]">
+              <div className="flex items-start gap-3.5 px-4 py-4">
                 <span
-                  className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-[#ceead6]"
+                  className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#e8edf5] bg-white"
                   aria-hidden
                 >
                   <GoogleAdsLogo className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[15px] font-semibold leading-snug text-[#1c1e21]">
+                  <p className="m-0 text-[0.9375rem] font-semibold leading-snug text-[#07111f]">
                     {opt.title}
                   </p>
-                  <p className="m-0 mt-0.5 text-[13px] leading-snug text-[#65676b]">
+                  <p className="m-0 mt-1.5 text-[0.8125rem] leading-relaxed text-slate-500">
                     {opt.description}
                   </p>
                   {opt.required ? (
-                    <span className="mt-2 inline-flex rounded-full bg-[#E6F4EA] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#137333]">
+                    <span className="mt-3 inline-flex rounded-md border border-[#ceead6] bg-[#f0faf3] px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.06em] text-[#137333]">
                       Required
                     </span>
                   ) : null}
