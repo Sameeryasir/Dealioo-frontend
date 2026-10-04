@@ -29,7 +29,11 @@ import {
   Megaphone,
   MoreHorizontal,
   MousePointerClick,
+  Pause,
+  Pencil,
+  Play,
   Plus,
+  SlidersHorizontal,
   RefreshCw,
   Search,
   Target,
@@ -70,8 +74,24 @@ type MetaAdsAnalyticsDashboardProps = {
   canCreateCampaign?: boolean;
   onRefresh: () => void;
   onDeleteCampaign: (campaign: FacebookAdCampaign) => void;
+  onToggleCampaignStatus?: (
+    campaign: FacebookAdCampaign,
+    status: "ACTIVE" | "PAUSED",
+  ) => void;
+  onEditCampaign?: (
+    campaign: FacebookAdCampaign,
+    updates: {
+      name: string;
+      status: "ACTIVE" | "PAUSED";
+      dailyBudget: number;
+    },
+  ) => void;
+  onOpenInBuilder?: (campaign: FacebookAdCampaign) => void;
   canDeleteCampaign?: boolean;
+  canManageCampaign?: boolean;
   deletingCampaignId: string | null;
+  statusUpdatingId?: string | null;
+  editingCampaignId?: string | null;
   errorMessage?: string | null;
   campaignSearch: string;
   onCampaignSearchChange: (query: string) => void;
@@ -186,6 +206,22 @@ function statusBadgeClass(status: string | null | undefined): string {
     return "bg-amber-50 text-amber-800 ring-amber-200";
   }
   return "bg-slate-50 text-slate-700 ring-slate-200";
+}
+
+function isMetaCampaignActive(status: string | null | undefined): boolean {
+  const normalized = status?.toUpperCase() ?? "";
+  return normalized === "ACTIVE" || normalized === "ENABLED";
+}
+
+function isMetaCampaignPaused(status: string | null | undefined): boolean {
+  const normalized = status?.toUpperCase() ?? "";
+  return normalized === "PAUSED" || normalized.includes("PAUSED");
+}
+
+function metaDailyBudgetDollars(raw: string | null | undefined): string {
+  const n = Number.parseInt(raw ?? "", 10);
+  if (!Number.isFinite(n) || n <= 0) return "20";
+  return (n / 100).toFixed(n % 100 === 0 ? 0 : 2);
 }
 
 function formatDayLabel(isoDate: string): string {
@@ -372,8 +408,14 @@ export function MetaAdsAnalyticsDashboard({
   canCreateCampaign = true,
   onRefresh,
   onDeleteCampaign,
+  onToggleCampaignStatus,
+  onEditCampaign,
+  onOpenInBuilder,
   canDeleteCampaign = true,
+  canManageCampaign = true,
   deletingCampaignId,
+  statusUpdatingId = null,
+  editingCampaignId = null,
   errorMessage,
   campaignSearch,
   onCampaignSearchChange,
@@ -392,6 +434,12 @@ export function MetaAdsAnalyticsDashboard({
   const didAutoSelectFirstRef = useRef(false);
   const userClearedSelectionRef = useRef(false);
   const bootstrapping = Boolean(insightsLoading && campaigns.length === 0);
+  const [editCampaign, setEditCampaign] = useState<FacebookAdCampaign | null>(
+    null,
+  );
+  const [editName, setEditName] = useState("");
+  const [editStatus, setEditStatus] = useState<"ACTIVE" | "PAUSED">("PAUSED");
+  const [editBudget, setEditBudget] = useState("");
 
   const selectedCampaign = useMemo(() => {
     if (!selectedCampaignId) return null;
@@ -1128,6 +1176,79 @@ export function MetaAdsAnalyticsDashboard({
                       </td>
                       <td className="border-b border-[#f1f5f9] py-3">
                         <div className="flex items-center justify-end gap-1">
+                          {canManageCampaign &&
+                          onToggleCampaignStatus &&
+                          (isMetaCampaignActive(c.effectiveStatus) ||
+                            isMetaCampaignPaused(c.effectiveStatus)) ? (
+                            <button
+                              type="button"
+                              title={
+                                isMetaCampaignActive(c.effectiveStatus)
+                                  ? "Pause campaign"
+                                  : "Enable campaign"
+                              }
+                              disabled={
+                                deletingCampaignId === c.id ||
+                                statusUpdatingId === c.id ||
+                                editingCampaignId === c.id
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleCampaignStatus(
+                                  c,
+                                  isMetaCampaignActive(c.effectiveStatus)
+                                    ? "PAUSED"
+                                    : "ACTIVE",
+                                );
+                              }}
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                            >
+                              {statusUpdatingId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : isMetaCampaignActive(c.effectiveStatus) ? (
+                                <Pause className="size-4" aria-hidden />
+                              ) : (
+                                <Play className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canManageCampaign && onEditCampaign ? (
+                            <button
+                              type="button"
+                              title="Edit published campaign"
+                              disabled={
+                                deletingCampaignId === c.id ||
+                                statusUpdatingId === c.id ||
+                                editingCampaignId === c.id
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditCampaign(c);
+                                setEditName(c.name?.trim() || "");
+                                setEditStatus(
+                                  isMetaCampaignActive(c.effectiveStatus)
+                                    ? "ACTIVE"
+                                    : "PAUSED",
+                                );
+                                setEditBudget(
+                                  metaDailyBudgetDollars(c.dailyBudget),
+                                );
+                              }}
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                            >
+                              {editingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Pencil className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
                           {canDeleteCampaign &&
                           c.effectiveStatus?.toUpperCase() !== "ACTIVE" ? (
                             <button
@@ -1379,6 +1500,122 @@ export function MetaAdsAnalyticsDashboard({
           </Panel>
         </div>
       </div>
+
+      {editCampaign && onEditCampaign ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="meta-ads-edit-title"
+          onClick={() => {
+            if (editingCampaignId == null) setEditCampaign(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              id="meta-ads-edit-title"
+              className="text-base font-bold text-[#07111f]"
+            >
+              Edit published campaign
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Change name, status, or budget here. Open the builder for
+              targeting, creative, and the rest of the ad.
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Campaign name
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+                autoFocus
+              />
+            </label>
+
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Status
+              <select
+                value={editStatus}
+                onChange={(e) =>
+                  setEditStatus(e.target.value as "ACTIVE" | "PAUSED")
+                }
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] bg-white px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+              >
+                <option value="ACTIVE">Enabled (running)</option>
+                <option value="PAUSED">Paused</option>
+              </select>
+            </label>
+
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Daily budget {currency ? `(${currency})` : ""}
+              <input
+                type="number"
+                min={1}
+                step="0.01"
+                value={editBudget}
+                onChange={(e) => setEditBudget(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+              />
+            </label>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {onOpenInBuilder ? (
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => {
+                    const campaign = editCampaign;
+                    setEditCampaign(null);
+                    onOpenInBuilder(campaign);
+                  }}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] hover:bg-[#f8fbff] disabled:opacity-50"
+                >
+                  <SlidersHorizontal className="size-4" aria-hidden />
+                  Edit in builder
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={editingCampaignId != null}
+                onClick={() => setEditCampaign(null)}
+                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={editingCampaignId != null}
+                onClick={() => {
+                  const name = editName.trim();
+                  const amount = Number.parseFloat(editBudget);
+                  if (!name || !Number.isFinite(amount) || amount < 1) return;
+                  onEditCampaign(editCampaign, {
+                    name,
+                    status: editStatus,
+                    dailyBudget: amount,
+                  });
+                  setEditCampaign(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:opacity-50"
+              >
+                {editingCampaignId === editCampaign.id ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : null}
+                Save changes
+              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

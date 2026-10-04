@@ -21,6 +21,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Target,
   Trash2,
   TrendingUp,
@@ -233,6 +234,7 @@ type GoogleAdsAnalyticsDashboardProps = {
       dailyBudget: number;
     },
   ) => void;
+  onOpenInBuilder?: (campaign: GoogleAdsCampaign) => void;
   deletingCampaignId: string | null;
   statusUpdatingId?: string | null;
   editingCampaignId?: string | null;
@@ -255,6 +257,7 @@ export function GoogleAdsAnalyticsDashboard({
   onDuplicateCampaign,
   onToggleCampaignStatus,
   onEditCampaign,
+  onOpenInBuilder,
   deletingCampaignId,
   statusUpdatingId = null,
   editingCampaignId = null,
@@ -1041,7 +1044,8 @@ export function GoogleAdsAnalyticsDashboard({
               Edit published campaign
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Update this live Google Ads campaign without rebuilding it.
+              Change name, status, or budget here. Open the builder for
+              keywords, ads, and the rest of the campaign.
             </p>
 
             <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -1081,7 +1085,25 @@ export function GoogleAdsAnalyticsDashboard({
               />
             </label>
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {onOpenInBuilder ? (
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => {
+                    const campaign = editCampaign;
+                    setEditCampaign(null);
+                    onOpenInBuilder(campaign);
+                  }}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] hover:bg-[#f8fbff] disabled:opacity-50"
+                >
+                  <SlidersHorizontal className="size-4" aria-hidden />
+                  Edit in builder
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex justify-end gap-2">
               <button
                 type="button"
                 disabled={editingCampaignId != null}
@@ -1111,6 +1133,7 @@ export function GoogleAdsAnalyticsDashboard({
                 ) : null}
                 Save changes
               </button>
+              </div>
             </div>
           </div>
         </div>

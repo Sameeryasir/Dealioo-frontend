@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   AlertCircle,
   ExternalLink,
+  FileEdit,
   Loader2,
   Plus,
   RefreshCw,
@@ -466,15 +467,27 @@ export function MetaDraftPicker({
                                 ) : null}
 
                                 {bucket === "published" ? (
-                                  <a
-                                    href={adsManagerUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-md border border-[#e8edf5] px-2.5 py-1.5 text-xs font-medium text-slate-700"
-                                  >
-                                    Open in Ads Manager
-                                    <ExternalLink className="size-3" aria-hidden />
-                                  </a>
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onSelect({ type: "continue", draft })
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-md bg-[#1877f2] px-2.5 py-1.5 text-xs font-semibold text-white"
+                                    >
+                                      <FileEdit className="size-3" aria-hidden />
+                                      Edit in builder
+                                    </button>
+                                    <a
+                                      href={adsManagerUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 rounded-md border border-[#e8edf5] px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                                    >
+                                      Open in Ads Manager
+                                      <ExternalLink className="size-3" aria-hidden />
+                                    </a>
+                                  </>
                                 ) : null}
                               </div>
                             </li>

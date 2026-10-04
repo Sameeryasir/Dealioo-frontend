@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AlertCircle,
-  Check,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Check } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { MetaAdsConnectEmptyState } from "@/app/components/campaign/MetaAdsConnectEmptyState";
 import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-builder/MetaCampaignObjectiveDialog";
 import type { MetaDraftPickerAction } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
@@ -117,10 +116,16 @@ import {
 import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import { deleteFacebookCampaign } from "@/app/services/facebook/delete-facebook-campaign";
 import {
+  updateFacebookAdsCampaign,
+  updateFacebookAdsCampaignStatus,
+} from "@/app/services/facebook/update-facebook-ads-campaign";
+import {
   listMetaCampaignDrafts,
 } from "@/app/services/facebook/meta-campaign-draft";
-import { useQueryClient } from "@tanstack/react-query";
-import { metaCampaignDraftQueryKeys } from "@/app/hooks/use-meta-campaign-drafts-query";
+import {
+  metaCampaignDraftQueryKeys,
+  useMetaCampaignDraftsQuery,
+} from "@/app/hooks/use-meta-campaign-drafts-query";
 
 type CampaignAdsPanelProps = {
   businessId: number;
@@ -145,6 +150,9 @@ export function CampaignAdsPanel({
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const draftsQuery = useMetaCampaignDraftsQuery(businessId, {
+    enabled: metaConnected && Boolean(metaAdAccountId),
+  });
   const { can } = useBusinessMembershipPermissions(businessId);
   const [adStats, setAdStats] = useState<FacebookAdCampaignStats | null>(null);
   const [adStatsLoading, setAdStatsLoading] = useState(false);
@@ -162,6 +170,10 @@ export function CampaignAdsPanel({
   const [campaignPendingDelete, setCampaignPendingDelete] =
     useState<FacebookAdCampaign | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(
+    null,
+  );
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(
     null,
   );
   const [resumeDraftLoading, setResumeDraftLoading] = useState(false);
@@ -312,6 +324,113 @@ export function CampaignAdsPanel({
       setDeletingCampaignId(null);
     }
   }, [businessId, campaignPendingDelete, invalidateDrafts]);
+
+  const handleToggleCampaignStatus = useCallback(
+    async (campaign: FacebookAdCampaign, status: "ACTIVE" | "PAUSED") => {
+      if (!canCreateMetaCampaign) return;
+      setStatusUpdatingId(campaign.id);
+      setAdStatsError(null);
+      try {
+        await updateFacebookAdsCampaignStatus(businessId, campaign.id, status);
+        setAdStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                campaigns: prev.campaigns.map((c) =>
+                  c.id === campaign.id
+                    ? { ...c, status, effectiveStatus: status }
+                    : c,
+                ),
+              }
+            : prev,
+        );
+      } catch (e) {
+        setAdStatsError(
+          e instanceof Error
+            ? e.message
+            : "Could not update campaign status.",
+        );
+      } finally {
+        setStatusUpdatingId(null);
+      }
+    },
+    [businessId, canCreateMetaCampaign],
+  );
+
+  const handleEditCampaign = useCallback(
+    async (
+      campaign: FacebookAdCampaign,
+      updates: {
+        name: string;
+        status: "ACTIVE" | "PAUSED";
+        dailyBudget: number;
+      },
+    ) => {
+      if (!canCreateMetaCampaign) return;
+      setEditingCampaignId(campaign.id);
+      setAdStatsError(null);
+      try {
+        const result = await updateFacebookAdsCampaign(
+          businessId,
+          campaign.id,
+          updates,
+        );
+        setAdStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                campaigns: prev.campaigns.map((c) =>
+                  c.id === campaign.id
+                    ? {
+                        ...c,
+                        name: result.name?.trim() || updates.name,
+                        status: result.status || updates.status,
+                        effectiveStatus: result.status || updates.status,
+                        dailyBudget:
+                          result.dailyBudget ??
+                          String(Math.round(updates.dailyBudget * 100)),
+                      }
+                    : c,
+                ),
+              }
+            : prev,
+        );
+      } catch (e) {
+        setAdStatsError(
+          e instanceof Error
+            ? e.message
+            : "Could not update published campaign.",
+        );
+      } finally {
+        setEditingCampaignId(null);
+      }
+    },
+    [businessId, canCreateMetaCampaign],
+  );
+
+  const draftByMetaCampaignId = useMemo(() => {
+    const map: Record<string, MetaCampaignDraft> = {};
+    for (const draft of draftsQuery.data) {
+      const id = draft.metaCampaignId?.trim();
+      if (id) map[id] = draft;
+    }
+    return map;
+  }, [draftsQuery.data]);
+
+  const handleOpenInBuilder = useCallback(
+    (campaign: FacebookAdCampaign) => {
+      if (!canCreateMetaCampaign) return;
+      const draft = draftByMetaCampaignId[campaign.id];
+      if (!draft) {
+        toast.error(
+          "Edit in builder needs a Dealioo-linked Meta draft for this campaign.",
+        );
+        return;
+      }
+      openBuilderWithDraft(draft);
+    },
+    [canCreateMetaCampaign, draftByMetaCampaignId, openBuilderWithDraft],
+  );
 
   const loadStats = useCallback(async (opts?: {
     refresh?: boolean;
@@ -544,8 +663,14 @@ export function CampaignAdsPanel({
               void loadStats({ refresh: true });
             }}
             onDeleteCampaign={(c) => setCampaignPendingDelete(c)}
+            onToggleCampaignStatus={handleToggleCampaignStatus}
+            onEditCampaign={handleEditCampaign}
+            onOpenInBuilder={handleOpenInBuilder}
             canDeleteCampaign={canDeleteMetaCampaign}
+            canManageCampaign={canCreateMetaCampaign}
             deletingCampaignId={deletingCampaignId}
+            statusUpdatingId={statusUpdatingId}
+            editingCampaignId={editingCampaignId}
           />
         ) : (
           <div>

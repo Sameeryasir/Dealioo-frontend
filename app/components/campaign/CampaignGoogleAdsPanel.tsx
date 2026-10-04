@@ -582,6 +582,16 @@ export function CampaignGoogleAdsPanel({
             onEditCampaign={(c, updates) => {
               void handleEditCampaign(c, updates);
             }}
+            onOpenInBuilder={(c) => {
+              const link = offerLinksByGoogleCampaignId[c.id];
+              if (!link?.draftId) {
+                toast.error(
+                  "Edit in builder needs a Dealioo-linked Google draft for this campaign.",
+                );
+                return;
+              }
+              openBuilderWithDraft(link.draftId);
+            }}
             deletingCampaignId={deletingCampaignId}
             statusUpdatingId={statusUpdatingId}
             editingCampaignId={editingCampaignId}
