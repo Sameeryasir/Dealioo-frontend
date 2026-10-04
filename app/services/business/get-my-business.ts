@@ -17,6 +17,9 @@ export type AdminBusiness = {
   slug?: string | null;
   description?: string | null;
   logoUrl?: string | null;
+  logoPrimaryColor?: string | null;
+  logoSecondaryColor?: string | null;
+  logoAccentColor?: string | null;
   businessType?: string | null;
   currency?: string | null;
   websiteUrl?: string | null;
@@ -209,6 +212,12 @@ function coerceBusiness(value: unknown): AdminBusiness | null {
     slug: pickString(o, "slug", "slug") ?? null,
     description: pickString(o, "description", "description") ?? null,
     logoUrl: pickString(o, "logoUrl", "logo_url") ?? null,
+    logoPrimaryColor:
+      pickString(o, "logoPrimaryColor", "logo_primary_color") ?? null,
+    logoSecondaryColor:
+      pickString(o, "logoSecondaryColor", "logo_secondary_color") ?? null,
+    logoAccentColor:
+      pickString(o, "logoAccentColor", "logo_accent_color") ?? null,
     businessType: pickString(o, "businessType", "business_type") ?? null,
     currency: pickString(o, "currency", "currency") ?? null,
     websiteUrl: pickString(o, "websiteUrl", "website_url") ?? null,
