@@ -1406,7 +1406,6 @@ export function StepAds({ draft, errors, onChange }: StepProps) {
     }
   }, [draft, draft.adsGenerated, onChange]);
 
-  // Merge custom keywords before any early return so hooks stay unconditional
   useEffect(() => {
     if (didMergeCustomKeywords.current) return;
     if (draft.customKeywords.length === 0) {

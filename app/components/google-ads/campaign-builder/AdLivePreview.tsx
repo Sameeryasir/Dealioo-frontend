@@ -46,7 +46,6 @@ function buildRsaCombos(ad: AdCreativeDraft): RsaCombo[] {
   if (headlines.length === 0 && descriptions.length === 0) {
     return [
       {
-        // Two headlines — matches how Google often shows Search ads on mobile
         headlines: ["Your headline will appear here", "Second headline"],
         description:
           "Your description will appear here as customers see it on Google Search.",
@@ -62,7 +61,6 @@ function buildRsaCombos(ad: AdCreativeDraft): RsaCombo[] {
       headlines[(i + 1) % headlines.length] ||
       headlines[0] ||
       "More about your offer";
-    // Cap at 2 joined headlines so the sidebar preview stays readable
     const unique = [...new Set([h1, h2])].slice(0, 2);
     combos.push({
       headlines: unique,
@@ -105,7 +103,6 @@ function GoogleSearchAdCard({
         </div>
       </div>
 
-      {/* Sponsored sits on the same row as the first headline feel — lighter, less stacked */}
       <p className="mt-3 text-[11px] leading-none text-[#70757a]">Sponsored</p>
       <a
         href={ad.finalUrl.trim() || undefined}
@@ -139,7 +136,6 @@ function SearchPreview({
   const descriptionKey = ad.descriptions.join("|");
   const combos = useMemo(() => buildRsaCombos(ad), [ad]);
   const [comboIndex, setComboIndex] = useState(0);
-  // Reset to first combo when copy changes — derive a safe index without an effect
   const [copyKey, setCopyKey] = useState(`${headlineKey}::${descriptionKey}`);
   const nextCopyKey = `${headlineKey}::${descriptionKey}`;
   if (copyKey !== nextCopyKey) {

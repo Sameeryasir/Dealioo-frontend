@@ -45,6 +45,10 @@ import type {
   GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import { isAdminUser } from "@/app/lib/is-admin-user";
+import {
+  adsCampaignSelectDotClass,
+  adsCampaignsTable,
+} from "@/app/components/campaign/ads-campaigns-table-styles";
 
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -608,9 +612,9 @@ export function GoogleAdsAnalyticsDashboard({
           <Panel
             title="All campaigns"
             action={
-              <label className="relative block">
+              <label className={adsCampaignsTable.searchLabel}>
                 <Search
-                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+                  className={adsCampaignsTable.searchIcon}
                   aria-hidden
                 />
                 <input
@@ -621,54 +625,32 @@ export function GoogleAdsAnalyticsDashboard({
                   }}
                   placeholder="Search campaigns…"
                   aria-label="Search campaigns"
-                  className="h-9 w-52 rounded-lg border border-[#e8edf5] bg-white pl-8 pr-3 text-xs text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-64"
+                  className={adsCampaignsTable.searchInput}
                 />
               </label>
             }
           >
-            <div className="overflow-x-auto">
-              <table className="min-w-[820px] w-full border-separate border-spacing-0 text-left text-sm">
+            <div className={adsCampaignsTable.scroll}>
+              <table className={adsCampaignsTable.table}>
                 <thead>
-                  <tr className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <tr className={adsCampaignsTable.theadRow}>
                     <th
-                      className="border-b border-[#eef2f7] pb-2 pr-2 font-semibold"
+                      className={adsCampaignsTable.thSelect}
                       aria-label="Selected"
                     />
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Campaign
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Status
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Daily budget
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Spend
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Impr.
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Clicks
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Conv.
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Conv. value
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      CTR
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      CPC
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Cost/Conv.
-                    </th>
+                    <th className={adsCampaignsTable.th}>Campaign</th>
+                    <th className={adsCampaignsTable.th}>Status</th>
+                    <th className={adsCampaignsTable.th}>Daily budget</th>
+                    <th className={adsCampaignsTable.th}>Spend</th>
+                    <th className={adsCampaignsTable.th}>Impr.</th>
+                    <th className={adsCampaignsTable.th}>Clicks</th>
+                    <th className={adsCampaignsTable.th}>Conv.</th>
+                    <th className={adsCampaignsTable.th}>Conv. value</th>
+                    <th className={adsCampaignsTable.th}>CTR</th>
+                    <th className={adsCampaignsTable.th}>CPC</th>
+                    <th className={adsCampaignsTable.th}>Cost/Conv.</th>
                     <th
-                      className="sticky right-0 z-[1] border-b border-[#eef2f7] bg-white pb-2 pl-2 text-right font-semibold"
+                      className={adsCampaignsTable.thActions}
                       aria-label="Actions"
                     />
                   </tr>
@@ -677,14 +659,14 @@ export function GoogleAdsAnalyticsDashboard({
                   {bootstrapping ? (
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={`sk-${i}`}>
-                        <td colSpan={13} className="border-b border-[#f1f5f9] py-3">
-                          <div className="h-12 animate-pulse rounded-xl bg-[#f1f5f9]" />
+                        <td colSpan={13} className={adsCampaignsTable.skeletonCell}>
+                          <div className={adsCampaignsTable.skeletonBar} />
                         </td>
                       </tr>
                     ))
                   ) : pageRows.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className="py-10 text-center">
+                      <td colSpan={13} className={adsCampaignsTable.emptyCell}>
                         <Megaphone
                           className="mx-auto size-10 text-slate-300"
                           aria-hidden
@@ -737,20 +719,16 @@ export function GoogleAdsAnalyticsDashboard({
                         <tr
                           key={c.id}
                           aria-selected={isSelected}
-                          className="group cursor-pointer align-middle text-[#07111f] transition hover:bg-[#f8fbff]"
+                          className={adsCampaignsTable.row}
                           onClick={() => {
                             setSelectedCampaignId((prev) =>
                               prev === c.id ? null : c.id,
                             );
                           }}
                         >
-                          <td className="border-b border-[#f1f5f9] py-3 pr-2">
+                          <td className={adsCampaignsTable.tdSelect}>
                             <span
-                              className={`flex size-5 items-center justify-center rounded-full ${
-                                isSelected
-                                  ? "bg-[#1877f2] text-white"
-                                  : "border border-[#dbe3ef] bg-white text-transparent"
-                              }`}
+                              className={adsCampaignSelectDotClass(isSelected)}
                               aria-hidden={!isSelected}
                               title={
                                 isSelected ? "Selected campaign" : undefined
@@ -762,9 +740,11 @@ export function GoogleAdsAnalyticsDashboard({
                               <span className="sr-only">Selected</span>
                             ) : null}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3">
-                            <div className="min-w-0 max-w-[18rem]">
-                              <p className="truncate font-semibold">{c.name}</p>
+                          <td className={adsCampaignsTable.td}>
+                            <div className={adsCampaignsTable.campaignNameWrap}>
+                              <p className={adsCampaignsTable.campaignName}>
+                                {c.name}
+                              </p>
                               {offerLink?.funnelName || dealiooHref ? (
                                 dealiooHref ? (
                                   <Link
@@ -780,61 +760,61 @@ export function GoogleAdsAnalyticsDashboard({
                                   </p>
                                 )
                               ) : (
-                                <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
+                                <p className={adsCampaignsTable.campaignMetaId}>
                                   {c.id}
                                 </p>
                               )}
                             </div>
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3">
+                          <td className={adsCampaignsTable.td}>
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusBadgeClass(c.effectiveStatus)}`}
+                              className={`${adsCampaignsTable.statusBadge} ${statusBadgeClass(c.effectiveStatus)}`}
                             >
                               {formatMetaDeliveryStatus(status)}
                             </span>
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {c.dailyBudget != null && c.dailyBudget !== ""
                               ? formatMetaSpend(c.dailyBudget, currency)
                               : "N/A"}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {formatMetaSpend(c.insights?.spend, currency)}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {formatMetaCount(c.insights?.impressions)}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {formatMetaCount(c.insights?.clicks)}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {formatGoogleCount(
                               parseNum(c.insights?.conversions),
                             )}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {formatMetaSpend(
                               c.insights?.conversionValue,
                               currency,
                             )}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {ctr == null
                               ? "N/A"
                               : formatMetaPercent(String(ctr))}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {cpc == null
                               ? "N/A"
                               : formatMetaRateMoney(String(cpc), currency)}
                           </td>
-                          <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                          <td className={adsCampaignsTable.tdNum}>
                             {costConv == null
                               ? "N/A"
                               : formatMetaRateMoney(String(costConv), currency)}
                           </td>
-                          <td className="sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white py-3 pl-2 group-hover:bg-[#f8fbff]">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className={adsCampaignsTable.tdActions}>
+                            <div className={adsCampaignsTable.actionRow}>
                               {canManageCampaign &&
                               onDuplicateCampaign &&
                               offerLinksByGoogleCampaignId[c.id]?.draftId ? (
@@ -846,7 +826,7 @@ export function GoogleAdsAnalyticsDashboard({
                                     e.stopPropagation();
                                     onDuplicateCampaign(c);
                                   }}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                  className={adsCampaignsTable.actionBtn}
                                 >
                                   {duplicatingCampaignId === c.id ? (
                                     <Loader2
@@ -876,7 +856,7 @@ export function GoogleAdsAnalyticsDashboard({
                                       isEnabled ? "PAUSED" : "ENABLED",
                                     );
                                   }}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                  className={adsCampaignsTable.actionBtn}
                                 >
                                   {statusUpdatingId === c.id ? (
                                     <Loader2
@@ -912,7 +892,7 @@ export function GoogleAdsAnalyticsDashboard({
                                       c.dailyBudget?.trim() || "20",
                                     );
                                   }}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                                  className={adsCampaignsTable.actionBtn}
                                 >
                                   {editingCampaignId === c.id ? (
                                     <Loader2
@@ -933,7 +913,7 @@ export function GoogleAdsAnalyticsDashboard({
                                     e.stopPropagation();
                                     onDeleteCampaign(c);
                                   }}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                  className={adsCampaignsTable.actionBtnDanger}
                                 >
                                   {deletingCampaignId === c.id ? (
                                     <Loader2
@@ -954,7 +934,7 @@ export function GoogleAdsAnalyticsDashboard({
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div className={adsCampaignsTable.paginationBar}>
               <p>
                 Showing {pageRows.length} of {filteredCampaigns.length} campaign
                 {filteredCampaigns.length === 1 ? "" : "s"}
@@ -965,18 +945,18 @@ export function GoogleAdsAnalyticsDashboard({
                   type="button"
                   disabled={safePage <= 1}
                   onClick={() => setPage(Math.max(1, safePage - 1))}
-                  className="rounded-lg border border-[#e8edf5] p-1.5 disabled:opacity-40"
+                  className={adsCampaignsTable.paginationBtn}
                 >
                   <ChevronLeft className="size-4" aria-hidden />
                 </button>
-                <span className="min-w-6 text-center font-semibold text-[#07111f]">
+                <span className={adsCampaignsTable.paginationPage}>
                   {safePage}
                 </span>
                 <button
                   type="button"
                   disabled={safePage >= totalPages}
                   onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-                  className="rounded-lg border border-[#e8edf5] p-1.5 disabled:opacity-40"
+                  className={adsCampaignsTable.paginationBtn}
                 >
                   <ChevronRight className="size-4" aria-hidden />
                 </button>

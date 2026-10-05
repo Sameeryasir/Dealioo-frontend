@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -43,6 +43,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { isAdminUser } from "@/app/lib/is-admin-user";
+import {
+  adsCampaignSelectDotClass,
+  adsCampaignsTable,
+} from "@/app/components/campaign/ads-campaigns-table-styles";
 import {
   FacebookLogo,
   InstagramLogo,
@@ -165,36 +169,6 @@ function parseNum(raw: string | null | undefined, asFloat = false): number {
   if (raw == null || raw.trim() === "") return 0;
   const n = asFloat ? Number.parseFloat(raw) : Number.parseInt(raw, 10);
   return Number.isFinite(n) ? n : 0;
-}
-
-function sumCampaignMetric(
-  campaigns: FacebookAdCampaign[],
-  key: "spend" | "impressions" | "reach" | "clicks",
-): number {
-  return campaigns.reduce((total, campaign) => {
-    return (
-      total +
-      parseNum(campaign.insights?.[key], key === "spend")
-    );
-  }, 0);
-}
-
-function weightedRate(
-  campaigns: FacebookAdCampaign[],
-  rateKey: "ctr" | "cpc" | "cpm" | "frequency",
-  weightKey: "impressions" | "clicks",
-): number | null {
-  let weighted = 0;
-  let weight = 0;
-  for (const campaign of campaigns) {
-    const rate = parseNum(campaign.insights?.[rateKey], true);
-    const w = parseNum(campaign.insights?.[weightKey]);
-    if (w <= 0) continue;
-    weighted += rate * w;
-    weight += w;
-  }
-  if (weight <= 0) return null;
-  return weighted / weight;
 }
 
 function statusBadgeClass(status: string | null | undefined): string {
@@ -368,7 +342,7 @@ function Panel({
 
 function EmptyChartNote({ message }: { message: string }) {
   return (
-    <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-[#e8edf5] bg-[#f8fafc] px-4 text-center text-sm text-slate-500">
+    <div className="flex size-full min-h-[12rem] items-center justify-center rounded-xl border border-dashed border-[#e8edf5] bg-[#f8fafc] px-4 text-center text-sm text-slate-500">
       {message}
     </div>
   );
@@ -424,15 +398,12 @@ export function MetaAdsAnalyticsDashboard({
   const canOpenAdsManager = isAdminUser();
   const campaigns = stats.campaigns;
   const currency = stats.currency;
-  const summary = stats.summary;
   const pagination = stats.pagination;
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
   );
   const [selectedCampaignSnapshot, setSelectedCampaignSnapshot] =
     useState<FacebookAdCampaign | null>(null);
-  const didAutoSelectFirstRef = useRef(false);
-  const userClearedSelectionRef = useRef(false);
   const bootstrapping = Boolean(insightsLoading && campaigns.length === 0);
   const [editCampaign, setEditCampaign] = useState<FacebookAdCampaign | null>(
     null,
@@ -453,7 +424,8 @@ export function MetaAdsAnalyticsDashboard({
 
   useEffect(() => {
     if (campaigns.length === 0) {
-      didAutoSelectFirstRef.current = false;
+      setSelectedCampaignId(null);
+      setSelectedCampaignSnapshot(null);
       return;
     }
 
@@ -478,131 +450,76 @@ export function MetaAdsAnalyticsDashboard({
       return;
     }
 
-    if (userClearedSelectionRef.current) return;
-
     const first = campaigns[0];
     if (!first) return;
-    didAutoSelectFirstRef.current = true;
     setSelectedCampaignId(first.id);
     setSelectedCampaignSnapshot(first);
   }, [campaigns, selectedCampaignId]);
 
-  const totalSpend = selectedCampaign
-    ? parseNum(selectedCampaign.insights?.spend, true)
-    : (summary?.spend ?? sumCampaignMetric(campaigns, "spend"));
-  const totalImpressions = selectedCampaign
-    ? parseNum(selectedCampaign.insights?.impressions)
-    : (summary?.impressions ?? sumCampaignMetric(campaigns, "impressions"));
-  const totalReach = selectedCampaign
-    ? parseNum(selectedCampaign.insights?.reach)
-    : (summary?.reach ?? sumCampaignMetric(campaigns, "reach"));
-  const totalClicks = selectedCampaign
-    ? parseNum(selectedCampaign.insights?.clicks)
-    : (summary?.clicks ?? sumCampaignMetric(campaigns, "clicks"));
   const activeCount = selectedCampaign
     ? selectedCampaign.effectiveStatus?.toUpperCase() === "ACTIVE"
       ? 1
       : 0
-    : (summary?.activeCampaigns ??
-      campaigns.filter((c) => c.effectiveStatus?.toUpperCase() === "ACTIVE")
-        .length);
-  const totalCampaignCount = selectedCampaign
-    ? 1
-    : (summary?.totalCampaigns ?? pagination?.total ?? campaigns.length);
+    : 0;
+  const totalCampaignCount = selectedCampaign ? 1 : 0;
 
   const avgCtr = selectedCampaign
     ? selectedCampaign.insights?.ctr != null &&
       selectedCampaign.insights.ctr.trim() !== ""
       ? parseNum(selectedCampaign.insights.ctr, true)
       : null
-    : (summary?.ctr ?? weightedRate(campaigns, "ctr", "impressions"));
+    : null;
   const avgCpc = selectedCampaign
     ? selectedCampaign.insights?.cpc != null &&
       selectedCampaign.insights.cpc.trim() !== ""
       ? parseNum(selectedCampaign.insights.cpc, true)
       : null
-    : (summary?.cpc ?? weightedRate(campaigns, "cpc", "clicks"));
+    : null;
   const avgCpm = selectedCampaign
     ? selectedCampaign.insights?.cpm != null &&
       selectedCampaign.insights.cpm.trim() !== ""
       ? parseNum(selectedCampaign.insights.cpm, true)
       : null
-    : (summary?.cpm ?? weightedRate(campaigns, "cpm", "impressions"));
+    : null;
   const avgFrequency = selectedCampaign
     ? selectedCampaign.insights?.frequency != null &&
       selectedCampaign.insights.frequency.trim() !== ""
       ? parseNum(selectedCampaign.insights.frequency, true)
       : null
-    : (summary?.frequency ??
-      weightedRate(campaigns, "frequency", "impressions"));
+    : null;
 
   const primaryAcross = useMemo(() => {
-    if (selectedCampaign) {
-      const primary = pickPrimaryMetaAction(
-        selectedCampaign.insights?.actions ?? [],
-      );
-      if (!primary) return null;
-      const costRow = selectedCampaign.insights?.costPerActionType?.find(
-        (row) =>
-          row.actionType.trim().toLowerCase() ===
-          primary.actionType.trim().toLowerCase(),
-      );
-      return {
-        ...primary,
-        cost:
-          costRow?.value != null && costRow.value.trim() !== ""
-            ? parseNum(costRow.value, true)
-            : null,
-      };
-    }
-    if (summary?.primaryActionType) {
-      return {
-        actionType: summary.primaryActionType,
-        value: summary.primaryActionValue ?? "0",
-        cost: summary.costPerResult,
-      };
-    }
-    const totals = new Map<string, number>();
-    const costs = new Map<string, number>();
-    for (const campaign of campaigns) {
-      for (const action of campaign.insights?.actions ?? []) {
-        const key = action.actionType;
-        totals.set(key, (totals.get(key) ?? 0) + parseNum(action.value));
-      }
-      for (const cost of campaign.insights?.costPerActionType ?? []) {
-        const key = cost.actionType;
-        const n = parseNum(cost.value, true);
-        if (n > 0) costs.set(key, n);
-      }
-    }
+    if (!selectedCampaign) return null;
     const primary = pickPrimaryMetaAction(
-      [...totals.entries()].map(([actionType, value]) => ({
-        actionType,
-        value: String(value),
-      })),
+      selectedCampaign.insights?.actions ?? [],
     );
     if (!primary) return null;
+    const costRow = selectedCampaign.insights?.costPerActionType?.find(
+      (row) =>
+        row.actionType.trim().toLowerCase() ===
+        primary.actionType.trim().toLowerCase(),
+    );
     return {
       ...primary,
-      cost: costs.get(primary.actionType) ?? null,
+      cost:
+        costRow?.value != null && costRow.value.trim() !== ""
+          ? parseNum(costRow.value, true)
+          : null,
     };
-  }, [campaigns, summary, selectedCampaign]);
+  }, [selectedCampaign]);
 
   const dailySeries = useMemo(() => {
+    if (!selectedCampaign) return [];
+
     const accountDates = (stats.dailyInsights ?? [])
       .map((row) => row.date?.trim())
       .filter((date): date is string => Boolean(date));
-
-    if (selectedCampaign) {
-      const campaignRows = selectedCampaign.dailyInsights ?? [];
-      if (campaignRows.length === 0) return [];
-      return buildDailyChartSeries(campaignRows, accountDates);
-    }
-
-    return buildDailyChartSeries(stats.dailyInsights ?? []);
+    const campaignRows = selectedCampaign.dailyInsights ?? [];
+    if (campaignRows.length === 0) return [];
+    return buildDailyChartSeries(campaignRows, accountDates);
   }, [stats.dailyInsights, selectedCampaign]);
 
-  const showChartDots = dailySeries.length <= 2;
+  const showChartDots = dailySeries.length > 0 && dailySeries.length <= 2;
 
   const ageShares = useMemo(
     () => breakdownShares(stats.breakdowns?.age),
@@ -624,35 +541,45 @@ export function MetaAdsAnalyticsDashboard({
 
   const activeStatusText = selectedCampaign
     ? formatMetaDeliveryStatus(selectedCampaign.effectiveStatus)
-    : activeCount === 0 && totalCampaignCount > 0
-      ? "PAUSED"
-      : null;
+    : null;
 
+  const emptyStat = "—";
   const breakdownTiles = [
     {
       label: "CTR",
-      value: avgCtr == null ? "N/A" : formatMetaPercent(String(avgCtr)),
+      value: !selectedCampaign
+        ? emptyStat
+        : avgCtr == null
+          ? "N/A"
+          : formatMetaPercent(String(avgCtr)),
       icon: TrendingUp,
       tone: "bg-[#E8F1FF] text-[#1877f2]",
     },
     {
       label: "CPC",
-      value:
-        avgCpc == null ? "N/A" : formatMetaRateMoney(String(avgCpc), currency),
+      value: !selectedCampaign
+        ? emptyStat
+        : avgCpc == null
+          ? "N/A"
+          : formatMetaRateMoney(String(avgCpc), currency),
       icon: MousePointerClick,
       tone: "bg-[#F3E8FF] text-[#7C3AED]",
     },
     {
       label: "CPM",
-      value:
-        avgCpm == null ? "N/A" : formatMetaRateMoney(String(avgCpm), currency),
+      value: !selectedCampaign
+        ? emptyStat
+        : avgCpm == null
+          ? "N/A"
+          : formatMetaRateMoney(String(avgCpm), currency),
       icon: BarChart3,
       tone: "bg-[#FFF4E5] text-[#EA580C]",
     },
     {
       label: "Frequency",
-      value:
-        avgFrequency == null
+      value: !selectedCampaign
+        ? emptyStat
+        : avgFrequency == null
           ? "N/A"
           : formatMetaFrequency(String(avgFrequency)),
       icon: Activity,
@@ -662,16 +589,19 @@ export function MetaAdsAnalyticsDashboard({
       label: primaryAcross
         ? formatMetaActionType(primaryAcross.actionType)
         : "Link Click",
-      value: primaryAcross
-        ? formatMetaCount(primaryAcross.value)
-        : "N/A",
+      value: !selectedCampaign
+        ? emptyStat
+        : primaryAcross
+          ? formatMetaCount(primaryAcross.value)
+          : "N/A",
       icon: Link2,
       tone: "bg-[#E8F1FF] text-[#1877f2]",
     },
     {
       label: "Cost per result",
-      value:
-        primaryAcross?.cost != null
+      value: !selectedCampaign
+        ? emptyStat
+        : primaryAcross?.cost != null
           ? formatMetaRateMoney(String(primaryAcross.cost), currency)
           : "N/A",
       icon: Target,
@@ -775,7 +705,7 @@ export function MetaAdsAnalyticsDashboard({
           value={
             selectedCampaign
               ? formatMetaSpend(selectedCampaign.insights?.spend, currency)
-              : formatMetaSpend(String(totalSpend), currency)
+              : emptyStat
           }
         />
         <KpiCard
@@ -785,7 +715,7 @@ export function MetaAdsAnalyticsDashboard({
           value={
             selectedCampaign
               ? formatMetaCount(selectedCampaign.insights?.impressions)
-              : formatMetaCount(String(totalImpressions))
+              : emptyStat
           }
         />
         <KpiCard
@@ -795,7 +725,7 @@ export function MetaAdsAnalyticsDashboard({
           value={
             selectedCampaign
               ? formatMetaCount(selectedCampaign.insights?.reach)
-              : formatMetaCount(String(totalReach))
+              : emptyStat
           }
         />
         <KpiCard
@@ -805,19 +735,23 @@ export function MetaAdsAnalyticsDashboard({
           value={
             selectedCampaign
               ? formatMetaCount(selectedCampaign.insights?.clicks)
-              : formatMetaCount(String(totalClicks))
+              : emptyStat
           }
         />
         <KpiCard
           icon={TrendingUp}
           label="Active campaigns"
           tone="zinc"
-          value={`${activeCount} / ${totalCampaignCount}`}
+          value={
+            selectedCampaign
+              ? `${activeCount} / ${totalCampaignCount}`
+              : emptyStat
+          }
           statusText={activeStatusText}
           hint={
-            activeStatusText
-              ? undefined
-              : `${activeCount} running`
+            selectedCampaign && !activeStatusText
+              ? `${activeCount} running`
+              : undefined
           }
         />
           </>
@@ -850,134 +784,142 @@ export function MetaAdsAnalyticsDashboard({
                 <span className="size-2 rounded-full bg-emerald-500" /> Clicks
               </span>
             </div>
-            {dailySeries.length === 0 ? (
-              <EmptyChartNote
-                message={
-                  selectedCampaign
-                    ? "No daily performance yet for this campaign. Tap Sync Campaigns to pull day-level Meta insights."
-                    : "Daily performance will appear once Meta returns day-level insights for this account."
-                }
-              />
-            ) : (
-              <div className="h-64 w-full min-w-0 min-h-[16rem]">
-                <ChartMount height={256}>
-                  <ResponsiveContainer width="100%" height={256} minWidth={0}>
-                    <AreaChart
-                      data={dailySeries}
-                      margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="metaSpendFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#1877f2"
-                            stopOpacity={0.28}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#1877f2"
-                            stopOpacity={0.02}
-                          />
-                        </linearGradient>
-                        <linearGradient
-                          id="metaImpressionsFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#8b5cf6"
-                            stopOpacity={0.18}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#8b5cf6"
-                            stopOpacity={0.02}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="4 6"
-                        stroke="#e8edf5"
-                        vertical
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={{
-                          fill: "#94a3b8",
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        minTickGap={28}
-                      />
-                      <YAxis
-                        yAxisId="spend"
-                        tick={{ fill: "#94a3b8", fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={44}
-                      />
-                      <YAxis
-                        yAxisId="volume"
-                        orientation="right"
-                        tick={{ fill: "#94a3b8", fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={40}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: 12,
-                          border: "1px solid #e8edf5",
-                          fontSize: 12,
-                        }}
-                      />
-                      <Area
-                        yAxisId="spend"
-                        type="monotone"
-                        dataKey="spend"
-                        name="Spend"
-                        stroke="#1877f2"
-                        strokeWidth={2.5}
-                        fill="url(#metaSpendFill)"
-                        dot={showChartDots ? { r: 3 } : false}
-                        activeDot={{ r: 4 }}
-                      />
-                      <Area
-                        yAxisId="volume"
-                        type="monotone"
-                        dataKey="impressions"
-                        name="Impressions"
-                        stroke="#8b5cf6"
-                        strokeWidth={2}
-                        fill="url(#metaImpressionsFill)"
-                        dot={showChartDots ? { r: 3 } : false}
-                      />
-                      <Area
-                        yAxisId="volume"
-                        type="monotone"
-                        dataKey="clicks"
-                        name="Clicks"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        fill="transparent"
-                        dot={showChartDots ? { r: 3 } : false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartMount>
-              </div>
-            )}
+            <div className="relative h-64 w-full min-w-0 min-h-[16rem]">
+              <ChartMount height={256}>
+                <ResponsiveContainer width="100%" height={256} minWidth={0}>
+                  <AreaChart
+                    data={
+                      dailySeries.length > 0
+                        ? dailySeries
+                        : [{ label: "", spend: 0, impressions: 0, clicks: 0 }]
+                    }
+                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="metaSpendFill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#1877f2"
+                          stopOpacity={0.28}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#1877f2"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                      <linearGradient
+                        id="metaImpressionsFill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0.18}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="4 6"
+                      stroke="#e8edf5"
+                      vertical
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{
+                        fill: "#94a3b8",
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={28}
+                    />
+                    <YAxis
+                      yAxisId="spend"
+                      tick={{ fill: "#94a3b8", fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={44}
+                    />
+                    <YAxis
+                      yAxisId="volume"
+                      orientation="right"
+                      tick={{ fill: "#94a3b8", fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "1px solid #e8edf5",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      yAxisId="spend"
+                      type="monotone"
+                      dataKey="spend"
+                      name="Spend"
+                      stroke="#1877f2"
+                      strokeWidth={2.5}
+                      fill="url(#metaSpendFill)"
+                      isAnimationActive={false}
+                      dot={showChartDots ? { r: 3 } : false}
+                      activeDot={{ r: 4 }}
+                    />
+                    <Area
+                      yAxisId="volume"
+                      type="monotone"
+                      dataKey="impressions"
+                      name="Impressions"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      fill="url(#metaImpressionsFill)"
+                      isAnimationActive={false}
+                      dot={showChartDots ? { r: 3 } : false}
+                    />
+                    <Area
+                      yAxisId="volume"
+                      type="monotone"
+                      dataKey="clicks"
+                      name="Clicks"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fill="transparent"
+                      isAnimationActive={false}
+                      dot={showChartDots ? { r: 3 } : false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartMount>
+              {dailySeries.length === 0 ? (
+                <div className="absolute inset-0 z-[1] bg-white/90">
+                  <EmptyChartNote
+                    message={
+                      selectedCampaign
+                        ? "No daily performance yet for this campaign. Tap Sync Campaigns to pull day-level Meta insights."
+                        : "Select a campaign below to view its performance stats."
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
               </>
             )}
           </Panel>
@@ -985,9 +927,9 @@ export function MetaAdsAnalyticsDashboard({
           <Panel
             title="All campaigns"
             action={
-              <label className="relative block">
+              <label className={adsCampaignsTable.searchLabel}>
                 <Search
-                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+                  className={adsCampaignsTable.searchIcon}
                   aria-hidden
                 />
                 <input
@@ -997,50 +939,33 @@ export function MetaAdsAnalyticsDashboard({
                   }}
                   placeholder="Search campaigns…"
                   aria-label="Search campaigns"
-                  className="h-9 w-52 rounded-lg border border-[#e8edf5] bg-white pl-8 pr-3 text-xs text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-64"
+                  className={adsCampaignsTable.searchInput}
                 />
               </label>
             }
           >
-            <div className="overflow-x-auto">
-              <table className="min-w-[720px] w-full border-separate border-spacing-0 text-left text-sm">
+            <div className={adsCampaignsTable.scroll}>
+              <table className={adsCampaignsTable.table}>
                 <thead>
-                  <tr className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <tr className={adsCampaignsTable.theadRow}>
                     <th
-                      className="border-b border-[#eef2f7] pb-2 pr-2 font-semibold"
+                      className={adsCampaignsTable.thSelect}
                       aria-label="Selected"
                     />
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Campaign
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Status
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Spend
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Impr.
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Reach
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Clicks
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      CTR
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      CPC
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      CPM
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 pr-3 font-semibold">
-                      Freq.
-                    </th>
-                    <th className="border-b border-[#eef2f7] pb-2 font-semibold" />
+                    <th className={adsCampaignsTable.th}>Campaign</th>
+                    <th className={adsCampaignsTable.th}>Status</th>
+                    <th className={adsCampaignsTable.th}>Spend</th>
+                    <th className={adsCampaignsTable.th}>Impr.</th>
+                    <th className={adsCampaignsTable.th}>Reach</th>
+                    <th className={adsCampaignsTable.th}>Clicks</th>
+                    <th className={adsCampaignsTable.th}>CTR</th>
+                    <th className={adsCampaignsTable.th}>CPC</th>
+                    <th className={adsCampaignsTable.th}>CPM</th>
+                    <th className={adsCampaignsTable.th}>Freq.</th>
+                    <th
+                      className={adsCampaignsTable.thActions}
+                      aria-label="Actions"
+                    />
                   </tr>
                 </thead>
                 <tbody>
@@ -1049,15 +974,15 @@ export function MetaAdsAnalyticsDashboard({
                       <tr key={`sk-${i}`}>
                         <td
                           colSpan={12}
-                          className="border-b border-[#f1f5f9] py-3"
+                          className={adsCampaignsTable.skeletonCell}
                         >
-                          <div className="h-12 animate-pulse rounded-xl bg-[#f1f5f9]" />
+                          <div className={adsCampaignsTable.skeletonBar} />
                         </td>
                       </tr>
                     ))
                   ) : pageRows.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="py-10 text-center">
+                      <td colSpan={12} className={adsCampaignsTable.emptyCell}>
                         <Megaphone
                           className="mx-auto size-10 text-slate-300"
                           aria-hidden
@@ -1088,26 +1013,16 @@ export function MetaAdsAnalyticsDashboard({
                     <tr
                       key={c.id}
                       aria-selected={isSelected}
-                      className="cursor-pointer align-middle text-[#07111f] transition hover:bg-[#f8fbff]"
+                      className={adsCampaignsTable.row}
                       onClick={() => {
-                        if (isSelected) {
-                          userClearedSelectionRef.current = true;
-                          setSelectedCampaignId(null);
-                          setSelectedCampaignSnapshot(null);
-                          return;
-                        }
-                        userClearedSelectionRef.current = false;
+                        if (isSelected) return;
                         setSelectedCampaignId(c.id);
                         setSelectedCampaignSnapshot(c);
                       }}
                     >
-                      <td className="border-b border-[#f1f5f9] py-3 pr-2">
+                      <td className={adsCampaignsTable.tdSelect}>
                         <span
-                          className={`flex size-5 items-center justify-center rounded-full ${
-                            isSelected
-                              ? "bg-[#1877f2] text-white"
-                              : "border border-[#dbe3ef] bg-white text-transparent"
-                          }`}
+                          className={adsCampaignSelectDotClass(isSelected)}
                           aria-hidden={!isSelected}
                           title={isSelected ? "Selected campaign" : undefined}
                         >
@@ -1117,7 +1032,7 @@ export function MetaAdsAnalyticsDashboard({
                           <span className="sr-only">Selected</span>
                         ) : null}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3">
+                      <td className={adsCampaignsTable.td}>
                         <div className="flex max-w-[18rem] items-center gap-3">
                           {c.imageUrl?.trim() ? (
                             <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
@@ -1136,46 +1051,48 @@ export function MetaAdsAnalyticsDashboard({
                             </span>
                           )}
                           <div className="min-w-0">
-                            <p className="truncate font-semibold">{c.name}</p>
-                            <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
+                            <p className={adsCampaignsTable.campaignName}>
+                              {c.name}
+                            </p>
+                            <p className={adsCampaignsTable.campaignMetaId}>
                               {c.id}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3">
+                      <td className={adsCampaignsTable.td}>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusBadgeClass(c.effectiveStatus)}`}
+                          className={`${adsCampaignsTable.statusBadge} ${statusBadgeClass(c.effectiveStatus)}`}
                         >
                           {formatMetaDeliveryStatus(c.effectiveStatus)}
                         </span>
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaSpend(c.insights?.spend, currency)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaCount(c.insights?.impressions)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaCount(c.insights?.reach)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaCount(c.insights?.clicks)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaPercent(c.insights?.ctr)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaRateMoney(c.insights?.cpc, currency)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaRateMoney(c.insights?.cpm, currency)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3 pr-3 tabular-nums">
+                      <td className={adsCampaignsTable.tdNum}>
                         {formatMetaFrequency(c.insights?.frequency)}
                       </td>
-                      <td className="border-b border-[#f1f5f9] py-3">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className={adsCampaignsTable.tdActions}>
+                        <div className={adsCampaignsTable.actionRow}>
                           {canManageCampaign &&
                           onToggleCampaignStatus &&
                           (isMetaCampaignActive(c.effectiveStatus) ||
@@ -1201,7 +1118,7 @@ export function MetaAdsAnalyticsDashboard({
                                     : "ACTIVE",
                                 );
                               }}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                              className={adsCampaignsTable.actionBtn}
                             >
                               {statusUpdatingId === c.id ? (
                                 <Loader2
@@ -1237,7 +1154,7 @@ export function MetaAdsAnalyticsDashboard({
                                   metaDailyBudgetDollars(c.dailyBudget),
                                 );
                               }}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-[#eef5ff] hover:text-[#1877f2] disabled:opacity-50"
+                              className={adsCampaignsTable.actionBtn}
                             >
                               {editingCampaignId === c.id ? (
                                 <Loader2
@@ -1259,7 +1176,7 @@ export function MetaAdsAnalyticsDashboard({
                                 e.stopPropagation();
                                 onDeleteCampaign(c);
                               }}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                              className={adsCampaignsTable.actionBtnDanger}
                             >
                               {deletingCampaignId === c.id ? (
                                 <Loader2
@@ -1273,7 +1190,7 @@ export function MetaAdsAnalyticsDashboard({
                           ) : canDeleteCampaign ? (
                             <button
                               type="button"
-                              className="rounded-lg p-1.5 text-slate-400"
+                              className={adsCampaignsTable.actionBtn}
                               aria-label="More"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1289,7 +1206,7 @@ export function MetaAdsAnalyticsDashboard({
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div className={adsCampaignsTable.paginationBar}>
               <p>
                 Showing {pageRows.length} of {totalFiltered} campaign
                 {totalFiltered === 1 ? "" : "s"}
@@ -1302,11 +1219,11 @@ export function MetaAdsAnalyticsDashboard({
                   type="button"
                   disabled={safePage <= 1}
                   onClick={() => onCampaignPageChange(Math.max(1, safePage - 1))}
-                  className="rounded-lg border border-[#e8edf5] p-1.5 disabled:opacity-40"
+                  className={adsCampaignsTable.paginationBtn}
                 >
                   <ChevronLeft className="size-4" aria-hidden />
                 </button>
-                <span className="min-w-6 text-center font-semibold text-[#07111f]">
+                <span className={adsCampaignsTable.paginationPage}>
                   {safePage}
                 </span>
                 <button
@@ -1315,7 +1232,7 @@ export function MetaAdsAnalyticsDashboard({
                   onClick={() =>
                     onCampaignPageChange(Math.min(totalPages, safePage + 1))
                   }
-                  className="rounded-lg border border-[#e8edf5] p-1.5 disabled:opacity-40"
+                  className={adsCampaignsTable.paginationBtn}
                 >
                   <ChevronRight className="size-4" aria-hidden />
                 </button>
