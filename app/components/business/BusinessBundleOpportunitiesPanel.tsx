@@ -15,6 +15,11 @@ import {
   resolveActivityMonthRange,
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
+import {
+  ADDON_TIP_MIN_TRUSTED_VISITS,
+  ADDON_TIPS_SECTION,
+  formatAddonDisplayName,
+} from "@/app/lib/addon-suggestion-copy";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
 import { formatCents } from "@/app/lib/money";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -53,7 +58,7 @@ const panelCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
 const SUGGESTIONS_PAGE_SIZE = 5;
-const MIN_VISITS_FOR_TRUSTED_BUNDLE = 3;
+const MIN_VISITS_FOR_TRUSTED_BUNDLE = ADDON_TIP_MIN_TRUSTED_VISITS;
 const MOM_SHARE_GAP_PP = 3;
 const MOM_LIFT_GAP = 0.15;
 const PRIOR_MONTH_PAGE_SIZE = 50;
@@ -169,12 +174,7 @@ function MomTrendIcon({ trend }: { trend: MomTrend }) {
 }
 
 function formatTitleCase(value: string): string {
-  return value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
+  return formatAddonDisplayName(value);
 }
 
 function priorityLabel(priority: CampaignAddonSuggestionItem["priority"]): string {
@@ -310,7 +310,7 @@ function CampaignSuggestionsCard({
           <p className="m-0 text-xs leading-snug text-[#92400e]">
             Early signal — under {MIN_VISITS_FOR_TRUSTED_BUNDLE} add-on visits
             for this deal in {periodLabel}. Rankings can shift as more guests
-            buy; treat these as hints, not proof.
+            buy; treat these as hints for what else you can add, not proof.
           </p>
         </div>
       ) : null}
@@ -779,7 +779,7 @@ export function BusinessBundleOpportunitiesPanel({
   const performanceHref = `/business/${businessId}/dashboard/performance`;
 
   return (
-    <section className="rd-premium w-full" aria-label="Bundle opportunities">
+    <section className="rd-premium w-full" aria-label={ADDON_TIPS_SECTION.title}>
       <div className="flex flex-col gap-4">
         <header className={`${panelCardClass} px-4 py-4 sm:px-5`}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -793,14 +793,14 @@ export function BusinessBundleOpportunitiesPanel({
               </Link>
               <div className="flex items-center gap-2">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2]">
-                  <Layers className="size-4" strokeWidth={2.25} aria-hidden />
+                  <Sparkles className="size-4" strokeWidth={2.25} aria-hidden />
                 </span>
                 <div>
                   <h1 className="m-0 text-lg font-semibold text-[#07111f]">
-                    Bundle opportunities
+                    {ADDON_TIPS_SECTION.title}
                   </h1>
                   <p className="m-0 mt-0.5 text-sm text-slate-500">
-                    Suggested add-ons for this campaign in {periodLabel}
+                    {ADDON_TIPS_SECTION.detailsSubtitle(periodLabel)}
                   </p>
                 </div>
               </div>
@@ -847,11 +847,10 @@ export function BusinessBundleOpportunitiesPanel({
               aria-hidden
             />
             <p className="m-0 mt-3 text-sm font-semibold text-slate-600">
-              Choose a campaign
+              {ADDON_TIPS_SECTION.chooseCampaignTitle}
             </p>
-            <p className="m-0 mt-1 text-xs text-slate-400">
-              Pick a deal above, or open Bundle opportunities from a Performance
-              tip.
+            <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-slate-400">
+              {ADDON_TIPS_SECTION.chooseCampaignBody}
             </p>
             <Link
               href={performanceHref}
@@ -874,10 +873,10 @@ export function BusinessBundleOpportunitiesPanel({
               aria-hidden
             />
             <p className="m-0 mt-3 text-sm font-semibold text-slate-600">
-              No suggestions found
+              {ADDON_TIPS_SECTION.emptyDetailsTitle}
             </p>
-            <p className="m-0 mt-1 text-xs text-slate-400">
-              Try another campaign or month.
+            <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-slate-400">
+              {ADDON_TIPS_SECTION.emptyDetailsBody}
             </p>
           </div>
         ) : (

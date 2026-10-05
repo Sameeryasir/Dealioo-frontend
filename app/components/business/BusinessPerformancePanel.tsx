@@ -25,6 +25,12 @@ import {
   spacesImageEagerLoadProps,
 } from "@/app/lib/resolve-upload-image-url";
 import {
+  ADDON_TIPS_SECTION,
+  PERFORMANCE_ADDON_TIP_FETCH_LIMIT,
+  buildAddonPreviewTip,
+  type AddonTopStatus,
+} from "@/app/lib/addon-suggestion-copy";
+import {
   getCampaignAddonCounts,
 } from "@/app/services/addon-suggestion/get-campaign-addon-counts";
 import {
@@ -48,6 +54,7 @@ import {
   Megaphone,
   PackageSearch,
   Percent,
+  Sparkles,
   Trophy,
   Users,
   Wallet,
@@ -80,9 +87,24 @@ const CHART_COLORS = [
   OVERVIEW_CHART_COLORS.orange,
 ];
 const CAMPAIGN_TONES = [
-  { soft: "bg-[#e8f2ff]", ink: "text-[#1877f2]", line: "bg-[#1877f2]" },
-  { soft: "bg-[#ecfdf5]", ink: "text-[#34a853]", line: "bg-[#34a853]" },
-  { soft: "bg-[#fff7ed]", ink: "text-[#f77737]", line: "bg-[#f77737]" },
+  {
+    soft: "bg-[#e8f2ff]",
+    ink: "text-[#1877f2]",
+    line: "bg-[#1877f2]",
+    badge: "bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#1877f2]/20",
+  },
+  {
+    soft: "bg-[#ecfdf5]",
+    ink: "text-[#34a853]",
+    line: "bg-[#34a853]",
+    badge: "bg-[#ecfdf5] text-[#34a853] ring-1 ring-[#34a853]/20",
+  },
+  {
+    soft: "bg-[#fff7ed]",
+    ink: "text-[#f77737]",
+    line: "bg-[#f77737]",
+    badge: "bg-[#fff7ed] text-[#f77737] ring-1 ring-[#f77737]/20",
+  },
 ] as const;
 const PERFORMANCE_CHART_HEIGHT_PX = 360;
 const PERF_CHART_REVEAL_MS = 2600;
@@ -679,7 +701,9 @@ function BundleOpportunitiesSection({
     imageUrl?: string | null;
     addonName: string;
     timesPurchased: number;
-    topStatus?: "clear" | "tied" | "emerging";
+    topStatus?: AddonTopStatus;
+    totalAddonVisits?: number;
+    extraAddonCount?: number;
   }>;
   isPending: boolean;
 }) {
@@ -716,7 +740,7 @@ function BundleOpportunitiesSection({
         <Skeleton className="mt-2 h-4 w-64 rounded-md" />
         <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[7.5rem] w-full rounded-xl" />
+            <Skeleton key={index} className="h-[10.5rem] w-full rounded-xl" />
           ))}
         </div>
       </div>
@@ -724,54 +748,68 @@ function BundleOpportunitiesSection({
   }
 
   return (
-    <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
+    <div
+      className={`${panelCardClass} px-4 py-4 sm:px-5`}
+      aria-label={ADDON_TIPS_SECTION.title}
+    >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
-              <Layers className="size-3.5" strokeWidth={2.25} aria-hidden />
+              <Sparkles className="size-3.5" strokeWidth={2.25} aria-hidden />
             </span>
             <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
-              Bundle opportunities
+              {ADDON_TIPS_SECTION.title}
             </h2>
             {campaignCount > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums text-[#1877f2]">
-                <Megaphone className="size-3" aria-hidden />
-                {campaignCount} campaign{campaignCount === 1 ? "" : "s"}
+                <Layers className="size-3" aria-hidden />
+                {ADDON_TIPS_SECTION.dealCountLabel(campaignCount)}
               </span>
             ) : null}
           </div>
           <p className="m-0 mt-1 text-sm text-slate-500">
-            Add-ons guests buy most often with each deal in {monthLabel}
+            {ADDON_TIPS_SECTION.subtitle(monthLabel)}
           </p>
         </div>
-        {totalPages > 1 ? (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="Previous bundle opportunities page"
-              disabled={page <= 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
+        <div className="flex flex-wrap items-center gap-2">
+          {campaignCount > 0 ? (
+            <Link
+              href={detailsHref}
+              className="inline-flex items-center gap-1 rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-[0.75rem] font-semibold text-[#1877f2] no-underline transition hover:border-[#c7d7fe] hover:bg-[#f4f8ff]"
             >
-              <ChevronLeft className="size-4" aria-hidden />
-            </button>
-            <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-slate-400">
-              {page + 1} / {totalPages}
-            </span>
-            <button
-              type="button"
-              aria-label="Next bundle opportunities page"
-              disabled={page >= totalPages - 1}
-              onClick={() =>
-                setPage((current) => Math.min(totalPages - 1, current + 1))
-              }
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ChevronRight className="size-4" aria-hidden />
-            </button>
-          </div>
-        ) : null}
+              {ADDON_TIPS_SECTION.viewAllCta}
+              <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </Link>
+          ) : null}
+          {totalPages > 1 ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                aria-label="Previous add-on tips page"
+                disabled={page <= 0}
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
+                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="size-4" aria-hidden />
+              </button>
+              <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-slate-400">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                aria-label="Next add-on tips page"
+                disabled={page >= totalPages - 1}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages - 1, current + 1))
+                }
+                className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#e8edf5] bg-white text-slate-600 transition hover:border-[#c7d7fe] hover:text-[#1877f2] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="size-4" aria-hidden />
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {campaignCount === 0 ? (
@@ -782,12 +820,18 @@ function BundleOpportunitiesSection({
             aria-hidden
           />
           <p className="m-0 mt-3 text-sm font-semibold text-slate-600">
-            No data found
+            {ADDON_TIPS_SECTION.emptyTitle}
           </p>
-          <p className="m-0 mt-1 text-xs text-slate-400">
-            Bundle tips appear after guests redeem deals with add-ons in this
-            period.
+          <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-400">
+            {ADDON_TIPS_SECTION.emptyBody}
           </p>
+          <Link
+            href={`/business/${businessId}/dashboard/campaigns`}
+            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1877f2] no-underline"
+          >
+            Open campaigns
+            <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
+          </Link>
         </div>
       ) : (
         <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
@@ -796,19 +840,28 @@ function BundleOpportunitiesSection({
             const tone = CAMPAIGN_TONES[globalIndex % CAMPAIGN_TONES.length]!;
             const campaignLabel =
               formatTitleCase(tip.campaignName) || tip.campaignName;
-            const addonLabel =
-              formatTitleCase(tip.addonName) || tip.addonName;
-            const topStatus = tip.topStatus ?? "emerging";
             const imageSrc = resolveUploadImageUrl(tip.imageUrl ?? null);
+            const copy = buildAddonPreviewTip({
+              campaignName: tip.campaignName,
+              addonName: tip.addonName,
+              timesPurchased: tip.timesPurchased,
+              topStatus: tip.topStatus ?? "emerging",
+              totalAddonVisits: tip.totalAddonVisits,
+              extraAddonCount: tip.extraAddonCount,
+            });
 
             return (
               <div
-                key={`${tip.campaignName}:${tip.addonName}:${globalIndex}`}
+                key={`${tip.campaignId ?? tip.campaignName}:${tip.addonName}:${globalIndex}`}
                 className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-4"
               >
-                <span className={`mb-3 block h-1 w-10 rounded-full ${tone.line}`} aria-hidden />
-                <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`mb-3 block h-1 w-10 rounded-full ${tone.line}`}
+                  aria-hidden
+                />
+                <div className="flex min-w-0 items-start gap-3">
                   {imageSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- campaign thumbnails are remote CDN URLs
                     <img
                       src={imageSrc}
                       alt=""
@@ -817,31 +870,63 @@ function BundleOpportunitiesSection({
                       className={campaignImageClass}
                       {...spacesImageEagerLoadProps}
                     />
-                  ) : null}
-                  <div className="min-w-0">
-                    <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
+                  ) : (
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] ring-1 ring-[#e8edf5]">
+                      <Layers className="size-4" aria-hidden />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${
+                          copy.isEarlySignal
+                            ? "bg-[#fffbeb] text-[#b45309] ring-1 ring-[#fde68a]"
+                            : tone.badge
+                        }`}
+                      >
+                        {copy.isEarlySignal ? (
+                          <Info className="size-3" aria-hidden />
+                        ) : (
+                          <Sparkles className="size-3" aria-hidden />
+                        )}
+                        {copy.actionLabel}
+                      </span>
+                    </div>
+                    <p className="m-0 mt-1.5 truncate text-sm font-semibold text-[#07111f]">
                       {campaignLabel}
                     </p>
-                    <p className="m-0 mt-0.5 truncate text-xs text-slate-500">
-                      {topStatus === "tied" ? "Tied add-on" : "Pair with"}{" "}
-                      <span className="font-medium text-[#07111f]">
-                        {addonLabel}
-                      </span>
+                    <p className={`m-0 mt-0.5 text-sm font-semibold ${tone.ink}`}>
+                      {copy.headline}
                     </p>
                   </div>
                 </div>
-                <p className="m-0 mt-4 text-sm text-slate-500">
+                <p className="m-0 mt-3 text-xs leading-relaxed text-slate-600">
+                  {copy.tip}
+                </p>
+                <p className="m-0 mt-2 text-xs text-slate-400">
                   <span className={`font-semibold tabular-nums ${tone.ink}`}>
                     {tip.timesPurchased}
                   </span>{" "}
-                  {tip.timesPurchased === 1 ? "time" : "times"} together
+                  · {copy.evidence}
+                  {copy.moreLabel ? (
+                    <span className="text-slate-400"> · {copy.moreLabel}</span>
+                  ) : null}
                 </p>
+                {copy.caution ? (
+                  <p className="m-0 mt-2 rounded-lg border border-[#fde68a] bg-[#fffbeb] px-2.5 py-1.5 text-[0.65rem] leading-snug text-[#92400e]">
+                    {copy.caution}
+                  </p>
+                ) : null}
                 <Link
                   href={tipHref(tip.campaignId)}
-                  className={`mt-3 inline-flex items-center gap-1 text-sm font-semibold no-underline ${tone.ink}`}
+                  className={`mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold no-underline ${tone.ink}`}
                 >
-                  View details
-                  <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
+                  {ADDON_TIPS_SECTION.detailsCta}
+                  <ArrowRight
+                    className="size-3.5"
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
                 </Link>
               </div>
             );
@@ -1813,6 +1898,7 @@ export function BusinessPerformancePanel({
       businessId,
       monthRange.from,
       monthRange.to,
+      PERFORMANCE_ADDON_TIP_FETCH_LIMIT,
     ],
     enabled: Number.isFinite(businessId) && businessId > 0,
     staleTime: 30_000,
@@ -1820,7 +1906,7 @@ export function BusinessPerformancePanel({
       getCampaignAddonCounts(businessId, {
         from: monthRange.from,
         to: monthRange.to,
-        limit: 3,
+        limit: PERFORMANCE_ADDON_TIP_FETCH_LIMIT,
       }),
   });
 
@@ -1856,7 +1942,9 @@ export function BusinessPerformancePanel({
       imageUrl: string | null;
       addonName: string;
       timesPurchased: number;
-      topStatus: "clear" | "tied" | "emerging";
+      topStatus: AddonTopStatus;
+      totalAddonVisits: number;
+      extraAddonCount: number;
     }> = [];
     for (const campaign of campaignsWithAddonCounts) {
       const top = campaign.addons[0];
@@ -1872,6 +1960,8 @@ export function BusinessPerformancePanel({
         addonName: top.name,
         timesPurchased: top.times,
         topStatus: campaign.topStatus ?? "emerging",
+        totalAddonVisits: campaign.totalAddonVisits ?? 0,
+        extraAddonCount: Math.max(0, campaign.addons.length - 1),
       });
     }
     return tips;
