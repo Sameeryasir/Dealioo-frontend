@@ -41,6 +41,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  X,
 } from "lucide-react";
 import { isAdminUser } from "@/app/lib/is-admin-user";
 import {
@@ -1420,7 +1421,7 @@ export function MetaAdsAnalyticsDashboard({
 
       {editCampaign && onEditCampaign ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-[1px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="meta-ads-edit-title"
@@ -1429,58 +1430,93 @@ export function MetaAdsAnalyticsDashboard({
           }}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-xl"
+            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_24px_64px_-24px_rgba(15,23,42,0.45)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3
-              id="meta-ads-edit-title"
-              className="text-base font-bold text-[#07111f]"
-            >
-              Edit published campaign
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Change name, status, or budget here. Open the builder for
-              targeting, creative, and the rest of the ad.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3
+                  id="meta-ads-edit-title"
+                  className="text-base font-bold text-[#07111f]"
+                >
+                  Edit published campaign
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                  Change name, status, or budget here. Open the builder for
+                  targeting, creative, and the rest of the ad.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={editingCampaignId != null}
+                onClick={() => setEditCampaign(null)}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                aria-label="Close"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
 
-            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="mt-5 block text-xs font-semibold text-slate-500">
               Campaign name
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+                className="mt-1.5 h-11 w-full rounded-xl border border-[#e8edf5] px-3.5 text-sm text-[#07111f] outline-none transition focus:border-[#1877f2]/50 focus:ring-2 focus:ring-[#1877f2]/15"
                 autoFocus
               />
             </label>
 
-            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Status
-              <select
-                value={editStatus}
-                onChange={(e) =>
-                  setEditStatus(e.target.value as "ACTIVE" | "PAUSED")
-                }
-                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] bg-white px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+            <div className="mt-3.5">
+              <p className="text-xs font-semibold text-slate-500">Status</p>
+              <div
+                className="mt-1.5 grid grid-cols-2 gap-2"
+                role="group"
+                aria-label="Campaign status"
               >
-                <option value="ACTIVE">Enabled (running)</option>
-                <option value="PAUSED">Paused</option>
-              </select>
-            </label>
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => setEditStatus("ACTIVE")}
+                  className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-semibold transition disabled:opacity-50 ${
+                    editStatus === "ACTIVE"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : "border-[#e8edf5] bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Play className="size-3.5" aria-hidden />
+                  Enabled
+                </button>
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => setEditStatus("PAUSED")}
+                  className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-semibold transition disabled:opacity-50 ${
+                    editStatus === "PAUSED"
+                      ? "border-amber-300 bg-amber-50 text-amber-700"
+                      : "border-[#e8edf5] bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Pause className="size-3.5" aria-hidden />
+                  Paused
+                </button>
+              </div>
+            </div>
 
-            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Daily budget {currency ? `(${currency})` : ""}
+            <label className="mt-3.5 block text-xs font-semibold text-slate-500">
+              Daily budget{currency ? ` (${currency})` : ""}
               <input
                 type="number"
                 min={1}
                 step="0.01"
                 value={editBudget}
                 onChange={(e) => setEditBudget(e.target.value)}
-                className="mt-1.5 h-10 w-full rounded-xl border border-[#e8edf5] px-3 text-sm text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15"
+                className="mt-1.5 h-11 w-full rounded-xl border border-[#e8edf5] px-3.5 text-sm text-[#07111f] outline-none transition focus:border-[#1877f2]/50 focus:ring-2 focus:ring-[#1877f2]/15"
               />
             </label>
 
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 flex flex-col gap-2 border-t border-[#eef2f7] pt-4 sm:flex-row sm:items-center sm:justify-between">
               {onOpenInBuilder ? (
                 <button
                   type="button"
@@ -1490,7 +1526,7 @@ export function MetaAdsAnalyticsDashboard({
                     setEditCampaign(null);
                     onOpenInBuilder(campaign);
                   }}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] hover:bg-[#f8fbff] disabled:opacity-50"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] transition hover:bg-[#f8fbff] disabled:opacity-50"
                 >
                   <SlidersHorizontal className="size-4" aria-hidden />
                   Edit in builder
@@ -1499,35 +1535,35 @@ export function MetaAdsAnalyticsDashboard({
                 <span />
               )}
               <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={editingCampaignId != null}
-                onClick={() => setEditCampaign(null)}
-                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={editingCampaignId != null}
-                onClick={() => {
-                  const name = editName.trim();
-                  const amount = Number.parseFloat(editBudget);
-                  if (!name || !Number.isFinite(amount) || amount < 1) return;
-                  onEditCampaign(editCampaign, {
-                    name,
-                    status: editStatus,
-                    dailyBudget: amount,
-                  });
-                  setEditCampaign(null);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:opacity-50"
-              >
-                {editingCampaignId === editCampaign.id ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : null}
-                Save changes
-              </button>
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => setEditCampaign(null)}
+                  className="h-10 rounded-xl px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => {
+                    const name = editName.trim();
+                    const amount = Number.parseFloat(editBudget);
+                    if (!name || !Number.isFinite(amount) || amount < 1) return;
+                    onEditCampaign(editCampaign, {
+                      name,
+                      status: editStatus,
+                      dailyBudget: amount,
+                    });
+                    setEditCampaign(null);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#1877f2] px-3.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:opacity-50"
+                >
+                  {editingCampaignId === editCampaign.id ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : null}
+                  Save changes
+                </button>
               </div>
             </div>
           </div>
