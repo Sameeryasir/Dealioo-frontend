@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: dialog width is dynamic (sm/md/lg) from content, with optional size override.
- * Why: a single 42rem width made short deletes look stretched and long ones cramped.
- * Related: app/lib/dialog-panel-size.ts, ConfirmDialog.tsx
- */
-
 import { AlertTriangle, Check, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
@@ -35,7 +29,6 @@ export type DeleteConfirmationDialogProps = {
   description?: ReactNode;
   confirmText?: string;
   checkboxLabel?: string;
-  /** Override auto width: sm (compact), md (default), lg (long copy), auto (from content). */
   size?: DialogPanelSizeProp;
   isLoading?: boolean;
   zIndex?: number;
@@ -72,7 +65,6 @@ export function DeleteConfirmationDialog({
     checkboxLabel ?? `Yes, delete “${displayName}”`;
   const canDelete = confirmed && !isLoading;
 
-  // --- Dynamic panel width from title + body + checkbox copy ---
   const alertSize = useMemo(() => {
     const contentText = [
       resolvedTitle,
@@ -110,15 +102,21 @@ export function DeleteConfirmationDialog({
         className="gap-0 overflow-hidden p-0"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
-          <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">
-            <AlertTriangle className="size-5" strokeWidth={2.25} aria-hidden />
+          <div className="flex w-full items-start gap-3.5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">
+              <AlertTriangle className="size-5" strokeWidth={2.25} aria-hidden />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                This cannot be undone
+              </p>
+              <AlertDialogTitle className="mt-1 text-lg font-semibold tracking-tight text-[#07111f]">
+                {resolvedTitle}
+              </AlertDialogTitle>
+            </div>
           </div>
 
-          <AlertDialogTitle className="text-lg font-semibold tracking-tight text-[#07111f]">
-            {resolvedTitle}
-          </AlertDialogTitle>
-
-          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+          <AlertDialogDescription className="mt-4 text-sm leading-6 text-slate-500">
             {resolvedDescription}
           </AlertDialogDescription>
 
@@ -156,7 +154,7 @@ export function DeleteConfirmationDialog({
           <AlertDialogAction
             disabled={!canDelete}
             onClick={onConfirm}
-            className="h-10 min-w-[8.5rem] gap-1.5 rounded-xl bg-[#1877f2] text-white hover:bg-[#166fe5] disabled:bg-[#e2e8f0] disabled:text-slate-400"
+            className="h-10 min-w-[8.5rem] gap-1.5 rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:bg-[#e2e8f0] disabled:text-slate-400 disabled:opacity-100"
           >
             {isLoading ? (
               <>

@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: dialog width is dynamic (sm/md/lg) from content, with optional size override.
- * Why: shared confirm panels used one width for every message and looked uneven.
- * Related: app/lib/dialog-panel-size.ts, DeleteConfirmationDialog.tsx
- */
-
 import { AlertTriangle, Check, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
@@ -29,7 +23,7 @@ export type ConfirmDialogTone = "danger" | "warning" | "primary";
 
 const toneMeta = {
   danger: {
-    eyebrow: "Access change",
+    eyebrow: "This cannot be undone",
     iconWrap: "border-red-200/80 bg-red-50 text-red-500",
   },
   warning: {
@@ -68,7 +62,6 @@ export function ConfirmDialog({
   description: ReactNode;
   tone?: ConfirmDialogTone;
   icon?: LucideIcon;
-  /** Override auto width: sm | md | lg | auto (from content). */
   size?: DialogPanelSizeProp;
   zIndex?: number;
   panelClassName?: string;
@@ -117,19 +110,22 @@ export function ConfirmDialog({
         className={`gap-0 overflow-hidden p-0 ${panelClassName}`}
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
-          <div
-            className={`mb-5 flex size-11 items-center justify-center rounded-2xl border ${meta.iconWrap}`}
-          >
-            <Icon className="size-5" strokeWidth={2.25} aria-hidden />
+          <div className="flex w-full items-start gap-3.5">
+            <div
+              className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border ${meta.iconWrap}`}
+            >
+              <Icon className="size-5" strokeWidth={2.25} aria-hidden />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                {meta.eyebrow}
+              </p>
+              <AlertDialogTitle className="mt-1 text-lg font-semibold tracking-tight text-[#07111f]">
+                {title}
+              </AlertDialogTitle>
+            </div>
           </div>
-
-          <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            {meta.eyebrow}
-          </p>
-          <AlertDialogTitle className="mt-1.5 text-lg font-semibold tracking-tight text-[#07111f]">
-            {title}
-          </AlertDialogTitle>
-          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+          <AlertDialogDescription className="mt-4 text-sm leading-6 text-slate-500">
             {description}
           </AlertDialogDescription>
 
@@ -169,9 +165,12 @@ export function ConfirmDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             disabled={confirmBlocked}
-            variant={tone === "danger" ? "destructive" : "default"}
             onClick={onConfirm}
-            className="h-10 min-w-[8rem] rounded-xl"
+            className={
+              tone === "danger"
+                ? "h-10 min-w-[8rem] rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:bg-[#e2e8f0] disabled:text-slate-400 disabled:opacity-100"
+                : "h-10 min-w-[8rem] rounded-xl"
+            }
           >
             {isLoading ? (loadingLabel ?? `${confirmLabel}…`) : confirmLabel}
           </AlertDialogAction>

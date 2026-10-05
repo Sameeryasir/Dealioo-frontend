@@ -46,13 +46,20 @@ export function OverviewAlertDialog({
         className="gap-0 overflow-hidden p-0"
       >
         <AlertDialogHeader className="place-items-start gap-0 space-y-0 p-6 text-left sm:p-7">
-          <div className="mb-5 flex size-11 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">
-            <AlertCircle className="size-5" strokeWidth={2.25} aria-hidden />
+          <div className="flex w-full items-start gap-3.5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-red-200/80 bg-red-50 text-red-500">
+              <AlertCircle className="size-5" strokeWidth={2.25} aria-hidden />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="m-0 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                Error
+              </p>
+              <AlertDialogTitle className="mt-1 text-lg font-semibold tracking-tight text-[#07111f]">
+                Something went wrong
+              </AlertDialogTitle>
+            </div>
           </div>
-          <AlertDialogTitle className="text-lg font-semibold tracking-tight text-[#07111f]">
-            Something went wrong
-          </AlertDialogTitle>
-          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-500">
+          <AlertDialogDescription className="mt-4 text-sm leading-6 text-slate-500">
             {message}
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -32,7 +32,7 @@ function AlertDialogOverlay({
       data-slot="alert-dialog-overlay"
       style={style}
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-slate-950/40 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -46,7 +46,6 @@ function AlertDialogContent({
   style,
   ...props
 }: AlertDialogPrimitive.Popup.Props & {
-  // sm = compact, default = typical confirm, lg = long copy (dynamic dialogs)
   size?: "default" | "sm" | "lg"
 }) {
   const resolvedStyle =
@@ -64,7 +63,7 @@ function AlertDialogContent({
         data-size={size}
         style={style}
         className={cn(
-          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-2xl bg-popover p-0 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=sm]:sm:max-w-md data-[size=default]:sm:max-w-lg data-[size=lg]:sm:max-w-[42rem] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-2xl bg-popover p-0 text-popover-foreground ring-1 ring-black/5 shadow-[0_24px_80px_rgba(15,23,42,0.28)] duration-100 outline-none data-[size=sm]:sm:max-w-lg data-[size=default]:sm:max-w-xl data-[size=lg]:sm:max-w-[48rem] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
