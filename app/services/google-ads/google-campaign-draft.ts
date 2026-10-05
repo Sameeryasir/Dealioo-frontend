@@ -376,6 +376,23 @@ export async function getGoogleCampaignDraft(
   return res.json() as Promise<GoogleCampaignDraftResumeResponse>;
 }
 
+export async function importLiveGoogleCampaignForBuilder(
+  businessId: number,
+  googleCampaignId: string,
+): Promise<GoogleCampaignDraftResumeResponse> {
+  const res = await authenticatedFetch(
+    `${draftsBase(businessId)}/import-live/${encodeURIComponent(
+      String(googleCampaignId).trim(),
+    )}`,
+    { method: "POST" },
+  );
+  await throwIfNotOk(
+    res,
+    "Could not import this Google campaign into the builder.",
+  );
+  return res.json() as Promise<GoogleCampaignDraftResumeResponse>;
+}
+
 export async function deleteGoogleCampaignDraft(
   businessId: number,
   draftId: string,

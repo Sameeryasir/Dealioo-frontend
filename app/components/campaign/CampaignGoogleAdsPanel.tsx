@@ -43,6 +43,7 @@ import {
 } from "@/app/services/google-ads/get-google-ads-connection-status";
 import {
   duplicateGoogleCampaignDraft,
+  importLiveGoogleCampaignForBuilder,
   listGoogleCampaignDrafts,
 } from "@/app/services/google-ads/google-campaign-draft";
 
@@ -169,6 +170,9 @@ export function CampaignGoogleAdsPanel({
     null,
   );
   const [duplicatingCampaignId, setDuplicatingCampaignId] = useState<
+    string | null
+  >(null);
+  const [importingBuilderCampaignId, setImportingBuilderCampaignId] = useState<
     string | null
   >(null);
   const statsRequestIdRef = useRef(0);
@@ -586,18 +590,37 @@ export function CampaignGoogleAdsPanel({
             }}
             onOpenInBuilder={(c) => {
               const link = offerLinksByGoogleCampaignId[c.id];
-              if (!link?.draftId) {
-                toast.error(
-                  "Edit in builder needs a Dealioo-linked Google draft for this campaign.",
-                );
+              if (link?.draftId) {
+                openBuilderWithDraft(link.draftId);
                 return;
               }
-              openBuilderWithDraft(link.draftId);
+              void (async () => {
+                setImportingBuilderCampaignId(c.id);
+                try {
+                  const imported = await importLiveGoogleCampaignForBuilder(
+                    businessId,
+                    c.id,
+                  );
+                  invalidateGoogleDrafts();
+                  toast.success("Campaign imported into the builder.");
+                  openBuilderWithDraft(imported.id);
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error
+                      ? e.message
+                      : "Could not import this Google campaign into the builder.",
+                  );
+                } finally {
+                  setImportingBuilderCampaignId(null);
+                }
+              })();
             }}
             deletingCampaignId={deletingCampaignId}
             statusUpdatingId={statusUpdatingId}
             editingCampaignId={editingCampaignId}
-            duplicatingCampaignId={duplicatingCampaignId}
+            duplicatingCampaignId={
+              duplicatingCampaignId ?? importingBuilderCampaignId
+            }
           />
         ) : (
           <div>

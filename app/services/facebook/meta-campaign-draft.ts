@@ -523,6 +523,27 @@ export async function listMetaCampaignDrafts(
   return res.json() as Promise<MetaCampaignDraft[]>;
 }
 
+export async function importLiveMetaCampaignForBuilder(
+  businessId: number,
+  metaCampaignId: string,
+): Promise<MetaCampaignDraft> {
+  const res = await authenticatedFetch(
+    `${draftsBase(businessId)}/import-live/${encodeURIComponent(metaCampaignId.trim())}`,
+    { method: "POST" },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      await parseApiErrorMessage(
+        res,
+        "Could not import this Meta campaign into the builder.",
+      ),
+    );
+  }
+
+  return res.json() as Promise<MetaCampaignDraft>;
+}
+
 export async function deleteMetaCampaignDraft(
   restaurantId: number,
   draftId: string,

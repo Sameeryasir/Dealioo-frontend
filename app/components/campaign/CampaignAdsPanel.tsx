@@ -120,6 +120,7 @@ import {
   updateFacebookAdsCampaignStatus,
 } from "@/app/services/facebook/update-facebook-ads-campaign";
 import {
+  importLiveMetaCampaignForBuilder,
   listMetaCampaignDrafts,
 } from "@/app/services/facebook/meta-campaign-draft";
 import {
@@ -176,6 +177,9 @@ export function CampaignAdsPanel({
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(
     null,
   );
+  const [importingBuilderCampaignId, setImportingBuilderCampaignId] = useState<
+    string | null
+  >(null);
   const [resumeDraftLoading, setResumeDraftLoading] = useState(false);
   const [draftPickerOpen, setDraftPickerOpen] = useState(false);
   const [autoStartPublish, setAutoStartPublish] = useState(false);
@@ -418,18 +422,42 @@ export function CampaignAdsPanel({
   }, [draftsQuery.data]);
 
   const handleOpenInBuilder = useCallback(
-    (campaign: FacebookAdCampaign) => {
+    async (campaign: FacebookAdCampaign) => {
       if (!canCreateMetaCampaign) return;
-      const draft = draftByMetaCampaignId[campaign.id];
-      if (!draft) {
-        toast.error(
-          "Edit in builder needs a Dealioo-linked Meta draft for this campaign.",
-        );
+      const existing = draftByMetaCampaignId[campaign.id];
+      if (existing) {
+        openBuilderWithDraft(existing);
         return;
       }
-      openBuilderWithDraft(draft);
+
+      setImportingBuilderCampaignId(campaign.id);
+      try {
+        const imported = await importLiveMetaCampaignForBuilder(
+          businessId,
+          campaign.id,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: metaCampaignDraftQueryKeys.byBusiness(businessId),
+        });
+        toast.success("Campaign imported into the builder.");
+        openBuilderWithDraft(imported);
+      } catch (e) {
+        const message =
+          e instanceof Error
+            ? e.message
+            : "Could not import this Meta campaign into the builder.";
+        toast.error(message);
+      } finally {
+        setImportingBuilderCampaignId(null);
+      }
     },
-    [canCreateMetaCampaign, draftByMetaCampaignId, openBuilderWithDraft],
+    [
+      businessId,
+      canCreateMetaCampaign,
+      draftByMetaCampaignId,
+      openBuilderWithDraft,
+      queryClient,
+    ],
   );
 
   const loadStats = useCallback(async (opts?: {
@@ -670,7 +698,7 @@ export function CampaignAdsPanel({
             canManageCampaign={canCreateMetaCampaign}
             deletingCampaignId={deletingCampaignId}
             statusUpdatingId={statusUpdatingId}
-            editingCampaignId={editingCampaignId}
+            editingCampaignId={editingCampaignId ?? importingBuilderCampaignId}
           />
         ) : (
           <div>

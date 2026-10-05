@@ -162,8 +162,12 @@ export function ReviewPublishStep({
       : "None";
 
   const activeStepIndex = resolveActiveStepIndex(publishStep);
-  const clampedProgress = Math.min(100, Math.max(0, publishProgress || 0));
-  const showProgress = publishing || (clampedProgress > 0 && !publishSuccess);
+  const clampedProgress = Math.min(
+    100,
+    Math.max(0, publishSuccess ? 100 : publishProgress || 0),
+  );
+  const showProgress =
+    publishing || publishSuccess || (clampedProgress > 0 && !publishError);
   const showRetry =
     Boolean(publishError || partialPublish?.metaCampaignId) &&
     !publishing &&
@@ -177,6 +181,14 @@ export function ReviewPublishStep({
 
   const budgetLabel = formatAdSetBudget(campaignData, adSetData, currencyCode);
   const audienceLabel = formatAudience(adSetData);
+  const activeStepLabel = (() => {
+    const step = PUBLISH_PROGRESS_STEPS[activeStepIndex];
+    if (!step) return "Preparing your campaign";
+    if (step.key === "media") {
+      return mediaProgressLabel(adCreativeData.creativeFormat);
+    }
+    return step.label;
+  })();
 
   return (
     <div className="space-y-5 pb-2">
@@ -187,36 +199,53 @@ export function ReviewPublishStep({
       />
 
       {showProgress ? (
-        <section className="rounded-xl border border-[#e8edf5] bg-white p-4">
+        <section className="overflow-hidden rounded-2xl border border-[#d6e7ff] bg-[#f8fbff] p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-[#07111f]">
-              {publishing ? "Publishing to Meta…" : "Publish progress"}
+            <p className="text-sm font-bold text-[#07111f]">
+              {publishSuccess
+                ? "Campaign created"
+                : publishing
+                  ? "Creating your campaign..."
+                  : "Publish progress"}
             </p>
-            <span className="text-xs tabular-nums text-slate-500">
+            <span className="text-xs font-bold tabular-nums text-[#1877f2]">
               {clampedProgress}%
             </span>
           </div>
 
           <div
-            className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#eef2f7]"
+            className="mt-3 h-2 overflow-hidden rounded-full bg-white ring-1 ring-[#1877f2]/15"
             role="progressbar"
             aria-valuenow={clampedProgress}
             aria-valuemin={0}
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full bg-slate-700 transition-[width] duration-500 ease-out"
+              className="h-full rounded-full bg-[#1877f2] transition-[width] duration-500 ease-out"
               style={{ width: `${clampedProgress}%` }}
             />
           </div>
 
-          <ol className="mt-3 space-y-1.5">
+          <p className="mt-2 text-xs text-slate-500">
+            {publishSuccess
+              ? "Your campaign is live on Meta."
+              : publishing
+                ? activeStepLabel
+                : "Preparing your campaign"}
+          </p>
+
+          <ol className="mt-4 grid gap-2 sm:grid-cols-2">
             {PUBLISH_PROGRESS_STEPS.map((step, index) => {
               const done =
+                Boolean(publishSuccess) ||
                 index < activeStepIndex ||
                 (step.key === "done" && clampedProgress >= 100) ||
                 (index === activeStepIndex && clampedProgress >= 100);
-              const current = index === activeStepIndex && !done && publishing;
+              const current =
+                !publishSuccess &&
+                index === activeStepIndex &&
+                !done &&
+                publishing;
               const label =
                 step.key === "media"
                   ? mediaProgressLabel(adCreativeData.creativeFormat)
@@ -224,21 +253,31 @@ export function ReviewPublishStep({
               return (
                 <li
                   key={step.key}
-                  className={`flex items-center gap-2 text-sm ${
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm ${
                     done
-                      ? "font-medium text-emerald-700"
+                      ? "border-emerald-200 bg-emerald-50 font-semibold text-emerald-700"
                       : current
-                        ? "font-medium text-[#07111f]"
-                        : "text-slate-400"
+                        ? "border-[#d6e7ff] bg-white font-semibold text-[#1877f2]"
+                        : "border-transparent bg-white/60 text-slate-500"
                   }`}
                 >
-                  {done ? (
-                    <Check className="size-3.5 shrink-0" aria-hidden />
-                  ) : current ? (
-                    <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-                  ) : (
-                    <span className="w-3.5 text-center text-[10px]">{index + 1}</span>
-                  )}
+                  <span
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-full ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : current
+                          ? "bg-[#1877f2] text-white"
+                          : "bg-white text-slate-400 ring-1 ring-[#d6e7ff]"
+                    }`}
+                  >
+                    {done ? (
+                      <Check className="size-3" aria-hidden />
+                    ) : current ? (
+                      <Loader2 className="size-3 animate-spin" aria-hidden />
+                    ) : (
+                      <span className="text-[10px] font-bold">{index + 1}</span>
+                    )}
+                  </span>
                   {label}
                 </li>
               );
