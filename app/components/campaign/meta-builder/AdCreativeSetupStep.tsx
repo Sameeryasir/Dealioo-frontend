@@ -23,7 +23,7 @@ import {
   resolveMetaImageUrl,
   validateMetaImageUrl,
 } from "@/app/lib/resolve-meta-image-url";
-import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
+import { MetaAdPreviewPanel } from "@/app/components/campaign/meta-builder/AdCreativePreview";
 import { MetaDestinationFunnelPicker } from "@/app/components/campaign/meta-builder/MetaDestinationFunnelPicker";
 import {
   BuilderCard,
@@ -964,14 +964,24 @@ export function AdCreativeSetupStep({
         </BuilderCard>
       ) : null}
 
-      <BuilderCard title="Placement preview" description="See how your ad may look across Facebook and Instagram.">
+      <BuilderCard
+        title="Ad preview"
+        description="Phone mock of Feed, Story, and Reels from this creative. Instagram shows when that placement is on."
+      >
         {showPreviews ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <AdCreativePreview placement="facebook_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} videoUrl={previewVideo} displayLink={displayLink} callToAction={callToAction} />
-            <AdCreativePreview placement="instagram_feed" primaryText={primaryText} headline={headline} description={description} imageUrl={previewImage} videoUrl={previewVideo} displayLink={displayLink} callToAction={callToAction} />
-            <AdCreativePreview placement="stories" primaryText={primaryText} headline={headline} imageUrl={previewImage} videoUrl={previewVideo} callToAction={callToAction} />
-            <AdCreativePreview placement="reels" primaryText={primaryText} headline={headline} imageUrl={previewImage} videoUrl={previewVideo} callToAction={callToAction} />
-          </div>
+          <MetaAdPreviewPanel
+            placements={adSetData.placements}
+            primaryText={primaryText}
+            headline={headline}
+            description={description}
+            imageUrl={previewImage}
+            videoUrl={previewVideo}
+            displayLink={displayLink}
+            callToAction={callToAction}
+            pageName={
+              pages.find((page) => page.id === facebookPageId)?.name ?? undefined
+            }
+          />
         ) : (
           <p className="text-sm text-slate-500">
             Upload an image or video above to preview placements here.

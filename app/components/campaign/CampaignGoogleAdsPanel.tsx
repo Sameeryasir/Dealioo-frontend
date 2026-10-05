@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -171,6 +171,7 @@ export function CampaignGoogleAdsPanel({
   const [duplicatingCampaignId, setDuplicatingCampaignId] = useState<
     string | null
   >(null);
+  const statsRequestIdRef = useRef(0);
 
   const draftsQuery = useGoogleCampaignDraftsQuery(businessId, {
     enabled: googleConnected && googleCustomerSelected,
@@ -228,25 +229,55 @@ export function CampaignGoogleAdsPanel({
     });
   }, [businessId, queryClient]);
 
-  const loadStats = useCallback(async () => {
-    setAdStatsLoading(true);
-    setAdStatsError(null);
-    try {
-      const stats = await getGoogleAdsCampaignStats(businessId);
-      setAdStats(stats);
-    } catch (e) {
-      setAdStats(null);
-      setAdStatsError(
-        friendlyGoogleAdsError(
-          e instanceof Error
-            ? e.message
-            : "Could not load Google Ads campaign stats.",
-        ),
-      );
-    } finally {
-      setAdStatsLoading(false);
-    }
-  }, [businessId]);
+  const loadStats = useCallback(
+    async (opts?: { refresh?: boolean; silent?: boolean }) => {
+      const silent = opts?.silent === true;
+      const requestId = ++statsRequestIdRef.current;
+      if (!silent) {
+        setAdStatsLoading(true);
+        setAdStatsError(null);
+      }
+      try {
+        const stats = await getGoogleAdsCampaignStats(businessId, {
+          refresh: opts?.refresh,
+        });
+        if (requestId !== statsRequestIdRef.current) return;
+        setAdStats(stats);
+        setAdStatsError(null);
+
+        if (!opts?.refresh && stats.isStale) {
+          if (!silent) {
+            setAdStatsLoading(false);
+          }
+          const refreshId = ++statsRequestIdRef.current;
+          void getGoogleAdsCampaignStats(businessId, { refresh: true })
+            .then((fresh) => {
+              if (refreshId !== statsRequestIdRef.current) return;
+              setAdStats(fresh);
+            })
+            .catch(() => {});
+          return;
+        }
+      } catch (e) {
+        if (requestId !== statsRequestIdRef.current) return;
+        if (!silent) {
+          setAdStats(null);
+          setAdStatsError(
+            friendlyGoogleAdsError(
+              e instanceof Error
+                ? e.message
+                : "Could not load Google Ads campaign stats.",
+            ),
+          );
+        }
+      } finally {
+        if (!silent && requestId === statsRequestIdRef.current) {
+          setAdStatsLoading(false);
+        }
+      }
+    },
+    [businessId],
+  );
 
   const refreshConnection = useCallback(async () => {
     setGoogleLoading(true);
@@ -286,20 +317,6 @@ export function CampaignGoogleAdsPanel({
       setAdStats(null);
       setAdStatsError(null);
 
-      const token = getSetupAccessToken();
-      const statsInFlight =
-        token != null
-          ? getGoogleAdsCampaignStats(businessId)
-              .then((stats) => ({ ok: true as const, stats }))
-              .catch((e) => ({
-                ok: false as const,
-                message:
-                  e instanceof Error
-                    ? e.message
-                    : "Could not load Google Ads campaign stats.",
-              }))
-          : null;
-
       const { connected, customerSelected } = await refreshConnection();
       if (cancelled) return;
 
@@ -308,28 +325,13 @@ export function CampaignGoogleAdsPanel({
         return;
       }
 
-      if (!statsInFlight) {
-        setAdStatsLoading(false);
-        return;
-      }
-
-      const result = await statsInFlight;
-      if (cancelled) return;
-
-      if (result.ok) {
-        setAdStats(result.stats);
-        setAdStatsError(null);
-      } else {
-        setAdStats(null);
-        setAdStatsError(friendlyGoogleAdsError(result.message));
-      }
-      setAdStatsLoading(false);
+      await loadStats();
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [businessId, refreshConnection]);
+  }, [businessId, loadStats, refreshConnection]);
 
   useEffect(() => {
     if (!googleConnected || !googleCustomerSelected) return;
@@ -566,7 +568,7 @@ export function CampaignGoogleAdsPanel({
             canManageCampaign={canCreateGoogleCampaign}
             onCreateCampaign={openCreatePicker}
             onRefresh={() => {
-              void loadStats();
+              void loadStats({ refresh: true });
               void draftsQuery.refetch();
             }}
             onDeleteCampaign={(c) => {

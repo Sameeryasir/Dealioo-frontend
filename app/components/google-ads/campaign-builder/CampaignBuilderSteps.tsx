@@ -9,7 +9,6 @@ import {
   Building2,
   Calendar,
   Check,
-  Clock,
   ExternalLink,
   Eye,
   FileText,
@@ -24,7 +23,6 @@ import {
   Megaphone,
   MousePointerClick,
   Plus,
-  Radar,
   Rocket,
   ShoppingBag,
   Sparkles,
@@ -61,7 +59,6 @@ import {
 import { toast } from "sonner";
 import {
   BudgetSlider,
-  ChipToggleGroup,
   Field,
   Panel,
   SearchableMultiSelect,
@@ -1361,7 +1358,7 @@ function padAdSlots(values: string[], min: number, max: number): string[] {
   return next;
 }
 
-export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
+export function StepAds({ draft, errors, onChange }: StepProps) {
   const [keywordDraft, setKeywordDraft] = useState("");
   const didMergeCustomKeywords = useRef(false);
 
@@ -1408,6 +1405,29 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
       });
     }
   }, [draft, draft.adsGenerated, onChange]);
+
+  // Merge custom keywords before any early return so hooks stay unconditional
+  useEffect(() => {
+    if (didMergeCustomKeywords.current) return;
+    if (draft.customKeywords.length === 0) {
+      didMergeCustomKeywords.current = true;
+      return;
+    }
+    didMergeCustomKeywords.current = true;
+    const existing = new Set(
+      draft.suggestedKeywords.map((row) => row.text.toLowerCase()),
+    );
+    const toMerge = draft.customKeywords.filter(
+      (word) => word.trim() && !existing.has(word.trim().toLowerCase()),
+    );
+    onChange({
+      suggestedKeywords:
+        toMerge.length > 0
+          ? [...draft.suggestedKeywords, ...toSuggestedKeywords(toMerge)]
+          : draft.suggestedKeywords,
+      customKeywords: [],
+    });
+  }, [draft.customKeywords, draft.suggestedKeywords, onChange]);
 
   const ad = draft.ads[0];
   if (!ad) return null;
@@ -1476,28 +1496,6 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
     });
     setKeywordDraft("");
   };
-
-  useEffect(() => {
-    if (didMergeCustomKeywords.current) return;
-    if (draft.customKeywords.length === 0) {
-      didMergeCustomKeywords.current = true;
-      return;
-    }
-    didMergeCustomKeywords.current = true;
-    const existing = new Set(
-      draft.suggestedKeywords.map((row) => row.text.toLowerCase()),
-    );
-    const toMerge = draft.customKeywords.filter(
-      (word) => word.trim() && !existing.has(word.trim().toLowerCase()),
-    );
-    onChange({
-      suggestedKeywords:
-        toMerge.length > 0
-          ? [...draft.suggestedKeywords, ...toSuggestedKeywords(toMerge)]
-          : draft.suggestedKeywords,
-      customKeywords: [],
-    });
-  }, [draft.customKeywords, draft.suggestedKeywords, onChange]);
 
   return (
     <StepShell
@@ -1826,7 +1824,12 @@ export function StepAds({ businessId, draft, errors, onChange }: StepProps) {
         </Panel>
 
         <div className="lg:sticky lg:top-4 lg:self-start">
-          <AdLivePreview ad={ad} businessName={draft.businessName} />
+          <AdLivePreview
+            ad={ad}
+            businessName={draft.businessName}
+            logoUrl={draft.logoPreviewUrl}
+            campaignType={draft.campaignType}
+          />
         </div>
       </div>
     </StepShell>
@@ -2345,7 +2348,8 @@ export function StepReviewPublish({
                         Ad preview
                       </p>
                       <p className="mt-0.5 text-xs text-slate-500">
-                        How it may look in Google Search
+                        Search result, plus Display/PMax when a logo or those
+                        campaign types are set
                       </p>
                     </div>
                     <button
@@ -2362,6 +2366,8 @@ export function StepReviewPublish({
                 <AdLivePreview
                   ad={draft.ads[0]}
                   businessName={draft.businessName}
+                  logoUrl={draft.logoPreviewUrl}
+                  campaignType={draft.campaignType}
                 />
               ) : (
                 <div className="rounded-xl border border-dashed border-[#dbeafe] bg-[#f4f8ff] px-4 py-8 text-center">
@@ -2407,10 +2413,10 @@ export function StepOnboarding({
           <Sparkles className="size-5" aria-hidden />
         </span>
         <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#07111f]">
-          Let's speed things up
+          Let&apos;s speed things up
         </h2>
         <p className="mt-2 text-base leading-relaxed text-slate-500">
-          Describe your business in a sentence or two and we'll pre-fill the
+          Describe your business in a sentence or two and we&apos;ll pre-fill the
           rest of this campaign for you.
         </p>
       </div>

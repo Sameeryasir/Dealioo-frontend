@@ -19,7 +19,7 @@ import {
   BuilderSuccessAlert,
   BuilderWarningAlert,
 } from "@/app/components/campaign/meta-builder/builder-ui";
-import { AdCreativePreview } from "@/app/components/campaign/meta-builder/AdCreativePreview";
+import { MetaAdPreviewPanel } from "@/app/components/campaign/meta-builder/AdCreativePreview";
 import { getFacebookPages } from "@/app/services/facebook/get-facebook-pages";
 import {
   formatAdSetBudget,
@@ -410,18 +410,22 @@ export function ReviewPublishStep({
 
           <aside className="min-w-0 space-y-4 lg:sticky lg:top-4">
             <ReviewSection title="Ad preview">
-              {previewUrl ? (
-                <div className="mx-auto w-full max-w-[320px]">
-                  <AdCreativePreview
-                    placement="facebook_feed"
-                    primaryText={adCreativeData.primaryText}
-                    headline={adCreativeData.headline ?? ""}
-                    description={adCreativeData.description}
-                    imageUrl={previewUrl}
-                    displayLink={adCreativeData.displayLink}
-                    callToAction={adCreativeData.callToAction}
-                  />
-                </div>
+              {previewUrl || adCreativeData.videoUrl?.trim() ? (
+                <MetaAdPreviewPanel
+                  placements={adSetData.placements}
+                  primaryText={adCreativeData.primaryText}
+                  headline={adCreativeData.headline ?? ""}
+                  description={adCreativeData.description}
+                  imageUrl={previewUrl}
+                  videoUrl={
+                    adCreativeData.creativeFormat === "SINGLE_VIDEO"
+                      ? adCreativeData.videoUrl
+                      : undefined
+                  }
+                  displayLink={adCreativeData.displayLink}
+                  callToAction={adCreativeData.callToAction}
+                  pageName={facebookPageName ?? undefined}
+                />
               ) : (
                 <div className="rounded-lg border border-dashed border-[#e8edf5] bg-[#fafbfd] px-4 py-8 text-center">
                   <ImageIcon className="mx-auto size-7 text-slate-300" aria-hidden />
