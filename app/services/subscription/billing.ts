@@ -42,6 +42,15 @@ export type BillingSubscriptionSummary = {
   cancelAtPeriodEnd: boolean;
   cancellationDate: string | null;
   startedAt: string | null;
+  planHighlights: string[];
+};
+
+export type BillingUpcomingInvoice = {
+  amountDueCents: number;
+  amountDueFormatted: string;
+  currency: string;
+  nextPaymentAttemptAt: string | null;
+  periodEndAt: string | null;
 };
 
 export type BillingOverview = {
@@ -49,6 +58,7 @@ export type BillingOverview = {
   paymentMethod: BillingPaymentMethod | null;
   billingDetails: BillingDetails;
   invoices: BillingInvoice[];
+  upcomingInvoice: BillingUpcomingInvoice | null;
 };
 
 export type UpdateBillingDetailsInput = {
@@ -161,6 +171,11 @@ function normalizeSubscription(
   if (!row) return null;
   const planName = asString(row.planName);
   if (!planName) return null;
+  const planHighlights = Array.isArray(row.planHighlights)
+    ? row.planHighlights
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean)
+    : [];
   return {
     planName,
     planSlug: asString(row.planSlug) || "",
@@ -171,6 +186,24 @@ function normalizeSubscription(
     cancelAtPeriodEnd: row.cancelAtPeriodEnd === true,
     cancellationDate: asString(row.cancellationDate),
     startedAt: asString(row.startedAt),
+    planHighlights,
+  };
+}
+
+function normalizeUpcomingInvoice(
+  value: unknown,
+): BillingUpcomingInvoice | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const amountDueFormatted = asString(row.amountDueFormatted);
+  if (!amountDueFormatted) return null;
+  return {
+    amountDueCents:
+      typeof row.amountDueCents === "number" ? row.amountDueCents : 0,
+    amountDueFormatted,
+    currency: asString(row.currency) || "usd",
+    nextPaymentAttemptAt: asString(row.nextPaymentAttemptAt),
+    periodEndAt: asString(row.periodEndAt),
   };
 }
 
@@ -191,14 +224,21 @@ function normalizeOverview(raw: unknown): BillingOverview | null {
           .map((item) => normalizeInvoice(item))
           .filter((item): item is BillingInvoice => item != null)
       : [],
+    upcomingInvoice: normalizeUpcomingInvoice(row.upcomingInvoice),
   };
 }
 
-export async function getBillingOverview(): Promise<BillingOverview> {
-  const res = await authenticatedFetch(`${getApiBaseUrl()}/billing/overview`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
+export async function getBillingOverview(options?: {
+  forceRefresh?: boolean;
+}): Promise<BillingOverview> {
+  const query = options?.forceRefresh ? "?refresh=1" : "";
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/billing/overview${query}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
 
   if (!res.ok) {
     throw new Error(

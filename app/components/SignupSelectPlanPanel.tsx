@@ -24,6 +24,10 @@ import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoad
 import { savePlanFit, getPlanFit } from "@/app/services/onboarding/save-plan-fit";
 import { startUserPlanCheckout } from "@/app/services/subscription/user-subscription";
 import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
+import {
+  previewUpgradeSubscription,
+  type PreviewUpgradeSubscriptionResult,
+} from "@/app/services/subscription/preview-upgrade-subscription";
 import { getBillingOverview } from "@/app/services/subscription/billing";
 import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import {
@@ -84,6 +88,10 @@ export function SignupSelectPlanPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
   const [upgradedPlanName, setUpgradedPlanName] = useState<string | null>(null);
+  const [upgradePreviewOpen, setUpgradePreviewOpen] = useState(false);
+  const [upgradePreviewLoading, setUpgradePreviewLoading] = useState(false);
+  const [upgradePreview, setUpgradePreview] =
+    useState<PreviewUpgradeSubscriptionResult | null>(null);
   const [quizDone, setQuizDone] = useState(mode !== "checkout");
   const [recommendation, setRecommendation] = useState<PlanFitResult | null>(
     null,
@@ -237,14 +245,71 @@ export function SignupSelectPlanPanel({
     window.location.assign("/dashboard");
   }, []);
 
-  const onContinue = useCallback(async () => {
-    if (!selectedPlanId) return;
+  const closeUpgradePreview = useCallback(() => {
+    if (submitting) return;
+    setUpgradePreviewOpen(false);
+    setUpgradePreview(null);
+  }, [submitting]);
+
+  const confirmUpgrade = useCallback(async () => {
+    if (!selectedPlanId || mode !== "upgrade") return;
 
     setErrorMessage(null);
     setSubmitting(true);
 
     try {
-      if (mode === "checkout") {
+      const upgraded = await upgradeUserSubscription({
+        planSlug: selectedPlanId,
+        billingCycle,
+      });
+      await confirmUpgradePaymentIfRequired(
+        upgraded.paymentIntentClientSecret,
+      );
+      if (upgraded.paymentIntentClientSecret?.trim()) {
+        await getBillingOverview().catch(() => null);
+      }
+
+      saveSelectedSignupPlan({
+        planId: selectedPlanId,
+        billing: billingCycle,
+      });
+
+      const planName =
+        upgradePreview?.targetPlanName ||
+        plans.find((plan) => plan.id === selectedPlanId)?.name ||
+        findPricingPlan(selectedPlanId)?.name ||
+        selectedPlanId;
+      setUpgradePreviewOpen(false);
+      setUpgradePreview(null);
+      setUpgradedPlanName(planName);
+      setUpgradeSuccessOpen(true);
+      setSubmitting(false);
+      void invalidateMySubscription();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not upgrade your plan. Try again.";
+      setErrorMessage(message);
+      setSubmitting(false);
+    }
+  }, [
+    billingCycle,
+    invalidateMySubscription,
+    mode,
+    plans,
+    selectedPlanId,
+    upgradePreview,
+  ]);
+
+  const onContinue = useCallback(async () => {
+    if (!selectedPlanId) return;
+
+    setErrorMessage(null);
+
+    if (mode === "checkout") {
+      setSubmitting(true);
+      try {
         saveSelectedSignupPlan({
           planId: selectedPlanId,
           billing: billingCycle,
@@ -254,48 +319,40 @@ export function SignupSelectPlanPanel({
           billingCycle,
         });
         window.location.assign(checkout.checkoutUrl);
-        return;
-      }
-
-      if (mode === "upgrade") {
-        const upgraded = await upgradeUserSubscription({
-          planSlug: selectedPlanId,
-          billingCycle,
-        });
-        await confirmUpgradePaymentIfRequired(
-          upgraded.paymentIntentClientSecret,
-        );
-        if (upgraded.paymentIntentClientSecret?.trim()) {
-          await getBillingOverview().catch(() => null);
-        }
-
-        saveSelectedSignupPlan({
-          planId: selectedPlanId,
-          billing: billingCycle,
-        });
-
-        const planName =
-          plans.find((plan) => plan.id === selectedPlanId)?.name ??
-          findPricingPlan(selectedPlanId)?.name ??
-          selectedPlanId;
-        setUpgradedPlanName(planName);
-        setUpgradeSuccessOpen(true);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not start checkout. Try again.";
+        setErrorMessage(message);
         setSubmitting(false);
-        void invalidateMySubscription();
-        return;
       }
+      return;
+    }
+
+    if (mode !== "upgrade") return;
+
+    setUpgradePreviewLoading(true);
+    setUpgradePreviewOpen(true);
+    setUpgradePreview(null);
+
+    try {
+      const preview = await previewUpgradeSubscription({
+        planSlug: selectedPlanId,
+        billingCycle,
+      });
+      setUpgradePreview(preview);
     } catch (error) {
-      const message =
+      setUpgradePreviewOpen(false);
+      setErrorMessage(
         error instanceof Error
           ? error.message
-          : mode === "checkout"
-            ? "Could not start checkout. Try again."
-            : "Could not upgrade your plan. Try again.";
-
-      setErrorMessage(message);
-      setSubmitting(false);
+          : "Could not preview this plan change.",
+      );
+    } finally {
+      setUpgradePreviewLoading(false);
     }
-  }, [billingCycle, invalidateMySubscription, mode, plans, selectedPlanId]);
+  }, [billingCycle, mode, selectedPlanId]);
 
   if (loading || (mode === "checkout" && !planFitReady)) {
     return <OnboardingPageLoading />;
@@ -401,6 +458,31 @@ export function SignupSelectPlanPanel({
           )}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={upgradePreviewOpen}
+        title="Confirm plan change"
+        description={
+          upgradePreviewLoading
+            ? "Calculating today’s prorated charge…"
+            : upgradePreview?.summary ||
+              "Review the prorated charge, then confirm to update your plan."
+        }
+        icon={CheckCircle2}
+        tone="primary"
+        cancelLabel="Keep current plan"
+        confirmLabel={
+          upgradePreviewLoading
+            ? "Calculating…"
+            : upgradePreview && upgradePreview.amountDueCents > 0
+              ? `Pay ${upgradePreview.amountDueFormatted} & change plan`
+              : "Confirm plan change"
+        }
+        isLoading={submitting || upgradePreviewLoading}
+        confirmDisabled={upgradePreviewLoading || !upgradePreview}
+        onCancel={closeUpgradePreview}
+        onConfirm={() => void confirmUpgrade()}
+      />
 
       <ConfirmDialog
         open={upgradeSuccessOpen}

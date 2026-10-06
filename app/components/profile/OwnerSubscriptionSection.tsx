@@ -1,6 +1,7 @@
 "use client";
 
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { findPricingPlan } from "@/app/components/landing/pricing-plans";
 import { OwnerBillingCardForm } from "@/app/components/profile/OwnerBillingCardForm";
 import { cancelUserSubscription } from "@/app/services/subscription/cancel-user-subscription";
 import {
@@ -16,6 +17,12 @@ import {
   type BillingOverview,
   type BillingPaymentMethod,
 } from "@/app/services/subscription/billing";
+import {
+  previewUpgradeSubscription,
+  type PreviewUpgradeSubscriptionResult,
+} from "@/app/services/subscription/preview-upgrade-subscription";
+import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-user-subscription";
+import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import {
   AlertCircle,
   CalendarDays,
@@ -38,8 +45,56 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+
+async function confirmUpgradePaymentIfRequired(
+  paymentIntentClientSecret: string | null | undefined,
+): Promise<void> {
+  const clientSecret = paymentIntentClientSecret?.trim();
+  if (!clientSecret) return;
+
+  const publishableKey =
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
+  if (!publishableKey) {
+    throw new Error(
+      "Card confirmation is required, but Stripe is not configured in this app.",
+    );
+  }
+
+  const stripe = await loadDealiooStripe(publishableKey);
+  if (!stripe) {
+    throw new Error("Could not load Stripe to confirm your plan change.");
+  }
+
+  const result = await stripe.confirmCardPayment(clientSecret);
+  if (result.error) {
+    throw new Error(
+      result.error.message ?? "Could not confirm the plan change payment.",
+    );
+  }
+
+  const status = result.paymentIntent?.status;
+  if (status !== "succeeded" && status !== "processing") {
+    throw new Error("Plan change payment was not completed. Please try again.");
+  }
+}
+
+function resolvePlanHighlights(
+  planSlug: string,
+  apiHighlights: string[] | undefined,
+): string[] {
+  if (apiHighlights && apiHighlights.length > 0) {
+    return apiHighlights.slice(0, 8);
+  }
+  const pricing = findPricingPlan(planSlug);
+  if (!pricing) return [];
+  if (pricing.features?.length) {
+    return [...pricing.features].slice(0, 8);
+  }
+  const grouped = pricing.featureGroups?.flatMap((group) => group.items) ?? [];
+  return grouped.slice(0, 8);
+}
 
 type OwnerSubscriptionSectionProps = {
   variant?: "light" | "dark";
@@ -209,6 +264,11 @@ export function OwnerSubscriptionSection({
   const [billingEditOpen, setBillingEditOpen] = useState(false);
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingEditError, setBillingEditError] = useState<string | null>(null);
+  const [cyclePreviewOpen, setCyclePreviewOpen] = useState(false);
+  const [cyclePreviewLoading, setCyclePreviewLoading] = useState(false);
+  const [cycleSubmitting, setCycleSubmitting] = useState(false);
+  const [cyclePreview, setCyclePreview] =
+    useState<PreviewUpgradeSubscriptionResult | null>(null);
   const [billingForm, setBillingForm] = useState({
     name: "",
     email: "",
@@ -226,6 +286,17 @@ export function OwnerSubscriptionSection({
   const paymentMethod = overview?.paymentMethod ?? null;
   const billingDetails = overview?.billingDetails ?? emptyBillingDetails;
   const invoices = overview?.invoices ?? [];
+  const upcomingInvoice = overview?.upcomingInvoice ?? null;
+  const planHighlights = useMemo(
+    () =>
+      resolvePlanHighlights(
+        subscription?.planSlug ?? "",
+        subscription?.planHighlights,
+      ),
+    [subscription?.planHighlights, subscription?.planSlug],
+  );
+  const oppositeCycle: "monthly" | "annual" =
+    subscription?.billingCycle === "annual" ? "monthly" : "annual";
   const processedCardReturnRef = useRef(false);
 
   const resetCancelForm = useCallback(() => {
@@ -234,11 +305,11 @@ export function OwnerSubscriptionSection({
     setCancelError(null);
   }, []);
 
-  const loadOverview = useCallback(async () => {
+  const loadOverview = useCallback(async (forceRefresh = true) => {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const next = await getBillingOverview();
+      const next = await getBillingOverview({ forceRefresh });
       setOverview(next);
     } catch (error) {
       setErrorMessage(
@@ -368,6 +439,63 @@ export function OwnerSubscriptionSection({
     }
   }, [loadOverview]);
 
+  const handleOpenCycleSwitch = useCallback(async () => {
+    const planSlug = subscription?.planSlug?.trim();
+    if (!planSlug) return;
+    setErrorMessage(null);
+    setCyclePreviewOpen(true);
+    setCyclePreviewLoading(true);
+    setCyclePreview(null);
+    try {
+      const preview = await previewUpgradeSubscription({
+        planSlug,
+        billingCycle: oppositeCycle,
+      });
+      setCyclePreview(preview);
+    } catch (error) {
+      setCyclePreviewOpen(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not preview this billing cycle change.",
+      );
+    } finally {
+      setCyclePreviewLoading(false);
+    }
+  }, [oppositeCycle, subscription]);
+
+  const handleConfirmCycleSwitch = useCallback(async () => {
+    const planSlug = subscription?.planSlug?.trim();
+    if (!planSlug || !cyclePreview) return;
+    setCycleSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const upgraded = await upgradeUserSubscription({
+        planSlug,
+        billingCycle: oppositeCycle,
+      });
+      await confirmUpgradePaymentIfRequired(
+        upgraded.paymentIntentClientSecret,
+      );
+      setCyclePreviewOpen(false);
+      setCyclePreview(null);
+      toast.success(
+        oppositeCycle === "annual"
+          ? "Switched to annual billing."
+          : "Switched to monthly billing.",
+      );
+      await loadOverview();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not change billing cycle.",
+      );
+    } finally {
+      setCycleSubmitting(false);
+    }
+  }, [cyclePreview, loadOverview, oppositeCycle, subscription]);
+
   const handleOpenCardModal = useCallback(async () => {
     setCardModalOpen(true);
     setCardClientSecret(null);
@@ -449,9 +577,6 @@ export function OwnerSubscriptionSection({
   const mutedClass = isDark
     ? "text-sm text-zinc-400"
     : "text-sm text-brand-muted";
-  const valueClass = isDark
-    ? "text-sm font-medium text-white"
-    : "text-sm font-medium text-brand-navy";
   const secondaryBtnClass = isDark
     ? "inline-flex h-10 w-fit items-center justify-center rounded-lg border border-zinc-600 bg-zinc-900 px-5 text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-60"
     : "inline-flex h-10 w-fit items-center justify-center rounded-full border border-[#d8e3f2] bg-white px-6 text-sm font-semibold text-brand-navy shadow-sm transition-colors hover:border-[#c5d4ea] hover:bg-[#f8faff] disabled:opacity-60";
@@ -610,14 +735,19 @@ export function OwnerSubscriptionSection({
                 {formatShortDate(
                   subscription.cancelAtPeriodEnd
                     ? subscription.cancellationDate ?? subscription.nextBillingDate
-                    : subscription.nextBillingDate,
+                    : upcomingInvoice?.nextPaymentAttemptAt ??
+                        subscription.nextBillingDate,
                 )}
               </p>
-              {formatRelativeFromNow(
-                subscription.cancelAtPeriodEnd
-                  ? subscription.cancellationDate ?? subscription.nextBillingDate
-                  : subscription.nextBillingDate,
-              ) ? (
+              {upcomingInvoice && !subscription.cancelAtPeriodEnd ? (
+                <p className="dealioo-billing-hint dealioo-billing-hint--accent">
+                  About {upcomingInvoice.amountDueFormatted}
+                </p>
+              ) : formatRelativeFromNow(
+                  subscription.cancelAtPeriodEnd
+                    ? subscription.cancellationDate ?? subscription.nextBillingDate
+                    : subscription.nextBillingDate,
+                ) ? (
                 <p className="dealioo-billing-hint dealioo-billing-hint--accent">
                   {formatRelativeFromNow(
                     subscription.cancelAtPeriodEnd
@@ -630,6 +760,25 @@ export function OwnerSubscriptionSection({
             </div>
           </div>
         </div>
+
+        {planHighlights.length > 0 ? (
+          <ul className="mt-4 grid gap-1 sm:grid-cols-2">
+            {planHighlights.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2 text-sm text-brand-navy"
+              >
+                <Check
+                  className="mt-0.5 size-3.5 shrink-0 text-emerald-600"
+                  strokeWidth={2.5}
+                  aria-hidden
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <p className="dealioo-billing-footer">
           <Globe className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           {subscription.cancelAtPeriodEnd
@@ -767,6 +916,21 @@ export function OwnerSubscriptionSection({
           <Link href="/dashboard/upgrade-plan" className={primaryBtnClass}>
             Change plan
           </Link>
+          {!subscription.cancelAtPeriodEnd &&
+          !isPastDueStatus(subscription.status) ? (
+            <button
+              type="button"
+              onClick={() => void handleOpenCycleSwitch()}
+              disabled={cyclePreviewLoading || cycleSubmitting}
+              className={secondaryBtnClass}
+            >
+              {cyclePreviewLoading
+                ? "Calculating…"
+                : oppositeCycle === "annual"
+                  ? "Switch to annual"
+                  : "Switch to monthly"}
+            </button>
+          ) : null}
           {subscription.cancelAtPeriodEnd ? (
             <button
               type="button"
@@ -1178,6 +1342,39 @@ export function OwnerSubscriptionSection({
         onConfirm={() => {
           void handleCancelSubscription();
         }}
+      />
+
+      <ConfirmDialog
+        open={cyclePreviewOpen}
+        title={
+          oppositeCycle === "annual"
+            ? "Switch to annual billing?"
+            : "Switch to monthly billing?"
+        }
+        description={
+          cyclePreviewLoading
+            ? "Calculating today’s prorated charge…"
+            : cyclePreview?.summary ||
+              "Review the prorated amount, then confirm to update billing."
+        }
+        icon={Check}
+        tone="primary"
+        cancelLabel="Keep current cycle"
+        confirmLabel={
+          cyclePreviewLoading
+            ? "Calculating…"
+            : cyclePreview && cyclePreview.amountDueCents > 0
+              ? `Pay ${cyclePreview.amountDueFormatted} & switch`
+              : "Confirm switch"
+        }
+        isLoading={cycleSubmitting || cyclePreviewLoading}
+        confirmDisabled={cyclePreviewLoading || !cyclePreview}
+        onCancel={() => {
+          if (cycleSubmitting) return;
+          setCyclePreviewOpen(false);
+          setCyclePreview(null);
+        }}
+        onConfirm={() => void handleConfirmCycleSwitch()}
       />
     </>
   );

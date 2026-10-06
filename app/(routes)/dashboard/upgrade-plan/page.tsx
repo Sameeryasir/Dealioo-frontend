@@ -12,7 +12,8 @@ export default function UpgradePlanPage() {
             <span className="landing-hero-accent-blue">plan</span>
           </h1>
           <p className="auth-signup-step-sub mt-1.5">
-            Pick the plan that fits your business. You can change it later.
+            Pick monthly or yearly, then confirm. We’ll show today’s prorated
+            charge before anything is billed.
           </p>
         </div>
 
