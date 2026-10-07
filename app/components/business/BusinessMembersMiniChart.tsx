@@ -100,13 +100,13 @@ export function BusinessMembersMiniChart({
       {showSplit ? (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#e8edf5] px-1 pt-3 text-[0.72rem] font-medium text-slate-500">
           <span>
-            From offer{" "}
+            Offer{" "}
             <span className="font-semibold tabular-nums text-slate-800">
               {funnelCount.toLocaleString()}
             </span>
           </span>
           <span>
-            At restaurant{" "}
+            Store{" "}
             <span className="font-semibold tabular-nums text-slate-800">
               {restaurantCount.toLocaleString()}
             </span>

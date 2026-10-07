@@ -68,6 +68,8 @@ export function BusinessRevenueMiniChart({
   extraItemsCents,
   months,
   caption,
+  peakDayLabel,
+  peakDayCents,
 }: {
   data: MonthlyRevenuePoint[];
   totalRevenueCents: number;
@@ -75,10 +77,17 @@ export function BusinessRevenueMiniChart({
   extraItemsCents?: number;
   months: number;
   caption?: string;
+  peakDayLabel?: string | null;
+  peakDayCents?: number | null;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
   const showSplit =
     typeof offerSalesCents === "number" && typeof extraItemsCents === "number";
+  const showPeakDay =
+    typeof peakDayLabel === "string" &&
+    peakDayLabel.length > 0 &&
+    typeof peakDayCents === "number" &&
+    peakDayCents > 0;
 
   const chartData = buildVisibleRevenuePlot(
     data.map((row) => ({
@@ -152,20 +161,34 @@ export function BusinessRevenueMiniChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      {showSplit ? (
+      {showSplit || showPeakDay ? (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#e8edf5] px-1 pt-3 text-[0.72rem] font-medium text-slate-500">
-          <span>
-            Offer sales{" "}
-            <span className="font-semibold tabular-nums text-slate-800">
-              {formatCents(offerSalesCents, "usd")}
+          {showSplit ? (
+            <>
+              <span>
+                Offer{" "}
+                <span className="font-semibold tabular-nums text-slate-800">
+                  {formatCents(offerSalesCents, "usd")}
+                </span>
+              </span>
+              <span>
+                Extras{" "}
+                <span className="font-semibold tabular-nums text-slate-800">
+                  {formatCents(extraItemsCents, "usd")}
+                </span>
+              </span>
+            </>
+          ) : null}
+          {showPeakDay ? (
+            <span className="font-bold text-slate-900">
+              Peak day{" "}
+              <span className="tabular-nums">{peakDayLabel}</span>
+              {" · "}
+              <span className="tabular-nums">
+                {formatCents(peakDayCents, "usd")}
+              </span>
             </span>
-          </span>
-          <span>
-            Extra items{" "}
-            <span className="font-semibold tabular-nums text-slate-800">
-              {formatCents(extraItemsCents, "usd")}
-            </span>
-          </span>
+          ) : null}
         </div>
       ) : null}
     </OverviewChartShell>

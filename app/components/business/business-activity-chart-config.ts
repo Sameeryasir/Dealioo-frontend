@@ -154,3 +154,92 @@ export function buildRevenueMonthlyData(
 export function hasCheckInsData(points: MonthlyCheckInsPoint[]): boolean {
   return points.some((row) => row.checkIns > 0);
 }
+
+export type PeakMetricPoint = {
+  month: string;
+  label: string;
+  value: number;
+};
+
+export function findPeakMetricPoint(
+  points: Array<{ month: string; label: string; value: number }>,
+): PeakMetricPoint | null {
+  if (points.length < 2) return null;
+
+  let peak: PeakMetricPoint | null = null;
+  for (const row of points) {
+    if (row.value <= 0) continue;
+    if (!peak || row.value > peak.value) {
+      peak = {
+        month: row.month,
+        label: row.label,
+        value: row.value,
+      };
+    }
+  }
+  return peak;
+}
+
+export function findPeakCheckInsDay(
+  points: MonthlyCheckInsPoint[],
+): PeakMetricPoint | null {
+  return findPeakMetricPoint(
+    points.map((row) => ({
+      month: row.month,
+      label: row.label,
+      value: row.checkIns,
+    })),
+  );
+}
+
+export function findPeakRevenueDay(
+  points: MonthlyRevenuePoint[],
+): PeakMetricPoint | null {
+  return findPeakMetricPoint(points);
+}
+
+export type PeakMonthInYear = {
+  month: string;
+  label: string;
+  revenueCents: number;
+  checkIns: number;
+};
+
+export function findPeakMonthInYear(
+  points: ActivityMonthlyPoint[],
+  year: number,
+): PeakMonthInYear | null {
+  const yearPrefix = `${year}-`;
+  let peak: PeakMonthInYear | null = null;
+
+  for (const row of points) {
+    if (!row.month.startsWith(yearPrefix)) continue;
+
+    const revenueCents = resolvePeriodRevenueCents(row);
+    const checkIns = resolveCheckIns(row);
+    if (revenueCents <= 0 && checkIns <= 0) continue;
+
+    const next: PeakMonthInYear = {
+      month: row.month,
+      label: formatMonthLabel(row.month),
+      revenueCents,
+      checkIns,
+    };
+
+    if (!peak) {
+      peak = next;
+      continue;
+    }
+
+    // Prefer revenue; break ties with check-ins, then earlier month.
+    if (
+      next.revenueCents > peak.revenueCents ||
+      (next.revenueCents === peak.revenueCents &&
+        next.checkIns > peak.checkIns)
+    ) {
+      peak = next;
+    }
+  }
+
+  return peak;
+}

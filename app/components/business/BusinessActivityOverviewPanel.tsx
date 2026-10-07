@@ -7,6 +7,9 @@ import {
   buildMembersMonthlyData,
   buildOrdersMonthlyData,
   buildRevenueMonthlyData,
+  findPeakCheckInsDay,
+  findPeakMonthInYear,
+  findPeakRevenueDay,
   sumActivityFromMonthly,
   resolvePeriodRevenueCents,
 } from "@/app/components/business/business-activity-chart-config";
@@ -36,8 +39,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   DollarSign,
+  Megaphone,
   ScanLine,
   ShoppingBag,
+  Trophy,
   UserRound,
   Users,
 } from "lucide-react";
@@ -251,10 +256,10 @@ function OverviewSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true" aria-label="Loading activity">
       <section
-        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5"
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
         aria-label="Business summary"
       >
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
             className="flex items-center gap-3 rounded-[1.1rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)] ring-1 ring-black/[0.02]"
@@ -353,6 +358,22 @@ export function BusinessActivityOverviewPanel({
       }),
   });
 
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const yearPeakQuery = useQuery({
+    queryKey: ["business-dashboard-year-peak", businessId, currentYear],
+    enabled: businessId != null && businessId > 0,
+    staleTime: 60_000,
+    queryFn: () =>
+      getRestaurantActivityMonthly(businessId!, {
+        months: 12,
+      }),
+  });
+  const peakMonth = useMemo(
+    () =>
+      findPeakMonthInYear(yearPeakQuery.data?.data ?? [], currentYear),
+    [currentYear, yearPeakQuery.data?.data],
+  );
+
   const periodLabel =
     calendarMode === "day"
       ? formatActivityDateLabel(dateFilter)
@@ -395,6 +416,21 @@ export function BusinessActivityOverviewPanel({
   const visibleRevenue = useMemo(
     () => buildRevenueMonthlyData(visibleData),
     [visibleData],
+  );
+  // Month view is day-bucketed; day view is hourly — only label a peak day in month mode.
+  const peakCheckInsDay = useMemo(
+    () =>
+      calendarMode === "month"
+        ? findPeakCheckInsDay(visibleCheckIns)
+        : null,
+    [calendarMode, visibleCheckIns],
+  );
+  const peakRevenueDay = useMemo(
+    () =>
+      calendarMode === "month"
+        ? findPeakRevenueDay(visibleRevenue)
+        : null,
+    [calendarMode, visibleRevenue],
   );
   const visibleOrders = useMemo(
     () => buildOrdersMonthlyData(visibleData),
@@ -531,19 +567,63 @@ export function BusinessActivityOverviewPanel({
         </div>
       </div>
 
+      <div className="space-y-5 px-3 py-4 sm:px-4 sm:py-5">
+        {peakMonth ? (
+          <aside
+            className="flex items-center gap-3 px-0.5"
+            aria-label={`Winner month ${peakMonth.label}`}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center text-[#1877f2]">
+              <Trophy className="size-5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-500">
+                Winner month · {currentYear}
+              </p>
+              <p className="m-0 mt-0.5 truncate text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+                {formatActivityMonthLabel(peakMonth.month)}
+              </p>
+              <p className="m-0 mt-0.5 truncate text-[0.75rem] font-medium text-slate-600">
+                Peak of the year till now
+                {peakMonth.revenueCents > 0 ? (
+                  <>
+                    {" · "}
+                    <span className="font-bold tabular-nums text-slate-800">
+                      {formatCents(peakMonth.revenueCents, "usd")}
+                    </span>
+                  </>
+                ) : null}
+                {peakMonth.checkIns > 0 ? (
+                  <>
+                    {" · "}
+                    <span className="font-semibold tabular-nums text-slate-700">
+                      {peakMonth.checkIns.toLocaleString()} check-ins
+                    </span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </aside>
+        ) : null}
+
       {periodLoading ? (
-        <div className="px-3 py-4 sm:px-4 sm:py-5">
           <OverviewSkeleton />
-        </div>
       ) : (
-        <div className="px-3 py-4 sm:px-4 sm:py-5">
           <div className="space-y-5">
             <section
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5"
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3"
               aria-label="Business summary"
             >
               <OverviewKpiTile
-                label="Total orders"
+                label="Campaigns"
+                value={displayActiveCampaigns}
+                hint={isQuietBusiness ? "Publish your first deal" : "Published"}
+                icon={Megaphone}
+                iconBg={DASHBOARD_KPI_ICON.green}
+                hoverTone="green"
+              />
+              <OverviewKpiTile
+                label="Orders"
                 value={periodOrders}
                 hint={periodLabel}
                 icon={ShoppingBag}
@@ -556,7 +636,7 @@ export function BusinessActivityOverviewPanel({
                 previousValue={previousOrders}
               />
               <OverviewKpiTile
-                label="Total members"
+                label="Members"
                 value={periodMembers}
                 hint={periodLabel}
                 icon={Users}
@@ -569,17 +649,17 @@ export function BusinessActivityOverviewPanel({
                 previousValue={previousMembers}
                 breakdown={[
                   {
-                    label: "From offer",
+                    label: "Offer",
                     value: String(visibleTotals.funnelMembers),
                   },
                   {
-                    label: "At restaurant",
+                    label: "Store",
                     value: String(visibleTotals.restaurantMembers),
                   },
                 ]}
               />
               <OverviewKpiTile
-                label="Active guests"
+                label="Guests"
                 value={activeGuests}
                 hint="Unique guests in this period"
                 icon={UserRound}
@@ -596,7 +676,7 @@ export function BusinessActivityOverviewPanel({
                     value: String(newGuests),
                   },
                   {
-                    label: "Returning",
+                    label: "Return",
                     value: String(returningGuests),
                   },
                   {
@@ -622,17 +702,17 @@ export function BusinessActivityOverviewPanel({
                 previousValue={previousCheckIns}
                 breakdown={[
                   {
-                    label: "QR scanned",
+                    label: "QR",
                     value: String(visibleTotals.scannedCheckIns),
                   },
                   {
-                    label: "In-store",
+                    label: "Store",
                     value: String(visibleTotals.inStoreCheckIns),
                   },
                 ]}
               />
               <OverviewKpiTile
-                label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
+                label="Revenue"
                 value={periodRevenueCents}
                 hint={periodLabel}
                 icon={DollarSign}
@@ -646,18 +726,18 @@ export function BusinessActivityOverviewPanel({
                 previousValue={previousRevenueCents}
                 breakdown={[
                   {
-                    label: "Offer sales",
+                    label: "Offer",
                     value: formatCents(visibleTotals.offerSalesCents, "usd"),
                   },
                   {
-                    label: "Extra items",
+                    label: "Extras",
                     value: formatCents(
                       visibleTotals.extraItemsRevenueCents,
                       "usd",
                     ),
                   },
                   {
-                    label: "Avg / paying guest",
+                    label: "Avg",
                     value:
                       avgSpendCents == null
                         ? "—"
@@ -687,6 +767,8 @@ export function BusinessActivityOverviewPanel({
                     caption={periodLabel}
                     scannedCount={visibleTotals.scannedCheckIns}
                     inStoreCount={visibleTotals.inStoreCheckIns}
+                    peakDayLabel={peakCheckInsDay?.label}
+                    peakDayValue={peakCheckInsDay?.value}
                   />
                 </div>
                 <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
@@ -697,6 +779,16 @@ export function BusinessActivityOverviewPanel({
                     extraItemsCents={visibleTotals.extraItemsRevenueCents}
                     months={1}
                     caption={periodLabel}
+                    peakDayLabel={
+                      calendarMode === "month"
+                        ? peakRevenueDay?.label
+                        : null
+                    }
+                    peakDayCents={
+                      calendarMode === "month"
+                        ? peakRevenueDay?.value
+                        : null
+                    }
                   />
                 </div>
                 <div className="min-h-[300px]" key={`orders-${periodLabel}`}>
@@ -725,8 +817,8 @@ export function BusinessActivityOverviewPanel({
               </div>
             </section>
           </div>
-        </div>
       )}
+      </div>
     </article>
   );
 }
