@@ -1,9 +1,22 @@
 "use client";
 
-import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import {
+  activityCalendarYearMonthCount,
+  currentActivityDateKey,
+  currentActivityMonthKey,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
+import {
+  TABLE_HEAD_ICON_CLASS,
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { standardEase } from "@/app/lib/motion";
 import {
@@ -37,23 +50,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const historyCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
-const EVENT_TYPE_OPTIONS: { id: string; label: string }[] = [
-  { id: "", label: "Event type" },
-  { id: "funnel_updated", label: "Funnel updated" },
-  { id: "funnel_deleted", label: "Funnel deleted" },
-  { id: "automation_activated", label: "Automation activated" },
-  { id: "automation_deactivated", label: "Automation deactivated" },
-  { id: "automation_updated", label: "Automation updated" },
-  { id: "automation_deleted", label: "Automation deleted" },
-  { id: "campaign_created", label: "Campaign created" },
-  { id: "campaign_updated", label: "Campaign updated" },
-  { id: "campaign_deleted", label: "Campaign deleted" },
-  { id: "scanner_payment", label: "Payment" },
-  { id: "scanner_purchase", label: "Purchase" },
-  { id: "scanner_redeemed", label: "Redeemed" },
-  { id: "business_created", label: "Business created" },
-  { id: "business_updated", label: "Business updated" },
-];
+const thClass =
+  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
+const tdClass =
+  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
 const TABS: {
   id: HistoryCategory;
@@ -259,33 +259,41 @@ function HistoryRow({
   const when = formatDateParts(event.occurredAt);
 
   return (
-    <tr className="border-b border-[#f1f5f9] last:border-0 hover:bg-[#f8fafc]">
-      <td className="px-4 py-3.5 align-middle first:pl-5">
+    <tr className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70">
+      <td className={tdClass}>
         <ActivityCell event={event} />
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td className={`${tdClass} max-w-[22rem]`}>
         <DescriptionCell event={event} />
       </td>
-      <td className="px-4 py-3.5 align-middle">
-        <div className="flex items-center gap-2.5">
+      <td className={tdClass}>
+        <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold ${avatarTone(index)}`}
           >
             {actorInitial(actor)}
           </span>
           <div className="min-w-0">
-            <p className="m-0 truncate text-sm font-semibold text-slate-900">
+            <span className="block truncate font-normal text-[#07111f]">
               {actor}
-            </p>
-            <p className="m-0 text-[0.72rem] text-slate-400">
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-slate-500">
               {roleLabel(event)}
-            </p>
+            </span>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3.5 align-middle last:pr-5">
-        <p className="m-0 text-sm font-semibold text-slate-800">{when.date}</p>
-        <p className="m-0 text-[0.72rem] text-slate-400">{when.time}</p>
+      <td className={`${tdClass} whitespace-nowrap text-slate-600`}>
+        <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm">
+          <Calendar
+            className="size-3.5 shrink-0 text-slate-400"
+            aria-hidden
+          />
+          <span>
+            {when.date}
+            <span className="text-slate-400"> · {when.time}</span>
+          </span>
+        </span>
       </td>
     </tr>
   );
@@ -299,12 +307,14 @@ export function BusinessHistoryPanel({
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState<HistoryCategory>("all");
-  const [eventType, setEventType] = useState("");
-  const [actorUserId, setActorUserId] = useState("");
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [alertDismissed, setAlertDismissed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const calendarMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -313,7 +323,14 @@ export function BusinessHistoryPanel({
 
   useEffect(() => {
     setPage(1);
-  }, [businessId, category, eventType, actorUserId, debouncedSearch]);
+  }, [
+    businessId,
+    category,
+    calendarMode,
+    monthFilter,
+    dateFilter,
+    debouncedSearch,
+  ]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -326,15 +343,31 @@ export function BusinessHistoryPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, calendarMonthCount);
+    }
+    return (
+      getActivityMonthRangeForKey(monthFilter, calendarMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), calendarMonthCount)
+    );
+  }, [calendarMode, calendarMonthCount, dateFilter, monthFilter]);
+
   const filters = useMemo(
     () => ({
       page,
       category,
-      eventType: eventType || undefined,
-      actorUserId: actorUserId ? Number(actorUserId) : undefined,
       q: debouncedSearch || undefined,
+      from: periodRange.from,
+      to: periodRange.to,
     }),
-    [page, category, eventType, actorUserId, debouncedSearch],
+    [
+      page,
+      category,
+      debouncedSearch,
+      periodRange.from,
+      periodRange.to,
+    ],
   );
 
   const historyQuery = useQuery({
@@ -357,7 +390,6 @@ export function BusinessHistoryPanel({
   const events = historyQuery.data?.data ?? [];
   const meta = historyQuery.data?.meta ?? null;
   const counts = historyQuery.data?.counts;
-  const actors = historyQuery.data?.actors ?? [];
   const loading = historyQuery.isLoading || historyQuery.isFetching;
   const error = historyQuery.error
     ? getApiErrorMessage(historyQuery.error, "Could not load history.")
@@ -368,14 +400,6 @@ export function BusinessHistoryPanel({
   const rowOffset = meta ? (meta.page - 1) * meta.limit : 0;
   const showTable = !error && events.length > 0;
   const allCount = counts?.all ?? total;
-
-  const userOptions = useMemo(
-    () => [
-      { id: "", label: "User" },
-      ...actors.map((actor) => ({ id: String(actor.id), label: actor.name })),
-    ],
-    [actors],
-  );
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -395,64 +419,103 @@ export function BusinessHistoryPanel({
 
       <div className="rd-premium-page">
         <article className={`${historyCardClass} rd-premium-panel`}>
-          <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
-            <div>
-              <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
-                History & Activity
-              </h2>
-              <p className="m-0 mt-1 text-sm text-slate-500">
-                Track changes and actions across your workspace
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
-                <Activity className="size-3.5 text-slate-400" aria-hidden />
-                {allCount} {allCount === 1 ? "activity" : "activities"}
-              </span>
-              <button
-                type="button"
-                onClick={() => exportRowsCsv(events)}
-                disabled={events.length === 0}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
-              >
-                <ArrowDownToLine className="size-3.5" strokeWidth={2.25} />
-                Export
-              </button>
-            </div>
-          </header>
+          <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
+                  aria-hidden
+                >
+                  <History className="size-5" strokeWidth={2.25} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+                    History & Activity
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    Track changes and actions across your workspace
+                  </p>
+                </div>
+              </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
-            <label className="relative min-w-[14rem] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input
-                ref={searchRef}
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search activities, users, or events..."
-                className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
-              />
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
-                ⌘ K
-              </span>
-            </label>
-            <AutomationFilterDropdown
-              className="w-[11.5rem] shrink-0"
-              ariaLabel="Filter by event type"
-              value={eventType}
-              options={EVENT_TYPE_OPTIONS}
-              onChange={setEventType}
-            />
-            <AutomationFilterDropdown
-              className="w-[10.5rem] shrink-0"
-              ariaLabel="Filter by user"
-              value={actorUserId}
-              options={userOptions}
-              onChange={setActorUserId}
-            />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="relative block h-9">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+                    aria-hidden
+                  />
+                  <input
+                    ref={searchRef}
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search activities…"
+                    aria-label="Search activities"
+                    className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-12 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
+                  />
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-[#e8edf5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.6rem] font-semibold text-slate-400">
+                    ⌘K
+                  </span>
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMode("month")}
+                      className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                        calendarMode === "month"
+                          ? "bg-[#1877f2] text-white"
+                          : "text-slate-600"
+                      }`}
+                    >
+                      Month
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMode("day")}
+                      className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                        calendarMode === "day"
+                          ? "bg-[#1877f2] text-white"
+                          : "text-slate-600"
+                      }`}
+                    >
+                      Day
+                    </button>
+                  </div>
+                  {calendarMode === "month" ? (
+                    <ActivityMonthCalendarPicker
+                      value={monthFilter}
+                      onChange={setMonthFilter}
+                      compact
+                      showAllMonths={false}
+                      monthCount={calendarMonthCount}
+                    />
+                  ) : (
+                    <PerformanceDateCalendar
+                      value={dateFilter}
+                      onChange={setDateFilter}
+                      monthCount={calendarMonthCount}
+                    />
+                  )}
+                </div>
+                <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-600">
+                  <Activity className="size-3.5 text-slate-400" aria-hidden />
+                  {allCount} {allCount === 1 ? "activity" : "activities"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => exportRowsCsv(events)}
+                  disabled={events.length === 0}
+                  className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ArrowDownToLine className="size-3.5" strokeWidth={2.25} />
+                  Export
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
+          <div className="flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const selected = category === tab.id;
@@ -487,7 +550,13 @@ export function BusinessHistoryPanel({
             })}
           </div>
 
-          <div className="rd-premium-panel__body">
+          <div
+            className={`rd-premium-panel__body${
+              !loading && !error && total === 0
+                ? " rd-premium-panel__body--center"
+                : ""
+            }`}
+          >
             {loading && events.length === 0 ? (
               <div className="space-y-0">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -505,59 +574,64 @@ export function BusinessHistoryPanel({
             ) : null}
 
             {!loading && !error && total === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: standardEase }}
-                className="flex flex-col items-center px-6 py-10 text-center"
-              >
-                <History className="size-8 text-slate-300" aria-hidden />
-                <p className="m-0 mt-3 text-[0.95rem] font-extrabold text-[#07111f]">
-                  No history yet
-                </p>
-                <p className="m-0 mt-1 max-w-sm text-[0.8rem] font-medium text-slate-500">
-                  Changes to your business, campaigns, funnels, and automations
-                  will show up here.
-                </p>
-              </motion.div>
+              <TableNoResultsEmptyState
+                icon={History}
+                title="No history for this period"
+                description="No workspace changes match this search, filter, or date. Try another day or month, or clear filters to reset."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategory("all");
+                      setCalendarMode("month");
+                      setMonthFilter(currentActivityMonthKey());
+                      setDateFilter(currentActivityDateKey());
+                      setSearch("");
+                    }}
+                    className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                  >
+                    Clear filters
+                  </button>
+                }
+              />
             ) : null}
 
             {showTable ? (
               <>
-                <div className="hidden overflow-x-auto md:block">
+                <div className="hidden overflow-x-auto overscroll-x-contain md:block">
                   <table className="w-full min-w-[44rem] border-collapse">
                     <thead>
-                      <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/80">
-                        <th className="px-4 py-3 text-left first:pl-5">
+                      <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
+                        <th className={thClass}>
                           <TableColumnHeader
                             icon={Activity}
                             label="Activity"
-                            iconClassName="text-[#1877f2]"
-                            labelClassName="text-[#1877f2]"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                        <th className="px-4 py-3 text-left">
+                        <th className={thClass}>
                           <TableColumnHeader
                             icon={MessageSquare}
                             label="Description"
-                            iconClassName="text-[#1877f2]"
-                            labelClassName="text-[#1877f2]"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                        <th className="px-4 py-3 text-left">
+                        <th className={thClass}>
                           <TableColumnHeader
                             icon={UserRound}
                             label="Performed by"
-                            iconClassName="text-[#1877f2]"
-                            labelClassName="text-[#1877f2]"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
-                        <th className="px-4 py-3 text-left last:pr-5">
+                        <th className={thClass}>
                           <TableColumnHeader
                             icon={Calendar}
                             label="Date"
-                            iconClassName="text-[#1877f2]"
-                            labelClassName="text-[#1877f2]"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
                           />
                         </th>
                       </tr>
@@ -606,7 +680,7 @@ export function BusinessHistoryPanel({
           </div>
 
           {showTable && meta && meta.total > 0 ? (
-            <div className="shrink-0 border-t border-[#e8edf5] px-5 py-3 sm:px-6">
+            <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="m-0 text-xs text-slate-500">
                   Showing {meta.total === 0 ? 0 : rowOffset + 1} to{" "}
@@ -620,7 +694,7 @@ export function BusinessHistoryPanel({
                     type="button"
                     disabled={loading || page <= 1}
                     onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -633,7 +707,7 @@ export function BusinessHistoryPanel({
                     onClick={() =>
                       setPage((prev) => Math.min(totalPages, prev + 1))
                     }
-                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>

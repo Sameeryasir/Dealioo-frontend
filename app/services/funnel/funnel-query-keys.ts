@@ -38,6 +38,8 @@ export const funnelQueryKeys = {
     status: string,
     date: string,
     search: string,
+    from = "",
+    to = "",
   ) =>
     [
       ...funnelQueryKeys.businessOrders(),
@@ -46,5 +48,7 @@ export const funnelQueryKeys = {
       status,
       date,
       search,
+      from,
+      to,
     ] as const,
 };

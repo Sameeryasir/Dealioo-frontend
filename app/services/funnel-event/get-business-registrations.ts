@@ -11,6 +11,8 @@ export type BusinessFunnelEventDateFilter = "all" | "today" | "week" | "month";
 export type BusinessFunnelEventFilters = {
   status?: BusinessFunnelEventStatusFilter;
   date?: BusinessFunnelEventDateFilter;
+  from?: string;
+  to?: string;
   search?: string;
 };
 
@@ -98,12 +100,17 @@ export async function getBusinessFunnelEvents(
 
   const status = filters.status ?? "all";
   const date = filters.date ?? "all";
+  const from = filters.from?.trim() ?? "";
+  const to = filters.to?.trim() ?? "";
   const search = filters.search?.trim() ?? "";
 
   if (status !== "all") {
     q.set("status", status);
   }
-  if (date !== "all") {
+  if (from && to) {
+    q.set("from", from);
+    q.set("to", to);
+  } else if (date !== "all") {
     q.set("date", date);
   }
   if (search.length > 0) {

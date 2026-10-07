@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
+import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,10 +42,11 @@ import {
 import { formatMessageSentDescription } from "@/app/lib/activity-message-preview";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
-  ACTIVITY_ALL_MONTHS_ID,
-  buildActivityMonthFilterOptions,
+  activityCalendarYearMonthCount,
+  currentActivityDateKey,
+  currentActivityMonthKey,
   getActivityMonthRangeForKey,
-  resolveActivityMonthRange,
+  resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
@@ -545,11 +548,14 @@ export function BusinessActivityPanel({
 
   const [page, setPage] = useState(1);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
-  const [monthFilter, setMonthFilter] = useState(ACTIVITY_ALL_MONTHS_ID);
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [alertDismissed, setAlertDismissed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const calendarMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -567,11 +573,20 @@ export function BusinessActivityPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const monthOptions = useMemo(() => buildActivityMonthFilterOptions(), []);
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, calendarMonthCount);
+    }
+    return (
+      getActivityMonthRangeForKey(monthFilter, calendarMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), calendarMonthCount)
+    );
+  }, [calendarMode, calendarMonthCount, dateFilter, monthFilter]);
 
   const hasActiveFilters =
     eventFilter !== "all" ||
-    monthFilter !== ACTIVITY_ALL_MONTHS_ID ||
+    calendarMode !== "month" ||
+    monthFilter !== currentActivityMonthKey() ||
     Boolean(debouncedSearch);
 
   const eventsQuery = useQuery({
@@ -580,22 +595,19 @@ export function BusinessActivityPanel({
       businessId,
       page,
       eventFilter,
-      monthFilter,
+      periodRange.from,
+      periodRange.to,
       debouncedSearch,
     ],
-    queryFn: () => {
-      const liveRange =
-        getActivityMonthRangeForKey(monthFilter) ??
-        resolveActivityMonthRange(monthFilter, monthOptions);
-      return getRestaurantActivityEvents(businessId, {
+    queryFn: () =>
+      getRestaurantActivityEvents(businessId, {
         page,
         limit: RESTAURANT_ACTIVITY_PAGE_SIZE,
         eventType: eventFilter,
-        from: liveRange.from,
-        to: liveRange.to,
+        from: periodRange.from,
+        to: periodRange.to,
         search: debouncedSearch || undefined,
-      });
-    },
+      }),
     enabled: businessId > 0,
     staleTime: 0,
     gcTime: 0,
@@ -607,17 +619,14 @@ export function BusinessActivityPanel({
     queryKey: [
       "business-activity-summary",
       businessId,
-      monthFilter,
+      periodRange.from,
+      periodRange.to,
     ],
-    queryFn: () => {
-      const liveRange =
-        getActivityMonthRangeForKey(monthFilter) ??
-        resolveActivityMonthRange(monthFilter, monthOptions);
-      return getRestaurantActivitySummary(businessId, {
-        from: liveRange.from,
-        to: liveRange.to,
-      });
-    },
+    queryFn: () =>
+      getRestaurantActivitySummary(businessId, {
+        from: periodRange.from,
+        to: periodRange.to,
+      }),
     enabled: businessId > 0,
     staleTime: 0,
     gcTime: 0,
@@ -653,7 +662,7 @@ export function BusinessActivityPanel({
 
   useEffect(() => {
     setPage(1);
-  }, [eventFilter, monthFilter, debouncedSearch]);
+  }, [eventFilter, calendarMode, monthFilter, dateFilter, debouncedSearch]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -673,20 +682,92 @@ export function BusinessActivityPanel({
   const allCount = summary?.totalEvents ?? allEventsTotal;
 
   const activityHeader = (
-    <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
-            <div>
-              <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
-                Activity Log
-              </h2>
-              <p className="m-0 mt-1 text-sm text-slate-500">
-                Track visits, payments, redemptions, and messages from your guests
-              </p>
+    <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
+            aria-hidden
+          >
+            <Activity className="size-5" strokeWidth={2.25} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+              Activity Log
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
+              Track visits, payments, redemptions, and messages from your guests
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative block h-9">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search guests…"
+              aria-label="Search activity"
+              className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-12 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-[#e8edf5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.6rem] font-semibold text-slate-400">
+              ⌘K
+            </span>
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+              <button
+                type="button"
+                onClick={() => setCalendarMode("month")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "month"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMode("day")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "day"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Day
+              </button>
             </div>
-      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
-        <Activity className="size-3.5 text-slate-400" aria-hidden />
-        {allCount} {allCount === 1 ? "activity" : "activities"}
-      </span>
-    </header>
+            {calendarMode === "month" ? (
+              <ActivityMonthCalendarPicker
+                value={monthFilter}
+                onChange={setMonthFilter}
+                compact
+                showAllMonths={false}
+                monthCount={calendarMonthCount}
+              />
+            ) : (
+              <PerformanceDateCalendar
+                value={dateFilter}
+                onChange={setDateFilter}
+                monthCount={calendarMonthCount}
+              />
+            )}
+          </div>
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-600">
+            <Activity className="size-3.5 text-slate-400" aria-hidden />
+            {allCount} {allCount === 1 ? "activity" : "activities"}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -709,49 +790,30 @@ export function BusinessActivityPanel({
           <article className={`${activityCardClass} rd-premium-panel`}>
             {activityHeader}
             <div
-              className="flex shrink-0 flex-col"
+              className="flex shrink-0 flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6"
               aria-label="Activity filters"
             >
-              <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
-                <label className="relative min-w-[14rem] flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    ref={searchRef}
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search guests, emails, or details..."
-                    className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
-                  />
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
-                    ⌘ K
-                  </span>
-                </label>
-                <ActivityMonthCalendarPicker
-                  value={monthFilter}
-                  onChange={setMonthFilter}
-                  compact
+              {EVENT_FILTERS.map((filter) => (
+                <FilterTab
+                  key={filter.id}
+                  label={filter.label}
+                  icon={filter.icon}
+                  count={
+                    filter.countKey != null
+                      ? (summary?.[filter.countKey] ?? 0)
+                      : undefined
+                  }
+                  active={eventFilter === filter.id}
+                  onClick={() => setEventFilter(filter.id)}
                 />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
-                {EVENT_FILTERS.map((filter) => (
-                  <FilterTab
-                    key={filter.id}
-                    label={filter.label}
-                    icon={filter.icon}
-                    count={
-                      filter.countKey != null
-                        ? (summary?.[filter.countKey] ?? 0)
-                        : undefined
-                    }
-                    active={eventFilter === filter.id}
-                    onClick={() => setEventFilter(filter.id)}
-                  />
-                ))}
-              </div>
+              ))}
             </div>
 
-            <div className="rd-premium-panel__body">
+            <div
+              className={`rd-premium-panel__body${
+                showFilteredEmpty ? " rd-premium-panel__body--center" : ""
+              }`}
+            >
               {initialLoading && events.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -763,30 +825,31 @@ export function BusinessActivityPanel({
               ) : null}
 
               {showFilteredEmpty ? (
-                <div className="flex flex-col items-center px-6 py-10 text-center">
-                  <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-                    No matching events
-                  </p>
-                  <p className="m-0 mt-1 max-w-sm text-[0.8rem] font-medium text-slate-500">
-                    Try a different search, filter, or month.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEventFilter("all");
-                      setMonthFilter(ACTIVITY_ALL_MONTHS_ID);
-                      setSearch("");
-                    }}
-                    className="mt-4 cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                  >
-                    Clear filters
-                  </button>
-                </div>
+                <TableNoResultsEmptyState
+                  icon={Search}
+                  title="No matching activity"
+                  description="Nothing matches this search, filter, or date. Try another day or month, or clear filters to reset."
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEventFilter("all");
+                        setCalendarMode("month");
+                        setMonthFilter(currentActivityMonthKey());
+                        setDateFilter(currentActivityDateKey());
+                        setSearch("");
+                      }}
+                      className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                    >
+                      Clear filters
+                    </button>
+                  }
+                />
               ) : null}
 
               {showTable ? (
                 <motion.div
-                  key={`activity-page-${page}-${eventFilter}-${monthFilter}-${debouncedSearch}`}
+                  key={`activity-page-${page}-${eventFilter}-${periodRange.from}-${periodRange.to}-${debouncedSearch}`}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: standardEase }}

@@ -13019,6 +13019,26 @@ body:has(.rd-shell--app) {
   background: #ffffff;
 }
 
+/* Guest roster: fill remaining viewport height on every screen size. */
+.rd-main-scroll.rd-main-scroll--program:has(> .rd-premium--fill) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rd-main-scroll.rd-main-scroll--program > .rd-premium.rd-premium--fill,
+.rd-main-scroll.rd-main-scroll--program:has(> .rd-premium--fill)
+  > .rd-premium.rd-premium--fill {
+  flex: 1 1 0%;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+}
+
 .rd-shell--members .rd-shell-column {
   background: #ffffff;
 }

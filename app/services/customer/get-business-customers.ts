@@ -36,6 +36,7 @@ export async function getBusinessCustomers(
   businessId: number,
   page = 1,
   limit = BUSINESS_CUSTOMERS_PAGE_SIZE,
+  filters: { from?: string; to?: string } = {},
 ): Promise<PaginatedBusinessCustomersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -45,6 +46,8 @@ export async function getBusinessCustomers(
     page: String(page),
     limit: String(limit),
   });
+  if (filters.from?.trim()) q.set("from", filters.from.trim());
+  if (filters.to?.trim()) q.set("to", filters.to.trim());
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/customer/business/${businessId}?${q.toString()}`,

@@ -17,11 +17,21 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
+import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  activityCalendarYearMonthCount,
+  currentActivityDateKey,
+  currentActivityMonthKey,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import {
   TABLE_HEAD_ICON_CLASS,
@@ -41,7 +51,18 @@ import {
 } from "@/app/services/funnel-event/get-business-registrations";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
-import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 const ORDERS_TABLE_PAGE_SIZE = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE;
@@ -57,19 +78,12 @@ const tdClass =
   "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
 type StatusFilter = "all" | "paid" | "not_paid";
-type DateFilter = "all" | "today" | "week" | "month";
 type DisplayPaymentStatus = "paid" | "pending" | "failed" | "refunded";
 
 const STATUS_FILTERS: { id: StatusFilter; label: string; icon: LucideIcon }[] = [
   { id: "all", label: "All", icon: LayoutGrid },
   { id: "paid", label: "Paid", icon: CircleDollarSign },
   { id: "not_paid", label: "Not Paid", icon: X },
-];
-
-const DATE_FILTERS: { id: Exclude<DateFilter, "all">; label: string; icon: LucideIcon }[] = [
-  { id: "today", label: "Today", icon: Calendar },
-  { id: "week", label: "This Week", icon: Calendar },
-  { id: "month", label: "This Month", icon: Calendar },
 ];
 
 const AVATAR_TONES = [
@@ -809,15 +823,29 @@ export function BusinessOrdersPanel({
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const searchRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
+  const calendarMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+
+  const periodRange = useMemo(() => {
+    if (calendarMode === "day") {
+      return resolveActivityDateRange(dateFilter, calendarMonthCount);
+    }
+    return (
+      getActivityMonthRangeForKey(monthFilter, calendarMonthCount) ??
+      resolveActivityDateRange(currentActivityDateKey(), calendarMonthCount)
+    );
+  }, [calendarMode, calendarMonthCount, dateFilter, monthFilter]);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
-    dateFilter !== "all" ||
+    calendarMode !== "month" ||
+    monthFilter !== currentActivityMonthKey() ||
     deferredSearchQuery.trim().length > 0;
 
   const eventsQuery = useQuery({
@@ -825,13 +853,16 @@ export function BusinessOrdersPanel({
       businessId,
       page,
       statusFilter,
-      dateFilter,
+      "range",
       deferredSearchQuery,
+      periodRange.from,
+      periodRange.to,
     ),
     queryFn: () =>
       getBusinessFunnelEvents(businessId, page, ORDERS_TABLE_PAGE_SIZE, {
         status: statusFilter,
-        date: dateFilter,
+        from: periodRange.from,
+        to: periodRange.to,
         search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
@@ -864,7 +895,13 @@ export function BusinessOrdersPanel({
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, dateFilter, deferredSearchQuery]);
+  }, [
+    statusFilter,
+    calendarMode,
+    monthFilter,
+    dateFilter,
+    deferredSearchQuery,
+  ]);
 
   useEffect(() => {
     if (eventsQuery.isFetching || !meta) return;
@@ -897,20 +934,92 @@ export function BusinessOrdersPanel({
   }, []);
 
   const ordersHeader = (
-    <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
-      <div>
-        <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
-          Orders &amp; Payments
-        </h2>
-        <p className="m-0 mt-1 text-sm text-slate-500">
-          Track signups, payments, and customer funnel activity
-        </p>
+    <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
+            aria-hidden
+          >
+            <CircleDollarSign className="size-5" strokeWidth={2.25} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+              Orders &amp; Payments
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
+              Track signups, payments, and customer funnel activity
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative block h-9">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              ref={searchRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search orders…"
+              aria-label="Search orders"
+              className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-12 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-[#e8edf5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.6rem] font-semibold text-slate-400">
+              ⌘K
+            </span>
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+              <button
+                type="button"
+                onClick={() => setCalendarMode("month")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "month"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMode("day")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "day"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Day
+              </button>
+            </div>
+            {calendarMode === "month" ? (
+              <ActivityMonthCalendarPicker
+                value={monthFilter}
+                onChange={setMonthFilter}
+                compact
+                showAllMonths={false}
+                monthCount={calendarMonthCount}
+              />
+            ) : (
+              <PerformanceDateCalendar
+                value={dateFilter}
+                onChange={setDateFilter}
+                monthCount={calendarMonthCount}
+              />
+            )}
+          </div>
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-600">
+            <Activity className="size-3.5 text-slate-400" aria-hidden />
+            {allCount} {allCount === 1 ? "order" : "orders"}
+          </span>
+        </div>
       </div>
-      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
-        <Activity className="size-3.5 text-slate-400" aria-hidden />
-        {allCount} {allCount === 1 ? "order" : "orders"}
-      </span>
-    </header>
+    </div>
   );
 
   return (
@@ -939,60 +1048,30 @@ export function BusinessOrdersPanel({
           <article className={`${ordersCardClass} rd-premium-panel`}>
             {ordersHeader}
             <div
-              className="flex shrink-0 flex-col"
+              className="flex shrink-0 flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6"
               aria-label="Order filters"
             >
-              <div className="mt-4 flex flex-wrap items-center gap-2 px-5 sm:px-6">
-                <label className="relative w-full max-w-[20rem]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    ref={searchRef}
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search customer or campaign..."
-                    className="h-10 w-full rounded-xl border border-[#E8EDF5] bg-white py-2 pl-9 pr-16 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#c7d7f5] focus:ring-2 focus:ring-[#e8f1ff]"
-                  />
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#E8EDF5] bg-[#f8fafc] px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-400">
-                    ⌘ K
-                  </span>
-                </label>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1 border-b border-[#e8edf5] px-5 sm:px-6">
-                {STATUS_FILTERS.map((filter) => (
-                  <FilterTab
-                    key={filter.id}
-                    label={filter.label}
-                    icon={filter.icon}
-                    active={statusFilter === filter.id}
-                    onClick={() => {
-                      startTransition(() => {
-                        setPage(1);
-                        setStatusFilter(filter.id);
-                      });
-                    }}
-                  />
-                ))}
-                {DATE_FILTERS.map((filter) => (
-                  <FilterTab
-                    key={filter.id}
-                    label={filter.label}
-                    icon={filter.icon}
-                    active={dateFilter === filter.id}
-                    onClick={() => {
-                      startTransition(() => {
-                        setPage(1);
-                        setDateFilter((prev) =>
-                          prev === filter.id ? "all" : filter.id,
-                        );
-                      });
-                    }}
-                  />
-                ))}
-              </div>
+              {STATUS_FILTERS.map((filter) => (
+                <FilterTab
+                  key={filter.id}
+                  label={filter.label}
+                  icon={filter.icon}
+                  active={statusFilter === filter.id}
+                  onClick={() => {
+                    startTransition(() => {
+                      setPage(1);
+                      setStatusFilter(filter.id);
+                    });
+                  }}
+                />
+              ))}
             </div>
 
-            <div className="rd-premium-panel__body">
+            <div
+              className={`rd-premium-panel__body${
+                showNoFilterResults ? " rd-premium-panel__body--center" : ""
+              }`}
+            >
               {loading && events.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -1004,25 +1083,26 @@ export function BusinessOrdersPanel({
               ) : null}
 
               {showNoFilterResults ? (
-                <div className="flex flex-col items-center px-6 py-10 text-center">
-                  <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-                    No matching events
-                  </p>
-                  <p className="m-0 mt-1 max-w-sm text-[0.8rem] font-medium text-slate-500">
-                    Try a different filter or search term.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter("all");
-                      setDateFilter("all");
-                      setSearchQuery("");
-                    }}
-                    className="mt-4 cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                  >
-                    Clear filters
-                  </button>
-                </div>
+                <TableNoResultsEmptyState
+                  icon={Package}
+                  title="No matching orders"
+                  description="Nothing matches this search, status, or date. Try another period, or clear filters to reset."
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setCalendarMode("month");
+                        setMonthFilter(currentActivityMonthKey());
+                        setDateFilter(currentActivityDateKey());
+                        setSearchQuery("");
+                      }}
+                      className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+                    >
+                      Clear filters
+                    </button>
+                  }
+                />
               ) : null}
 
               {showTable ? (
@@ -1127,7 +1207,7 @@ export function BusinessOrdersPanel({
                           return (
                             <tr
                               key={event.rowKey ?? `event:${event.id}`}
-                              className="border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/40"
+                              className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                             >
                               <td className={tdClass}>
                                 <span className="text-xs font-semibold tabular-nums text-slate-400">
@@ -1217,7 +1297,7 @@ export function BusinessOrdersPanel({
             </div>
 
             {showTable && totalPages > 1 ? (
-              <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-5">
+              <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs text-slate-500">
                     Showing {totalEvents === 0 ? 0 : rowOffset + 1} to{" "}
@@ -1226,6 +1306,7 @@ export function BusinessOrdersPanel({
                       totalEvents,
                     )}{" "}
                     of {totalEvents} events
+                    {` · ${ORDERS_TABLE_PAGE_SIZE} per page`}
                   </p>
                   <div className="flex items-center gap-2">
                     <button
