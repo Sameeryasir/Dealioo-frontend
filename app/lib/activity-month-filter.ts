@@ -326,3 +326,89 @@ export function resolveActivityMonthRange(
 
   return { from: match.from, to: match.to };
 }
+
+function shiftLocalByMonths(date: Date, monthDelta: number): Date {
+  const year = date.getFullYear();
+  const monthIndex = date.getMonth() + monthDelta;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  const ms = date.getMilliseconds();
+
+  const shifted = new Date(year, monthIndex, 1, hours, minutes, seconds, ms);
+  const lastDayOfMonth = new Date(
+    shifted.getFullYear(),
+    shifted.getMonth() + 1,
+    0,
+  ).getDate();
+  shifted.setDate(Math.min(day, lastDayOfMonth));
+  return shifted;
+}
+
+export function resolveActivityPreviousComparisonRange(
+  fromIso: string,
+  toIso: string,
+): { from: string; to: string } | null {
+  const from = new Date(fromIso);
+  const to = new Date(toIso);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+    return null;
+  }
+
+  const durationMs = to.getTime() - from.getTime();
+  if (durationMs <= 0) {
+    return null;
+  }
+
+  const sameLocalCalendarDay =
+    from.getFullYear() === to.getFullYear() &&
+    from.getMonth() === to.getMonth() &&
+    from.getDate() === to.getDate();
+  if (sameLocalCalendarDay) {
+    return {
+      from: shiftLocalByMonths(from, -1).toISOString(),
+      to: shiftLocalByMonths(to, -1).toISOString(),
+    };
+  }
+
+  const isSingleCalendarMonth =
+    from.getDate() === 1 &&
+    from.getFullYear() === to.getFullYear() &&
+    from.getMonth() === to.getMonth();
+
+  if (isSingleCalendarMonth) {
+    const previousFrom = shiftLocalByMonths(from, -1);
+    const lastDayOfSelectedMonth = new Date(
+      to.getFullYear(),
+      to.getMonth() + 1,
+      0,
+    ).getDate();
+    const selectedMonthIsComplete = to.getDate() === lastDayOfSelectedMonth;
+    let previousTo = selectedMonthIsComplete
+      ? new Date(
+          previousFrom.getFullYear(),
+          previousFrom.getMonth() + 1,
+          0,
+          to.getHours(),
+          to.getMinutes(),
+          to.getSeconds(),
+          to.getMilliseconds(),
+        )
+      : shiftLocalByMonths(to, -1);
+    if (previousTo.getTime() < previousFrom.getTime()) {
+      previousTo = new Date(previousFrom.getTime());
+    }
+    return {
+      from: previousFrom.toISOString(),
+      to: previousTo.toISOString(),
+    };
+  }
+
+  const previousTo = new Date(from.getTime() - 1);
+  const previousFrom = new Date(previousTo.getTime() - durationMs);
+  return {
+    from: previousFrom.toISOString(),
+    to: previousTo.toISOString(),
+  };
+}

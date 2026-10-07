@@ -25,6 +25,7 @@ import {
   formatActivityMonthLabel,
   getActivityMonthRangeForKey,
   resolveActivityDateRange,
+  resolveActivityPreviousComparisonRange,
 } from "@/app/lib/activity-month-filter";
 import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
@@ -32,6 +33,8 @@ import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   DollarSign,
   Megaphone,
   ScanLine,
@@ -41,8 +44,83 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
+function percentChange(
+  current: number,
+  previous: number | null | undefined,
+): number | null {
+  if (previous == null) return null;
+  if (previous === 0) return current === 0 ? 0 : null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
+
+function OverviewKpiChange({
+  changePercent,
+  comparisonLabel,
+  periodInProgress,
+  currentValue,
+  previousValue,
+}: {
+  changePercent: number | null;
+  comparisonLabel: string;
+  periodInProgress: boolean;
+  currentValue: number;
+  previousValue: number | null | undefined;
+}) {
+  if (changePercent == null && previousValue === 0 && currentValue > 0) {
+    return (
+      <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-[#34a853]">
+        <span className="font-semibold">New</span> vs. {comparisonLabel}
+      </p>
+    );
+  }
+
+  if (changePercent == null) {
+    return (
+      <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-400">
+        No prior period to compare
+      </p>
+    );
+  }
+
+  if (changePercent === 0) {
+    return (
+      <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-500">
+        <span className="font-semibold tabular-nums text-slate-600">0%</span>{" "}
+        flat vs. {comparisonLabel}
+      </p>
+    );
+  }
+
+  const improving = changePercent > 0;
+  const Icon = improving ? ArrowUpRight : ArrowDownRight;
+  const tone = improving ? "text-[#34a853]" : "text-[#e1306c]";
+  const healthLabel = periodInProgress
+    ? improving
+      ? "Ahead so far"
+      : "Behind so far"
+    : improving
+      ? "Up"
+      : "Down";
+
+  return (
+    <p
+      className={`m-0 mt-1 flex min-w-0 items-center gap-1 truncate text-[0.72rem] font-medium ${tone}`}
+      title={`${Math.abs(changePercent)}% vs. ${comparisonLabel} · ${healthLabel}`}
+    >
+      <Icon className="size-3 shrink-0" strokeWidth={2.5} aria-hidden />
+      <span className="tabular-nums font-semibold">
+        {Math.abs(changePercent)}%
+      </span>
+      <span className="truncate text-slate-500">
+        vs. {comparisonLabel}
+        <span className={`font-semibold ${tone}`}> · {healthLabel}</span>
+      </span>
+    </p>
+  );
+}
 
 function OverviewKpiTile({
   label,
@@ -52,6 +130,11 @@ function OverviewKpiTile({
   iconBg,
   hoverTone = "blue",
   format = "number",
+  changePercent,
+  comparisonLabel,
+  periodInProgress = false,
+  previousValue,
+  showComparison = false,
 }: {
   label: string;
   value: number;
@@ -60,6 +143,11 @@ function OverviewKpiTile({
   iconBg: string;
   hoverTone?: "blue" | "pink" | "green" | "orange";
   format?: "number" | "money";
+  changePercent?: number | null;
+  comparisonLabel?: string;
+  periodInProgress?: boolean;
+  previousValue?: number | null;
+  showComparison?: boolean;
 }) {
   const animated = useCountUp(value, true);
   const display =
@@ -108,7 +196,15 @@ function OverviewKpiTile({
         >
           {display}
         </p>
-        {hint ? (
+        {showComparison && comparisonLabel ? (
+          <OverviewKpiChange
+            changePercent={changePercent ?? null}
+            comparisonLabel={comparisonLabel}
+            periodInProgress={periodInProgress}
+            currentValue={value}
+            previousValue={previousValue}
+          />
+        ) : hint ? (
           <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-500">
             {hint}
           </p>
@@ -192,6 +288,16 @@ export function BusinessActivityOverviewPanel({
       resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
     );
   }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
+
+  const previousRange = useMemo(
+    () =>
+      resolveActivityPreviousComparisonRange(
+        periodRange.from,
+        periodRange.to,
+      ),
+    [periodRange.from, periodRange.to],
+  );
+
   const periodQuery = useQuery({
     queryKey: [
       "business-dashboard-activity",
@@ -209,13 +315,44 @@ export function BusinessActivityOverviewPanel({
         timezone: viewerTimeZone,
       }),
   });
+
+  const previousQuery = useQuery({
+    queryKey: [
+      "business-dashboard-activity-previous",
+      businessId,
+      previousRange?.from,
+      previousRange?.to,
+      viewerTimeZone,
+    ],
+    enabled:
+      businessId != null &&
+      businessId > 0 &&
+      previousRange != null,
+    staleTime: 5_000,
+    queryFn: () =>
+      getRestaurantActivityMonthly(businessId!, {
+        from: previousRange!.from,
+        to: previousRange!.to,
+        timezone: viewerTimeZone,
+      }),
+  });
+
   const periodLabel =
     calendarMode === "day"
       ? formatActivityDateLabel(dateFilter)
       : formatActivityMonthLabel(monthFilter);
+  const comparisonLabel =
+    calendarMode === "day" ? "same day last month" : "previous month";
+  const periodInProgress =
+    calendarMode === "month" && monthFilter === currentActivityMonthKey();
+
   const visibleData = useMemo(
     () => periodQuery.data?.data ?? [],
     [periodQuery.data?.data],
+  );
+  const previousData = useMemo(
+    () => previousQuery.data?.data ?? [],
+    [previousQuery.data?.data],
   );
   const displayActiveCampaigns = periodQuery.data?.activeCampaigns ?? 0;
   const periodRevenueCents = visibleData.reduce(
@@ -230,6 +367,10 @@ export function BusinessActivityOverviewPanel({
   const visibleTotals = useMemo(
     () => sumActivityFromMonthly(visibleData),
     [visibleData],
+  );
+  const previousTotals = useMemo(
+    () => sumActivityFromMonthly(previousData),
+    [previousData],
   );
   const visibleCheckIns = useMemo(
     () => buildCheckInsMonthlyData(visibleData),
@@ -259,6 +400,33 @@ export function BusinessActivityOverviewPanel({
     (sum, row) => sum + (row.members ?? 0),
     0,
   );
+  const previousOrders = previousData.reduce(
+    (sum, row) => sum + (row.orders ?? 0),
+    0,
+  );
+  const previousMembers = previousData.reduce(
+    (sum, row) => sum + (row.members ?? 0),
+    0,
+  );
+  const previousRevenueCents = previousTotals.revenueCents;
+  const previousCheckIns = previousTotals.checkIns;
+
+  const showComparison =
+    previousRange != null &&
+    !previousQuery.isPending &&
+    !previousQuery.isError;
+
+  const ordersChange = percentChange(periodOrders, previousOrders);
+  const membersChange = percentChange(periodMembers, previousMembers);
+  const checkInsChange = percentChange(
+    visibleTotals.checkIns,
+    previousCheckIns,
+  );
+  const revenueChange = percentChange(
+    periodRevenueCents,
+    previousRevenueCents,
+  );
+
   const periodLoading = periodQuery.isPending;
 
   return (
@@ -352,6 +520,11 @@ export function BusinessActivityOverviewPanel({
                 icon={ShoppingBag}
                 iconBg={DASHBOARD_KPI_ICON.orange}
                 hoverTone="orange"
+                showComparison={showComparison}
+                changePercent={ordersChange}
+                comparisonLabel={comparisonLabel}
+                periodInProgress={periodInProgress}
+                previousValue={previousOrders}
               />
               <OverviewKpiTile
                 label="Total members"
@@ -360,6 +533,11 @@ export function BusinessActivityOverviewPanel({
                 icon={Users}
                 iconBg={DASHBOARD_KPI_ICON.pink}
                 hoverTone="pink"
+                showComparison={showComparison}
+                changePercent={membersChange}
+                comparisonLabel={comparisonLabel}
+                periodInProgress={periodInProgress}
+                previousValue={previousMembers}
               />
               <OverviewKpiTile
                 label="QR check-ins"
@@ -368,6 +546,11 @@ export function BusinessActivityOverviewPanel({
                 icon={ScanLine}
                 iconBg={DASHBOARD_KPI_ICON.blue}
                 hoverTone="blue"
+                showComparison={showComparison}
+                changePercent={checkInsChange}
+                comparisonLabel={comparisonLabel}
+                periodInProgress={periodInProgress}
+                previousValue={previousCheckIns}
               />
               <OverviewKpiTile
                 label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
@@ -377,6 +560,11 @@ export function BusinessActivityOverviewPanel({
                 iconBg={calendarMode === "day" ? DASHBOARD_KPI_ICON.orange : DASHBOARD_KPI_ICON.pink}
                 hoverTone={calendarMode === "day" ? "orange" : "pink"}
                 format="money"
+                showComparison={showComparison}
+                changePercent={revenueChange}
+                comparisonLabel={comparisonLabel}
+                periodInProgress={periodInProgress}
+                previousValue={previousRevenueCents}
               />
             </section>
 
