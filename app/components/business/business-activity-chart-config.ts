@@ -28,16 +28,65 @@ export function resolvePeriodRevenueCents(row: ActivityMonthlyPoint): number {
   return (row.paidRevenueCents ?? 0) + (row.extraItemsRevenueCents ?? 0);
 }
 
+export function resolveOfferSalesCents(row: ActivityMonthlyPoint): number {
+  return row.paidRevenueCents ?? 0;
+}
+
+export function resolveExtraItemsRevenueCents(
+  row: ActivityMonthlyPoint,
+): number {
+  return row.extraItemsRevenueCents ?? 0;
+}
+
+export function resolveScannedCheckIns(row: ActivityMonthlyPoint): number {
+  return (row.scannedVisits ?? 0) + (row.redeemedReward ?? 0);
+}
+
+export function resolveInStoreCheckIns(row: ActivityMonthlyPoint): number {
+  return row.inStoreVisits ?? 0;
+}
+
+export function resolveFunnelMembers(row: ActivityMonthlyPoint): number {
+  return row.funnelMembers ?? 0;
+}
+
+export function resolveRestaurantMembers(row: ActivityMonthlyPoint): number {
+  return row.restaurantMembers ?? 0;
+}
+
 export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
   checkIns: number;
   revenueCents: number;
+  offerSalesCents: number;
+  extraItemsRevenueCents: number;
+  scannedCheckIns: number;
+  inStoreCheckIns: number;
+  funnelMembers: number;
+  restaurantMembers: number;
 } {
   return points.reduce(
     (acc, row) => ({
       checkIns: acc.checkIns + resolveCheckIns(row),
       revenueCents: acc.revenueCents + resolvePeriodRevenueCents(row),
+      offerSalesCents: acc.offerSalesCents + resolveOfferSalesCents(row),
+      extraItemsRevenueCents:
+        acc.extraItemsRevenueCents + resolveExtraItemsRevenueCents(row),
+      scannedCheckIns: acc.scannedCheckIns + resolveScannedCheckIns(row),
+      inStoreCheckIns: acc.inStoreCheckIns + resolveInStoreCheckIns(row),
+      funnelMembers: acc.funnelMembers + resolveFunnelMembers(row),
+      restaurantMembers:
+        acc.restaurantMembers + resolveRestaurantMembers(row),
     }),
-    { checkIns: 0, revenueCents: 0 },
+    {
+      checkIns: 0,
+      revenueCents: 0,
+      offerSalesCents: 0,
+      extraItemsRevenueCents: 0,
+      scannedCheckIns: 0,
+      inStoreCheckIns: 0,
+      funnelMembers: 0,
+      restaurantMembers: 0,
+    },
   );
 }
 

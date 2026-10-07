@@ -50,6 +50,8 @@ export type ActivityMonthlyPoint = {
   totalEvents: number;
   checkIns?: number;
   visited: number;
+  scannedVisits?: number;
+  inStoreVisits?: number;
   redeemedReward: number;
   prepaidForOffer: number;
   messageSent: number;
@@ -57,6 +59,8 @@ export type ActivityMonthlyPoint = {
   extraItemsRevenueCents?: number;
   orders?: number;
   members?: number;
+  funnelMembers?: number;
+  restaurantMembers?: number;
   paidRevenueCents?: number;
 };
 
@@ -67,7 +71,18 @@ export type ActivityMonthlyResponse = {
   totalOrders: number;
   totalMembers: number;
   todayRevenueCents: number;
+  newGuests?: number;
+  returningGuests?: number;
+  payingGuests?: number;
   data: ActivityMonthlyPoint[];
+  previous?: {
+    from: string;
+    to: string;
+    data: ActivityMonthlyPoint[];
+    newGuests?: number;
+    returningGuests?: number;
+    payingGuests?: number;
+  } | null;
 };
 
 export type PaginatedActivityResponse = {
@@ -179,6 +194,8 @@ export async function getRestaurantActivityMonthly(
     months?: number;
     from?: string;
     to?: string;
+    previousFrom?: string;
+    previousTo?: string;
     timezone?: string;
   } = {},
 ): Promise<ActivityMonthlyResponse> {
@@ -196,7 +213,10 @@ export async function getRestaurantActivityMonthly(
   } else {
     q.set("months", String(options.months ?? 6));
   }
-  // Viewer IANA zone so month/day buckets match their local calendar.
+  if (options.previousFrom?.trim() && options.previousTo?.trim()) {
+    q.set("previousFrom", options.previousFrom.trim());
+    q.set("previousTo", options.previousTo.trim());
+  }
   if (options.timezone?.trim()) {
     q.set("timezone", options.timezone.trim());
   }

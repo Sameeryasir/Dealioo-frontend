@@ -26,16 +26,22 @@ export function CheckInsBarChart({
   data,
   months = OVERVIEW_MONTH_COUNT,
   caption,
+  scannedCount,
+  inStoreCount,
 }: {
   data: MonthlyCheckInsPoint[];
   months?: number;
   caption?: string;
+  scannedCount?: number;
+  inStoreCount?: number;
 }) {
   const checkInTotal = data.reduce((sum, row) => sum + row.checkIns, 0);
+  const hasChannelSplit =
+    typeof scannedCount === "number" && typeof inStoreCount === "number";
 
   return (
     <OverviewChartShell
-      title="QR check-ins"
+      title="Check-ins"
       subtitle={caption ?? `Month view, last ${months} months`}
       minHeightClass="min-h-[300px]"
       accent="blue"
@@ -69,7 +75,7 @@ export function CheckInsBarChart({
             <Line
               type="monotone"
               dataKey="checkIns"
-              name="QR check-ins"
+              name="Check-ins"
               stroke={OVERVIEW_CHART_COLORS.blue}
               strokeWidth={3}
               {...OVERVIEW_LINE_ANIMATION}
@@ -91,13 +97,33 @@ export function CheckInsBarChart({
       </div>
 
       <OverviewChartLegend
-        items={[
-          {
-            label: "QR check-ins",
-            value: checkInTotal.toLocaleString(),
-            color: OVERVIEW_CHART_COLORS.blue,
-          },
-        ]}
+        items={
+          hasChannelSplit
+            ? [
+                {
+                  label: "Total",
+                  value: checkInTotal.toLocaleString(),
+                  color: OVERVIEW_CHART_COLORS.blue,
+                },
+                {
+                  label: "QR scanned",
+                  value: scannedCount.toLocaleString(),
+                  color: "#60a5fa",
+                },
+                {
+                  label: "In-store",
+                  value: inStoreCount.toLocaleString(),
+                  color: "#94a3b8",
+                },
+              ]
+            : [
+                {
+                  label: "Check-ins",
+                  value: checkInTotal.toLocaleString(),
+                  color: OVERVIEW_CHART_COLORS.blue,
+                },
+              ]
+        }
       />
     </OverviewChartShell>
   );

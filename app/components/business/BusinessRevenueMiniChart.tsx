@@ -64,15 +64,21 @@ function buildVisibleRevenuePlot(
 export function BusinessRevenueMiniChart({
   data,
   totalRevenueCents,
+  offerSalesCents,
+  extraItemsCents,
   months,
   caption,
 }: {
   data: MonthlyRevenuePoint[];
   totalRevenueCents: number;
+  offerSalesCents?: number;
+  extraItemsCents?: number;
   months: number;
   caption?: string;
 }) {
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
+  const showSplit =
+    typeof offerSalesCents === "number" && typeof extraItemsCents === "number";
 
   const chartData = buildVisibleRevenuePlot(
     data.map((row) => ({
@@ -146,6 +152,22 @@ export function BusinessRevenueMiniChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {showSplit ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#e8edf5] px-1 pt-3 text-[0.72rem] font-medium text-slate-500">
+          <span>
+            Offer sales{" "}
+            <span className="font-semibold tabular-nums text-slate-800">
+              {formatCents(offerSalesCents, "usd")}
+            </span>
+          </span>
+          <span>
+            Extra items{" "}
+            <span className="font-semibold tabular-nums text-slate-800">
+              {formatCents(extraItemsCents, "usd")}
+            </span>
+          </span>
+        </div>
+      ) : null}
     </OverviewChartShell>
   );
 }

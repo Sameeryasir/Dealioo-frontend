@@ -36,13 +36,13 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   DollarSign,
-  Megaphone,
   ScanLine,
   ShoppingBag,
+  UserRound,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 function percentChange(
   current: number,
@@ -122,6 +122,33 @@ function OverviewKpiChange({
   );
 }
 
+function OverviewKpiBreakdown({
+  items,
+}: {
+  items: Array<{ label: string; value: string }>;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <p className="m-0 mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.68rem] font-medium leading-tight text-slate-500">
+      {items.map((item, index) => (
+        <span key={item.label} className="inline-flex min-w-0 items-center gap-1">
+          {index > 0 ? (
+            <span className="text-slate-300" aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <span className="truncate">
+            {item.label}{" "}
+            <span className="font-semibold tabular-nums text-slate-700">
+              {item.value}
+            </span>
+          </span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function OverviewKpiTile({
   label,
   value,
@@ -135,6 +162,8 @@ function OverviewKpiTile({
   periodInProgress = false,
   previousValue,
   showComparison = false,
+  breakdown,
+  footer,
 }: {
   label: string;
   value: number;
@@ -148,6 +177,8 @@ function OverviewKpiTile({
   periodInProgress?: boolean;
   previousValue?: number | null;
   showComparison?: boolean;
+  breakdown?: Array<{ label: string; value: string }>;
+  footer?: ReactNode;
 }) {
   const animated = useCountUp(value, true);
   const display =
@@ -196,6 +227,7 @@ function OverviewKpiTile({
         >
           {display}
         </p>
+        {breakdown ? <OverviewKpiBreakdown items={breakdown} /> : null}
         {showComparison && comparisonLabel ? (
           <OverviewKpiChange
             changePercent={changePercent ?? null}
@@ -204,11 +236,12 @@ function OverviewKpiTile({
             currentValue={value}
             previousValue={previousValue}
           />
-        ) : hint ? (
+        ) : !breakdown && hint ? (
           <p className="m-0 mt-1 truncate text-[0.72rem] font-medium text-slate-500">
             {hint}
           </p>
         ) : null}
+        {footer}
       </div>
     </div>
   );
@@ -218,7 +251,7 @@ function OverviewSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true" aria-label="Loading activity">
       <section
-        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5"
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5"
         aria-label="Business summary"
       >
         {Array.from({ length: 5 }).map((_, i) => (
@@ -304,35 +337,18 @@ export function BusinessActivityOverviewPanel({
       businessId,
       periodRange.from,
       periodRange.to,
+      previousRange?.from ?? null,
+      previousRange?.to ?? null,
       viewerTimeZone,
     ],
     enabled: businessId != null && businessId > 0,
-    staleTime: 5_000,
+    staleTime: 30_000,
     queryFn: () =>
       getRestaurantActivityMonthly(businessId!, {
         from: periodRange.from,
         to: periodRange.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-
-  const previousQuery = useQuery({
-    queryKey: [
-      "business-dashboard-activity-previous",
-      businessId,
-      previousRange?.from,
-      previousRange?.to,
-      viewerTimeZone,
-    ],
-    enabled:
-      businessId != null &&
-      businessId > 0 &&
-      previousRange != null,
-    staleTime: 5_000,
-    queryFn: () =>
-      getRestaurantActivityMonthly(businessId!, {
-        from: previousRange!.from,
-        to: previousRange!.to,
+        previousFrom: previousRange?.from,
+        previousTo: previousRange?.to,
         timezone: viewerTimeZone,
       }),
   });
@@ -351,8 +367,8 @@ export function BusinessActivityOverviewPanel({
     [periodQuery.data?.data],
   );
   const previousData = useMemo(
-    () => previousQuery.data?.data ?? [],
-    [previousQuery.data?.data],
+    () => periodQuery.data?.previous?.data ?? [],
+    [periodQuery.data?.previous?.data],
   );
   const displayActiveCampaigns = periodQuery.data?.activeCampaigns ?? 0;
   const periodRevenueCents = visibleData.reduce(
@@ -410,11 +426,28 @@ export function BusinessActivityOverviewPanel({
   );
   const previousRevenueCents = previousTotals.revenueCents;
   const previousCheckIns = previousTotals.checkIns;
+  const newGuests = periodQuery.data?.newGuests ?? 0;
+  const returningGuests = periodQuery.data?.returningGuests ?? 0;
+  const activeGuests = newGuests + returningGuests;
+  // Repeat rate = returning / active only — never divide by check-ins or members.
+  const repeatRatePercent =
+    activeGuests > 0
+      ? Math.round((returningGuests / activeGuests) * 100)
+      : null;
+  const payingGuests = periodQuery.data?.payingGuests ?? 0;
+  // Avg spend uses paying guests only so free check-ins do not understate spend.
+  const avgSpendCents =
+    payingGuests > 0 ? Math.round(periodRevenueCents / payingGuests) : null;
+  const previousNewGuests = periodQuery.data?.previous?.newGuests ?? 0;
+  const previousReturningGuests =
+    periodQuery.data?.previous?.returningGuests ?? 0;
+  const previousActiveGuests = previousNewGuests + previousReturningGuests;
 
   const showComparison =
     previousRange != null &&
-    !previousQuery.isPending &&
-    !previousQuery.isError;
+    !periodQuery.isPending &&
+    !periodQuery.isError &&
+    Array.isArray(periodQuery.data?.previous?.data);
 
   const ordersChange = percentChange(periodOrders, previousOrders);
   const membersChange = percentChange(periodMembers, previousMembers);
@@ -425,6 +458,10 @@ export function BusinessActivityOverviewPanel({
   const revenueChange = percentChange(
     periodRevenueCents,
     previousRevenueCents,
+  );
+  const activeGuestsChange = percentChange(
+    activeGuests,
+    previousActiveGuests,
   );
 
   const periodLoading = periodQuery.isPending;
@@ -502,17 +539,9 @@ export function BusinessActivityOverviewPanel({
         <div className="px-3 py-4 sm:px-4 sm:py-5">
           <div className="space-y-5">
             <section
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5"
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5"
               aria-label="Business summary"
             >
-              <OverviewKpiTile
-                label="Active campaigns"
-                value={displayActiveCampaigns}
-                hint={isQuietBusiness ? "Publish your first deal" : "Published"}
-                icon={Megaphone}
-                iconBg={DASHBOARD_KPI_ICON.green}
-                hoverTone="green"
-              />
               <OverviewKpiTile
                 label="Total orders"
                 value={periodOrders}
@@ -538,9 +567,49 @@ export function BusinessActivityOverviewPanel({
                 comparisonLabel={comparisonLabel}
                 periodInProgress={periodInProgress}
                 previousValue={previousMembers}
+                breakdown={[
+                  {
+                    label: "From offer",
+                    value: String(visibleTotals.funnelMembers),
+                  },
+                  {
+                    label: "At restaurant",
+                    value: String(visibleTotals.restaurantMembers),
+                  },
+                ]}
               />
               <OverviewKpiTile
-                label="QR check-ins"
+                label="Active guests"
+                value={activeGuests}
+                hint="Unique guests in this period"
+                icon={UserRound}
+                iconBg={DASHBOARD_KPI_ICON.green}
+                hoverTone="green"
+                showComparison={showComparison}
+                changePercent={activeGuestsChange}
+                comparisonLabel={comparisonLabel}
+                periodInProgress={periodInProgress}
+                previousValue={previousActiveGuests}
+                breakdown={[
+                  {
+                    label: "New",
+                    value: String(newGuests),
+                  },
+                  {
+                    label: "Returning",
+                    value: String(returningGuests),
+                  },
+                  {
+                    label: "Repeat",
+                    value:
+                      repeatRatePercent == null
+                        ? "—"
+                        : `${repeatRatePercent}%`,
+                  },
+                ]}
+              />
+              <OverviewKpiTile
+                label="Check-ins"
                 value={visibleTotals.checkIns}
                 hint="Visits and redemptions"
                 icon={ScanLine}
@@ -551,6 +620,16 @@ export function BusinessActivityOverviewPanel({
                 comparisonLabel={comparisonLabel}
                 periodInProgress={periodInProgress}
                 previousValue={previousCheckIns}
+                breakdown={[
+                  {
+                    label: "QR scanned",
+                    value: String(visibleTotals.scannedCheckIns),
+                  },
+                  {
+                    label: "In-store",
+                    value: String(visibleTotals.inStoreCheckIns),
+                  },
+                ]}
               />
               <OverviewKpiTile
                 label={calendarMode === "day" ? "Day's revenue" : "Month's revenue"}
@@ -565,6 +644,26 @@ export function BusinessActivityOverviewPanel({
                 comparisonLabel={comparisonLabel}
                 periodInProgress={periodInProgress}
                 previousValue={previousRevenueCents}
+                breakdown={[
+                  {
+                    label: "Offer sales",
+                    value: formatCents(visibleTotals.offerSalesCents, "usd"),
+                  },
+                  {
+                    label: "Extra items",
+                    value: formatCents(
+                      visibleTotals.extraItemsRevenueCents,
+                      "usd",
+                    ),
+                  },
+                  {
+                    label: "Avg / paying guest",
+                    value:
+                      avgSpendCents == null
+                        ? "—"
+                        : formatCents(avgSpendCents, "usd"),
+                  },
+                ]}
               />
             </section>
 
@@ -583,12 +682,19 @@ export function BusinessActivityOverviewPanel({
               </div>
               <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
                 <div className="min-h-[300px]" key={`checkins-${periodLabel}`}>
-                  <CheckInsBarChart data={visibleCheckIns} caption={periodLabel} />
+                  <CheckInsBarChart
+                    data={visibleCheckIns}
+                    caption={periodLabel}
+                    scannedCount={visibleTotals.scannedCheckIns}
+                    inStoreCount={visibleTotals.inStoreCheckIns}
+                  />
                 </div>
                 <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
                     totalRevenueCents={periodRevenueCents}
+                    offerSalesCents={visibleTotals.offerSalesCents}
+                    extraItemsCents={visibleTotals.extraItemsRevenueCents}
                     months={1}
                     caption={periodLabel}
                   />
@@ -610,6 +716,8 @@ export function BusinessActivityOverviewPanel({
                   <BusinessMembersMiniChart
                     data={visibleMembers}
                     total={visibleNewMembers}
+                    funnelCount={visibleTotals.funnelMembers}
+                    restaurantCount={visibleTotals.restaurantMembers}
                     months={1}
                     caption={periodLabel}
                   />
