@@ -14484,8 +14484,8 @@ body:has(.rd-shell--app) {
 }
 
 .funnel-automations-table-head {
-  border-bottom: 1px solid var(--funnel-automations-border);
-  background: linear-gradient(180deg, var(--funnel-automations-accent-muted) 0%, #ffffff 100%);
+  border-bottom: 1px solid #e8edf5;
+  background: color-mix(in srgb, #f8fafc 60%, transparent);
 }
 
 .funnel-automations-col-icon {
@@ -14494,26 +14494,15 @@ body:has(.rd-shell--app) {
   width: 0.875rem;
   height: 0.875rem;
   flex-shrink: 0;
+  color: #475569;
 }
 
-.funnel-automations-col-icon--primary {
-  color: var(--brand-primary);
-}
-
-.funnel-automations-col-icon--trigger {
-  color: #f59e0b;
-}
-
-.funnel-automations-col-icon--purpose {
-  color: #3b82f6;
-}
-
-.funnel-automations-col-icon--status {
-  color: #10b981;
-}
-
+.funnel-automations-col-icon--primary,
+.funnel-automations-col-icon--trigger,
+.funnel-automations-col-icon--purpose,
+.funnel-automations-col-icon--status,
 .funnel-automations-col-icon--muted {
-  color: #94a3b8;
+  color: #475569;
 }
 
 .funnel-automations-table-row {
@@ -14521,7 +14510,7 @@ body:has(.rd-shell--app) {
 }
 
 .funnel-automations-table-row:hover {
-  background: var(--funnel-automations-accent-muted);
+  background: color-mix(in srgb, #e8f2ff 70%, transparent);
 }
 
 /* Hover accent on the first cell only — never use tr::before (browsers treat it as an extra column). */
@@ -14531,7 +14520,7 @@ body:has(.rd-shell--app) {
 }
 
 .funnel-automations-table-row:hover td:first-child {
-  box-shadow: inset 3px 0 0 var(--brand-primary);
+  box-shadow: inset 3px 0 0 transparent;
 }
 
 .funnel-automations-status-pill {
@@ -14654,6 +14643,28 @@ body:has(.rd-shell--app) {
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scroll-padding-inline: 0.5rem;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.funnel-automations-table-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.funnel-automations-table-wrap::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.funnel-automations-table-wrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
+  border: 2px solid #f1f5f9;
+}
+
+.funnel-automations-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .funnel-automations-scroll-hint {
@@ -15431,6 +15442,49 @@ body:has(.rd-shell--app) {
   outline: none;
 }
 
+/* Always-visible horizontal scrollbar for wide data tables */
+.table-h-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e8edf5;
+}
+
+.table-h-scroll::-webkit-scrollbar {
+  -webkit-appearance: none;
+  height: 12px;
+  display: block;
+}
+
+.table-h-scroll::-webkit-scrollbar-track {
+  background: #e8edf5;
+  border-radius: 999px;
+  margin-inline: 4px;
+}
+
+.table-h-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
+  border: 2px solid #e8edf5;
+  min-width: 48px;
+}
+
+.table-h-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.table-h-scroll > table {
+  width: max-content !important;
+  min-width: 100%;
+  table-layout: auto;
+}
+
 .editor-settings-scroll {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -15566,8 +15620,13 @@ body:has(.rd-shell--app) {
   flex: 1 1 0%;
   flex-direction: column;
   min-height: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
+}
+
+.rd-premium-panel__body:has(> .table-h-scroll),
+.rd-premium-panel__body:has(.table-h-scroll) {
+  overflow-x: hidden;
 }
 
 .rd-premium-panel__body--center {

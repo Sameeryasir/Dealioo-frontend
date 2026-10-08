@@ -854,7 +854,7 @@ export function BusinessActivityPanel({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: standardEase }}
                 >
-                  <div className="hidden overflow-x-auto overscroll-x-contain md:block">
+                  <div className="table-h-scroll hidden md:block">
                     <table className="w-full min-w-[44rem] border-collapse">
                       <thead>
                         <motion.tr

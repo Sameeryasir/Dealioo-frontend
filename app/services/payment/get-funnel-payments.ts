@@ -50,6 +50,7 @@ export async function getFunnelOrders(
   funnelId: number,
   page = 1,
   limit = FUNNEL_ORDERS_PAGE_SIZE,
+  range?: { from?: string; to?: string; q?: string },
 ): Promise<PaginatedFunnelOrdersResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -62,6 +63,9 @@ export async function getFunnelOrders(
     page: String(page),
     limit: String(limit),
   });
+  if (range?.from) q.set("from", range.from);
+  if (range?.to) q.set("to", range.to);
+  if (range?.q?.trim()) q.set("q", range.q.trim());
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/payment/funnel/${encodeURIComponent(String(funnelId))}/orders?${q.toString()}`,

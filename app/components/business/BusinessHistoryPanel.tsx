@@ -598,7 +598,7 @@ export function BusinessHistoryPanel({
 
             {showTable ? (
               <>
-                <div className="hidden overflow-x-auto overscroll-x-contain md:block">
+                <div className="table-h-scroll hidden md:block">
                   <table className="w-full min-w-[44rem] border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">

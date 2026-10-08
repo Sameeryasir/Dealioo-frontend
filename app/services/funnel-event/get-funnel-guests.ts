@@ -19,7 +19,7 @@ export type FunnelGuestRecord = {
   tags: FunnelGuestTag[];
   hasPayment: boolean;
   eventCount: number;
-  adSource?: "meta" | "google" | "utm" | "in_store" | null;
+  adSource?: "meta" | "google" | "utm" | null;
   adSourceLabel?: string | null;
   adSourceDetail?: string | null;
 };
@@ -76,8 +76,7 @@ function normalizeGuest(raw: unknown): FunnelGuestRecord | null {
     adSource:
       o.adSource === "meta" ||
       o.adSource === "google" ||
-      o.adSource === "utm" ||
-      o.adSource === "in_store"
+      o.adSource === "utm"
         ? o.adSource
         : null,
     adSourceLabel:
@@ -95,6 +94,7 @@ export async function getFunnelGuests(
   funnelId: number,
   page = 1,
   limit = FUNNEL_GUESTS_PAGE_SIZE,
+  range?: { from?: string; to?: string; q?: string },
 ): Promise<PaginatedFunnelGuestsResponse> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
@@ -107,6 +107,9 @@ export async function getFunnelGuests(
     page: String(page),
     limit: String(limit),
   });
+  if (range?.from) q.set("from", range.from);
+  if (range?.to) q.set("to", range.to);
+  if (range?.q?.trim()) q.set("q", range.q.trim());
 
   const res = await authenticatedFetch(
     `${getApiBaseUrl()}/funnel-event/funnel/${encodeURIComponent(String(funnelId))}/guests?${q.toString()}`,

@@ -1107,13 +1107,13 @@ export function BusinessOrdersPanel({
 
               {showTable ? (
                 <div
-                  className={`transition-opacity duration-200 ease-out ${
+                  className={`min-w-0 transition-opacity duration-200 ease-out ${
                     fetchingResults ? "opacity-55" : "opacity-100"
                   }`}
                   aria-busy={fetchingResults}
                 >
-                  <div className="hidden overflow-x-auto overscroll-x-contain md:block">
-                    <table className="w-full min-w-[48rem] border-collapse">
+                  <div className="table-h-scroll hidden md:block">
+                    <table className="w-max min-w-full border-collapse">
                       <thead>
                         <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                           <th className={`${thClass} w-12`}>

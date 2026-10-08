@@ -12,22 +12,27 @@ import {
 export function useFunnelGuests(
   funnelId: number | null | undefined,
   pageSize: number = FUNNEL_GUESTS_PAGE_SIZE,
+  range?: { from?: string; to?: string; q?: string } | null,
 ) {
   const enabled = funnelId != null;
   const limit =
     Number.isFinite(pageSize) && pageSize > 0
       ? Math.min(Math.floor(pageSize), 100)
       : FUNNEL_GUESTS_PAGE_SIZE;
+  const from = range?.from;
+  const to = range?.to;
+  const q = range?.q?.trim() || undefined;
 
   const fetchPage = useCallback(
-    (page: number) => getFunnelGuests(funnelId!, page, limit),
-    [funnelId, limit],
+    (page: number) =>
+      getFunnelGuests(funnelId!, page, limit, { from, to, q }),
+    [funnelId, limit, from, to, q],
   );
 
   return usePaginatedAsyncResource<
     FunnelGuestRecord,
     PaginatedFunnelGuestsResponse["meta"]
-  >(enabled, fetchPage, [funnelId, enabled, limit], {
+  >(enabled, fetchPage, [funnelId, enabled, limit, from, to, q], {
     fallbackError: "Could not load guests.",
     resetWhenDisabled: { data: [], meta: null },
   });

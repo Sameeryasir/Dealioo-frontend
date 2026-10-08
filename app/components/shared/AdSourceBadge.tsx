@@ -1,15 +1,10 @@
 "use client";
 
 export type AdSourceBadgeProps = {
-  source?: "meta" | "google" | "utm" | "in_store" | null;
+  source?: "meta" | "google" | "utm" | null;
   label?: string | null;
   detail?: string | null;
   className?: string;
-  /**
-   * When true, guests with no Facebook/Google ad match show "In store"
-   * (campaign guests: walk-in vs paid ad).
-   */
-  showInStoreFallback?: boolean;
 };
 
 export function AdSourceBadge({
@@ -17,28 +12,18 @@ export function AdSourceBadge({
   label,
   detail,
   className = "",
-  showInStoreFallback = false,
 }: AdSourceBadgeProps) {
-  // --- Campaign guest sources: only In store | Facebook | Google ---
   const resolvedSource =
-    source === "meta" || source === "google"
+    source === "meta" || source === "google" || source === "utm"
       ? source
-      : showInStoreFallback
-        ? "in_store"
-        : source === "in_store"
-          ? "in_store"
-          : source === "utm"
-            ? "utm"
-            : null;
+      : null;
 
   const resolvedLabel =
     resolvedSource === "meta"
       ? label?.trim() || "Facebook"
       : resolvedSource === "google"
         ? label?.trim() || "Google"
-        : resolvedSource === "in_store"
-          ? "In store"
-          : label?.trim() || null;
+        : label?.trim() || null;
 
   if (!resolvedSource || !resolvedLabel) {
     return (
@@ -51,16 +36,11 @@ export function AdSourceBadge({
       ? "bg-[#e8f2ff] text-[#1877f2]"
       : resolvedSource === "google"
         ? "bg-[#ecfdf5] text-[#047857]"
-        : resolvedSource === "in_store"
-          ? "bg-[#fff7ed] text-[#c2410c]"
-          : "bg-[#f1f5f9] text-slate-600";
+        : "bg-[#f1f5f9] text-slate-600";
 
-  const title =
-    resolvedSource === "in_store"
-      ? "In store"
-      : detail?.trim()
-        ? `${resolvedLabel} · ${detail.trim()}`
-        : resolvedLabel;
+  const title = detail?.trim()
+    ? `${resolvedLabel} · ${detail.trim()}`
+    : resolvedLabel;
 
   return (
     <span

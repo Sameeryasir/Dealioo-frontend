@@ -125,7 +125,7 @@ function exportGuestsCsv(customers: BusinessCustomerRecord[]) {
 
 function CustomersTableSkeleton() {
   return (
-    <div className="overflow-x-auto overscroll-x-contain" aria-busy="true">
+    <div className="table-h-scroll" aria-busy="true">
       <table className="w-full min-w-[44rem] border-collapse">
         <thead>
           <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
@@ -398,7 +398,7 @@ export function BusinessProgramCustomersPanel({
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain">
+                <div className="table-h-scroll min-h-0 flex-1">
                   <table className="w-full min-w-[44rem] border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">

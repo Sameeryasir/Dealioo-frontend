@@ -85,8 +85,10 @@ const FILTERS: { id: AutomationFilter; label: string }[] = [
   { id: "draft", label: "Draft" },
 ];
 
-const thClass = "funnel-automations-th whitespace-nowrap text-left align-middle";
-const tdClass = "funnel-automations-td text-left align-middle text-zinc-700";
+const thClass =
+  "funnel-automations-th whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
+const tdClass =
+  "funnel-automations-td px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
 function AutomationsColumnHead({
   icon: Icon,
@@ -106,10 +108,10 @@ function AutomationsColumnHead({
         aria-hidden
         strokeWidth={ICON_STROKE}
       />
-      <span className="funnel-automations-col-head__long text-[0.65rem] font-bold uppercase tracking-[0.08em] text-zinc-800">
+      <span className="funnel-automations-col-head__long text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800">
         {longLabel}
       </span>
-      <span className="funnel-automations-col-head__short text-[0.62rem] font-bold uppercase tracking-[0.06em] text-zinc-800">
+      <span className="funnel-automations-col-head__short text-[0.62rem] font-bold uppercase tracking-[0.12em] text-slate-800">
         {shortLabel}
       </span>
     </span>
@@ -781,7 +783,7 @@ function AutomationsTableSection({
               return (
                 <tr
                   key={row.id}
-                  className="funnel-automations-table-row border-b border-[#e8edf5] bg-white last:border-0"
+                  className="funnel-automations-table-row group border-b border-[#f1f5f9] last:border-0"
                 >
                   <td className={`${tdClass} funnel-automations-td--name`}>
                     <Link

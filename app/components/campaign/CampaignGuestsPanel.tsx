@@ -1,10 +1,20 @@
 "use client";
 
+import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
+import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
+import {
+  activityCalendarYearMonthCount,
+  currentActivityDateKey,
+  currentActivityMonthKey,
+  getActivityMonthRangeForKey,
+  resolveActivityDateRange,
+} from "@/app/lib/activity-month-filter";
 import {
   TABLE_HEAD_ICON_CLASS,
   TABLE_HEAD_LABEL_CLASS,
@@ -24,6 +34,7 @@ import {
   Megaphone,
   MoreHorizontal,
   Phone,
+  Search,
   UserRound,
   Users,
 } from "lucide-react";
@@ -132,47 +143,111 @@ function GuestsTableSkeleton() {
   );
 }
 
-function GuestsEmptyState() {
+function GuestsPanelHeader({
+  total,
+  search,
+  setSearch,
+  calendarMode,
+  setCalendarMode,
+  monthFilter,
+  setMonthFilter,
+  dateFilter,
+  setDateFilter,
+  calendarMonthCount,
+}: {
+  total: number;
+  search: string;
+  setSearch: (value: string) => void;
+  calendarMode: "month" | "day";
+  setCalendarMode: (mode: "month" | "day") => void;
+  monthFilter: string;
+  setMonthFilter: (value: string) => void;
+  dateFilter: string;
+  setDateFilter: (value: string) => void;
+  calendarMonthCount: number;
+}) {
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center sm:py-16">
-      <div className="relative mb-5 flex size-24 items-center justify-center">
-        <span
-          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
-          aria-hidden
-        />
-        <span className="relative flex size-20 items-center justify-center rounded-[1.35rem] border border-[#dbeafe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
-          <Users className="size-9 text-[#1877f2]" strokeWidth={1.75} aria-hidden />
-        </span>
-      </div>
-      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
-        No guests yet
-      </p>
-      <h3 className="m-0 mt-2 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
-        Your guest list is empty
-      </h3>
-      <p className="mx-auto m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
-        Customers who sign up through your funnel will appear here.
-      </p>
-    </div>
-  );
-}
+    <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
+            aria-hidden
+          >
+            <Users className="size-5" strokeWidth={2.25} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold tracking-tight text-[#07111f]">
+              Guests
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
+              Funnel signups & members
+            </p>
+          </div>
+        </div>
 
-function GuestsPanelHeader({ total }: { total: number }) {
-  return (
-    <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6">
-      <div>
-        <h2 className="m-0 text-[1.45rem] font-extrabold tracking-tight text-[#07111f]">
-          Guests
-        </h2>
-        <p className="m-0 mt-1 text-sm text-slate-500">
-          Funnel signups & members
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative block h-9">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, email, phone…"
+              aria-label="Search guests by name, email, or phone"
+              className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-3 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+              <button
+                type="button"
+                onClick={() => setCalendarMode("month")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "month"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMode("day")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                  calendarMode === "day"
+                    ? "bg-[#1877f2] text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                Day
+              </button>
+            </div>
+            {calendarMode === "month" ? (
+              <ActivityMonthCalendarPicker
+                value={monthFilter}
+                onChange={setMonthFilter}
+                compact
+                showAllMonths={false}
+                monthCount={calendarMonthCount}
+              />
+            ) : (
+              <PerformanceDateCalendar
+                value={dateFilter}
+                onChange={setDateFilter}
+                monthCount={calendarMonthCount}
+              />
+            )}
+          </div>
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-slate-600">
+            <Activity className="size-3.5 text-slate-400" aria-hidden />
+            {total} {total === 1 ? "guest" : "guests"}
+          </span>
+        </div>
       </div>
-      <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8EDF5] bg-white px-3 text-xs font-semibold text-slate-600">
-        <Activity className="size-3.5 text-slate-400" aria-hidden />
-        {total} {total === 1 ? "guest" : "guests"}
-      </span>
-    </header>
+    </div>
   );
 }
 
@@ -387,7 +462,7 @@ function GuestsPagination({
   const rowOffset = (page - 1) * meta.limit;
 
   return (
-    <div className="shrink-0 border-t border-[#e8edf5] px-4 py-3 sm:px-5">
+    <div className="shrink-0 border-t border-[#e8edf5] px-2.5 py-3 sm:px-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="m-0 text-xs text-slate-500">
           Showing {meta.total === 0 ? 0 : rowOffset + 1} to{" "}
@@ -460,7 +535,6 @@ function GuestMobileCard({
             source={guest.adSource}
             label={guest.adSourceLabel}
             detail={guest.adSourceDetail}
-            showInStoreFallback
           />
         </div>
       </div>
@@ -477,7 +551,7 @@ function GuestsTableSection({
 }) {
   return (
     <div>
-      <div className="hidden overflow-x-auto overscroll-x-contain md:block">
+      <div className="table-h-scroll hidden md:block">
         <table className="w-full min-w-[44rem] border-collapse">
           <thead>
             <motion.tr
@@ -600,7 +674,6 @@ function GuestsTableSection({
                       source={guest.adSource}
                       label={guest.adSourceLabel}
                       detail={guest.adSourceDetail}
-                      showInStoreFallback
                     />
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
@@ -639,8 +712,38 @@ export function CampaignGuestsPanel({
   isFunnelIdLoading?: boolean;
   embedded?: boolean;
 } = {}) {
+  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
+  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const calendarMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const periodRange = useMemo(() => {
+    const dateRange =
+      calendarMode === "day"
+        ? resolveActivityDateRange(dateFilter, calendarMonthCount)
+        : (getActivityMonthRangeForKey(monthFilter, calendarMonthCount) ??
+          resolveActivityDateRange(currentActivityDateKey(), calendarMonthCount));
+    return {
+      ...dateRange,
+      q: debouncedSearch || undefined,
+    };
+  }, [
+    calendarMode,
+    calendarMonthCount,
+    dateFilter,
+    debouncedSearch,
+    monthFilter,
+  ]);
+
   const { data: guests, meta, page, setPage, loading, error } =
-    useFunnelGuests(funnelId);
+    useFunnelGuests(funnelId, FUNNEL_GUESTS_PAGE_SIZE, periodRange);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -670,11 +773,36 @@ export function CampaignGuestsPanel({
 
   const total = meta?.total ?? 0;
   const showTable = !showSkeleton && !error && guests.length > 0;
+  const showCenteredEmpty = showNoFunnelMessage || showNoRecords;
+
+  const clearGuestsFilters = () => {
+    setSearch("");
+    setCalendarMode("month");
+    setMonthFilter(currentActivityMonthKey());
+    setDateFilter(currentActivityDateKey());
+  };
 
   const panelContent = (
-    <article className={guestsCardClass}>
-      <GuestsPanelHeader total={total} />
-      <div className="mt-2">
+    <article className={`${guestsCardClass} rd-premium-panel h-full min-h-0`}>
+      <GuestsPanelHeader
+        total={total}
+        search={search}
+        setSearch={setSearch}
+        calendarMode={calendarMode}
+        setCalendarMode={setCalendarMode}
+        monthFilter={monthFilter}
+        setMonthFilter={setMonthFilter}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        calendarMonthCount={calendarMonthCount}
+      />
+      <div
+        className={`rd-premium-panel__body${
+          showCenteredEmpty
+            ? " rd-premium-panel__body--center min-h-[min(24rem,60vh)]"
+            : ""
+        }`}
+      >
         {showSkeleton ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -686,17 +814,37 @@ export function CampaignGuestsPanel({
         ) : null}
 
         {showNoFunnelMessage ? (
-          <div className="px-6 py-12 text-center">
-            <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-              No funnel saved yet
-            </p>
-            <p className="m-0 mt-2 text-[0.82rem] font-medium text-slate-500">
-              Open the Funnel tab and save once to load guests.
-            </p>
-          </div>
+          <TableNoResultsEmptyState
+            icon={Users}
+            title="No funnel saved yet"
+            description="Open the Funnel tab and save once to load guests."
+          />
         ) : null}
 
-        {showNoRecords ? <GuestsEmptyState /> : null}
+        {showNoRecords ? (
+          <TableNoResultsEmptyState
+            icon={debouncedSearch ? Search : Users}
+            title={
+              debouncedSearch
+                ? `No guests match “${debouncedSearch}”`
+                : "No guests for this period"
+            }
+            description={
+              debouncedSearch
+                ? "Try another search, or clear filters to reset the date and search."
+                : "No guests joined in this month or day. Try another date, or clear filters to reset."
+            }
+            action={
+              <button
+                type="button"
+                onClick={clearGuestsFilters}
+                className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
+              >
+                Clear filters
+              </button>
+            }
+          />
+        ) : null}
 
         {showTable ? (
           <motion.div
@@ -737,7 +885,7 @@ export function CampaignGuestsPanel({
       <div className="campaign-immersive-guests funnel-guests-root">
         {alert}
         <div className="funnel-guests-panel">
-          <div className="funnel-guests-body">{panelContent}</div>
+          <div className="funnel-guests-body flex flex-col">{panelContent}</div>
         </div>
       </div>
     );
