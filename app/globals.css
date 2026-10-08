@@ -13523,6 +13523,12 @@ body:has(.rd-shell--app) {
   min-width: 0;
   gap: var(--funnel-overview-gap);
   grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.funnel-overview-kpi-grid > * {
+  min-width: 0;
+  height: 100%;
 }
 
 @container funnel-overview (min-width: 22rem) {
@@ -13563,6 +13569,11 @@ body:has(.rd-shell--app) {
   .funnel-overview-chart-grid--three > .funnel-overview-chart-slot:last-child {
     grid-column: 1 / -1;
   }
+
+  /* Drop-off spans full width; Meta/Google charts stay a clean 2×2 */
+  .funnel-overview-chart-grid--dropoff-first > .funnel-overview-chart-slot:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @container funnel-overview (min-width: 64rem) {
@@ -13580,6 +13591,27 @@ body:has(.rd-shell--app) {
   min-width: 0;
   width: 100%;
   min-height: 18.75rem;
+}
+
+.funnel-overview-chart-slot > * {
+  width: 100%;
+  min-height: 18.75rem;
+}
+
+.funnel-overview-highlight-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+  min-width: 0;
+  border-radius: 1.2rem;
+  border: 1px solid #e8edf5;
+  background: #fff;
+  padding: 0.9rem 1.1rem;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
 }
 
 .funnel-overview-chart-canvas {

@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/app/lib/api";
 import type { AnalyticsEventType } from "@/app/lib/analytics-event-types";
+import { resolveFunnelClientAdSource } from "@/app/lib/funnel-ad-source";
 import { captureFunnelUtmAttribution } from "@/app/lib/funnel-utm-attribution";
 
 export type TrackAnalyticsEventPayload = {
@@ -15,6 +16,9 @@ export type TrackAnalyticsEventPayload = {
   utmMedium?: string;
   utmCampaign?: string;
   referrer?: string;
+  adSource?: "meta" | "google" | "utm";
+  adSourceLabel?: string;
+  adSourceDetail?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -22,6 +26,14 @@ export async function trackAnalyticsEvent(
   payload: TrackAnalyticsEventPayload,
 ): Promise<void> {
   const utm = captureFunnelUtmAttribution();
+  const adSource =
+    payload.adSource != null
+      ? {
+          adSource: payload.adSource,
+          adSourceLabel: payload.adSourceLabel,
+          adSourceDetail: payload.adSourceDetail,
+        }
+      : resolveFunnelClientAdSource();
 
   const res = await fetch(`${getApiBaseUrl()}/funnel-event/track-analytics`, {
     method: "POST",
@@ -32,6 +44,7 @@ export async function trackAnalyticsEvent(
       utmMedium: payload.utmMedium ?? utm.utmMedium,
       utmCampaign: payload.utmCampaign ?? utm.utmCampaign,
       referrer: payload.referrer ?? utm.referrer,
+      ...(adSource ?? {}),
     }),
   });
 

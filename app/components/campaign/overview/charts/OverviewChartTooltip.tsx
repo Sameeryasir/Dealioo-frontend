@@ -24,6 +24,10 @@ const SERIES_COLORS: Record<string, string> = {
   value: "#1877f2",
   "Signup Only": "#f77737",
   "Paid After Signup": "#34a853",
+  Meta: "#1877f2",
+  meta: "#1877f2",
+  Google: "#34a853",
+  google: "#34a853",
 };
 
 export function OverviewChartTooltip({

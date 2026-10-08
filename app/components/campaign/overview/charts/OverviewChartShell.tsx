@@ -33,7 +33,7 @@ export function OverviewChartShell({
   className?: string;
   minHeightClass?: string;
   accent?: keyof typeof accentTopBar;
-  stat?: string;
+  stat?: ReactNode;
 }) {
   return (
     <div
@@ -60,10 +60,14 @@ export function OverviewChartShell({
               </p>
             ) : null}
           </div>
-          {stat ? (
-            <p className="m-0 shrink-0 text-right text-[1.35rem] font-extrabold tabular-nums leading-none tracking-tight text-[#07111f] sm:text-[1.5rem]">
-              {stat}
-            </p>
+          {stat != null && stat !== "" ? (
+            typeof stat === "string" || typeof stat === "number" ? (
+              <p className="m-0 shrink-0 text-right text-[1.35rem] font-extrabold tabular-nums leading-none tracking-tight text-[#07111f] sm:text-[1.5rem]">
+                {stat}
+              </p>
+            ) : (
+              <div className="shrink-0">{stat}</div>
+            )
           ) : null}
         </div>
       </div>

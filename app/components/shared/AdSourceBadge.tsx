@@ -31,11 +31,12 @@ export function AdSourceBadge({
     );
   }
 
+  // Meta = Facebook blue, Google = Google red — distinct from each other on campaign views
   const tone =
     resolvedSource === "meta"
       ? "bg-[#e8f2ff] text-[#1877f2]"
       : resolvedSource === "google"
-        ? "bg-[#ecfdf5] text-[#047857]"
+        ? "bg-[#fce8e6] text-[#ea4335]"
         : "bg-[#f1f5f9] text-slate-600";
 
   const title = detail?.trim()

@@ -1,10 +1,14 @@
 import { getApiBaseUrl } from "@/app/lib/api";
+import { resolveFunnelClientAdSource } from "@/app/lib/funnel-ad-source";
 
 export type TrackSignupEvent = {
   eventType: "signup";
   funnelId: number;
   customerId: number;
   visitorId: string;
+  adSource?: "meta" | "google" | "utm";
+  adSourceLabel?: string;
+  adSourceDetail?: string;
 };
 
 export type TrackPaymentEvent = {
@@ -34,10 +38,18 @@ export type TrackFunnelEventResult = {
 export async function trackFunnelEvent(
   payload: TrackFunnelEventPayload,
 ): Promise<TrackFunnelEventResult> {
+  const body =
+    payload.eventType === "signup"
+      ? {
+          ...payload,
+          ...(!payload.adSource ? resolveFunnelClientAdSource() : null),
+        }
+      : payload;
+
   const res = await fetch(`${getApiBaseUrl()}/funnel-event/track`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
