@@ -394,11 +394,11 @@ export function MetaDraftPicker({
                                   </div>
                                 </div>
 
-                                {bucket === "draft" || bucket === "failed" ? (
+                                {bucket !== "publishing" ? (
                                   <button
                                     type="button"
-                                    title="Delete draft"
-                                    aria-label={`Delete ${draftDisplayName(draft)}`}
+                                    title="Delete draft permanently"
+                                    aria-label={`Delete ${draftDisplayName(draft)} permanently`}
                                     disabled={deletingDraftId === draft.id}
                                     onClick={() => {
                                       setDeleteError(null);
@@ -518,19 +518,20 @@ export function MetaDraftPicker({
             ? draftDisplayName(draftPendingDelete)
             : "this draft"
         }
-        title="Delete this draft?"
+        title="Delete this draft permanently?"
         description={
           <>
-            Are you sure you want to delete{" "}
+            Are you sure you want to permanently delete{" "}
             <span className="font-semibold">
               {draftPendingDelete
                 ? draftDisplayName(draftPendingDelete)
                 : "this draft"}
             </span>
-            ? This only removes the Dealioo draft. It cannot be undone.
+            ? This removes it from Dealioo and cannot be undone. Live ads on
+            Meta are not deleted.
           </>
         }
-        confirmText="Delete draft"
+        confirmText="Delete permanently"
         checkboxLabel="I understand this draft will be permanently deleted."
         isLoading={deletingDraftId != null}
         onConfirm={() => {

@@ -13570,7 +13570,6 @@ body:has(.rd-shell--app) {
     grid-column: 1 / -1;
   }
 
-  /* Drop-off spans full width; Meta/Google charts stay a clean 2×2 */
   .funnel-overview-chart-grid--dropoff-first > .funnel-overview-chart-slot:first-child {
     grid-column: 1 / -1;
   }

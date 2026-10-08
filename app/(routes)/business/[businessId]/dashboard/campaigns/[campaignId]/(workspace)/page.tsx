@@ -33,6 +33,8 @@ export default function CampaignOverviewPage() {
     <div className="campaign-immersive-overview">
       <FunnelOverviewPanel
         embedded
+        businessId={businessId}
+        campaignId={campaignId}
         campaignName={campaign?.campaignName}
         price={campaign?.price}
         funnelId={funnelId}

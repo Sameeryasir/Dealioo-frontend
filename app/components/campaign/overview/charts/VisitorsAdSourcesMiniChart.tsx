@@ -44,15 +44,12 @@ export function VisitorsAdSourcesMiniChart({
   googleTotal: number;
   caption?: string;
   title?: string;
-  /** Optional formatter for legend totals (e.g. money for revenue) */
   formatTotal?: (value: number) => string;
   yAxisWidth?: number;
-  /** Chart shell accent — same tones as business dashboard (green/blue/pink/orange) */
   accent?: "green" | "blue" | "pink" | "orange" | "multi";
 }) {
   const formatLegend = formatTotal ?? ((value: number) => value.toLocaleString());
 
-  // Peak bucket in this chart + Meta/Google winner for the period totals
   let peak: { label: string; total: number; winner: "meta" | "google" | "tie" } | null =
     null;
   for (const row of data) {

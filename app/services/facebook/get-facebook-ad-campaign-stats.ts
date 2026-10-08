@@ -93,33 +93,37 @@ export const META_CAMPAIGN_PAGE_SIZE = 4;
 
 const inflightByKey = new Map<string, Promise<FacebookAdCampaignStats>>();
 
+type FacebookAdCampaignStatsOptions = {
+  includeInsights?: boolean;
+  refresh?: boolean;
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  campaignIds?: string[];
+  timeoutMs?: number;
+};
+
+function normalizeCampaignIds(ids?: string[]): string[] {
+  if (!ids?.length) return [];
+  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))].sort();
+}
+
 function statsCacheKey(
   restaurantId: number,
-  options?: {
-    includeInsights?: boolean;
-    refresh?: boolean;
-    page?: number;
-    pageSize?: number;
-    query?: string;
-  },
+  options?: FacebookAdCampaignStatsOptions,
 ): string {
   const insights = options?.includeInsights === false ? "0" : "1";
   const refresh = options?.refresh ? "1" : "0";
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? META_CAMPAIGN_PAGE_SIZE;
   const query = options?.query?.trim() ?? "";
-  return `${restaurantId}:insights=${insights}:refresh=${refresh}:page=${page}:size=${pageSize}:q=${query}`;
+  const campaignIds = normalizeCampaignIds(options?.campaignIds).join(",");
+  return `${restaurantId}:insights=${insights}:refresh=${refresh}:page=${page}:size=${pageSize}:q=${query}:ids=${campaignIds}`;
 }
 
 export async function getFacebookAdCampaignStats(
   restaurantId: number,
-  options?: {
-    includeInsights?: boolean;
-    refresh?: boolean;
-    page?: number;
-    pageSize?: number;
-    query?: string;
-  },
+  options?: FacebookAdCampaignStatsOptions,
 ): Promise<FacebookAdCampaignStats> {
   if (!Number.isFinite(restaurantId) || restaurantId < 1) {
     throw new Error("Business is required.");
@@ -145,13 +149,7 @@ export async function getFacebookAdCampaignStats(
 
 async function fetchFacebookAdCampaignStats(
   restaurantId: number,
-  options?: {
-    includeInsights?: boolean;
-    refresh?: boolean;
-    page?: number;
-    pageSize?: number;
-    query?: string;
-  },
+  options?: FacebookAdCampaignStatsOptions,
 ): Promise<FacebookAdCampaignStats> {
   const params = new URLSearchParams();
   if (options?.includeInsights === false) {
@@ -168,6 +166,10 @@ async function fetchFacebookAdCampaignStats(
   if (options?.query?.trim()) {
     params.set("q", options.query.trim());
   }
+  const campaignIds = normalizeCampaignIds(options?.campaignIds);
+  if (campaignIds.length > 0) {
+    params.set("campaignIds", campaignIds.join(","));
+  }
 
   const query = params.toString();
   const path = `${getApiBaseUrl()}/facebook/ads/campaign-stats/${encodeURIComponent(String(restaurantId))}?${query}`;
@@ -175,7 +177,7 @@ async function fetchFacebookAdCampaignStats(
   const res = await authenticatedFetch(
     path,
     { method: "GET" },
-    FACEBOOK_CAMPAIGN_STATS_TIMEOUT_MS,
+    options?.timeoutMs ?? FACEBOOK_CAMPAIGN_STATS_TIMEOUT_MS,
   );
 
   if (!res.ok) {

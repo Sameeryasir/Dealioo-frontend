@@ -135,9 +135,12 @@ export function AdSetLocationsMap({
         <MapViewportSync center={center} zoom={zoom} />
         <DropPinHandler enabled={dropPinMode} onDropPin={onDropPin} />
 
-        {addressPins.map((loc) => (
+        {addressPins.map((loc, index) => (
           <Marker
-            key={loc.id}
+            key={
+              loc.id ||
+              `pin-${loc.mode}-${loc.latitude}-${loc.longitude}-${index}`
+            }
             position={[loc.latitude!, loc.longitude!]}
             icon={
               loc.mode === "exclude" ? EXCLUDE_PIN_ICON : INCLUDE_PIN_ICON

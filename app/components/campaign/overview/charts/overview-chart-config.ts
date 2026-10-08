@@ -31,7 +31,6 @@ export const OVERVIEW_CHART_COLORS = {
   slate: "#64748b",
 } as const;
 
-/** Meta vs Google tags/lines — distinct brand colors (not the same as KPI accents) */
 export const OVERVIEW_AD_SOURCE_COLORS = {
   meta: "#1877f2",
   google: "#ea4335",

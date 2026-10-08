@@ -214,7 +214,7 @@ export type AdCreativeStepData = {
 export type MetaCampaignDraft = {
   id: string;
   businessId: number;
-  
+  campaignId?: number | null;
   restaurantId?: number;
   currentStep: number;
   status: string;

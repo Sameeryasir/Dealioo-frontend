@@ -11,6 +11,7 @@ import type {
 import {
   createLocationId,
   detectUserLocationTarget,
+  ensureLocationIds,
   isDefaultUnitedStatesOnly,
   searchLocations,
   type LocationSearchResult,
@@ -64,6 +65,12 @@ export function AdSetLocationsBox({
   const locationsRef = useRef(locations);
   onChangeRef.current = onChange;
   locationsRef.current = locations;
+
+  useEffect(() => {
+    const normalized = ensureLocationIds(locations);
+    if (normalized === locations) return;
+    onChange(normalized);
+  }, [locations, onChange]);
 
   useEffect(() => {
     const starting = locationsRef.current;
@@ -375,8 +382,13 @@ export function AdSetLocationsBox({
 
         {searchResults.length > 0 ? (
           <ul className="absolute z-20 max-h-56 w-full overflow-y-auto rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_28px_rgba(15,23,42,0.12)]">
-            {searchResults.map((result) => (
-              <li key={result.id}>
+            {searchResults.map((result, index) => (
+              <li
+                key={
+                  result.id ||
+                  `${result.type}-${result.countryCode}-${result.label}-${index}`
+                }
+              >
                 <button
                   type="button"
                   onClick={() =>
@@ -414,9 +426,12 @@ export function AdSetLocationsBox({
           </p>
           {included.length ? (
             <div className="flex flex-wrap gap-2">
-              {included.map((location) => (
+              {included.map((location, index) => (
                 <span
-                  key={location.id}
+                  key={
+                    location.id ||
+                    `include-${location.type}-${location.countryCode}-${location.label}-${index}`
+                  }
                   className={`${chipClass} border-[#dbeafe] bg-[#f4f8ff] text-[#07111f]`}
                 >
                   <MapPin className="size-3.5 shrink-0 text-[#1877f2]" />
@@ -464,9 +479,12 @@ export function AdSetLocationsBox({
             </p>
             {excluded.length ? (
               <div className="flex flex-wrap gap-2">
-                {excluded.map((location) => (
+                {excluded.map((location, index) => (
                   <span
-                    key={location.id}
+                    key={
+                      location.id ||
+                      `exclude-${location.type}-${location.countryCode}-${location.label}-${index}`
+                    }
                     className={`${chipClass} border-red-200 bg-red-50 text-red-800`}
                   >
                     <span className="font-bold" aria-hidden>

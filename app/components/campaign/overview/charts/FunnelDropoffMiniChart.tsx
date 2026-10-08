@@ -1,13 +1,61 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
+import { useCountUp } from "@/app/hooks/use-count-up";
 
 function stepRate(from: number, to: number): number | null {
   if (from <= 0) return null;
   return Math.round((to / from) * 1000) / 10;
+}
+
+function DropoffStepRow({
+  label,
+  count,
+  maxStep,
+  barClass,
+  delayMs,
+}: {
+  label: string;
+  count: number;
+  maxStep: number;
+  barClass: string;
+  delayMs: number;
+}) {
+  const animatedCount = useCountUp(count, true, 900);
+  const targetWidthPct = Math.max(
+    count > 0 ? 8 : 0,
+    Math.min(100, (count / maxStep) * 100),
+  );
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+          {label}
+        </p>
+        <p className="m-0 text-[1.05rem] font-extrabold tabular-nums leading-none text-[#07111f]">
+          {Math.round(animatedCount).toLocaleString()}
+        </p>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
+        <motion.div
+          className={`h-full rounded-full ${barClass}`}
+          initial={{ width: "0%" }}
+          animate={{ width: `${targetWidthPct}%` }}
+          transition={{
+            duration: 0.9,
+            delay: delayMs / 1000,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
 }
 
 const DROPOFF_SKELETON_STEPS = [
@@ -97,6 +145,7 @@ export function FunnelDropoffMiniChart({
   const viewToSignup = stepRate(views, signupCount);
   const signupToPaid = stepRate(signupCount, paidCount);
   const overall = stepRate(views, paidCount);
+  const animatedOverall = useCountUp(overall ?? 0, overall != null, 900);
 
   const steps = [
     {
@@ -104,21 +153,21 @@ export function FunnelDropoffMiniChart({
       label: "Page views",
       count: views,
       barClass: "bg-[#1877f2]",
-      color: OVERVIEW_CHART_COLORS.blue,
+      delayMs: 0,
     },
     {
       key: "signups",
       label: "Signups",
       count: signupCount,
       barClass: "bg-[#34a853]",
-      color: OVERVIEW_CHART_COLORS.green,
+      delayMs: 120,
     },
     {
       key: "payments",
       label: "Payments",
       count: paidCount,
       barClass: "bg-[#f77737]",
-      color: OVERVIEW_CHART_COLORS.orange,
+      delayMs: 240,
     },
   ] as const;
 
@@ -129,36 +178,20 @@ export function FunnelDropoffMiniChart({
       minHeightClass="min-h-[300px]"
       className="h-full"
       accent="blue"
-      stat={overall != null ? `${overall}%` : "—"}
+      stat={overall != null ? `${animatedOverall.toFixed(1)}%` : "—"}
     >
       <div className="flex h-full min-h-0 flex-col justify-center gap-4 px-1 py-1">
         <div className="flex flex-col gap-3.5">
-          {steps.map((step) => {
-            const widthPct = Math.max(
-              step.count > 0 ? 8 : 0,
-              Math.min(100, (step.count / maxStep) * 100),
-            );
-
-            return (
-              <div key={step.key} className="min-w-0">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500">
-                    {step.label}
-                  </p>
-                  <p className="m-0 text-[1.05rem] font-extrabold tabular-nums leading-none text-[#07111f]">
-                    {step.count.toLocaleString()}
-                  </p>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
-                  <div
-                    className={`h-full rounded-full transition-[width] duration-500 ${step.barClass}`}
-                    style={{ width: `${widthPct}%` }}
-                    aria-hidden
-                  />
-                </div>
-              </div>
-            );
-          })}
+          {steps.map((step) => (
+            <DropoffStepRow
+              key={`${step.key}-${step.count}`}
+              label={step.label}
+              count={step.count}
+              maxStep={maxStep}
+              barClass={step.barClass}
+              delayMs={step.delayMs}
+            />
+          ))}
         </div>
 
         <OverviewChartLegend

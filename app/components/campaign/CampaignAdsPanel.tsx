@@ -96,8 +96,6 @@ function MetaAdsPanelSkeleton() {
 }
 import {
   clearMetaDraftLocalState,
-  isResumableMetaDraft,
-  readMetaDraftRecovery,
   writeActiveMetaDraftId,
 } from "@/app/lib/meta-active-draft-storage";
 import type {
@@ -225,37 +223,17 @@ export function CampaignAdsPanel({
     setResumeDraftLoading(true);
     try {
       const drafts = await listMetaCampaignDrafts(businessId);
-      const hasOpenDrafts = drafts.some(isResumableMetaDraft);
-      if (hasOpenDrafts) {
-        setDraftPickerOpen(true);
-        return;
-      }
-
-      const recovery = readMetaDraftRecovery(businessId);
-      if (recovery?.campaignData) {
-        setActiveDraft(null);
-        setAutoStartPublish(false);
-        setSelectedObjective(
-          (recovery.campaignData.objective as MetaCampaignObjective) ?? null,
-        );
-        setBuilderDefaultName(
-          recovery.campaignData.name?.trim() || campaignName || "",
-        );
-        setObjectiveOpen(false);
-        setBuilderOpen(true);
-        return;
-      }
-
-      setActiveDraft(null);
-      setAutoStartPublish(false);
-      setObjectiveCampaignLabel(null);
-      setBuilderDefaultName(campaignName || "");
-      setSelectedObjective(null);
-      setObjectiveOpen(true);
+      queryClient.setQueryData(
+        metaCampaignDraftQueryKeys.byBusiness(businessId),
+        drafts,
+      );
+    } catch {
+      // ignore prefetch errors
     } finally {
       setResumeDraftLoading(false);
+      setDraftPickerOpen(true);
     }
-  }, [businessId, campaignName]);
+  }, [businessId, queryClient]);
 
   const handleDraftPickerSelect = useCallback(
     (action: MetaDraftPickerAction) => {

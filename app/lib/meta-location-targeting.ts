@@ -22,6 +22,36 @@ export function createLocationId(): string {
   return `loc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export function ensureLocationIds(
+  locations: AdSetLocationTarget[],
+): AdSetLocationTarget[] {
+  let changed = false;
+  const seen = new Set<string>();
+
+  const next = locations.map((loc) => {
+    let id = loc.id?.trim() || "";
+    if (!id || seen.has(id)) {
+      id = createLocationId();
+      changed = true;
+    }
+    seen.add(id);
+
+    const countryName =
+      loc.countryName?.trim() ||
+      getCountryLabel(loc.countryCode) ||
+      loc.label ||
+      loc.countryCode;
+
+    if (countryName !== loc.countryName) changed = true;
+
+    return id === loc.id && countryName === loc.countryName
+      ? loc
+      : { ...loc, id, countryName };
+  });
+
+  return changed ? next : locations;
+}
+
 export function buildLocationsFromAudience(audience?: {
   country?: string;
   region?: string;

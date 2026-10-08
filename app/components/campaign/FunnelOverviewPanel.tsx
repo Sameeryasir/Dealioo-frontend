@@ -190,7 +190,6 @@ function OverviewKpiBreakdown({
 }) {
   if (items.length === 0) return null;
 
-  // Colored pills when sources have a color (Meta / Google) — matches chart legend labels
   const usePills = items.some((item) => item.color);
   if (usePills) {
     return (
@@ -474,6 +473,9 @@ export function FunnelOverviewPanel({
   onCreateFunnel,
   embedded = false,
 }: {
+  /** Kept for call-site compatibility; Ads & traffic overview section removed. */
+  businessId?: number | null;
+  campaignId?: number | null;
   campaignName?: string;
   price?: number | string;
   funnelId?: number | null;
@@ -612,6 +614,7 @@ export function FunnelOverviewPanel({
     staleTime: 60_000,
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
+
   const statsMonthly = statsQuery.data;
   const analyticsMonthly = analyticsQuery.data;
   const adSources = adSourcesQuery.data;
@@ -640,6 +643,7 @@ export function FunnelOverviewPanel({
     const google = adSources.google + (adSources.payments?.google ?? 0);
     return resolveAdSourceWinner(meta, google);
   }, [adSources]);
+
   const showComparison =
     previousRange != null &&
     (previousStatsTotals != null || previousAnalyticsTotals != null);
@@ -661,7 +665,6 @@ export function FunnelOverviewPanel({
   const signupsAdBreakdown = adSources
     ? metaGoogleBreakdown(adSources.meta, adSources.google)
     : undefined;
-  // Payments Meta/Google pills — always defined (undefined until ad-sources load)
   const paymentsAdBreakdown = adSources?.payments
     ? metaGoogleBreakdown(adSources.payments.meta, adSources.payments.google)
     : undefined;
@@ -688,8 +691,6 @@ export function FunnelOverviewPanel({
     [adSources?.revenue?.data],
   );
 
-  // Dismiss is scoped to the current funnel so switching funnels shows errors again
-  // without a reset effect (MCP context 7 — avoid setState in effects).
   const [dismissedErrorFunnelId, setDismissedErrorFunnelId] = useState<
     number | null
   >(null);

@@ -520,7 +520,18 @@ export async function listMetaCampaignDrafts(
     );
   }
 
-  return res.json() as Promise<MetaCampaignDraft[]>;
+  const payload = (await res.json()) as unknown;
+  if (Array.isArray(payload)) {
+    return payload as MetaCampaignDraft[];
+  }
+  if (
+    payload &&
+    typeof payload === "object" &&
+    Array.isArray((payload as { drafts?: unknown }).drafts)
+  ) {
+    return (payload as { drafts: MetaCampaignDraft[] }).drafts;
+  }
+  return [];
 }
 
 export async function importLiveMetaCampaignForBuilder(

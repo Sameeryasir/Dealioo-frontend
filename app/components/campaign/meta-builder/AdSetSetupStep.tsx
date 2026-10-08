@@ -35,6 +35,7 @@ import {
 import {
   buildLocationsFromAudience,
   deriveLegacyAudienceFields,
+  ensureLocationIds,
 } from "@/app/lib/meta-location-targeting";
 import { AdSetLocationsBox } from "@/app/components/campaign/meta-builder/AdSetLocationsBox";
 import {
@@ -235,7 +236,7 @@ export function AdSetSetupStep({
   const [locations, setLocations] = useState<AdSetLocationTarget[]>(() => {
     const audience = initialData?.audience;
     if (audience?.locations?.length) {
-      return audience.locations;
+      return ensureLocationIds(audience.locations);
     }
     if (
       audience?.country?.trim() ||
@@ -243,7 +244,7 @@ export function AdSetSetupStep({
       audience?.latitude != null ||
       audience?.longitude != null
     ) {
-      return buildLocationsFromAudience(audience);
+      return ensureLocationIds(buildLocationsFromAudience(audience));
     }
     return [];
   });
