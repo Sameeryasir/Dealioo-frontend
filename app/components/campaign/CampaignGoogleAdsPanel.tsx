@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -20,19 +20,19 @@ import {
 import { GoogleAdsConnectEmptyState } from "@/app/components/google-ads/GoogleAdsConnectEmptyState";
 import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { Skeleton } from "@/app/components/skeleton";
-import { DEFAULT_ADS_INSIGHTS_PERIOD } from "@/app/lib/ads-insights-period";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { buildGoogleCampaignOfferLinkMap } from "@/app/lib/google-ads-management";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { useGoogleAdCampaignStatsQuery } from "@/app/hooks/use-google-ad-campaign-stats-query";
 import {
   googleCampaignDraftQueryKeys,
   useGoogleCampaignDraftsQuery,
 } from "@/app/hooks/use-google-campaign-drafts-query";
+import { DEFAULT_ADS_INSIGHTS_PERIOD } from "@/app/lib/ads-insights-period";
+import { buildGoogleCampaignOfferLinkMap } from "@/app/lib/google-ads-management";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { deleteGoogleAdsCampaign } from "@/app/services/google-ads/delete-google-ads-campaign";
-import {
-  getGoogleAdsCampaignStats,
-  type GoogleAdsCampaign,
-  type GoogleAdsCampaignStats,
+import type {
+  GoogleAdsCampaign,
+  GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import {
   updateGoogleAdsCampaign,
@@ -156,9 +156,7 @@ export function CampaignGoogleAdsPanel({
   const [googleCustomerSelected, setGoogleCustomerSelected] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(true);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [adStats, setAdStats] = useState<GoogleAdsCampaignStats | null>(null);
-  const [adStatsLoading, setAdStatsLoading] = useState(false);
-  const [adStatsError, setAdStatsError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [draftPickerOpen, setDraftPickerOpen] = useState(false);
   const [createCampaignOpen, setCreateCampaignOpen] = useState(false);
   const [campaignPendingDelete, setCampaignPendingDelete] =
@@ -179,18 +177,18 @@ export function CampaignGoogleAdsPanel({
   const [insightsPeriod, setInsightsPeriod] = useState<string>(
     DEFAULT_ADS_INSIGHTS_PERIOD,
   );
-  const statsRequestIdRef = useRef(0);
-  const loadedPeriodRef = useRef<string | null>(null);
-  const insightsPeriodRef = useRef(insightsPeriod);
-  insightsPeriodRef.current = insightsPeriod;
-  const periodStatsCacheRef = useRef(
-    new Map<string, GoogleAdsCampaignStats>(),
-  );
 
-  const statsViewCacheKey = useCallback(
-    (period: string) => `${businessId}|${period}`,
-    [businessId],
-  );
+  const connectionReady = !googleLoading && googleConnected && googleCustomerSelected;
+  const statsQuery = useGoogleAdCampaignStatsQuery(businessId, {
+    enabled: connectionReady,
+    period: insightsPeriod,
+  });
+  const adStats = statsQuery.data;
+  const adStatsLoading = statsQuery.isFetching;
+  const statsError = statsQuery.error
+    ? friendlyGoogleAdsError(statsQuery.error)
+    : null;
+  const adStatsError = actionError ?? statsError;
 
   const draftsQuery = useGoogleCampaignDraftsQuery(businessId, {
     enabled: googleConnected && googleCustomerSelected,
@@ -248,87 +246,6 @@ export function CampaignGoogleAdsPanel({
     });
   }, [businessId, queryClient]);
 
-  const loadStats = useCallback(
-    async (opts?: {
-      refresh?: boolean;
-      silent?: boolean;
-      period?: string;
-    }) => {
-      const silent = opts?.silent === true;
-      const period = opts?.period ?? insightsPeriodRef.current;
-      const cacheKey = statsViewCacheKey(period);
-      const requestId = ++statsRequestIdRef.current;
-      const hadStats = loadedPeriodRef.current != null;
-
-      if (!opts?.refresh) {
-        const cached = periodStatsCacheRef.current.get(cacheKey);
-        if (cached) {
-          setAdStats(cached);
-          setAdStatsError(null);
-          loadedPeriodRef.current = period;
-          setAdStatsLoading(false);
-          return;
-        }
-      } else {
-        periodStatsCacheRef.current.clear();
-      }
-
-      if (!silent) {
-        setAdStatsLoading(true);
-        setAdStatsError(null);
-      }
-      try {
-        const stats = await getGoogleAdsCampaignStats(businessId, {
-          refresh: opts?.refresh,
-          period,
-        });
-        if (requestId !== statsRequestIdRef.current) return;
-        setAdStats(stats);
-        setAdStatsError(null);
-        loadedPeriodRef.current = period;
-        periodStatsCacheRef.current.set(cacheKey, stats);
-
-        if (!opts?.refresh && stats.isStale) {
-          if (!silent) {
-            setAdStatsLoading(false);
-          }
-          const refreshId = ++statsRequestIdRef.current;
-          void getGoogleAdsCampaignStats(businessId, {
-            refresh: true,
-            period,
-          })
-            .then((fresh) => {
-              if (refreshId !== statsRequestIdRef.current) return;
-              setAdStats(fresh);
-              periodStatsCacheRef.current.set(cacheKey, fresh);
-              loadedPeriodRef.current = period;
-            })
-            .catch(() => {});
-          return;
-        }
-      } catch (e) {
-        if (requestId !== statsRequestIdRef.current) return;
-        if (!silent) {
-          if (!hadStats) {
-            setAdStats(null);
-          }
-          setAdStatsError(
-            friendlyGoogleAdsError(
-              e instanceof Error
-                ? e.message
-                : "Could not load Google Ads campaign stats.",
-            ),
-          );
-        }
-      } finally {
-        if (!silent && requestId === statsRequestIdRef.current) {
-          setAdStatsLoading(false);
-        }
-      }
-    },
-    [businessId, statsViewCacheKey],
-  );
-
   const refreshConnection = useCallback(async () => {
     setGoogleLoading(true);
     setGoogleError(null);
@@ -360,42 +277,20 @@ export function CampaignGoogleAdsPanel({
   }, [businessId]);
 
   useEffect(() => {
-    loadedPeriodRef.current = null;
-    periodStatsCacheRef.current.clear();
     setInsightsPeriod(DEFAULT_ADS_INSIGHTS_PERIOD);
-    setAdStats(null);
-    setAdStatsError(null);
+    setActionError(null);
 
     let cancelled = false;
 
     void (async () => {
-      setAdStatsLoading(true);
-
-      const { connected, customerSelected } = await refreshConnection();
+      await refreshConnection();
       if (cancelled) return;
-
-      if (!connected || !customerSelected) {
-        setAdStatsLoading(false);
-        return;
-      }
-
-      await loadStats({ period: insightsPeriodRef.current });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [businessId, loadStats, refreshConnection]);
-
-  useEffect(() => {
-    if (!googleConnected || !googleCustomerSelected) return;
-    if (loadedPeriodRef.current == null) return;
-    if (loadedPeriodRef.current === insightsPeriod) return;
-    void loadStats({
-      silent: false,
-      period: insightsPeriod,
-    });
-  }, [googleConnected, googleCustomerSelected, insightsPeriod, loadStats]);
+  }, [businessId, refreshConnection]);
 
   useEffect(() => {
     if (!googleConnected || !googleCustomerSelected) return;
@@ -421,10 +316,10 @@ export function CampaignGoogleAdsPanel({
 
     const campaign = campaignPendingDelete;
     setDeletingCampaignId(campaign.id);
-    setAdStatsError(null);
+    setActionError(null);
     try {
       await deleteGoogleAdsCampaign(businessId, campaign.id);
-      setAdStats((prev) =>
+      statsQuery.setStatsCache((prev) =>
         prev
           ? {
               ...prev,
@@ -434,13 +329,13 @@ export function CampaignGoogleAdsPanel({
       );
       setCampaignPendingDelete(null);
     } catch (e) {
-      setAdStatsError(
+      setActionError(
         e instanceof Error ? e.message : "Could not delete campaign.",
       );
     } finally {
       setDeletingCampaignId(null);
     }
-  }, [businessId, campaignPendingDelete]);
+  }, [businessId, campaignPendingDelete, statsQuery]);
 
   const handleToggleCampaignStatus = useCallback(
     async (
@@ -449,10 +344,10 @@ export function CampaignGoogleAdsPanel({
     ) => {
       if (!canCreateGoogleCampaign) return;
       setStatusUpdatingId(campaign.id);
-      setAdStatsError(null);
+      setActionError(null);
       try {
         await updateGoogleAdsCampaignStatus(businessId, campaign.id, status);
-        setAdStats((prev) =>
+        statsQuery.setStatsCache((prev) =>
           prev
             ? {
                 ...prev,
@@ -465,7 +360,7 @@ export function CampaignGoogleAdsPanel({
             : prev,
         );
       } catch (e) {
-        setAdStatsError(
+        setActionError(
           e instanceof Error
             ? e.message
             : "Could not update campaign status.",
@@ -474,7 +369,7 @@ export function CampaignGoogleAdsPanel({
         setStatusUpdatingId(null);
       }
     },
-    [businessId, canCreateGoogleCampaign],
+    [businessId, canCreateGoogleCampaign, statsQuery],
   );
 
   const handleEditCampaign = useCallback(
@@ -488,14 +383,14 @@ export function CampaignGoogleAdsPanel({
     ) => {
       if (!canCreateGoogleCampaign) return;
       setEditingCampaignId(campaign.id);
-      setAdStatsError(null);
+      setActionError(null);
       try {
         const result = await updateGoogleAdsCampaign(
           businessId,
           campaign.id,
           updates,
         );
-        setAdStats((prev) =>
+        statsQuery.setStatsCache((prev) =>
           prev
             ? {
                 ...prev,
@@ -515,7 +410,7 @@ export function CampaignGoogleAdsPanel({
             : prev,
         );
       } catch (e) {
-        setAdStatsError(
+        setActionError(
           e instanceof Error
             ? e.message
             : "Could not update published campaign.",
@@ -524,7 +419,7 @@ export function CampaignGoogleAdsPanel({
         setEditingCampaignId(null);
       }
     },
-    [businessId, canCreateGoogleCampaign],
+    [businessId, canCreateGoogleCampaign, statsQuery],
   );
 
   const handleDuplicateCampaign = useCallback(
@@ -538,7 +433,7 @@ export function CampaignGoogleAdsPanel({
         return;
       }
       setDuplicatingCampaignId(campaign.id);
-      setAdStatsError(null);
+      setActionError(null);
       try {
         const copied = await duplicateGoogleCampaignDraft(
           businessId,
@@ -557,7 +452,7 @@ export function CampaignGoogleAdsPanel({
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "Could not duplicate campaign.";
-        setAdStatsError(message);
+        setActionError(message);
         toast.error(message);
       } finally {
         setDuplicatingCampaignId(null);
@@ -573,13 +468,10 @@ export function CampaignGoogleAdsPanel({
 
   const adsConsoleUrl = "https://ads.google.com";
 
-  const connectionReady =
-    !googleLoading && googleConnected && googleCustomerSelected;
-
   const showSkeleton =
     googleLoading ||
-    (googleConnected &&
-      googleCustomerSelected &&
+    (connectionReady &&
+      statsQuery.isLoading &&
       adStats === null &&
       !adStatsError);
 
@@ -632,21 +524,14 @@ export function CampaignGoogleAdsPanel({
             canManageCampaign={canCreateGoogleCampaign}
             onCreateCampaign={openCreatePicker}
             onRefresh={() => {
-              void loadStats({ refresh: true });
+              setActionError(null);
+              void statsQuery.refreshFromSource();
               void draftsQuery.refetch();
             }}
             period={insightsPeriod}
             onPeriodChange={(next) => {
               if (next === insightsPeriod) return;
-              const cached = periodStatsCacheRef.current.get(
-                statsViewCacheKey(next),
-              );
-              if (cached) {
-                setAdStats(cached);
-                loadedPeriodRef.current = next;
-                setAdStatsError(null);
-                setAdStatsLoading(false);
-              }
+              setActionError(null);
               setInsightsPeriod(next);
             }}
             onDeleteCampaign={(c) => {

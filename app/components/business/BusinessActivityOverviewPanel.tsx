@@ -30,6 +30,7 @@ import {
   resolveActivityDateRange,
   resolveActivityPreviousComparisonRange,
 } from "@/app/lib/activity-month-filter";
+import { businessActivityQueryKeys } from "@/app/lib/ads-stats-query-keys";
 import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
@@ -337,15 +338,16 @@ export function BusinessActivityOverviewPanel({
   );
 
   const periodQuery = useQuery({
-    queryKey: [
-      "business-dashboard-activity",
-      businessId,
-      periodRange.from,
-      periodRange.to,
-      previousRange?.from ?? null,
-      previousRange?.to ?? null,
-      viewerTimeZone,
-    ],
+    queryKey:
+      businessId != null
+        ? businessActivityQueryKeys.dashboardSummary(businessId, {
+            from: periodRange.from,
+            to: periodRange.to,
+            previousFrom: previousRange?.from ?? null,
+            previousTo: previousRange?.to ?? null,
+            timezone: viewerTimeZone,
+          })
+        : businessActivityQueryKeys.all,
     enabled: businessId != null && businessId > 0,
     staleTime: 30_000,
     queryFn: () =>
@@ -360,7 +362,10 @@ export function BusinessActivityOverviewPanel({
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   const yearPeakQuery = useQuery({
-    queryKey: ["business-dashboard-year-peak", businessId, currentYear],
+    queryKey:
+      businessId != null
+        ? businessActivityQueryKeys.yearPeak(businessId, currentYear)
+        : businessActivityQueryKeys.all,
     enabled: businessId != null && businessId > 0,
     staleTime: 60_000,
     queryFn: () =>

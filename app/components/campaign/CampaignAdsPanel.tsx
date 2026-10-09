@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,7 +11,38 @@ import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-buil
 import type { MetaDraftPickerAction } from "@/app/components/campaign/meta-builder/MetaDraftPicker";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { Skeleton } from "@/app/components/skeleton";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { useMetaAdCampaignStatsQuery } from "@/app/hooks/use-meta-ad-campaign-stats-query";
+import {
+  metaCampaignDraftQueryKeys,
+  useMetaCampaignDraftsQuery,
+} from "@/app/hooks/use-meta-campaign-drafts-query";
 import { DEFAULT_ADS_INSIGHTS_PERIOD } from "@/app/lib/ads-insights-period";
+import {
+  clearMetaDraftLocalState,
+  writeActiveMetaDraftId,
+} from "@/app/lib/meta-active-draft-storage";
+import type {
+  MetaCampaignDraft,
+  MetaCampaignObjective,
+} from "@/app/lib/meta-campaign-builder-types";
+import { hasMetaAdsManagementScope } from "@/app/lib/meta-ads-permissions";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
+import { deleteFacebookCampaign } from "@/app/services/facebook/delete-facebook-campaign";
+import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
+import {
+  META_CAMPAIGN_PAGE_SIZE,
+  type FacebookAdCampaign,
+  type FacebookAdCampaignStats,
+} from "@/app/services/facebook/get-facebook-ad-campaign-stats";
+import {
+  importLiveMetaCampaignForBuilder,
+  listMetaCampaignDrafts,
+} from "@/app/services/facebook/meta-campaign-draft";
+import {
+  updateFacebookAdsCampaign,
+  updateFacebookAdsCampaignStatus,
+} from "@/app/services/facebook/update-facebook-ads-campaign";
 
 const MetaAdsAnalyticsDashboard = dynamic(
   () =>
@@ -94,37 +125,6 @@ function MetaAdsPanelSkeleton() {
     </div>
   );
 }
-import {
-  clearMetaDraftLocalState,
-  writeActiveMetaDraftId,
-} from "@/app/lib/meta-active-draft-storage";
-import type {
-  MetaCampaignDraft,
-  MetaCampaignObjective,
-} from "@/app/lib/meta-campaign-builder-types";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
-import { hasMetaAdsManagementScope } from "@/app/lib/meta-ads-permissions";
-import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import {
-  getFacebookAdCampaignStats,
-  META_CAMPAIGN_PAGE_SIZE,
-  type FacebookAdCampaign,
-  type FacebookAdCampaignStats,
-} from "@/app/services/facebook/get-facebook-ad-campaign-stats";
-import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
-import { deleteFacebookCampaign } from "@/app/services/facebook/delete-facebook-campaign";
-import {
-  updateFacebookAdsCampaign,
-  updateFacebookAdsCampaignStatus,
-} from "@/app/services/facebook/update-facebook-ads-campaign";
-import {
-  importLiveMetaCampaignForBuilder,
-  listMetaCampaignDrafts,
-} from "@/app/services/facebook/meta-campaign-draft";
-import {
-  metaCampaignDraftQueryKeys,
-  useMetaCampaignDraftsQuery,
-} from "@/app/hooks/use-meta-campaign-drafts-query";
 
 type CampaignAdsPanelProps = {
   businessId: number;
@@ -153,10 +153,7 @@ export function CampaignAdsPanel({
     enabled: metaConnected && Boolean(metaAdAccountId),
   });
   const { can } = useBusinessMembershipPermissions(businessId);
-  const [adStats, setAdStats] = useState<FacebookAdCampaignStats | null>(null);
-  const [adStatsLoading, setAdStatsLoading] = useState(false);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [adStatsError, setAdStatsError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [objectiveOpen, setObjectiveOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [selectedObjective, setSelectedObjective] =
@@ -187,20 +184,25 @@ export function CampaignAdsPanel({
   const [insightsPeriod, setInsightsPeriod] = useState<string>(
     DEFAULT_ADS_INSIGHTS_PERIOD,
   );
-  const initialStatsLoadRef = useRef(true);
-  const statsRequestIdRef = useRef(0);
-  const loadedPeriodRef = useRef<string | null>(null);
-  const insightsPeriodRef = useRef(insightsPeriod);
-  insightsPeriodRef.current = insightsPeriod;
-  const periodStatsCacheRef = useRef(
-    new Map<string, FacebookAdCampaignStats>(),
-  );
 
-  const statsViewCacheKey = useCallback(
-    (period: string, page: number, query: string) =>
-      `${businessId}|${period}|p=${page}|q=${query}`,
-    [businessId],
-  );
+  const connectionPhase: ConnectionPhase = metaLoading
+    ? "loading"
+    : !metaConnected
+      ? "not_connected"
+      : !metaAdAccountId
+        ? "needs_account"
+        : "ready";
+
+  const statsQuery = useMetaAdCampaignStatsQuery(businessId, {
+    enabled: connectionPhase === "ready",
+    period: insightsPeriod,
+    page: campaignPage,
+    pageSize: META_CAMPAIGN_PAGE_SIZE,
+    query: campaignQuery,
+  });
+  const adStats = statsQuery.data;
+  const insightsLoading = statsQuery.isFetching;
+  const adStatsError = actionError ?? statsQuery.error;
 
   const openBuilderWithDraft = useCallback(
     (draft: MetaCampaignDraft) => {
@@ -282,14 +284,6 @@ export function CampaignAdsPanel({
     });
   }, [businessId, queryClient]);
 
-  const connectionPhase: ConnectionPhase = metaLoading
-    ? "loading"
-    : !metaConnected
-      ? "not_connected"
-      : !metaAdAccountId
-        ? "needs_account"
-        : "ready";
-
   const canCreateMetaCampaign = hasMetaAdsManagementScope(metaOauthScopes);
   const canDeleteMetaCampaign =
     hasMetaAdsManagementScope(metaOauthScopes) && can("meta_campaigns_delete");
@@ -299,10 +293,10 @@ export function CampaignAdsPanel({
 
     const campaign = campaignPendingDelete;
     setDeletingCampaignId(campaign.id);
-    setAdStatsError(null);
+    setActionError(null);
     try {
       await deleteFacebookCampaign(businessId, campaign.id, campaign.name);
-      setAdStats((prev) =>
+      statsQuery.setStatsCache((prev) =>
         prev
           ? {
               ...prev,
@@ -313,22 +307,22 @@ export function CampaignAdsPanel({
       setCampaignPendingDelete(null);
       invalidateDrafts();
     } catch (e) {
-      setAdStatsError(
+      setActionError(
         e instanceof Error ? e.message : "Could not delete campaign.",
       );
     } finally {
       setDeletingCampaignId(null);
     }
-  }, [businessId, campaignPendingDelete, invalidateDrafts]);
+  }, [businessId, campaignPendingDelete, invalidateDrafts, statsQuery]);
 
   const handleToggleCampaignStatus = useCallback(
     async (campaign: FacebookAdCampaign, status: "ACTIVE" | "PAUSED") => {
       if (!canCreateMetaCampaign) return;
       setStatusUpdatingId(campaign.id);
-      setAdStatsError(null);
+      setActionError(null);
       try {
         await updateFacebookAdsCampaignStatus(businessId, campaign.id, status);
-        setAdStats((prev) =>
+        statsQuery.setStatsCache((prev) =>
           prev
             ? {
                 ...prev,
@@ -341,7 +335,7 @@ export function CampaignAdsPanel({
             : prev,
         );
       } catch (e) {
-        setAdStatsError(
+        setActionError(
           e instanceof Error
             ? e.message
             : "Could not update campaign status.",
@@ -350,7 +344,7 @@ export function CampaignAdsPanel({
         setStatusUpdatingId(null);
       }
     },
-    [businessId, canCreateMetaCampaign],
+    [businessId, canCreateMetaCampaign, statsQuery],
   );
 
   const handleEditCampaign = useCallback(
@@ -364,14 +358,14 @@ export function CampaignAdsPanel({
     ) => {
       if (!canCreateMetaCampaign) return;
       setEditingCampaignId(campaign.id);
-      setAdStatsError(null);
+      setActionError(null);
       try {
         const result = await updateFacebookAdsCampaign(
           businessId,
           campaign.id,
           updates,
         );
-        setAdStats((prev) =>
+        statsQuery.setStatsCache((prev) =>
           prev
             ? {
                 ...prev,
@@ -392,7 +386,7 @@ export function CampaignAdsPanel({
             : prev,
         );
       } catch (e) {
-        setAdStatsError(
+        setActionError(
           e instanceof Error
             ? e.message
             : "Could not update published campaign.",
@@ -401,7 +395,7 @@ export function CampaignAdsPanel({
         setEditingCampaignId(null);
       }
     },
-    [businessId, canCreateMetaCampaign],
+    [businessId, canCreateMetaCampaign, statsQuery],
   );
 
   const draftByMetaCampaignId = useMemo(() => {
@@ -452,97 +446,6 @@ export function CampaignAdsPanel({
     ],
   );
 
-  const loadStats = useCallback(async (opts?: {
-    refresh?: boolean;
-    silent?: boolean;
-    page?: number;
-    query?: string;
-    period?: string;
-  }) => {
-    const silent = opts?.silent === true;
-    const page = opts?.page ?? campaignPage;
-    const query = opts?.query ?? campaignQuery;
-    const period = opts?.period ?? insightsPeriodRef.current;
-    const cacheKey = statsViewCacheKey(period, page, query);
-    const requestId = ++statsRequestIdRef.current;
-    const hadStats = loadedPeriodRef.current != null;
-
-    if (!opts?.refresh) {
-      const cached = periodStatsCacheRef.current.get(cacheKey);
-      if (cached) {
-        setAdStats(cached);
-        setAdStatsError(null);
-        loadedPeriodRef.current = period;
-        setAdStatsLoading(false);
-        setInsightsLoading(false);
-        return;
-      }
-    } else {
-      periodStatsCacheRef.current.clear();
-    }
-
-    if (!silent) {
-      setAdStatsLoading(true);
-      setInsightsLoading(true);
-      setAdStatsError(null);
-    }
-    try {
-      const stats = await getFacebookAdCampaignStats(businessId, {
-        includeInsights: true,
-        refresh: opts?.refresh,
-        page,
-        pageSize: META_CAMPAIGN_PAGE_SIZE,
-        query: query || undefined,
-        period,
-      });
-      if (requestId !== statsRequestIdRef.current) return;
-
-      setAdStats(stats);
-      setAdStatsError(null);
-      loadedPeriodRef.current = period;
-      periodStatsCacheRef.current.set(cacheKey, stats);
-
-      if (!opts?.refresh && stats.isStale) {
-        const refreshId = ++statsRequestIdRef.current;
-        if (!silent) {
-          setAdStatsLoading(false);
-          setInsightsLoading(false);
-        }
-        void getFacebookAdCampaignStats(businessId, {
-          includeInsights: true,
-          refresh: true,
-          page,
-          pageSize: META_CAMPAIGN_PAGE_SIZE,
-          query: query || undefined,
-          period,
-        })
-          .then((fresh) => {
-            if (refreshId !== statsRequestIdRef.current) return;
-            setAdStats(fresh);
-            periodStatsCacheRef.current.set(cacheKey, fresh);
-            loadedPeriodRef.current = period;
-          })
-          .catch(() => {});
-        return;
-      }
-    } catch (e) {
-      if (requestId !== statsRequestIdRef.current) return;
-      if (!silent) {
-        if (!hadStats) {
-          setAdStats(null);
-        }
-        setAdStatsError(
-          e instanceof Error ? e.message : "Could not load Facebook ads.",
-        );
-      }
-    } finally {
-      if (!silent && requestId === statsRequestIdRef.current) {
-        setAdStatsLoading(false);
-        setInsightsLoading(false);
-      }
-    }
-  }, [businessId, campaignPage, campaignQuery, statsViewCacheKey]);
-
   const refreshConnection = useCallback(async () => {
     setMetaLoading(true);
     setMetaError(null);
@@ -573,14 +476,11 @@ export function CampaignAdsPanel({
   }, [businessId]);
 
   useEffect(() => {
-    initialStatsLoadRef.current = true;
-    loadedPeriodRef.current = null;
-    periodStatsCacheRef.current.clear();
     setCampaignPage(1);
     setCampaignQuery("");
     setCampaignSearchInput("");
     setInsightsPeriod(DEFAULT_ADS_INSIGHTS_PERIOD);
-    setAdStats(null);
+    setActionError(null);
   }, [businessId]);
 
   useEffect(() => {
@@ -610,22 +510,11 @@ export function CampaignAdsPanel({
 
   useEffect(() => {
     if (connectionPhase !== "ready") return;
-    const isInitial = initialStatsLoadRef.current;
-    initialStatsLoadRef.current = false;
-    const periodChanged =
-      loadedPeriodRef.current != null &&
-      loadedPeriodRef.current !== insightsPeriod;
-    const silent = !isInitial && !periodChanged;
-    void loadStats({ silent, period: insightsPeriod });
-  }, [campaignPage, campaignQuery, connectionPhase, insightsPeriod, loadStats]);
-
-  useEffect(() => {
-    if (connectionPhase !== "ready") return;
     const id = window.setInterval(() => {
-      void loadStats({ silent: true });
+      void statsQuery.refetch();
     }, 10 * 60_000);
     return () => window.clearInterval(id);
-  }, [connectionPhase, loadStats]);
+  }, [connectionPhase, statsQuery.refetch]);
 
   const adsManagerUrl = metaAdAccountId
     ? `https://www.facebook.com/adsmanager/manage/campaigns?act=${metaAdAccountId.replace(/^act_/, "")}`
@@ -643,15 +532,18 @@ export function CampaignAdsPanel({
         clearMetaDraftLocalState(businessId);
         setActiveDraft(null);
         invalidateDrafts();
-        void loadStats({ refresh: true });
+        void statsQuery.refreshFromSource();
       }
     },
-    [businessId, invalidateDrafts, loadStats],
+    [businessId, invalidateDrafts, statsQuery],
   );
 
   const showSkeleton =
     connectionPhase === "loading" ||
-    (connectionPhase === "ready" && adStats === null && !adStatsError);
+    (connectionPhase === "ready" &&
+      statsQuery.isLoading &&
+      adStats === null &&
+      !adStatsError);
 
   const showAnalyticsDashboard =
     connectionPhase === "ready" &&
@@ -704,7 +596,7 @@ export function CampaignAdsPanel({
         ) : showAnalyticsDashboard ? (
           <MetaAdsAnalyticsDashboard
             stats={adStats ?? emptyStats}
-            insightsLoading={insightsLoading || adStatsLoading}
+            insightsLoading={insightsLoading}
             adsManagerUrl={adsManagerUrl}
             errorMessage={adStatsError}
             campaignSearch={campaignSearchInput}
@@ -715,21 +607,13 @@ export function CampaignAdsPanel({
               void openCreateOrResume();
             }}
             onRefresh={() => {
-              void loadStats({ refresh: true });
+              setActionError(null);
+              void statsQuery.refreshFromSource();
             }}
             period={insightsPeriod}
             onPeriodChange={(next) => {
               if (next === insightsPeriod) return;
-              const cached = periodStatsCacheRef.current.get(
-                statsViewCacheKey(next, campaignPage, campaignQuery),
-              );
-              if (cached) {
-                setAdStats(cached);
-                loadedPeriodRef.current = next;
-                setAdStatsError(null);
-                setAdStatsLoading(false);
-                setInsightsLoading(false);
-              }
+              setActionError(null);
               setInsightsPeriod(next);
             }}
             onDeleteCampaign={(c) => setCampaignPendingDelete(c)}

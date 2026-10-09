@@ -2,12 +2,11 @@
 
 import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
-import { hasAuthSession, getSetupAccessToken } from "@/app/lib/auth-session";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
-import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
-import { useQuery } from "@tanstack/react-query";
+import { useFacebookConnectionStatusQuery } from "@/app/hooks/use-facebook-connection-status-query";
 import {
   ArrowRight,
   ChartColumn,
@@ -64,12 +63,8 @@ export default function BusinessDashboardPage() {
   const { data: restaurant } = useBusinessByIdQuery(businessId);
 
   const activityEnabled = businessId != null && hasAuthSession();
-  const metaStatusQuery = useQuery({
-    queryKey: ["rd-home-facebook-status", businessId],
+  const metaStatusQuery = useFacebookConnectionStatusQuery(businessId, {
     enabled: activityEnabled,
-    staleTime: 60_000,
-    queryFn: () =>
-      getFacebookConnectionStatus(getSetupAccessToken(), businessId!),
   });
 
   const stripeConnected = restaurant?.stripeConnected === true;
