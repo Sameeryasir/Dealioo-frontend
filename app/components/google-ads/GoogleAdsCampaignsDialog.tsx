@@ -45,7 +45,9 @@ export function GoogleAdsCampaignsDialog({
     setLoading(true);
     setError(null);
     try {
-      const data = await getGoogleAdsCampaignStats(businessId);
+      const data = await getGoogleAdsCampaignStats(businessId, {
+        period: "maximum",
+      });
       setStats(data);
     } catch (e) {
       setStats(null);

@@ -63,7 +63,8 @@ import {
   formatMetaSpend,
   pickPrimaryMetaAction,
 } from "@/app/lib/format-meta-ads";
-import { formatMetaAdStatsDatePresetLabel } from "@/app/lib/meta-ad-stats-date-preset";
+import { AdsDatePeriodPicker } from "@/app/components/campaign/AdsDatePeriodPicker";
+import { adsInsightsPeriodsMatch } from "@/app/lib/ads-insights-period";
 import type {
   FacebookAdBreakdownRow,
   FacebookAdCampaign,
@@ -78,6 +79,8 @@ type MetaAdsAnalyticsDashboardProps = {
   onCreateCampaign: () => void;
   canCreateCampaign?: boolean;
   onRefresh: () => void;
+  period: string;
+  onPeriodChange: (period: string) => void;
   onDeleteCampaign: (campaign: FacebookAdCampaign) => void;
   onToggleCampaignStatus?: (
     campaign: FacebookAdCampaign,
@@ -382,6 +385,8 @@ export function MetaAdsAnalyticsDashboard({
   onCreateCampaign,
   canCreateCampaign = true,
   onRefresh,
+  period,
+  onPeriodChange,
   onDeleteCampaign,
   onToggleCampaignStatus,
   onEditCampaign,
@@ -406,6 +411,14 @@ export function MetaAdsAnalyticsDashboard({
   const [selectedCampaignSnapshot, setSelectedCampaignSnapshot] =
     useState<FacebookAdCampaign | null>(null);
   const bootstrapping = Boolean(insightsLoading && campaigns.length === 0);
+  const periodReady = adsInsightsPeriodsMatch(period, stats.datePreset ?? "");
+  const metricsRefreshing = Boolean(
+    insightsLoading || (!bootstrapping && !periodReady),
+  );
+  const softRefreshing = Boolean(metricsRefreshing && !bootstrapping);
+  const metricsSoftClass = softRefreshing
+    ? "pointer-events-none opacity-45 transition-opacity duration-200"
+    : "transition-opacity duration-200";
   const [editCampaign, setEditCampaign] = useState<FacebookAdCampaign | null>(
     null,
   );
@@ -625,9 +638,14 @@ export function MetaAdsAnalyticsDashboard({
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Track spend and performance for your linked Meta ads account.
               </p>
-              <p className="mt-2 inline-flex rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.75rem] font-semibold text-[#1877f2] ring-1 ring-[#dbeafe]">
-                {formatMetaAdStatsDatePresetLabel(stats.datePreset)}
-              </p>
+              <div className="mt-3">
+                <AdsDatePeriodPicker
+                  value={period}
+                  onChange={onPeriodChange}
+                  disabled={bootstrapping}
+                  loading={softRefreshing}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -689,7 +707,12 @@ export function MetaAdsAnalyticsDashboard({
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div
+        className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-5 ${
+          bootstrapping ? "" : metricsSoftClass
+        }`}
+        aria-busy={softRefreshing || undefined}
+      >
         {bootstrapping ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -772,7 +795,7 @@ export function MetaAdsAnalyticsDashboard({
                 <div className="h-48 animate-pulse rounded-xl bg-[#f1f5f9]" />
               </div>
             ) : (
-              <>
+              <div className={metricsSoftClass} aria-busy={softRefreshing || undefined}>
             <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-[#1877f2]" /> Spend
@@ -921,7 +944,7 @@ export function MetaAdsAnalyticsDashboard({
                 </div>
               ) : null}
             </div>
-              </>
+              </div>
             )}
           </Panel>
 
@@ -945,7 +968,10 @@ export function MetaAdsAnalyticsDashboard({
               </label>
             }
           >
-            <div className={adsCampaignsTable.scroll}>
+            <div
+              className={`${adsCampaignsTable.scroll} ${bootstrapping ? "" : metricsSoftClass}`}
+              aria-busy={softRefreshing || undefined}
+            >
               <table className={adsCampaignsTable.table}>
                 <thead>
                   <tr className={adsCampaignsTable.theadRow}>
@@ -1244,7 +1270,10 @@ export function MetaAdsAnalyticsDashboard({
 
         <div className="min-w-0 space-y-5">
           <Panel title="Performance breakdown">
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              className={`grid grid-cols-2 gap-3 ${bootstrapping ? "" : metricsSoftClass}`}
+              aria-busy={softRefreshing || undefined}
+            >
               {bootstrapping
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <div
@@ -1279,10 +1308,15 @@ export function MetaAdsAnalyticsDashboard({
           </Panel>
 
           <Panel title="Top placements" showChevron>
-            {placementShares.rows.length === 0 ? (
+            {bootstrapping ? (
+              <div className="h-40 animate-pulse rounded-xl bg-[#f1f5f9]" aria-busy="true" />
+            ) : placementShares.rows.length === 0 ? (
               <EmptyChartNote message="Placement insights will show when Meta returns publisher platform data." />
             ) : (
-              <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
+              <div
+                className={`flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6 ${metricsSoftClass}`}
+                aria-busy={softRefreshing || undefined}
+              >
                 <div className="h-[9.5rem] w-[9.5rem] shrink-0">
                   <ChartMount height={152}>
                     <ResponsiveContainer width={152} height={152}>
@@ -1389,32 +1423,46 @@ export function MetaAdsAnalyticsDashboard({
           </Panel>
 
           <Panel title="Audience insights" showChevron>
-            <ul className="m-0 list-none space-y-0 p-0 text-sm">
-              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3 first:pt-0">
-                <span className="text-slate-500">Top countries</span>
-                <span className="text-right font-semibold text-[#07111f]">
-                  {countryShares.rows[0]
-                    ? `${countryShares.rows[0].name} (${countryShares.rows[0].pct.toFixed(0)}%)`
-                    : "N/A"}
-                </span>
-              </li>
-              <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3">
-                <span className="text-slate-500">Top placement</span>
-                <span className="text-right font-semibold capitalize text-[#07111f]">
-                  {placementShares.rows[0]
-                    ? `${placementDisplayName(placementShares.rows[0].name)} (${placementShares.rows[0].pct.toFixed(1)}%)`
-                    : "N/A"}
-                </span>
-              </li>
-              <li className="flex items-start justify-between gap-3 py-3 last:pb-0">
-                <span className="text-slate-500">Top age group</span>
-                <span className="text-right font-semibold text-[#07111f]">
-                  {ageShares.rows[0]
-                    ? `${ageShares.rows[0].name} (${ageShares.rows[0].pct.toFixed(1)}%)`
-                    : "N/A"}
-                </span>
-              </li>
-            </ul>
+            {bootstrapping ? (
+              <div className="space-y-3" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-10 animate-pulse rounded-lg bg-[#f1f5f9]"
+                  />
+                ))}
+              </div>
+            ) : (
+              <ul
+                className={`m-0 list-none space-y-0 p-0 text-sm ${metricsSoftClass}`}
+                aria-busy={softRefreshing || undefined}
+              >
+                <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3 first:pt-0">
+                  <span className="text-slate-500">Top countries</span>
+                  <span className="text-right font-semibold text-[#07111f]">
+                    {countryShares.rows[0]
+                      ? `${countryShares.rows[0].name} (${countryShares.rows[0].pct.toFixed(0)}%)`
+                      : "N/A"}
+                  </span>
+                </li>
+                <li className="flex items-start justify-between gap-3 border-b border-[#eef2f7] py-3">
+                  <span className="text-slate-500">Top placement</span>
+                  <span className="text-right font-semibold capitalize text-[#07111f]">
+                    {placementShares.rows[0]
+                      ? `${placementDisplayName(placementShares.rows[0].name)} (${placementShares.rows[0].pct.toFixed(1)}%)`
+                      : "N/A"}
+                  </span>
+                </li>
+                <li className="flex items-start justify-between gap-3 py-3 last:pb-0">
+                  <span className="text-slate-500">Top age group</span>
+                  <span className="text-right font-semibold text-[#07111f]">
+                    {ageShares.rows[0]
+                      ? `${ageShares.rows[0].name} (${ageShares.rows[0].pct.toFixed(1)}%)`
+                      : "N/A"}
+                  </span>
+                </li>
+              </ul>
+            )}
           </Panel>
         </div>
       </div>

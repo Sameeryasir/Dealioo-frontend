@@ -1,3 +1,4 @@
+import { isAdsMaximumPeriod } from "@/app/lib/ads-insights-period";
 import type { GoogleAdsCampaign } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import type { GoogleCampaignDraftListItem } from "@/app/services/google-ads/google-campaign-draft";
 
@@ -55,19 +56,27 @@ export function buildGoogleCampaignOfferLinkMap(
   return map;
 }
 
+function googleAdsPeriodDayCount(datePreset: string): number | null {
+  const preset = datePreset.trim().toLowerCase();
+  if (isAdsMaximumPeriod(preset)) {
+    return null;
+  }
+  if (preset === "last_7d") return 7;
+  if (preset === "last_14d") return 14;
+  if (preset === "last_30d") return 30;
+  if (preset === "this_month" || preset === "last_month") return 30;
+  if (/^\d{4}-\d{2}$/.test(preset) || /^m:\d{4}-\d{2}$/.test(preset)) {
+    return 30;
+  }
+  return 30;
+}
+
 export function buildGoogleAdsManagementAlerts(
   campaigns: GoogleAdsCampaign[],
-  datePreset = "ALL_TIME",
+  datePreset = "this_month",
 ): GoogleAdsManagementAlert[] {
   const alerts: GoogleAdsManagementAlert[] = [];
-  const preset = datePreset.toUpperCase();
-  const periodDays = preset.includes("ALL_TIME")
-    ? null
-    : preset.includes("7")
-      ? 7
-      : preset.includes("14")
-        ? 14
-        : 30;
+  const periodDays = googleAdsPeriodDayCount(datePreset);
 
   for (const campaign of campaigns) {
     const status = normalizeStatus(

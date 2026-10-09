@@ -45,6 +45,8 @@ import type {
   GoogleAdsCampaignStats,
 } from "@/app/services/google-ads/get-google-ads-campaign-stats";
 import { isAdminUser } from "@/app/lib/is-admin-user";
+import { AdsDatePeriodPicker } from "@/app/components/campaign/AdsDatePeriodPicker";
+import { adsInsightsPeriodsMatch } from "@/app/lib/ads-insights-period";
 import {
   adsCampaignSelectDotClass,
   adsCampaignsTable,
@@ -224,6 +226,8 @@ type GoogleAdsAnalyticsDashboardProps = {
   offerLinksByGoogleCampaignId?: Record<string, GoogleCampaignOfferLink>;
   onCreateCampaign: () => void;
   onRefresh: () => void;
+  period: string;
+  onPeriodChange: (period: string) => void;
   onDeleteCampaign: (campaign: GoogleAdsCampaign) => void;
   onDuplicateCampaign?: (campaign: GoogleAdsCampaign) => void;
   onToggleCampaignStatus?: (
@@ -257,6 +261,8 @@ export function GoogleAdsAnalyticsDashboard({
   offerLinksByGoogleCampaignId = {},
   onCreateCampaign,
   onRefresh,
+  period,
+  onPeriodChange,
   onDeleteCampaign,
   onDuplicateCampaign,
   onToggleCampaignStatus,
@@ -288,6 +294,14 @@ export function GoogleAdsAnalyticsDashboard({
   const currency = stats.currency;
   const campaigns = stats.campaigns ?? [];
   const bootstrapping = Boolean(insightsLoading && campaigns.length === 0);
+  const periodReady = adsInsightsPeriodsMatch(period, stats.datePreset ?? "");
+  const metricsRefreshing = Boolean(
+    insightsLoading || (!bootstrapping && !periodReady),
+  );
+  const softRefreshing = Boolean(metricsRefreshing && !bootstrapping);
+  const metricsSoftClass = softRefreshing
+    ? "pointer-events-none opacity-45 transition-opacity duration-200"
+    : "transition-opacity duration-200";
   const managementAlerts = useMemo(
     () => buildGoogleAdsManagementAlerts(campaigns, stats.datePreset),
     [campaigns, stats.datePreset],
@@ -422,6 +436,14 @@ export function GoogleAdsAnalyticsDashboard({
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Track spend and performance for your linked Google Ads account.
               </p>
+              <div className="mt-3">
+                <AdsDatePeriodPicker
+                  value={period}
+                  onChange={onPeriodChange}
+                  disabled={bootstrapping}
+                  loading={softRefreshing}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -529,7 +551,12 @@ export function GoogleAdsAnalyticsDashboard({
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div
+        className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-5 ${
+          bootstrapping ? "" : metricsSoftClass
+        }`}
+        aria-busy={softRefreshing || undefined}
+      >
         {bootstrapping ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -588,7 +615,10 @@ export function GoogleAdsAnalyticsDashboard({
                 <div className="h-48 animate-pulse rounded-xl bg-[#f1f5f9]" />
               </div>
             ) : (
-              <>
+              <div
+                className={metricsSoftClass}
+                aria-busy={softRefreshing || undefined}
+              >
                 <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="size-2 rounded-full bg-[#1877f2]" /> Spend
@@ -605,7 +635,7 @@ export function GoogleAdsAnalyticsDashboard({
                   Daily performance will appear once Google returns day-level
                   insights for this account.
                 </div>
-              </>
+              </div>
             )}
           </Panel>
 
@@ -630,7 +660,10 @@ export function GoogleAdsAnalyticsDashboard({
               </label>
             }
           >
-            <div className={adsCampaignsTable.scroll}>
+            <div
+              className={`${adsCampaignsTable.scroll} ${bootstrapping ? "" : metricsSoftClass}`}
+              aria-busy={softRefreshing || undefined}
+            >
               <table className={adsCampaignsTable.table}>
                 <thead>
                   <tr className={adsCampaignsTable.theadRow}>
@@ -967,7 +1000,10 @@ export function GoogleAdsAnalyticsDashboard({
 
         <div className="min-w-0 space-y-5">
           <Panel title="Performance breakdown">
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              className={`grid grid-cols-2 gap-3 ${bootstrapping ? "" : metricsSoftClass}`}
+              aria-busy={softRefreshing || undefined}
+            >
               {bootstrapping
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <div

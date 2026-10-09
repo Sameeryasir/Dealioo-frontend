@@ -20,6 +20,7 @@ import {
 import { GoogleAdsConnectEmptyState } from "@/app/components/google-ads/GoogleAdsConnectEmptyState";
 import { GoogleAdsLogo } from "@/app/components/landing/LandingIntegrationLogos";
 import { Skeleton } from "@/app/components/skeleton";
+import { DEFAULT_ADS_INSIGHTS_PERIOD } from "@/app/lib/ads-insights-period";
 import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { buildGoogleCampaignOfferLinkMap } from "@/app/lib/google-ads-management";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
@@ -175,7 +176,21 @@ export function CampaignGoogleAdsPanel({
   const [importingBuilderCampaignId, setImportingBuilderCampaignId] = useState<
     string | null
   >(null);
+  const [insightsPeriod, setInsightsPeriod] = useState<string>(
+    DEFAULT_ADS_INSIGHTS_PERIOD,
+  );
   const statsRequestIdRef = useRef(0);
+  const loadedPeriodRef = useRef<string | null>(null);
+  const insightsPeriodRef = useRef(insightsPeriod);
+  insightsPeriodRef.current = insightsPeriod;
+  const periodStatsCacheRef = useRef(
+    new Map<string, GoogleAdsCampaignStats>(),
+  );
+
+  const statsViewCacheKey = useCallback(
+    (period: string) => `${businessId}|${period}`,
+    [businessId],
+  );
 
   const draftsQuery = useGoogleCampaignDraftsQuery(businessId, {
     enabled: googleConnected && googleCustomerSelected,
@@ -234,9 +249,30 @@ export function CampaignGoogleAdsPanel({
   }, [businessId, queryClient]);
 
   const loadStats = useCallback(
-    async (opts?: { refresh?: boolean; silent?: boolean }) => {
+    async (opts?: {
+      refresh?: boolean;
+      silent?: boolean;
+      period?: string;
+    }) => {
       const silent = opts?.silent === true;
+      const period = opts?.period ?? insightsPeriodRef.current;
+      const cacheKey = statsViewCacheKey(period);
       const requestId = ++statsRequestIdRef.current;
+      const hadStats = loadedPeriodRef.current != null;
+
+      if (!opts?.refresh) {
+        const cached = periodStatsCacheRef.current.get(cacheKey);
+        if (cached) {
+          setAdStats(cached);
+          setAdStatsError(null);
+          loadedPeriodRef.current = period;
+          setAdStatsLoading(false);
+          return;
+        }
+      } else {
+        periodStatsCacheRef.current.clear();
+      }
+
       if (!silent) {
         setAdStatsLoading(true);
         setAdStatsError(null);
@@ -244,20 +280,28 @@ export function CampaignGoogleAdsPanel({
       try {
         const stats = await getGoogleAdsCampaignStats(businessId, {
           refresh: opts?.refresh,
+          period,
         });
         if (requestId !== statsRequestIdRef.current) return;
         setAdStats(stats);
         setAdStatsError(null);
+        loadedPeriodRef.current = period;
+        periodStatsCacheRef.current.set(cacheKey, stats);
 
         if (!opts?.refresh && stats.isStale) {
           if (!silent) {
             setAdStatsLoading(false);
           }
           const refreshId = ++statsRequestIdRef.current;
-          void getGoogleAdsCampaignStats(businessId, { refresh: true })
+          void getGoogleAdsCampaignStats(businessId, {
+            refresh: true,
+            period,
+          })
             .then((fresh) => {
               if (refreshId !== statsRequestIdRef.current) return;
               setAdStats(fresh);
+              periodStatsCacheRef.current.set(cacheKey, fresh);
+              loadedPeriodRef.current = period;
             })
             .catch(() => {});
           return;
@@ -265,7 +309,9 @@ export function CampaignGoogleAdsPanel({
       } catch (e) {
         if (requestId !== statsRequestIdRef.current) return;
         if (!silent) {
-          setAdStats(null);
+          if (!hadStats) {
+            setAdStats(null);
+          }
           setAdStatsError(
             friendlyGoogleAdsError(
               e instanceof Error
@@ -280,7 +326,7 @@ export function CampaignGoogleAdsPanel({
         }
       }
     },
-    [businessId],
+    [businessId, statsViewCacheKey],
   );
 
   const refreshConnection = useCallback(async () => {
@@ -314,12 +360,16 @@ export function CampaignGoogleAdsPanel({
   }, [businessId]);
 
   useEffect(() => {
+    loadedPeriodRef.current = null;
+    periodStatsCacheRef.current.clear();
+    setInsightsPeriod(DEFAULT_ADS_INSIGHTS_PERIOD);
+    setAdStats(null);
+    setAdStatsError(null);
+
     let cancelled = false;
 
     void (async () => {
       setAdStatsLoading(true);
-      setAdStats(null);
-      setAdStatsError(null);
 
       const { connected, customerSelected } = await refreshConnection();
       if (cancelled) return;
@@ -329,13 +379,23 @@ export function CampaignGoogleAdsPanel({
         return;
       }
 
-      await loadStats();
+      await loadStats({ period: insightsPeriodRef.current });
     })();
 
     return () => {
       cancelled = true;
     };
   }, [businessId, loadStats, refreshConnection]);
+
+  useEffect(() => {
+    if (!googleConnected || !googleCustomerSelected) return;
+    if (loadedPeriodRef.current == null) return;
+    if (loadedPeriodRef.current === insightsPeriod) return;
+    void loadStats({
+      silent: false,
+      period: insightsPeriod,
+    });
+  }, [googleConnected, googleCustomerSelected, insightsPeriod, loadStats]);
 
   useEffect(() => {
     if (!googleConnected || !googleCustomerSelected) return;
@@ -530,7 +590,7 @@ export function CampaignGoogleAdsPanel({
     customerId: null,
     customerName: null,
     currency: null,
-    datePreset: "ALL_TIME",
+    datePreset: DEFAULT_ADS_INSIGHTS_PERIOD,
     campaigns: [],
   };
 
@@ -574,6 +634,20 @@ export function CampaignGoogleAdsPanel({
             onRefresh={() => {
               void loadStats({ refresh: true });
               void draftsQuery.refetch();
+            }}
+            period={insightsPeriod}
+            onPeriodChange={(next) => {
+              if (next === insightsPeriod) return;
+              const cached = periodStatsCacheRef.current.get(
+                statsViewCacheKey(next),
+              );
+              if (cached) {
+                setAdStats(cached);
+                loadedPeriodRef.current = next;
+                setAdStatsError(null);
+                setAdStatsLoading(false);
+              }
+              setInsightsPeriod(next);
             }}
             onDeleteCampaign={(c) => {
               if (!canDeleteGoogleCampaign) return;

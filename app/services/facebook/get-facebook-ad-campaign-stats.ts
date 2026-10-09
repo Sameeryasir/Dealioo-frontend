@@ -1,4 +1,5 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
+import { DEFAULT_ADS_INSIGHTS_PERIOD } from "@/app/lib/ads-insights-period";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type FacebookAdCampaignAction = {
@@ -100,6 +101,7 @@ type FacebookAdCampaignStatsOptions = {
   pageSize?: number;
   query?: string;
   campaignIds?: string[];
+  period?: string;
   timeoutMs?: number;
 };
 
@@ -118,7 +120,8 @@ function statsCacheKey(
   const pageSize = options?.pageSize ?? META_CAMPAIGN_PAGE_SIZE;
   const query = options?.query?.trim() ?? "";
   const campaignIds = normalizeCampaignIds(options?.campaignIds).join(",");
-  return `${restaurantId}:insights=${insights}:refresh=${refresh}:page=${page}:size=${pageSize}:q=${query}:ids=${campaignIds}`;
+  const period = options?.period?.trim() || DEFAULT_ADS_INSIGHTS_PERIOD;
+  return `${restaurantId}:insights=${insights}:refresh=${refresh}:page=${page}:size=${pageSize}:q=${query}:ids=${campaignIds}:period=${period}`;
 }
 
 export async function getFacebookAdCampaignStats(
@@ -169,6 +172,9 @@ async function fetchFacebookAdCampaignStats(
   const campaignIds = normalizeCampaignIds(options?.campaignIds);
   if (campaignIds.length > 0) {
     params.set("campaignIds", campaignIds.join(","));
+  }
+  if (options?.period?.trim()) {
+    params.set("period", options.period.trim());
   }
 
   const query = params.toString();
