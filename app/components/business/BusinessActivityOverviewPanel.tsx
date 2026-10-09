@@ -347,7 +347,7 @@ export function BusinessActivityOverviewPanel({
             previousTo: previousRange?.to ?? null,
             timezone: viewerTimeZone,
           })
-        : businessActivityQueryKeys.all,
+        : businessActivityQueryKeys.disabled(),
     enabled: businessId != null && businessId > 0,
     staleTime: 30_000,
     queryFn: () =>
@@ -365,7 +365,7 @@ export function BusinessActivityOverviewPanel({
     queryKey:
       businessId != null
         ? businessActivityQueryKeys.yearPeak(businessId, currentYear)
-        : businessActivityQueryKeys.all,
+        : businessActivityQueryKeys.disabled(),
     enabled: businessId != null && businessId > 0,
     staleTime: 60_000,
     queryFn: () =>

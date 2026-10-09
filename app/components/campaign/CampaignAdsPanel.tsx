@@ -12,6 +12,7 @@ import type { MetaDraftPickerAction } from "@/app/components/campaign/meta-build
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { Skeleton } from "@/app/components/skeleton";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
+import { useFacebookConnectionStatusQuery } from "@/app/hooks/use-facebook-connection-status-query";
 import { useMetaAdCampaignStatsQuery } from "@/app/hooks/use-meta-ad-campaign-stats-query";
 import {
   metaCampaignDraftQueryKeys,
@@ -27,9 +28,7 @@ import type {
   MetaCampaignObjective,
 } from "@/app/lib/meta-campaign-builder-types";
 import { hasMetaAdsManagementScope } from "@/app/lib/meta-ads-permissions";
-import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import { deleteFacebookCampaign } from "@/app/services/facebook/delete-facebook-campaign";
-import { getFacebookConnectionStatus } from "@/app/services/facebook/get-facebook-connection-status";
 import {
   META_CAMPAIGN_PAGE_SIZE,
   type FacebookAdCampaign,
@@ -143,12 +142,13 @@ export function CampaignAdsPanel({
   campaignWebsiteUrl = "",
   embedded = false,
 }: CampaignAdsPanelProps) {
-  const [metaConnected, setMetaConnected] = useState(false);
-  const [metaAdAccountId, setMetaAdAccountId] = useState<string | null>(null);
-  const [metaOauthScopes, setMetaOauthScopes] = useState<string[]>([]);
-  const [metaLoading, setMetaLoading] = useState(true);
-  const [metaError, setMetaError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const connectionQuery = useFacebookConnectionStatusQuery(businessId);
+  const metaConnected = connectionQuery.data?.connected === true;
+  const metaAdAccountId = connectionQuery.data?.metaAdAccountId ?? null;
+  const metaOauthScopes = connectionQuery.data?.metaOauthScopes ?? [];
+  const metaLoading = connectionQuery.isPending;
+  const metaError = connectionQuery.error;
   const draftsQuery = useMetaCampaignDraftsQuery(businessId, {
     enabled: metaConnected && Boolean(metaAdAccountId),
   });
@@ -446,35 +446,6 @@ export function CampaignAdsPanel({
     ],
   );
 
-  const refreshConnection = useCallback(async () => {
-    setMetaLoading(true);
-    setMetaError(null);
-    try {
-      const token = getSetupAccessToken().trim();
-      if (!token) {
-        setMetaConnected(false);
-        setMetaAdAccountId(null);
-        setMetaOauthScopes([]);
-        return { connected: false, metaAdAccountId: null as string | null };
-      }
-      const status = await getFacebookConnectionStatus(token, businessId);
-      setMetaConnected(status.connected);
-      setMetaAdAccountId(status.metaAdAccountId);
-      setMetaOauthScopes(status.metaOauthScopes ?? []);
-      return {
-        connected: status.connected,
-        metaAdAccountId: status.metaAdAccountId,
-      };
-    } catch (e) {
-      setMetaError(
-        e instanceof Error ? e.message : "Could not check Meta connection.",
-      );
-      return { connected: false, metaAdAccountId: null as string | null };
-    } finally {
-      setMetaLoading(false);
-    }
-  }, [businessId]);
-
   useEffect(() => {
     setCampaignPage(1);
     setCampaignQuery("");
@@ -494,19 +465,6 @@ export function CampaignAdsPanel({
     }, 300);
     return () => window.clearTimeout(id);
   }, [campaignSearchInput]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      await refreshConnection();
-      if (cancelled) return;
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, refreshConnection]);
 
   useEffect(() => {
     if (connectionPhase !== "ready") return;
@@ -638,7 +596,7 @@ export function CampaignAdsPanel({
                   {metaError}
                   <button
                     type="button"
-                    onClick={() => void refreshConnection()}
+                    onClick={() => void connectionQuery.refetch()}
                     className="mt-2 block text-xs font-semibold underline"
                   >
                     Try again

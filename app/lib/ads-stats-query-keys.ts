@@ -1,6 +1,7 @@
 export const adsStatsQueryKeys = {
   all: ["ads-stats"] as const,
   meta: () => [...adsStatsQueryKeys.all, "meta"] as const,
+  metaDisabled: () => [...adsStatsQueryKeys.meta(), "disabled"] as const,
   metaCampaignStats: (
     businessId: number,
     options: {
@@ -19,7 +20,10 @@ export const adsStatsQueryKeys = {
       options.pageSize,
       options.query,
     ] as const,
+  facebookConnection: (businessId: number) =>
+    [...adsStatsQueryKeys.meta(), "connection", businessId] as const,
   google: () => [...adsStatsQueryKeys.all, "google"] as const,
+  googleDisabled: () => [...adsStatsQueryKeys.google(), "disabled"] as const,
   googleCampaignStats: (
     businessId: number,
     options: { period: string },
@@ -30,12 +34,11 @@ export const adsStatsQueryKeys = {
       businessId,
       options.period,
     ] as const,
-  facebookConnection: (businessId: number) =>
-    ["facebook-connection", businessId] as const,
 };
 
 export const businessActivityQueryKeys = {
   all: ["business-activity"] as const,
+  disabled: () => [...businessActivityQueryKeys.all, "disabled"] as const,
   dashboardSummary: (
     businessId: number,
     options: {

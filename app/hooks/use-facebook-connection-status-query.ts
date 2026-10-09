@@ -20,7 +20,7 @@ export function useFacebookConnectionStatusQuery(
     queryKey:
       businessId != null
         ? adsStatsQueryKeys.facebookConnection(businessId)
-        : adsStatsQueryKeys.meta(),
+        : adsStatsQueryKeys.metaDisabled(),
     enabled,
     staleTime: 60_000,
     queryFn: async () => {
