@@ -114,7 +114,7 @@ export function GoogleAdsCampaignsDialog({
               ) : null}
             </p>
             <p className="mt-0.5 text-[11px] text-zinc-500">
-              Last 30 days from your linked account
+              All available history from your linked account
             </p>
           </div>
 

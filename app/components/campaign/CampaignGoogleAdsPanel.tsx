@@ -530,7 +530,7 @@ export function CampaignGoogleAdsPanel({
     customerId: null,
     customerName: null,
     currency: null,
-    datePreset: "LAST_30_DAYS",
+    datePreset: "ALL_TIME",
     campaigns: [],
   };
 

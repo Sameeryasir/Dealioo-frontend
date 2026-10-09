@@ -57,11 +57,17 @@ export function buildGoogleCampaignOfferLinkMap(
 
 export function buildGoogleAdsManagementAlerts(
   campaigns: GoogleAdsCampaign[],
-  datePreset = "LAST_30_DAYS",
+  datePreset = "ALL_TIME",
 ): GoogleAdsManagementAlert[] {
   const alerts: GoogleAdsManagementAlert[] = [];
-  const periodDays =
-    datePreset.includes("7") ? 7 : datePreset.includes("14") ? 14 : 30;
+  const preset = datePreset.toUpperCase();
+  const periodDays = preset.includes("ALL_TIME")
+    ? null
+    : preset.includes("7")
+      ? 7
+      : preset.includes("14")
+        ? 14
+        : 30;
 
   for (const campaign of campaigns) {
     const status = normalizeStatus(
@@ -72,7 +78,8 @@ export function buildGoogleAdsManagementAlerts(
     const impressions = parseNum(campaign.insights?.impressions);
     const clicks = parseNum(campaign.insights?.clicks);
     const dailyBudget = parseNum(campaign.dailyBudget);
-    const avgDailySpend = periodDays > 0 ? spend / periodDays : spend;
+    const avgDailySpend =
+      periodDays != null && periodDays > 0 ? spend / periodDays : null;
 
     if (status === "ENABLED" || status === "ACTIVE") {
       if (impressions <= 0 && clicks <= 0) {
@@ -95,7 +102,11 @@ export function buildGoogleAdsManagementAlerts(
         });
       }
 
-      if (dailyBudget > 0 && avgDailySpend >= dailyBudget * 0.9) {
+      if (
+        avgDailySpend != null &&
+        dailyBudget > 0 &&
+        avgDailySpend >= dailyBudget * 0.9
+      ) {
         alerts.push({
           id: `${campaign.id}-budget`,
           tone: "rose",
