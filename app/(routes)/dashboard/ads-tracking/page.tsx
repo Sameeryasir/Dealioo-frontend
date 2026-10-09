@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
 export default function DashboardAdsTrackingPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Ads Tracking"
-      description="Open a business to configure Meta Pixel and ad tracking IDs."
-    />
-  );
+  redirect("/dashboard");
 }

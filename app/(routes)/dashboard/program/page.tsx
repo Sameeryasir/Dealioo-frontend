@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
-export default function ProgramPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Program"
-      description="Configure loyalty and retention programs for your guests."
-    />
-  );
+export default function DashboardProgramPage() {
+  redirect("/dashboard");
 }

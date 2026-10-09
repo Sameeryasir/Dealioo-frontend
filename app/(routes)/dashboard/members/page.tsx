@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
-export default function MembersPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Members"
-      description="Manage team members and permissions for your business."
-    />
-  );
+export default function DashboardMembersPage() {
+  redirect("/dashboard");
 }

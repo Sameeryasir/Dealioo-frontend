@@ -1,30 +1,5 @@
-"use client";
-
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
-import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 
 export default function DashboardPerformancePage() {
-  const router = useRouter();
-  const [allowed, setAllowed] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const canAccess = isAdminOrSuperAdminUser();
-    setAllowed(canAccess);
-    if (!canAccess) {
-      router.replace("/dashboard");
-    }
-  }, [router]);
-
-  if (allowed !== true) {
-    return null;
-  }
-
-  return (
-    <ComingSoonRoutePage
-      title="Performance"
-      description="Open a business to view highest-earning campaigns and monthly performance."
-    />
-  );
+  redirect("/dashboard");
 }

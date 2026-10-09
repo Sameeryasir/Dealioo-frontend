@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
 export default function DashboardOrdersPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Orders"
-      description="Track and manage orders across your businesses."
-    />
-  );
+  redirect("/dashboard");
 }

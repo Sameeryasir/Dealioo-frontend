@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
 export default function DashboardMetaAdsPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Meta Ads"
-      description="Open a business to connect Meta and manage Meta ads."
-    />
-  );
+  redirect("/dashboard");
 }

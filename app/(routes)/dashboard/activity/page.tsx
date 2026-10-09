@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
 export default function DashboardActivityPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Activity"
-      description="View recent activity and notifications for your account."
-    />
-  );
+  redirect("/dashboard");
 }

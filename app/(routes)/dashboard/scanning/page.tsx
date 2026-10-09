@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
 export default function DashboardScanningPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Scanning"
-      description="Scan guest codes and manage check-ins from this view."
-    />
-  );
+  redirect("/dashboard");
 }

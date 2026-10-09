@@ -1,10 +1,5 @@
-import { ComingSoonRoutePage } from "@/app/components/ComingSoonRoutePage";
+import { redirect } from "next/navigation";
 
-export default function AdLibraryPage() {
-  return (
-    <ComingSoonRoutePage
-      title="Ad library"
-      description="Browse and manage creative assets for your campaigns."
-    />
-  );
+export default function DashboardAdLibraryPage() {
+  redirect("/dashboard");
 }
